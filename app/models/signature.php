@@ -27,8 +27,9 @@ class Signature extends AppModel {
                                                 'url',
                                                 'user-agent',
                                                 'regkey',
+                                                'AS',
                                                 'other')),
-                'message' => 'Options : md5, sha1, filename, ip, domain, email, url, regkey, other, ...'
+                'message' => 'Options : md5, sha1, filename, ip, domain, email, url, regkey, AS, other, ...'
             ),
         ),
         'value' => array(
