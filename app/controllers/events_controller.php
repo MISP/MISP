@@ -135,7 +135,7 @@ class EventsController extends AppController {
             $this->Session->setFlash(__('Invalid id for event', true));
             $this->redirect(array('action'=>'index'));
         }
-        // only alert own events
+        // only allow alert for own events or admins
         $user = $this->Auth->user();
         $old_event = $this->Event->read(null, $id);
         if (!$this->isAdmin() && $user['User']['org'] != $old_event['Event']['org']) {
@@ -143,13 +143,12 @@ class EventsController extends AppController {
             $this->redirect(array('action' => 'view', $id));
         }
         
-        // fetch the event
+        // fetch the event and build the body
         $event = $this->Event->read(null, $id);
         if (1 == $event['Event']['alerted']) {
             $this->Session->setFlash(__('Everyone has already been alerted for this event. To try again, first edit it.', true));
             $this->redirect(array('action' => 'view', $id));
         }
-        
         $body = "";
         $appendlen = 20;
         $body  = 'Event       : '.$event['Event']['id']."\n";
@@ -176,33 +175,35 @@ class EventsController extends AppController {
         $this->loadModel('Users');
         
         //
-        // build a list of the recipients that get a non-encrypted mail
+        // Build a list of the recipients that get a non-encrypted mail
+        // But only do this it if it is allowed in the bootstrap.php file.
         //
-        $alert_users = $this->Users->find('all', array(
-            'conditions' => array('Users.autoalert' => 1,
-                                  'Users.gpgkey =' => ""),
-            'recursive' => 0,
-            ) );
-        $alert_emails = Array();
-        foreach ($alert_users as $user) {
-            $alert_emails[] = $user['Users']['email'];
+        if ('false' == Configure::read('GnuPG.onlyencrypted')) {
+            $alert_users = $this->Users->find('all', array(
+                'conditions' => array('Users.autoalert' => 1,
+                                      'Users.gpgkey =' => ""),
+                'recursive' => 0,
+                ) );
+            $alert_emails = Array();
+            foreach ($alert_users as $user) {
+                $alert_emails[] = $user['Users']['email'];
+            }
+            // prepare the the unencrypted email
+            $this->Email->from = "CyDefSIG <sig@cyber-defence.be>";
+            $this->Email->to = "CyDefSIG <sig@cyber-defence.be>";
+            $this->Email->return = "sig@cyber-defence.be";
+            $this->Email->bcc = $alert_emails; 
+            $this->Email->subject = "[CyDefSIG] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
+            //$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
+            $this->Email->template = 'body';
+            $this->Email->sendAs = 'text';        // both text or html 
+            $this->set('body', $body_signed);        
+            // send it
+            $this->Email->send();
+            // If you wish to send multiple emails using a loop, you'll need 
+            // to reset the email fields using the reset method of the Email component. 
+            $this->Email->reset();
         }
-        // prepare the the unencrypted email
-        $this->Email->from = "CyDefSIG <sig@cyber-defence.be>";
-        $this->Email->to = "CyDefSIG <sig@cyber-defence.be>";
-        $this->Email->return = "sig@cyber-defence.be";
-        $this->Email->bcc = $alert_emails; 
-        $this->Email->subject = "[CyDefSIG] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
-        //$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
-        $this->Email->template = 'body';
-        $this->Email->sendAs = 'text';        // both text or html 
-        $this->set('body', $body_signed);        
-        // send it
-        $this->Email->send();
-        // If you wish to send multiple emails using a loop, you'll need 
-        // to reset the email fields using the reset method of the Email component. 
-        $this->Email->reset();
-        
         
         //
         // Build a list of the recipients that wish to receive encrypted mails. 
@@ -315,6 +316,7 @@ class EventsController extends AppController {
             $body_enc_sig = $gpg->encrypt($body_signed, true);
         } else {
             $body_enc_sig = $body_signed;
+            // FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key? 
         }
         
         // prepare the email

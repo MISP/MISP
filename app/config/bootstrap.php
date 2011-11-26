@@ -49,10 +49,10 @@
  *
  */
 
-
-Configure::write('Recaptcha.publicKey', '');
-Configure::write('Recaptcha.privateKey', ');
-
+Configure::write('GnuPG.onlyencrypted', 'true');         // only allow encrypted email // do not allow plaintext mails 
 Configure::write('GnuPG.email', 'sig@cyber-defence.be');
 Configure::write('GnuPG.password', '');
 // Configure::write('GnuPG.homedir', ''); // LATER let the user chose the gnupg homedir using  putenv('GNUPGHOME=/home/sender/.gnupg');
+
+Configure::write('Recaptcha.publicKey', '');
+Configure::write('Recaptcha.privateKey', '');
