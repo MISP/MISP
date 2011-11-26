@@ -30,7 +30,7 @@ class EventsController extends AppController {
         $this->set('events', $this->paginate());
         
         if (empty($me_user['User']['gpgkey'])) {
-            $this->Session->setFlash(__('No GPG key set in your profile. To get encrypted emails, please submit your public key in your profile.', true));
+            $this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.', true));
         }
     }
 
@@ -353,6 +353,11 @@ class EventsController extends AppController {
         
     }
 
+    
+    function export() {
+        
+        
+    }
     
     
     function xml($key) {

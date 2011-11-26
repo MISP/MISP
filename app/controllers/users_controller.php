@@ -28,21 +28,27 @@ class UsersController extends AppController {
     }
 
     function view($id = null) {
-        $user = $this->Auth->user();
+        $me_user = $this->Auth->user();
         if (!$id) {
             $this->Session->setFlash(__('Invalid user', true));
             $this->redirect(array('action' => 'index'));
         }
         
-        if ('me' == $id ) $id = $user['User']['id'];
+        if ('me' == $id ) $id = $me_user['User']['id'];
 
         // only allow access to own profile, except for admins
-        if (!$this->isAdmin() && $id != $user['User']['id']) {
+        if (!$this->isAdmin() && $id != $me_user['User']['id']) {
         	$this->Session->setFlash(__('Not authorized to view this user_error', true));
             $this->redirect(array('controller' => 'events' , 'action' => 'index'));
         }
         
-        $this->set('user', $this->User->read(null, $id));
+        $user = $this->User->read(null, $id);
+        
+        if (empty($me['User']['gpgkey'])) {
+            $this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.', true));
+        }
+        
+        $this->set('user', $user);
     }
 
     function add() {
