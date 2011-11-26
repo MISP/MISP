@@ -1,0 +1,8 @@
+/app/tmp
+/plugins
+/vendors
+/.project
+.DS_Store
+/cake
+/index.php
+/README
