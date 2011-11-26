@@ -22,7 +22,7 @@
 <head>
 	<?php echo $this->Html->charset(); ?>
 	<title>
-		<?php __('CyDefSIG: Cyber-Defence Signatures: sharing detection patterns'); ?>
+		CyDefSIG - 
 		<?php echo $title_for_layout; ?>
 	</title>
 	<?php

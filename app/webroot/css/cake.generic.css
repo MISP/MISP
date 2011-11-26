@@ -68,6 +68,10 @@ h4 {
 ul, li {
 	margin: 0 12px;
 }
+p {
+	margin-bottom: 8px;
+}
+
 
 /** Layout **/
 #container {
