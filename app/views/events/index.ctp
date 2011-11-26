@@ -1,5 +1,5 @@
 <div class="events index">
-	<h2><?php __('Events');?></h2>
+	<h2>Events</h2>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
 			<th><?php echo $this->Paginator->sort('org');?></th>
