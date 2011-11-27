@@ -39,6 +39,8 @@ class EventsController extends AppController {
             $this->Session->setFlash(__('Invalid event', true));
             $this->redirect(array('action' => 'index'));
         }
+        
+        $this->set('relatedEvents', $this->_getRelatedEvents($id));
         $this->set('event', $this->Event->read(null, $id));
     }
 
@@ -357,8 +359,7 @@ class EventsController extends AppController {
 
     
     function export() {
-        
-        
+        // Simply display a static view
     }
     
     
@@ -563,4 +564,42 @@ class EventsController extends AppController {
         
     }
 
+    
+    /**
+     * 
+     * Return an array of related event_ids
+     * @param int $eventid
+     * @return multitype:string Array containing the related event_ids
+     * @todo move _getRelatedEvents($eventid) in the Event and Signature model. Make 2 versions. 1/ related events 2/ related signatures
+     * @todo refactor this concept to a more performant system. Now the performance will decrease exponentially with the number of signatures
+     */
+    function _getRelatedEvents($id) {
+        // first get a list of related event_ids
+        // then do a single query to search for all the events with that id 
+        $relatedEventIds = Array();
+        $this->loadModel('Signature');
+        
+        $event = $this->Event->read(null, $id);
+        foreach ($event['Signature'] as $signature ) {
+            if ($signature['type'] == 'other')
+                continue;  // sigs of type 'other' should not be matched against the others
+            $conditions = array('Signature.value =' => $signature['value'], 'Signature.type =' => $signature['type']);
+            $similar_signatures = $this->Signature->find('all',array('conditions' => $conditions));
+            foreach ($similar_signatures as $similar_signature) {
+                if ($id == $similar_signature['Signature']['event_id']) 
+                    continue; // same as this event, not needed in the list
+                
+                $relatedEventIds[] = $similar_signature['Signature']['event_id'];
+                
+            }
+        }
+        $conditions = array("Event.id" => $relatedEventIds);
+        $relatedEvents= $this->Event->find('all', 
+                                           array('conditions' => $conditions, 
+                                                 'recursive' => 0,
+                                                 'order' => 'Event.date DESC')
+                                           );
+        return $relatedEvents;
+    }
+    
 }

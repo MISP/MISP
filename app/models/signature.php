@@ -172,4 +172,17 @@ class Signature extends AppModel {
         return false;
 
     }
+
+    
+//     function getRelatedEvents() {
+//         // FIXME write this function    
+//         $conditions = array('Signatures.value =' => $signature['value'], 'Signatures.type =' => $signature['type']);
+//         $similar_signatures = $this->Signatures->find('all',array('conditions' => $conditions));
+//         //debug($similar_signatures);
+//         print $signature['value']."\t ";
+//         foreach ($similar_signatures as $similar_signature) {
+//             print $similar_signature['Signatures']['event_id']." ";
+//         }
+//     }
+
 }

@@ -38,13 +38,24 @@
 		</dd>
 	</dl>
 	
+	<div class="related">
+		<?php if (!empty($relatedEvents)):?>
+		<h3><?php __('Related Events');?></h3>
+		<ul>
+		<?php foreach ($relatedEvents as $relatedEvent): ?>
+		<li><?php echo $this->Html->link($relatedEvent['Event']['date'], array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));?></li>
+	    <?php endforeach; ?>
+	    <?php endif; ?>
+	</div>
+	
     <div class="related">
-    	<h3><?php __('Related Signatures');?></h3>
+    	<h3><?php __('Signatures');?></h3>
     	<?php if (!empty($event['Signature'])):?>
     	<table cellpadding = "0" cellspacing = "0">
     	<tr>
     		<th><?php __('Type'); ?></th>
     		<th><?php __('Value'); ?></th>
+    		<th>Related Events</th>
     		<th class="actions"><?php __('Actions');?></th>
     	</tr>
     	<?php
@@ -58,6 +69,7 @@
     		<tr<?php echo $class;?>>
     			<td><?php echo $signature['type'];?></td>
     			<td><?php echo nl2br(Sanitize::html($signature['value']));?></td>
+    			<td></td>
     			<td class="actions" style="text-align:right;">
     				<?php
     				if ($isAdmin || $event['Event']['org'] == $me['org']) { 
