@@ -148,22 +148,32 @@ class EventsController extends AppController {
         // fetch the event and build the body
         $event = $this->Event->read(null, $id);
         if (1 == $event['Event']['alerted']) {
-            $this->Session->setFlash(__('Everyone has already been alerted for this event. To try again, first edit it.', true));
+            $this->Session->setFlash(__('Everyone has already been alerted for this event. To alert again, first edit this event.', true));
             $this->redirect(array('action' => 'view', $id));
         }
+        $relatedEvents = $this->_getRelatedEvents($id);
+        
         $body = "";
         $appendlen = 20;
-        $body  = 'Event       : '.$event['Event']['id']."\n";
+        $body  = 'URL         : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id']."\n";
+        $body .= 'Event       : '.$event['Event']['id']."\n";
         $body .= 'Date        : '.$event['Event']['date']."\n";
         $body .= 'Reported by : '.Sanitize::html($event['Event']['org'])."\n";
         $body .= 'Risk        : '.$event['Event']['risk']."\n";
+        if (!empty($relatedEvents)) {
+            foreach ($relatedEvents as $relatedEvent){
+                $body .= 'Related to  : '.$relatedEvent['Event']['id'].' ('.$relatedEvent['Event']['date'].')'."\n" ;
+            
+            }
+        }
+        $body .= "\n";
         $body .= 'Signatures  :'."\n";
         if (!empty($event['Signature'])) {
-            $i = 0;
             foreach ($event['Signature'] as $signature){
-                $body .= '        - '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.Sanitize::html($signature['value'])."\n"; 
+                $body .= '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.Sanitize::html($signature['value'])."\n"; 
             }
-        }    
+        }
+        $body .= "\n";
         $body .= 'Extra info  : '."\n";
         $body .= Sanitize::html($event['Event']['info']);
         
@@ -395,7 +405,7 @@ class EventsController extends AppController {
         
         foreach ($events as $event) {
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev 
-            $rule_format = 'alert %s %s %s %s %s %s (msg: "CyDefSIG %s, Event '.$event['Event']['id'].', '.$event['Event']['risk'].'"; %s %s classtype:targeted-attack; sid:%d; rev:%d; reference:url,sig.cyber-defence.be/events/'.$event['Event']['id'].';) ';
+            $rule_format = 'alert %s %s %s %s %s %s (msg: "CyDefSIG %s, Event '.$event['Event']['id'].', '.$event['Event']['risk'].'"; %s %s classtype:targeted-attack; sid:%d; rev:%d; reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/'.$event['Event']['id'].';) ';
         
             $sid = 3000000+($event['Event']['id']*100); // LATER this will cause issues with events containing more than 99 signatures
             //debug($event);

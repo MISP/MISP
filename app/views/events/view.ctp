@@ -37,16 +37,15 @@
 			&nbsp;
 		</dd>
 	</dl>
-	
+	<?php if (!empty($relatedEvents)):?>
 	<div class="related">
-		<?php if (!empty($relatedEvents)):?>
 		<h3><?php __('Related Events');?></h3>
 		<ul>
 		<?php foreach ($relatedEvents as $relatedEvent): ?>
 		<li><?php echo $this->Html->link($relatedEvent['Event']['date'], array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));?></li>
 	    <?php endforeach; ?>
-	    <?php endif; ?>
 	</div>
+	<?php endif; ?>
 	
     <div class="related">
     	<h3><?php __('Signatures');?></h3>

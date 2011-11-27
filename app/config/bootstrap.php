@@ -49,6 +49,8 @@
  *
  */
 
+Configure::write('CyDefSIG.baseurl', 'https://sig.cyber-defence.be');
+
 Configure::write('GnuPG.onlyencrypted', 'true');         // only allow encrypted email // do not allow plaintext mails 
 Configure::write('GnuPG.email', 'sig@cyber-defence.be');
 Configure::write('GnuPG.password', '');
