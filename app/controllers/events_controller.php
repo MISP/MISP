@@ -607,7 +607,9 @@ class EventsController extends AppController {
         $relatedEvents= $this->Event->find('all', 
                                            array('conditions' => $conditions, 
                                                  'recursive' => 0,
-                                                 'order' => 'Event.date DESC')
+                                                 'order' => 'Event.date DESC',
+                                                 'fields' => 'Event.*'
+                                                 )
                                            );
         return $relatedEvents;
     }
