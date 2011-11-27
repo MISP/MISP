@@ -362,8 +362,11 @@ div.message {
 	font-size: 140%;
 	font-weight: bold;
 	margin: 0 0 1em 0;
-	background: #c73e14;
+	background: #2d900e;
 	padding: 5px;
+}
+#errorMessage, #gpgMessage {
+	background: #c73e14;
 }
 div.error-message {
 	clear: both;

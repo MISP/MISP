@@ -30,22 +30,18 @@ class EventsController extends AppController {
         $this->set('events', $this->paginate());
         
         if (empty($me_user['User']['gpgkey'])) {
-            $this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.', true));
+            $this->Session->setFlash('No GPG key set in your profile. To receive emails, submit your public key in your profile.', 'default', array(), 'gpg');
         }
     }
 
     function view($id = null) {
         if (!$id) {
-            $this->Session->setFlash(__('Invalid event', true));
+            $this->Session->setFlash('Invalid event', 'default', array(), 'error');
             $this->redirect(array('action' => 'index'));
         }
         
         $this->set('event', $this->Event->read(null, $id));
         $this->set('relatedEvents', $this->Event->getRelatedEvents());
-        
-        // Testing
-        
-
     }
 
     function add() {
@@ -59,7 +55,7 @@ class EventsController extends AppController {
                 $this->Session->setFlash(__('The event has been saved', true));
                 $this->redirect(array('action' => 'view', $this->Event->getId()));
             } else {
-                $this->Session->setFlash(__('The event could not be saved. Please, try again.', true));
+                $this->Session->setFlash('The event could not be saved. Please, try again.', 'default', array(), 'error');
             }
         }
         
@@ -71,14 +67,14 @@ class EventsController extends AppController {
 
     function edit($id = null) {
         if (!$id && empty($this->data)) {
-            $this->Session->setFlash(__('Invalid event', true));
+            $this->Session->setFlash(__('Invalid event', true), 'default', array(), 'error');
             $this->redirect(array('action' => 'index'));
         }
         // only edit own events
         $user = $this->Auth->user();
         $old_event = $this->Event->read(null, $id);
         if (!$this->isAdmin() && $user['User']['org'] != $old_event['Event']['org']) {
-            $this->Session->setFlash(__('You can only edit events from your organisation.', true));
+            $this->Session->setFlash(__('You can only edit events from your organisation.', true), 'default', array(), 'error');
             $this->redirect(array('action' => 'view', $id));
         }
         // form submit
@@ -96,7 +92,7 @@ class EventsController extends AppController {
                 $this->Session->setFlash(__('The event has been saved', true));
                 $this->redirect(array('action' => 'view', $id));
             } else {
-                $this->Session->setFlash(__('The event could not be saved. Please, try again.', true));
+                $this->Session->setFlash(__('The event could not be saved. Please, try again.', true), 'default', array(), 'error');
             }
         }
         // no form submit
@@ -119,7 +115,7 @@ class EventsController extends AppController {
         $user = $this->Auth->user();
         $old_event = $this->Event->read(null, $id);
         if (!$this->isAdmin() && $user['User']['org'] != $old_event['Event']['org']) {
-            $this->Session->setFlash(__('You can only delete events from your organisation.', true));
+            $this->Session->setFlash(__('You can only delete events from your organisation.', true), 'default', array(), 'error');
             $this->redirect(array('action' => 'view', $id));
         }
         // delete event or throw error
@@ -127,7 +123,7 @@ class EventsController extends AppController {
             $this->Session->setFlash(__('Event deleted', true));
             $this->redirect(array('action'=>'index'));
         }
-        $this->Session->setFlash(__('Event was not deleted', true));
+        $this->Session->setFlash(__('Event was not deleted', true), 'default', array(), 'error');
         $this->redirect(array('action' => 'index'));
     }
 
@@ -138,21 +134,21 @@ class EventsController extends AppController {
      */
     function alert($id = null) {
         if (!$id) {
-            $this->Session->setFlash(__('Invalid id for event', true));
+            $this->Session->setFlash(__('Invalid id for event', true), 'default', array(), 'error');
             $this->redirect(array('action'=>'index'));
         }
         // only allow alert for own events or admins
         $user = $this->Auth->user();
         $old_event = $this->Event->read(null, $id);
         if (!$this->isAdmin() && $user['User']['org'] != $old_event['Event']['org']) {
-            $this->Session->setFlash(__('You can only send alerts for events from your organisation.', true));
+            $this->Session->setFlash(__('You can only send alerts for events from your organisation.', true), 'default', array(), 'error');
             $this->redirect(array('action' => 'view', $id));
         }
         
         // fetch the event and build the body
         $event = $this->Event->read(null, $id);
         if (1 == $event['Event']['alerted']) {
-            $this->Session->setFlash(__('Everyone has already been alerted for this event. To alert again, first edit this event.', true));
+            $this->Session->setFlash(__('Everyone has already been alerted for this event. To alert again, first edit this event.', true), 'default', array(), 'error');
             $this->redirect(array('action' => 'view', $id));
         }
         $relatedEvents = $this->_getRelatedEvents($id);
@@ -276,7 +272,7 @@ class EventsController extends AppController {
      */
     function contact($id = null) {
         if (!$id) {
-            $this->Session->setFlash(__('Invalid id for event', true));
+            $this->Session->setFlash(__('Invalid id for event', true), 'default', array(), 'error');
             $this->redirect(array('action'=>'index'));
         }
         

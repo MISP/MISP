@@ -19,7 +19,7 @@ class UsersController extends AppController {
 
     function index() {
         if (!$this->isAdmin()) {
-        	$this->Session->setFlash(__('Not authorized to list users', true));
+        	$this->Session->setFlash(__('Not authorized to list users', true), 'default', array(), 'error');
             $this->redirect(array('controller' => 'events' , 'action' => 'index'));
         }
         
@@ -30,7 +30,7 @@ class UsersController extends AppController {
     function view($id = null) {
         $me_user = $this->Auth->user();
         if (!$id) {
-            $this->Session->setFlash(__('Invalid user', true));
+            $this->Session->setFlash(__('Invalid user', true), 'default', array(), 'error');
             $this->redirect(array('action' => 'index'));
         }
         
@@ -38,14 +38,14 @@ class UsersController extends AppController {
 
         // only allow access to own profile, except for admins
         if (!$this->isAdmin() && $id != $me_user['User']['id']) {
-        	$this->Session->setFlash(__('Not authorized to view this user_error', true));
+        	$this->Session->setFlash(__('Not authorized to view this user', true), 'default', array(), 'error');
             $this->redirect(array('controller' => 'events' , 'action' => 'index'));
         }
         
         $user = $this->User->read(null, $id);
         
         if (empty($me['User']['gpgkey'])) {
-            $this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.', true));
+            $this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.', true), 'default', array(), 'gpg');
         }
         
         $this->set('user', $user);
@@ -53,7 +53,7 @@ class UsersController extends AppController {
 
     function add() {
         if (!$this->isAdmin()) {
-        	$this->Session->setFlash(__('Not authorized to create new users', true));
+        	$this->Session->setFlash(__('Not authorized to create new users', true), 'default', array(), 'error');
             $this->redirect(array('controller' => 'events' , 'action' => 'index'));
         }
 
@@ -62,7 +62,7 @@ class UsersController extends AppController {
                 // FIXME bug of auth ??? when passwd is empty it adds this hash
                 $this->data['User']['password'] = '';
             }
-            if (empty($this->data['User']['authkey'])) $this->data['User']['authkey'] = sha1('foo'+time()); // TODO place authkey generation into a function
+            if (empty($this->data['User']['authkey'])) $this->data['User']['authkey'] = sha1('foo'+time()); // FIXME write more secure authkey generation into a function
             $this->User->create();
             
             if ($this->User->save($this->data)) {
@@ -71,7 +71,7 @@ class UsersController extends AppController {
                 $this->Session->setFlash(__('The user has been saved', true));
                 $this->redirect(array('action' => 'index'));
             } else {
-                $this->Session->setFlash(__('The user could not be saved. Please, try again.', true));
+                $this->Session->setFlash(__('The user could not be saved. Please, try again.', true), 'default', array(), 'error');
             }
         }
         $groups = $this->User->Group->find('list');
@@ -82,14 +82,14 @@ class UsersController extends AppController {
     	$user = $this->Auth->user();
         
         if (!$id && empty($this->data)) {
-            $this->Session->setFlash(__('Invalid user', true));
+            $this->Session->setFlash(__('Invalid user', true), 'default', array(), 'error');
             $this->redirect(array('action' => 'index'));
         }
         if ('me' == $id ) $id = $user['User']['id'];
 
         // only allow access to own profile, except for admins
         if (!$this->isAdmin() && $id != $user['User']['id']) {
-        	$this->Session->setFlash(__('Not authorized to edit this user', true));
+        	$this->Session->setFlash(__('Not authorized to edit this user', true), 'default', array(), 'error');
             $this->redirect(array('action' => 'index'));
         }
         
@@ -116,7 +116,7 @@ class UsersController extends AppController {
                 $this->Session->setFlash(__('The user has been saved', true));
                 $this->redirect(array('action' => 'view', $id));
             } else {
-                $this->Session->setFlash(__('The user could not be saved. Please, try again.', true));
+                $this->Session->setFlash(__('The user could not be saved. Please, try again.', true), 'default', array(), 'error');
             }
 
 //             if (empty($this->data['User']['authkey'])) $this->data['User']['authkey'] = sha1('foo'+time()); // TODO place authkey generation into a function
@@ -124,7 +124,7 @@ class UsersController extends AppController {
 //                 $this->Session->setFlash(__('The user has been saved', true));
 //                 $this->redirect(array('action' => 'index'));
 //             } else {
-//                 $this->Session->setFlash(__('The user could not be saved. Please, try again.', true));
+//                 $this->Session->setFlash(__('The user could not be saved. Please, try again.', true), 'default', array(), 'error');
 //             }
         }
         if (empty($this->data)) {
@@ -138,14 +138,14 @@ class UsersController extends AppController {
     function delete($id = null) {
         $me_user = $this->Auth->user();
         if (!$id) {
-            $this->Session->setFlash(__('Invalid id for user', true));
+            $this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
             $this->redirect(array('action'=>'index'));
         }
         if ('me' == $id ) $id = $user['User']['id'];
         
         // only allow delete own account, except for admins
         if (!$this->isAdmin() && $id != $me_user['User']['id']) {
-        	$this->Session->setFlash(__('Not authorized to delete this user', true));
+        	$this->Session->setFlash(__('Not authorized to delete this user', true), 'default', array(), 'error');
             $this->redirect(array('action' => 'index'));
         }
         
@@ -156,7 +156,7 @@ class UsersController extends AppController {
                 $this->redirect(array('action'=>'logout'));
             }
         }
-        $this->Session->setFlash(__('User was not deleted', true));
+        $this->Session->setFlash(__('User was not deleted', true), 'default', array(), 'error');
         $this->redirect(array('action' => 'index'));
     }
     
@@ -164,7 +164,7 @@ class UsersController extends AppController {
     
     function login() {
 //        if (!empty($this->data)) {
-//            // FIXME FIXME get the captcha to work
+//            // FIXME get the captcha to work
 //            if ($this->Recaptcha->verify()) {
 //                // do something, save you data, login, whatever
 //                
