@@ -365,7 +365,7 @@ div.message {
 	background: #2d900e;
 	padding: 5px;
 }
-#errorMessage, #gpgMessage {
+#errorMessage, #gpgMessage, #authMessage {
 	background: #c73e14;
 }
 div.error-message {
