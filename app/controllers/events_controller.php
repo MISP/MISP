@@ -29,6 +29,7 @@ class EventsController extends AppController {
         $this->Event->recursive = 0;
         $this->set('events', $this->paginate());
         
+        $me_user = $this->Auth->user();
         if (empty($me_user['User']['gpgkey'])) {
             $this->Session->setFlash('No GPG key set in your profile. To receive emails, submit your public key in your profile.', 'default', array(), 'gpg');
         }
@@ -151,18 +152,18 @@ class EventsController extends AppController {
             $this->Session->setFlash(__('Everyone has already been alerted for this event. To alert again, first edit this event.', true), 'default', array(), 'error');
             $this->redirect(array('action' => 'view', $id));
         }
-        $relatedEvents = $this->_getRelatedEvents($id);
         
         $body = "";
         $appendlen = 20;
-        $body  = 'URL         : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id']."\n";
+        $body .= 'URL         : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id']."\n";
         $body .= 'Event       : '.$event['Event']['id']."\n";
         $body .= 'Date        : '.$event['Event']['date']."\n";
         $body .= 'Reported by : '.Sanitize::html($event['Event']['org'])."\n";
         $body .= 'Risk        : '.$event['Event']['risk']."\n";
+        $relatedEvents = $this->Event->getRelatedEvents($id);
         if (!empty($relatedEvents)) {
             foreach ($relatedEvents as $relatedEvent){
-                $body .= 'Related to  : '.$relatedEvent['Event']['id'].' ('.$relatedEvent['Event']['date'].')'."\n" ;
+                $body .= 'Related to  : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$relatedEvent['Event']['id'].' ('.$relatedEvent['Event']['date'].')'."\n" ;
             
             }
         }
@@ -297,17 +298,26 @@ class EventsController extends AppController {
         // print the event in mail-format
         // LATER place event-to-email-layout in a function
         $appendlen = 20;
+        $body .= 'URL         : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id']."\n";
         $body .= 'Event       : '.$event['Event']['id']."\n";
         $body .= 'Date        : '.$event['Event']['date']."\n";
         $body .= 'Reported by : '.Sanitize::html($event['Event']['org'])."\n";
         $body .= 'Risk        : '.$event['Event']['risk']."\n";
+        $relatedEvents = $this->Event->getRelatedEvents($id);
+        if (!empty($relatedEvents)) {
+            foreach ($relatedEvents as $relatedEvent){
+                $body .= 'Related to  : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$relatedEvent['Event']['id'].' ('.$relatedEvent['Event']['date'].')'."\n" ;
+        
+            }
+        }
+        $body .= "\n";
         $body .= 'Signatures  :'."\n";
         if (!empty($event['Signature'])) {
-            $i = 0;
             foreach ($event['Signature'] as $signature){
-                $body .= '        - '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.Sanitize::html($signature['value'])."\n"; 
+                $body .= '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.Sanitize::html($signature['value'])."\n";
             }
-        }    
+        }
+        $body .= "\n";
         $body .= 'Extra info  : '."\n";
         $body .= Sanitize::html($event['Event']['info']);
         
