@@ -18,7 +18,15 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <pre>https://sig.cyber-defence.be/events/snort/<?php echo $me['authkey']; ?></pre>
 
 
-
+<h3>Saved search XML Export</h3>
+<p>We plan to make it possible to export data using searchpatterns.<br/>
+This would enable you to export:</p>
+<ul>
+<li>only your own signatures</li>
+<li>date ranges</li>
+<li>only specific signature types (domain)</li>
+<li>...</li>
+</ul>
 
 
 

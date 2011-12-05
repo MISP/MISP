@@ -44,7 +44,7 @@ class UsersController extends AppController {
         
         $user = $this->User->read(null, $id);
         
-        if (empty($me['User']['gpgkey'])) {
+        if (empty($me_user['User']['gpgkey'])) {
             $this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.', true), 'default', array(), 'gpg');
         }
         

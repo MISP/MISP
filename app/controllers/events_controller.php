@@ -232,7 +232,7 @@ class EventsController extends AppController {
             $this->Email->from = "CyDefSIG <sig@cyber-defence.be>";
             $this->Email->to = "<".$user['Users']['email'].">";
             $this->Email->return = "sig@cyber-defence.be";
-            $this->Email->subject = "[CyDefSIG] Event ".$id." - ".$event['Event']['risk'];
+            $this->Email->subject = "[CyDefSIG] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
             //$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
             $this->Email->template = 'body';
             $this->Email->sendAs = 'text';        // both text or html 
@@ -415,7 +415,7 @@ class EventsController extends AppController {
         
         foreach ($events as $event) {
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev 
-            $rule_format = 'alert %s %s %s %s %s %s (msg: "CyDefSIG %s, Event '.$event['Event']['id'].', '.$event['Event']['risk'].'"; %s %s classtype:targeted-attack; sid:%d; rev:%d; reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/'.$event['Event']['id'].';) ';
+            $rule_format = 'alert %s %s %s %s %s %s (msg: "CyDefSIG %s, Event '.$event['Event']['id'].', '.$event['Event']['risk'].'"; %s %s classtype:targeted-attack; sid:%d; rev:%d; reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id'].';) ';
         
             $sid = 3000000+($event['Event']['id']*100); // LATER this will cause issues with events containing more than 99 signatures
             //debug($event);
