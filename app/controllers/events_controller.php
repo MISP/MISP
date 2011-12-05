@@ -433,7 +433,7 @@ class EventsController extends AppController {
                             '->',                           // direction
                             $signature['value'],            // dst_ip
                             'any',                          // dst_port
-                            'Outgoing To Bad IP '.$signature['value'],        // msg
+                            'Outgoing To Bad IP',          // msg
                             '',                             // rule_content
                             '',                             // tag
                             $sid,                           // sid
@@ -448,7 +448,7 @@ class EventsController extends AppController {
                             '->',                           // direction
                             '$HOME_NET',                    // dst_ip
                             'any',                          // dst_port
-                            'Incoming From Bad IP '.$signature['value'],        // msg
+                            'Incoming From Bad IP',        // msg
                             '',                             // rule_content
                             '',                             // tag
                             $sid,                           // sid
@@ -463,7 +463,7 @@ class EventsController extends AppController {
                             '<>',                           // direction
                             '$SMTP_SERVERS',                // dst_ip
                             '25',                           // dst_port
-                            'Bad Source Email Address '.$signature['value'],        // msg
+                            'Bad Source Email Address',     // msg
                             'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"'.$signature['value'].'"; nocase;',  // rule_content
                             'tag:session,600,seconds;',     // tag
                             $sid,                           // sid
@@ -478,7 +478,7 @@ class EventsController extends AppController {
                             '<>',                           // direction
                             '$SMTP_SERVERS',                // dst_ip
                             '25',                           // dst_port
-                            'Bad Destination Email Address '.$signature['value'],        // msg
+                            'Bad Destination Email Address',// msg
                             'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"'.$signature['value'].'"; nocase;',  // rule_content
                         	'tag:session,600,seconds;',     // tag
                             $sid,                           // sid
@@ -494,7 +494,7 @@ class EventsController extends AppController {
                             '<>',                           // direction
                             '$SMTP_SERVERS',                // dst_ip
                             '25',                           // dst_port
-                            'Bad Email Subject '.$signature['value'],        // msg
+                            'Bad Email Subject',            // msg
                             'flow:established,to_server; content:"Subject|3a|"; nocase; content:"'.$signature['value'].'"; nocase;',  // rule_content
                     		'tag:session,600,seconds;',     // tag
                             $sid,                           // sid
@@ -510,7 +510,7 @@ class EventsController extends AppController {
                             '<>',                           // direction
                             '$SMTP_SERVERS',                // dst_ip
                             '25',                           // dst_port
-                            'Bad Email Attachment '.$signature['value'],        // msg
+                            'Bad Email Attachment',         // msg
                             'flow:established,to_server; content:"Content-Disposition: attachment|3b| filename=|22|"; content:"'.$signature['value'].'|22|";',  // rule_content   // LATER test and finetune this snort rule https://secure.wikimedia.org/wikipedia/en/wiki/MIME#Content-Disposition
                     		'tag:session,600,seconds;',     // tag
                             $sid,                           // sid
@@ -525,7 +525,7 @@ class EventsController extends AppController {
                             '->',                           // direction
                             'any',                          // dst_ip
                             '53',                           // dst_port
-                            'Lookup Of Bad Domain '.$signature['value'],        // msg
+                            'Lookup Of Bad Domain',         // msg
                             'content:"'.$signature['value'].'"; nocase;',  // rule_content
                         	'',                             // tag
                             $sid,                           // sid
@@ -539,7 +539,7 @@ class EventsController extends AppController {
                             '->',                           // direction
                             'any',                          // dst_ip
                             '53',                           // dst_port
-                            'Lookup Of Bad Domain '.$signature['value'],        // msg
+                            'Lookup Of Bad Domain',         // msg
                             'content:"'.$signature['value'].'"; nocase;',  // rule_content
                         	'',                             // tag
                             $sid,                           // sid
@@ -555,7 +555,7 @@ class EventsController extends AppController {
                             '->',                           // direction
                             '$EXTERNAL_NET',                // dst_ip
                             '$HTTP_PORTS',                  // dst_port
-                            'Outgoing Bad HTTP URL '.$signature['value'],        // msg
+                            'Outgoing Bad HTTP URL',        // msg
                             'flow:to_server,established; uricontent:"'.$signature['value'].'"; nocase;',  // rule_content
                         	'tag:session,600,seconds;',     // tag
                             $sid,                           // sid
