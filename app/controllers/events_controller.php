@@ -10,7 +10,8 @@ class EventsController extends AppController {
         )
     );
     var $components = array('Security', 'Email');
-
+    var $helpers = array('Xml');
+    
     function beforeFilter() {
         $this->Auth->allow('xml');
         $this->Auth->allow('snort');
@@ -385,26 +386,40 @@ class EventsController extends AppController {
     
     function xml($key) {
         // check if the key is valid -> search for users based on key
-        $this->loadModel('Users');
+        $this->loadModel('User');
         // no input sanitization necessary, it's done by model
-        $user = $this->Users->findByAuthkey($key);
+        $user = $this->User->findByAuthkey($key);
         if (empty($user))
             $this->cakeError('error403', array('message' => 'Incorrect authentication key'));
         // display the full xml
         $this->header('Content-Type: text/xml');    // set the content type
         $this->layout = 'xml/xml';
-        $this->set('events', $this->Event->findAllByAlerted(1)); // find events that are finished
+        $this->header('Content-Disposition: attachment; filename="cydefsig.xml"');
+        
+        $conditions = array("Event.alerted" => 1);
+        $fields = array('Event.id', 'Event.org', 'Event.date', 'Event.risk', 'Event.info');
+//         $this->Event->Behaviors->attach('Containable');
+//         $contain = array('Signature.id', 'Signature.type', 'Signature.value', 'Signature.to_snort');
+        $params = array('conditions' => $conditions,
+                        'recursive' => 1,
+                        'fields' => $fields,
+//                         'contain' => $contain
+                       );
+        $result = $this->Event->find('all', $params);
+        $this->set('events', $result);
+        
     }
     
     function snort($key) {
         // check if the key is valid -> search for users based on key
-        $this->loadModel('Users');
-        $this->loadModel('Signatures');
+        $this->loadModel('User');
         // no input sanitization necessary, it's done by model
-        $user = $this->Users->findByAuthkey($key);
+        $user = $this->User->findByAuthkey($key);
         if (empty($user))
             $this->cakeError('error403', array('message' => 'Incorrect authentication key'));
         // display the full snort rulebase
+        $this->header('Content-Type: text/plain');    // set the content type
+        $this->header('Content-Disposition: attachment; filename="cydefsig.rules"');
         $this->layout = 'xml/xml'; // LATER better layout than xml
         
         $rules= array();
