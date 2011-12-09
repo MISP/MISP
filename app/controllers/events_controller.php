@@ -541,7 +541,7 @@ class EventsController extends AppController {
                             'any',                          // dst_ip
                             '53',                           // dst_port
                             'Lookup Of Bad Domain',         // msg
-                            'content:"'.$signature['value'].'"; nocase;',  // rule_content
+                            'content:"'.$this->_dnsNameToRawFormat($signature['value']).'"; nocase;',  // rule_content // FIXME need to convert the dots to something else
                         	'',                             // tag
                             $sid,                           // sid
                             1                               // rev
@@ -555,7 +555,7 @@ class EventsController extends AppController {
                             'any',                          // dst_ip
                             '53',                           // dst_port
                             'Lookup Of Bad Domain',         // msg
-                            'content:"'.$signature['value'].'"; nocase;',  // rule_content
+                            'content:"'.$this->_dnsNameToRawFormat($signature['value']).'"; nocase;',  // rule_content // FIXME need to convert the dots to something else
                         	'',                             // tag
                             $sid,                           // sid
                             1                               // rev
@@ -597,6 +597,32 @@ class EventsController extends AppController {
         
         $this->set('rules', $rules);
         
+    }
+    
+    /**
+     * // TODO move _dnsNameToRawFormat($name) function to a better place
+     * Converts a DNS name to a raw format usable in NIDS like Snort.
+     *   example: foobar.com becomes |06|foobar|03|com|00|
+     * @param string $name dns name to be converted
+     * @return string raw snort compatible format of the dns name
+     */
+    function _dnsNameToRawFormat($name) {
+        $rawName = "";
+        // explode using the dot
+        $explodedNames = explode('.', $name);
+        // for each part
+        foreach ($explodedNames as $explodedName) {
+        // count the lenght of the part, and add |length| before
+            $length = strlen($explodedName); 
+            if ($length > 255) exit('ERROR: dns name is to long for RFC'); // LATER log correctly without dying
+            $hexLength = dechex($length);
+            if (1 == strlen($hexLength)) $hexLength = '0'.$hexLength;
+            $rawName .= '|'.$hexLength.'|'.$explodedName;
+        }
+        // put all together
+        $rawName .= '|00|';
+        // and append |00| to terminate the name
+        return $rawName;
     }
 
     
