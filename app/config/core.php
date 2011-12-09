@@ -39,7 +39,8 @@
         $_SERVER['REMOTE_ADDR'] == "213.49.231.89" ||
         $_SERVER['REMOTE_ADDR'] == "62.235.230.189" || 
         $_SERVER['REMOTE_ADDR'] == "10.0.3.204" ||
-        $_SERVER['REMOTE_ADDR'] == "::1"
+        $_SERVER['REMOTE_ADDR'] == "::1" ||
+        $_SERVER['REMOTE_ADDR'] == "127.0.0.1"
     ) {
         Configure::write('debug', 2);
     }
