@@ -541,7 +541,7 @@ class EventsController extends AppController {
                             'any',                          // dst_ip
                             '53',                           // dst_port
                             'Lookup Of Bad Domain',         // msg
-                            'content:"'.$this->_dnsNameToRawFormat($signature['value']).'"; nocase;',  // rule_content // FIXME need to convert the dots to something else
+                            'content:"'.$this->_dnsNameToRawFormat($signature['value']).'"; nocase;',  // rule_content
                         	'',                             // tag
                             $sid,                           // sid
                             1                               // rev
@@ -555,7 +555,7 @@ class EventsController extends AppController {
                             'any',                          // dst_ip
                             '53',                           // dst_port
                             'Lookup Of Bad Domain',         // msg
-                            'content:"'.$this->_dnsNameToRawFormat($signature['value']).'"; nocase;',  // rule_content // FIXME need to convert the dots to something else
+                            'content:"'.$this->_dnsNameToRawFormat($signature['value']).'"; nocase;',  // rule_content
                         	'',                             // tag
                             $sid,                           // sid
                             1                               // rev
