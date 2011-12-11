@@ -2,7 +2,14 @@
 class GroupsController extends AppController {
 
 	var $name = 'Groups';
-
+	var $components = array('Security');
+	
+	function beforeFilter() {
+	
+	    // Prevent XSRF
+	    $this->Security->requireAuth('add', 'edit');
+	}
+	
 	function index() {
 		$this->Group->recursive = 0;
 		$this->set('groups', $this->paginate());

@@ -4,12 +4,17 @@ class UsersController extends AppController {
     var $name = 'Users';
     var $components = array('Recaptcha.Recaptcha');
 
+    var $components = array('Security');
+    
     function beforeFilter() {
         parent::beforeFilter();
         
         // what pages are allowed for everyone
         $this->Auth->allow('login', 'logout');
-                
+
+        // Prevent XSRF
+        $this->Security->requireAuth('add', 'edit');
+        
         // These variables are required for every view
         $me_user = $this->Auth->user();
         $this->set('me', $me_user['User']);

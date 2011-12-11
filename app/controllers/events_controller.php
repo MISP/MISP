@@ -17,6 +17,8 @@ class EventsController extends AppController {
         $this->Auth->allow('snort');  // deprecated
         $this->Auth->allow('nids');
         
+        // Prevent XSRF
+        $this->Security->requireAuth('add', 'edit');
         //$this->Security->requirePost('delete'); // FIXME do this for every controller and fix the urls in the pages
         
         // These variables are required for every view

@@ -3,8 +3,12 @@
 class SignaturesController extends AppController {
 
     var $name = 'Signatures';
+    var $components = array('Security');
 
     function beforeFilter() {
+        
+        // Prevent XSRF
+        $this->Security->requireAuth('add', 'edit');
         
         // These variables are required for every view
         $me_user = $this->Auth->user();
