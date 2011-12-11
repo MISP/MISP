@@ -78,6 +78,7 @@ class DATABASE_CONFIG {
 		'persistent' => false,
 		'host' => 'localhost',
 		'login' => 'cyberdefence',
+		'port' => 8889,
 		'password' => '',
 		'database' => 'cyberdefence_sig',
 		'prefix' => '',

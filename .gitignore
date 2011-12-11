@@ -2,7 +2,11 @@
 /plugins
 /vendors
 /.project
+/.settings
+/.buildpath
 .DS_Store
+/.htaccess
 /cake
 /index.php
 /README
+/app/tmp/sessions/sess_*
