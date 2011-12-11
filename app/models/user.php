@@ -120,6 +120,16 @@ class User extends AppModel {
 	
 	var $actsAs = array('Acl' => array('type' => 'requester'));
 	
+	public function beforeValidate() {
+	    
+	    // Fix issue with an empty password being automagically hashed
+	    App::import('Core', 'Security'); // not sure whether this is necessary
+	    if ($this->data['User']['password'] == Security::hash('', null, true)) {
+	        $this->data['User']['password'] = '';
+	    }
+	    return true;
+	}
+	
 	function parentNode() {
         if (!$this->id && empty($this->data)) {
             return null;
@@ -161,6 +171,7 @@ class User extends AppModel {
                 return true;
             }
         } catch (Exception $e) {
+            debug($e);
             return false;
         }
     }

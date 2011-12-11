@@ -2,10 +2,8 @@
 class UsersController extends AppController {
 
     var $name = 'Users';
-    var $components = array('Recaptcha.Recaptcha');
+    var $components = array('Security', 'Recaptcha.Recaptcha');
 
-    var $components = array('Security');
-    
     function beforeFilter() {
         parent::beforeFilter();
         
@@ -102,7 +100,7 @@ class UsersController extends AppController {
         if (!empty($this->data)) {
             $this->User->read(null, $id);
             
-            if ("" != $this->data['User']['password'] && $this->data['User']['password'] != '1deba050eee85e4ea7447edc6c289e4f55b81d45' ) // FIXME bug of auth ??? when passwd is empty it adds this hash
+            if ("" != $this->data['User']['password'] && $this->data['User']['password'] != Security::hash('', null, true))   // workaround because password is automagically hashed
 				    $this->User->set('password', $this->data['User']['password']);
             $this->User->set('email', $this->data['User']['email']);
             $this->User->set('autoalert', $this->data['User']['autoalert']);	
