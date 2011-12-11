@@ -15,7 +15,7 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <h3>NIDS Export</h3>
 <p>An automatic export of all network related signatures is available under the Snort rule format.</p>
 <p>You can configure your tools to automatically download the following following file:</p>
-<pre>https://sig.cyber-defence.be/events/snort/<?php echo $me['authkey']; ?></pre>
+<pre>https://sig.cyber-defence.be/events/nids/<?php echo $me['authkey']; ?></pre>
 
 
 <h3>Saved search XML Export</h3>

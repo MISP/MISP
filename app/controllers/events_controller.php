@@ -14,7 +14,8 @@ class EventsController extends AppController {
     
     function beforeFilter() {
         $this->Auth->allow('xml');
-        $this->Auth->allow('snort');
+        $this->Auth->allow('snort');  // deprecated
+        $this->Auth->allow('nids');
         
         //$this->Security->requirePost('delete'); // FIXME do this for every controller and fix the urls in the pages
         
@@ -410,7 +411,17 @@ class EventsController extends AppController {
         
     }
     
+    /**
+     * 
+     * Old legacy method/url
+     * @param unknown_type $key
+     * @deprecated 
+     */
     function snort($key) {
+        $this->redirect(array('action' => 'nids', $key));
+    }
+    
+    function nids($key) {
         // check if the key is valid -> search for users based on key
         $this->loadModel('User');
         // no input sanitization necessary, it's done by model
@@ -419,7 +430,7 @@ class EventsController extends AppController {
             $this->cakeError('error403', array('message' => 'Incorrect authentication key'));
         // display the full snort rulebase
         $this->header('Content-Type: text/plain');    // set the content type
-        $this->header('Content-Disposition: attachment; filename="cydefsig.rules"');
+//         $this->header('Content-Disposition: attachment; filename="cydefsig.rules"');
         $this->layout = 'xml/xml'; // LATER better layout than xml
         
         $rules= array();

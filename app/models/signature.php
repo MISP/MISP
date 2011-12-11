@@ -45,10 +45,16 @@ class Signature extends AppModel {
                 'rule' => array('validateSignatureValue'),
                 'message' => 'Value not in the right type/format. Please double check the value or select "other" for a type.'
             ),
-//            'unique' => array(
-//                'rule' => array('signatureExists'),
-//                'message' => 'Signature is already used in another event.' // Message set by signatureExists() function
-//            )
+        ),
+        'to_nids' => array(
+			'boolean' => array(
+    			'rule' => array('boolean'),
+                //'message' => 'Your custom message here',
+                //'allowEmpty' => false,
+                'required' => false,
+                //'last' => false, // Stop validation after this rule
+                //'on' => 'create', // Limit validation to 'create' or 'update' operations
+            ),
         ),
     );
     //The Associations below have been created with all possible keys, those that are not needed can be removed
@@ -63,13 +69,6 @@ class Signature extends AppModel {
         )
     );
     
-    function signatureExists($fields) {
-        $result = $this->find('first', array('conditions' => $fields, 'recursive' => -1));
-        // signature doesn't exist
-        if (empty($result)) return true;
-        // signature exists
-        return 'Signature is already used in <a href="/events/view/'.$result['Signature']['event_id'].'">this event</a>.'; // LATER find a way to do fill path automatically. // LATER permit user to a sig that exists.
-    }
 
     function validateSignatureValue ($fields) {
         $value = $fields['value'];
@@ -175,7 +174,7 @@ class Signature extends AppModel {
 
     
 //     function getRelatedEvents() {
-//         // FIXME write this function    
+//         // LATER write this getRelatedEvents() function    
 //         $conditions = array('Signatures.value =' => $signature['value'], 'Signatures.type =' => $signature['type']);
 //         $similar_signatures = $this->Signatures->find('all',array('conditions' => $conditions));
 //         //debug($similar_signatures);
