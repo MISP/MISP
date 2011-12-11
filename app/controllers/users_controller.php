@@ -80,16 +80,16 @@ class UsersController extends AppController {
     }
 
     function edit($id = null) {
-    	$user = $this->Auth->user();
+    	$me_user = $this->Auth->user();
         
         if (!$id && empty($this->data)) {
             $this->Session->setFlash(__('Invalid user', true), 'default', array(), 'error');
             $this->redirect(array('action' => 'index'));
         }
-        if ('me' == $id ) $id = $user['User']['id'];
+        if ('me' == $id ) $id = $me_user['User']['id'];
 
         // only allow access to own profile, except for admins
-        if (!$this->isAdmin() && $id != $user['User']['id']) {
+        if (!$this->isAdmin() && $id != $me_user['User']['id']) {
         	$this->Session->setFlash(__('Not authorized to edit this user', true), 'default', array(), 'error');
             $this->redirect(array('action' => 'index'));
         }
@@ -102,7 +102,6 @@ class UsersController extends AppController {
             $this->User->set('email', $this->data['User']['email']);
             $this->User->set('autoalert', $this->data['User']['autoalert']);	
             $this->User->set('gpgkey', $this->data['User']['gpgkey']);	
-			// LATER let the user reset his XML key
 
 			// administrative actions 
 			if ($this->isAdmin()) {
@@ -112,6 +111,7 @@ class UsersController extends AppController {
 			
             if ($this->User->save()) {
                 $this->Session->setFlash(__('The user has been saved', true));
+                $this->Session->write('Auth', $this->User->read(null, $me_user['User']['id']));  // refresh auth info
                 $this->redirect(array('action' => 'view', $id));
             } else {
                 $this->Session->setFlash(__('The user could not be saved. Please, try again.', true), 'default', array(), 'error');
@@ -132,7 +132,7 @@ class UsersController extends AppController {
             $this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
             $this->redirect(array('action'=>'index'));
         }
-        if ('me' == $id ) $id = $user['User']['id'];
+        if ('me' == $id ) $id = $me_user['User']['id'];
         
         // only allow delete own account, except for admins
         if (!$this->isAdmin() && $id != $me_user['User']['id']) {
@@ -153,7 +153,7 @@ class UsersController extends AppController {
         $this->redirect(array('action' => 'index'));
     }
     
-    
+   
     
     function login() {
 //        if (!empty($this->data)) {
@@ -182,6 +182,38 @@ class UsersController extends AppController {
         $this->redirect($this->Auth->logout());
     }
     
+    function resetauthkey($id = null) {
+        $me_user = $this->Auth->user();
+        if (!$id) {
+            $this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
+            $this->redirect(array('action'=>'index'));
+        }
+        if ('me' == $id ) $id = $me_user['User']['id'];
+        
+        // only allow reset key for own account, except for admins
+        if (!$this->isAdmin() && $id != $me_user['User']['id']) {
+            $this->Session->setFlash(__('Not authorized to reset the key for this user', true), 'default', array(), 'error');
+            $this->redirect(array('action' => 'index'));
+        }
+        
+        
+        $data = array(
+           'User' => array(
+                'id'          =>    $id,
+                'authkey'   =>    $this->User->generateAuthKey()
+            )
+        );
+        if ($this->User->save( $data, false, array('authkey') )) {
+            $this->Session->setFlash(__('New authkey generated.', true));
+            $this->Session->write('Auth', $this->User->read(null, $me_user['User']['id']));  // refresh auth info
+        } else {
+            $this->Session->setFlash(__('Auth key could not be changed. Please, try again.', true), 'default', array(), 'error');
+        }
+        
+        $this->redirect($this->referer());
+        
+    }
+
     
     
     

@@ -32,7 +32,7 @@
 			<?php echo $user['User']['autoalert']; ?>
 			&nbsp;
 		</dd>
-		<dt<?php if ($i % 2 == 0) echo $class;?>><?php __('Authkey'); ?></dt>
+		<dt<?php if ($i % 2 == 0) echo $class;?>><?php __('Authkey'); ?> (<?php echo $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']));?>)</dt>
 		<dd<?php if ($i++ % 2 == 0) echo $class;?>>
 			<?php echo $user['User']['authkey']; ?>
 			&nbsp;

@@ -3,7 +3,7 @@
 <p>To make exports available for automated tools an authentication key is used. This makes it easier for your tools to access the data without further form-based-authentiation.<br/>
 <strong>Make sure you keep that key secret as it gives access to the entire database !</strong></p>
 <p>Your current key is: <code><?php echo $me['authkey'];?></code>. 
-You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $me['id']));?> this key.
+You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', 'me'));?> this key.
 </p>
 
 <h3>XML Export</h3>
