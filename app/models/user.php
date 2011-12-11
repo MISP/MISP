@@ -63,7 +63,7 @@ class User extends AppModel {
 		),
 		'authkey' => array(
 			'notempty' => array(
-				'rule' => array('notempty'),  // LATER define the format of the authkey
+				'rule' => array('notempty'),
 				//'message' => 'Your custom message here',
 				//'allowEmpty' => false,
 				//'required' => false,
@@ -145,7 +145,7 @@ class User extends AppModel {
      * Checks if the GPG key is a valid key
      * But also import it in the keychain.
      */
-    function ValidateGpgkey($check) {
+    function validateGpgkey($check) {
         // LATER first remove the old gpgkey from the keychain
         
         // empty value
@@ -164,7 +164,7 @@ class User extends AppModel {
             return false;
         }
     }
-
+    
 
     function complexPassword($check) {
         debug($check);
@@ -182,5 +182,20 @@ class User extends AppModel {
     
     }
 
-
+    /**
+     * Generates an authentication key for each user
+     */
+    function generateAuthKey() {
+        //$key = sha1(mt_rand(30, 30).time());
+        $length = 40;
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $char_len = strlen($characters)-1;
+        $key = '';
+        for ($p = 0; $p < $length; $p++) {
+            $key .= $characters[rand(0, $char_len)];
+        }
+        
+        return $key;
+    }
+    
 }
