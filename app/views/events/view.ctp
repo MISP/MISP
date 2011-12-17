@@ -9,7 +9,7 @@
 <?php else: ?>
     <!-- ul><li>Alert already sent</li></ul -->
 <?php endif; ?>
-    <ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id']), array(), 'An email with your contact info will be sent to the reporter. Are you sure?'); ?> </li></ul>
+    <ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id'])); ?> </li></ul>
 </div>
 
 

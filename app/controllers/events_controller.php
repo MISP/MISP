@@ -18,7 +18,7 @@ class EventsController extends AppController {
         $this->Auth->allow('nids');
         
         // Prevent XSRF
-        $this->Security->requireAuth('add', 'edit');
+        $this->Security->requireAuth('add', 'edit', 'contact');
         //$this->Security->requirePost('delete'); // FIXME do this for every controller and fix the urls in the pages
         
         // These variables are required for every view
@@ -281,6 +281,33 @@ class EventsController extends AppController {
             $this->redirect(array('action'=>'index'));
         }
         
+        // User has filled in his contact form, send out the email.
+        if (!empty($this->data)) {
+            $message = $this->data['Event']['message'];
+            if ($this->_sendContactEmail($id, $message)) {
+                // redirect to the view event page
+                $this->Session->setFlash(__('Email sent to the reporter.', true));
+            } else {
+                $this->Session->setFlash(__('Invalid id for event', true), 'default', array(), 'error');
+            }
+            $this->redirect(array('action' => 'view', $id));
+        }
+        // User didn't see the contact form yet. Present it to him.
+        if (empty($this->data)) {
+            $this->data = $this->Event->read(null, $id);
+        }
+    }
+    
+    /**
+     * 
+     * Sends out an email with the request to be contacted about a specific event.
+     * @todo move _sendContactEmail($id, $message) to a better place. (components?)
+     *  
+     * @param unknown_type $id The id of the event for wich you want to contact the person.
+     * @param unknown_type $message The custom message that will be appended to the email.
+     * @return True if success, False if error
+     */
+    function _sendContactEmail($id, $message) {
         // fetch the event
         $event = $this->Event->read(null, $id);
         $reporter = $event['User']; // email, gpgkey
@@ -295,7 +322,11 @@ class EventsController extends AppController {
         $body .="\n";
         $body .="You can reach him at ".$me_user['email']."\n";
         if (!empty($me_user['gpgkey']))
-            $body .="His GPG/PGP key is added as attachment to this email. \n";
+        $body .="His GPG/PGP key is added as attachment to this email. \n";
+        $body .="\n";
+        $body .="He wrote the following message: \n";
+        $body .=Sanitize::html($message)."\n";
+        $body .="\n";
         $body .="\n";
         $body .="The event is the following: \n";
         
@@ -338,11 +369,11 @@ class EventsController extends AppController {
             // say what key should be used to encrypt
             $gpg = new Crypt_GPG();
             $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
-
+        
             $body_enc_sig = $gpg->encrypt($body_signed, true);
         } else {
             $body_enc_sig = $body_signed;
-            // FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key? 
+            // FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
         }
         
         // prepare the email
@@ -351,10 +382,10 @@ class EventsController extends AppController {
         $this->Email->subject = "[CyDefSIG] Need info about event ".$id." - TLP Amber";
         //$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
         $this->Email->template = 'body';
-        $this->Email->sendAs = 'text';        // both text or html 
-        $this->set('body', $body_enc_sig);        
-        
-        // Add the GPG key of the user as attachment 
+        $this->Email->sendAs = 'text';        // both text or html
+        $this->set('body', $body_enc_sig);
+    
+        // Add the GPG key of the user as attachment
         // LATER sign the attached GPG key
         if (!empty($me_user['gpgkey'])) {
             // save the gpg key to a temporary file
@@ -362,23 +393,20 @@ class EventsController extends AppController {
             $handle = fopen($tmpfname, "w");
             fwrite($handle, $me_user['gpgkey']);
             fclose($handle);
-            // attach it 
+            // attach it
             $this->Email->attachments = array(
                 'gpgkey.asc' => $tmpfname
             );
         }
-        
+                
         // send it
-        $this->Email->send();
-        
+        $result = $this->Email->send();
+    
         // remove the temporary gpg file
         if (!empty($me_user['gpgkey']))
-            unlink($tmpfname);
+            unlink($tmpfname); 
         
-        // redirect to the view event page
-        $this->Session->setFlash(__('Email sent to the reporter.', true));
-        $this->redirect(array('action' => 'view', $id));
-        
+        return $result;
     }
 
     
