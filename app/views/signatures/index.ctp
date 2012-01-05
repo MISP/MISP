@@ -5,6 +5,7 @@
 			<th><?php echo $this->Paginator->sort('event_id');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
+			<th>To IDS</th>
 			<th class="actions"><?php __('Actions');?></th>
 	</tr>
 	<?php
@@ -21,6 +22,7 @@
 		</td>
 		<td><?php echo $signature['Signature']['type']; ?>&nbsp;</td>
 		<td><?php echo nl2br(Sanitize::html($signature['Signature']['value'])); ?>&nbsp;</td>
+		<td><?php echo $signature['Signature']['to_ids'] ? 'Yes' : 'No';?>&nbsp;</td>
 		<td class="actions" style="text-align:right;">	
 			<?php 
 			if ($signature['Event']['org'] == $me['org']) {

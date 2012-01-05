@@ -57,11 +57,11 @@
     	<?php if (!empty($event['Signature'])):?>
     	<table cellpadding = "0" cellspacing = "0">
     	<tr>
-    		<th><?php __('Type'); ?></th>
-    		<th><?php __('Value'); ?></th>
+    		<th>Type</th>
+    		<th>Value</th>
     		<th>Related Events</th>
-    		<th>To NIDS</th>
-    		<th class="actions"><?php __('Actions');?></th>
+    		<th>To IDS</th>
+    		<th class="actions">Actions</th>
     	</tr>
     	<?php
     		$i = 0;
@@ -75,7 +75,7 @@
     			<td><?php echo $signature['type'];?></td>
     			<td><?php echo nl2br(Sanitize::html($signature['value']));?></td>
     			<td></td>
-    			<td><?php echo $signature['to_nids'];?></td>
+    			<td><?php echo $signature['to_ids'] ? 'Yes' : 'No';?></td>
     			<td class="actions" style="text-align:right;">
     				<?php
     				if ($isAdmin || $event['Event']['org'] == $me['org']) { 

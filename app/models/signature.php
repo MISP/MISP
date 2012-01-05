@@ -46,7 +46,7 @@ class Signature extends AppModel {
                 'message' => 'Value not in the right type/format. Please double check the value or select "other" for a type.'
             ),
         ),
-        'to_nids' => array(
+        'to_ids' => array(
 			'boolean' => array(
     			'rule' => array('boolean'),
                 //'message' => 'Your custom message here',
@@ -173,15 +173,17 @@ class Signature extends AppModel {
     }
 
     
-//     function getRelatedEvents() {
+//     function getRelatedEvents($signature) {
 //         // LATER write this getRelatedEvents() function    
-//         $conditions = array('Signatures.value =' => $signature['value'], 'Signatures.type =' => $signature['type']);
-//         $similar_signatures = $this->Signatures->find('all',array('conditions' => $conditions));
-//         //debug($similar_signatures);
-//         print $signature['value']."\t ";
-//         foreach ($similar_signatures as $similar_signature) {
-//             print $similar_signature['Signatures']['event_id']." ";
-//         }
+//         $conditions = array('Signature.value =' => $signature['value'], 
+//         					'Signature.id !=' => $signature['id'],
+//         					'Signature.type =' => $signature['type'], );
+//         $fields = array('Event.*');
+        
+//         $similar_events = $this->find('all',array('conditions' => $conditions, 
+//                                                   'fields' => $fields )
+//                                         );
+//         return $similar_events;
 //     }
 
 }

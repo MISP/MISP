@@ -6,6 +6,7 @@
 		echo $this->Form->input('id');
 		echo $this->Form->hidden('event_id');
 		echo $this->Form->input('type');
+		echo $this->Form->input('to_ids');
 		echo $this->Form->input('value');
 	?>
 	</fieldset>

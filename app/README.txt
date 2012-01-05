@@ -1,11 +1,6 @@
 
 TODOs
 -----
-Contact reporter
-- allow custom message
-
-Signature
-- add "no-ids-signature" option
 
 Auth
 - Use captcha authenticaiton

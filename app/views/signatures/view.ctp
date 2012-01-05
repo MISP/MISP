@@ -16,6 +16,11 @@
 			<?php echo $signature['Signature']['type']; ?>
 			&nbsp;
 		</dd>
+		<dt<?php if ($i % 2 == 0) echo $class;?>><?php __('To IDS'); ?></dt>
+		<dd<?php if ($i++ % 2 == 0) echo $class;?>>
+			<?php echo $signature['Signature']['to_ids'] ? 'Yes' : 'No'; ?>
+			&nbsp;
+		</dd>
 		<dt<?php if ($i % 2 == 0) echo $class;?>><?php __('Value'); ?></dt>
 		<dd<?php if ($i++ % 2 == 0) echo $class;?>>
 			<?php echo nl2br(Sanitize::html($signature['Signature']['value'])); ?>

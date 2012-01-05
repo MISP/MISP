@@ -460,14 +460,13 @@ class EventsController extends AppController {
             $this->cakeError('error403', array('message' => 'Incorrect authentication key'));
         // display the full snort rulebase
         $this->header('Content-Type: text/plain');    // set the content type
-//         $this->header('Content-Disposition: attachment; filename="cydefsig.rules"');
+        $this->header('Content-Disposition: attachment; filename="cydefsig.rules"');
         $this->layout = 'xml/xml'; // LATER better layout than xml
         
         $rules= array();
         
         // find events that are finished
-        $events = $this->Event->findAllByAlerted(1); 
-        
+        $events = $this->Event->findAllByAlerted(1);
         
         foreach ($events as $event) {
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev 
@@ -476,6 +475,8 @@ class EventsController extends AppController {
             $sid = 3000000+($event['Event']['id']*100); // LATER this will cause issues with events containing more than 99 signatures
             //debug($event);
             foreach ($event['Signature'] as $signature) {
+                if (0 == $signature['to_ids']) continue; // signature is not to be exported to IDS. // LATER filter out to_ids=0 in the query 
+                
                 $sid++;
                 switch ($signature['type']) {
                     // LATER test all the snort signatures
