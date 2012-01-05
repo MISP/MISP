@@ -26,7 +26,7 @@ body {
 	background: #003d4c;
 	color: #fff;
 	font-family:'lucida grande',verdana,helvetica,arial,sans-serif;
-	font-size:90%;
+	font-size:12px;
 	margin: 0;
 }
 a {
@@ -297,26 +297,26 @@ form div.submit {
 }
 label {
 	display: block;
-	font-size: 110%;
+	font-size: 120%;
 	margin-bottom:3px;
 }
 input, textarea {
 	clear: both;
-	font-size: 140%;
+	font-size: 110%;
 	font-family: "frutiger linotype", "lucida grande", "verdana", sans-serif;
 	padding: 1%;
 	width:98%;
 }
 select {
 	clear: both;
-	font-size: 120%;
+	font-size: 110%;
 	vertical-align: text-bottom;
 }
 select[multiple=multiple] {
 	width: 100%;
 }
 option {
-	font-size: 120%;
+	font-size: 110%;
 	padding: 0 3px;
 }
 input[type=checkbox] {

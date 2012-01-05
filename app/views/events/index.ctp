@@ -18,10 +18,10 @@
 		}
 	?>
 	<tr<?php echo $class;?> onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
-		<td><?php echo $event['Event']['id']; ?>&nbsp;</td>
-		<td><?php echo Sanitize::html($event['Event']['org']); ?>&nbsp;</td>
-		<td><?php echo $event['Event']['date']; ?>&nbsp;</td>
-		<td><?php echo $event['Event']['risk']; ?>&nbsp;</td>
+		<td style="white-space: nowrap"><?php echo $event['Event']['id']; ?>&nbsp;</td>
+		<td style="white-space: nowrap"><?php echo Sanitize::html($event['Event']['org']); ?>&nbsp;</td>
+		<td style="white-space: nowrap"><?php echo $event['Event']['date']; ?>&nbsp;</td>
+		<td style="white-space: nowrap"><?php echo $event['Event']['risk']; ?>&nbsp;</td>
 		<td><?php echo nl2br(Sanitize::html($event['Event']['info'])); ?>&nbsp;</td>
 		<td class="actions" style="text-align:right;">
 			<?php 
