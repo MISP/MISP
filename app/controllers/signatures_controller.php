@@ -147,7 +147,7 @@ class SignaturesController extends AppController {
     
     
     function search($keyword = null) {
-        if (!$keyword && !$this->data['Signature']['keyword']) {
+        if (!$keyword && !isset($this->data['Signature']['keyword'])) {
             // no search keyword is given, show the search form
         } else {
             if (!$keyword) $keyword = $this->data['Signature']['keyword'];
