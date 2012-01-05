@@ -2,6 +2,7 @@
 	<h2>Events</h2>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
+			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<th><?php echo $this->Paginator->sort('date');?></th>
 			<th><?php echo $this->Paginator->sort('risk');?></th>
@@ -17,6 +18,7 @@
 		}
 	?>
 	<tr<?php echo $class;?> onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
+		<td><?php echo $event['Event']['id']; ?>&nbsp;</td>
 		<td><?php echo Sanitize::html($event['Event']['org']); ?>&nbsp;</td>
 		<td><?php echo $event['Event']['date']; ?>&nbsp;</td>
 		<td><?php echo $event['Event']['risk']; ?>&nbsp;</td>

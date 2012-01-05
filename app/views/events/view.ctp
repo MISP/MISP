@@ -16,6 +16,11 @@
 
 <h2><?php  __('Event');?></h2>
 	<dl><?php $i = 0; $class = ' class="altrow"';?>
+		<dt<?php if ($i % 2 == 0) echo $class;?>><?php __('Id'); ?></dt>
+		<dd<?php if ($i++ % 2 == 0) echo $class;?>>
+			<?php echo Sanitize::html($event['Event']['id']); ?>
+			&nbsp;
+		</dd>
 		<dt<?php if ($i % 2 == 0) echo $class;?>><?php __('Org'); ?></dt>
 		<dd<?php if ($i++ % 2 == 0) echo $class;?>>
 			<?php echo Sanitize::html($event['Event']['org']); ?>
@@ -55,6 +60,7 @@
     		<th><?php __('Type'); ?></th>
     		<th><?php __('Value'); ?></th>
     		<th>Related Events</th>
+    		<th>To NIDS</th>
     		<th class="actions"><?php __('Actions');?></th>
     	</tr>
     	<?php
@@ -69,6 +75,7 @@
     			<td><?php echo $signature['type'];?></td>
     			<td><?php echo nl2br(Sanitize::html($signature['value']));?></td>
     			<td></td>
+    			<td><?php echo $signature['to_nids'];?></td>
     			<td class="actions" style="text-align:right;">
     				<?php
     				if ($isAdmin || $event['Event']['org'] == $me['org']) { 
