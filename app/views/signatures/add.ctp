@@ -5,7 +5,7 @@
 	<?php
 		echo $this->Form->hidden('event_id');
 		echo $this->Form->input('type');
-		echo $this->Form->input('to_ids', array('checked'=>true));
+		echo $this->Form->input('to_ids', array('checked' => true));
 		echo $this->Form->input('value', array('error' => array('escape' => false)));
 	?>
 	</fieldset>
