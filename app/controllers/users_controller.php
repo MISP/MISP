@@ -218,7 +218,16 @@ class UsersController extends AppController {
     }
 
     
-    
+    function memberslist() {
+        $fields = array('User.org', 'count(User.id) as `amount`');
+        $params = array('recursive' => 0,
+                        'fields' => $fields,
+                        'group' => array('User.org'),
+                        'order' => array('User.org'),
+        );
+        $result = $this->User->find('all', $params);
+        $this->set('orgs', $result);
+    }
     
     function initDB() {
         $group =& $this->User->Group;
