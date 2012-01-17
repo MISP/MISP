@@ -21,11 +21,13 @@
 			<?php echo Sanitize::html($event['Event']['id']); ?>
 			&nbsp;
 		</dd>
+		<?php if ('true' == Configure::read('CyDefSIG.showorg')): ?>
 		<dt<?php if ($i % 2 == 0) echo $class;?>><?php __('Org'); ?></dt>
 		<dd<?php if ($i++ % 2 == 0) echo $class;?>>
 			<?php echo Sanitize::html($event['Event']['org']); ?>
 			&nbsp;
 		</dd>
+		<?php endif; ?>
 		<dt<?php if ($i % 2 == 0) echo $class;?>><?php __('Date'); ?></dt>
 		<dd<?php if ($i++ % 2 == 0) echo $class;?>>
 			<?php echo Sanitize::html($event['Event']['date']); ?>

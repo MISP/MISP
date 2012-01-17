@@ -3,7 +3,9 @@
 	<table cellpadding="0" cellspacing="0">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
+			<?php if ('true' == Configure::read('CyDefSIG.showorg')): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
+			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('date');?></th>
 			<th><?php echo $this->Paginator->sort('risk');?></th>
 			<th><?php echo $this->Paginator->sort('info');?></th>
@@ -19,7 +21,9 @@
 	?>
 	<tr<?php echo $class;?> onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
 		<td style="white-space: nowrap"><?php echo $event['Event']['id']; ?>&nbsp;</td>
+		<?php if ('true' == Configure::read('CyDefSIG.showorg')): ?>
 		<td style="white-space: nowrap"><?php echo Sanitize::html($event['Event']['org']); ?>&nbsp;</td>
+		<?php endif; ?>
 		<td style="white-space: nowrap"><?php echo $event['Event']['date']; ?>&nbsp;</td>
 		<td style="white-space: nowrap"><?php echo $event['Event']['risk']; ?>&nbsp;</td>
 		<td><?php echo nl2br(Sanitize::html($event['Event']['info'])); ?>&nbsp;</td>

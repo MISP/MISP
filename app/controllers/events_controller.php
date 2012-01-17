@@ -162,7 +162,9 @@ class EventsController extends AppController {
         $body .= 'URL         : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id']."\n";
         $body .= 'Event       : '.$event['Event']['id']."\n";
         $body .= 'Date        : '.$event['Event']['date']."\n";
-        $body .= 'Reported by : '.Sanitize::html($event['Event']['org'])."\n";
+        if ('true' == Configure::read('CyDefSIG.showorg')) {
+            $body .= 'Reported by : '.Sanitize::html($event['Event']['org'])."\n";
+        }
         $body .= 'Risk        : '.$event['Event']['risk']."\n";
         $relatedEvents = $this->Event->getRelatedEvents($id);
         if (!empty($relatedEvents)) {
@@ -336,7 +338,9 @@ class EventsController extends AppController {
         $body .= 'URL         : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id']."\n";
         $body .= 'Event       : '.$event['Event']['id']."\n";
         $body .= 'Date        : '.$event['Event']['date']."\n";
-        $body .= 'Reported by : '.Sanitize::html($event['Event']['org'])."\n";
+        if ('true' == Configure::read('CyDefSIG.showorg')) {
+            $body .= 'Reported by : '.Sanitize::html($event['Event']['org'])."\n";
+        }
         $body .= 'Risk        : '.$event['Event']['risk']."\n";
         $relatedEvents = $this->Event->getRelatedEvents($id);
         if (!empty($relatedEvents)) {
@@ -428,7 +432,10 @@ class EventsController extends AppController {
         $this->header('Content-Disposition: attachment; filename="cydefsig.xml"');
         
         $conditions = array("Event.alerted" => 1);
-        $fields = array('Event.id', 'Event.org', 'Event.date', 'Event.risk', 'Event.info');
+        $fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.info');
+        if ('true' == Configure::read('CyDefSIG.showorg')) {
+            $fields[] = 'Event.org';
+        }
 //         $this->Event->Behaviors->attach('Containable');
 //         $contain = array('Signature.id', 'Signature.type', 'Signature.value', 'Signature.to_snort');
         $params = array('conditions' => $conditions,
