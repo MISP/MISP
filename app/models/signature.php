@@ -164,6 +164,7 @@ class Signature extends AppModel {
                     return true;
                 break;
             case 'snort':
+                // no validation yet. TODO implement data validation on snort signature type
             case 'other':
                 return true;
                 break;
