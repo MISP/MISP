@@ -28,6 +28,7 @@ class Signature extends AppModel {
                                                 'user-agent',
                                                 'regkey',
                                                 'AS',
+                                                'snort',
                                                 'other')),
                 'message' => 'Options : md5, sha1, filename, ip, domain, email, url, regkey, AS, other, ...'
             ),
