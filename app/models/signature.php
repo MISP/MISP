@@ -163,6 +163,7 @@ class Signature extends AppModel {
                 if (!preg_match("#\n#", $value))
                     return true;
                 break;
+            case 'snort':
             case 'other':
                 return true;
                 break;
