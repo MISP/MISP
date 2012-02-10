@@ -29,6 +29,7 @@ class Signature extends AppModel {
                                                 'regkey',
                                                 'AS',
                                                 'snort',
+                                                'pattern-in-file',
                                                 'other')),
                 'message' => 'Options : md5, sha1, filename, ip, domain, email, url, regkey, AS, other, ...'
             ),
@@ -171,7 +172,7 @@ class Signature extends AppModel {
         }
 
         // default action is to return false
-        return false;
+        return true;
 
     }
 
