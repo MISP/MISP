@@ -2,7 +2,7 @@
 class UsersController extends AppController {
 
     var $name = 'Users';
-    var $components = array('Security', 'Recaptcha.Recaptcha');
+    var $components = array('Security');
 
     function beforeFilter() {
         parent::beforeFilter();
@@ -219,15 +219,35 @@ class UsersController extends AppController {
 
     
     function memberslist() {
-        $fields = array('User.org', 'count(User.id) as `amount`');
+        $this->loadModel('Signature');
+        $this->loadModel('Event');
+        
+        // Orglist and list of number of events shared
+        $fields = array('User.org', 'count(User.id) as `num_members`', 'count(Event.id) as `num_events`');
+        $params = array('recursive' => 0,
+                                'fields' => $fields,
+                                'group' => array('User.org'),
+                                'order' => array('User.org'),
+        );
+        $orgs = $this->Event->find('all', $params);
+        $this->set('orgs', $orgs);
+        
+        
+        // What org posted what type of signature
+        // LATER beautify types_histogram
+        $this->loadModel('Signature');
+        $fields = array('Event.org', 'Signature.type', 'count(Signature.type) as `num_types`');
         $params = array('recursive' => 0,
                         'fields' => $fields,
-                        'group' => array('User.org'),
-                        'order' => array('User.org'),
+                        'group' => array('Signature.type'),
+                        'order' => array('Event.org'),
         );
-        $result = $this->User->find('all', $params);
-        $this->set('orgs', $result);
+        $types_histogram = $this->Signature->find('all', $params);
+        $this->set('types_histogram', $types_histogram);
+        
+        
     }
+    
     
     function initDB() {
         $group =& $this->User->Group;
