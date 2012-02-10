@@ -222,15 +222,26 @@ class UsersController extends AppController {
         $this->loadModel('Signature');
         $this->loadModel('Event');
         
-        // Orglist and list of number of events shared
-        $fields = array('User.org', 'count(User.id) as `num_members`', 'count(Event.id) as `num_events`');
+        // Orglist
+        $fields = array('User.org', 'count(User.id) as `num_members`');
         $params = array('recursive' => 0,
-                                'fields' => $fields,
-                                'group' => array('User.org'),
-                                'order' => array('User.org'),
+                        'fields' => $fields,
+                        'group' => array('User.org'),
+                        'order' => array('User.org'),
         );
-        $orgs = $this->Event->find('all', $params);
+        $orgs = $this->User->find('all', $params);
         $this->set('orgs', $orgs);
+        
+//         $fields = array('User.org', 'count(User.id) as `num_members`', 'count(Event.id) as `num_events`');
+//         $params = array('recursive' => 0,
+//                                 'fields' => $fields,
+//                                 'group' => array('User.org'),
+//                                 'order' => array('User.org'),
+//         );
+//         $orgs = $this->Event->find('all', $params);
+//         $this->set('orgs', $orgs);
+        
+        
         
         
         // What org posted what type of signature
@@ -239,8 +250,8 @@ class UsersController extends AppController {
         $fields = array('Event.org', 'Signature.type', 'count(Signature.type) as `num_types`');
         $params = array('recursive' => 0,
                         'fields' => $fields,
-                        'group' => array('Signature.type'),
-                        'order' => array('Event.org'),
+                        'group' => array('Signature.type', 'Event.org'),
+                        'order' => array('Event.org', 'num_types DESC'),
         );
         $types_histogram = $this->Signature->find('all', $params);
         $this->set('types_histogram', $types_histogram);

@@ -4,7 +4,6 @@
 	<tr>
 			<th>Organisation</th>
 			<th># of members</th>
-			<th># of events</th>
  	</tr>
 	<?php
 	$i = 0;
@@ -17,7 +16,6 @@
 	<tr<?php echo $class;?>>
 		<td><?php echo $org['User']['org']; ?>&nbsp;</td>
 		<td><?php echo $org[0]['num_members']; ?>&nbsp;</td>
-		<td><?php echo $org[0]['num_events']; ?>&nbsp;</td>
 		
 	</tr>
 <?php endforeach; ?>
