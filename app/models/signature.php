@@ -74,6 +74,20 @@ class Signature extends AppModel {
 
     function validateSignatureValue ($fields) {
         $value = $fields['value'];
+        $event_id = $this->data['Signature']['event_id'];
+        $type = $this->data['Signature']['type'];
+        
+        // check if the signature already exists in the same event
+        $params = array('recursive' => 0,
+                        'conditions' => array('Signature.event_id' => $event_id, 
+                                              'Signature.type' => $type,
+                                              'Signature.value' => $value),
+        );
+        if (0 != $this->find('count', $params) )
+            return 'Signature already exists for this event.'; 
+        
+        
+        // check data validation
         switch($this->data['Signature']['type']) {
             case 'md5':
                 if (preg_match("#^[0-9a-f]{32}$#i", $value))
