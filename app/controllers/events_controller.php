@@ -157,13 +157,14 @@ class EventsController extends AppController {
             $this->redirect(array('action' => 'view', $id));
         }
         
+        // The mail body, Sanitize::html() is NOT needed as we are sending plain-text mails.
         $body = "";
         $appendlen = 20;
         $body .= 'URL         : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id']."\n";
         $body .= 'Event       : '.$event['Event']['id']."\n";
         $body .= 'Date        : '.$event['Event']['date']."\n";
         if ('true' == Configure::read('CyDefSIG.showorg')) {
-            $body .= 'Reported by : '.Sanitize::html($event['Event']['org'])."\n";
+            $body .= 'Reported by : '.$event['Event']['org']."\n";
         }
         $body .= 'Risk        : '.$event['Event']['risk']."\n";
         $relatedEvents = $this->Event->getRelatedEvents($id);
@@ -177,12 +178,12 @@ class EventsController extends AppController {
         $body .= 'Signatures  :'."\n";
         if (!empty($event['Signature'])) {
             foreach ($event['Signature'] as $signature){
-                $body .= '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.Sanitize::html($signature['value'])."\n"; 
+                $body .= '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.$signature['value']."\n"; 
             }
         }
         $body .= "\n";
         $body .= 'Extra info  : '."\n";
-        $body .= Sanitize::html($event['Event']['info']);
+        $body .= $event['Event']['info'];
         
         // sign the body
         require_once 'Crypt/GPG.php';
@@ -191,7 +192,7 @@ class EventsController extends AppController {
         $body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
         
         
-        $this->loadModel('Users');
+        $this->loadModel('Users'); // LATER should be loadModel('User'), and change all subsequent calls to this object
         
         //
         // Build a list of the recipients that get a non-encrypted mail
@@ -317,6 +318,7 @@ class EventsController extends AppController {
         $me_user = $this->Auth->user();
         $me_user = $me_user['User']; // email, gpgkey
         
+        // The mail body, Sanitize::html() is NOT needed as we are sending plain-text mails.
         $body = "";
         $body .="Hello, \n";
         $body .="\n";
@@ -327,7 +329,7 @@ class EventsController extends AppController {
         $body .="His GPG/PGP key is added as attachment to this email. \n";
         $body .="\n";
         $body .="He wrote the following message: \n";
-        $body .=Sanitize::html($message)."\n";
+        $body .=$message."\n";
         $body .="\n";
         $body .="\n";
         $body .="The event is the following: \n";
@@ -339,7 +341,7 @@ class EventsController extends AppController {
         $body .= 'Event       : '.$event['Event']['id']."\n";
         $body .= 'Date        : '.$event['Event']['date']."\n";
         if ('true' == Configure::read('CyDefSIG.showorg')) {
-            $body .= 'Reported by : '.Sanitize::html($event['Event']['org'])."\n";
+            $body .= 'Reported by : '.$event['Event']['org']."\n";
         }
         $body .= 'Risk        : '.$event['Event']['risk']."\n";
         $relatedEvents = $this->Event->getRelatedEvents($id);
@@ -353,12 +355,12 @@ class EventsController extends AppController {
         $body .= 'Signatures  :'."\n";
         if (!empty($event['Signature'])) {
             foreach ($event['Signature'] as $signature){
-                $body .= '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.Sanitize::html($signature['value'])."\n";
+                $body .= '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.$signature['value']."\n";
             }
         }
         $body .= "\n";
         $body .= 'Extra info  : '."\n";
-        $body .= Sanitize::html($event['Event']['info']);
+        $body .= $event['Event']['info'];
         
         // sign the body
         require_once 'Crypt/GPG.php';
@@ -630,6 +632,8 @@ class EventsController extends AppController {
                         $rules[] = "";
                         // TODO write snort user-agent rule
                         break;
+                    case 'snort':
+                        // FIXME output the snort rule and overwrite the SID with the sid from here.
                     default:
                         break;
                 }
