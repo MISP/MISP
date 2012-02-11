@@ -174,16 +174,21 @@ class EventsController extends AppController {
             
             }
         }
+        $body .= 'Info  : '."\n";
+        $body .= $event['Event']['info']."\n";
         $body .= "\n";
         $body .= 'Signatures  :'."\n";
+        $body_temp_other = "";
         if (!empty($event['Signature'])) {
             foreach ($event['Signature'] as $signature){
-                $body .= '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.$signature['value']."\n"; 
+                $line = '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.$signature['value']."\n";
+                if ('other' == $signature['type']) // append the 'other' signature types to the bottom.
+                $body_temp_other .= $line;
+                else $body .= $line;
             }
         }
         $body .= "\n";
-        $body .= 'Extra info  : '."\n";
-        $body .= $event['Event']['info'];
+        $body .= $body_temp_other;  // append the 'other' signature types to the bottom.
         
         // sign the body
         require_once 'Crypt/GPG.php';
@@ -351,16 +356,21 @@ class EventsController extends AppController {
         
             }
         }
+        $body .= 'Info  : '."\n";
+        $body .= $event['Event']['info']."\n";
         $body .= "\n";
         $body .= 'Signatures  :'."\n";
+        $body_temp_other = "";
         if (!empty($event['Signature'])) {
             foreach ($event['Signature'] as $signature){
-                $body .= '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.$signature['value']."\n";
+                $line = '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.$signature['value']."\n";
+                if ('other' == $signature['type']) // append the 'other' signature types to the bottom.
+                    $body_temp_other .= $line;
+                else $body .= $line;
             }
         }
         $body .= "\n";
-        $body .= 'Extra info  : '."\n";
-        $body .= $event['Event']['info'];
+        $body .= $body_temp_other;  // append the 'other' signature types to the bottom.
         
         // sign the body
         require_once 'Crypt/GPG.php';
