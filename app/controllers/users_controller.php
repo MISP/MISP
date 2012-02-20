@@ -252,7 +252,7 @@ class UsersController extends AppController {
         $params = array('recursive' => 0,
                         'fields' => $fields,
                         'group' => array('Signature.type', 'Event.org'),
-                        'order' => array('num_types DESC', 'Event.org' ),
+                        'order' => array('Event.org', 'num_types DESC'),
         );
         $types_histogram = $this->Signature->find('all', $params);
         $this->set('types_histogram', $types_histogram);
