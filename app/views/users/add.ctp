@@ -8,6 +8,7 @@
 		echo $this->Form->input('password');
 		echo $this->Form->input('org');
 		echo $this->Form->input('autoalert');
+		echo $this->Form->input('snort_sid');
 		echo $this->Form->input('gpgkey');
 	?>
 	</fieldset>

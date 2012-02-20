@@ -105,6 +105,7 @@ class UsersController extends AppController {
             $this->User->set('email', $this->data['User']['email']);
             $this->User->set('autoalert', $this->data['User']['autoalert']);	
             $this->User->set('gpgkey', $this->data['User']['gpgkey']);	
+            $this->User->set('nids_sid', $this->data['User']['nids_sid']);
 
 			// administrative actions 
 			if ($this->isAdmin()) {

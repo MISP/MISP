@@ -75,6 +75,14 @@ class User extends AppModel {
             'rule' => array('validateGpgkey'),
             'message' => 'GPG key not valid, please enter a valid key'
          ),
+         'nids_sid' => array (
+         	'numeric' => array(
+				'rule' => array('numeric'),
+				'message' => 'A SID should be an integer.',
+	            'allowEmpty' => false,
+				'required' => true,
+			),
+		),
 	);
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 

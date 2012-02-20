@@ -40,6 +40,11 @@
 			<?php echo $user['User']['authkey']; ?>
 			&nbsp;
 		</dd>
+		<dt<?php if ($i % 2 == 0) echo $class;?>>NIDS start SID</dt>
+		<dd<?php if ($i++ % 2 == 0) echo $class;?>>
+		    <?php echo Sanitize::html($user['User']['nids_sid']); ?>
+			&nbsp;
+		</dd>
 		<dt<?php if ($i % 2 == 0) echo $class;?>><?php __('GPGkey'); ?></dt>
 		<dd<?php if ($i++ % 2 == 0) echo $class;?> style="font-size: 10px; padding:0px; margin:0px;line-height:100%;">
 		    <pre><?php echo Sanitize::html($user['User']['gpgkey']); ?></pre>
