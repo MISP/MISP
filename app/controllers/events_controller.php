@@ -463,7 +463,7 @@ class EventsController extends AppController {
     /**
      * 
      * Old legacy method/url
-     * @param unknown_type $key
+     * @param string $key
      * @deprecated 
      */
     function snort($key) {
@@ -486,10 +486,13 @@ class EventsController extends AppController {
         
         // find events that are finished
         $events = $this->Event->findAllByAlerted(1);
+        $classtype = 'targeted-attack';
 
         foreach ($events as $event) {
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev 
-            $rule_format = 'alert %s %s %s %s %s %s (msg: "CyDefSIG %s, Event '.$event['Event']['id'].', '.$event['Event']['risk'].'"; %s %s classtype:targeted-attack; sid:%d; rev:%d; reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id'].';) ';
+            $rule_format_msg = 'msg: "CyDefSIG %s, Event '.$event['Event']['id'].', '.$event['Event']['risk'].'"';
+            $rule_format_reference = 'reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id'];
+            $rule_format = 'alert %s %s %s %s %s %s ('.$rule_format_msg.'; %s %s classtype:'.$classtype.'; sid:%d; rev:%d; '.$rule_format_reference.';) ';
         
             $sid = $user['User']['nids_sid']+($event['Event']['id']*100); // LATER this will cause issues with events containing more than 99 signatures
             //debug($event);
@@ -643,7 +646,46 @@ class EventsController extends AppController {
                         // TODO write snort user-agent rule
                         break;
                     case 'snort':
-                        // FIXME output the snort rule and overwrite the SID with the sid from here.
+                        $tmp_rule = $signature['value'];
+                        
+                        // rebuild the rule by overwriting the different keywords using preg_replace()
+                        //   sid       - '/sid\s*:\s*[0-9]+\s*;/'
+                        //   rev       - '/rev\s*:\s*[0-9]+\s*;/'
+                        //   classtype - '/classtype:[a-zA-Z_-]+;/'
+                        //   msg       - '/msg\s*:\s*".*"\s*;/'
+                        //   reference - '/reference\s*:\s*.+;/'
+                        $replace_count=array();
+                        $tmp_rule = preg_replace('/sid\s*:\s*[0-9]+\s*;/', 'sid:'.$sid.';', $tmp_rule, -1, $replace_count['sid']);
+                        if (null == $tmp_rule ) break;  // don't output the rule on error with the regex 
+                        $tmp_rule = preg_replace('/rev\s*:\s*[0-9]+\s*;/', 'rev:1;', $tmp_rule, -1, $replace_count['rev']);
+                        if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
+                        $tmp_rule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:'.$classtype.';', $tmp_rule, -1, $replace_count['classtype']);
+                        if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
+                        $tmp_message = sprintf($rule_format_msg, 'snort-rule');
+                        $tmp_rule = preg_replace('/msg\s*:\s*".*"\s*;/', $tmp_message.';', $tmp_rule, -1, $replace_count['msg']);
+                        if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
+                        $tmp_rule = preg_replace('/reference\s*:\s*.+;/', $rule_format_reference.';', $tmp_rule, -1, $replace_count['reference']);
+                        if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
+                        
+                        // some values were not replaced, so we need to add them ourselves, and insert them in the rule
+                        $extra_for_rule="";
+                        if (0 == $replace_count['sid']) {
+                            $extra_for_rule .= 'sid:'.$sid.';'; 
+                        } if (0 == $replace_count['rev']) {
+                            $extra_for_rule .= 'rev:1;';
+                        } if (0 == $replace_count['classtype']) {
+                            $extra_for_rule .= 'classtype:'.$classtype.';';
+                        } if (0 == $replace_count['msg']) {
+                            $extra_for_rule .= $tmp_message.';';
+                        } if (0 == $replace_count['reference']) {
+                            $extra_for_rule .= $rule_format_reference.';';
+                        }
+                        $tmp_rule = preg_replace('/;\s*\)/', '; '.$extra_for_rule.')', $tmp_rule);
+                        
+                        // finally the rule is cleaned up and can be outputed
+                        $rules[] = $tmp_rule;
+                        
+                        // TODO test using lots of snort rules.
                     default:
                         break;
                 }
