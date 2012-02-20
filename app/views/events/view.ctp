@@ -49,7 +49,10 @@
 		<h3><?php __('Related Events');?></h3>
 		<ul>
 		<?php foreach ($relatedEvents as $relatedEvent): ?>
-		<li><?php echo $this->Html->link($relatedEvent['Event']['date'], array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));?></li>
+		<li><?php 
+		$link_text = $relatedEvent['Event']['date'].' ('.$relatedEvent['Event']['id'].')';
+		echo $this->Html->link($link_text, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
+		?></li>
 	    <?php endforeach; ?>
 	</div>
 	<?php endif; ?>
@@ -76,7 +79,16 @@
     		<tr<?php echo $class;?>>
     			<td><?php echo $signature['type'];?></td>
     			<td><?php echo nl2br(Sanitize::html($signature['value']));?></td>
-    			<td></td>
+    			<td>
+    			<?php
+    			if (null != $relatedSignatures[$signature['id']]) {
+    			    foreach ($relatedSignatures[$signature['id']] as $relatedSignature) {
+    			        echo $this->Html->link($relatedSignature['Signature']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedSignature['Signature']['event_id']));
+    			        echo ' '; 
+    			    }
+    			}
+    			?>
+    			</td>
     			<td><?php echo $signature['to_ids'] ? 'Yes' : 'No';?></td>
     			<td class="actions" style="text-align:right;">
     				<?php

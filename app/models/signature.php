@@ -191,17 +191,20 @@ class Signature extends AppModel {
     }
 
     
-//     function getRelatedEvents($signature) {
-//         // LATER write this getRelatedEvents() function    
-//         $conditions = array('Signature.value =' => $signature['value'], 
-//         					'Signature.id !=' => $signature['id'],
-//         					'Signature.type =' => $signature['type'], );
+    
+    function getRelatedSignatures($signature) {
+        // LATER getRelatedSignatures($signature) this might become a performance bottleneck    
+        $conditions = array('Signature.value =' => $signature['value'], 
+        					'Signature.id !=' => $signature['id'],
+        					'Signature.type =' => $signature['type'], );
 //         $fields = array('Event.*');
+        $fields = array('Signature.*');
         
-//         $similar_events = $this->find('all',array('conditions' => $conditions, 
-//                                                   'fields' => $fields )
-//                                         );
-//         return $similar_events;
-//     }
+        $similar_events = $this->find('all',array('conditions' => $conditions, 
+                                                  'fields' => $fields,
+                                                  'order' => 'Signature.event_id DESC', )
+                                        );
+        return $similar_events;
+    }
 
 }

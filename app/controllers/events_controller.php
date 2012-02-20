@@ -47,6 +47,14 @@ class EventsController extends AppController {
         
         $this->set('event', $this->Event->read(null, $id));
         $this->set('relatedEvents', $this->Event->getRelatedEvents());
+        
+        $related_signatures = array();
+        $this->loadModel('Signature');
+        foreach ($this->Event->data['Signature'] as $signature) {
+            $related_signatures[$signature['id']] = $this->Signature->getRelatedSignatures($signature);
+        }
+        $this->set('relatedSignatures', $related_signatures);
+        
     }
 
     function add() {
