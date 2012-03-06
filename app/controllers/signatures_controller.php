@@ -30,6 +30,7 @@ class SignaturesController extends AppController {
     }
 
     function add($event_id = null) {
+        
         if (!$event_id && empty($this->data)) {
             $this->Session->setFlash(__('Invalid id for event', true), 'default', array(), 'error');
             $this->redirect(array('controller' => 'events', 'action'=>'index'));
@@ -49,20 +50,60 @@ class SignaturesController extends AppController {
         }
         
         if (!empty($this->data)) {
-            // create the signature
-            $this->Signature->create();
+            // remove the alerted flag from the event
+            $this->loadModel('Event');
+            $event = $this->Event->read(null, $this->data['Signature']['event_id']);
+            $event['Event']['alerted'] = 0;
+            $this->Event->save($event);
             
-            if ($this->Signature->save($this->data)) {
-                // remove the alerted flag from the event    
-                $this->loadModel('Event');
-                $event = $this->Event->read(null, $this->data['Signature']['event_id']);
-                $event['Event']['alerted'] = 0;
-                $this->Event->save($event);
-                // inform the user and redirect
-                $this->Session->setFlash(__('The signature has been saved', true));
+            //
+            // multiple signatures in batch import
+            //
+            if ($this->data['Signature']['batch_import'] == 1) {
+                // make array from value field
+                $signatures = explode("\n", $this->data['Signature']['value']);
+                
+                $fails = "";     // will be used to keep a list of the lines that failed or succeeded 
+                $successes = "";
+                foreach ($signatures as $key => $signature) {
+                    $signature = trim($signature);
+                    if (strlen($signature) == 0 ) 
+                        continue; // don't do anything for empty lines
+                    
+                    $this->Signature->create();
+                    $this->data['Signature']['value'] = $signature;  // set the value as the content of the single line
+                    
+                    if ($this->Signature->save($this->data)) {
+                        $successes .= " ".($key+1);
+                    } else {
+                        $fails .= " ".($key+1);
+                    }
+                    
+                }
+                // we added all the signatures, 
+                if ($fails) { // list the ones that failed
+                    $this->Session->setFlash(__('The lines'.$fails.' could not be saved. Please, try again.', true), 'default', array(), 'error');
+                }
+                if ($successes) { // list the ones that succeeded
+                    $this->Session->setFlash(__('The lines'.$successes.' have been saved', true));
+                }
+                
                 $this->redirect(array('controller' => 'events', 'action' => 'view', $this->data['Signature']['event_id']));
-            } else {
-                $this->Session->setFlash(__('The signature could not be saved. Please, try again.', true), 'default', array(), 'error');
+            }
+            
+            else {
+            //
+            // single signature
+            //
+                // create the signature
+                $this->Signature->create();
+                if ($this->Signature->save($this->data)) {
+                    // inform the user and redirect
+                    $this->Session->setFlash(__('The signature has been saved', true));
+                    $this->redirect(array('controller' => 'events', 'action' => 'view', $this->data['Signature']['event_id']));
+                } else {
+                    $this->Session->setFlash(__('The signature could not be saved. Please, try again.', true), 'default', array(), 'error');
+                }
             }
         }
         if (empty($this->data)) {
