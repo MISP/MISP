@@ -8,6 +8,11 @@ class GroupsController extends AppController {
 	
 	    // Prevent XSRF
 	    $this->Security->requireAuth('add', 'edit');
+	    
+	    if (! $this->isAdmin() ) { 
+	        $this->Session->setFlash(__('You are not authorized to access this location.', true), 'default', array(), 'error');
+	        $this->redirect(array('controller' => 'events', 'action' => 'index'));
+	    }
 	}
 	
 	function index() {
