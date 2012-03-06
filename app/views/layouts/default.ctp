@@ -68,6 +68,8 @@
 		<div id="footer">
 			<h1 style="float:left;">Download: <?php echo $this->Html->link('PGP/GPG key', '/gpg.asc');?></h1>
 			<h1 style="float:right;"> <?php echo $this->Html->link(__('Log out', true), array('controller' => 'users', 'action' => 'logout'));?></h1>
+			
+			<h1 style="text-align:center;">Powered by CyDefSIG &copy; Belgian Defence</h1>
 		</div>
 	</div>
 	<?php echo $this->element('sql_dump'); ?>
