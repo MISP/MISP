@@ -74,7 +74,7 @@ class EventsController extends AppController {
         
         // combobox for risks
         $risks = $this->Event->validate['risk']['allowedChoice']['rule'][1];
-        $risks = $this->arrayToValuesIndexArray($risks);
+        $risks = $this->_arrayToValuesIndexArray($risks);
         $this->set('risks',compact('risks'));
     }
 
@@ -115,7 +115,7 @@ class EventsController extends AppController {
         
         // combobox for types
         $risks = $this->Event->validate['risk']['allowedChoice']['rule'][1];
-        $risks = $this->arrayToValuesIndexArray($risks);
+        $risks = $this->_arrayToValuesIndexArray($risks);
         $this->set('risks',compact('risks'));
     }
 
@@ -436,6 +436,11 @@ class EventsController extends AppController {
     
     function export() {
         // Simply display a static view
+        
+        // generate the list of signature types
+        $this->loadModel('Signature');
+        $this->set('sig_types', $this->Signature->validate['type']['allowedChoice']['rule'][1]);
+        
     }
     
     
@@ -711,6 +716,32 @@ class EventsController extends AppController {
         $this->set('rules', $rules);
         
     }
+    
+    function text($key, $type="") {
+        // check if the key is valid -> search for users based on key
+        $this->loadModel('User');
+        // no input sanitization necessary, it's done by model
+        $user = $this->User->findByAuthkey($key);
+        if (empty($user))
+        $this->cakeError('error403', array('message' => 'Incorrect authentication key'));
+        
+        $this->header('Content-Type: text/plain');    // set the content type
+//         $this->header('Content-Disposition: attachment; filename="cydefsig.rules"');
+        $this->layout = 'xml/xml'; // LATER better layout than xml
+        
+        $this->loadModel('Signature');
+        $params = array(
+        	'conditions' => array('Signature.type' => $type), //array of conditions
+        	'recursive' => 0, //int
+        	'fields' => array('Signature.value'), //array of field names
+         	'order' => array('Signature.value'), //string or array defining order
+        	'group' => array('Signature.value'), //fields to GROUP BY
+        );
+        $signatures = $this->Signature->find('all', $params);
+        
+        $this->set('signatures', $signatures);
+    }
+    
     
     /**
      * // TODO move _dnsNameToRawFormat($name) function to a better place

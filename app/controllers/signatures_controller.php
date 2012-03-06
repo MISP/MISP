@@ -71,7 +71,7 @@ class SignaturesController extends AppController {
         
         // combobox for types
         $types = $this->Signature->validate['type']['allowedChoice']['rule'][1];
-        $types = $this->arrayToValuesIndexArray($types);
+        $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types',compact('types'));       
     }
 
@@ -120,7 +120,7 @@ class SignaturesController extends AppController {
         
         // combobox for types
         $types = $this->Signature->validate['type']['allowedChoice']['rule'][1];
-        $types = $this->arrayToValuesIndexArray($types);
+        $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types',compact('types'));
     }
 

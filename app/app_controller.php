@@ -27,7 +27,7 @@ class AppController extends Controller {
     /**
      * Convert an array to the same array but with the values also as index instead of an interface_exists
      */
-    function arrayToValuesIndexArray($old_array) {
+    function _arrayToValuesIndexArray($old_array) {
         $new_array = Array();
         foreach ($old_array as $value)
             $new_array[$value] = $value;
