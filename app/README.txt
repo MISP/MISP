@@ -1,4 +1,7 @@
-
+                                                                     
+                                                                     
+                                                                     
+                                             
 TODOs
 -----
 
@@ -18,25 +21,46 @@ Security
 
 INSTALLATION INSTRUCTIONS
 -------------------------
-Download CakePHP 1.3 and copy the app (git clone) to the app directory.
+Download CyDefSIG using git in the /var/www/ directory. 
 
-First you need to edit the files in the /app/config directory.
-# (or copy your local config settings including the salts and passwords)
-# cp app/config/* /Users/chri/tmp/sshfs/sig/app/config/
+cd /var/www/
+git clone git@code.lab.modiss.be:cydefsig.git
+
+Download and extract CakePHP 1.3 to the web root directory:
+
+cd /tmp/
+wget https://nodeload.github.com/cakephp/cakephp/tarball/1.3
+tar zxvf cakephp-cakephp-<version>.tar.gz
+cd cakephp-cakephp-*
+
+Now remove the app directory and move everything from CakePHP to var/www
+
+rm -Rf app
+mv * /var/www/cydefsig/
+mv .??* /var/www/cydefsig/
+
+Create the 'tmp' directory with the necessary sub directories:
+
+mkdir /var/www/cydefsig/app/tmp
+mkdir /var/www/cydefsig/app/tmp/sessions
+mkdir /var/www/cydefsig/app/tmp/logs
+mkdir /var/www/cydefsig/app/tmp/cache
 
 Check if the permissions are set correctly using the following commands as root:
-chown -R chri:www-data sig
-chmod -R 750 sig
-chmod -R g+s sig
-cd sig/app/
-chmod -R g+w tmp
- 
-MySQL database: Import the empty database
 
-Default user/pass = admin@admin.com / admin 
+chown -R <user>:www-data /var/www/cydefsig
+chmod -R 750 /var/www/cydefsig
+chmod -R g+s /var/www/cydefsig
+cd /var/www/cydefsig/app/
+chmod -R g+w tmp
+
+Import the empty MySQL database in /var/www/cydefsig/app/MYSQL.txt using phpmyadmin or mysql>.
+
+Now configure your apache server with the DocumentRoot /var/www/cydefsig/app/webroot/
+
+The default user/pass = admin@admin.com/admin 
 Don't forget to change the email, password and authentication key after installation.
 
 Recommended patches
 -------------------
 By default CakePHP exposes his name and version in email headers. Apply a patch to remove this behavior.
-
