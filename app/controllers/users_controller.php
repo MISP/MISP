@@ -2,7 +2,7 @@
 class UsersController extends AppController {
 
     var $name = 'Users';
-    var $components = array('Security');
+//     var $components = array('Security');  FIXME results in 404 when editing form, caused by the $this->data['User']['password'] = ""; // empty out the password
 
     function beforeFilter() {
         parent::beforeFilter();
@@ -11,7 +11,7 @@ class UsersController extends AppController {
         $this->Auth->allow('login', 'logout');
 
         // Prevent XSRF
-        $this->Security->requireAuth('add', 'edit');
+//         $this->Security->requireAuth('add', 'edit');
         
         // These variables are required for every view
         $me_user = $this->Auth->user();
@@ -82,7 +82,7 @@ class UsersController extends AppController {
         $this->set(compact('groups'));
     }
 
-    function edit($id = null) {
+    function edit($id = null) {        
     	$me_user = $this->Auth->user();
         
         if (!$id && empty($this->data)) {
