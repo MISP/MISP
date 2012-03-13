@@ -14,7 +14,7 @@ class AppController extends Controller {
         $this->Auth->userModel = 'User';
         $this->Auth->fields = array('username' => 'email', 'password' => 'password');
         $this->Auth->loginAction = array('controller' => 'users', 'action' => 'login');
-        $this->Auth->logoutRedirect = array('controller' => 'users', 'action' => 'login');
+        $this->Auth->logoutRedirect = array('controller' => 'users', 'action' => 'routeafterlogin');
         $this->Auth->loginRedirect = array('controller' => 'events', 'action' => 'index');
         
         $this->Auth->actionPath = 'controllers/';

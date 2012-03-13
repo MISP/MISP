@@ -28,7 +28,7 @@ CREATE TABLE `acos` (
   `lft` int(10) DEFAULT NULL,
   `rght` int(10) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=56 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=61 ;
 
 -- --------------------------------------------------------
 
@@ -80,7 +80,7 @@ CREATE TABLE `events` (
   `alerted` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   FULLTEXT KEY `info` (`info`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=6 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=7 ;
 
 -- --------------------------------------------------------
 
@@ -108,7 +108,7 @@ CREATE TABLE `signatures` (
   `to_ids` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=11 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=37 ;
 
 -- --------------------------------------------------------
 
@@ -127,15 +127,19 @@ CREATE TABLE `users` (
   `invited_by` int(11) NOT NULL,
   `gpgkey` longtext COLLATE utf8_bin NOT NULL,
   `nids_sid` int(15) NOT NULL,
+  `termsaccepted` tinyint(1) NOT NULL,
+  `newsread` date NOT NULL,
   PRIMARY KEY (`id`),
   KEY `username` (`password`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=34 ;
+
+
 
 --
 -- Dumping data for table `acos`
 --
 
-INSERT INTO `acos` VALUES(1, NULL, NULL, NULL, 'controllers', 1, 110);
+INSERT INTO `acos` VALUES(1, NULL, NULL, NULL, 'controllers', 1, 120);
 INSERT INTO `acos` VALUES(2, 1, NULL, NULL, 'Pages', 2, 19);
 INSERT INTO `acos` VALUES(3, 2, NULL, NULL, 'display', 3, 4);
 INSERT INTO `acos` VALUES(4, 2, NULL, NULL, 'arrayToValuesIndexArray', 5, 6);
@@ -145,7 +149,7 @@ INSERT INTO `acos` VALUES(7, 2, NULL, NULL, 'edit', 11, 12);
 INSERT INTO `acos` VALUES(8, 2, NULL, NULL, 'index', 13, 14);
 INSERT INTO `acos` VALUES(9, 2, NULL, NULL, 'view', 15, 16);
 INSERT INTO `acos` VALUES(10, 2, NULL, NULL, 'delete', 17, 18);
-INSERT INTO `acos` VALUES(11, 1, NULL, NULL, 'Events', 20, 47);
+INSERT INTO `acos` VALUES(11, 1, NULL, NULL, 'Events', 20, 49);
 INSERT INTO `acos` VALUES(12, 11, NULL, NULL, 'index', 21, 22);
 INSERT INTO `acos` VALUES(13, 11, NULL, NULL, 'view', 23, 24);
 INSERT INTO `acos` VALUES(14, 11, NULL, NULL, 'add', 25, 26);
@@ -156,40 +160,45 @@ INSERT INTO `acos` VALUES(18, 11, NULL, NULL, 'xml', 33, 34);
 INSERT INTO `acos` VALUES(19, 11, NULL, NULL, 'snort', 35, 36);
 INSERT INTO `acos` VALUES(20, 11, NULL, NULL, 'arrayToValuesIndexArray', 37, 38);
 INSERT INTO `acos` VALUES(21, 11, NULL, NULL, 'isAdmin', 39, 40);
-INSERT INTO `acos` VALUES(22, 1, NULL, NULL, 'Groups', 48, 63);
-INSERT INTO `acos` VALUES(23, 22, NULL, NULL, 'index', 49, 50);
-INSERT INTO `acos` VALUES(24, 22, NULL, NULL, 'view', 51, 52);
-INSERT INTO `acos` VALUES(25, 22, NULL, NULL, 'add', 53, 54);
-INSERT INTO `acos` VALUES(26, 22, NULL, NULL, 'edit', 55, 56);
-INSERT INTO `acos` VALUES(27, 22, NULL, NULL, 'delete', 57, 58);
-INSERT INTO `acos` VALUES(28, 22, NULL, NULL, 'arrayToValuesIndexArray', 59, 60);
-INSERT INTO `acos` VALUES(29, 22, NULL, NULL, 'isAdmin', 61, 62);
-INSERT INTO `acos` VALUES(30, 1, NULL, NULL, 'Signatures', 64, 81);
-INSERT INTO `acos` VALUES(31, 30, NULL, NULL, 'index', 65, 66);
-INSERT INTO `acos` VALUES(32, 30, NULL, NULL, 'view', 67, 68);
-INSERT INTO `acos` VALUES(33, 30, NULL, NULL, 'add', 69, 70);
-INSERT INTO `acos` VALUES(34, 30, NULL, NULL, 'edit', 71, 72);
-INSERT INTO `acos` VALUES(35, 30, NULL, NULL, 'delete', 73, 74);
-INSERT INTO `acos` VALUES(36, 30, NULL, NULL, 'search', 75, 76);
-INSERT INTO `acos` VALUES(37, 30, NULL, NULL, 'arrayToValuesIndexArray', 77, 78);
-INSERT INTO `acos` VALUES(38, 30, NULL, NULL, 'isAdmin', 79, 80);
-INSERT INTO `acos` VALUES(39, 1, NULL, NULL, 'Users', 82, 109);
-INSERT INTO `acos` VALUES(40, 39, NULL, NULL, 'index', 83, 84);
-INSERT INTO `acos` VALUES(41, 39, NULL, NULL, 'view', 85, 86);
-INSERT INTO `acos` VALUES(42, 39, NULL, NULL, 'add', 87, 88);
-INSERT INTO `acos` VALUES(43, 39, NULL, NULL, 'edit', 89, 90);
-INSERT INTO `acos` VALUES(44, 39, NULL, NULL, 'delete', 91, 92);
-INSERT INTO `acos` VALUES(45, 39, NULL, NULL, 'login', 93, 94);
-INSERT INTO `acos` VALUES(46, 39, NULL, NULL, 'logout', 95, 96);
-INSERT INTO `acos` VALUES(47, 39, NULL, NULL, 'initDB', 97, 98);
-INSERT INTO `acos` VALUES(48, 39, NULL, NULL, 'arrayToValuesIndexArray', 99, 100);
-INSERT INTO `acos` VALUES(49, 39, NULL, NULL, 'isAdmin', 101, 102);
+INSERT INTO `acos` VALUES(22, 1, NULL, NULL, 'Groups', 50, 65);
+INSERT INTO `acos` VALUES(23, 22, NULL, NULL, 'index', 51, 52);
+INSERT INTO `acos` VALUES(24, 22, NULL, NULL, 'view', 53, 54);
+INSERT INTO `acos` VALUES(25, 22, NULL, NULL, 'add', 55, 56);
+INSERT INTO `acos` VALUES(26, 22, NULL, NULL, 'edit', 57, 58);
+INSERT INTO `acos` VALUES(27, 22, NULL, NULL, 'delete', 59, 60);
+INSERT INTO `acos` VALUES(28, 22, NULL, NULL, 'arrayToValuesIndexArray', 61, 62);
+INSERT INTO `acos` VALUES(29, 22, NULL, NULL, 'isAdmin', 63, 64);
+INSERT INTO `acos` VALUES(30, 1, NULL, NULL, 'Signatures', 66, 83);
+INSERT INTO `acos` VALUES(31, 30, NULL, NULL, 'index', 67, 68);
+INSERT INTO `acos` VALUES(32, 30, NULL, NULL, 'view', 69, 70);
+INSERT INTO `acos` VALUES(33, 30, NULL, NULL, 'add', 71, 72);
+INSERT INTO `acos` VALUES(34, 30, NULL, NULL, 'edit', 73, 74);
+INSERT INTO `acos` VALUES(35, 30, NULL, NULL, 'delete', 75, 76);
+INSERT INTO `acos` VALUES(36, 30, NULL, NULL, 'search', 77, 78);
+INSERT INTO `acos` VALUES(37, 30, NULL, NULL, 'arrayToValuesIndexArray', 79, 80);
+INSERT INTO `acos` VALUES(38, 30, NULL, NULL, 'isAdmin', 81, 82);
+INSERT INTO `acos` VALUES(39, 1, NULL, NULL, 'Users', 84, 119);
+INSERT INTO `acos` VALUES(40, 39, NULL, NULL, 'index', 85, 86);
+INSERT INTO `acos` VALUES(41, 39, NULL, NULL, 'view', 87, 88);
+INSERT INTO `acos` VALUES(42, 39, NULL, NULL, 'add', 89, 90);
+INSERT INTO `acos` VALUES(43, 39, NULL, NULL, 'edit', 91, 92);
+INSERT INTO `acos` VALUES(44, 39, NULL, NULL, 'delete', 93, 94);
+INSERT INTO `acos` VALUES(45, 39, NULL, NULL, 'login', 95, 96);
+INSERT INTO `acos` VALUES(46, 39, NULL, NULL, 'logout', 97, 98);
+INSERT INTO `acos` VALUES(47, 39, NULL, NULL, 'initDB', 99, 100);
+INSERT INTO `acos` VALUES(48, 39, NULL, NULL, 'arrayToValuesIndexArray', 101, 102);
+INSERT INTO `acos` VALUES(49, 39, NULL, NULL, 'isAdmin', 103, 104);
 INSERT INTO `acos` VALUES(50, 11, NULL, NULL, 'contact', 41, 42);
 INSERT INTO `acos` VALUES(51, 11, NULL, NULL, 'export', 43, 44);
 INSERT INTO `acos` VALUES(52, 11, NULL, NULL, 'nids', 45, 46);
-INSERT INTO `acos` VALUES(53, 39, NULL, NULL, 'resetauthkey', 103, 104);
-INSERT INTO `acos` VALUES(54, 39, NULL, NULL, 'orgslist', 105, 106);
-INSERT INTO `acos` VALUES(55, 39, NULL, NULL, 'memberslist', 107, 108);
+INSERT INTO `acos` VALUES(53, 39, NULL, NULL, 'resetauthkey', 105, 106);
+INSERT INTO `acos` VALUES(54, 39, NULL, NULL, 'orgslist', 107, 108);
+INSERT INTO `acos` VALUES(55, 39, NULL, NULL, 'memberslist', 109, 110);
+INSERT INTO `acos` VALUES(56, 11, NULL, NULL, 'text', 47, 48);
+INSERT INTO `acos` VALUES(57, 39, NULL, NULL, 'acceptTerms', 111, 112);
+INSERT INTO `acos` VALUES(58, 39, NULL, NULL, 'news', 113, 114);
+INSERT INTO `acos` VALUES(59, 39, NULL, NULL, 'routeafterlogin', 115, 116);
+INSERT INTO `acos` VALUES(60, 39, NULL, NULL, 'terms', 117, 118);
 
 --
 -- Dumping data for table `aros`

@@ -71,6 +71,9 @@ ul, li {
 p {
 	margin-bottom: 8px;
 }
+em {
+	font-weight: bold;
+}
 
 
 /** Layout **/

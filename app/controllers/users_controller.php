@@ -180,7 +180,26 @@ class UsersController extends AppController {
     
     }       
 
-     
+
+    function routeafterlogin() {
+        $me_user = $this->Auth->user();
+        
+        // Terms and Conditions Page
+        if (0 == $me_user['User']['termsaccepted']) {
+            $this->redirect(array('action' => 'terms'));
+        }
+        
+        // News page
+        $new_newsdate = new DateTime("2012-03-12");
+        $newsdate = new DateTime($me_user['User']['newsread']);
+        if ($new_newsdate > $newsdate) {
+            $this->redirect(array('action' => 'news'));
+        }
+        
+        // Events list
+        $this->redirect(array('controller' => 'events', 'action' => 'index'));
+    }
+    
     function logout() {
         $this->Session->setFlash('Good-Bye');
         $this->redirect($this->Auth->logout());
@@ -259,6 +278,37 @@ class UsersController extends AppController {
         
         
     }
+    
+    
+    
+    
+    function terms() {
+        $me_user = $this->Auth->user();
+        
+        if (!empty($this->data)) {
+            $user = $this->User->read(null, $me_user['User']['id']);
+            $user['User']['termsaccepted'] = 1;
+            $this->User->save($user);
+            $this->Session->write('Auth', $user);  // refresh auth info
+
+            $this->redirect(array('action' => 'routeafterlogin'));
+        }
+
+        $this->set('termsaccepted', $me_user['User']['termsaccepted']);
+        
+    }
+    
+    function news() {
+        $me_user = $this->Auth->user();
+        
+        $user = $this->User->read(null, $me_user['User']['id']);
+        $user['User']['newsread'] = date("Y-m-d");
+        $this->User->save($user);
+        $this->Session->write('Auth', $user);  // refresh auth info
+        
+        
+    }
+    
     
     
     function initDB() {
