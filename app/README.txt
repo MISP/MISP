@@ -53,7 +53,7 @@ Import the empty MySQL database in /var/www/cydefsig/app/MYSQL.txt using phpmyad
 
 Now configure your apache server with the DocumentRoot /var/www/cydefsig/app/webroot/
 
-The default user/pass = admin@admin.com/admin 
+The default user/pass = admin@admin.test/admin 
 Don't forget to change the email, password and authentication key after installation.
 
 Recommended patches
