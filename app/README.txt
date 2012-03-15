@@ -1,21 +1,16 @@
                                                                      
-                                                                     
-                                                                     
-                                             
+
 TODOs
 -----
 
 Auth
-- Use captcha authentication
-- cleanup ACL and do it using the CakePHP concept
-- password strength requirements
+- Prevent bruteforce auth attempts
 
 implement auditing/logging system
 - add / edit events and signatures
 - failed / success logins (with source IP, headers,...)
 
 Security
-- apply CSRF checks on the delete parameters by enabling security modules and rewriting some parts
 - force cookie reset after login
 
 
@@ -26,10 +21,10 @@ Download CyDefSIG using git in the /var/www/ directory.
 cd /var/www/
 git clone git@code.lab.modiss.be:cydefsig.git
 
-Download and extract CakePHP 1.3 to the web root directory:
+Download and extract CakePHP 2.x to the web root directory:
 
 cd /tmp/
-wget https://nodeload.github.com/cakephp/cakephp/tarball/1.3
+wget https://nodeload.github.com/cakephp/cakephp/tarball/2.1
 tar zxvf cakephp-cakephp-<version>.tar.gz
 cd cakephp-cakephp-*
 

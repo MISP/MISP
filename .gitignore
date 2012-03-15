@@ -1,6 +1,8 @@
-/app/tmp
 /plugins
 /vendors
+/lib
+/build.properties
+/build.xml
 /.project
 /.settings
 /.buildpath
@@ -10,3 +12,4 @@
 /index.php
 /README
 /app/tmp/sessions/sess_*
+/app/tmp/logs/*.log
