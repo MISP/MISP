@@ -42,7 +42,6 @@ This would enable you to export:</p>
 
 </div>
 <div class="actions">
-	<h3><?php __('Actions'); ?></h3>
 	<ul>
 		<?php echo $this->element('actions_menu'); ?>
 

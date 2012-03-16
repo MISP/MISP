@@ -51,7 +51,6 @@ A bug in the DNS signatures has been corrected.</p>
 </div>
 
 <div class="actions">
-	<h3><?php __('Actions'); ?></h3>
 	<ul>
         <?php echo $this->element('actions_menu'); ?>
 	</ul>

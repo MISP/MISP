@@ -52,7 +52,6 @@ if (!isset($termsaccepted)) {
 </div>
 
 <div class="actions">
-	<h3><?php __('Actions'); ?></h3>
 	<ul>
         <?php echo $this->element('actions_menu'); ?>
 	</ul>

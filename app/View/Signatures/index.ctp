@@ -10,14 +10,16 @@
 	</tr>
 	<?php
 	foreach ($signatures as $signature): ?>
-	<!--  <tr onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ; // FIXME activate link onclick ?>';">  -->
 	<tr>
-		<td>
+		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
 			<?php echo $this->Html->link($signature['Event']['id'], array('controller' => 'events', 'action' => 'view', $signature['Event']['id'])); ?>
 		</td>
-		<td><?php echo h($signature['Signature']['type']); ?>&nbsp;</td>
-		<td><?php echo nl2br(Sanitize::html($signature['Signature']['value'])); ?>&nbsp;</td>
-		<td><?php echo $signature['Signature']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;</td>
+		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
+		<?php echo h($signature['Signature']['type']); ?>&nbsp;</td>
+		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
+		<?php echo nl2br(Sanitize::html($signature['Signature']['value'])); ?>&nbsp;</td>
+		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
+		<?php echo $signature['Signature']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td class="actions"><?php 
 			if ($isAdmin || $signature['Event']['org'] == $me['org']) {
 				echo $this->Html->link(__('Edit'), array('action' => 'edit', $signature['Signature']['id'])); 
@@ -45,7 +47,6 @@
 	</div>
 </div>
 <div class="actions">
-	<h3><?php echo __('Actions'); ?></h3>
 	<ul>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>

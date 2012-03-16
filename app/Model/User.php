@@ -42,7 +42,7 @@ class User extends AppModel {
 			),
 		    'complexity' => array(
 		        'rule' => array('complexPassword'),
-				'message' => 'The password must contain at least one upper-case, one lower-case, one (digits or special character).', // TODO password strength requirements
+				'message' => 'The password must contain at least one upper-case, one lower-case, one (digits or special character).',
 				//'allowEmpty' => false,
 				//'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -168,16 +168,6 @@ class User extends AppModel {
 		)
 	);
 	
-//	var $actsAs = array('Acl' => array('type' => 'requester'));
-//	
-//	public function beforeValidate() {
-//	    // Fix issue with an empty password being automagically hashed
-//	    App::import('Core', 'Security'); // not sure whether this is necessary
-//	    if ($this->data['User']['password'] == Security::hash('', null, true)) {
-//	        $this->data['User']['password'] = '';
-//	    }
-//	    return true;
-//	}
 	
 	public function beforeSave() {
 	    if (isset($this->data[$this->alias]['password'])) {

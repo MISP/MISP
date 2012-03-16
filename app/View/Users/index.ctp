@@ -8,7 +8,7 @@
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<th><?php echo $this->Paginator->sort('autoalert');?></th>
 			<th><?php echo $this->Paginator->sort('authkey');?></th>
-			<th class="actions"><?php __('Actions');?></th>
+			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
 	$i = 0;
@@ -51,7 +51,6 @@
 </div>
 
 <div class="actions">
-	<h3><?php __('Actions'); ?></h3>
 	<ul>
         <?php echo $this->element('actions_menu'); ?>
 	</ul>

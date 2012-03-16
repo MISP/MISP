@@ -17,15 +17,19 @@
 	?>
 	<!--  <tr onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';" > -->
 	<tr>
-		<td style="white-space: nowrap">
+		<td  onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
 		<?php echo $this->Html->link($event['Event']['id'], array('controller' => 'events', 'action' => 'view', $event['Event']['id'])); ?>
 		&nbsp;</td>
 		<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
-		<td style="white-space: nowrap"><?php echo Sanitize::html($event['Event']['org']); ?>&nbsp;</td>
+		<td onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
+		<?php echo Sanitize::html($event['Event']['org']); ?>&nbsp;</td>
 		<?php endif; ?>
-		<td style="white-space: nowrap"><?php echo $event['Event']['date']; ?>&nbsp;</td>
-		<td style="white-space: nowrap"><?php echo $event['Event']['risk']; ?>&nbsp;</td>
-		<td><?php echo nl2br(Sanitize::html($event['Event']['info'])); ?>&nbsp;</td>
+		<td onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
+		<?php echo $event['Event']['date']; ?>&nbsp;</td>
+		<td onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
+		<?php echo $event['Event']['risk']; ?>&nbsp;</td>
+		<td onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
+		<?php echo nl2br(Sanitize::html($event['Event']['info'])); ?>&nbsp;</td>
 		<td class="actions">
 			<?php 
 			if (0 == $event['Event']['alerted'] && ($isAdmin || $event['Event']['org'] == $me['org']))
