@@ -76,11 +76,13 @@ class Signature extends AppModel {
         $value = $fields['value'];
         $event_id = $this->data['Signature']['event_id'];
         $type = $this->data['Signature']['type'];
-        
+        $to_ids = $this->data['Signature']['to_ids'];       
+ 
         // check if the signature already exists in the same event
         $params = array('recursive' => 0,
                         'conditions' => array('Signature.event_id' => $event_id, 
                                               'Signature.type' => $type,
+                                              'Signature.to_ids' => $to_ids,
                                               'Signature.value' => $value),
         );
         if (0 != $this->find('count', $params) )
