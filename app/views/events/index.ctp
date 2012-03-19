@@ -29,7 +29,7 @@
 		<td><?php echo nl2br(Sanitize::html($event['Event']['info'])); ?>&nbsp;</td>
 		<td class="actions" style="text-align:right;">
 			<?php 
-			if (0 == $event['Event']['alerted'] && ($isAdmin || $event['Event']['org'] == $me['org'])) echo $this->Html->link(__('Finish Edit', true), array('action' => 'alert', $event['Event']['id']), array(), 'Are you sure this event is complete and everyone should be alerted?'); 
+			if (0 == $event['Event']['alerted'] && ($isAdmin || $event['Event']['org'] == $me['org'])) echo $this->Html->link(__('Publish Event', true), array('action' => 'alert', $event['Event']['id']), array(), 'Are you sure this event is complete and everyone should be alerted?'); 
 			elseif (0 == $event['Event']['alerted']) echo 'Not finished editing';
 			?>
 			<?php 

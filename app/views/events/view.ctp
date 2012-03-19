@@ -3,7 +3,7 @@
 <?php if ( 0 == $event['Event']['alerted'] && ($isAdmin || $event['Event']['org'] == $me['org'])): 
 // only show button if alert has not been sent  // LATER show the ALERT button in red-ish 
 ?>
-    <ul><li><?php echo $this->Html->link(__('Finish Edit', true), array('action' => 'alert', $event['Event']['id']), array(), 'Are you sure this event is complete and everyone should be alerted?'); ?> </li></ul>
+    <ul><li><?php echo $this->Html->link(__('Publish Event', true), array('action' => 'alert', $event['Event']['id']), array(), 'Are you sure this event is complete and everyone should be alerted?'); ?> </li></ul>
 <?php elseif (0 == $event['Event']['alerted']): ?>
     <ul><li>Not finished editing</li></ul>
 <?php else: ?>
