@@ -4,7 +4,7 @@
 <p><b>Backend rewrite + security</b><br/>
 Complete rewrite of the backend code to migrate to CakePHP 2.x (from CakePHP 1.3). <br/>
 During this rewrite the code was cleaned up, CSRF protection should now be present on all the important actions.<br/>
-Password strength validation has been implemented.<br/>
+Password strength validation and better security has been implemented.<br/>
 Some intermittent bugs might have slipped in during the (manual) conversion. Please contact me <a href="mailto:user1088@qet.be">user1088@qet.be</a> to report any issues. 
 </p>
 <p><b>Terms and News</b><br/>

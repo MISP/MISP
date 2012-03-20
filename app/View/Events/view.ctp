@@ -73,15 +73,15 @@
     		<th>Value</th>
     		<th>Related Events</th>
     		<th>To IDS</th>
-    		<th class="actions" style="text-align:right;">Actions</th>
+    		<th class="actions">Actions</th>
     	</tr>
     	<?php
     		foreach ($event['Signature'] as $signature):
     		?>
     		<tr>
-    			<td><?php echo $signature['type'];?></td>
+    			<td class="short"><?php echo $signature['type'];?></td>
     			<td><?php echo nl2br(Sanitize::html($signature['value']));?></td>
-    			<td>
+    			<td class="short" style="text-align: center;">
     			<?php
     			if (null != $relatedSignatures[$signature['id']]) {
     			    foreach ($relatedSignatures[$signature['id']] as $relatedSignature) {
@@ -91,8 +91,8 @@
     			}
     			?>
     			</td>
-    			<td><?php echo $signature['to_ids'] ? 'Yes' : 'No';?></td>
-    			<td class="actions" style="text-align:right;">
+    			<td class="short"><?php echo $signature['to_ids'] ? 'Yes' : 'No';?></td>
+    			<td class="actions">
     				<?php
     				if ($isAdmin || $event['Event']['org'] == $me['org']) { 
     				    echo $this->Html->link(__('Edit', true), array('controller' => 'signatures', 'action' => 'edit', $signature['id'])); 

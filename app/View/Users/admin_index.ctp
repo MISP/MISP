@@ -3,7 +3,6 @@
 	<table cellpadding="0" cellspacing="0">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
-			<th><?php echo $this->Paginator->sort('password');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<th><?php echo $this->Paginator->sort('email');?></th>
 			<th><?php echo $this->Paginator->sort('autoalert');?></th>
@@ -19,13 +18,12 @@
 	foreach ($users as $user): ?>
 	<tr>
 		<td><?php echo h($user['User']['id']); ?>&nbsp;</td>
-		<td><?php echo h($user['User']['password']); ?>&nbsp;</td>
 		<td><?php echo h($user['User']['org']); ?>&nbsp;</td>
 		<td><?php echo h($user['User']['email']); ?>&nbsp;</td>
 		<td><?php echo h($user['User']['autoalert']); ?>&nbsp;</td>
 		<td><?php echo h($user['User']['authkey']); ?>&nbsp;</td>
 		<td><?php echo h($user['User']['invited_by']); ?>&nbsp;</td>
-		<td><?php echo h($user['User']['gpgkey']); ?>&nbsp;</td>
+		<td><?php echo $user['User']['gpgkey']? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td><?php echo h($user['User']['nids_sid']); ?>&nbsp;</td>
 		<td><?php echo h($user['User']['termsaccepted']); ?>&nbsp;</td>
 		<td><?php echo h($user['User']['newsread']); ?>&nbsp;</td>

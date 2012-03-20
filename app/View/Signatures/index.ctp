@@ -11,14 +11,14 @@
 	<?php
 	foreach ($signatures as $signature): ?>
 	<tr>
-		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
 			<?php echo $this->Html->link($signature['Event']['id'], array('controller' => 'events', 'action' => 'view', $signature['Event']['id'])); ?>
 		</td>
-		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
 		<?php echo h($signature['Signature']['type']); ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
 		<?php echo nl2br(Sanitize::html($signature['Signature']['value'])); ?>&nbsp;</td>
-		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
 		<?php echo $signature['Signature']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td class="actions"><?php 
 			if ($isAdmin || $signature['Event']['org'] == $me['org']) {

@@ -6,7 +6,6 @@ echo $this->Form->inputs(array(
 	'email',
 	'password'
 ));
-//echo $this->Recaptcha->display();
 
 echo $this->Form->end('Login');
 ?>

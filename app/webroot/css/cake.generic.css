@@ -171,6 +171,7 @@ table tr:nth-child(even) {
 td.actions {
 	text-align: right;
 	white-space: nowrap;
+	width:5%;
 }
 table td.actions a {
 	margin: 0px 6px;
@@ -178,6 +179,10 @@ table td.actions a {
 }
 th.actions {
 	text-align:center;
+}
+td.short {
+	width:5%;
+	white-space: nowrap;
 }
 
 /* added */
