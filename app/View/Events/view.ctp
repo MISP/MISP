@@ -4,7 +4,7 @@
 // only show button if alert has not been sent  // LATER show the ALERT button in red-ish 
 ?>
     <ul><li><?php 
-    echo $this->Form->postLink('Finish Edit', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be alerted?');
+    echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be alerted?');
     ?> </li></ul>
 <?php elseif (0 == $event['Event']['alerted']): ?>
     <ul><li>Not finished editing</li></ul>

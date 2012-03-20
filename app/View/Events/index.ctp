@@ -33,7 +33,7 @@
 		<td class="actions">
 			<?php 
 			if (0 == $event['Event']['alerted'] && ($isAdmin || $event['Event']['org'] == $me['org']))
-			    echo $this->Form->postLink('Finish Edit', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be alerted?');
+			    echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be alerted?');
 			elseif (0 == $event['Event']['alerted']) echo 'Not finished editing';
 			?>
 			<?php 
