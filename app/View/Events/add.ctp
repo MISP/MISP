@@ -6,7 +6,7 @@
 		echo $this->Form->input('date');
 		echo $this->Form->input('risk');
 		echo $this->Form->input('info');
-
+		
 	?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit', true));?>

@@ -61,7 +61,7 @@ class SignaturesController extends AppController {
 		        
 		            $this->Signature->create();
 		            $this->request->data['Signature']['value'] = $signature;  // set the value as the content of the single line
-		        
+		            $this->request->data['Signature']['uuid'] = String::uuid();
 		            if ($this->Signature->save($this->request->data)) {
 		                $successes .= " ".($key+1);
 		            } else {
@@ -89,6 +89,8 @@ class SignaturesController extends AppController {
             //
 		        // create the signature
 		    	$this->Signature->create();
+		    	$this->request->data['Signature']['uuid'] = String::uuid();
+		    	
     			if ($this->Signature->save($this->request->data)) {
     			    // inform the user and redirect
     				$this->Session->setFlash(__('The signature has been saved'));
@@ -128,7 +130,7 @@ class SignaturesController extends AppController {
 		    
 			if ($this->Signature->save($this->request->data)) {
 				$this->Session->setFlash(__('The signature has been saved'));
-				$this->redirect(array('action' => 'index'));
+				$this->redirect($this->referer());
 			} else {
 				$this->Session->setFlash(__('The signature could not be saved. Please, try again.'));
 			}
@@ -136,6 +138,11 @@ class SignaturesController extends AppController {
 			$this->request->data = $this->Signature->read(null, $id);
 		}
 
+		
+		// combobox for types
+		$types = $this->Signature->validate['type']['rule'][1];
+		$types = $this->_arrayToValuesIndexArray($types);
+		$this->set('types',compact('types'));
 	}
 
 /**

@@ -40,6 +40,11 @@
 			<?php echo $event['Event']['risk']; ?>
 			&nbsp;
 		</dd>
+		<!-- dt>UUID</dt>
+		<dd>
+			<?php echo $event['Event']['uuid']; ?>
+			&nbsp;
+		</dd -->
 		<dt>Info</dt>
 		<dd>
 			<?php echo nl2br(Sanitize::html($event['Event']['info'])); ?>

@@ -13,9 +13,7 @@
 	</tr>
 	<?php
 	foreach ($events as $event): 
-	// FIXME reactivate the onclick without breaking the delete form submit
 	?>
-	<!--  <tr onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';" > -->
 	<tr>
 		<td  onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
 		<?php echo $this->Html->link($event['Event']['id'], array('controller' => 'events', 'action' => 'view', $event['Event']['id'])); ?>
@@ -64,6 +62,5 @@
 <div class="actions">
 	<ul>
 		<?php echo $this->element('actions_menu'); ?>
-
 	</ul>
 </div>

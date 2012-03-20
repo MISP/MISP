@@ -271,7 +271,7 @@ class UsersController extends AppController {
 	
 	
 	    // What org posted what type of signature
-	    // LATER beautify types_histogram
+	    // LATER beautify types_histogram http://dev.sencha.com/deploy/ext-4.0.0/examples/charts/StackedBar.html
 	    $this->loadModel('Signature');
 	    $fields = array('Event.org', 'Signature.type', 'count(Signature.type) as `num_types`');
 	    $params = array('recursive' => 0,

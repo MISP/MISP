@@ -92,6 +92,26 @@ class Signature extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
+		'revision' => array(
+			'numeric' => array(
+				'rule' => array('numeric'),
+				//'message' => 'Your custom message here',
+				//'allowEmpty' => false,
+				//'required' => false,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
+		),
+		'private' => array(
+		        'boolean' => array(
+		                'rule' => array('boolean'),
+		                //'message' => 'Your custom message here',
+		                //'allowEmpty' => false,
+		                'required' => false,
+		                //'last' => false, // Stop validation after this rule
+		                //'on' => 'create', // Limit validation to 'create' or 'update' operations
+		        ),
+		),
 	);
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
@@ -110,6 +130,16 @@ class Signature extends AppModel {
 			'order' => ''
 		)
 	);
+	
+	
+	function beforeSave() {
+	    // increment the revision number
+	    if (empty($this->data['Signature']['revision'])) $this->data['Signature']['revision'] = 0;
+	    $this->data['Signature']['revision'] = 1 + $this->data['Signature']['revision'] ;
+	    
+	    // always return true after a beforeSave()
+	    return true;
+	}
 	
 	function validateSignatureValue ($fields) {
 	    $value = $fields['value'];

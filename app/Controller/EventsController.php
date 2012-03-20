@@ -83,7 +83,8 @@ class EventsController extends AppController {
 		    // force check userid and orgname to be from yourself
 		    $this->request->data['Event']['user_id'] = $this->Auth->user('id');
 		    $this->request->data['Event']['org'] = $this->Auth->user('org');
-			$this->Event->create();
+		    $this->request->data['Event']['uuid'] = String::uuid();
+		    $this->Event->create();
 			if ($this->Event->save($this->request->data)) {
 				$this->Session->setFlash(__('The event has been saved'));
 				$this->redirect(array('action' => 'view', $this->Event->getId()));
@@ -126,7 +127,7 @@ class EventsController extends AppController {
 		    $this->request->data['Event']['alerted'] = 0;
 		    
 		    // say what fields are to be updated
-		    $fieldList=array('user_id', 'org', 'date', 'risk', 'info', 'alerted');
+		    $fieldList=array('user_id', 'org', 'date', 'risk', 'info', 'alerted', 'private');
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The event has been saved'));
 				$this->redirect(array('action' => 'view', $id));
