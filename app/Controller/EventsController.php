@@ -346,6 +346,8 @@ class EventsController extends AppController {
 	    if ($this->request->is('post') || $this->request->is('put')) {
 	        $message = $this->request->data['Event']['message'];
 	        if ($this->_sendContactEmail($id, $message)) {
+	            // LATER when a user is deleted this will create problems. 
+	            // LATER send the email to all the people who are in the org that created the event
 	            // redirect to the view event page
 	            $this->Session->setFlash(__('Email sent to the reporter.', true));
 	        } else {

@@ -262,6 +262,7 @@ class UsersController extends AppController {
 	    $newkey = $this->User->generateAuthKey();
 	    $this->User->saveField('authkey', $newkey);
 	    $this->Session->setFlash(__('New authkey generated.', true));
+	    $this->_refreshAuth();
 	    $this->redirect($this->referer());
 	}
 	
