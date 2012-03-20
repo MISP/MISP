@@ -51,10 +51,7 @@ class AppController extends Controller {
     
     public function isAuthorized($user) {
         if (isset($user['org']) && $user['org'] === 'admin') {
-            return true; // admin can access every action
-        }
-        elseif ($this->Auth->loggedIn()) {
-            return true; // logged users
+            return true; // admin can access every action on every controller
         }
         return false; // The rest don't
     }

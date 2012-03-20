@@ -262,6 +262,11 @@ class Signature extends AppModel {
 	}
 	
 	
+	public function isOwnedByOrg($signatureid, $org) {
+	    $this->id = $signatureid;
+	    $this->read();
+	    return $this->data['Event']['org'] === $org;
+	}
 	
 	function getRelatedSignatures($signature) {
 	    // LATER getRelatedSignatures($signature) this might become a performance bottleneck

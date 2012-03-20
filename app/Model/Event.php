@@ -137,6 +137,11 @@ class Event extends AppModel {
 		)
 	);
 
+	
+	public function isOwnedByOrg($eventid, $org) {
+	    return $this->field('id', array('id' => $eventid, 'org' => $org)) === $eventid;
+	}
+	
 	function getRelatedEvents() {
 	    // first get a list of related event_ids
 	    // then do a single query to search for all the events with that id

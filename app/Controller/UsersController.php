@@ -13,7 +13,7 @@ class UsersController extends AppController {
     function beforeFilter() {
         parent::beforeFilter();
     
-        // what pages are allowed for everyone
+        // what pages are allowed for non-logged-in users
         $this->Auth->allow('login', 'logout');
 
         // These variables are required for every view
@@ -21,7 +21,25 @@ class UsersController extends AppController {
         $this->set('isAdmin', $this->_isAdmin());
     }
     
-
+    public function isAuthorized($user) {
+        // Admins can access everything
+        if (parent::isAuthorized($user)) {
+            return true;
+        }
+        // Do not allow admin routing
+        if (isset($this->request->params['admin']) && true == $this->request->params['admin'])
+            return false;
+        // Only on own user for these actions
+        if (in_array($this->action, array('edit', 'delete', 'resetauthkey'))) {
+            $userid = $this->request->params['pass'][0];
+            if ("me" == $userid ) return true;
+            return ($userid === $this->Auth->user('id'));
+        }
+        // the other pages are allowed by logged in users
+        return true;
+    }
+    
+    
 /**
  * view method
  *
@@ -54,10 +72,11 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		// Only own profile
-		if ($this->Auth->user('id') != $id) {
-		    throw new ForbiddenException('You are not authorized to edit this profile.');
-		}
+// 		Replaced by isAuthorized
+// 		// Only own profile
+// 		if ($this->Auth->user('id') != $id) {
+// 		    throw new ForbiddenException('You are not authorized to edit this profile.');
+// 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    // What fields should be saved (allowed to be saved)
 		    $fieldList=array('email', 'autoalert', 'gpgkey', 'nids_sid' );
@@ -94,10 +113,11 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		// Only own profile
-		if ($this->Auth->user('id') != $id) {
-		    throw new ForbiddenException('You are not authorized to delete this profile.');
-		}
+// 		Replaced by isAuthorized
+// 		// Only own profile
+// 		if ($this->Auth->user('id') != $id) {
+// 		    throw new ForbiddenException('You are not authorized to delete this profile.');
+// 		}
 		if ($this->User->delete()) {
 			$this->Session->setFlash(__('User deleted'));
 			$this->redirect(array('action' => 'index'));
@@ -231,10 +251,11 @@ class UsersController extends AppController {
 	    }
 	    if ('me' == $id ) $id = $this->Auth->user('id');
 	
-	    // only allow reset key for own account, except for admins
-	    if (!$this->_isAdmin() && $id != $this->Auth->user('id')) {
-	        throw new ForbiddenException('Not authorized to reset the key for this user');
-	    }
+// 	    Replaced by isAuthorized
+// 	    // only allow reset key for own account, except for admins
+// 	    if (!$this->_isAdmin() && $id != $this->Auth->user('id')) {
+// 	        throw new ForbiddenException('Not authorized to reset the key for this user');
+// 	    }
 	
 	    // reset the key
 	    $this->User->id = $id;

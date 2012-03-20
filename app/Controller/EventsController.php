@@ -25,14 +25,28 @@ class EventsController extends AppController {
     
 
     function beforeFilter() {
-        
-       $this->Auth->allow('xml');
-       $this->Auth->allow('nids');
-       $this->Auth->allow('text');
+        // what pages are allowed for non-logged-in users
+        $this->Auth->allow('xml');
+        $this->Auth->allow('nids');
+        $this->Auth->allow('text');
     
         // These variables are required for every view
         $this->set('me', $this->Auth->user());
         $this->set('isAdmin', $this->_isAdmin());
+    }
+    
+    public function isAuthorized($user) {
+        // Admins can access everything
+        if (parent::isAuthorized($user)) {
+            return true;
+        }
+        // Only on own events for these actions
+        if (in_array($this->action, array('edit', 'delete', 'alert'))) {
+            $eventid = $this->request->params['pass'][0];
+            return $this->Event->isOwnedByOrg($eventid, $this->Auth->user('org'));
+        }
+        // the other pages are allowed by logged in users 
+        return true;
     }
     
 /**
@@ -109,11 +123,12 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-		// only edit own events
-		$old_event = $this->Event->read(null, $id);
-		if (!$this->_isAdmin() && $this->Auth->user('org') != $old_event['Event']['org']) {
-		    throw new UnauthorizedException('You are only allowed to edit events of your own organisation.');
-		}
+// 		Replaced by isAuthorized
+// 		// only edit own events
+// 		$old_event = $this->Event->read(null, $id);
+// 		if (!$this->_isAdmin() && $this->Auth->user('org') != $old_event['Event']['org']) {
+// 		    throw new UnauthorizedException('You are only allowed to edit events of your own organisation.');
+// 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    // always force the user and org, but do not force it for admins
 		    if (!$this->_isAdmin()) {
@@ -158,11 +173,12 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-		// only edit own events
-		$this->Event->read();
-		if (!$this->_isAdmin() && $this->Auth->user('org') != $this->Event->data['Event']['org']) {
-		    throw new UnauthorizedException('You are only allowed to edit your own events.');
-		}
+// 		Replaced by isAuthorized
+// 		// only edit own events
+// 		$this->Event->read();
+// 		if (!$this->_isAdmin() && $this->Auth->user('org') != $this->Event->data['Event']['org']) {
+// 		    throw new UnauthorizedException('You are only allowed to edit your own events.');
+// 		}
 		if ($this->Event->delete()) {
 			$this->Session->setFlash(__('Event deleted'));
 			$this->redirect(array('action' => 'index'));
@@ -183,13 +199,15 @@ class EventsController extends AppController {
 	     
 	    // only allow form submit CSRF protection.
 	    if ($this->request->is('post') || $this->request->is('put')) {
-	        // only allow alert for own events or admins
+
     	    $this->Event->id = $id;
     	    $this->Event->read();
     	    
-    	    if (!$this->_isAdmin() && $this->Auth->user('org') != $this->Event->data['Event']['org']) {
-    	        throw new UnauthorizedException('You are only allowed to finish events of your own organisation.');
-    	    }
+//     	    Replaced by isAuthorized
+//     	    // only allow alert for own events or admins
+//     	    if (!$this->_isAdmin() && $this->Auth->user('org') != $this->Event->data['Event']['org']) {
+//     	        throw new UnauthorizedException('You are only allowed to finish events of your own organisation.');
+//     	    }
     	
     	    // fetch the event and build the body
     	    if (1 == $this->Event->data['Event']['alerted']) {

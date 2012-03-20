@@ -16,6 +16,26 @@ class SignaturesController extends AppController {
     }
     
 
+    public function isAuthorized($user) {
+        // Admins can access everything
+        if (parent::isAuthorized($user)) {
+            return true;
+        }
+        // Only on own signatures for these actions
+        if (in_array($this->action, array('edit', 'delete'))) {
+            $signatureid = $this->request->params['pass'][0];
+            return $this->Signature->isOwnedByOrg($signatureid, $this->Auth->user('org'));
+        }
+        // Only on own events for these actions
+        if (in_array($this->action, array('add'))) {
+            $this->loadModel('Event');
+            $eventid = $this->request->params['pass'][0];
+            return $this->Event->isOwnedByOrg($eventid, $this->Auth->user('org'));
+        }
+        // the other pages are allowed by logged in users
+        return true;
+    }
+    
 /**
  * index method
  *
@@ -34,12 +54,13 @@ class SignaturesController extends AppController {
 	public function add($event_id = null) {
 		if ($this->request->is('post')) {
 		    $this->loadModel('Event');
-		    // only own signatures
-		    $this->Event->recursive = 0;
-		    $event = $this->Event->findById($this->request->data['Signature']['event_id']);
-		    if (!$this->_isAdmin() && $this->Auth->user('org') != $event['Event']['org']) {
-		        throw new UnauthorizedException('You can only add signatures for your own organisation.');
-		    }
+// 		    Replaced by isAuthorized
+// 		    // only own signatures
+// 		    $this->Event->recursive = 0;
+// 		    $event = $this->Event->findById($this->request->data['Signature']['event_id']);
+// 		    if (!$this->_isAdmin() && $this->Auth->user('org') != $event['Event']['org']) {
+// 		        throw new UnauthorizedException('You can only add signatures for your own organisation.');
+// 		    }
 
 		    // remove the alerted flag from the event
 		    $this->Event->id = $this->request->data['Signature']['event_id'];
@@ -121,11 +142,12 @@ class SignaturesController extends AppController {
 		if (!$this->Signature->exists()) {
 			throw new NotFoundException(__('Invalid signature'));
 		}
-		// only own signatures
-		$this->Signature->read();
-		if (!$this->_isAdmin() && $this->Auth->user('org') != $this->Signature->data['Event']['org']) {
-		    throw new UnauthorizedException('You can only edit signatures from your own organisation.');
-		}
+// 		Replaced by isAuthorized
+// 		// only own signatures
+// 		$this->Signature->read();
+// 		if (!$this->_isAdmin() && $this->Auth->user('org') != $this->Signature->data['Event']['org']) {
+// 		    throw new UnauthorizedException('You can only edit signatures from your own organisation.');
+// 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    
 			if ($this->Signature->save($this->request->data)) {
@@ -159,12 +181,12 @@ class SignaturesController extends AppController {
 		if (!$this->Signature->exists()) {
 			throw new NotFoundException(__('Invalid signature'));
 		}
-		
-		// only own signatures
-		$this->Signature->read();
-		if (!$this->_isAdmin() && $this->Auth->user('org') != $this->Signature->data['Event']['org']) {
-		    throw new UnauthorizedException('You can only delete signatures from your own organisation.');
-		}
+// 		Replaced by isAuthorized
+// 		// only own signatures
+// 		$this->Signature->read();
+// 		if (!$this->_isAdmin() && $this->Auth->user('org') != $this->Signature->data['Event']['org']) {
+// 		    throw new UnauthorizedException('You can only delete signatures from your own organisation.');
+// 		}
 		
 		if ($this->Signature->delete()) {
 			$this->Session->setFlash(__('Signature deleted'));
