@@ -1,20 +1,20 @@
 <div class="signatures form">
 <?php echo $this->Form->create('Signature');?>
 	<fieldset>
-		<legend><?php echo __('Add Signature'); ?></legend>
+		<legend><?php echo __('Add Attribute'); ?></legend>
 	<?php
 		echo $this->Form->hidden('event_id');
 		echo $this->Form->input('type');
 		echo $this->Form->input('to_ids', array(
 		    		'checked' => true,
-		    		'after' => ' <i>Is this signature specific enough to be exported to IDS systems?</i>',
+		    		'after' => ' <i>Is this attribute specific enough to be exported to IDS systems?</i>',
 		));
 		echo $this->Form->input('value', array(
 					'error' => array('escape' => false),
 		));
 		echo $this->Form->input('batch_import', array(
 						    'type' => 'checkbox',
-							'after' => ' <i>When selected each line in the value field will be a signature.</i>',
+							'after' => ' <i>When selected each line in the value field will be an attribute.</i>',
 		));
 	?>
 	</fieldset>

@@ -65,7 +65,7 @@
 	<?php endif; ?>
 	
     <div class="related">
-    	<h3>Signatures</h3>
+    	<h3>Attributes</h3>
     	<?php if (!empty($event['Signature'])):?>
     	<table cellpadding = "0" cellspacing = "0">
     	<tr>
@@ -96,7 +96,7 @@
     				<?php
     				if ($isAdmin || $event['Event']['org'] == $me['org']) { 
     				    echo $this->Html->link(__('Edit', true), array('controller' => 'signatures', 'action' => 'edit', $signature['id'])); 
-    				    echo $this->Form->postLink(__('Delete'), array('controller' => 'signatures', 'action' => 'delete', $signature['id']), null, __('Are you sure you want to delete this signature?')); 
+    				    echo $this->Form->postLink(__('Delete'), array('controller' => 'signatures', 'action' => 'delete', $signature['id']), null, __('Are you sure you want to delete this attribute?')); 
     				} ?>
     			</td>
     		</tr>
@@ -106,7 +106,7 @@
     	<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
     	<div class="actions">
     		<ul>
-    			<li><?php echo $this->Html->link('New Signature', array('controller' => 'signatures', 'action' => 'add', $event['Event']['id']));?> </li>
+    			<li><?php echo $this->Html->link('New Attribute', array('controller' => 'signatures', 'action' => 'add', $event['Event']['id']));?> </li>
     		</ul>
     	</div>
     	<?php endif; ?>
@@ -117,7 +117,7 @@
 <div class="actions">
 	<ul>
 	<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
-    	<li><?php echo $this->Html->link(__('New Signature', true), array('controller' => 'signatures', 'action' => 'add', $event['Event']['id']));?> </li>
+    	<li><?php echo $this->Html->link(__('New Attribute', true), array('controller' => 'signatures', 'action' => 'add', $event['Event']['id']));?> </li>
 		<li><?php echo $this->Html->link(__('Edit Event', true), array('action' => 'edit', $event['Event']['id'])); ?> </li>
 		<li><?php echo $this->Form->postLink(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
 		<li>&nbsp;</li>

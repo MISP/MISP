@@ -114,10 +114,10 @@ class SignaturesController extends AppController {
 		    	
     			if ($this->Signature->save($this->request->data)) {
     			    // inform the user and redirect
-    				$this->Session->setFlash(__('The signature has been saved'));
+    				$this->Session->setFlash(__('The attribute has been saved'));
     				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Signature']['event_id']));
     			} else {
-    				$this->Session->setFlash(__('The signature could not be saved. Please, try again.'));
+    				$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
     			}
 		    }
 		} else {
@@ -151,10 +151,10 @@ class SignaturesController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    
 			if ($this->Signature->save($this->request->data)) {
-				$this->Session->setFlash(__('The signature has been saved'));
+				$this->Session->setFlash(__('The attribute has been saved'));
 				$this->redirect($this->referer());
 			} else {
-				$this->Session->setFlash(__('The signature could not be saved. Please, try again.'));
+				$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
 			}
 		} else {
 			$this->request->data = $this->Signature->read(null, $id);
@@ -179,7 +179,7 @@ class SignaturesController extends AppController {
 		}
 		$this->Signature->id = $id;
 		if (!$this->Signature->exists()) {
-			throw new NotFoundException(__('Invalid signature'));
+			throw new NotFoundException(__('Invalid attribute'));
 		}
 // 		Replaced by isAuthorized
 // 		// only own signatures
@@ -189,9 +189,9 @@ class SignaturesController extends AppController {
 // 		}
 		
 		if ($this->Signature->delete()) {
-			$this->Session->setFlash(__('Signature deleted'));
+			$this->Session->setFlash(__('Attribute deleted'));
 		} else {
-		    $this->Session->setFlash(__('Signature was not deleted'));
+		    $this->Session->setFlash(__('Attribute was not deleted'));
 		}
 		
 		$this->redirect($this->referer());

@@ -17,7 +17,7 @@
 	</table>
 	
 	
-	<h2>Signature Types Histogram</h2>
+	<h2>Attribute Types Histogram</h2>
 	<div id="graph"></div>
 	<script type="text/javascript" src="/js/ext-4.0.7-gpl/bootstrap.js"></script>
 	<script>
@@ -36,7 +36,7 @@
         var panel1 = Ext.create('widget.panel', {
             width: 800,
             height: 500,
-            //title: 'Signatures by Organisation',
+            //title: 'Attributes by Organisation',
             renderTo: 'graph',
             layout: 'fit',
             items: {

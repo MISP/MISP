@@ -1,5 +1,5 @@
 <div class="signatures index">
-	<h2><?php echo __('Signatures');?></h2>
+	<h2><?php echo __('Attributes');?></h2>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
 			<th><?php echo $this->Paginator->sort('event_id');?></th>
@@ -23,7 +23,7 @@
 		<td class="actions"><?php 
 			if ($isAdmin || $signature['Event']['org'] == $me['org']) {
 				echo $this->Html->link(__('Edit'), array('action' => 'edit', $signature['Signature']['id'])); 
-				echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $signature['Signature']['id']), null, __('Are you sure you want to delete this signature?')); 
+				echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $signature['Signature']['id']), null, __('Are you sure you want to delete this attribute?')); 
 			}
 			echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']));
 			?>

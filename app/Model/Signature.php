@@ -155,7 +155,7 @@ class Signature extends AppModel {
                                               'Signature.value' => $value),
 	    );
 	    if (0 != $this->find('count', $params) )
-	    return 'Signature already exists for this event.';
+	    return 'Attribute already exists for this event.';
 	
 	
 	    // check data validation

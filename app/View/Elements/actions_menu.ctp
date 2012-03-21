@@ -1,7 +1,7 @@
         <li><?php echo $this->Html->link(__('New Event', true), array('controller' => 'events', 'action' => 'add')); ?></li>
 		<li><?php echo $this->Html->link(__('List Events', true), array('controller' => 'events', 'action' => 'index')); ?></li>
-		<li><?php echo $this->Html->link(__('List Signatures', true), array('controller' => 'signatures', 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link(__('Search Signatures', true), array('controller' => 'signatures', 'action' => 'search')); ?> </li>
+		<li><?php echo $this->Html->link(__('List Attribute', true), array('controller' => 'signatures', 'action' => 'index')); ?> </li>
+		<li><?php echo $this->Html->link(__('Search Attribute', true), array('controller' => 'signatures', 'action' => 'search')); ?> </li>
 		<li><?php echo $this->Html->link(__('Export', true), array('controller' => 'events', 'action' => 'export')); ?></li>
 		
 		<li>&nbsp;</li>

@@ -7,19 +7,19 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 </p>
 
 <h3>XML Export</h3>
-<p>An automatic export of all events and signatures is available under a custom XML format.</p>
+<p>An automatic export of all events and attributes is available under a custom XML format.</p>
 <p>You can configure your tools to automatically download the following following file:</p>
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/xml/<?php echo $me['authkey']; ?></pre>
 <p></p>
 
 <h3>NIDS Export</h3>
-<p>An automatic export of all network related signatures is available under the Snort rule format. Only signatures marked as <u>to IDS</u> are exported.</p>
+<p>An automatic export of all network related attributes is available under the Snort rule format. Only attributes marked as <u>to IDS</u> are exported.</p>
 <p>You can configure your tools to automatically download the following following file:</p>
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/nids/<?php echo $me['authkey']; ?></pre>
 <p></p>
 
 <h3>Text Export</h3>
-<p>An automatic export of all signatures of a specific type to a plain text file.</p>
+<p>An automatic export of all attributes of a specific type to a plain text file.</p>
 <p>You can configure your tools to automatically download the following following files:</p>
 <pre>
 <?php foreach ($sig_types as $sig_type):?>
@@ -32,9 +32,9 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <p>We plan to make it possible to export data using searchpatterns.<br/>
 This would enable you to export:</p>
 <ul>
-<li>only your own signatures</li>
+<li>only your own attributes</li>
 <li>date ranges</li>
-<li>only specific signature types (domain)</li>
+<li>only specific attribute types (domain)</li>
 <li>...</li>
 </ul>
 

@@ -1,7 +1,7 @@
 <div class="signatures form">
 <?php echo $this->Form->create('Signature');?>
 	<fieldset>
-		<legend><?php echo __('Edit Signature'); ?></legend>
+		<legend><?php echo __('Edit Attribute'); ?></legend>
 	<?php
 		echo $this->Form->input('id');
 		echo $this->Form->input('type');

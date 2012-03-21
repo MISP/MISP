@@ -4,7 +4,7 @@ Event       : <?php echo $event['Event']['id']; ?>
 Date        : <?php echo $event['Event']['date']; ?> 
 Reported by : <?php echo Sanitize::html($event['Event']['org']); ?> 
 Risk        : <?php echo $event['Event']['risk']; ?> 
-Signatures  :
+Attributes  :
 <?php if (!empty($event['Signature'])):
     $i = 0;
     foreach ($event['Signature'] as $signature): ?>

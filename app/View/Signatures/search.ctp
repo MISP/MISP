@@ -1,7 +1,7 @@
 <div class="signatures form">
 <?php echo $this->Form->create('Signature');?>
 	<fieldset>
-		<legend><?php echo __('Search Signature'); ?></legend>
+		<legend><?php echo __('Search Attribute'); ?></legend>
 	<?php
 		echo $this->Form->input('keyword');
 	?>

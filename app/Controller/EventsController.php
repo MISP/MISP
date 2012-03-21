@@ -235,19 +235,19 @@ class EventsController extends AppController {
     	    $body .= 'Info  : '."\n";
     	    $body .= $this->Event->data['Event']['info']."\n";
     	    $body .= "\n";
-    	    $body .= 'Signatures  :'."\n";
+    	    $body .= 'Attributes  :'."\n";
     	    $body_temp_other = "";
     	    
     	    if (isset($this->Event->data['Signature'])) {
     	        foreach ($this->Event->data['Signature'] as $signature){
     	            $line = '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.$signature['value']."\n";
-    	            if ('other' == $signature['type']) // append the 'other' signature types to the bottom.
+    	            if ('other' == $signature['type']) // append the 'other' attribute types to the bottom.
     	                $body_temp_other .= $line;
     	            else $body .= $line;
     	        }
     	    }
     	    $body .= "\n";
-    	    $body .= $body_temp_other;  // append the 'other' signature types to the bottom.
+    	    $body .= $body_temp_other;  // append the 'other' attribute types to the bottom.
 	    
     	    // sign the body
     	    require_once 'Crypt/GPG.php';
@@ -412,18 +412,18 @@ class EventsController extends AppController {
 	    $body .= 'Info  : '."\n";
 	    $body .= $event['Event']['info']."\n";
 	    $body .= "\n";
-	    $body .= 'Signatures  :'."\n";
+	    $body .= 'Attributes  :'."\n";
 	    $body_temp_other = "";
 	    if (!empty($event['Signature'])) {
 	        foreach ($event['Signature'] as $signature){
 	            $line = '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.$signature['value']."\n";
-	            if ('other' == $signature['type']) // append the 'other' signature types to the bottom.
+	            if ('other' == $signature['type']) // append the 'other' attribute types to the bottom.
 	                $body_temp_other .= $line;
 	            else $body .= $line;
 	        }
 	    }
 	    $body .= "\n";
-	    $body .= $body_temp_other;  // append the 'other' signature types to the bottom.
+	    $body .= $body_temp_other;  // append the 'other' attribute types to the bottom.
 
 	    // sign the body
 	    require_once 'Crypt/GPG.php';
@@ -482,7 +482,7 @@ class EventsController extends AppController {
 	public function export() {
 	    // Simply display a static view
 	
-	    // generate the list of signature types
+	    // generate the list of Attribute types
 	    $this->loadModel('Signature');
 	    $this->set('sig_types', $this->Signature->validate['type']['rule'][1]);
 	
@@ -561,10 +561,10 @@ class EventsController extends AppController {
 	        $rule_format_reference = 'reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id'];
 	        $rule_format = 'alert %s %s %s %s %s %s ('.$rule_format_msg.'; %s %s classtype:'.$classtype.'; sid:%d; rev:%d; '.$rule_format_reference.';) ';
 	
-	        $sid = $user['User']['nids_sid']+($event['Event']['id']*100); // LATER this will cause issues with events containing more than 99 signatures
+	        $sid = $user['User']['nids_sid']+($event['Event']['id']*100); // LATER this will cause issues with events containing more than 99 attributes
 	        //debug($event);
 	        foreach ($event['Signature'] as $signature) {
-	            if (0 == $signature['to_ids']) continue; // signature is not to be exported to IDS. // LATER filter out to_ids=0 in the query
+	            if (0 == $signature['to_ids']) continue; // attribute is not to be exported to IDS. // LATER filter out to_ids=0 in the query
 	
 	            $sid++;
 	            switch ($signature['type']) {
