@@ -551,7 +551,7 @@ class EventsController extends AppController {
 	
 	    $rules= array();
 	
-	    // find events that are finished
+	    // find events that are published
 	    $events = $this->Event->findAllByAlerted(1);
 	    $classtype = 'targeted-attack';
 	

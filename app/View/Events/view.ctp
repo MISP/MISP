@@ -7,7 +7,7 @@
     echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be alerted?');
     ?> </li></ul>
 <?php elseif (0 == $event['Event']['alerted']): ?>
-    <ul><li>Not finished editing</li></ul>
+    <ul><li>Not published</li></ul>
 <?php else: ?>
     <!-- ul><li>Alert already sent</li></ul -->
 <?php endif; ?>
