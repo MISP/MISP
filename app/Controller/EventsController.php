@@ -577,28 +577,28 @@ class EventsController extends AppController {
 	                            '$HOME_NET',                    // src_ip
 	                            'any',                          // src_port
 	                            '->',                           // direction
-	                    $signature['value'],            // dst_ip
+	                            $signature['value'],            // dst_ip
 	                            'any',                          // dst_port
-	                            'Outgoing To Bad IP',          // msg
+	                            'Outgoing To Bad IP',           // msg
 	                            '',                             // rule_content
 	                            '',                             // tag
-	                    $sid,                           // sid
-	                    1                               // rev
+        	                    $sid,                           // sid
+        	                    1                               // rev
 	                    );
 	                    break;
 	                case 'ip-src':
 	                    $rules[] = sprintf($rule_format,
 	                            'ip',                           // proto
-	                    $signature['value'],            // src_ip
+	                            $signature['value'],            // src_ip
 	                            'any',                          // src_port
 	                            '->',                           // direction
 	                            '$HOME_NET',                    // dst_ip
 	                            'any',                          // dst_port
-	                            'Incoming From Bad IP',        // msg
+	                            'Incoming From Bad IP',         // msg
 	                            '',                             // rule_content
 	                            '',                             // tag
-	                    $sid,                           // sid
-	                    1                               // rev
+        	                    $sid,                           // sid
+        	                    1                               // rev
 	                    );
 	                    break;
 	                case 'email-src':
@@ -612,8 +612,8 @@ class EventsController extends AppController {
 	                            'Bad Source Email Address',     // msg
 	                            'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"'.$signature['value'].'"; nocase;',  // rule_content
 	                            'tag:session,600,seconds;',     // tag
-	                    $sid,                           // sid
-	                    1                               // rev
+        	                    $sid,                           // sid
+        	                    1                               // rev
 	                    );
 	                    break;
 	                case 'email-dst':
@@ -627,8 +627,8 @@ class EventsController extends AppController {
 	                            'Bad Destination Email Address',// msg
 	                            'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"'.$signature['value'].'"; nocase;',  // rule_content
 	                        	'tag:session,600,seconds;',     // tag
-	                    $sid,                           // sid
-	                    1                               // rev
+        	                    $sid,                           // sid
+        	                    1                               // rev
 	                    );
 	                    break;
 	                case 'email-subject':
@@ -643,8 +643,8 @@ class EventsController extends AppController {
 	                            'Bad Email Subject',            // msg
 	                            'flow:established,to_server; content:"Subject|3a|"; nocase; content:"'.$signature['value'].'"; nocase;',  // rule_content
 	                    		'tag:session,600,seconds;',     // tag
-	                    $sid,                           // sid
-	                    1                               // rev
+        	                    $sid,                           // sid
+        	                    1                               // rev
 	                    );
 	                    break;
 	                case 'email-attachment':
@@ -659,8 +659,8 @@ class EventsController extends AppController {
 	                            'Bad Email Attachment',         // msg
 	                            'flow:established,to_server; content:"Content-Disposition: attachment|3b| filename=|22|"; content:"'.$signature['value'].'|22|";',  // rule_content   // LATER test and finetune this snort rule https://secure.wikimedia.org/wikipedia/en/wiki/MIME#Content-Disposition
 	                    		'tag:session,600,seconds;',     // tag
-	                    $sid,                           // sid
-	                    1                               // rev
+        	                    $sid,                           // sid
+        	                    1                               // rev
 	                    );
 	                    break;
 	                case 'domain':
@@ -674,8 +674,8 @@ class EventsController extends AppController {
 	                            'Lookup Of Bad Domain',         // msg
 	                            'content:"'.$this->_dnsNameToRawFormat($signature['value']).'"; nocase;',  // rule_content
 	                        	'',                             // tag
-	                    $sid,                           // sid
-	                    1                               // rev
+        	                    $sid,                           // sid
+        	                    1                               // rev
 	                    );
 	                    $sid++;
 	                    $rules[] = sprintf($rule_format,
@@ -688,8 +688,8 @@ class EventsController extends AppController {
 	                            'Lookup Of Bad Domain',         // msg
 	                            'content:"'.$this->_dnsNameToRawFormat($signature['value']).'"; nocase;',  // rule_content
 	                        	'',                             // tag
-	                    $sid,                           // sid
-	                    1                               // rev
+        	                    $sid,                           // sid
+        	                    1                               // rev
 	                    );
 	                    $sid++;
 	                    //break; // domain should also detect the domain name in a url
@@ -704,8 +704,8 @@ class EventsController extends AppController {
 	                            'Outgoing Bad HTTP URL',        // msg
 	                            'flow:to_server,established; uricontent:"'.$signature['value'].'"; nocase;',  // rule_content
 	                        	'tag:session,600,seconds;',     // tag
-	                    $sid,                           // sid
-	                    1                               // rev
+        	                    $sid,                           // sid
+        	                    1                               // rev
 	                    );
 	                    break;
 	                case 'user-agent':

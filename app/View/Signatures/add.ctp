@@ -7,14 +7,14 @@
 		echo $this->Form->input('type');
 		echo $this->Form->input('to_ids', array(
 		    		'checked' => true,
-		    		'after' => ' <i>Is this attribute specific enough to be exported to IDS systems?</i>',
+		    		'after' => ' <i>Can we make an IDS signature based on this attribute ?</i>',
 		));
 		echo $this->Form->input('value', array(
 					'error' => array('escape' => false),
 		));
 		echo $this->Form->input('batch_import', array(
-						    'type' => 'checkbox',
-							'after' => ' <i>When selected each line in the value field will be an attribute.</i>',
+				    'type' => 'checkbox',
+					'after' => ' <i>When selected each line in the value field will be an attribute.</i>',
 		));
 	?>
 	</fieldset>
