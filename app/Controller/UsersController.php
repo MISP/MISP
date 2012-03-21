@@ -280,20 +280,7 @@ class UsersController extends AppController {
 	    $orgs = $this->User->find('all', $params);
 	    $this->set('orgs', $orgs);
 	
-	    //         $fields = array('User.org', 'count(User.id) as `num_members`', 'count(Event.id) as `num_events`');
-	    //         $params = array('recursive' => 0,
-	    //                                 'fields' => $fields,
-	    //                                 'group' => array('User.org'),
-	    //                                 'order' => array('User.org'),
-	    //         );
-	    //         $orgs = $this->Event->find('all', $params);
-	    //         $this->set('orgs', $orgs);
-	
-	
-	
-	
 	    // What org posted what type of signature
-	    // LATER beautify types_histogram http://dev.sencha.com/deploy/ext-4.0.0/examples/charts/StackedBar.html
 	    $this->loadModel('Signature');
 	    $fields = array('Event.org', 'Signature.type', 'count(Signature.type) as `num_types`');
 	    $params = array('recursive' => 0,
