@@ -18,7 +18,75 @@
 	
 	
 	<h2>Signature Types Histogram</h2>
-	<table cellpadding="0" cellspacing="0" style="width:400px;">
+	<div id="graph"></div>
+	<script type="text/javascript" src="/js/ext-4.0.7-gpl/bootstrap.js"></script>
+	<script>
+	Ext.require('Ext.chart.*');
+	Ext.require('Ext.layout.container.Fit');
+
+    Ext.onReady(function () {
+    	var store = Ext.create('Ext.data.JsonStore', {
+            fields: [<?php echo $graph_fields;?>],
+            data: [<?php
+            foreach ($graph_data as $row) { 
+                echo '{'.$row.'},'; 
+            }
+            ?>]
+        });
+        var panel1 = Ext.create('widget.panel', {
+            width: 800,
+            height: 500,
+            //title: 'Signatures by Organisation',
+            renderTo: 'graph',
+            layout: 'fit',
+            items: {
+                xtype: 'chart',
+                animate: true, 
+                shadow: false,
+                store: store,
+                legend: {
+                    position: 'right'
+                },
+                axes: [{
+                    type: 'Numeric',
+                    position: 'bottom',
+                    fields: [<?php echo $graph_fields;?>],
+                    title: false,
+                    grid: true,
+                    label: {
+                        renderer: function(v) {
+                            return v;
+                        }
+                    },
+                    roundToDecimal: false
+                }, {
+                    type: 'Category',
+                    position: 'left',
+                    fields: ['org'],
+                    title: false
+                }],
+                series: [{
+                    type: 'bar',
+                    axis: 'bottom',
+                    gutter: 80,
+                    xField: 'org',
+                    yField: [<?php echo $graph_fields;?>],
+                    stacked: true,
+                    tips: {
+                        trackMouse: true,
+                        width: 65,
+                        height: 28,
+                        renderer: function(storeItem, item) {
+                            this.setTitle(item.value[1]);
+                        }
+                    }
+                }]
+            }
+        });
+    });
+	</script>
+	
+	<!-- table cellpadding="0" cellspacing="0" style="width:400px;">
 	<tr>
 		<th>Org</th>
 		<th>Type</th>
@@ -34,10 +102,8 @@
 			
 		</tr>
 	<?php endforeach; ?>
+	</table -->
 	
-	
-	</table>
-
 </div>
 
 <div class="actions">

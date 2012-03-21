@@ -303,7 +303,46 @@ class UsersController extends AppController {
 	    );
 	    $types_histogram = $this->Signature->find('all', $params);
 	    $this->set('types_histogram', $types_histogram);
-	
+	    
+	    // Nice graphical histogram
+	    $this->loadModel('Signature');
+	    $sig_types = $this->Signature->validate['type']['rule'][1];
+	    
+	    $graph_fields = '';
+	    foreach ($sig_types as $sig_type) {
+	        if ($graph_fields != "")  $graph_fields .= ", ";
+	        $graph_fields .= "'".$sig_type."'";
+	    }
+	    $this->set('graph_fields', $graph_fields);
+	    
+	    $replace = array('-', '|');
+	    $graph_data=array();
+	    $prev_row_org = "";
+	    $i = -1;
+	    foreach ($types_histogram as $row) {
+	        if ($prev_row_org != $row['Event']['org']) {
+	            $i++; $graph_data[] = "";
+	            $prev_row_org = $row['Event']['org']; 
+    	        $graph_data[$i] .= "org: '".$row['Event']['org']."'";
+	        }
+	        $graph_data[$i] .= ', '.str_replace($replace, "_", $row['Signature']['type']).': '.$row[0]['num_types'];
+	    }
+	    $this->set('graph_data', $graph_data);
+	    
+	  
+// 	    var store = Ext.create('Ext.data.JsonStore', {
+// 	        fields: ['year', 'comedy', 'action', 'drama', 'thriller'],
+// 	        data: [
+// 	        {
+//             year: 2005, comedy: 34000000, action: 23890000, drama: 18450000, thriller: 20060000},
+//             {
+//             year: 2006, comedy: 56703000, action: 38900000, drama: 12650000, thriller: 21000000},
+//             {
+//             year: 2007, comedy: 42100000, action: 50410000, drama: 25780000, thriller: 23040000},
+//             {
+//             year: 2008, comedy: 38910000, action: 56070000, drama: 24810000, thriller: 26940000}
+//             ]
+// 	    });
 	
 	}
 	
