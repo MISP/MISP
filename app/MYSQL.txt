@@ -28,9 +28,12 @@ CREATE TABLE `events` (
   `user_id` int(11) NOT NULL,
   `alerted` tinyint(1) NOT NULL DEFAULT '0',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `private` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
+  KEY `uuid` (`uuid`),
   FULLTEXT KEY `info` (`info`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=11 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+
 
 -- --------------------------------------------------------
 
@@ -45,9 +48,12 @@ CREATE TABLE `signatures` (
   `value` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `to_ids` tinyint(1) NOT NULL DEFAULT '1',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `revision` int(10) NOT NULL DEFAULT '0',
+  `private` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `event_id` (`event_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=60 ;
+  KEY `event_id` (`event_id`),
+  KEY `uuid` (`uuid`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -69,7 +75,7 @@ CREATE TABLE `users` (
   `newsread` date NOT NULL,
   PRIMARY KEY (`id`),
   KEY `username` (`password`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=40 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 
 --
