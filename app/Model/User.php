@@ -48,6 +48,14 @@ class User extends AppModel {
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
+			'identical' => array(
+    			'rule' => array('identicalFieldValues', 'confirm_password'), 
+    			'message' => 'Please re-enter your password twice so that the values match.',
+    			//'allowEmpty' => false,
+    			//'required' => true,
+    			//'last' => false, // Stop validation after this rule
+    			//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
 		),
 		'org' => array(
 			'notempty' => array(
@@ -216,6 +224,20 @@ class User extends AppModel {
 	    return preg_match('/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/', $value);
 	}
 	
+	function identicalFieldValues( $field=array(), $compare_field=null )
+	{
+	    foreach( $field as $key => $value ){
+	        $v1 = $value;
+	        $v2 = $this->data[$this->name][ $compare_field ];
+	        if($v1 !== $v2) {
+	            return FALSE;
+	        } else {
+	            continue;
+	        }
+	    }
+	    return TRUE;
+	}
+	
 	/**
 	 * Generates an authentication key for each user
 	 */
@@ -231,5 +253,7 @@ class User extends AppModel {
 	
 	    return $key;
 	}
+	
+	
 	
 }

@@ -80,7 +80,7 @@ class UsersController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    // What fields should be saved (allowed to be saved)
 		    $fieldList=array('email', 'autoalert', 'gpgkey', 'nids_sid' );
-		    if ("" != $this->data['User']['password'])
+		    if ("" != $this->request->data['User']['password'])
 		        $fieldList[] = 'password';
 		    // Save the data
 		    if ($this->User->save($this->request->data, true ,$fieldList)) {
