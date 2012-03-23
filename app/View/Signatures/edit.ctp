@@ -4,9 +4,17 @@
 		<legend><?php echo __('Edit Attribute'); ?></legend>
 	<?php
 		echo $this->Form->input('id');
-		echo $this->Form->input('type');
-		echo $this->Form->input('value');
-		echo $this->Form->input('to_ids');
+		echo $this->Form->input('category');
+		if($attachment) {
+		    echo $this->Form->hidden('type');
+		    echo "<BR>Type: ".$this->Form->value('Signature.type');
+		    echo $this->Form->hidden('value');
+		    echo "<BR>Value: ".$this->Form->value('Signature.value');
+		} else {
+    		echo $this->Form->input('type');
+    		echo $this->Form->input('value');
+		}
+		echo $this->Form->input('to_ids', array('label' => 'IDS Signature?'));
 	?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit'));?>

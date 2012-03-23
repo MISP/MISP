@@ -67,15 +67,15 @@ class EventsController extends AppController {
 /**
  * view method
  *
- * @param string $id
+ * @param int $id
  * @return void
  */
 	public function view($id = null) {
-		$this->Event->id = $id;
+	    $this->Event->id = $id;
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-        $this->set('event', $this->Event->read(null, $id));
+		$this->set('event', $this->Event->read(null, $id));
         $this->set('relatedEvents', $this->Event->getRelatedEvents());
         
         $related_signatures = array();
@@ -85,6 +85,7 @@ class EventsController extends AppController {
         }
         $this->set('relatedSignatures', $related_signatures);
         
+        $this->set('categories', $this->Signature->validate['category']['rule'][1]);
 	}
 
 /**
@@ -115,7 +116,7 @@ class EventsController extends AppController {
 /**
  * edit method
  *
- * @param string $id
+ * @param int $id
  * @return void
  */
 	public function edit($id = null) {
@@ -162,7 +163,7 @@ class EventsController extends AppController {
 /**
  * delete method
  *
- * @param string $id
+ * @param int $id
  * @return void
  */
 	public function delete($id = null) {
@@ -334,7 +335,6 @@ class EventsController extends AppController {
 	/**
 	 * Send out an contact email to the person who posted the event.
 	 * Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
-	 * @todo allow the user to enter a comment in the contact email.
 	 */
 	public function contact($id = null) {
 	    $this->Event->id = $id;

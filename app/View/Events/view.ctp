@@ -69,18 +69,38 @@
     	<?php if (!empty($event['Signature'])):?>
     	<table cellpadding = "0" cellspacing = "0">
     	<tr>
+    		<th>Category</th>
     		<th>Type</th>
     		<th>Value</th>
     		<th>Related Events</th>
-    		<th>To IDS</th>
+    		<th>IDS Signature</th>
     		<th class="actions">Actions</th>
     	</tr>
     	<?php
+		    $category_prev = "";
     		foreach ($event['Signature'] as $signature):
     		?>
     		<tr>
+    		    <td class="short"><?php
+    		    if ($category_prev != $signature['category']) {
+    		        $category_prev = $signature['category'];
+    		        echo $signature['category'];
+    		    } else {
+    		        echo '&nbsp;';
+    		    } 
+    		    ?></td>
     			<td class="short"><?php echo $signature['type'];?></td>
-    			<td><?php echo nl2br(Sanitize::html($signature['value']));?></td>
+    			<td><?php 
+    			$sig_display = nl2br(Sanitize::html($signature['value']));
+    			if('attachment' == $signature['type'] ||
+    			   'malware-sample' == $signature['type']) {
+    			        $filename_hash = explode('|', $signature['value']);
+    			        echo $this->Html->link($filename_hash[0], array('controller' => 'signatures', 'action' => 'download', $signature['id']));
+    			        if (isset($filename_hash[1])) echo '|'.$filename_hash[1];
+    			} else {
+    			    echo $sig_display;
+    			}
+    			?></td>
     			<td class="short" style="text-align: center;">
     			<?php
     			if (null != $relatedSignatures[$signature['id']]) {
@@ -91,7 +111,7 @@
     			}
     			?>
     			</td>
-    			<td class="short"><?php echo $signature['to_ids'] ? 'Yes' : 'No';?></td>
+    			<td class="short" style="text-align: center;"><?php echo $signature['to_ids'] ? 'Yes' : 'No';?></td>
     			<td class="actions">
     				<?php
     				if ($isAdmin || $event['Event']['org'] == $me['org']) { 
@@ -106,7 +126,8 @@
     	<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
     	<div class="actions">
     		<ul>
-    			<li><?php echo $this->Html->link('New Attribute', array('controller' => 'signatures', 'action' => 'add', $event['Event']['id']));?> </li>
+    			<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'signatures', 'action' => 'add', $event['Event']['id']));?> </li>
+    			<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'signatures', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
     		</ul>
     	</div>
     	<?php endif; ?>
@@ -117,7 +138,8 @@
 <div class="actions">
 	<ul>
 	<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
-    	<li><?php echo $this->Html->link(__('New Attribute', true), array('controller' => 'signatures', 'action' => 'add', $event['Event']['id']));?> </li>
+    	<li><?php echo $this->Html->link(__('Add Attribute', true), array('controller' => 'signatures', 'action' => 'add', $event['Event']['id']));?> </li>
+		<li><?php echo $this->Html->link(__('Add Attachment', true), array('controller' => 'signatures', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
 		<li><?php echo $this->Html->link(__('Edit Event', true), array('action' => 'edit', $event['Event']['id'])); ?> </li>
 		<li><?php echo $this->Form->postLink(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
 		<li>&nbsp;</li>

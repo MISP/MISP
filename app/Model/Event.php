@@ -128,7 +128,7 @@ class Event extends AppModel {
 			'dependent' => true,         // cascade deletes
 			'conditions' => '',
 			'fields' => '',
-			'order' => 'Signature.type ASC',
+			'order' => array('Signature.category ASC', 'Signature.type ASC'),
 			'limit' => '',
 			'offset' => '',
 			'exclusive' => '',
@@ -159,11 +159,11 @@ class Event extends AppModel {
 	    }
 	    $conditions = array("Event.id" => $relatedEventIds);
 	    $relatedEvents= $this->find('all',
-	    array('conditions' => $conditions,
-	                                          'recursive' => 0,
-	                                          'order' => 'Event.date DESC',
-	                                          'fields' => 'Event.*'
-	    )
+                    	    array('conditions' => $conditions,
+                                  'recursive' => 0,
+                                  'order' => 'Event.date DESC',
+                                  'fields' => 'Event.*'
+                    	        )
 	    );
 	    return $relatedEvents;
 	}

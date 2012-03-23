@@ -13,3 +13,4 @@
 /README
 /app/tmp/sessions/sess_*
 /app/tmp/logs/*.log
+/app/files/*

@@ -4,10 +4,12 @@
 		<legend><?php echo __('Add Attribute'); ?></legend>
 	<?php
 		echo $this->Form->hidden('event_id');
+		echo $this->Form->input('category');
 		echo $this->Form->input('type');
 		echo $this->Form->input('to_ids', array(
 		    		'checked' => true,
 		    		'after' => ' <i>Can we make an IDS signature based on this attribute ?</i>',
+		        	'label' => 'IDS Signature?'
 		));
 		echo $this->Form->input('value', array(
 					'error' => array('escape' => false),

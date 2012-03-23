@@ -1,5 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('File', 'Utility');
+
 /**
  * Signature Model
  *
@@ -32,27 +34,47 @@ class Signature extends AppModel {
 		),
 		'type' => array(
 			'rule' => array('inList', array('md5','sha1',
-                            'filename',
-                            'ip-src',
-                            'ip-dst',
-                            'domain',
-                            'email-src',
-                            'email-dst',
-                            'email-subject',
-                            'email-attachment',
-                            'url',
-                            'user-agent',
-                            'regkey',
-                            'AS',
-                            'snort',
-                            'pattern-in-file',
-                            'other')),
+                                            'filename',
+                                            'filename|md5',
+                                            'ip-src',
+                                            'ip-dst',
+                                            'domain',
+                                            'email-src',
+                                            'email-dst',
+                                            'email-subject',
+                                            'email-attachment',
+                                            'url',
+                                            'user-agent',
+                                            'regkey',
+                                            'regkey|value',
+                                            'AS',
+                                            'snort',
+                                            'pattern-in-file',
+                                            'pattern-in-memory',
+                                            'attachment',
+                                            'malware-sample',
+                                            'other')),
 			'message' => 'Options : md5, sha1, filename, ip, domain, email, url, regkey, AS, other, ...',
 			//'allowEmpty' => false,
 			'required' => true,
 			//'last' => false, // Stop validation after this rule
 			//'on' => 'create', // Limit validation to 'create' or 'update' operations
 		
+		),
+		'category' => array(
+			'rule' => array('inList', array('Payload delivery',
+		                    'Antivirus detection',
+		                    'Payload installation',
+		                    'Artifacts dropped',
+		                    'Persistence mechanism',
+		                    'Registry keys modified',
+		                    'Network activity',
+		                    'Payload type',
+		                    'Attribution',
+		                    'Other',
+		                    '' // FIXME remove this once all signatures have a category. Otherwise sigs without category are not shown in the list
+		                )),
+			'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
 		),
 		'value' => array(
 			'notempty' => array(
@@ -141,17 +163,35 @@ class Signature extends AppModel {
 	    return true;
 	}
 	
+	function beforeDelete() {
+	    // delete attachments from the disk
+	    if('attachment' == $this->data['Signature']['type'] ||
+	       'malware-sample'== $this->data['Signature']['type'] ) {
+	        // FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
+	        // only delete the file if it exists
+	        $filepath = APP."files/".$this->data['Signature']['event_id']."/".$this->data['Signature']['id'];
+	        $file = new File ($filepath);
+	        if($file->exists()) {
+    	        if (!$file->delete()) {
+    	            $this->Session->setFlash(__('Delete failed. Please report to administrator', true), 'default', array(), 'error'); // TODO change this message. Throw an internal error
+    	        }
+	        }
+	    }
+	}
+	
 	function validateSignatureValue ($fields) {
 	    $value = $fields['value'];
 	    $event_id = $this->data['Signature']['event_id'];
 	    $type = $this->data['Signature']['type'];
 	    $to_ids = $this->data['Signature']['to_ids'];
-	
+	    $category = $this->data['Signature']['category'];
+	    
 	    // check if the signature already exists in the same event
 	    $params = array('recursive' => 0,
                         'conditions' => array('Signature.event_id' => $event_id, 
                                               'Signature.type' => $type,
                                               'Signature.to_ids' => $to_ids,
+                                              'Signature.category' => $category,
                                               'Signature.value' => $value),
 	    );
 	    if (0 != $this->find('count', $params) )
@@ -160,20 +200,26 @@ class Signature extends AppModel {
 	
 	    // check data validation
 	    switch($this->data['Signature']['type']) {
+	        // FIXME lowercase hashes
 	        case 'md5':
-	            if (preg_match("#^[0-9a-f]{32}$#i", $value))
-	            return true;
+	            if (preg_match("#^[0-9a-f]{32}$#", $value))
+	            	return true;
 	            return 'Checksum has invalid lenght or format. Please double check the value or select "other" for a type.';
 	            break;
 	        case 'sha1':
-	            if (preg_match("#^[0-9a-f]{40}$#i", $value))
-	            return true;
+	            if (preg_match("#^[0-9a-f]{40}$#", $value))
+	            	return true;
 	            return 'Checksum has invalid lenght or format. Please double check the value or select "other" for a type.';
 	            break;
 	        case 'filename':
 	            // no newline
 	            if (!preg_match("#\n#", $value))
-	            return true;
+	            	return true;
+	            break;
+	        case 'filename|md5':
+	            // no newline
+	            if (!preg_match("#^.*|[0-9a-f]{32}$#", $value))
+	                return true;
 	            break;
 	        case 'ip-src':
 	            $parts = explode("/", $value);
@@ -184,9 +230,9 @@ class Signature extends AppModel {
 	                if (filter_var($parts[0],FILTER_VALIDATE_IP)) {
 	                    // ip is validated, now check if we have a valid network mask
 	                    if (empty($parts[1]))
-	                    return true;
+	                    	return true;
 	                    else if(is_numeric($parts[1]) && $parts[1] < 129)
-	                    return true;
+	                    	return true;
 	                }
 	            }
 	            return 'IP address has invalid format. Please double check the value or select "other" for a type.';
@@ -200,54 +246,59 @@ class Signature extends AppModel {
 	                if (filter_var($parts[0],FILTER_VALIDATE_IP)) {
 	                    // ip is validated, now check if we have a valid network mask
 	                    if (empty($parts[1]))
-	                    return true;
+	                    	return true;
 	                    else if(is_numeric($parts[1]) && $parts[1] < 129)
-	                    return true;
+	                    	return true;
 	                }
 	            }
 	            return 'IP address has invalid format. Please double check the value or select "other" for a type.';
 	            break;
 	        case 'domain':
 	            if(preg_match("#^[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value))
-	            return true;
+	            	return true;
 	            return 'Domain name has invalid format. Please double check the value or select "other" for a type.';
 	            break;
 	        case 'email-src':
 	            // we don't use the native function to prevent issues with partial email addresses
 	            if(preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value))
-	            return true;
+	            	return true;
 	            return 'Email address has invalid format. Please double check the value or select "other" for a type.';
 	            break;
 	        case 'email-dst':
 	            // we don't use the native function to prevent issues with partial email addresses
 	            if(preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value))
-	            return true;
+	            	return true;
 	            return 'Email address has invalid format. Please double check the value or select "other" for a type.';
 	            break;
 	        case 'email-subject':
 	            // no newline
 	            if (!preg_match("#\n#", $value))
-	            return true;
+	            	return true;
 	            break;
 	        case 'email-attachment':
 	            // no newline
 	            if (!preg_match("#\n#", $value))
-	            return true;
+	            	return true;
 	            break;
 	        case 'url':
 	            // no newline
 	            if (!preg_match("#\n#", $value))
-	            return true;
+	            	return true;
 	            break;
 	        case 'user-agent':
 	            // no newline
 	            if (!preg_match("#\n#", $value))
-	            return true;
+	            	return true;
 	            break;
 	        case 'regkey':
 	            // no newline
 	            if (!preg_match("#\n#", $value))
-	            return true;
+	            	return true;
+	            break;
+	        case 'regkey|value':
+	            // no newline
+	            if (!preg_match("#.*|.*#", $value))
+	                return true;
 	            break;
 	        case 'snort':
 	            // no validation yet. TODO implement data validation on snort signature type
@@ -269,6 +320,8 @@ class Signature extends AppModel {
 	}
 	
 	function getRelatedSignatures($signature) {
+	    // LATER there should be a list of types/categories included here as some are not eligible (AV detection category
+	    // or "other" type could be excluded)
 	    // LATER getRelatedSignatures($signature) this might become a performance bottleneck
 	    $conditions = array('Signature.value =' => $signature['value'],
 	        					'Signature.id !=' => $signature['id'],
@@ -277,8 +330,8 @@ class Signature extends AppModel {
 	    $fields = array('Signature.*');
 	
 	    $similar_events = $this->find('all',array('conditions' => $conditions,
-	                                                  'fields' => $fields,
-	                                                  'order' => 'Signature.event_id DESC', )
+	                                              'fields' => $fields,
+	                                              'order' => 'Signature.event_id DESC', )
 	    );
 	    return $similar_events;
 	}

@@ -3,9 +3,10 @@
 	<table cellpadding="0" cellspacing="0">
 	<tr>
 			<th><?php echo $this->Paginator->sort('event_id');?></th>
+			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
-			<th>To IDS</th>
+			<th>IDS Signature</th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
@@ -15,10 +16,20 @@
 			<?php echo $this->Html->link($signature['Event']['id'], array('controller' => 'events', 'action' => 'view', $signature['Event']['id'])); ?>
 		</td>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
+		<?php echo h($signature['Signature']['category']); ?>&nbsp;</td>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
 		<?php echo h($signature['Signature']['type']); ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
-		<?php echo nl2br(Sanitize::html($signature['Signature']['value'])); ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
+		<?php 
+		$sig_display = nl2br(Sanitize::html($signature['Signature']['value']));
+		if('attachment' == $signature['Signature']['type'] || 
+		   'malware-sample' == $signature['Signature']['type']) {
+		    echo $this->Html->link($sig_display, array('controller' => 'files', $signature['Signature']['event_id'], $sig_display));
+		} else {
+			echo $sig_display;
+		}
+		?>&nbsp;</td>
+		<td class="short" style="text-align: center;" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $signature['Signature']['event_id']), true) ;?>';">
 		<?php echo $signature['Signature']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td class="actions"><?php 
 			if ($isAdmin || $signature['Event']['org'] == $me['org']) {
