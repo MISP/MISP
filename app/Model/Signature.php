@@ -51,6 +51,7 @@ class Signature extends AppModel {
                                             'snort',
                                             'pattern-in-file',
                                             'pattern-in-memory',
+                                            'vulnerability',
                                             'attachment',
                                             'malware-sample',
                                             'other')),
