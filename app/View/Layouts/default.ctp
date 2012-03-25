@@ -30,7 +30,7 @@
 
 		echo $this->Html->css('cake.generic');
         echo $this->Html->css(array('print'), 'stylesheet', array('media' => 'print'));
-		
+
 		echo $this->fetch('meta');
 		echo $this->fetch('css');
 		echo $this->fetch('script');
@@ -39,7 +39,7 @@
 <body>
 	<div id="container">
 		<div id="header">
-			<h1><?php echo $this->Html->link(Configure::read('CyDefSIG.header'), array('controller' => 'events', 'action' => 'index')); ?>
+			<h1><?php echo $this->Html->link(Configure::read('CyDefSIG.header'), array('controller' => 'events', 'action' => 'index')); ?></h1>
 			<?php if($logo = Configure::read('CyDefSIG.logo')) {
 			echo "<img src=\"$logo\" align=\"right\" height=\"30\">";
 			}?>
@@ -57,7 +57,7 @@
 		<div id="footer">
 			<h1 style="float:left;">Download: <?php echo $this->Html->link('PGP/GPG key', '/gpg.asc');?></h1>
 			<h1 style="float:right;"> <?php echo $this->Html->link(__('Log out', true), array('controller' => 'users', 'action' => 'logout'));?></h1>
-			
+
 			<h1 style="text-align:center;"><?php echo Configure::read('CyDefSIG.footer')?></h1>
 		</div>
 	</div>

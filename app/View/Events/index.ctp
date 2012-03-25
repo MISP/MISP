@@ -12,7 +12,7 @@
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
-	foreach ($events as $event): 
+	foreach ($events as $event):
 	?>
 	<tr>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
@@ -29,15 +29,15 @@
 		<td onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
 		<?php echo nl2br(Sanitize::html($event['Event']['info'])); ?>&nbsp;</td>
 		<td class="actions">
-			<?php 
+			<?php
 			if (0 == $event['Event']['alerted'] && ($isAdmin || $event['Event']['org'] == $me['org']))
 			    echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be alerted?');
 			elseif (0 == $event['Event']['alerted']) echo 'Not published';
 			?>
-			<?php 
+			<?php
 			if ($isAdmin || $event['Event']['org'] == $me['org']) {
   			   echo $this->Html->link(__('Edit', true), array('action' => 'edit', $event['Event']['id']));
-  			   echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); 
+  			   echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id']));
 			}
 			?>
 			<?php echo $this->Html->link(__('View', true), array('action' => 'view', $event['Event']['id'])); ?>

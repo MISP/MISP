@@ -1,9 +1,9 @@
 <div class="events view">
 <div class="actions" style="float:right;">
-<?php if ( 0 == $event['Event']['alerted'] && ($isAdmin || $event['Event']['org'] == $me['org'])): 
-// only show button if alert has not been sent  // LATER show the ALERT button in red-ish 
+<?php if ( 0 == $event['Event']['alerted'] && ($isAdmin || $event['Event']['org'] == $me['org'])):
+// only show button if alert has not been sent  // LATER show the ALERT button in red-ish
 ?>
-    <ul><li><?php 
+    <ul><li><?php
     echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be alerted?');
     ?> </li></ul>
 <?php elseif (0 == $event['Event']['alerted']): ?>
@@ -56,14 +56,15 @@
 		<h3>Related Events</h3>
 		<ul>
 		<?php foreach ($relatedEvents as $relatedEvent): ?>
-		<li><?php 
+		<li><?php
 		$link_text = $relatedEvent['Event']['date'].' ('.$relatedEvent['Event']['id'].')';
 		echo $this->Html->link($link_text, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
 		?></li>
 	    <?php endforeach; ?>
+	    </ul>
 	</div>
 	<?php endif; ?>
-	
+
     <div class="related">
     	<h3>Attributes</h3>
     	<?php if (!empty($event['Signature'])):?>
@@ -87,10 +88,10 @@
     		        echo $signature['category'];
     		    } else {
     		        echo '&nbsp;';
-    		    } 
+    		    }
     		    ?></td>
     			<td class="short"><?php echo $signature['type'];?></td>
-    			<td><?php 
+    			<td><?php
     			$sig_display = nl2br(Sanitize::html($signature['value']));
     			if('attachment' == $signature['type'] ||
     			   'malware-sample' == $signature['type']) {
@@ -106,7 +107,7 @@
     			if (null != $relatedSignatures[$signature['id']]) {
     			    foreach ($relatedSignatures[$signature['id']] as $relatedSignature) {
     			        echo $this->Html->link($relatedSignature['Signature']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedSignature['Signature']['event_id']));
-    			        echo ' '; 
+    			        echo ' ';
     			    }
     			}
     			?>
@@ -114,9 +115,9 @@
     			<td class="short" style="text-align: center;"><?php echo $signature['to_ids'] ? 'Yes' : 'No';?></td>
     			<td class="actions">
     				<?php
-    				if ($isAdmin || $event['Event']['org'] == $me['org']) { 
-    				    echo $this->Html->link(__('Edit', true), array('controller' => 'signatures', 'action' => 'edit', $signature['id'])); 
-    				    echo $this->Form->postLink(__('Delete'), array('controller' => 'signatures', 'action' => 'delete', $signature['id']), null, __('Are you sure you want to delete this attribute?')); 
+    				if ($isAdmin || $event['Event']['org'] == $me['org']) {
+    				    echo $this->Html->link(__('Edit', true), array('controller' => 'signatures', 'action' => 'edit', $signature['id']));
+    				    echo $this->Form->postLink(__('Delete'), array('controller' => 'signatures', 'action' => 'delete', $signature['id']), null, __('Are you sure you want to delete this attribute?'));
     				} ?>
     			</td>
     		</tr>
