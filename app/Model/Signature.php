@@ -14,7 +14,7 @@ class Signature extends AppModel {
  * @var string
  */
 	public $displayField = 'value';
-	
+
 	var $order = array("Signature.event_id" => "DESC", "Signature.type" => "ASC");
 /**
  * Validation rules
@@ -60,7 +60,7 @@ class Signature extends AppModel {
 			'required' => true,
 			//'last' => false, // Stop validation after this rule
 			//'on' => 'create', // Limit validation to 'create' or 'update' operations
-		
+
 		),
 		'category' => array(
 			'rule' => array('inList', array('Payload delivery',
@@ -153,17 +153,17 @@ class Signature extends AppModel {
 			'order' => ''
 		)
 	);
-	
-	
+
+
 	function beforeSave() {
 	    // increment the revision number
 	    if (empty($this->data['Signature']['revision'])) $this->data['Signature']['revision'] = 0;
 	    $this->data['Signature']['revision'] = 1 + $this->data['Signature']['revision'] ;
-	    
+
 	    // always return true after a beforeSave()
 	    return true;
 	}
-	
+
 	function beforeDelete() {
 	    // delete attachments from the disk
 	    if('attachment' == $this->data['Signature']['type'] ||
@@ -179,38 +179,56 @@ class Signature extends AppModel {
 	        }
 	    }
 	}
-	
+
+	function beforeValidate() {
+	    // remove leading and trailing blanks
+	    $this->data['Signature']['value'] = trim($this->data['Signature']['value']);
+
+	    switch($this->data['Signature']['type']) {
+	        // lowercase these things
+	        case 'md5':
+	        case 'sha1':
+	            $this->data['Signature']['value'] = strtolower($this->data['Signature']['value']);
+	            break;
+	    }
+
+	    // always return true, otherwise the object cannot be saved
+	    return true;
+	}
+
 	function validateSignatureValue ($fields) {
 	    $value = $fields['value'];
 	    $event_id = $this->data['Signature']['event_id'];
 	    $type = $this->data['Signature']['type'];
 	    $to_ids = $this->data['Signature']['to_ids'];
 	    $category = $this->data['Signature']['category'];
-	    
+
 	    // check if the signature already exists in the same event
+	    $conditions = array('Signature.event_id' => $event_id,
+                            'Signature.type' => $type,
+                            'Signature.category' => $category,
+                            'Signature.value' => $value
+	    );
+	    if (isset($this->data['Signature']['id']))
+	        $conditions['Signature.id !='] = $this->data['Signature']['id'];
+
 	    $params = array('recursive' => 0,
-                        'conditions' => array('Signature.event_id' => $event_id, 
-                                              'Signature.type' => $type,
-                                              'Signature.to_ids' => $to_ids,
-                                              'Signature.category' => $category,
-                                              'Signature.value' => $value),
+                        'conditions' => $conditions,
 	    );
 	    if (0 != $this->find('count', $params) )
 	    return 'Attribute already exists for this event.';
-	
-	
+
 	    // check data validation
 	    switch($this->data['Signature']['type']) {
-	        // FIXME lowercase hashes
 	        case 'md5':
 	            if (preg_match("#^[0-9a-f]{32}$#", $value))
 	            	return true;
-	            return 'Checksum has invalid lenght or format. Please double check the value or select "other" for a type.';
+	            return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 	            break;
 	        case 'sha1':
 	            if (preg_match("#^[0-9a-f]{40}$#", $value))
 	            	return true;
-	            return 'Checksum has invalid lenght or format. Please double check the value or select "other" for a type.';
+	            return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 	            break;
 	        case 'filename':
 	            // no newline
@@ -221,6 +239,7 @@ class Signature extends AppModel {
 	            // no newline
 	            if (!preg_match("#^.*|[0-9a-f]{32}$#", $value))
 	                return true;
+	            return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 	            break;
 	        case 'ip-src':
 	            $parts = explode("/", $value);
@@ -307,19 +326,19 @@ class Signature extends AppModel {
 	            return true;
 	            break;
 	    }
-	
+
 	    // default action is to return false
 	    return true;
-	
+
 	}
-	
-	
+
+
 	public function isOwnedByOrg($signatureid, $org) {
 	    $this->id = $signatureid;
 	    $this->read();
 	    return $this->data['Event']['org'] === $org;
 	}
-	
+
 	function getRelatedSignatures($signature) {
 	    // LATER there should be a list of types/categories included here as some are not eligible (AV detection category
 	    // or "other" type could be excluded)
@@ -329,12 +348,12 @@ class Signature extends AppModel {
 	        					'Signature.type =' => $signature['type'], );
 	    //         $fields = array('Event.*');
 	    $fields = array('Signature.*');
-	
+
 	    $similar_events = $this->find('all',array('conditions' => $conditions,
 	                                              'fields' => $fields,
 	                                              'order' => 'Signature.event_id DESC', )
 	    );
 	    return $similar_events;
 	}
-	
+
 }

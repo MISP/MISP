@@ -13,8 +13,8 @@ class EventsController extends AppController {
  * Components
  *
  * @var array
- */    
-    
+ */
+
     public $components = array('Security', 'Email');
     public $paginate = array(
         'limit' => 50,
@@ -22,19 +22,19 @@ class EventsController extends AppController {
             'Event.date' => 'DESC'
         )
     );
-    
+
 
     function beforeFilter() {
         // what pages are allowed for non-logged-in users
         $this->Auth->allow('xml');
         $this->Auth->allow('nids');
         $this->Auth->allow('text');
-    
+
         // These variables are required for every view
         $this->set('me', $this->Auth->user());
         $this->set('isAdmin', $this->_isAdmin());
     }
-    
+
     public function isAuthorized($user) {
         // Admins can access everything
         if (parent::isAuthorized($user)) {
@@ -45,10 +45,10 @@ class EventsController extends AppController {
             $eventid = $this->request->params['pass'][0];
             return $this->Event->isOwnedByOrg($eventid, $this->Auth->user('org'));
         }
-        // the other pages are allowed by logged in users 
+        // the other pages are allowed by logged in users
         return true;
     }
-    
+
 /**
  * index method
  *
@@ -77,14 +77,14 @@ class EventsController extends AppController {
 		}
 		$this->set('event', $this->Event->read(null, $id));
         $this->set('relatedEvents', $this->Event->getRelatedEvents());
-        
+
         $related_signatures = array();
         $this->loadModel('Signature');
         foreach ($this->Event->data['Signature'] as $signature) {
             $related_signatures[$signature['id']] = $this->Signature->getRelatedSignatures($signature);
         }
         $this->set('relatedSignatures', $related_signatures);
-        
+
         $this->set('categories', $this->Signature->validate['category']['rule'][1]);
 	}
 
@@ -124,12 +124,8 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-// 		Replaced by isAuthorized
-// 		// only edit own events
-// 		$old_event = $this->Event->read(null, $id);
-// 		if (!$this->_isAdmin() && $this->Auth->user('org') != $old_event['Event']['org']) {
-// 		    throw new UnauthorizedException('You are only allowed to edit events of your own organisation.');
-// 		}
+		// only edit own events verified by isAuthorized
+
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    // always force the user and org, but do not force it for admins
 		    if (!$this->_isAdmin()) {
@@ -141,7 +137,7 @@ class EventsController extends AppController {
 		    }
 		    // we probably also want to remove the alerted flag
 		    $this->request->data['Event']['alerted'] = 0;
-		    
+
 		    // say what fields are to be updated
 		    $fieldList=array('user_id', 'org', 'date', 'risk', 'info', 'alerted', 'private');
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
@@ -153,7 +149,7 @@ class EventsController extends AppController {
 		} else {
 			$this->request->data = $this->Event->read(null, $id);
 		}
-		
+
         // combobox for types
         $risks = $this->Event->validate['risk']['rule'][1];
         $risks = $this->_arrayToValuesIndexArray($risks);
@@ -174,12 +170,8 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-// 		Replaced by isAuthorized
-// 		// only edit own events
-// 		$this->Event->read();
-// 		if (!$this->_isAdmin() && $this->Auth->user('org') != $this->Event->data['Event']['org']) {
-// 		    throw new UnauthorizedException('You are only allowed to edit your own events.');
-// 		}
+		// only edit own events verified by isAuthorized
+
 		if ($this->Event->delete()) {
 			$this->Session->setFlash(__('Event deleted'));
 			$this->redirect(array('action' => 'index'));
@@ -197,25 +189,21 @@ class EventsController extends AppController {
 	    if (!$this->Event->exists()) {
 	        throw new NotFoundException(__('Invalid event'));
 	    }
-	     
+
 	    // only allow form submit CSRF protection.
 	    if ($this->request->is('post') || $this->request->is('put')) {
 
     	    $this->Event->id = $id;
     	    $this->Event->read();
-    	    
-//     	    Replaced by isAuthorized
-//     	    // only allow alert for own events or admins
-//     	    if (!$this->_isAdmin() && $this->Auth->user('org') != $this->Event->data['Event']['org']) {
-//     	        throw new UnauthorizedException('You are only allowed to finish events of your own organisation.');
-//     	    }
-    	
+
+    	    // only allow alert for own events verified by isAuthorized
+
     	    // fetch the event and build the body
     	    if (1 == $this->Event->data['Event']['alerted']) {
     	        $this->Session->setFlash(__('Everyone has already been alerted for this event. To alert again, first edit this event.', true), 'default', array(), 'error');
     	        $this->redirect(array('action' => 'view', $id));
     	    }
-    	
+
     	    // The mail body, Sanitize::html() is NOT needed as we are sending plain-text mails.
     	    $body = "";
     	    $appendlen = 20;
@@ -230,7 +218,7 @@ class EventsController extends AppController {
     	    if (!empty($relatedEvents)) {
     	        foreach ($relatedEvents as $relatedEvent){
     	            $body .= 'Related to  : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$relatedEvent['Event']['id'].' ('.$relatedEvent['Event']['date'].')'."\n" ;
-    	
+
     	        }
     	    }
     	    $body .= 'Info  : '."\n";
@@ -238,7 +226,7 @@ class EventsController extends AppController {
     	    $body .= "\n";
     	    $body .= 'Attributes  :'."\n";
     	    $body_temp_other = "";
-    	    
+
     	    if (isset($this->Event->data['Signature'])) {
     	        foreach ($this->Event->data['Signature'] as $signature){
     	            $line = '- '.$signature['type'].str_repeat(' ', $appendlen - 2 - strlen( $signature['type'])).': '.$signature['value']."\n";
@@ -249,15 +237,15 @@ class EventsController extends AppController {
     	    }
     	    $body .= "\n";
     	    $body .= $body_temp_other;  // append the 'other' attribute types to the bottom.
-	    
+
     	    // sign the body
     	    require_once 'Crypt/GPG.php';
     	    $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
     	    $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
     	    $body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-    	
+
     	    $this->loadModel('User');
-    	
+
     	    //
     	    // Build a list of the recipients that get a non-encrypted mail
     	    // But only do this if it is allowed in the bootstrap.php file.
@@ -286,7 +274,7 @@ class EventsController extends AppController {
     	        // to reset the email fields using the reset method of the Email component.
     	        $this->Email->reset();
     	    }
-    	
+
     	    //
     	    // Build a list of the recipients that wish to receive encrypted mails.
     	    //
@@ -304,34 +292,34 @@ class EventsController extends AppController {
     	        $this->Email->subject = "[CyDefSIG] Event ".$id." - ".$this->Event->data['Event']['risk']." - TLP Amber";
     	        $this->Email->template = 'body';
     	        $this->Email->sendAs = 'text';        // both text or html
-    	
+
     	        // import the key of the user into the keyring
-    	        // this is not really necessary, but it enables us to find 
+    	        // this is not really necessary, but it enables us to find
     	        // the correct key-id even if it is not the same as the emailaddress
     	        $key_import_output = $gpg->importKey($user['User']['gpgkey']);
     	        // say what key should be used to encrypt
     	        $gpg = new Crypt_GPG();
     	        $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
-    	
+
     	        $body_enc_sig = $gpg->encrypt($body_signed, true);
-    	
+
     	        $this->set('body', $body_enc_sig);
     	        $this->Email->send();
     	        // If you wish to send multiple emails using a loop, you'll need
     	        // to reset the email fields using the reset method of the Email component.
     	        $this->Email->reset();
     	    }
-    	
+
     	    // update the DB to set the alerted flag
     	    $this->Event->saveField('alerted', 1);
-    	
+
     	    // redirect to the view event page
     	    $this->Session->setFlash(__('Email sent to all participants.', true));
     	    $this->redirect(array('action' => 'view', $id));
 	    }
 	}
-	
-	
+
+
 	/**
 	 * Send out an contact email to the person who posted the event.
 	 * Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
@@ -341,12 +329,12 @@ class EventsController extends AppController {
 	    if (!$this->Event->exists()) {
 	        throw new NotFoundException(__('Invalid event'));
 	    }
-	    
+
 	    // User has filled in his contact form, send out the email.
 	    if ($this->request->is('post') || $this->request->is('put')) {
 	        $message = $this->request->data['Event']['message'];
 	        if ($this->_sendContactEmail($id, $message)) {
-	            // LATER when a user is deleted this will create problems. 
+	            // LATER when a user is deleted this will create problems.
 	            // LATER send the email to all the people who are in the org that created the event
 	            // redirect to the view event page
 	            $this->Session->setFlash(__('Email sent to the reporter.', true));
@@ -360,8 +348,8 @@ class EventsController extends AppController {
 	        $this->data = $this->Event->read(null, $id);
 	    }
 	}
-	
-	
+
+
 	/**
 	 *
 	 * Sends out an email with the request to be contacted about a specific event.
@@ -391,7 +379,7 @@ class EventsController extends AppController {
 	    $body .="\n";
 	    $body .="\n";
 	    $body .="The event is the following: \n";
-	
+
 	    // print the event in mail-format
 	    // LATER place event-to-email-layout in a function
 	    $appendlen = 20;
@@ -406,7 +394,7 @@ class EventsController extends AppController {
 	    if (!empty($relatedEvents)) {
 	        foreach ($relatedEvents as $relatedEvent){
 	            $body .= 'Related to  : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$relatedEvent['Event']['id'].' ('.$relatedEvent['Event']['date'].')'."\n" ;
-	
+
 	        }
 	    }
 	    $body .= 'Info  : '."\n";
@@ -430,7 +418,7 @@ class EventsController extends AppController {
 	    $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 	    $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 	    $body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-	
+
 	    if (!empty($reporter['gpgkey'])) {
 	        // import the key of the user into the keyring
 	        // this isn't really necessary, but it gives it the fingerprint necessary for the next step
@@ -438,7 +426,7 @@ class EventsController extends AppController {
 	        // say what key should be used to encrypt
 	        $gpg = new Crypt_GPG();
 	        $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
-	
+
 	        $body_enc_sig = $gpg->encrypt($body_signed, true);
 	    } else {
 	        $body_enc_sig = $body_signed;
@@ -453,7 +441,7 @@ class EventsController extends AppController {
 	    $this->Email->template = 'body';
 	    $this->Email->sendAs = 'text';        // both text or html
 	    $this->set('body', $body_enc_sig);
-	
+
 	    // Add the GPG key of the user as attachment
 	    // LATER sign the attached GPG key
 	    if (!empty($me_user['gpgkey'])) {
@@ -467,28 +455,28 @@ class EventsController extends AppController {
 	                'gpgkey.asc' => $tmpfname
 	        );
 	    }
-	
+
 	    // send it
 	    $result = $this->Email->send();
-	
+
 	    // remove the temporary gpg file
 	    if (!empty($me_user['gpgkey']))
 	        unlink($tmpfname);
-	
+
 	    return $result;
 	}
-	
-	
+
+
 	public function export() {
 	    // Simply display a static view
-	
+
 	    // generate the list of Attribute types
 	    $this->loadModel('Signature');
 	    $this->set('sig_types', $this->Signature->validate['type']['rule'][1]);
-	
+
 	}
-	
-	
+
+
 	public function xml($key) {
 	    // FIXME implement XML output
 	    // check if the key is valid -> search for users based on key
@@ -502,7 +490,7 @@ class EventsController extends AppController {
 	    $this->header('Content-Type: text/xml');    // set the content type
 	    $this->layout = 'xml/default';
 // 	    $this->header('Content-Disposition: attachment; filename="cydefsig.xml"');
-	
+
 	    $conditions = array("Event.alerted" => 1);
 	    $fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.info');
 	    if ('true' == Configure::read('CyDefSIG.showorg')) {
@@ -516,14 +504,14 @@ class EventsController extends AppController {
 	    //                         'contain' => $contain
 	    );
 	    $results = $this->Event->find('all', $params);
-	    
-	    
+
+
 /* 	    $xml = Xml::build('<?xml version="1.0" encoding="UTF-8" ?><CyDefSIG></CyDefSIG>'); */
-	    
+
 	    $myXmlOriginal = '<?xml version="1.0"?><root><child>value</child></root>';
 	    $xml = Xml::build($myXmlOriginal);
 	    $xml->root->addChild('young', 'new value');
-	    
+
 // 	    foreach ($results as $result) {
 // 	        debug($result);
 // 	        $xml->CyDefSIG->addChild('f', 'b');
@@ -534,8 +522,8 @@ class EventsController extends AppController {
 // 	        debug($xml->saveXML());
 
 	}
-	
-	
+
+
 	public function nids($key) {
 	    // check if the key is valid -> search for users based on key
 	    $this->loadModel('User');
@@ -548,24 +536,24 @@ class EventsController extends AppController {
 	    $this->header('Content-Type: text/plain');    // set the content type
 	    $this->header('Content-Disposition: attachment; filename="cydefsig.rules"');
 	    $this->layout = 'text/default';
-	
+
 	    $rules= array();
-	
+
 	    // find events that are published
 	    $events = $this->Event->findAllByAlerted(1);
 	    $classtype = 'targeted-attack';
-	
+
 	    foreach ($events as $event) {
 	        # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
 	        $rule_format_msg = 'msg: "CyDefSIG %s, Event '.$event['Event']['id'].', '.$event['Event']['risk'].'"';
 	        $rule_format_reference = 'reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id'];
 	        $rule_format = 'alert %s %s %s %s %s %s ('.$rule_format_msg.'; %s %s classtype:'.$classtype.'; sid:%d; rev:%d; '.$rule_format_reference.';) ';
-	
+
 	        $sid = $user['User']['nids_sid']+($event['Event']['id']*100); // LATER this will cause issues with events containing more than 99 attributes
 	        //debug($event);
 	        foreach ($event['Signature'] as $signature) {
 	            if (0 == $signature['to_ids']) continue; // attribute is not to be exported to IDS. // LATER filter out to_ids=0 in the query
-	
+
 	            $sid++;
 	            switch ($signature['type']) {
 	                // LATER test all the snort signatures
@@ -714,7 +702,7 @@ class EventsController extends AppController {
 	                    break;
 	                case 'snort':
 	                    $tmp_rule = $signature['value'];
-	
+
 	                    // rebuild the rule by overwriting the different keywords using preg_replace()
 	                    //   sid       - '/sid\s*:\s*[0-9]+\s*;/'
 	                    //   rev       - '/rev\s*:\s*[0-9]+\s*;/'
@@ -733,7 +721,7 @@ class EventsController extends AppController {
 	                    if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
 	                    $tmp_rule = preg_replace('/reference\s*:\s*.+;/', $rule_format_reference.';', $tmp_rule, -1, $replace_count['reference']);
 	                        if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-	
+
 	                    // some values were not replaced, so we need to add them ourselves, and insert them in the rule
 	                    $extra_for_rule="";
 	                    if (0 == $replace_count['sid']) {
@@ -748,15 +736,15 @@ class EventsController extends AppController {
         	                $extra_for_rule .= $rule_format_reference.';';
         	            }
         	            $tmp_rule = preg_replace('/;\s*\)/', '; '.$extra_for_rule.')', $tmp_rule);
-    	
+
     	                // finally the rule is cleaned up and can be outputed
     	                $rules[] = $tmp_rule;
-    	
+
     	                // TODO test using lots of snort rules.
     	            default:
     	                break;
 	            }
-	
+
             }
 
         }
@@ -768,10 +756,10 @@ class EventsController extends AppController {
         print "#</pre>\n";
 
         $this->set('rules', $rules);
-	
+
 	}
-	
-	
+
+
 	public function text($key, $type="") {
 	    // check if the key is valid -> search for users based on key
 	    $this->loadModel('User');
@@ -780,10 +768,10 @@ class EventsController extends AppController {
 	    if (empty($user)) {
 	        throw new UnauthorizedException('Incorrect authentication key');
 	    }
-	
+
 	    $this->header('Content-Type: text/plain');    // set the content type
 	    $this->layout = 'text/default';
-	
+
 	    $this->loadModel('Signature');
 	    $params = array(
 	        	'conditions' => array('Signature.type' => $type), //array of conditions
@@ -793,11 +781,11 @@ class EventsController extends AppController {
 	        	'group' => array('Signature.value'), //fields to GROUP BY
 	    );
 	    $signatures = $this->Signature->find('all', $params);
-	
+
 	    $this->set('signatures', $signatures);
 	}
-	
-	
+
+
 	/**
 	* // LATER move _dnsNameToRawFormat($name) function to a better place
 	 * Converts a DNS name to a raw format usable in NIDS like Snort.
@@ -823,7 +811,7 @@ class EventsController extends AppController {
     	// and append |00| to terminate the name
     	return $rawName;
 	}
-	
-	
-	
+
+
+
 }
