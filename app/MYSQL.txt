@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Mar 15, 2012 at 03:08 PM
+-- Generation Time: Mar 25, 2012 at 04:26 PM
 -- Server version: 5.5.9
 -- PHP Version: 5.3.6
 
@@ -34,7 +34,6 @@ CREATE TABLE `events` (
   FULLTEXT KEY `info` (`info`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
-
 -- --------------------------------------------------------
 
 --
@@ -45,6 +44,7 @@ CREATE TABLE `signatures` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `event_id` int(11) NOT NULL,
   `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `category` varchar(255) COLLATE utf8_bin NOT NULL,
   `value` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `to_ids` tinyint(1) NOT NULL DEFAULT '1',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
@@ -75,7 +75,7 @@ CREATE TABLE `users` (
   `newsread` date NOT NULL,
   PRIMARY KEY (`id`),
   KEY `username` (`password`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=2 ;
 
 
 --
@@ -85,4 +85,4 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` VALUES(11, 'babc86e0869015b3f0b4d48ca48700d3a9d1b9d7', 'ADMIN', 'admin@admin.test', 0, 'vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb', 1, '', 4000000, 0, '2012-03-13');
+INSERT INTO `users` VALUES(1, 'babc86e0869015b3f0b4d48ca48700d3a9d1b9d7', 'ADMIN', 'admin@admin.test', 0, 'vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb', 1, '', 4000000, 0, '2012-03-13');
