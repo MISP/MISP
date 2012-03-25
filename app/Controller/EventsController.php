@@ -76,14 +76,30 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event'));
 		}
 		$this->set('event', $this->Event->read(null, $id));
-        $this->set('relatedEvents', $this->Event->getRelatedEvents());
 
-        $related_signatures = array();
+        $relatedSignatures = array();
         $this->loadModel('Signature');
         foreach ($this->Event->data['Signature'] as $signature) {
-            $related_signatures[$signature['id']] = $this->Signature->getRelatedSignatures($signature);
+            $relatedSignatures[$signature['id']] = $this->Signature->getRelatedSignatures($signature);
         }
-        $this->set('relatedSignatures', $related_signatures);
+        $this->set('relatedSignatures', $relatedSignatures);
+
+        // search for related Events using the results form the related signatures
+        // This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
+        $relatedEventIds = array();
+        foreach ($relatedSignatures as $relatedSignature)
+            foreach ($relatedSignature as $item)
+                $relatedEventsIds[] = $item['Signature']['event_id'];
+        $relatedEventsIds = array_unique($relatedEventsIds);
+        $find_params = array(
+            'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
+            'recursive' => 0, //int
+            'fields' => array('Event.id', 'Event.date'), //array of field names
+            'order' => array('Event.date DESC'), //string or array defining order
+        );
+        $relatedEvents = $this->Event->find('all', $find_params);
+        $this->set('relatedEvents', $relatedEvents);
+
 
         $this->set('categories', $this->Signature->validate['category']['rule'][1]);
 	}
