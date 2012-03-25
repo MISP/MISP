@@ -228,7 +228,7 @@ class UsersController extends AppController {
 	    }
 	
 	    // News page
-	    $new_newsdate = new DateTime("2012-03-15");
+	    $new_newsdate = new DateTime("2012-03-27");
 	    $newsdate = new DateTime($this->Auth->user('newsread'));
 	    if ($new_newsdate > $newsdate) {
 	        $this->redirect(array('action' => 'news'));

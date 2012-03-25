@@ -87,6 +87,10 @@ Cache::config('default', array('engine' => 'File'));
 
 //Configure::write('CyDefSIG.baseurl', 'https://sig.cyber-defence.be');
 Configure::write('CyDefSIG.baseurl', 'http://localhost:8888');
+Configure::write('CyDefSIG.header', 'CyDefSIG: Cyber Defence Signature Sharing Platform');
+Configure::write('CyDefSIG.footer', 'Powered by CyDefSIG &copy; Belgian Defense CERT & NCIRC');
+//Configure::write('CyDefSIG.logo', '/img/logo_big.gif');
+
 
 Configure::write('CyDefSIG.showorg', 'false');           // show the name of the organisation that uploaded the data
 Configure::write('CyDefSIG.email', 'no-reply@sig.mil.be'); // email from for all the mails
@@ -95,10 +99,6 @@ Configure::write('GnuPG.onlyencrypted', 'true');         // only allow encrypted
 Configure::write('GnuPG.email', 'no-reply@sig.mil.be');
 Configure::write('GnuPG.password', 'ii3naxoK|o2a');
 Configure::write('GnuPG.homedir', '/Users/chri/Documents/Work/Projects/201107-CyDefSIG/.gnupg/');
-
-Configure::write('Recaptcha.publicKey', '6LdzJsYSAAAAAFCn4Ju7pnmKQ8yhiDbXT-b1eJtN');
-Configure::write('Recaptcha.privateKey', '6LdzJsYSAAAAAD2IwnWwp16gIclZYVKynhsZEMZh');
-
 
 /**
  * The settings below can be used to set additional paths to models, views and controllers.

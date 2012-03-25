@@ -75,7 +75,7 @@ class SignaturesController extends AppController {
 		    if('attachment' == $this->request->data['Signature']['type'] ||
 		       'malware-sample' == $this->request->data['Signature']['type']) {
 		        $this->Session->setFlash(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
-		        $this->redirect(array('controller' => 'events', 'action' => 'view', $old_signature['Event']['id']));
+		        $this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Signature']['event_id']));
 		    }
 		    
 
@@ -313,6 +313,7 @@ class SignaturesController extends AppController {
 // 		}
 
 		$this->Signature->read();
+		$event_id = $this->Signature->data['Signature']['event_id'];
         if('attachment' == $this->Signature->data['Signature']['type'] ||
            'malware-sample'== $this->Signature->data['Signature']['type'] ) {
             $this->set('attachment', true);
@@ -323,12 +324,15 @@ class SignaturesController extends AppController {
             $this->set('attachment', false);
         }
         
-        
+        debug($this->Signature->data);
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    
 			if ($this->Signature->save($this->request->data)) {
+			    // TODO should I check here if it's possible to change the event_id or org ?
 				$this->Session->setFlash(__('The attribute has been saved'));
-				$this->redirect($this->referer());
+				
+				debug($this->request->data);
+				$this->redirect(array('controller' => 'events', 'action' => 'view', $event_id));
 			} else {
 				$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
 			}

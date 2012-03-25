@@ -96,7 +96,7 @@
     			   'malware-sample' == $signature['type']) {
     			        $filename_hash = explode('|', $signature['value']);
     			        echo $this->Html->link($filename_hash[0], array('controller' => 'signatures', 'action' => 'download', $signature['id']));
-    			        if (isset($filename_hash[1])) echo '|'.$filename_hash[1];
+    			        if (isset($filename_hash[1])) echo ' | '.$filename_hash[1];
     			} else {
     			    echo $sig_display;
     			}
