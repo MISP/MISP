@@ -1,5 +1,5 @@
-<div class="signatures form">
-<?php echo $this->Form->create('Signature');?>
+<div class="attributes form">
+<?php echo $this->Form->create('Attribute');?>
 	<fieldset>
 		<legend><?php echo __('Add Attribute'); ?></legend>
 	<?php

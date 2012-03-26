@@ -4,7 +4,7 @@ App::uses('AppModel', 'Model');
  * Event Model
  *
  * @property User $User
- * @property Signature $Signature
+ * @property Attribute $Attribute
  */
 class Event extends AppModel {
 /**
@@ -122,13 +122,13 @@ class Event extends AppModel {
  * @var array
  */
 	public $hasMany = array(
-		'Signature' => array(
-			'className' => 'Signature',
+		'Attribute' => array(
+			'className' => 'Attribute',
 			'foreignKey' => 'event_id',
 			'dependent' => true,         // cascade deletes
 			'conditions' => '',
 			'fields' => '',
-			'order' => array('Signature.category ASC', 'Signature.type ASC'),
+			'order' => array('Attribute.category ASC', 'Attribute.type ASC'),
 			'limit' => '',
 			'offset' => '',
 			'exclusive' => '',
@@ -137,24 +137,24 @@ class Event extends AppModel {
 		)
 	);
 
-	
+
 	public function isOwnedByOrg($eventid, $org) {
 	    return $this->field('id', array('id' => $eventid, 'org' => $org)) === $eventid;
 	}
-	
+
 	function getRelatedEvents() {
 	    // first get a list of related event_ids
 	    // then do a single query to search for all the events with that id
 	    $relatedEventIds = Array();
-	    foreach ($this->data['Signature'] as $signature ) {
-	        if ($signature['type'] == 'other')
+	    foreach ($this->data['Attribute'] as $attribute ) {
+	        if ($attribute['type'] == 'other')
 	        continue;  // sigs of type 'other' should not be matched against the others
-	        $conditions = array('Signature.value =' => $signature['value'], 'Signature.type =' => $signature['type']);
-	        $similar_signatures = $this->Signature->find('all',array('conditions' => $conditions));
-	        foreach ($similar_signatures as $similar_signature) {
-	            if ($this->id == $similar_signature['Signature']['event_id'])
+	        $conditions = array('Attribute.value =' => $attribute['value'], 'Attribute.type =' => $attribute['type']);
+	        $similar_attributes = $this->Attribute->find('all',array('conditions' => $conditions));
+	        foreach ($similar_attributes as $similar_attribute) {
+	            if ($this->id == $similar_attribute['Attribute']['event_id'])
 	            continue; // same as this event, not needed in the list
-	            $relatedEventIds[] = $similar_signature['Signature']['event_id'];
+	            $relatedEventIds[] = $similar_attribute['Attribute']['event_id'];
 	        }
 	    }
 	    $conditions = array("Event.id" => $relatedEventIds);

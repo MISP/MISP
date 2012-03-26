@@ -44,6 +44,5 @@ This would enable you to export:</p>
 <div class="actions">
 	<ul>
 		<?php echo $this->element('actions_menu'); ?>
-
 	</ul>
 </div>

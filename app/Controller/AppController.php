@@ -33,7 +33,7 @@ App::uses('Sanitize', 'Utility');
  * @link http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  */
 class AppController extends Controller {
-    
+
     public $components = array(
     		'Session',
     		'Auth' => array(
@@ -47,33 +47,33 @@ class AppController extends Controller {
     			'authorize' => array('Controller') // Added this line
     )
     );
-    
-    
+
+
     public function isAuthorized($user) {
         if (isset($user['org']) && $user['org'] === 'admin') {
             return true; // admin can access every action on every controller
         }
         return false; // The rest don't
     }
-    
+
     function beforeFilter() {
 
     }
-    
-    
+
+
     /**
-    * Convert an array to the same array but with the values also as index instead of an interface_exists
-    */
+     * Convert an array to the same array but with the values also as index instead of an interface_exists
+     */
     function _arrayToValuesIndexArray($old_array) {
         $new_array = Array();
         foreach ($old_array as $value)
         $new_array[$value] = $value;
         return $new_array;
     }
-    
+
     /**
-    * checks if the currently logged user is an administrator
-    */
+     * checks if the currently logged user is an administrator
+     */
     public function _isAdmin() {
         $user = $this->Auth->user();
         if (isset($user['org']) && $user['org'] === 'admin') {
@@ -84,7 +84,7 @@ class AppController extends Controller {
 
     /**
      * Refreshes the Auth session with new/updated data
-     * @return void 
+     * @return void
      */
     function _refreshAuth() {
 		if (isset($this->User)) {
@@ -93,12 +93,23 @@ class AppController extends Controller {
 		    $user= ClassRegistry::init('User')->findById($this->Auth->user('id'));
 		}
 		$this->Auth->login($user['User']);
-	
     }
 
-    
-    
-    
-    
-    
+
+    /**
+     * Updates the missing fields from v0.1 to v0.2 of CyDefSIG
+     */
+    function migrate () {
+        // generate uuids for events who have no uuid
+        $this->loadModel('Event');
+
+
+        // generate uuids for attributes who have no uuid
+        $this->loadModel('Attribute');
+
+        debug("foo");
+    }
+
+
+
 }

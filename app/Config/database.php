@@ -9,7 +9,7 @@ class DATABASE_CONFIG {
 		'login' => 'cyberdefence',
 		'port' => 8889,
 		'password' => 'PhwaxFJbNhnRGfZ8',
-		'database' => 'cyberdefence_sig',
+		'database' => 'cydefsig',
 		'prefix' => '',
 		//'encoding' => 'utf8',
 	);

@@ -7,12 +7,12 @@ App::uses('AppController', 'Controller');
  */
 class UsersController extends AppController {
 
-    
+
     public $components = array('Security');
 
     function beforeFilter() {
         parent::beforeFilter();
-    
+
         // what pages are allowed for non-logged-in users
         $this->Auth->allow('login', 'logout');
 
@@ -20,7 +20,7 @@ class UsersController extends AppController {
         $this->set('me', $this->Auth->user());
         $this->set('isAdmin', $this->_isAdmin());
     }
-    
+
     public function isAuthorized($user) {
         // Admins can access everything
         if (parent::isAuthorized($user)) {
@@ -38,8 +38,8 @@ class UsersController extends AppController {
         // the other pages are allowed by logged in users
         return true;
     }
-    
-    
+
+
 /**
  * view method
  *
@@ -52,7 +52,7 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		// Only own profile 
+		// Only own profile
 		if ($this->Auth->user('id') != $id) {
 		    throw new ForbiddenException('You are not authorized to access this profile.');
 		}
@@ -211,7 +211,7 @@ class UsersController extends AppController {
 		$this->redirect(array('action' => 'index'));
 	}
 
-	
+
 	public function login() {
 	    // FIXME implement authentication brute-force protection
 	    if ($this->Auth->login()) {
@@ -220,43 +220,43 @@ class UsersController extends AppController {
 	        $this->Session->setFlash(__('Invalid username or password, try again'));
 	    }
 	}
-	
+
 	public function routeafterlogin() {
 	    // Terms and Conditions Page
 	    if (!$this->Auth->user('termsaccepted')) {
 	        $this->redirect(array('action' => 'terms'));
 	    }
-	
+
 	    // News page
 	    $new_newsdate = new DateTime("2012-03-27");
 	    $newsdate = new DateTime($this->Auth->user('newsread'));
 	    if ($new_newsdate > $newsdate) {
 	        $this->redirect(array('action' => 'news'));
 	    }
-	
+
 	    // Events list
 	    $this->redirect(array('controller' => 'events', 'action' => 'index'));
 	}
-	
+
 	public function logout() {
 	    $this->Session->setFlash('Good-Bye');
 	    $this->redirect($this->Auth->logout());
 	}
-	
-	
+
+
 	public function resetauthkey($id = null) {
 	    if (!$id) {
 	        $this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
 	        $this->redirect(array('action'=>'index'));
 	    }
 	    if ('me' == $id ) $id = $this->Auth->user('id');
-	
+
 // 	    Replaced by isAuthorized
 // 	    // only allow reset key for own account, except for admins
 // 	    if (!$this->_isAdmin() && $id != $this->Auth->user('id')) {
 // 	        throw new ForbiddenException('Not authorized to reset the key for this user');
 // 	    }
-	
+
 	    // reset the key
 	    $this->User->id = $id;
 	    $newkey = $this->User->generateAuthKey();
@@ -265,11 +265,11 @@ class UsersController extends AppController {
 	    $this->_refreshAuth();
 	    $this->redirect($this->referer());
 	}
-	
+
 	public function memberslist() {
-	    $this->loadModel('Signature');
+	    $this->loadModel('Attribute');
 	    $this->loadModel('Event');
-	
+
 	    // Orglist
 	    $fields = array('User.org', 'count(User.id) as `num_members`');
 	    $params = array('recursive' => 0,
@@ -279,29 +279,29 @@ class UsersController extends AppController {
 	    );
 	    $orgs = $this->User->find('all', $params);
 	    $this->set('orgs', $orgs);
-	
-	    // What org posted what type of signature
-	    $this->loadModel('Signature');
-	    $fields = array('Event.org', 'Signature.type', 'count(Signature.type) as `num_types`');
+
+	    // What org posted what type of attribute
+	    $this->loadModel('Attribute');
+	    $fields = array('Event.org', 'Attribute.type', 'count(Attribute.type) as `num_types`');
 	    $params = array('recursive' => 0,
 	                        'fields' => $fields,
-	                        'group' => array('Signature.type', 'Event.org'),
+	                        'group' => array('Attribute.type', 'Event.org'),
 	                        'order' => array('Event.org', 'num_types DESC'),
 	    );
-	    $types_histogram = $this->Signature->find('all', $params);
+	    $types_histogram = $this->Attribute->find('all', $params);
 	    $this->set('types_histogram', $types_histogram);
-	    
+
 	    // Nice graphical histogram
-	    $this->loadModel('Signature');
-	    $sig_types = $this->Signature->validate['type']['rule'][1];
-	    
+	    $this->loadModel('Attribute');
+	    $sig_types = $this->Attribute->validate['type']['rule'][1];
+
 	    $graph_fields = '';
 	    foreach ($sig_types as $sig_type) {
 	        if ($graph_fields != "")  $graph_fields .= ", ";
 	        $graph_fields .= "'".$sig_type."'";
 	    }
 	    $this->set('graph_fields', $graph_fields);
-	    
+
 	    $replace = array('-', '|');
 	    $graph_data=array();
 	    $prev_row_org = "";
@@ -309,49 +309,34 @@ class UsersController extends AppController {
 	    foreach ($types_histogram as $row) {
 	        if ($prev_row_org != $row['Event']['org']) {
 	            $i++; $graph_data[] = "";
-	            $prev_row_org = $row['Event']['org']; 
+	            $prev_row_org = $row['Event']['org'];
     	        $graph_data[$i] .= "org: '".$row['Event']['org']."'";
 	        }
-	        $graph_data[$i] .= ', '.str_replace($replace, "_", $row['Signature']['type']).': '.$row[0]['num_types'];
+	        $graph_data[$i] .= ', '.str_replace($replace, "_", $row['Attribute']['type']).': '.$row[0]['num_types'];
 	    }
 	    $this->set('graph_data', $graph_data);
-	    
-	  
-// 	    var store = Ext.create('Ext.data.JsonStore', {
-// 	        fields: ['year', 'comedy', 'action', 'drama', 'thriller'],
-// 	        data: [
-// 	        {
-//             year: 2005, comedy: 34000000, action: 23890000, drama: 18450000, thriller: 20060000},
-//             {
-//             year: 2006, comedy: 56703000, action: 38900000, drama: 12650000, thriller: 21000000},
-//             {
-//             year: 2007, comedy: 42100000, action: 50410000, drama: 25780000, thriller: 23040000},
-//             {
-//             year: 2008, comedy: 38910000, action: 56070000, drama: 24810000, thriller: 26940000}
-//             ]
-// 	    });
-	
+
 	}
-	
+
 	public function terms() {
 	    if ($this->request->is('post') || $this->request->is('put')) {
 	        $this->User->id = $this->Auth->user('id');
 	        $this->User->saveField('termsaccepted', true);
-	        
+
 	        $this->_refreshAuth();  // refresh auth info
 	        $this->Session->setFlash(__('You accepted the Terms and Conditions.'));
 	        $this->redirect(array('action' => 'routeafterlogin'));
     	}
     	$this->set('termsaccepted', $this->Auth->user('termsaccepted'));
 	}
-	
+
 	public function news() {
 	    $this->User->id = $this->Auth->user('id');
 	    $this->User->saveField('newsread', date("Y-m-d"));
 	    $this->_refreshAuth();  // refresh auth info
 	}
-	
-	
-	
+
+
+
 
 }

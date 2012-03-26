@@ -186,7 +186,7 @@ td.short {
 }
 
 /* added */
-div .events table tr:hover, div .events table tr.altrow:hover, div .signatures table tr:hover, div .signatures table tr.altrow:hover{
+div .events table tr:hover, div .events table tr.altrow:hover, div .attributes table tr:hover, div .attributes table tr.altrow:hover{
 	background-color: #F5F5D7;
 }
 

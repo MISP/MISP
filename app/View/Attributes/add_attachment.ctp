@@ -1,5 +1,5 @@
-<div class="signatures form">
-<?php echo $this->Form->create('Signature', array('enctype' => 'multipart/form-data'));?>
+<div class="attributes form">
+<?php echo $this->Form->create('Attribute', array('enctype' => 'multipart/form-data'));?>
 	<fieldset>
 			<legend><?php echo __('Add Attachment'); ?></legend>
 	<?php

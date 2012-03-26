@@ -11,12 +11,12 @@
 	<tr>
 		<td><?php echo $org['User']['org']; ?>&nbsp;</td>
 		<td><?php echo $org[0]['num_members']; ?>&nbsp;</td>
-		
+
 	</tr>
 <?php endforeach; ?>
 	</table>
-	
-	
+
+
 	<h2>Attribute Types Histogram</h2>
 	<div id="graph"></div>
 	<script type="text/javascript" src="/js/ext-4.0.7-gpl/bootstrap.js"></script>
@@ -28,8 +28,8 @@
     	var store = Ext.create('Ext.data.JsonStore', {
             fields: [<?php echo $graph_fields;?>],
             data: [<?php
-            foreach ($graph_data as $row) { 
-                echo '{'.$row.'},'; 
+            foreach ($graph_data as $row) {
+                echo '{'.$row.'},';
             }
             ?>]
         });
@@ -41,7 +41,7 @@
             layout: 'fit',
             items: {
                 xtype: 'chart',
-                animate: true, 
+                animate: true,
                 shadow: false,
                 store: store,
                 legend: {
@@ -85,25 +85,25 @@
         });
     });
 	</script>
-	
+
 	<!-- table cellpadding="0" cellspacing="0" style="width:400px;">
 	<tr>
 		<th>Org</th>
 		<th>Type</th>
 		<th>Amount</th>
 	</tr>
-	<?php 
+	<?php
 	foreach ($types_histogram as $item):
 	?>
 		<tr>
 			<td><?php echo $item['Event']['org']; ?>&nbsp;</td>
-			<td><?php echo $item['Signature']['type']; ?>&nbsp;</td>
+			<td><?php echo $item['Attribute']['type']; ?>&nbsp;</td>
 			<td><?php echo $item['0']['num_types']; ?>&nbsp;</td>
-			
+
 		</tr>
 	<?php endforeach; ?>
 	</table -->
-	
+
 </div>
 
 <div class="actions">

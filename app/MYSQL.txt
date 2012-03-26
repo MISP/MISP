@@ -37,10 +37,10 @@ CREATE TABLE `events` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `signatures`
+-- Table structure for table `attributes`
 --
 
-CREATE TABLE `signatures` (
+CREATE TABLE `attributes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `event_id` int(11) NOT NULL,
   `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE `users` (
 
 
 --
--- Dumping data for table `signatures`
+-- Dumping data for table `attributes`
 --
 
 -- Dumping data for table `users`

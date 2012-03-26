@@ -1,6 +1,6 @@
-<?php 
-foreach ($signatures as $signature) {
-    echo $signature['Signature']['value'];
+<?php
+foreach ($attributes as $attribute) {
+    echo $attribute['Attribute']['value'];
     echo "\n";
 }
 ?>
