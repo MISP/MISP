@@ -5,7 +5,7 @@
 A special CSS exists now to give a better layout when printing pages.
 All the pages should now look a lot better on paper.</p>
 <p><b>File upload</b><br/>
-Andrzej Dereszowski (NCIRC) added the file-uploading functionality.
+Andrzej Dereszowski (NCIRC) added the file-uploading functionality. Malware samples are password protected with the password <em>infected</em>.
 </p>
 <p><b>Backend rewrite + security</b><br/>
 Complete rewrite of the backend code to migrate to CakePHP 2.x (from CakePHP 1.3). <br/>

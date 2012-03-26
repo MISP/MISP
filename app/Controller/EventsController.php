@@ -497,7 +497,7 @@ class EventsController extends AppController {
 
 
 	public function xml($key) {
-	    // FIXME implement XML output
+	    // LATER filter out private events AND private signatures
 	    // check if the key is valid -> search for users based on key
 	    $this->loadModel('User');
 	    // no input sanitization necessary, it's done by model
@@ -506,40 +506,32 @@ class EventsController extends AppController {
 	        throw new UnauthorizedException('Incorrect authentication key');
 	    }
 	    // display the full xml
-	    $this->header('Content-Type: text/xml');    // set the content type
+	    $this->response->type('xml');    // set the content type
 	    $this->layout = 'xml/default';
-// 	    $this->header('Content-Disposition: attachment; filename="cydefsig.xml"');
+	    $this->header('Content-Disposition: inline; filename="cydefsig.xml"');
 
 	    $conditions = array("Event.alerted" => 1);
-	    $fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.info');
+	    // do not expose all the data like user_id, ...
+	    $fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.info', 'Event.uuid');
 	    if ('true' == Configure::read('CyDefSIG.showorg')) {
 	        $fields[] = 'Event.org';
 	    }
-	    //         $this->Event->Behaviors->attach('Containable');
-	    //         $contain = array('Signature.id', 'Signature.type', 'Signature.value', 'Signature.to_snort');
 	    $params = array('conditions' => $conditions,
-	                        'recursive' => 1,
-	                        'fields' => $fields,
-	    //                         'contain' => $contain
+                        'recursive' => 1,
+                        'fields' => $fields,
 	    );
 	    $results = $this->Event->find('all', $params);
 
 
-/* 	    $xml = Xml::build('<?xml version="1.0" encoding="UTF-8" ?><CyDefSIG></CyDefSIG>'); */
+	    $xmlArray = array();
+	    foreach ($results as $result) {
+	        $result['Event']['signature'] = $result['Signature'];
+            $xmlArray['CyDefSIG']['event'][] = $result['Event'];
+	    }
 
-	    $myXmlOriginal = '<?xml version="1.0"?><root><child>value</child></root>';
-	    $xml = Xml::build($myXmlOriginal);
-	    $xml->root->addChild('young', 'new value');
-
-// 	    foreach ($results as $result) {
-// 	        debug($result);
-// 	        $xml->CyDefSIG->addChild('f', 'b');
-// 	        debug($xml);
-// 	    }
-// 	        debug($results);
-// 	        $xml= Xml::fromArray(array('event' =>$results), array('format' => 'tags', 'return' => 'domdocument'));
-// 	        debug($xml->saveXML());
-
+	    $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags')); // You can use Xml::build() too
+	    $xmlString = $xmlObject->asXML();
+	    $this->set('xml', $xmlString);
 	}
 
 
@@ -552,8 +544,8 @@ class EventsController extends AppController {
 	        throw new UnauthorizedException('Incorrect authentication key');
 	    }
 	    // display the full snort rulebase
-	    $this->header('Content-Type: text/plain');    // set the content type
-	    $this->header('Content-Disposition: attachment; filename="cydefsig.rules"');
+	    $this->response->type('txt');    // set the content type
+	    $this->header('Content-Disposition: inline; filename="cydefsig.rules"');
 	    $this->layout = 'text/default';
 
 	    $rules= array();
@@ -788,7 +780,8 @@ class EventsController extends AppController {
 	        throw new UnauthorizedException('Incorrect authentication key');
 	    }
 
-	    $this->header('Content-Type: text/plain');    // set the content type
+	    $this->response->type('txt');    // set the content type
+	    $this->header('Content-Disposition: inline; filename="cydefsig.'.$type.'.txt"');
 	    $this->layout = 'text/default';
 
 	    $this->loadModel('Signature');
