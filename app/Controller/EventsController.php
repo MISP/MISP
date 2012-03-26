@@ -87,17 +87,20 @@ class EventsController extends AppController {
         // search for related Events using the results form the related signatures
         // This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
         $relatedEventIds = array();
+        $relatedEvents = array();
         foreach ($relatedSignatures as $relatedSignature)
             foreach ($relatedSignature as $item)
                 $relatedEventsIds[] = $item['Signature']['event_id'];
-        $relatedEventsIds = array_unique($relatedEventsIds);
-        $find_params = array(
-            'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
-            'recursive' => 0, //int
-            'fields' => array('Event.id', 'Event.date'), //array of field names
-            'order' => array('Event.date DESC'), //string or array defining order
-        );
-        $relatedEvents = $this->Event->find('all', $find_params);
+        if (isset($relatedEventsIds)) {
+            $relatedEventsIds = array_unique($relatedEventsIds);
+            $find_params = array(
+                'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
+                'recursive' => 0, //int
+                'fields' => array('Event.id', 'Event.date'), //array of field names
+                'order' => array('Event.date DESC'), //string or array defining order
+            );
+            $relatedEvents = $this->Event->find('all', $find_params);
+        }
         $this->set('relatedEvents', $relatedEvents);
 
 
