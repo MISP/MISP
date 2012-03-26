@@ -166,6 +166,7 @@ class Signature extends AppModel {
 
 	function beforeDelete() {
 	    // delete attachments from the disk
+	    $this->read();  // first read the signature from the db
 	    if('attachment' == $this->data['Signature']['type'] ||
 	       'malware-sample'== $this->data['Signature']['type'] ) {
 	        // FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.

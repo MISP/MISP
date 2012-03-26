@@ -11,6 +11,9 @@ App::uses('File', 'Utility');
 class SignaturesController extends AppController {
 
     public $components = array('Security');
+    public $paginate = array(
+            'limit' => 60,
+    );
 
     function beforeFilter() {
         // permit reuse of CSRF tokens on the search page.

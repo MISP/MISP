@@ -17,7 +17,7 @@ class EventsController extends AppController {
 
     public $components = array('Security', 'Email');
     public $paginate = array(
-        'limit' => 50,
+        'limit' => 60,
         'order' => array(
             'Event.date' => 'DESC'
         )
