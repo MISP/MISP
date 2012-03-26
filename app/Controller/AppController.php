@@ -98,16 +98,42 @@ class AppController extends Controller {
 
     /**
      * Updates the missing fields from v0.1 to v0.2 of CyDefSIG
+     * First you will need to manually update the database to the new schema.
+     * Then run this function by setting debug = 1 (or more) and call /events/migrate
      */
-    function migrate () {
+    function migrate() {
+        if (Configure::read('debug') == 0) throw new NotFoundException();
         // generate uuids for events who have no uuid
         $this->loadModel('Event');
+        $params = array(
+                'conditions' => array('Event.uuid' => ''),
+                'recursive' => 0,
+                'fields' => array('Event.id'),
+        );
+        $events = $this->Event->find('all', $params);
 
-
+        echo '<p>Generating UUID for events: ';
+        foreach ($events as $event) {
+            $this->Event->id = $event['Event']['id'];
+            $this->Event->saveField('uuid', String::uuid());
+            echo $event['Event']['id'].' ';
+        }
+        echo "</p>";
         // generate uuids for attributes who have no uuid
         $this->loadModel('Attribute');
-
-        debug("foo");
+        $params = array(
+                'conditions' => array('Attribute.uuid' => ''),
+                'recursive' => 0,
+                'fields' => array('Attribute.id'),
+        );
+        $attributes = $this->Attribute->find('all', $params);
+        echo '<p>Generating UUID for attributes: ';
+        foreach ($attributes as $attribute) {
+            $this->Attribute->id = $attribute['Attribute']['id'];
+            $this->Attribute->saveField('uuid', String::uuid());
+            echo $attribute['Attribute']['id'].' ';
+        }
+        echo "</p>";
     }
 
 
