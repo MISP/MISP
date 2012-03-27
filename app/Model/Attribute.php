@@ -36,6 +36,7 @@ class Attribute extends AppModel {
 			'rule' => array('inList', array('md5','sha1',
                                             'filename',
                                             'filename|md5',
+			                                'filename|sha1',
                                             'ip-src',
                                             'ip-dst',
                                             'domain',
