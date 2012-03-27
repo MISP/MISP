@@ -6,8 +6,6 @@
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<th><?php echo $this->Paginator->sort('email');?></th>
 			<th><?php echo $this->Paginator->sort('autoalert');?></th>
-			<th><?php echo $this->Paginator->sort('authkey');?></th>
-			<th><?php echo $this->Paginator->sort('invited_by');?></th>
 			<th><?php echo $this->Paginator->sort('gpgkey');?></th>
 			<th><?php echo $this->Paginator->sort('nids_sid');?></th>
 			<th><?php echo $this->Paginator->sort('termsaccepted');?></th>
@@ -17,16 +15,22 @@
 	<?php
 	foreach ($users as $user): ?>
 	<tr>
-		<td><?php echo h($user['User']['id']); ?>&nbsp;</td>
-		<td><?php echo h($user['User']['org']); ?>&nbsp;</td>
-		<td><?php echo h($user['User']['email']); ?>&nbsp;</td>
-		<td><?php echo h($user['User']['autoalert']); ?>&nbsp;</td>
-		<td><?php echo h($user['User']['authkey']); ?>&nbsp;</td>
-		<td><?php echo h($user['User']['invited_by']); ?>&nbsp;</td>
-		<td><?php echo $user['User']['gpgkey']? 'Yes' : 'No'; ?>&nbsp;</td>
-		<td><?php echo h($user['User']['nids_sid']); ?>&nbsp;</td>
-		<td><?php echo h($user['User']['termsaccepted']); ?>&nbsp;</td>
-		<td><?php echo h($user['User']['newsread']); ?>&nbsp;</td>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $user['User']['id']), true) ;?>';">
+		<?php echo h($user['User']['id']); ?>&nbsp;</td>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $user['User']['id']), true) ;?>';">
+		<?php echo h($user['User']['org']); ?>&nbsp;</td>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $user['User']['id']), true) ;?>';">
+		<?php echo h($user['User']['email']); ?>&nbsp;</td>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $user['User']['id']), true) ;?>';">
+		<?php echo $user['User']['autoalert']? 'Yes' : 'No'; ?>&nbsp;</td>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $user['User']['id']), true) ;?>';">
+		<?php echo $user['User']['gpgkey']? 'Yes' : 'No'; ?>&nbsp;</td>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $user['User']['id']), true) ;?>';">
+		<?php echo h($user['User']['nids_sid']); ?>&nbsp;</td>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $user['User']['id']), true) ;?>';">
+		<?php echo h($user['User']['termsaccepted']); ?>&nbsp;</td>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $user['User']['id']), true) ;?>';">
+		<?php echo h($user['User']['newsread']); ?>&nbsp;</td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('View'), array('action' => 'view', $user['User']['id'])); ?>
 			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $user['User']['id'])); ?>
@@ -52,8 +56,6 @@
 </div>
 <div class="actions">
 	<ul>
-		<li><?php echo $this->Html->link(__('New User'), array('action' => 'add')); ?></li>
-		<li><?php echo $this->Html->link(__('List Events'), array('controller' => 'events', 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link(__('New Event'), array('controller' => 'events', 'action' => 'add')); ?> </li>
+        <?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>

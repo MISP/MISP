@@ -9,6 +9,12 @@ class UsersController extends AppController {
 
 
     public $components = array('Security');
+    public $paginate = array(
+            'limit' => 60,
+            'order' => array(
+                    'User.org' => 'ASC'
+            )
+    );
 
     function beforeFilter() {
         parent::beforeFilter();

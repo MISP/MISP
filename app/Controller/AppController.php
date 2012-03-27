@@ -50,7 +50,7 @@ class AppController extends Controller {
 
 
     public function isAuthorized($user) {
-        if (isset($user['org']) && $user['org'] === 'admin') {
+        if (self::_isAdmin()) {
             return true; // admin can access every action on every controller
         }
         return false; // The rest don't
@@ -75,8 +75,8 @@ class AppController extends Controller {
      * checks if the currently logged user is an administrator
      */
     public function _isAdmin() {
-        $user = $this->Auth->user();
-        if (isset($user['org']) && $user['org'] === 'admin') {
+        $org = $this->Auth->user('org');
+        if (isset($org) && $org === 'ADMIN') {
             return true;
         }
         return false;

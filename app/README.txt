@@ -30,16 +30,9 @@ cd cakephp-cakephp-*
 
 Now remove the app directory and move everything from CakePHP to var/www
 
-rm -Rf app
+rm -Rf app .gitignore 
 mv * /var/www/cydefsig/
 mv .??* /var/www/cydefsig/
-
-Create the 'tmp' directory with the necessary sub directories:
-
-mkdir /var/www/cydefsig/app/tmp
-mkdir /var/www/cydefsig/app/tmp/sessions
-mkdir /var/www/cydefsig/app/tmp/logs
-mkdir /var/www/cydefsig/app/tmp/cache
 
 Check if the permissions are set correctly using the following commands as root:
 
@@ -53,8 +46,20 @@ Import the empty MySQL database in /var/www/cydefsig/app/MYSQL.txt using phpmyad
 
 Now configure your apache server with the DocumentRoot /var/www/cydefsig/app/webroot/
 
+Configure the fields in the files:
+database.php : login, port, password, database
+bootstrap.php: CyDefSIG.*, GnuPG.*
+core.php : debug, 
+
+Generate a GPG encryption key.
+-
+
+Now log in using the webinterface:
 The default user/pass = admin@admin.test/admin 
+
 Don't forget to change the email, password and authentication key after installation.
+
+
 
 Recommended patches
 -------------------

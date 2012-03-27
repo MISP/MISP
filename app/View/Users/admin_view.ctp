@@ -111,7 +111,9 @@
 
 	<div class="actions">
 		<ul>
-			<li><?php echo $this->Html->link(__('New Event'), array('controller' => 'events', 'action' => 'add'));?> </li>
+		    <li><?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('User.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('User.id'))); ?></li>
+		    <li>&nbsp;</li>
+            <?php echo $this->element('actions_menu'); ?>
 		</ul>
 	</div>
 </div>
