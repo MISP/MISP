@@ -26,7 +26,7 @@ CREATE TABLE `events` (
   `risk` enum('Undefined','Low','Medium','High') COLLATE utf8_bin NOT NULL,
   `info` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `user_id` int(11) NOT NULL,
-  `alerted` tinyint(1) NOT NULL DEFAULT '0',
+  `published` tinyint(1) NOT NULL DEFAULT '0',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `private` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),

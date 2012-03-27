@@ -148,7 +148,7 @@ class EventsController extends AppController {
 
         if ($this->request->is('post') || $this->request->is('put')) {
             // say what fields are to be updated
-            $fieldList=array('user_id', 'date', 'risk', 'info', 'alerted', 'private');
+            $fieldList=array('user_id', 'date', 'risk', 'info', 'published', 'private');
             // always force the user and org, but do not force it for admins
             if (!$this->_isAdmin()) {
                 $this->request->data['Event']['user_id'] = $this->Auth->user('id');
@@ -159,8 +159,8 @@ class EventsController extends AppController {
                 $fieldList[]='org';
                 $this->request->data['Event']['org'] = $this->Event->data['Event']['org'];
             }
-            // we probably also want to remove the alerted flag
-            $this->request->data['Event']['alerted'] = 0;
+            // we probably also want to remove the published flag
+            $this->request->data['Event']['published'] = 0;
 
             if ($this->Event->save($this->request->data, true, $fieldList)) {
                 $this->Session->setFlash(__('The event has been saved'));
@@ -221,8 +221,8 @@ class EventsController extends AppController {
             // only allow alert for own events verified by isAuthorized
 
             // fetch the event and build the body
-            if (1 == $this->Event->data['Event']['alerted']) {
-                $this->Session->setFlash(__('Everyone has already been alerted for this event. To alert again, first edit this event.', true), 'default', array(), 'error');
+            if (1 == $this->Event->data['Event']['published']) {
+                $this->Session->setFlash(__('Everyone has already been published for this event. To alert again, first edit this event.', true), 'default', array(), 'error');
                 $this->redirect(array('action' => 'view', $id));
             }
 
@@ -332,8 +332,8 @@ class EventsController extends AppController {
                 $this->Email->reset();
             }
 
-            // update the DB to set the alerted flag
-            $this->Event->saveField('alerted', 1);
+            // update the DB to set the published flag
+            $this->Event->saveField('published', 1);
 
             // redirect to the view event page
             $this->Session->setFlash(__('Email sent to all participants.', true));
@@ -499,7 +499,7 @@ class EventsController extends AppController {
     }
 
 
-    public function xml($key) {
+    public function xml($key, $eventid=null) {
         // LATER filter out private events AND private attributes
         // check if the key is valid -> search for users based on key
         $this->loadModel('User');
@@ -513,9 +513,13 @@ class EventsController extends AppController {
         $this->layout = 'xml/default';
         $this->header('Content-Disposition: inline; filename="cydefsig.xml"');
 
-        $conditions = array("Event.alerted" => 1);
+        if (isset($eventid)) {
+            $conditions = array("Event.id" => $eventid);
+        } else {
+            $conditions = array();
+        }
         // do not expose all the data like user_id, ...
-        $fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.info', 'Event.uuid');
+        $fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.info', 'Event.uuid', 'Event.published');
         if ('true' == Configure::read('CyDefSIG.showorg')) {
             $fields[] = 'Event.org';
         }
@@ -554,7 +558,7 @@ class EventsController extends AppController {
         $rules= array();
 
         // find events that are published
-        $events = $this->Event->findAllByAlerted(1);
+        $events = $this->Event->findAllByPublished(1);
         $classtype = 'targeted-attack';
 
         foreach ($events as $event) {

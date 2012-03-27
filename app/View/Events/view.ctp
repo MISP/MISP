@@ -1,12 +1,12 @@
 <div class="events view">
 <div class="actions" style="float:right;">
-<?php if ( 0 == $event['Event']['alerted'] && ($isAdmin || $event['Event']['org'] == $me['org'])):
+<?php if ( 0 == $event['Event']['published'] && ($isAdmin || $event['Event']['org'] == $me['org'])):
 // only show button if alert has not been sent  // LATER show the ALERT button in red-ish
 ?>
     <ul><li><?php
-    echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be alerted?');
+    echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be published?');
     ?> </li></ul>
-<?php elseif (0 == $event['Event']['alerted']): ?>
+<?php elseif (0 == $event['Event']['published']): ?>
     <ul><li>Not published</li></ul>
 <?php else: ?>
     <!-- ul><li>Alert already sent</li></ul -->

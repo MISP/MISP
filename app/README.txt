@@ -16,6 +16,11 @@ Security
 
 INSTALLATION INSTRUCTIONS
 -------------------------
+Install the following libraries:
+apt-get install zip
+apt-get install pear
+pear install Crypt_GPG    # need version >1.3.0 
+
 Download CyDefSIG using git in the /var/www/ directory. 
 
 cd /var/www/
@@ -41,6 +46,7 @@ chmod -R 750 /var/www/cydefsig
 chmod -R g+s /var/www/cydefsig
 cd /var/www/cydefsig/app/
 chmod -R g+w tmp
+chmod -R g+w files
 
 Import the empty MySQL database in /var/www/cydefsig/app/MYSQL.txt using phpmyadmin or mysql>.
 
@@ -52,7 +58,8 @@ bootstrap.php: CyDefSIG.*, GnuPG.*
 core.php : debug, 
 
 Generate a GPG encryption key.
--
+sudo -u www-data gpg --homedir /var/www/cydefsig/.gnupg --gen-key
+
 
 Now log in using the webinterface:
 The default user/pass = admin@admin.test/admin 

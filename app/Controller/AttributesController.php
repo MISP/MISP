@@ -76,9 +76,9 @@ class AttributesController extends AppController {
 		    }
 
 
-		    // remove the alerted flag from the event
+		    // remove the published flag from the event
 		    $this->Event->id = $this->request->data['Attribute']['event_id'];
-		    $this->Event->saveField('alerted', 0);
+		    $this->Event->saveField('published', 0);
 
 		    //
 		    // multiple attributes in batch import
@@ -203,9 +203,9 @@ class AttributesController extends AppController {
 	            $this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 	        }
 
-	        // remove the alerted flag from the event
+	        // remove the published flag from the event
 	        $this->Event->id = $this->request->data['Attribute']['event_id'];
-	        $this->Event->saveField('alerted', 0);
+	        $this->Event->saveField('published', 0);
 
 	        // save the file-info in the database
 	        $this->Attribute->create();

@@ -78,11 +78,7 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-// 		Replaced by isAuthorized
-// 		// Only own profile
-// 		if ($this->Auth->user('id') != $id) {
-// 		    throw new ForbiddenException('You are not authorized to edit this profile.');
-// 		}
+		// Only own profile verified by isAuthorized
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    // What fields should be saved (allowed to be saved)
 		    $fieldList=array('email', 'autoalert', 'gpgkey', 'nids_sid' );

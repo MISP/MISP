@@ -83,7 +83,7 @@
 		<th><?php echo __('Risk'); ?></th>
 		<th><?php echo __('Info'); ?></th>
 		<th><?php echo __('User Id'); ?></th>
-		<th><?php echo __('Alerted'); ?></th>
+		<th><?php echo __('Published'); ?></th>
 		<th><?php echo __('Uuid'); ?></th>
 		<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
@@ -97,7 +97,7 @@
 			<td><?php echo $event['risk'];?></td>
 			<td><?php echo $event['info'];?></td>
 			<td><?php echo $event['user_id'];?></td>
-			<td><?php echo $event['alerted'];?></td>
+			<td><?php echo $event['published'];?></td>
 			<td><?php echo $event['uuid'];?></td>
 			<td class="actions">
 				<?php echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $event['id'])); ?>
