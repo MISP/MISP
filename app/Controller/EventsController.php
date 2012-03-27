@@ -79,8 +79,9 @@ class EventsController extends AppController {
 
         $relatedAttributes = array();
         $this->loadModel('Attribute');
+        $fields = array('Attribute.id', 'Attribute.event_id');
         foreach ($this->Event->data['Attribute'] as $attribute) {
-            $relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute);
+            $relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
         }
         $this->set('relatedAttributes', $relatedAttributes);
 
@@ -146,19 +147,21 @@ class EventsController extends AppController {
         // only edit own events verified by isAuthorized
 
         if ($this->request->is('post') || $this->request->is('put')) {
+            // say what fields are to be updated
+            $fieldList=array('user_id', 'date', 'risk', 'info', 'alerted', 'private');
             // always force the user and org, but do not force it for admins
             if (!$this->_isAdmin()) {
                 $this->request->data['Event']['user_id'] = $this->Auth->user('id');
-                $this->request->data['Event']['org'] = $this->Auth->user('org');
+
             } else {
-                $this->request->data['Event']['user_id'] = $old_event['Event']['id'];
-                $this->request->data['Event']['org'] = $old_event['Event']['org'];
+                $this->Event->read();
+                $this->request->data['Event']['user_id'] = $this->Event->data['Event']['user_id'];
+                $fieldList[]='org';
+                $this->request->data['Event']['org'] = $this->Event->data['Event']['org'];
             }
             // we probably also want to remove the alerted flag
             $this->request->data['Event']['alerted'] = 0;
 
-            // say what fields are to be updated
-            $fieldList=array('user_id', 'org', 'date', 'risk', 'info', 'alerted', 'private');
             if ($this->Event->save($this->request->data, true, $fieldList)) {
                 $this->Session->setFlash(__('The event has been saved'));
                 $this->redirect(array('action' => 'view', $id));

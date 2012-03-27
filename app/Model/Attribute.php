@@ -64,7 +64,8 @@ class Attribute extends AppModel {
 
 		),
 		'category' => array(
-			'rule' => array('inList', array('Payload delivery',
+			'rule' => array('inList', array(
+			                'Payload delivery',
 		                    'Antivirus detection',
 		                    'Payload installation',
 		                    'Artifacts dropped',
@@ -347,18 +348,20 @@ class Attribute extends AppModel {
 	    return $this->data['Event']['org'] === $org;
 	}
 
-	function getRelatedAttributes($attribute) {
+	function getRelatedAttributes($attribute, $fields=array()) {
 	    // LATER there should be a list of types/categories included here as some are not eligible (AV detection category
 	    // or "other" type could be excluded)
 	    // LATER getRelatedAttributes($attribute) this might become a performance bottleneck
 	    $conditions = array('Attribute.value =' => $attribute['value'],
 	        					'Attribute.id !=' => $attribute['id'],
 	        					'Attribute.type =' => $attribute['type'], );
-	    //         $fields = array('Event.*');
-	    $fields = array('Attribute.*');
+	    if (empty($fields)) {
+	        $fields = array('Attribute.*');
+	    }
 
 	    $similar_events = $this->find('all',array('conditions' => $conditions,
 	                                              'fields' => $fields,
+	                                              'recursive' => 0,
 	                                              'order' => 'Attribute.event_id DESC', )
 	    );
 	    return $similar_events;
