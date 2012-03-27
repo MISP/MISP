@@ -243,6 +243,12 @@ class Attribute extends AppModel {
 	                return true;
 	            return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 	            break;
+            case 'filename|sha1':
+                // no newline
+                if (!preg_match("#^.*|[0-9a-f]{40}$#", $value))
+                    return true;
+                return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
+                break;
 	        case 'ip-src':
 	            $parts = explode("/", $value);
 	            // [0] = the ip
