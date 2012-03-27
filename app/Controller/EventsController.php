@@ -514,6 +514,10 @@ class EventsController extends AppController {
         $this->header('Content-Disposition: inline; filename="cydefsig.xml"');
 
         if (isset($eventid)) {
+            $this->Event->id = $eventid;
+            if (!$this->Event->exists()) {
+                throw new NotFoundException(__('Invalid event'));
+            }
             $conditions = array("Event.id" => $eventid);
         } else {
             $conditions = array();

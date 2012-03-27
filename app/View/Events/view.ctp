@@ -74,7 +74,7 @@
     		<th>Type</th>
     		<th>Value</th>
     		<th>Related Events</th>
-    		<th>IDS Attribute</th>
+    		<th>IDS Signature</th>
     		<th class="actions">Actions</th>
     	</tr>
     	<?php

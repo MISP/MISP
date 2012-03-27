@@ -10,10 +10,12 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <p>An automatic export of all events and attributes is available under a custom XML format.</p>
 <p>You can configure your tools to automatically download the following following file:</p>
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/xml/<?php echo $me['authkey']; ?></pre>
+<p>If you only want to fetch a specific event append the eventid number:</p>
+<pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/xml/<?php echo $me['authkey']; ?>/1</pre>
 <p></p>
 
 <h3>NIDS Export</h3>
-<p>An automatic export of all network related attributes is available under the Snort rule format. Only attributes marked as <em>to IDS</em> are exported.</p>
+<p>An automatic export of all network related attributes is available under the Snort rule format. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
 <p>You can configure your tools to automatically download the following following file:</p>
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/nids/<?php echo $me['authkey']; ?></pre>
 <p></p>
