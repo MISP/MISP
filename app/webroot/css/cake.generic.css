@@ -335,6 +335,16 @@ label {
 	font-size: 120%;
 	margin-bottom:3px;
 }
+div.forminfo {
+	display: block;
+	float: right;
+	text-align: right;
+	font-weight:normal;
+	background-color: #fcfcb1;
+	padding: 2px 2px 2px 2px;
+	border: 1px dashed #e8e882;
+}
+
 input, textarea {
 	clear: both;
 	font-size: 110%;

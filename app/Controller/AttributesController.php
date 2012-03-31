@@ -14,6 +14,7 @@ class AttributesController extends AppController {
     public $paginate = array(
             'limit' => 60,
     );
+    public $helpers = array('Js' => array('Jquery'));
 
     function beforeFilter() {
         // permit reuse of CSRF tokens on the search page.
