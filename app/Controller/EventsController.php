@@ -41,7 +41,7 @@ class EventsController extends AppController {
             return true;
         }
         // Only on own events for these actions
-        if (in_array($this->action, array('edit', 'delete', 'alert'))) {
+        if (in_array($this->action, array('edit', 'delete', 'alert', 'publish'))) {
             $eventid = $this->request->params['pass'][0];
             return $this->Event->isOwnedByOrg($eventid, $this->Auth->user('org'));
         }
@@ -202,6 +202,32 @@ class EventsController extends AppController {
         $this->redirect(array('action' => 'index'));
     }
 
+
+    /**
+     * Publishes the event without sending an alert email
+     */
+    function publish($id = null) {
+        $this->Event->id = $id;
+        if (!$this->Event->exists()) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+
+        // only allow form submit CSRF protection.
+        if ($this->request->is('post') || $this->request->is('put')) {
+
+            $this->Event->id = $id;
+            $this->Event->read();
+
+            // only allow publish for own events verified by isAuthorized
+
+            // update the DB to set the published flag
+            $this->Event->saveField('published', 1);
+
+            // redirect to the view event page
+            $this->Session->setFlash(__('Event published, but NO mail sent to any participants.', true));
+            $this->redirect(array('action' => 'view', $id));
+        }
+    }
     /**
      * Send out an alert email to all the users that wanted to be notified.
      * Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted

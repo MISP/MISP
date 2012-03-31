@@ -4,7 +4,8 @@
 // only show button if alert has not been sent  // LATER show the ALERT button in red-ish
 ?>
     <ul><li><?php
-    echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be published?');
+    echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?');
+    echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!');
     ?> </li></ul>
 <?php elseif (0 == $event['Event']['published']): ?>
     <ul><li>Not published</li></ul>
