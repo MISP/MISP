@@ -15,9 +15,10 @@ class EventsController extends AppController {
      * @var array
      */
 
-    public $components = array('Security', 'Email');
+    public $components = array('Security', 'Email', 'RequestHandler');
     public $paginate = array(
             'limit' => 60,
+            'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 events
             'order' => array(
                     'Event.date' => 'DESC'
             )
@@ -79,7 +80,7 @@ class EventsController extends AppController {
 
         $relatedAttributes = array();
         $this->loadModel('Attribute');
-        $fields = array('Attribute.id', 'Attribute.event_id');
+        $fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
         foreach ($this->Event->data['Attribute'] as $attribute) {
             $relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
         }
@@ -97,7 +98,7 @@ class EventsController extends AppController {
             $find_params = array(
                     'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
                     'recursive' => 0, //int
-                    'fields' => array('Event.id', 'Event.date'), //array of field names
+                    'fields' => array('Event.id', 'Event.date', 'Event.uuid'), //array of field names
                     'order' => array('Event.date DESC'), //string or array defining order
             );
             $relatedEvents = $this->Event->find('all', $find_params);
@@ -549,7 +550,7 @@ class EventsController extends AppController {
             $conditions = array();
         }
         // do not expose all the data like user_id, ...
-        $fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.info', 'Event.uuid', 'Event.published');
+        $fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid');
         if ('true' == Configure::read('CyDefSIG.showorg')) {
             $fields[] = 'Event.org';
         }

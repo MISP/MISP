@@ -2,7 +2,7 @@
 /**
  * This file is loaded automatically by the app/webroot/index.php file after core.php
  *
- * This file should load/create any application wide configuration settings, such as 
+ * This file should load/create any application wide configuration settings, such as
  * Caching, Logging, loading additional configuration files.
  *
  * You should also use this file to include any files that provide global functions/constants
@@ -92,7 +92,8 @@ Configure::write('CyDefSIG.footer', 'Powered by CyDefSIG &copy; Belgian Defense 
 //Configure::write('CyDefSIG.logo', '/img/logo_big.gif');
 
 
-Configure::write('CyDefSIG.showorg', 'false');           // show the name of the organisation that uploaded the data
+Configure::write('CyDefSIG.showorg', 'false');             // show the name of the organisation that uploaded the data
+Configure::write('CyDefSIG.serversync', 'true');           // enable features related to syncing with other CyDefSIG instances
 Configure::write('CyDefSIG.email', 'no-reply@sig.mil.be'); // email from for all the mails
 
 Configure::write('GnuPG.onlyencrypted', 'true');         // only allow encrypted email, do not allow plaintext mails
