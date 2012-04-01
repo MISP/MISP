@@ -11,7 +11,11 @@
 		echo $this->Form->input('type', array(
 		        'between' => $this->Html->div('forminfo', '', array('id'=> 'AttributeTypeDiv')),
 		        ));
-
+		if ('true' == Configure::read('CyDefSIG.sync')) {
+		    echo $this->Form->input('private', array(
+		            'before' => $this->Html->div('forminfo', 'Prevent upload of this <em>single Attribute</em> to other CyDefSIG servers.<br/>Only use when the Event is NOT set as Private.'),
+		    ));
+		}
 		echo $this->Form->input('to_ids', array(
 		    		'checked' => true,
 		    		'before' => $this->Html->div('forminfo', 'Can we make an IDS signature based on this attribute ?'),

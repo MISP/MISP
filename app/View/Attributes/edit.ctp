@@ -8,13 +8,25 @@
 		if($attachment) {
 		    echo $this->Form->hidden('type');
 		    echo "<BR>Type: ".$this->Form->value('Attribute.type');
+		} else {
+    		echo $this->Form->input('type');
+		}
+		if ('true' == Configure::read('CyDefSIG.sync')) {
+		    echo $this->Form->input('private', array(
+		            'before' => $this->Html->div('forminfo', 'Prevent upload of this <em>single Attribute</em> to other CyDefSIG servers.<br/>Only use when the Event is NOT set as Private.'),
+		    ));
+		}
+		echo $this->Form->input('to_ids', array(
+		    		'checked' => true,
+		    		'before' => $this->Html->div('forminfo', 'Can we make an IDS signature based on this attribute ?'),
+		        	'label' => 'IDS Signature?'
+		));
+		if($attachment) {
 		    echo $this->Form->hidden('value');
 		    echo "<BR>Value: ".$this->Form->value('Attribute.value');
 		} else {
-    		echo $this->Form->input('type');
-    		echo $this->Form->input('value');
+		    echo $this->Form->input('value');
 		}
-		echo $this->Form->input('to_ids', array('label' => 'IDS Signature?'));
 	?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit'));?>

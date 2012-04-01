@@ -6,8 +6,8 @@ unset($event['Attribute']);
 
 // cleanup the array from things we do not want to expose
 unset($event['Event']['user_id']);
-// hide the private fields is we are not in serversync mode
-if ('true' != Configure::read('CyDefSIG.serversync')) {
+// hide the private fields is we are not in sync mode
+if ('true' != Configure::read('CyDefSIG.sync')) {
     unset($event['Event']['private']);
     foreach($event['Event']['attribute'] as $key => $value) {
         unset($event['Event']['attribute'][$key]['private']);

@@ -169,6 +169,7 @@ class ServersController extends AppController {
                 // force check userid and orgname to be from yourself
                 $this->Event->data['Event']['user_id'] = 0;
                 $this->Event->data['Event']['org'] = 'imported';
+                $this->Event->data['Event']['private'] = true;
 
                 if ($this->Event->save($this->Event->data)) {
                     print 'Event '.$eventArray['event']['uuid'].' saved'."\n";

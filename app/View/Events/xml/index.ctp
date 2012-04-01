@@ -8,8 +8,8 @@ foreach ($events as $key => $event) {
     unset($events[$key]['User']);
     unset($events[$key]['Event']);
     unset($events[$key]['user_id']);
-    // hide the private field is we are not in serversync mode
-    if ('true' != Configure::read('CyDefSIG.serversync')) {
+    // hide the private field is we are not in sync mode
+    if ('true' != Configure::read('CyDefSIG.sync')) {
         unset($events[$key]['private']);
     }
     // hide the org field is we are not in showorg mode

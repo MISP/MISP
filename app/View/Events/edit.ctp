@@ -6,6 +6,10 @@
 		echo $this->Form->input('id');
 		echo $this->Form->input('date');
 		echo $this->Form->input('risk');
+		if ('true' == Configure::read('CyDefSIG.sync')) {
+		    echo $this->Form->input('private', array(
+		            'before' => $this->Html->div('forminfo', 'Prevent upload of this <em>complete Event</em> to other CyDefSIG servers.<br/>Otherwise you can still prevent specific Attributes to be uploaded.'),));
+        }
 		echo $this->Form->input('info');
 	?>
 	</fieldset>

@@ -41,6 +41,13 @@
 			<?php echo $event['Event']['risk']; ?>
 			&nbsp;
 		</dd>
+		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+		<dt>Private</dt>
+		<dd>
+			<?php echo ($event['Event']['private'])? 'Yes, never upload Event or any Attributes.' : 'No, upload Event and all Attributes except those marked as Private.'; ?>
+			&nbsp;
+		</dd>
+		<?php endif; ?>
 		<!-- dt>UUID</dt>
 		<dd>
 			<?php echo $event['Event']['uuid']; ?>
@@ -76,7 +83,12 @@
     		<th>Value</th>
     		<th>Related Events</th>
     		<th>IDS Signature</th>
+    		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+    		<th>Private</th>
+    		<?php endif;?>
+    		<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
     		<th class="actions">Actions</th>
+    		<?php endif;?>
     	</tr>
     	<?php
 		    $category_prev = "";
@@ -116,13 +128,17 @@
     			?>
     			</td>
     			<td class="short" style="text-align: center;"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
+    			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+    			<td class="short" style="text-align: center;"><?php echo $attribute['private'] ? 'Private' : '';?></td>
+    			<?php endif;?>
+    			<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
     			<td class="actions">
     				<?php
-    				if ($isAdmin || $event['Event']['org'] == $me['org']) {
     				    echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']));
     				    echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, __('Are you sure you want to delete this attribute?'));
-    				} ?>
+    				?>
     			</td>
+    			<?php endif;?>
     		</tr>
     	    <?php endforeach; ?>
     	</table>

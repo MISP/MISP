@@ -93,7 +93,7 @@ Configure::write('CyDefSIG.footer', 'Powered by CyDefSIG &copy; Belgian Defense 
 
 
 Configure::write('CyDefSIG.showorg', 'false');             // show the name of the organisation that uploaded the data
-Configure::write('CyDefSIG.serversync', 'true');           // enable features related to syncing with other CyDefSIG instances
+Configure::write('CyDefSIG.sync', 'true');                 // enable features related to syncing with other CyDefSIG instances
 Configure::write('CyDefSIG.email', 'no-reply@sig.mil.be'); // email from for all the mails
 
 Configure::write('GnuPG.onlyencrypted', 'true');         // only allow encrypted email, do not allow plaintext mails

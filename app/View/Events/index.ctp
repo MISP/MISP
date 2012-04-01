@@ -9,6 +9,9 @@
 			<th><?php echo $this->Paginator->sort('date');?></th>
 			<th><?php echo $this->Paginator->sort('risk');?></th>
 			<th><?php echo $this->Paginator->sort('info');?></th>
+			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+			<th><?php echo $this->Paginator->sort('private');?></th>
+			<?php endif; ?>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
@@ -28,6 +31,10 @@
 		<?php echo $event['Event']['risk']; ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
 		<?php echo nl2br(Sanitize::html($event['Event']['info'])); ?>&nbsp;</td>
+		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
+		<?php echo ($event['Event']['private'])? 'Private' : ''; ?>&nbsp;</td>
+		<?php endif; ?>
 		<td class="actions">
 			<?php
 			if (0 == $event['Event']['published'] && ($isAdmin || $event['Event']['org'] == $me['org']))
