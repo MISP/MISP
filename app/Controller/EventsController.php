@@ -347,7 +347,7 @@ class EventsController extends AppController {
                 // the correct key-id even if it is not the same as the emailaddress
                 $key_import_output = $gpg->importKey($user['User']['gpgkey']);
                 // say what key should be used to encrypt
-                $gpg = new Crypt_GPG();
+                $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
                 $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
 
                 $body_enc_sig = $gpg->encrypt($body_signed, true);
@@ -473,7 +473,7 @@ class EventsController extends AppController {
             // this isn't really necessary, but it gives it the fingerprint necessary for the next step
             $key_import_output = $gpg->importKey($reporter['gpgkey']);
             // say what key should be used to encrypt
-            $gpg = new Crypt_GPG();
+            $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
             $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
 
             $body_enc_sig = $gpg->encrypt($body_signed, true);
