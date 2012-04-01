@@ -157,7 +157,7 @@ class ServersController extends AppController {
 
             } else {
                 // create a new event
-                print 'Event '. $eventArray['event']['uuid'].' doesn\'t exist yet.'."\n";
+                //print 'Event '. $eventArray['event']['uuid'].' doesn\'t exist yet.'."\n";
 
                 $this->Event->create();
                 $this->Event->data['Event'] = $eventArray['event'];
@@ -167,8 +167,8 @@ class ServersController extends AppController {
                     $this->Event->data['Event']['info'] = '-';
 
                 // force check userid and orgname to be from yourself
-                $this->Event->data['Event']['user_id'] = 0; // FIXME do this another way because it will cause problems with automation
-                $this->Event->data['Event']['org'] = 'imported'; // FIXME do this another way because it will cause problems with automation
+                $this->Event->data['Event']['user_id'] = 0;
+                $this->Event->data['Event']['org'] = 'imported';
 
                 if ($this->Event->save($this->Event->data)) {
                     print 'Event '.$eventArray['event']['uuid'].' saved'."\n";

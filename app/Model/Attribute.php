@@ -39,6 +39,7 @@ class Attribute extends AppModel {
 			                                'filename|sha1',
                                             'ip-src',
                                             'ip-dst',
+			                                'hostname',
                                             'domain',
                                             'email-src',
                                             'email-dst',
@@ -282,6 +283,7 @@ class Attribute extends AppModel {
 	            }
 	            return 'IP address has invalid format. Please double check the value or select "other" for a type.';
 	            break;
+	        case 'hostname':
 	        case 'domain':
 	            if(preg_match("#^[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value))
 	            	return true;
