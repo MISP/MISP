@@ -87,6 +87,7 @@ class UsersController extends AppController {
 		    // Save the data
 		    if ($this->User->save($this->request->data, true ,$fieldList)) {
 				$this->Session->setFlash(__('The profile has been updated'));
+				$this->_refreshAuth();
 				$this->redirect(array('action' => 'view', $id));
 			} else {
 				$this->Session->setFlash(__('The profile could not be updated. Please, try again.'));
@@ -165,6 +166,10 @@ class UsersController extends AppController {
 			} else {
 				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
 			}
+		} else {
+			// generate auth key for a new user
+			$newkey = $this->User->generateAuthKey();
+			$this->set('authkey', $newkey);
 		}
 	}
 
@@ -188,6 +193,7 @@ class UsersController extends AppController {
 				$fields[] = 'password';  
 			if ($this->User->save($this->request->data, true, $fields)) {
 				$this->Session->setFlash(__('The user has been saved'));
+				$this->_refreshAuth(); // in case we modify ourselves
 				$this->redirect(array('action' => 'index'));
 			} else {
 				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
