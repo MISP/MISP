@@ -25,6 +25,8 @@
 		if('attachment' == $attribute['Attribute']['type'] ||
 		   'malware-sample' == $attribute['Attribute']['type']) {
 		    echo $this->Html->link($sig_display, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']));
+		} elseif('link' == $attribute['Attribute']['type']) {
+			?><A HREF="<?php echo $attribute['Attribute']['value']?>"><?php echo $attribute['Attribute']['value']?></A><?php	
 		} else {
 			echo $sig_display;
 		}

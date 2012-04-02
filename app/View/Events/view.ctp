@@ -95,13 +95,13 @@
     			<td><?php 
 			$sig_display = nl2br(Sanitize::html($attribute['value']));
 			if('attachment' == $attribute['type'] ||
-					'malware-sample' == $attribute['type']) {
-					$filename_hash = explode('|', $attribute['value']);
-					echo $this->Html->link($filename_hash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
-					if (isset($filename_hash[1])) echo ' | '.$filename_hash[1];			
-            } else {
-                    echo $sig_display;
-            }
+		  	 'malware-sample' == $attribute['type']) {
+		 	   echo $this->Html->link($sig_display, array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
+			} elseif('link' == $attribute['type']) {
+				?><A HREF="<?php echo $attribute['value']?>"><?php echo $attribute['value']?></A><?php	
+			} else {
+				echo $sig_display;
+			}
             
                         ?>
                         </td>
