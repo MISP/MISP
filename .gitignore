@@ -14,3 +14,4 @@
 /app/tmp/sessions/sess_*
 /app/tmp/logs/*.log
 /app/files/*
+/app/webroot/img/logo.png

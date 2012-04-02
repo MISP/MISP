@@ -39,10 +39,10 @@
 <body>
 	<div id="container">
 		<div id="header">
-			<h1><?php echo $this->Html->link(Configure::read('CyDefSIG.header'), array('controller' => 'events', 'action' => 'index')); ?></h1>
+			<h1><?php echo $this->Html->link(Configure::read('CyDefSIG.header'), array('controller' => 'events', 'action' => 'index')); ?>
 			<?php if($logo = Configure::read('CyDefSIG.logo')) {
 			echo "<img src=\"$logo\" align=\"right\" height=\"30\">";
-			}?>
+			}?></h1>
 		</div>
 		<div id="content">
 			<?php echo $this->Session->flash('auth'); ?>
