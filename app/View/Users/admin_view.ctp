@@ -40,10 +40,12 @@
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Gpgkey'); ?></dt>
-		<dd>
-			<?php echo h($user['User']['gpgkey']); ?>
-			&nbsp;
-		</dd>
+
+                <dd style="font-size: 10px; line-height:100%;">
+                        <code><?php echo nl2br(h($user['User']['gpgkey'])); ?></code>
+                        &nbsp;
+                </dd>
+
 		<dt><?php echo __('Nids Sid'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['nids_sid']); ?>
@@ -109,11 +111,4 @@
 	</table>
 <?php endif; ?>
 
-	<div class="actions">
-		<ul>
-		    <li><?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('User.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('User.id'))); ?></li>
-		    <li>&nbsp;</li>
-            <?php echo $this->element('actions_menu'); ?>
-		</ul>
-	</div>
 </div>

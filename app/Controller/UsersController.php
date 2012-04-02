@@ -180,14 +180,24 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
-			if ($this->User->save($this->request->data)) {
+			$fields = array();
+			foreach (array_keys($this->request->data['User']) as $field) {
+				if($field != 'password') array_push($fields, $field);
+			}
+			if ("" != $this->request->data['User']['password'])
+				$fields[] = 'password';  
+			if ($this->User->save($this->request->data, true, $fields)) {
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
 				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
 			}
 		} else {
-			$this->request->data = $this->User->read(null, $id);
+			$this->User->recursive=0;
+			$this->User->read(null, $id);
+			$this->User->set('password', '');
+			$this->request->data = $this->User->data;
+			
 		}
 	}
 
