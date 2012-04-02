@@ -113,6 +113,9 @@ div.view {
 div.actions {
     display: none;
 }
+div.noprint {
+    display: none;
+}
 div.actions h3 {
 	padding-top:0;
 	color:#777;
@@ -169,7 +172,7 @@ td.short {
 }
 
 /* added */
-div .events table tr:hover, div .events table tr.altrow:hover, div .attributes table tr:hover, div .attributes table tr.altrow:hover{
+div .events table tr:hover, div .events table tr.altrow:hover, div .signatures table tr:hover, div .signatures table tr.altrow:hover{
 	background-color: #F5F5D7;
 }
 
