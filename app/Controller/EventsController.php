@@ -60,6 +60,7 @@ class EventsController extends AppController {
         $this->set('events', $this->paginate());
 
         if (!$this->Auth->user('gpgkey')) {
+            // FIXME small bug here: user has to logout and login back to make the this
             $this->Session->setFlash('No GPG key set in your profile. To receive emails, submit your public key in your profile.');
         }
     }

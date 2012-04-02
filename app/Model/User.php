@@ -198,7 +198,7 @@ class User extends AppModel {
 	
 	    // key is entered
 	    require_once 'Crypt/GPG.php';
-	    $gpg = new Crypt_GPG();
+	    $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 	    try {
 	        $key_import_output = $gpg->importKey($check['gpgkey']);
 	        if (!empty($key_import_output['fingerprint'])) {
