@@ -24,7 +24,7 @@
 		$sig_display = nl2br(Sanitize::html($attribute['Attribute']['value']));
 		if('attachment' == $attribute['Attribute']['type'] ||
 		   'malware-sample' == $attribute['Attribute']['type']) {
-		    echo $this->Html->link($sig_display, array('controller' => 'files', $attribute['Attribute']['event_id'], $sig_display));
+		    echo $this->Html->link($sig_display, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']));
 		} else {
 			echo $sig_display;
 		}
