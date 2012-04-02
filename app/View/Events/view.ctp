@@ -77,52 +77,58 @@
     		<th>IDS Signature</th>
     		<th class="actions">Actions</th>
     	</tr>
+
     	<?php
-		    $category_prev = "";
+	foreach ($categories as $category):
+    		$i = 0;
+		$first = 1;
     		foreach ($event['Attribute'] as $attribute):
-    		?>
-    		<tr>
-    		    <td class="short"><?php
-    		    if ($category_prev != $attribute['category']) {
-    		        $category_prev = $attribute['category'];
-    		        echo $attribute['category'];
-    		    } else {
-    		        echo '&nbsp;';
-    		    }
-    		    ?></td>
-    			<td class="short"><?php echo $attribute['type'];?></td>
-    			<td><?php
-    			$sig_display = nl2br(Sanitize::html($attribute['value']));
-    			if('attachment' == $attribute['type'] ||
-    			   'malware-sample' == $attribute['type']) {
-    			        $filename_hash = explode('|', $attribute['value']);
-    			        echo $this->Html->link($filename_hash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
-    			        if (isset($filename_hash[1])) echo ' | '.$filename_hash[1];
-    			} else {
-    			    echo $sig_display;
+	    		if($attribute['category'] != $category) continue;
+			$class = null;
+    			if ($i++ % 2 == 0) {
+    				$class = ' class="altrow"';
     			}
-    			?></td>
-    			<td class="short" style="text-align: center;">
+    		?>
+    		<tr<?php echo $class;?>>
+    			<td><?php echo $first ? $category : '';?></td>
+    			<td><?php echo $attribute['type'];?></td>
+    			<td><?php 
+			$sig_display = nl2br(Sanitize::html($attribute['value']));
+			if('attachment' == $attribute['type'] ||
+					'malware-sample' == $attribute['type']) {
+					$filename_hash = explode('|', $attribute['value']);
+					echo $this->Html->link($filename_hash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
+					if (isset($filename_hash[1])) echo ' | '.$filename_hash[1];			
+            } else {
+                    echo $sig_display;
+            }
+            
+                        ?>
+                        </td>
+    			<td>
     			<?php
-    			if (null != $relatedAttributes[$attribute['id']]) {
+    			$first = 0;
+			if (null != $relatedAttributes[$attribute['id']]) {
     			    foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
     			        echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
-    			        echo ' ';
+    			        echo ' '; 
     			    }
     			}
     			?>
     			</td>
-    			<td class="short" style="text-align: center;"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
-    			<td class="actions">
+    			<td><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
+    			<td class="actions" style="text-align:right;">
     				<?php
-    				if ($isAdmin || $event['Event']['org'] == $me['org']) {
-    				    echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']));
-    				    echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, __('Are you sure you want to delete this attribute?'));
+    				if ($isAdmin || $event['Event']['org'] == $me['org']) { 
+    				    echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id'])); 
+    				    echo $this->Html->link(__('Delete', true), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, sprintf(__('Are you sure you want to delete # %s?', true), $attribute['id'])); 
     				} ?>
     			</td>
     		</tr>
     	    <?php endforeach; ?>
+    	<?php endforeach; ?>
     	</table>
+
         <?php endif; ?>
     	<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
     	<div class="actions">
