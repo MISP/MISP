@@ -36,7 +36,7 @@ class UsersController extends AppController {
         if (isset($this->request->params['admin']) && true == $this->request->params['admin'])
             return false;
         // Only on own user for these actions
-        if (in_array($this->action, array('edit', 'delete', 'resetauthkey'))) {
+        if (in_array($this->action, array('view', 'edit', 'delete', 'resetauthkey'))) {
             $userid = $this->request->params['pass'][0];
             if ("me" == $userid ) return true;
             return ($userid === $this->Auth->user('id'));
@@ -58,10 +58,7 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		// Only own profile
-		if ($this->Auth->user('id') != $id) {
-		    throw new ForbiddenException('You are not authorized to access this profile.');
-		}
+		// Only own profile verified by isAuthorized
 		$this->set('user', $this->User->read(null, $id));
 	}
 
@@ -190,7 +187,7 @@ class UsersController extends AppController {
 				if($field != 'password') array_push($fields, $field);
 			}
 			if ("" != $this->request->data['User']['password'])
-				$fields[] = 'password';  
+				$fields[] = 'password';
 			if ($this->User->save($this->request->data, true, $fields)) {
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->_refreshAuth(); // in case we modify ourselves
@@ -203,7 +200,7 @@ class UsersController extends AppController {
 			$this->User->read(null, $id);
 			$this->User->set('password', '');
 			$this->request->data = $this->User->data;
-			
+
 		}
 	}
 
