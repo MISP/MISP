@@ -52,10 +52,12 @@ class Attribute extends AppModel {
                                             'AS',
                                             'snort',
                                             'pattern-in-file',
+                                            'pattern-in-traffic',
                                             'pattern-in-memory',
                                             'vulnerability',
                                             'attachment',
                                             'malware-sample',
+                                            'link',
                                             'other')),
 			'message' => 'Options : md5, sha1, filename, ip, domain, email, url, regkey, AS, other, ...',
 			//'allowEmpty' => false,
@@ -236,18 +238,18 @@ class Attribute extends AppModel {
 	            break;
 	        case 'filename':
 	            // no newline
-	            if (!preg_match("#\n#", $value))
+	            if (preg_match("#\n#", $value))
 	            	return true;
 	            break;
 	        case 'filename|md5':
 	            // no newline
-	            if (!preg_match("#^.*|[0-9a-f]{32}$#", $value))
+	            if (preg_match("#^.*|[0-9a-f]{32}$#", $value))
 	                return true;
 	            return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 	            break;
             case 'filename|sha1':
                 // no newline
-                if (!preg_match("#^.*|[0-9a-f]{40}$#", $value))
+                if (preg_match("#^.*|[0-9a-f]{40}$#", $value))
                     return true;
                 return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
                 break;

@@ -1,5 +1,11 @@
 <div class="news view">
 <h2>News</h2>
+<h3>April 2012</h3>
+<p><b>REST API (output)</b><br/>
+From now on you can use the REST API that uses this XML export. For more information check out the export page.<br/>
+If you want to play with it manually, just add <code>.xml</code> to any url <small>(events or attributes)</small> and you should see the page rendered in XML.<br/>
+<p>
+</p>
 <h3>March 2012</h3>
 <p><b>Printing</b><br/>
 A special CSS exists now to give a better layout when printing pages.

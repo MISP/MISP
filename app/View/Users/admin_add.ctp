@@ -8,7 +8,7 @@
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
 		echo $this->Form->input('org');
 		echo $this->Form->input('autoalert');
-		echo $this->Form->input('authkey');
+		echo $this->Form->input('authkey', array('value' => $authkey));
 		echo $this->Form->input('nids_sid');
 		echo $this->Form->input('termsaccepted');
 		echo $this->Form->input('newsread');

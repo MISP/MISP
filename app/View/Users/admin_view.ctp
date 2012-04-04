@@ -1,6 +1,6 @@
 <div class="users view">
 <div class="actions" style="float:right;">
-	<ul><li><?php echo $this->Html->link(__('Edit Profile', true), array('action' => 'edit', $user['User']['id'])); ?> </li></ul>
+	<ul><li><?php echo $this->Html->link(__('Edit Profile', true), array('admin' => true, 'action' => 'edit', $user['User']['id'])); ?> </li></ul>
 </div>
 <h2><?php  echo __('User');?></h2>
 	<dl>
@@ -40,10 +40,12 @@
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Gpgkey'); ?></dt>
-		<dd>
-			<?php echo h($user['User']['gpgkey']); ?>
-			&nbsp;
-		</dd>
+
+                <dd style="font-size: 10px; line-height:100%;">
+                        <code><?php echo nl2br(h($user['User']['gpgkey'])); ?></code>
+                        &nbsp;
+                </dd>
+
 		<dt><?php echo __('Nids Sid'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['nids_sid']); ?>
@@ -64,10 +66,10 @@
 <div class="actions">
 	<h3><?php echo __('Actions'); ?></h3>
 	<ul>
-		<li><?php echo $this->Html->link(__('Edit User'), array('action' => 'edit', $user['User']['id'])); ?> </li>
-		<li><?php echo $this->Form->postLink(__('Delete User'), array('action' => 'delete', $user['User']['id']), null, __('Are you sure you want to delete # %s?', $user['User']['id'])); ?> </li>
-		<li><?php echo $this->Html->link(__('List Users'), array('action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link(__('New User'), array('action' => 'add')); ?> </li>
+		<li><?php echo $this->Html->link(__('Edit User'), array('admin' => true, 'action' => 'edit', $user['User']['id'])); ?> </li>
+		<li><?php echo $this->Form->postLink(__('Delete User'), array('admin' => true, 'action' => 'delete', $user['User']['id']), null, __('Are you sure you want to delete # %s?', $user['User']['id'])); ?> </li>
+		<li><?php echo $this->Html->link(__('List Users'), array('admin' => true, 'action' => 'index')); ?> </li>
+		<li><?php echo $this->Html->link(__('New User'), array('admin' => true, 'action' => 'add')); ?> </li>
 		<li><?php echo $this->Html->link(__('List Events'), array('controller' => 'events', 'action' => 'index')); ?> </li>
 		<li><?php echo $this->Html->link(__('New Event'), array('controller' => 'events', 'action' => 'add')); ?> </li>
 	</ul>
@@ -109,11 +111,4 @@
 	</table>
 <?php endif; ?>
 
-	<div class="actions">
-		<ul>
-		    <li><?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('User.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('User.id'))); ?></li>
-		    <li>&nbsp;</li>
-            <?php echo $this->element('actions_menu'); ?>
-		</ul>
-	</div>
 </div>

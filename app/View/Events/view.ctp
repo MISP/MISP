@@ -91,13 +91,15 @@
     		<?php endif;?>
     	</tr>
     	<?php
-		    $category_prev = "";
+        foreach ($categories as $category):
+			$first = 1;
     		foreach ($event['Attribute'] as $attribute):
+    			if($attribute['category'] != $category) continue;
     		?>
     		<tr>
     		    <td class="short"><?php
-    		    if ($category_prev != $attribute['category']) {
-    		        $category_prev = $attribute['category'];
+    		    if ($first) {
+    		        if ('' == $attribute['category']) echo '(no category)';
     		        echo $attribute['category'];
     		    } else {
     		        echo '&nbsp;';
@@ -116,10 +118,11 @@
     			} else {
     			    echo $sig_display;
     			}
-    			?></td>
+    		    ?></td>
     			<td class="short" style="text-align: center;">
     			<?php
-    			if (null != $relatedAttributes[$attribute['id']]) {
+    			$first = 0;
+                if (null != $relatedAttributes[$attribute['id']]) {
     			    foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
     			        echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
     			        echo ' ';
@@ -141,6 +144,7 @@
     			<?php endif;?>
     		</tr>
     	    <?php endforeach; ?>
+    	<?php endforeach; ?>
     	</table>
         <?php endif; ?>
     	<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>

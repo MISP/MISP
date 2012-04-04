@@ -87,6 +87,7 @@ class UsersController extends AppController {
 		    // Save the data
 		    if ($this->User->save($this->request->data, true ,$fieldList)) {
 				$this->Session->setFlash(__('The profile has been updated'));
+				$this->_refreshAuth();
 				$this->redirect(array('action' => 'view', $id));
 			} else {
 				$this->Session->setFlash(__('The profile could not be updated. Please, try again.'));
@@ -165,6 +166,10 @@ class UsersController extends AppController {
 			} else {
 				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
 			}
+		} else {
+			// generate auth key for a new user
+			$newkey = $this->User->generateAuthKey();
+			$this->set('authkey', $newkey);
 		}
 	}
 
@@ -180,14 +185,25 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
-			if ($this->User->save($this->request->data)) {
+			$fields = array();
+			foreach (array_keys($this->request->data['User']) as $field) {
+				if($field != 'password') array_push($fields, $field);
+			}
+			if ("" != $this->request->data['User']['password'])
+				$fields[] = 'password';  
+			if ($this->User->save($this->request->data, true, $fields)) {
 				$this->Session->setFlash(__('The user has been saved'));
+				$this->_refreshAuth(); // in case we modify ourselves
 				$this->redirect(array('action' => 'index'));
 			} else {
 				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
 			}
 		} else {
-			$this->request->data = $this->User->read(null, $id);
+			$this->User->recursive=0;
+			$this->User->read(null, $id);
+			$this->User->set('password', '');
+			$this->request->data = $this->User->data;
+			
 		}
 	}
 
@@ -219,7 +235,9 @@ class UsersController extends AppController {
 	    if ($this->Auth->login()) {
 	        $this->redirect($this->Auth->redirect());
 	    } else {
-	        $this->Session->setFlash(__('Invalid username or password, try again'));
+                // don't display "invalid user" before first login attempt
+               if($this->request->is('post')) $this->Session->setFlash(__('Invalid username or password, try again'));
+
 	    }
 	}
 
