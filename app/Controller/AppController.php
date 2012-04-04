@@ -137,5 +137,5 @@ class AppController extends Controller {
     }
 
 
-
+    // FIXME change all Sanitize:html( to h( function. Shorter and same result.
 }

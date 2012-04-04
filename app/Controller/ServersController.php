@@ -9,9 +9,27 @@ App::uses('Xml', 'Utility');
  */
 class ServersController extends AppController {
 
+    public $components = array('Security');
+    public $paginate = array(
+            'limit' => 60,
+            'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 events
+            'order' => array(
+                    'Server.url' => 'ASC'
+            )
+    );
+
 
     function beforeFilter() {
         parent::beforeFilter();
+
+        // Disable this feature if the sync configuration option is not active
+        if ('true' != Configure::read('CyDefSIG.sync'))
+            throw new ConfigureException("The sync feature is not active in the configuration.");
+
+        // permit reuse of CSRF tokens on the search page.
+        if ('sync' == $this->request->params['action']) {
+            $this->Security->csrfUseOnce = false;
+        }
 
         // These variables are required for every view
         $this->set('me', $this->Auth->user());
@@ -23,11 +41,11 @@ class ServersController extends AppController {
         if (parent::isAuthorized($user)) {
             return true;
         }
-//         // Only on own events for these actions
-//         if (in_array($this->action, array('edit', 'delete', 'alert'))) {
-//             $eventid = $this->request->params['pass'][0];
-//             return $this->Event->isOwnedByOrg($eventid, $this->Auth->user('org'));
-//         }
+        // Only on own servers for these actions
+        if (in_array($this->action, array('edit', 'delete', 'sync'))) {
+            $serverid = $this->request->params['pass'][0];
+            return $this->Server->isOwnedByOrg($serverid, $this->Auth->user('org'));
+        }
         // the other pages are allowed by logged in users
         return true;
     }
@@ -39,21 +57,11 @@ class ServersController extends AppController {
  */
 	public function index() {
 		$this->Server->recursive = 0;
-		$this->set('servers', $this->paginate());
-	}
 
-/**
- * view method
- *
- * @param string $id
- * @return void
- */
-	public function view($id = null) {
-		$this->Server->id = $id;
-		if (!$this->Server->exists()) {
-			throw new NotFoundException(__('Invalid server'));
-		}
-		$this->set('server', $this->Server->read(null, $id));
+		$this->paginate = array(
+		        'conditions' => array('Server.org' => $this->Auth->user('org')),
+		);
+		$this->set('servers', $this->paginate());
 	}
 
 /**
@@ -63,6 +71,9 @@ class ServersController extends AppController {
  */
 	public function add() {
 		if ($this->request->is('post')) {
+			// force check userid and orgname to be from yourself
+			$this->request->data['Server']['org'] = $this->Auth->user('org');
+
 			$this->Server->create();
 			if ($this->Server->save($this->request->data)) {
 				$this->Session->setFlash(__('The server has been saved'));
@@ -84,15 +95,24 @@ class ServersController extends AppController {
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
 		}
+		// only edit own servers verified by isAuthorized
+
 		if ($this->request->is('post') || $this->request->is('put')) {
-			if ($this->Server->save($this->request->data)) {
+		    // say what fields are to be updated
+		    $fieldList=array('url', 'push', 'pull');
+		    if ("" != $this->request->data['Server']['authkey'])
+		        $fieldList[] = 'authkey';
+		    // Save the data
+			if ($this->Server->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The server has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
 				$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
 			}
 		} else {
-			$this->request->data = $this->Server->read(null, $id);
+			$this->Server->read(null, $id);
+			$this->Server->set('authkey', '');
+			$this->request->data = $this->Server->data;
 		}
 	}
 
@@ -119,21 +139,31 @@ class ServersController extends AppController {
 	}
 
 
-	public function import($server, $key, $eventid=null) {
+    public function sync($id = null) {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException();
+        }
+        $this->Server->id = $id;
+        if (!$this->Server->exists()) {
+            throw new NotFoundException(__('Invalid server'));
+        }
+
+        $this->Server->read(null, $id);
+        // TODO make the output of the sync functionality more user-friendly
+        self::_import($this->Server->data['Server']['url'], $this->Server->data['Server']['authkey']);
+
+    }
+
+	private function _import($url, $key, $eventid=null) {
 	    $this->response->type('txt');    // set the content type
 	    $this->header('Content-Disposition: inline; filename="import.txt"');
 	    $this->layout = 'text/default';
 
-	    $url = 'https://'.$server;
         if(null != $eventid) {
             $xmlurl = $url."/events/xml/".$key."/".$eventid;
         } else {
             $xmlurl = $url."/events/xml/".$key;
         }
-
-//         $xmlurl = APP.DS."files".DS."157.xml";
-//         $xmlurl = APP.DS."files".DS."all.xml";
-//         $xmlurl = APP.DS."files".DS."163.xml"; // unexisting
 
         print 'Importing data from '.$xmlurl."\n";
         $this->loadModel('Event');
@@ -211,6 +241,7 @@ class ServersController extends AppController {
             }
 
             // TODO check if we want to send out email to alert that there is a new event
+            // FIXME also import the file-attachments
         }
 
 	}
