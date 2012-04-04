@@ -49,7 +49,7 @@ class User extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 			'identical' => array(
-    			'rule' => array('identicalFieldValues', 'confirm_password'), 
+    			'rule' => array('identicalFieldValues', 'confirm_password'),
     			'message' => 'Please re-enter your password twice so that the values match.',
     			//'allowEmpty' => false,
     			//'required' => true,
@@ -85,7 +85,7 @@ class User extends AppModel {
 			'boolean' => array(
 				'rule' => array('boolean'),
 				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
+				'allowEmpty' => true,
 				'required' => false,
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
@@ -175,27 +175,27 @@ class User extends AppModel {
 			'counterQuery' => ''
 		)
 	);
-	
-	
+
+
 	public function beforeSave() {
 	    if (isset($this->data[$this->alias]['password'])) {
 	        $this->data[$this->alias]['password'] = AuthComponent::password($this->data[$this->alias]['password']);
 	    }
 	    return true;
 	}
-	
-	
+
+
 	/**
 	* Checks if the GPG key is a valid key
 	* But also import it in the keychain.
 	*/
 	function validateGpgkey($check) {
 	    // LATER first remove the old gpgkey from the keychain
-	
+
 	    // empty value
 	    if (empty($check['gpgkey']))
 	    return true;
-	
+
 	    // key is entered
 	    require_once 'Crypt/GPG.php';
 	    $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
@@ -209,8 +209,8 @@ class User extends AppModel {
 	        return false;
 	    }
 	}
-	
-	
+
+
 	function complexPassword($check) {
 	    /*
 	    6 characters minimum
@@ -223,7 +223,7 @@ class User extends AppModel {
 	    $value = $value[0];
 	    return preg_match('/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/', $value);
 	}
-	
+
 	function identicalFieldValues( $field=array(), $compare_field=null )
 	{
 	    foreach( $field as $key => $value ){
@@ -237,7 +237,7 @@ class User extends AppModel {
 	    }
 	    return TRUE;
 	}
-	
+
 	/**
 	 * Generates an authentication key for each user
 	 */
@@ -250,10 +250,10 @@ class User extends AppModel {
 	    for ($p = 0; $p < $length; $p++) {
 	        $key .= $characters[rand(0, $char_len)];
 	    }
-	
+
 	    return $key;
 	}
-	
-	
-	
+
+
+
 }
