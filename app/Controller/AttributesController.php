@@ -10,9 +10,10 @@ App::uses('File', 'Utility');
  */
 class AttributesController extends AppController {
 
-    public $components = array('Security');
+    public $components = array('Security', 'RequestHandler');
     public $paginate = array(
             'limit' => 60,
+            'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 events
     );
     public $helpers = array('Js' => array('Jquery'));
 
