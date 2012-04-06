@@ -21,6 +21,9 @@ apt-get install zip
 apt-get install pear
 pear install Crypt_GPG    # need version >1.3.0 
 
+TODO rewrite instructions using git clones and git submodules
+
+
 Download CyDefSIG using git in the /var/www/ directory. 
 
 cd /var/www/
@@ -38,6 +41,12 @@ Now remove the app directory and move everything from CakePHP to var/www
 rm -Rf app .gitignore 
 mv * /var/www/cydefsig/
 mv .??* /var/www/cydefsig/
+
+TODO TODO Install the CakePHP REST Plugin in the plugins directory.
+(https://github.com/kvz/cakephp-rest-plugin/tree/cake-2.0)  
+using git submodule
+
+
 
 Check if the permissions are set correctly using the following commands as root:
 

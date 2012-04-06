@@ -21,10 +21,6 @@ class UsersController extends AppController {
 
         // what pages are allowed for non-logged-in users
         $this->Auth->allow('login', 'logout');
-
-        // These variables are required for every view
-        $this->set('me', $this->Auth->user());
-        $this->set('isAdmin', $this->_isAdmin());
     }
 
     public function isAuthorized($user) {

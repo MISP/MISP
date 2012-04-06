@@ -18,14 +18,12 @@ class AttributesController extends AppController {
     public $helpers = array('Js' => array('Jquery'));
 
     function beforeFilter() {
+        parent::beforeFilter();
+
         // permit reuse of CSRF tokens on the search page.
         if ('search' == $this->request->params['action']) {
             $this->Security->csrfUseOnce = false;
         }
-
-        // These variables are required for every view
-        $this->set('me', $this->Auth->user());
-        $this->set('isAdmin', $this->_isAdmin());
     }
 
 

@@ -57,7 +57,36 @@ class AppController extends Controller {
     }
 
     function beforeFilter() {
+        // User is not authenticated
+        if (!$this->Auth->user()) {
+            // User submits an authkey
+            if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+                $authkey = $_SERVER['HTTP_AUTHORIZATION'];
+                $this->loadModel('User');
+                $params = array(
+                        'conditions' => array('User.authkey' => $authkey),
+                        'recursive' => 0,
+                );
+                $user = $this->User->find('first', $params);
 
+                if ($user) {
+                    // User found in the db, add the user info to the session
+                    $this->Session->renew();
+                    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+                } else {
+                    // User not authenticated correctly
+                    // reset the session information
+                    // FIXME return a REST response with an error message
+                    $this->Session->destroy();
+                }
+
+            }
+        }
+
+
+        // These variables are required for every view
+        $this->set('me', $this->Auth->user());
+        $this->set('isAdmin', $this->_isAdmin());
     }
 
 

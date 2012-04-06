@@ -30,10 +30,6 @@ class ServersController extends AppController {
         if ('sync' == $this->request->params['action']) {
             $this->Security->csrfUseOnce = false;
         }
-
-        // These variables are required for every view
-        $this->set('me', $this->Auth->user());
-        $this->set('isAdmin', $this->_isAdmin());
     }
 
     public function isAuthorized($user) {

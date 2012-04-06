@@ -15,7 +15,11 @@ class EventsController extends AppController {
      * @var array
      */
 
-    public $components = array('Security', 'Email', 'RequestHandler');
+    public $components = array(
+            'Security',
+            'Email',
+            'RequestHandler',
+            );
     public $paginate = array(
             'limit' => 60,
             'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 events
@@ -24,16 +28,13 @@ class EventsController extends AppController {
             )
     );
 
-
     function beforeFilter() {
+        parent::beforeFilter();
+
         // what pages are allowed for non-logged-in users
         $this->Auth->allow('xml');
         $this->Auth->allow('nids');
         $this->Auth->allow('text');
-
-        // These variables are required for every view
-        $this->set('me', $this->Auth->user());
-        $this->set('isAdmin', $this->_isAdmin());
     }
 
     public function isAuthorized($user) {
@@ -863,6 +864,20 @@ class EventsController extends AppController {
         return $rawName;
     }
 
+
+
+    /**
+     * Shortcut so you can check in your Controllers wether
+     * REST Component is currently active.
+     *
+     * Use it in your ->flash() methods
+     * to forward errors to REST with e.g. $this->Rest->error()
+     *
+     * @return boolean
+     */
+    protected function _isRest() {
+        return !empty($this->Rest) && is_object($this->Rest) && $this->Rest->isActive();
+    }
 
 
 }

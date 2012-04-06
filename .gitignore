@@ -1,15 +1,10 @@
-/plugins
 /vendors
 /lib
-/build.properties
-/build.xml
 /.project
 /.settings
 /.buildpath
 .DS_Store
 /.htaccess
-/cake
-/index.php
 /README
 /app/tmp/sessions/sess_*
 /app/tmp/logs/*.log
