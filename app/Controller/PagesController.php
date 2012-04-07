@@ -52,6 +52,9 @@ class PagesController extends AppController {
  */
 	public $uses = array();
 
+	public function isAuthorized($user) {
+	    return true;
+	}
 /**
  * Displays a view
  *
