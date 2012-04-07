@@ -57,10 +57,14 @@ class AppController extends Controller {
     }
 
     function beforeFilter() {
-        // User is not authenticated
-        if (!$this->Auth->user()) {
-            // User submits an authkey
-            if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+
+        // REST things
+        if (isset($this->RequestHandler) && $this->RequestHandler->isXml()) {
+            // disable CSRF for REST access
+            $this->Security->csrfCheck = false;
+
+            // Authenticate user with authkey in Authorization HTTP header
+            if ($this->RequestHandler->isXml() && !empty($_SERVER['HTTP_AUTHORIZATION'])) {
                 $authkey = $_SERVER['HTTP_AUTHORIZATION'];
                 $this->loadModel('User');
                 $params = array(
@@ -79,10 +83,8 @@ class AppController extends Controller {
                     // FIXME return a REST response with an error message
                     $this->Session->destroy();
                 }
-
             }
         }
-
 
         // These variables are required for every view
         $this->set('me', $this->Auth->user());

@@ -529,10 +529,8 @@ class EventsController extends AppController {
 
 
     public function xml($key, $eventid=null) {
-        // LATER filter out private events AND private attributes
         // check if the key is valid -> search for users based on key
         $this->loadModel('User');
-        // no input sanitization necessary, it's done by model
         $user = $this->User->findByAuthkey($key);
         if (empty($user)) {
             throw new UnauthorizedException('Incorrect authentication key');
@@ -562,16 +560,7 @@ class EventsController extends AppController {
         );
         $results = $this->Event->find('all', $params);
 
-
-        $xmlArray = array();
-        foreach ($results as $result) {
-            $result['Event']['attribute'] = $result['Attribute'];
-            $xmlArray['CyDefSIG']['event'][] = $result['Event'];
-        }
-
-        $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags')); // You can use Xml::build() too
-        $xmlString = $xmlObject->asXML();
-        $this->set('xml', $xmlString);
+        $this->set('results', $results);
     }
 
 

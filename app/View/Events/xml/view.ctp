@@ -1,7 +1,7 @@
 <?php
 $xmlArray = array();
 // rearrange things to be compatible with the Xml::fromArray()
-$event['Event']['attribute'] = $event['Attribute'];
+$event['Event']['Attribute'] = $event['Attribute'];
 unset($event['Attribute']);
 
 // cleanup the array from things we do not want to expose
@@ -20,10 +20,10 @@ if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
 
 // build up a list of the related events
 foreach ($relatedEvents as $relatedEvent) {
-    $event['Event']['relatedevent'][] = $relatedEvent['Event'];
+    $event['Event']['RelatedEvent'][] = $relatedEvent['Event'];
 }
 
 // display the XML to the user
-$xmlArray['CyDefSIG']['event'][] = $event['Event'];
+$xmlArray['response']['Event'][] = $event['Event'];
 $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 echo $xmlObject->asXML();

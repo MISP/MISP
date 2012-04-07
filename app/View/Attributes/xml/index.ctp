@@ -14,7 +14,7 @@ foreach ($attributes as $key => $attribute) {
 }
 
 // display the XML to the user
-$xmlArray['CyDefSIG']['attribute'] = $attributes;
+$xmlArray['response']['Attribute'] = $attributes;
 $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 echo $xmlObject->asXML();
 ?><!--

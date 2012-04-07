@@ -21,7 +21,7 @@ foreach ($events as $key => $event) {
 }
 
 // display the XML to the user
-$xmlArray['CyDefSIG']['event'] = $events;
+$xmlArray['response']['Event'] = $events;
 $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 echo $xmlObject->asXML();
 ?><!--
