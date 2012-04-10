@@ -138,6 +138,12 @@ class Event extends AppModel {
 	);
 
 
+	function beforeValidate() {
+	    // generate UUID if it doesn't exist
+	    if (empty($this->data['Event']['uuid']))
+	        $this->data['Event']['uuid']= String::uuid();
+	}
+
 	public function isOwnedByOrg($eventid, $org) {
 	    return $this->field('id', array('id' => $eventid, 'org' => $org)) === $eventid;
 	}

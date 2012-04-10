@@ -121,13 +121,30 @@ class EventsController extends AppController {
             // force check userid and orgname to be from yourself
             $this->request->data['Event']['user_id'] = $this->Auth->user('id');
             $this->request->data['Event']['org'] = $this->Auth->user('org');
-            $this->request->data['Event']['uuid'] = String::uuid();
             $this->Event->create();
-            if ($this->Event->save($this->request->data)) {
-                $this->Session->setFlash(__('The event has been saved'));
-                $this->redirect(array('action' => 'view', $this->Event->getId()));
+
+            if ($this->_isRest()) {
+                // Workaround for different structure in XML than what CakePHP expects
+                $this->request->data['Attribute'] = $this->request->data['Event']['Attribute'];
+                unset($this->request->data['Event']['Attribute']);
+                // the event_id field is not set (normal) so make sure no validation errors are thrown
+                unset($this->Event->Attribute->validate['event_id']);
+                unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
+            }
+
+            if ($this->Event->saveAssociated($this->request->data)) {
+                if ($this->_isRest()) {
+                    // REST users want to see the newly created event
+                    $this->view($this->Event->getId());
+                    $this->render('view');
+                } else {
+                    // redirect to the view of the newly created event
+                    $this->Session->setFlash(__('The event has been saved'));
+                    $this->redirect(array('action' => 'view', $this->Event->getId()));
+                }
             } else {
                 $this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
+                // TODO return error if REST
             }
         }
         // combobox for risks
@@ -181,6 +198,7 @@ class EventsController extends AppController {
         $this->set('risks',compact('risks'));
     }
 
+
     /**
      * delete method
      *
@@ -204,6 +222,7 @@ class EventsController extends AppController {
         $this->Session->setFlash(__('Event was not deleted'));
         $this->redirect(array('action' => 'index'));
     }
+
 
 
     /**
@@ -231,6 +250,7 @@ class EventsController extends AppController {
             $this->redirect(array('action' => 'view', $id));
         }
     }
+
     /**
      * Send out an alert email to all the users that wanted to be notified.
      * Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
@@ -371,6 +391,7 @@ class EventsController extends AppController {
     }
 
 
+
     /**
      * Send out an contact email to the person who posted the event.
      * Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
@@ -399,6 +420,7 @@ class EventsController extends AppController {
             $this->data = $this->Event->read(null, $id);
         }
     }
+
 
 
     /**
@@ -516,6 +538,7 @@ class EventsController extends AppController {
 
         return $result;
     }
+
 
 
     public function export() {
@@ -853,20 +876,6 @@ class EventsController extends AppController {
         return $rawName;
     }
 
-
-
-    /**
-     * Shortcut so you can check in your Controllers wether
-     * REST Component is currently active.
-     *
-     * Use it in your ->flash() methods
-     * to forward errors to REST with e.g. $this->Rest->error()
-     *
-     * @return boolean
-     */
-    protected function _isRest() {
-        return !empty($this->Rest) && is_object($this->Rest) && $this->Rest->isActive();
-    }
 
 
 }

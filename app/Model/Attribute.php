@@ -99,6 +99,14 @@ class Attribute extends AppModel {
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
+			'unique' => array(
+			        'rule' => array('valueIsUnique'),
+			        'message' => 'A similar attribute already exists for this event.',
+			        //'allowEmpty' => false,
+			        //'required' => true,
+			        //'last' => false, // Stop validation after this rule
+			        //'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
 		),
 		'to_ids' => array(
 			'boolean' => array(
@@ -198,11 +206,15 @@ class Attribute extends AppModel {
 	            break;
 	    }
 
+	    // generate UUID if it doesn't exist
+	    if (empty($this->data['Attribute']['uuid']))
+	        $this->data['Attribute']['uuid']= String::uuid();
+
 	    // always return true, otherwise the object cannot be saved
 	    return true;
 	}
 
-	function validateAttributeValue ($fields) {
+	function valueIsUnique ($fields) {
 	    $value = $fields['value'];
 	    $event_id = $this->data['Attribute']['event_id'];
 	    $type = $this->data['Attribute']['type'];
@@ -211,18 +223,25 @@ class Attribute extends AppModel {
 
 	    // check if the attribute already exists in the same event
 	    $conditions = array('Attribute.event_id' => $event_id,
-                            'Attribute.type' => $type,
-                            'Attribute.category' => $category,
-                            'Attribute.value' => $value
+	            'Attribute.type' => $type,
+	            'Attribute.category' => $category,
+	            'Attribute.value' => $value
 	    );
 	    if (isset($this->data['Attribute']['id']))
 	        $conditions['Attribute.id !='] = $this->data['Attribute']['id'];
 
 	    $params = array('recursive' => 0,
-                        'conditions' => $conditions,
+	            'conditions' => $conditions,
 	    );
 	    if (0 != $this->find('count', $params) )
-	    return 'Attribute already exists for this event.';
+	        return false;
+
+	    // Say everything is fine
+	    return true;
+	}
+
+	function validateAttributeValue ($fields) {
+	    $value = $fields['value'];
 
 	    // check data validation
 	    switch($this->data['Attribute']['type']) {

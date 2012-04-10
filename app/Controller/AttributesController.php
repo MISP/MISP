@@ -96,7 +96,6 @@ class AttributesController extends AppController {
 
 		            $this->Attribute->create();
 		            $this->request->data['Attribute']['value'] = $attribute;  // set the value as the content of the single line
-		            $this->request->data['Attribute']['uuid'] = String::uuid();
 		            if ($this->Attribute->save($this->request->data)) {
 		                $successes .= " ".($key+1);
 		            } else {
@@ -124,7 +123,6 @@ class AttributesController extends AppController {
             //
 		        // create the attribute
 		    	$this->Attribute->create();
-		    	$this->request->data['Attribute']['uuid'] = String::uuid();
 
     			if ($this->Attribute->save($this->request->data)) {
     			    // inform the user and redirect

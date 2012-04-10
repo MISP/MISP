@@ -59,12 +59,12 @@ class AppController extends Controller {
     function beforeFilter() {
 
         // REST things
-        if (isset($this->RequestHandler) && $this->RequestHandler->isXml()) {
+        if ($this->_isRest()) {
             // disable CSRF for REST access
             $this->Security->csrfCheck = false;
 
             // Authenticate user with authkey in Authorization HTTP header
-            if ($this->RequestHandler->isXml() && !empty($_SERVER['HTTP_AUTHORIZATION'])) {
+            if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
                 $authkey = $_SERVER['HTTP_AUTHORIZATION'];
                 $this->loadModel('User');
                 $params = array(
@@ -91,6 +91,10 @@ class AppController extends Controller {
         $this->set('isAdmin', $this->_isAdmin());
     }
 
+
+    protected function _isRest() {
+        return (isset($this->RequestHandler) && $this->RequestHandler->isXml());
+    }
 
     /**
      * Convert an array to the same array but with the values also as index instead of an interface_exists
