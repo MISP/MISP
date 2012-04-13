@@ -57,6 +57,7 @@ class Attribute extends AppModel {
                                             'attachment',
                                             'malware-sample',
                                             'link',
+                                            'description',
                                             'other')),
 			'message' => 'Options : md5, sha1, filename, ip, domain, email, url, regkey, AS, other, ...',
 			//'allowEmpty' => false,
@@ -67,6 +68,7 @@ class Attribute extends AppModel {
 		),
 		'category' => array(
 			'rule' => array('inList', array(
+							'Internal reference',
 			                'Payload delivery',
 		                    'Antivirus detection',
 		                    'Payload installation',
@@ -76,6 +78,7 @@ class Attribute extends AppModel {
 		                    'Network activity',
 		                    'Payload type',
 		                    'Attribution',
+		                    'External analysis',
 		                    'Other',
 		                    '' // FIXME remove this once all attributes have a category. Otherwise sigs without category are not shown in the list
 		                )),

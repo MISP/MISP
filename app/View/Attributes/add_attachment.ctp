@@ -11,7 +11,7 @@
         echo $this->Form->input('malware', array(
                 'type' => 'checkbox',
                 'checked' => false,
-                'after' => ' <i>(Every malware sample will be zipped with the password "infected")</i>',
+                'after' => '<br>Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"',
         ));
 	?>
 	</fieldset>

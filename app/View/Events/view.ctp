@@ -62,6 +62,7 @@
 		?></li>
 	    <?php endforeach; ?>
 	    </ul>
+	    <br/>
 	</div>
 	<?php endif; ?>
 
