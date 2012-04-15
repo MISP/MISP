@@ -122,7 +122,7 @@
     				<?php
     				if ($isAdmin || $event['Event']['org'] == $me['org']) { 
     				    echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id'])); 
-    				    echo $this->Html->link(__('Delete', true), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, sprintf(__('Are you sure you want to delete # %s?', true), $attribute['id'])); 
+    				    echo $this->Form->postLink(__('Delete', true), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, sprintf(__('Are you sure you want to delete # %s?', true), $attribute['id'])); 
     				} ?>
     			</td>
     		</tr>
