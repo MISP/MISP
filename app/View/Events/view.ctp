@@ -128,11 +128,11 @@
     			        echo ' ';
     			    }
     			}
-    			?>
+    			?>&nbsp;
     			</td>
     			<td class="short" style="text-align: center;"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
     			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
-    			<td class="short" style="text-align: center;"><?php echo $attribute['private'] ? 'Private' : '';?></td>
+    			<td class="short" style="text-align: center;"><?php echo $attribute['private'] ? 'Private' : '&nbsp;';?></td>
     			<?php endif;?>
     			<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
     			<td class="actions">

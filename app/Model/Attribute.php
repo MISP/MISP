@@ -205,6 +205,8 @@ class Attribute extends AppModel {
 	        // lowercase these things
 	        case 'md5':
 	        case 'sha1':
+	        case 'domain':
+	        case 'hostname':
 	            $this->data['Attribute']['value'] = strtolower($this->data['Attribute']['value']);
 	            break;
 	    }
@@ -265,13 +267,13 @@ class Attribute extends AppModel {
 	            break;
 	        case 'filename|md5':
 	            // no newline
-	            if (preg_match("#^.*|[0-9a-f]{32}$#", $value))
+	            if (preg_match("#^.+\|[0-9a-f]{32}$#", $value))
 	                return true;
 	            return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 	            break;
             case 'filename|sha1':
                 // no newline
-                if (preg_match("#^.*|[0-9a-f]{40}$#", $value))
+                if (preg_match("#^.+\|[0-9a-f]{40}$#", $value))
                     return true;
                 return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
                 break;
@@ -352,7 +354,7 @@ class Attribute extends AppModel {
 	            break;
 	        case 'regkey|value':
 	            // no newline
-	            if (!preg_match("#.*|.*#", $value))
+	            if (!preg_match("#.+\|.+#", $value))
 	                return true;
 	            break;
 	        case 'snort':
@@ -375,12 +377,25 @@ class Attribute extends AppModel {
 	}
 
 	function getRelatedAttributes($attribute, $fields=array()) {
-	    // LATER there should be a list of types/categories included here as some are not eligible (AV detection category
-	    // or "other" type could be excluded)
 	    // LATER getRelatedAttributes($attribute) this might become a performance bottleneck
-	    $conditions = array('Attribute.value =' => $attribute['value'],
-	        					'Attribute.id !=' => $attribute['id'],
-	        					'Attribute.type =' => $attribute['type'], );
+
+	    // exclude these specific categories to be linked
+	    switch ($attribute['category']) {
+	        case 'Antivirus detection':
+	            return null;
+	    }
+        // exclude these specific types to be linked
+        switch ($attribute['type']) {
+            case 'description':
+            case 'other':
+                return null;
+        }
+
+        // do the search
+        $conditions = array(
+                'Attribute.value =' => $attribute['value'],
+                'Attribute.id !=' => $attribute['id'],
+                'Attribute.type =' => $attribute['type'], );
 	    if (empty($fields)) {
 	        $fields = array('Attribute.*');
 	    }

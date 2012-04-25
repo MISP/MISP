@@ -149,6 +149,9 @@ class Event extends AppModel {
 	}
 
 	function getRelatedEvents() {
+	    // FIXME rewrite this to use the getRelatedAttributes function from the Attributes Model.
+	    // only this way the code will be consistent
+
 	    // first get a list of related event_ids
 	    // then do a single query to search for all the events with that id
 	    $relatedEventIds = Array();

@@ -92,9 +92,12 @@ class EventsController extends AppController {
         // This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
         $relatedEventIds = array();
         $relatedEvents = array();
-        foreach ($relatedAttributes as $relatedAttribute)
-            foreach ($relatedAttribute as $item)
-            $relatedEventsIds[] = $item['Attribute']['event_id'];
+        foreach ($relatedAttributes as $relatedAttribute) {
+            if (null == $relatedAttribute) continue;
+            foreach ($relatedAttribute as $item) {
+                $relatedEventsIds[] = $item['Attribute']['event_id'];
+            }
+        }
         if (isset($relatedEventsIds)) {
             $relatedEventsIds = array_unique($relatedEventsIds);
             $find_params = array(
