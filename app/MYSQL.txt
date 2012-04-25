@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Apr 04, 2012 at 08:23 PM
+-- Generation Time: Apr 25, 2012 at 01:16 PM
 -- Server version: 5.5.9
 -- PHP Version: 5.3.6
 
@@ -24,7 +24,8 @@ CREATE TABLE `attributes` (
   `event_id` int(11) NOT NULL,
   `category` varchar(255) COLLATE utf8_bin NOT NULL,
   `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `value` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `value1` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `value2` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `to_ids` tinyint(1) NOT NULL DEFAULT '1',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `revision` int(10) NOT NULL DEFAULT '0',

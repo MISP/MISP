@@ -15,6 +15,11 @@ class Attribute extends AppModel {
  */
 	public $displayField = 'value';
 
+	public $virtualFields = array(
+	        'value' => 'IF (Attribute.value2="", Attribute.value1, CONCAT(Attribute.value1, "|", Attribute.value2))'
+	);
+
+
 	var $order = array("Attribute.event_id" => "DESC", "Attribute.type" => "ASC");
 /**
  * Validation rules
@@ -175,6 +180,19 @@ class Attribute extends AppModel {
 	    // increment the revision number
 	    if (empty($this->data['Attribute']['revision'])) $this->data['Attribute']['revision'] = 0;
 	    $this->data['Attribute']['revision'] = 1 + $this->data['Attribute']['revision'] ;
+
+	    // explode value of composite type in value1 and value2
+	    // or copy value to value1 if not composite type
+	    $composite_types = $this->getCompositeTypes();
+	    if (in_array($this->data['Attribute']['type'], $composite_types)) {
+	        // explode composite types in value1 and value2
+    	    $pieces = explode('|', $this->data['Attribute']['value']);
+    	    if (2 != sizeof($pieces)) throw new InternalErrorException('Composite type, but value not explodable');
+	        $this->data['Attribute']['value1'] = $pieces[0];
+	        $this->data['Attribute']['value2'] = $pieces[1];
+	    } else {
+	        $this->data['Attribute']['value1'] = $this->data['Attribute']['value'];
+	    }
 
 	    // always return true after a beforeSave()
 	    return true;
@@ -369,6 +387,17 @@ class Attribute extends AppModel {
 
 	}
 
+    function getCompositeTypes() {
+        // build the list of composite Attribute.type dynamically by checking if type contains a |
+        // default composite types
+        $composite_types = array('malware-sample');
+        // dynamically generated list
+        foreach ($this->validate['type']['rule'][1] as $type) {
+            $pieces = explode('|', $type);
+            if (2 == sizeof($pieces)) $composite_types[] = $type;
+        }
+        return $composite_types;
+    }
 
 	public function isOwnedByOrg($attributeid, $org) {
 	    $this->id = $attributeid;
@@ -391,18 +420,36 @@ class Attribute extends AppModel {
                 return null;
         }
 
-        // do the search
+        // prepare the conditions
         $conditions = array(
-                'Attribute.value =' => $attribute['value'],
-                'Attribute.id !=' => $attribute['id'],
-                'Attribute.type =' => $attribute['type'], );
+                'Attribute.event_id !=' => $attribute['event_id'],
+//                 'Attribute.type' => $attribute['type'],  // LATER also filter on type
+                );
+        if (empty($attribute['value1']))   // prevent issues with empty fields
+            return null;
+
+        if (empty($attribute['value2'])) {
+            // no value2, only search for value 1
+            $conditions['OR'] = array(
+                    'Attribute.value1' => $attribute['value1'],
+                    'Attribute.value2' => $attribute['value1'],
+            );
+        } else {
+            // value2 also set, so search for both
+            $conditions['OR'] = array(
+                    'Attribute.value1' => array($attribute['value1'],$attribute['value2']),
+                    'Attribute.value2' => array($attribute['value1'],$attribute['value2']),
+            );
+        }
+
+        // do the search
 	    if (empty($fields)) {
 	        $fields = array('Attribute.*');
 	    }
-
 	    $similar_events = $this->find('all',array('conditions' => $conditions,
 	                                              'fields' => $fields,
 	                                              'recursive' => 0,
+	                                              'group' => array('Attribute.event_id'),
 	                                              'order' => 'Attribute.event_id DESC', )
 	    );
 	    return $similar_events;

@@ -134,9 +134,10 @@ class AppController extends Controller {
     /**
      * Updates the missing fields from v0.1 to v0.2 of CyDefSIG
      * First you will need to manually update the database to the new schema.
-     * Then run this function by setting debug = 1 (or more) and call /events/migrate
+     * Log in as admin user and
+     * Then run this function by setting debug = 1 (or more) and call /events/migrate01to02
      */
-    function migrate() {
+    function migrate01to02() {
         if (Configure::read('debug') == 0) throw new NotFoundException();
         // generate uuids for events who have no uuid
         $this->loadModel('Event');
@@ -171,6 +172,42 @@ class AppController extends Controller {
         echo "</p>";
     }
 
+
+    /**
+     * Updates the missing fields from v0.2 to v0.2.1 of CyDefSIG
+     * First you will need to manually update the database to the new schema.
+     * Log in as admin user and
+     * Then run this function by setting debug = 1 (or more) and call /events/migrate02to021
+     */
+    function migrate02to021() {
+        if (Configure::read('debug') == 0) throw new NotFoundException();
+
+        // search for composite value1 fields and explode it to value1 and value2
+        $this->loadModel('Attribute');
+        $params = array(
+                'conditions' => array(
+                        'OR' => array(
+                                'Attribute.type' => $this->Attribute->getCompositeTypes()
+                                )
+                        ),
+                'recursive' => 0,
+                'fields' => array('Attribute.id', 'Attribute.value1'),
+        );
+        $attributes = $this->Attribute->find('all', $params);
+        echo '<p>Exploding composite fields in 2 columns: </p><ul>';
+        foreach ($attributes as $attribute) {
+            $pieces = explode('|', $attribute['Attribute']['value1']);
+            if (2 != sizeof($pieces)) continue;    // do nothing if not 2 pieces
+
+            $this->Attribute->id = $attribute['Attribute']['id'];
+            echo '<li>'.$attribute['Attribute']['id'].' --> '.$attribute['Attribute']['value1'].' --> '.$pieces[0].' --> '.$pieces[1].'</li> ';
+            $this->Attribute->saveField('value1', $pieces[0]);
+            $this->Attribute->id = $attribute['Attribute']['id'];
+            $this->Attribute->saveField('value2', $pieces[1]);
+        }
+        echo "</ul> DONE</p>";
+
+    }
 
     // FIXME change all Sanitize:html( to h( function. Shorter and same result.
 }
