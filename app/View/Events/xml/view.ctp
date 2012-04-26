@@ -25,8 +25,10 @@ if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
 }
 
 // build up a list of the related events
-foreach ($relatedEvents as $relatedEvent) {
-    $event['Event']['RelatedEvent'][] = $relatedEvent['Event'];
+if (isset($relatedEvents)) {
+    foreach ($relatedEvents as $relatedEvent) {
+        $event['Event']['RelatedEvent'][] = $relatedEvent['Event'];
+    }
 }
 
 // display the XML to the user
