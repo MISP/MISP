@@ -22,6 +22,7 @@
 		        	'label' => 'IDS Signature?'
 		));
 		echo $this->Form->input('value', array(
+		            'type' => 'textarea',
 					'error' => array('escape' => false),
 		));
 		echo $this->Form->input('batch_import', array(

@@ -25,7 +25,10 @@
 		    echo $this->Form->hidden('value');
 		    echo "<BR>Value: ".$this->Form->value('Attribute.value');
 		} else {
-		    echo $this->Form->input('value');
+		    echo $this->Form->input('value', array(
+		            'type' => 'textarea',
+					'error' => array('escape' => false),
+		));
 		}
 	?>
 	</fieldset>
