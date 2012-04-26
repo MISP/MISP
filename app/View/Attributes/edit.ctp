@@ -17,7 +17,6 @@
 		    ));
 		}
 		echo $this->Form->input('to_ids', array(
-		    		'checked' => true,
 		    		'before' => $this->Html->div('forminfo', 'Can we make an IDS signature based on this attribute ?'),
 		        	'label' => 'IDS Signature?'
 		));
