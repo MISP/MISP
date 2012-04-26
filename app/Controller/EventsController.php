@@ -137,6 +137,10 @@ class EventsController extends AppController {
 
             if ($this->Event->saveAssociated($this->request->data)) {
                 if ($this->_isRest()) {
+                    // call _sendAlertEmail if published was set in the request
+                    if (1 == $this->request->data['Event']['published']) {
+                        $this->_sendAlertEmail($this->Event->getId());
+                    }
                     // REST users want to see the newly created event
                     $this->view($this->Event->getId());
                     $this->render('view');
@@ -260,137 +264,149 @@ class EventsController extends AppController {
      */
     function alert($id = null) {
         $this->Event->id = $id;
+        $this->Event->recursive = 0;
         if (!$this->Event->exists()) {
             throw new NotFoundException(__('Invalid event'));
         }
 
+        // only allow alert for own events verified by isAuthorized
+
         // only allow form submit CSRF protection.
         if ($this->request->is('post') || $this->request->is('put')) {
-
-            $this->Event->id = $id;
             $this->Event->read();
-
-            // only allow alert for own events verified by isAuthorized
-
             // fetch the event and build the body
             if (1 == $this->Event->data['Event']['published']) {
                 $this->Session->setFlash(__('Everyone has already been published for this event. To alert again, first edit this event.', true), 'default', array(), 'error');
                 $this->redirect(array('action' => 'view', $id));
             }
 
-            // The mail body, Sanitize::html() is NOT needed as we are sending plain-text mails.
-            $body = "";
-            $appendlen = 20;
-            $body .= 'URL         : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$this->Event->data['Event']['id']."\n";
-            $body .= 'Event       : '.$this->Event->data['Event']['id']."\n";
-            $body .= 'Date        : '.$this->Event->data['Event']['date']."\n";
-            if ('true' == Configure::read('CyDefSIG.showorg')) {
-                $body .= 'Reported by : '.$this->Event->data['Event']['org']."\n";
+            // send out the email
+            if ($this->_sendAlertEmail($id)) {
+                // update the DB to set the published flag
+                $this->Event->saveField('published', 1);
+
+                // redirect to the view event page
+                $this->Session->setFlash(__('Email sent to all participants.', true));
+            } else {
+                $this->Session->setFlash('Sending of email failed', 'default', array(), 'error');
             }
-            $body .= 'Risk        : '.$this->Event->data['Event']['risk']."\n";
-            $relatedEvents = $this->Event->getRelatedEvents($id);
-            if (!empty($relatedEvents)) {
-                foreach ($relatedEvents as $relatedEvent){
-                    $body .= 'Related to  : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$relatedEvent['Event']['id'].' ('.$relatedEvent['Event']['date'].')'."\n" ;
-
-                }
-            }
-            $body .= 'Info  : '."\n";
-            $body .= $this->Event->data['Event']['info']."\n";
-            $body .= "\n";
-            $body .= 'Attributes  :'."\n";
-            $body_temp_other = "";
-
-            if (isset($this->Event->data['Attribute'])) {
-                foreach ($this->Event->data['Attribute'] as $attribute){
-                    $line = '- '.$attribute['type'].str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])).': '.$attribute['value']."\n";
-                    if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
-                        $body_temp_other .= $line;
-                    else $body .= $line;
-                }
-            }
-            $body .= "\n";
-            $body .= $body_temp_other;  // append the 'other' attribute types to the bottom.
-
-            // sign the body
-            require_once 'Crypt/GPG.php';
-            $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-            $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-            $body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-
-            $this->loadModel('User');
-
-            //
-            // Build a list of the recipients that get a non-encrypted mail
-            // But only do this if it is allowed in the bootstrap.php file.
-            //
-            if ('false' == Configure::read('GnuPG.onlyencrypted')) {
-                $alert_users = $this->User->find('all', array(
-                        'conditions' => array('User.autoalert' => 1,
-                                'User.gpgkey =' => ""),
-                        'recursive' => 0,
-                ) );
-                $alert_emails = Array();
-                foreach ($alert_users as $user) {
-                    $alert_emails[] = $user['User']['email'];
-                }
-                // prepare the the unencrypted email
-                $this->Email->from = Configure::read('CyDefSIG.email');
-                //$this->Email->to = "CyDefSIG <sig@cyber-defence.be>"; TODO check if it doesn't break things to not set a to , like being spammed away
-                $this->Email->bcc = $alert_emails;
-                $this->Email->subject = "[CyDefSIG] Event ".$id." - ".$this->Event->data['Event']['risk']." - TLP Amber";
-                $this->Email->template = 'body';
-                $this->Email->sendAs = 'text';        // both text or html
-                $this->set('body', $body_signed);
-                // send it
-                $this->Email->send();
-                // If you wish to send multiple emails using a loop, you'll need
-                // to reset the email fields using the reset method of the Email component.
-                $this->Email->reset();
-            }
-
-            //
-            // Build a list of the recipients that wish to receive encrypted mails.
-            //
-            $alert_users = $this->User->find('all', array(
-                    'conditions' => array(  'User.autoalert' => 1,
-                            'User.gpgkey !=' => ""),
-                    'recursive' => 0,
-            )
-            );
-            // encrypt the mail for each user and send it separately
-            foreach ($alert_users as $user) {
-                // send the email
-                $this->Email->from = Configure::read('CyDefSIG.email');
-                $this->Email->to = $user['User']['email'];
-                $this->Email->subject = "[CyDefSIG] Event ".$id." - ".$this->Event->data['Event']['risk']." - TLP Amber";
-                $this->Email->template = 'body';
-                $this->Email->sendAs = 'text';        // both text or html
-
-                // import the key of the user into the keyring
-                // this is not really necessary, but it enables us to find
-                // the correct key-id even if it is not the same as the emailaddress
-                $key_import_output = $gpg->importKey($user['User']['gpgkey']);
-                // say what key should be used to encrypt
-                $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-                $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
-
-                $body_enc_sig = $gpg->encrypt($body_signed, true);
-
-                $this->set('body', $body_enc_sig);
-                $this->Email->send();
-                // If you wish to send multiple emails using a loop, you'll need
-                // to reset the email fields using the reset method of the Email component.
-                $this->Email->reset();
-            }
-
-            // update the DB to set the published flag
-            $this->Event->saveField('published', 1);
-
-            // redirect to the view event page
-            $this->Session->setFlash(__('Email sent to all participants.', true));
             $this->redirect(array('action' => 'view', $id));
         }
+    }
+
+    private function _sendAlertEmail($id) {
+        $this->Event->recursive = 1;
+        $event = $this->Event->read(null, $id);
+
+        // The mail body, Sanitize::html() is NOT needed as we are sending plain-text mails.
+        $body = "";
+        $appendlen = 20;
+        $body .= 'URL         : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id']."\n";
+        $body .= 'Event       : '.$event['Event']['id']."\n";
+        $body .= 'Date        : '.$event['Event']['date']."\n";
+        if ('true' == Configure::read('CyDefSIG.showorg')) {
+            $body .= 'Reported by : '.$event['Event']['org']."\n";
+        }
+        $body .= 'Risk        : '.$event['Event']['risk']."\n";
+        $relatedEvents = $this->Event->getRelatedEvents($id);
+        if (!empty($relatedEvents)) {
+            foreach ($relatedEvents as $relatedEvent){
+                $body .= 'Related to  : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$relatedEvent['Event']['id'].' ('.$relatedEvent['Event']['date'].')'."\n" ;
+
+            }
+        }
+        $body .= 'Info  : '."\n";
+        $body .= $event['Event']['info']."\n";
+        $body .= "\n";
+        $body .= 'Attributes  :'."\n";
+        $body_temp_other = "";
+
+        if (isset($event['Attribute'])) {
+            foreach ($event['Attribute'] as $attribute){
+                $line = '- '.$attribute['type'].str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])).': '.$attribute['value']."\n";
+                if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
+                    $body_temp_other .= $line;
+                else $body .= $line;
+            }
+        }
+        $body .= "\n";
+        $body .= $body_temp_other;  // append the 'other' attribute types to the bottom.
+
+        // sign the body
+        require_once 'Crypt/GPG.php';
+        $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+        $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+        $body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+
+        $this->loadModel('User');
+
+        //
+        // Build a list of the recipients that get a non-encrypted mail
+        // But only do this if it is allowed in the bootstrap.php file.
+        //
+        if ('false' == Configure::read('GnuPG.onlyencrypted')) {
+            $alert_users = $this->User->find('all', array(
+                    'conditions' => array('User.autoalert' => 1,
+                                          'User.gpgkey =' => ""),
+                    'recursive' => 0,
+            ) );
+            $alert_emails = Array();
+            foreach ($alert_users as $user) {
+                $alert_emails[] = $user['User']['email'];
+            }
+            // prepare the the unencrypted email
+            $this->Email->from = Configure::read('CyDefSIG.email');
+            //$this->Email->to = "CyDefSIG <sig@cyber-defence.be>"; TODO check if it doesn't break things to not set a to , like being spammed away
+            $this->Email->bcc = $alert_emails;
+            $this->Email->subject = "[CyDefSIG] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
+            $this->Email->template = 'body';
+            $this->Email->sendAs = 'text';        // both text or html
+            $this->set('body', $body_signed);
+            // send it
+            $this->Email->send();
+            // If you wish to send multiple emails using a loop, you'll need
+            // to reset the email fields using the reset method of the Email component.
+            $this->Email->reset();
+        }
+
+        //
+        // Build a list of the recipients that wish to receive encrypted mails.
+        //
+        $alert_users = $this->User->find('all', array(
+                'conditions' => array(  'User.autoalert' => 1,
+                        'User.gpgkey !=' => ""),
+                'recursive' => 0,
+        )
+        );
+        // encrypt the mail for each user and send it separately
+        foreach ($alert_users as $user) {
+            // send the email
+            $this->Email->from = Configure::read('CyDefSIG.email');
+            $this->Email->to = $user['User']['email'];
+            $this->Email->subject = "[CyDefSIG] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
+            $this->Email->template = 'body';
+            $this->Email->sendAs = 'text';        // both text or html
+
+            // import the key of the user into the keyring
+            // this is not really necessary, but it enables us to find
+            // the correct key-id even if it is not the same as the emailaddress
+            $key_import_output = $gpg->importKey($user['User']['gpgkey']);
+            // say what key should be used to encrypt
+            $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+            $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
+
+            $body_enc_sig = $gpg->encrypt($body_signed, true);
+
+            $this->set('body', $body_enc_sig);
+            $this->Email->send();
+            // If you wish to send multiple emails using a loop, you'll need
+            // to reset the email fields using the reset method of the Email component.
+            $this->Email->reset();
+        }
+
+        // LATER check if sending email succeeded and return appropriate result
+        return true;
+
     }
 
 
@@ -541,7 +557,6 @@ class EventsController extends AppController {
 
         return $result;
     }
-
 
 
     public function export() {
