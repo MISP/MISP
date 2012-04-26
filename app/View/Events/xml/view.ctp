@@ -6,11 +6,17 @@ unset($event['Attribute']);
 
 // cleanup the array from things we do not want to expose
 unset($event['Event']['user_id']);
+// remove value1 and value2 from the output
+foreach($event['Event']['Attribute'] as $key => $value) {
+    unset($event['Event']['Attribute'][$key]['value1']);
+    unset($event['Event']['Attribute'][$key]['value2']);
+}
+
 // hide the private fields is we are not in sync mode
 if ('true' != Configure::read('CyDefSIG.sync')) {
     unset($event['Event']['private']);
-    foreach($event['Event']['attribute'] as $key => $value) {
-        unset($event['Event']['attribute'][$key]['private']);
+    foreach($event['Event']['Attribute'] as $key => $value) {
+        unset($event['Event']['Attribute'][$key]['private']);
     }
 }
 // hide the org field is we are not in showorg mode
