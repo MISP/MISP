@@ -24,7 +24,11 @@
 		<td class="actions">
 			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $server['Server']['id'])); ?>
 			<?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $server['Server']['id']), null, __('Are you sure you want to delete # %s?', $server['Server']['id'])); ?>
-			<?php echo $this->Form->postLink(__('Manual Sync'), array('action' => 'sync', $server['Server']['id']) ); ?>
+			<?php echo $this->Form->postLink(__('Pull'), array('action' => 'pull', $server['Server']['id']) ); ?>
+			<?php echo $this->Form->postLink(__('Push'), array('action' => 'push', $server['Server']['id']) ); ?>
+
+			<?php echo $this->Form->postLink(__('Pull All'), array('action' => 'pull', $server['Server']['id'], 'full') ); ?>
+			<?php echo $this->Form->postLink(__('Push All'), array('action' => 'push', $server['Server']['id'], 'full') ); ?>
 		</td>
 	</tr>
 <?php endforeach; ?>

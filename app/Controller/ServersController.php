@@ -9,7 +9,7 @@ App::uses('Xml', 'Utility');
  */
 class ServersController extends AppController {
 
-    public $components = array('Security');
+    public $components = array('Security' ,'RequestHandler');
     public $paginate = array(
             'limit' => 60,
             'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 events
@@ -18,6 +18,7 @@ class ServersController extends AppController {
             )
     );
 
+    public $uses = array('Server', 'Event');
 
     function beforeFilter() {
         parent::beforeFilter();
@@ -38,7 +39,7 @@ class ServersController extends AppController {
             return true;
         }
         // Only on own servers for these actions
-        if (in_array($this->action, array('edit', 'delete', 'sync'))) {
+        if (in_array($this->action, array('edit', 'delete', 'pull'))) {
             $serverid = $this->request->params['pass'][0];
             return $this->Server->isOwnedByOrg($serverid, $this->Auth->user('org'));
         }
@@ -135,7 +136,7 @@ class ServersController extends AppController {
 	}
 
 
-    public function sync($id = null) {
+    public function pull($id = null, $full=false) {
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
@@ -145,10 +146,165 @@ class ServersController extends AppController {
         }
 
         $this->Server->read(null, $id);
-        // TODO make the output of the sync functionality more user-friendly
-        self::_import($this->Server->data['Server']['url'], $this->Server->data['Server']['authkey']);
 
+        if ("full"==$full) {
+            // pull everything
+            // TODO make the output of the sync functionality more user-friendly
+            $this->_import($this->Server->data['Server']['url'], $this->Server->data['Server']['authkey']);
+        } else {
+            // TODO incremental pull
+            // lastpulledid
+
+
+            // increment lastid based on the highest ID seen
+        }
     }
+
+
+    public function push($id = null, $full=false) {
+//         self::_testXmlArrayProblem();
+
+//         if (!$this->request->is('post')) {
+//             throw new MethodNotAllowedException();
+//         }
+        $this->Server->id = $id;
+        if (!$this->Server->exists()) {
+            throw new NotFoundException(__('Invalid server'));
+        }
+
+        App::import('Controller', 'Events');
+        App::uses('HttpSocket', 'Network/Http');
+
+        $this->Server->read(null, $id);
+
+
+        if ("full"==$full) {
+            // TODO full push
+        } else {
+            // TODO incremental push
+            // lastpushedid
+
+
+            $find_params = array(
+                    'conditions' => array(
+                            'Event.id >' => $this->Server->data['Server']['lastpushedid'],
+                            'Event.private' => 0,
+                            'Event.published' =>1
+                            ), //array of conditions
+                    'recursive' => 1, //int
+                    'fields' => array('Event.*'), //array of field names
+//                     'order' => array('Event.date DESC'), //string or array defining order
+            );
+            $events = $this->Event->find('all', $find_params);
+            //instantiate a new View class from the controller
+
+// FIXME  now all events are uploaded, even if they exist on the remote server.
+// FIXME (check if it's correct) New UUIDs will be generated and once we download sync we'll have conflicts
+// We need to find a way to do this better, by first checking if the event and attributes don't exist
+            $successes = array();
+            $fails = array();
+            foreach ($events as $event) {
+                // TODO try to do this using a separate EventsController
+//                 $eventsController = new EventsController();
+//                 $this->RequestHandler->renderAs($eventsController, 'xml');
+//                 debug($eventsController);
+//                 $eventsController->set('event', $event);
+//                 $eventsController->set('isAdmin', $this->_isAdmin());
+//                 $view = new View($eventsController);
+//                 $viewdata = $view->render('view');
+//                 print $viewdata;
+
+//                 // get the output in Xml
+//                 $this->RequestHandler->renderAs($this, 'xml');
+//                 $this->viewPath = 'Events';
+//                 $this->set('event', $event);
+//                 $this->set('isAdmin', $this->_isAdmin());
+//                 $eventsXml = $this->render('view');
+
+                $xmlArray = array();
+                // rearrange things to be compatible with the Xml::fromArray()
+                $event['Event']['Attribute'] = $event['Attribute'];
+                unset($event['Attribute']);
+
+                // cleanup the array from things we do not want to expose
+                unset($event['Event']['user_id']);
+                unset($event['Event']['org']);
+                // remove value1 and value2 from the output
+                foreach($event['Event']['Attribute'] as $key => $value) {
+                    unset($event['Event']['Attribute'][$key]['value1']);
+                    unset($event['Event']['Attribute'][$key]['value2']);
+                    // do not keep attributes that are private
+                    if ($event['Event']['Attribute'][$key]['private']) {
+                        unset($event['Event']['Attribute'][$key]);
+                    }
+                }
+
+                // display the XML to the user
+                $xmlArray['Event'][] = $event['Event'];
+                $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
+                $eventsXml = $xmlObject->asXML();
+                // do a REST POST request with the server
+                $HttpSocket = new HttpSocket();
+                $uri = $this->Server->data['Server']['url'].'/events';
+                $request = array(
+                        'header' => array(
+                                'Authorization' => $this->Server->data['Server']['authkey'],
+                                'Accept' => 'application/xml',
+                                'Content-Type' => 'application/xml'
+                                )
+                        );
+                $data = $eventsXml;
+                // LATER validate HTTPS SSL certificate
+                $response = $HttpSocket->post($uri, $data, $request);
+                if ($response->isOk()) {
+                    debug('OK for event '.$event['Event']['id']);
+                    $successes[] = $event['Event']['id'];
+                }
+                else {
+                    debug($response);
+                    $fails[] = $event['Event']['id'];
+                }
+
+            }
+
+            $this->set('successes', $successes);
+            $this->set('fails', $fails);
+            // increment lastid based on the highest ID seen
+
+//             // TODO remove this once the separate EventsController is used
+//             $this->view = 'push';
+//             $this->viewPath = 'Servers';
+//             $this->RequestHandler->renderAs($this, '' );
+
+//             // TODO make result to user a lot cleaner
+//             $this->response->type('txt');    // set the content type
+//             $this->header('Content-Disposition: inline; filename="import.txt"');
+//             $this->layout = 'text/default';
+        }
+    }
+
+    private function _testXmlArrayProblem() {
+        $xmlArray = array(
+                'Event' => array(
+                        (int) 0 => array(
+                                'id' => '235',
+                                'Attribute' => array(
+                                        (int) 0 => array(
+                                                'id' => '9646',
+                                        ),
+                                        (int) 2 => array(
+                                                'id' => '9647',
+                                        )
+                                )
+                        )
+                )
+        );
+        $xmlObject = Xml::fromArray($xmlArray);
+        debug($xmlObject->asXML());
+
+        exit();
+    }
+
 
 	private function _import($url, $key, $eventid=null) {
 	    $this->response->type('txt');    // set the content type

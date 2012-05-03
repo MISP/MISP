@@ -69,7 +69,8 @@ CREATE TABLE `servers` (
   `org` varchar(255) COLLATE utf8_bin NOT NULL,
   `push` tinyint(1) NOT NULL,
   `pull` tinyint(1) NOT NULL,
-  `lastfetchedid` int(11) NOT NULL,
+  `lastpushedif` int(11) NOT NULL,
+  `lastpulledif` int(11) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 

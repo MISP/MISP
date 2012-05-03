@@ -132,6 +132,13 @@ class EventsController extends AppController {
                 // the event_id field is not set (normal) so make sure no validation errors are thrown
                 unset($this->Event->Attribute->validate['event_id']);
                 unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
+
+                // check if the uuid already exists
+                $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$this->request->data['Event']['uuid'])));
+                if ($existingEventCount > 0) {
+                    // TODO throw errors a clean way using XML
+                    throw new InternalErrorException('Event already exists');
+                }
             }
 
             if ($this->Event->saveAssociated($this->request->data)) {

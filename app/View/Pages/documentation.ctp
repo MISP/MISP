@@ -11,7 +11,7 @@
 All details about this export can be found on the <?php echo $this->Html->link(__('Export', true), array('controller' => 'events', 'action' => 'export')); ?> page.
 </p>
 <h3>REST API</h3>
-<p>CydefSIG is also <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTfull</a>, so this means you can use structured format (XML) to access Events and Attributes data.</p>
+<p>CydefSIG is also <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTfull</a>, so this means you can use structured format (XML) to access Events data.</p>
 <h4>Requests</h4>
 <p>Use any HTTP compliant library to perform requests. However to make clear you are doing a REST request you need to either specify the <code>Accept</code> type to <code>application/xml</code>, or append <code>.xml</code> to the url.</p>
 <p>The following table shows the relation of the request type and the resulting action:</p>

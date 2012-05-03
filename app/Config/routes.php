@@ -29,7 +29,7 @@
 
 
 	// Activate REST
-	Router::mapResources(array('events', 'attributes'));
+	Router::mapResources(array('events'));
 	Router::parseExtensions('xml');
 
 /**
