@@ -311,7 +311,7 @@ class AttributesController extends AppController {
 
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    // say what fields are to be updated
-		    $fieldList=array('category', 'type', 'value', 'to_ids', 'private');
+		    $fieldList=array('category', 'type', 'value1', 'value2', 'to_ids', 'private');
 			if ($this->Attribute->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 
