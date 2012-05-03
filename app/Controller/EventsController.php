@@ -62,7 +62,6 @@ class EventsController extends AppController {
         $this->set('events', $this->paginate());
 
         if (!$this->Auth->user('gpgkey')) {
-            // FIXME small bug here: user has to logout and login back to make the this
             $this->Session->setFlash('No GPG key set in your profile. To receive emails, submit your public key in your profile.');
         }
     }
@@ -110,7 +109,6 @@ class EventsController extends AppController {
         }
         $this->set('relatedEvents', $relatedEvents);
 
-
         $this->set('categories', $this->Attribute->validate['category']['rule'][1]);
     }
 
@@ -130,6 +128,7 @@ class EventsController extends AppController {
                 // Workaround for different structure in XML than what CakePHP expects
                 $this->request->data['Attribute'] = $this->request->data['Event']['Attribute'];
                 unset($this->request->data['Event']['Attribute']);
+                unset($this->request->data['Event']['id']);
                 // the event_id field is not set (normal) so make sure no validation errors are thrown
                 unset($this->Event->Attribute->validate['event_id']);
                 unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
