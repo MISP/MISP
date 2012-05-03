@@ -4,7 +4,7 @@
     <p>No failed pushes</p>
 	<?php else:?>
 	<ul>
-	<?php foreach ($fails as $fail) echo '<li>'.$fail.'</li>'; ?>
+	<?php foreach ($fails as $key => $value) echo '<li>'.$key.' == '.h($value).'</li>'; ?>
 	</ul>
 	<?php endif;?>
 	<h2>Succeeded pushes</h2>
@@ -15,4 +15,9 @@
 	<?php foreach ($successes as $success) echo '<li>'.$success.'</li>'; ?>
 	</ul>
     <?php endif;?>
+</div>
+<div class="actions">
+	<ul>
+        <?php echo $this->element('actions_menu'); ?>
+    </ul>
 </div>

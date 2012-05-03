@@ -154,7 +154,7 @@ class ServersController extends AppController {
         } else {
             // TODO incremental pull
             // lastpulledid
-
+            throw new NotFoundException('Sorry, this is not yet implemented');
 
             // increment lastid based on the highest ID seen
         }
@@ -162,11 +162,9 @@ class ServersController extends AppController {
 
 
     public function push($id = null, $full=false) {
-//         self::_testXmlArrayProblem();
-
-//         if (!$this->request->is('post')) {
-//             throw new MethodNotAllowedException();
-//         }
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException();
+        }
         $this->Server->id = $id;
         if (!$this->Server->exists()) {
             throw new NotFoundException(__('Invalid server'));
@@ -177,14 +175,10 @@ class ServersController extends AppController {
 
         $this->Server->read(null, $id);
 
-
         if ("full"==$full) {
             // TODO full push
+            throw new NotFoundException('Sorry, this is not yet implemented');
         } else {
-            // TODO incremental push
-            // lastpushedid
-
-
             $find_params = array(
                     'conditions' => array(
                             'Event.id >' => $this->Server->data['Server']['lastpushedid'],
@@ -193,16 +187,16 @@ class ServersController extends AppController {
                             ), //array of conditions
                     'recursive' => 1, //int
                     'fields' => array('Event.*'), //array of field names
-//                     'order' => array('Event.date DESC'), //string or array defining order
+//                     'order' => array('Event.id ASC'), //string or array defining order
             );
             $events = $this->Event->find('all', $find_params);
-            //instantiate a new View class from the controller
 
-// FIXME  now all events are uploaded, even if they exist on the remote server.
-// FIXME (check if it's correct) New UUIDs will be generated and once we download sync we'll have conflicts
-// We need to find a way to do this better, by first checking if the event and attributes don't exist
+// FIXME now all events are uploaded, even if they exist on the remote server. No merging is done
+// FIXME file attachments are not synced
+            $lastpushedid = $this->Server->data['Server']['lastpushedid'];
             $successes = array();
             $fails = array();
+
             foreach ($events as $event) {
                 // TODO try to do this using a separate EventsController
 //                 $eventsController = new EventsController();
@@ -261,25 +255,16 @@ class ServersController extends AppController {
                     $successes[] = $event['Event']['id'];
                 }
                 else {
-                    debug($response);
-                    $fails[] = $event['Event']['id'];
+                    $fails[$event['Event']['id']] = $response->body;
                 }
-
+                $lastpushedid = max($lastpushedid, $event['Event']['id']);
             }
 
             $this->set('successes', $successes);
             $this->set('fails', $fails);
             // increment lastid based on the highest ID seen
+            $this->Server->saveField('lastpushedid', $lastpushedid);
 
-//             // TODO remove this once the separate EventsController is used
-//             $this->view = 'push';
-//             $this->viewPath = 'Servers';
-//             $this->RequestHandler->renderAs($this, '' );
-
-//             // TODO make result to user a lot cleaner
-//             $this->response->type('txt');    // set the content type
-//             $this->header('Content-Disposition: inline; filename="import.txt"');
-//             $this->layout = 'text/default';
         }
     }
 
