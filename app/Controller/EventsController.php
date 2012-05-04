@@ -125,20 +125,25 @@ class EventsController extends AppController {
             $this->Event->create();
 
             if ($this->_isRest()) {
-                // Workaround for different structure in XML than what CakePHP expects
-                $this->request->data['Attribute'] = $this->request->data['Event']['Attribute'];
+                // check if the uuid already exists
+                $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$this->request->data['Event']['uuid'])));
+                if ($existingEventCount > 0) {
+                    throw new InternalErrorException('Event already exists');   // TODO throw errors a clean way using XML
+                }
+
+                // Workaround for different structure in XML/array than what CakePHP expects
+                if (is_numeric(implode(array_keys($this->request->data['Event']['Attribute']), ''))) {
+                    // normal array of multiple Attributes
+                    $this->request->data['Attribute'] = $this->request->data['Event']['Attribute'];
+                } else {
+                    // single attribute
+                    $this->request->data['Attribute'][0] = $this->request->data['Event']['Attribute'];
+                }
                 unset($this->request->data['Event']['Attribute']);
                 unset($this->request->data['Event']['id']);
                 // the event_id field is not set (normal) so make sure no validation errors are thrown
                 unset($this->Event->Attribute->validate['event_id']);
                 unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-
-                // check if the uuid already exists
-                $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$this->request->data['Event']['uuid'])));
-                if ($existingEventCount > 0) {
-                    // TODO throw errors a clean way using XML
-                    throw new InternalErrorException('Event already exists');
-                }
             }
 
             if ($this->Event->saveAssociated($this->request->data)) {
