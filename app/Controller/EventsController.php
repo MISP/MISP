@@ -132,12 +132,14 @@ class EventsController extends AppController {
                 }
 
                 // Workaround for different structure in XML/array than what CakePHP expects
-                if (is_numeric(implode(array_keys($this->request->data['Event']['Attribute']), ''))) {
-                    // normal array of multiple Attributes
-                    $this->request->data['Attribute'] = $this->request->data['Event']['Attribute'];
-                } else {
-                    // single attribute
-                    $this->request->data['Attribute'][0] = $this->request->data['Event']['Attribute'];
+                if (is_array($this->request->data['Event']['Attribute'])) {
+                    if (is_numeric(implode(array_keys($this->request->data['Event']['Attribute']), ''))) {
+                        // normal array of multiple Attributes
+                        $this->request->data['Attribute'] = $this->request->data['Event']['Attribute'];
+                    } else {
+                        // single attribute
+                        $this->request->data['Attribute'][0] = $this->request->data['Event']['Attribute'];
+                    }
                 }
                 unset($this->request->data['Event']['Attribute']);
                 unset($this->request->data['Event']['id']);
