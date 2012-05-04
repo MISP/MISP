@@ -22,7 +22,7 @@
 <head>
 	<?php echo $this->Html->charset(); ?>
 	<title>
-		CyDefSIG:
+		<?php echo Configure::read('CyDefSIG.name')?>:
 		<?php echo $title_for_layout; ?>
 	</title>
 	<?php

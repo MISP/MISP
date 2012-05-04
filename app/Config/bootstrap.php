@@ -87,6 +87,7 @@ Cache::config('default', array('engine' => 'File'));
 
 //Configure::write('CyDefSIG.baseurl', 'https://sig.cyber-defence.be');
 Configure::write('CyDefSIG.baseurl', 'http://localhost:8888');
+Configure::write('CyDefSIG.name', 'CyDefSIG');
 Configure::write('CyDefSIG.header', 'CyDefSIG: Cyber Defence Signature Sharing Platform');
 Configure::write('CyDefSIG.footer', 'Powered by CyDefSIG &copy; Belgian Defense CERT & NCIRC');
 //Configure::write('CyDefSIG.logo', '/img/logo_big.gif');
