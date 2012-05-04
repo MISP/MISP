@@ -176,28 +176,40 @@ class ServersController extends AppController {
         $this->Server->read(null, $id);
 
         if ("full"==$full) {
-            // TODO full push
-            throw new NotFoundException('Sorry, this is not yet implemented');
+            $lastpushedid = 0;
+
         } else {
-            $find_params = array(
-                    'conditions' => array(
-                            'Event.id >' => $this->Server->data['Server']['lastpushedid'],
-                            'Event.private' => 0,
-                            'Event.published' =>1
-                            ), //array of conditions
-                    'recursive' => 1, //int
-                    'fields' => array('Event.*'), //array of field names
-//                     'order' => array('Event.id ASC'), //string or array defining order
-            );
-            $events = $this->Event->find('all', $find_params);
+            $lastpushedid = $this->Server->data['Server']['lastpushedid'];
+        }
+        $find_params = array(
+                'conditions' => array(
+                        'Event.id >' => $lastpushedid,
+                        'Event.private' => 0,
+                        'Event.published' =>1
+                        ), //array of conditions
+                'recursive' => 1, //int
+                'fields' => array('Event.*'), //array of field names
+        );
+        $events = $this->Event->find('all', $find_params);
 
 // FIXME now all events are uploaded, even if they exist on the remote server. No merging is done
 // FIXME file attachments are not synced
-            $lastpushedid = $this->Server->data['Server']['lastpushedid'];
-            $successes = array();
-            $fails = array();
+        $successes = array();
+        $fails = array();
 
-            foreach ($events as $event) {
+        $HttpSocket = new HttpSocket();
+        $uri = $this->Server->data['Server']['url'].'/events';
+        $request = array(
+                'header' => array(
+                        'Authorization' => $this->Server->data['Server']['authkey'],
+                        'Accept' => 'application/xml',
+                        'Content-Type' => 'application/xml',
+                        //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+                )
+        );
+
+
+        foreach ($events as $event) {
                 // TODO try to do this using a separate EventsController
 //                 $eventsController = new EventsController();
 //                 $this->RequestHandler->renderAs($eventsController, 'xml');
@@ -215,57 +227,45 @@ class ServersController extends AppController {
 //                 $this->set('isAdmin', $this->_isAdmin());
 //                 $eventsXml = $this->render('view');
 
-                $xmlArray = array();
-                // rearrange things to be compatible with the Xml::fromArray()
-                $event['Event']['Attribute'] = $event['Attribute'];
-                unset($event['Attribute']);
+            $xmlArray = array();
+            // rearrange things to be compatible with the Xml::fromArray()
+            $event['Event']['Attribute'] = $event['Attribute'];
+            unset($event['Attribute']);
 
-                // cleanup the array from things we do not want to expose
-                unset($event['Event']['user_id']);
-                unset($event['Event']['org']);
-                // remove value1 and value2 from the output
-                foreach($event['Event']['Attribute'] as $key => $value) {
-                    unset($event['Event']['Attribute'][$key]['value1']);
-                    unset($event['Event']['Attribute'][$key]['value2']);
-                    // do not keep attributes that are private
-                    if ($event['Event']['Attribute'][$key]['private']) {
-                        unset($event['Event']['Attribute'][$key]);
-                    }
+            // cleanup the array from things we do not want to expose
+            unset($event['Event']['user_id']);
+            unset($event['Event']['org']);
+            // remove value1 and value2 from the output
+            foreach($event['Event']['Attribute'] as $key => $value) {
+                unset($event['Event']['Attribute'][$key]['value1']);
+                unset($event['Event']['Attribute'][$key]['value2']);
+                // do not keep attributes that are private
+                if ($event['Event']['Attribute'][$key]['private']) {
+                    unset($event['Event']['Attribute'][$key]);
                 }
-
-                // display the XML to the user
-                $xmlArray['Event'][] = $event['Event'];
-                $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
-                $eventsXml = $xmlObject->asXML();
-                // do a REST POST request with the server
-                $HttpSocket = new HttpSocket();
-                $uri = $this->Server->data['Server']['url'].'/events';
-                $request = array(
-                        'header' => array(
-                                'Authorization' => $this->Server->data['Server']['authkey'],
-                                'Accept' => 'application/xml',
-                                'Content-Type' => 'application/xml'
-                                )
-                        );
-                $data = $eventsXml;
-                // LATER validate HTTPS SSL certificate
-                $response = $HttpSocket->post($uri, $data, $request);
-                if ($response->isOk()) {
-                    debug('OK for event '.$event['Event']['id']);
-                    $successes[] = $event['Event']['id'];
-                }
-                else {
-                    $fails[$event['Event']['id']] = $response->body;
-                }
-                $lastpushedid = max($lastpushedid, $event['Event']['id']);
             }
 
-            $this->set('successes', $successes);
-            $this->set('fails', $fails);
-            // increment lastid based on the highest ID seen
-            $this->Server->saveField('lastpushedid', $lastpushedid);
-
+            // display the XML to the user
+            $xmlArray['Event'][] = $event['Event'];
+            $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
+            $eventsXml = $xmlObject->asXML();
+            // do a REST POST request with the server
+            $data = $eventsXml;
+            // LATER validate HTTPS SSL certificate
+            $response = $HttpSocket->post($uri, $data, $request);
+            if ($response->isOk()) {
+                $successes[] = $event['Event']['id'];
+            }
+            else {
+                $fails[$event['Event']['id']] = $response->body;
+            }
+            $lastpushedid = max($lastpushedid, $event['Event']['id']);
         }
+
+        $this->set('successes', $successes);
+        $this->set('fails', $fails);
+        // increment lastid based on the highest ID seen
+        $this->Server->saveField('lastpushedid', $lastpushedid);
     }
 
     private function _testXmlArrayProblem() {

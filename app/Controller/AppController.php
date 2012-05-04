@@ -61,7 +61,8 @@ class AppController extends Controller {
         // REST things
         if ($this->_isRest()) {
             // disable CSRF for REST access
-            $this->Security->csrfCheck = false;
+            if (array_key_exists('Security', $this->components))
+                $this->Security->csrfCheck = false;
 
             // Authenticate user with authkey in Authorization HTTP header
             if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {

@@ -128,7 +128,7 @@ class EventsController extends AppController {
                 // check if the uuid already exists
                 $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$this->request->data['Event']['uuid'])));
                 if ($existingEventCount > 0) {
-                    throw new InternalErrorException('Event already exists');   // TODO throw errors a clean way using XML
+                    throw new MethodNotAllowedException('Event already exists');   // TODO throw errors a clean way using XML
                 }
 
                 // Workaround for different structure in XML/array than what CakePHP expects
