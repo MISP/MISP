@@ -622,6 +622,8 @@ class EventsController extends AppController {
         // check if the key is valid -> search for users based on key
         $this->loadModel('User');
         // no input sanitization necessary, it's done by model
+        // TODO do not fetch recursive
+        $this->User->recursive=0;
         $user = $this->User->findByAuthkey($key);
         if (empty($user)) {
             throw new UnauthorizedException('Incorrect authentication key');
@@ -632,212 +634,209 @@ class EventsController extends AppController {
         $this->layout = 'text/default';
 
         $rules= array();
-
-        // find events that are published
-        $events = $this->Event->findAllByPublished(1);
+        $this->loadModel('Attribute');
+        $this->Attribute->recursive=0;
+        $items = $this->Attribute->findAllByTo_ids(1);
         $classtype = 'targeted-attack';
-
-        foreach ($events as $event) {
+        foreach ($items as $item) {
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
-            $rule_format_msg = 'msg: "CyDefSIG %s, Event '.$event['Event']['id'].', '.$event['Event']['risk'].'"';
-            $rule_format_reference = 'reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id'];
+            $rule_format_msg = 'msg: "CyDefSIG %s, Event '.$item['Event']['id'].', '.$item['Event']['risk'].'"';
+            $rule_format_reference = 'reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/view/'.$item['Event']['id'];
             $rule_format = 'alert %s %s %s %s %s %s ('.$rule_format_msg.'; %s %s classtype:'.$classtype.'; sid:%d; rev:%d; '.$rule_format_reference.';) ';
 
-            $sid = $user['User']['nids_sid']+($event['Event']['id']*100); // LATER this will cause issues with events containing more than 99 attributes
-            //debug($event);
-            foreach ($event['Attribute'] as $attribute) {
-                if (0 == $attribute['to_ids']) continue; // attribute is not to be exported to IDS. // LATER filter out to_ids=0 in the query
+            $sid = $user['User']['nids_sid']+($item['Attribute']['id']*10);  // leave 9 possible rules per attribute type
+            $attribute = $item['Attribute'];
 
-                $sid++;
-                switch ($attribute['type']) {
-                    // LATER test all the snort attributes
-                    // LATER add the tag keyword in the rules to capture network traffic
-                    // LATER sanitize every $attribute['value'] to not conflict with snort
-                    case 'ip-dst':
-                        $rules[] = sprintf($rule_format,
-                        'ip',                           // proto
-                        '$HOME_NET',                    // src_ip
-                        'any',                          // src_port
-                        '->',                           // direction
-                        $attribute['value'],            // dst_ip
-                        'any',                          // dst_port
-                        'Outgoing To Bad IP',           // msg
-                        '',                             // rule_content
-                        '',                             // tag
-                        $sid,                           // sid
-                                1                               // rev
-                        );
-                        break;
-                    case 'ip-src':
-                        $rules[] = sprintf($rule_format,
-                        'ip',                           // proto
-                        $attribute['value'],            // src_ip
-                        'any',                          // src_port
-                        '->',                           // direction
-                        '$HOME_NET',                    // dst_ip
-                        'any',                          // dst_port
-                        'Incoming From Bad IP',         // msg
-                        '',                             // rule_content
-                        '',                             // tag
-                        $sid,                           // sid
-                        1                               // rev
-                        );
-                        break;
-                    case 'email-src':
-                        $rules[] = sprintf($rule_format,
-                        'tcp',                          // proto
-                        '$EXTERNAL_NET',                // src_ip
-                        'any',                          // src_port
-                        '<>',                           // direction
-                        '$SMTP_SERVERS',                // dst_ip
-                        '25',                           // dst_port
-                        'Bad Source Email Address',     // msg
-                        'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;',  // rule_content
-                        'tag:session,600,seconds;',     // tag
-                        $sid,                           // sid
-                        1                               // rev
-                        );
-                        break;
-                    case 'email-dst':
-                        $rules[] = sprintf($rule_format,
-                        'tcp',                          // proto
-                        '$EXTERNAL_NET',                // src_ip
-                        'any',                          // src_port
-                        '<>',                           // direction
-                        '$SMTP_SERVERS',                // dst_ip
-                        '25',                           // dst_port
-                        'Bad Destination Email Address',// msg
-                        'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;',  // rule_content
-                        'tag:session,600,seconds;',     // tag
-                        $sid,                           // sid
-                        1                               // rev
-                        );
-                        break;
-                    case 'email-subject':
-                        // LATER email-subject rule might not match because of line-wrapping
-                        $rules[] = sprintf($rule_format,
-                        'tcp',                          // proto
-                        '$EXTERNAL_NET',                // src_ip
-                        'any',                          // src_port
-                        '<>',                           // direction
-                        '$SMTP_SERVERS',                // dst_ip
-                        '25',                           // dst_port
-                        'Bad Email Subject',            // msg
-                        'flow:established,to_server; content:"Subject|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;',  // rule_content
-                        'tag:session,600,seconds;',     // tag
-                        $sid,                           // sid
-                        1                               // rev
-                        );
-                        break;
-                    case 'email-attachment':
-                        // LATER email-attachment rule might not match because of line-wrapping
-                        $rules[] = sprintf($rule_format,
-                        'tcp',                          // proto
-                        '$EXTERNAL_NET',                // src_ip
-                        'any',                          // src_port
-                        '<>',                           // direction
-                        '$SMTP_SERVERS',                // dst_ip
-                        '25',                           // dst_port
-                        'Bad Email Attachment',         // msg
-                        'flow:established,to_server; content:"Content-Disposition: attachment|3b| filename=|22|"; content:"'.$attribute['value'].'|22|";',  // rule_content   // LATER test and finetune this snort rule https://secure.wikimedia.org/wikipedia/en/wiki/MIME#Content-Disposition
-                        'tag:session,600,seconds;',     // tag
-                        $sid,                           // sid
-                        1                               // rev
-                        );
-                        break;
-                    case 'domain':
-                        $rules[] = sprintf($rule_format,
-                        'udp',                          // proto
-                        'any',                          // src_ip
-                        'any',                          // src_port
-                        '->',                           // direction
-                        'any',                          // dst_ip
-                        '53',                           // dst_port
-                        'Lookup Of Bad Domain',         // msg
-                        'content:"'.$this->_dnsNameToRawFormat($attribute['value']).'"; nocase;',  // rule_content
-                        '',                             // tag
-                        $sid,                           // sid
-                        1                               // rev
-                        );
-                        $sid++;
-                        $rules[] = sprintf($rule_format,
-                                'tcp',                          // proto
-                                'any',                          // src_ip
-                                'any',                          // src_port
-                                '->',                           // direction
-                                'any',                          // dst_ip
-                                '53',                           // dst_port
-                                'Lookup Of Bad Domain',         // msg
-                                'content:"'.$this->_dnsNameToRawFormat($attribute['value']).'"; nocase;',  // rule_content
-                                '',                             // tag
-                                $sid,                           // sid
-                                1                               // rev
-                        );
-                        $sid++;
-                        //break; // domain should also detect the domain name in a url
-                    case 'url':
-                        $rules[] = sprintf($rule_format,
-                        'tcp',                          // proto
-                        '$HOME_NET',                    // src_ip
-                        'any',                          // src_port
-                        '->',                           // direction
-                        '$EXTERNAL_NET',                // dst_ip
-                        '$HTTP_PORTS',                  // dst_port
-                        'Outgoing Bad HTTP URL',        // msg
-                        'flow:to_server,established; uricontent:"'.$attribute['value'].'"; nocase;',  // rule_content
-                        'tag:session,600,seconds;',     // tag
-                        $sid,                           // sid
-                        1                               // rev
-                        );
-                        break;
-                    case 'user-agent':
-                        $rules[] = "";
-                        // TODO write snort user-agent rule
-                        break;
-                    case 'snort':
-                        $tmp_rule = $attribute['value'];
+            $sid++;
+            switch ($attribute['type']) {
+                // LATER test all the snort attributes
+                // LATER add the tag keyword in the rules to capture network traffic
+                // LATER sanitize every $attribute['value'] to not conflict with snort
+                case 'ip-dst':
+                    $rules[] = sprintf($rule_format,
+                            'ip',                           // proto
+                            '$HOME_NET',                    // src_ip
+                            'any',                          // src_port
+                            '->',                           // direction
+                            $attribute['value'],            // dst_ip
+                            'any',                          // dst_port
+                            'Outgoing To Bad IP',           // msg
+                            '',                             // rule_content
+                            '',                             // tag
+                            $sid,                           // sid
+                            1                               // rev
+                            );
+                    break;
+                case 'ip-src':
+                    $rules[] = sprintf($rule_format,
+                            'ip',                           // proto
+                            $attribute['value'],            // src_ip
+                            'any',                          // src_port
+                            '->',                           // direction
+                            '$HOME_NET',                    // dst_ip
+                            'any',                          // dst_port
+                            'Incoming From Bad IP',         // msg
+                            '',                             // rule_content
+                            '',                             // tag
+                            $sid,                           // sid
+                            1                               // rev
+                            );
+                    break;
+                case 'email-src':
+                    $rules[] = sprintf($rule_format,
+                            'tcp',                          // proto
+                            '$EXTERNAL_NET',                // src_ip
+                            'any',                          // src_port
+                            '<>',                           // direction
+                            '$SMTP_SERVERS',                // dst_ip
+                            '25',                           // dst_port
+                            'Bad Source Email Address',     // msg
+                            'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;',  // rule_content
+                            'tag:session,600,seconds;',     // tag
+                            $sid,                           // sid
+                            1                               // rev
+                            );
+                    break;
+                case 'email-dst':
+                    $rules[] = sprintf($rule_format,
+                            'tcp',                          // proto
+                            '$EXTERNAL_NET',                // src_ip
+                            'any',                          // src_port
+                            '<>',                           // direction
+                            '$SMTP_SERVERS',                // dst_ip
+                            '25',                           // dst_port
+                            'Bad Destination Email Address',// msg
+                            'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;',  // rule_content
+                            'tag:session,600,seconds;',     // tag
+                            $sid,                           // sid
+                            1                               // rev
+                            );
+                    break;
+                case 'email-subject':
+                    // LATER email-subject rule might not match because of line-wrapping
+                    $rules[] = sprintf($rule_format,
+                            'tcp',                          // proto
+                            '$EXTERNAL_NET',                // src_ip
+                            'any',                          // src_port
+                            '<>',                           // direction
+                            '$SMTP_SERVERS',                // dst_ip
+                            '25',                           // dst_port
+                            'Bad Email Subject',            // msg
+                            'flow:established,to_server; content:"Subject|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;',  // rule_content
+                            'tag:session,600,seconds;',     // tag
+                            $sid,                           // sid
+                            1                               // rev
+                            );
+                    break;
+                case 'email-attachment':
+                    // LATER email-attachment rule might not match because of line-wrapping
+                    $rules[] = sprintf($rule_format,
+                            'tcp',                          // proto
+                            '$EXTERNAL_NET',                // src_ip
+                            'any',                          // src_port
+                            '<>',                           // direction
+                            '$SMTP_SERVERS',                // dst_ip
+                            '25',                           // dst_port
+                            'Bad Email Attachment',         // msg
+                            'flow:established,to_server; content:"Content-Disposition: attachment|3b| filename=|22|"; content:"'.$attribute['value'].'|22|";',  // rule_content   // LATER test and finetune this snort rule https://secure.wikimedia.org/wikipedia/en/wiki/MIME#Content-Disposition
+                            'tag:session,600,seconds;',     // tag
+                            $sid,                           // sid
+                            1                               // rev
+                            );
+                    break;
+                case 'domain':
+                    $rules[] = sprintf($rule_format,
+                            'udp',                          // proto
+                            'any',                          // src_ip
+                            'any',                          // src_port
+                            '->',                           // direction
+                            'any',                          // dst_ip
+                            '53',                           // dst_port
+                            'Lookup Of Bad Domain',         // msg
+                            'content:"'.$this->_dnsNameToRawFormat($attribute['value']).'"; nocase;',  // rule_content
+                            '',                             // tag
+                            $sid,                           // sid
+                            1                               // rev
+                            );
+                    $sid++;
+                    $rules[] = sprintf($rule_format,
+                            'tcp',                          // proto
+                            'any',                          // src_ip
+                            'any',                          // src_port
+                            '->',                           // direction
+                            'any',                          // dst_ip
+                            '53',                           // dst_port
+                            'Lookup Of Bad Domain',         // msg
+                            'content:"'.$this->_dnsNameToRawFormat($attribute['value']).'"; nocase;',  // rule_content
+                            '',                             // tag
+                            $sid,                           // sid
+                            1                               // rev
+                            );
+                    $sid++;
+                    //break; // domain should also detect the domain name in a url
+                case 'url':
+                    $rules[] = sprintf($rule_format,
+                            'tcp',                          // proto
+                            '$HOME_NET',                    // src_ip
+                            'any',                          // src_port
+                            '->',                           // direction
+                            '$EXTERNAL_NET',                // dst_ip
+                            '$HTTP_PORTS',                  // dst_port
+                            'Outgoing Bad HTTP URL',        // msg
+                            'flow:to_server,established; uricontent:"'.$attribute['value'].'"; nocase;',  // rule_content
+                            'tag:session,600,seconds;',     // tag
+                            $sid,                           // sid
+                            1                               // rev
+                            );
+                    break;
+                case 'user-agent':
+                    $rules[] = "";
+                    // TODO write snort user-agent rule
+                    break;
+                case 'snort':
+                    $tmp_rule = $attribute['value'];
 
-                        // rebuild the rule by overwriting the different keywords using preg_replace()
-                        //   sid       - '/sid\s*:\s*[0-9]+\s*;/'
-                        //   rev       - '/rev\s*:\s*[0-9]+\s*;/'
-                        //   classtype - '/classtype:[a-zA-Z_-]+;/'
-                        //   msg       - '/msg\s*:\s*".*"\s*;/'
-                        //   reference - '/reference\s*:\s*.+;/'
-                        $replace_count=array();
-                        $tmp_rule = preg_replace('/sid\s*:\s*[0-9]+\s*;/', 'sid:'.$sid.';', $tmp_rule, -1, $replace_count['sid']);
-                        if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-                        $tmp_rule = preg_replace('/rev\s*:\s*[0-9]+\s*;/', 'rev:1;', $tmp_rule, -1, $replace_count['rev']);
-                        if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-                        $tmp_rule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:'.$classtype.';', $tmp_rule, -1, $replace_count['classtype']);
-                        if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-                        $tmp_message = sprintf($rule_format_msg, 'snort-rule');
-                        $tmp_rule = preg_replace('/msg\s*:\s*".*"\s*;/', $tmp_message.';', $tmp_rule, -1, $replace_count['msg']);
-                        if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-                        $tmp_rule = preg_replace('/reference\s*:\s*.+;/', $rule_format_reference.';', $tmp_rule, -1, $replace_count['reference']);
-                        if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
+                    // rebuild the rule by overwriting the different keywords using preg_replace()
+                    //   sid       - '/sid\s*:\s*[0-9]+\s*;/'
+                    //   rev       - '/rev\s*:\s*[0-9]+\s*;/'
+                    //   classtype - '/classtype:[a-zA-Z_-]+;/'
+                    //   msg       - '/msg\s*:\s*".*"\s*;/'
+                    //   reference - '/reference\s*:\s*.+;/'
+                    $replace_count=array();
+                    $tmp_rule = preg_replace('/sid\s*:\s*[0-9]+\s*;/', 'sid:'.$sid.';', $tmp_rule, -1, $replace_count['sid']);
+                    if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
+                    $tmp_rule = preg_replace('/rev\s*:\s*[0-9]+\s*;/', 'rev:1;', $tmp_rule, -1, $replace_count['rev']);
+                    if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
+                    $tmp_rule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:'.$classtype.';', $tmp_rule, -1, $replace_count['classtype']);
+                    if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
+                    $tmp_message = sprintf($rule_format_msg, 'snort-rule');
+                    $tmp_rule = preg_replace('/msg\s*:\s*".*"\s*;/', $tmp_message.';', $tmp_rule, -1, $replace_count['msg']);
+                    if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
+                    $tmp_rule = preg_replace('/reference\s*:\s*.+;/', $rule_format_reference.';', $tmp_rule, -1, $replace_count['reference']);
+                    if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
 
-                        // some values were not replaced, so we need to add them ourselves, and insert them in the rule
-                        $extra_for_rule="";
-                        if (0 == $replace_count['sid']) {
-                            $extra_for_rule .= 'sid:'.$sid.';';
-                        } if (0 == $replace_count['rev']) {
-                            $extra_for_rule .= 'rev:1;';
-                        } if (0 == $replace_count['classtype']) {
-                            $extra_for_rule .= 'classtype:'.$classtype.';';
-                        } if (0 == $replace_count['msg']) {
-                            $extra_for_rule .= $tmp_message.';';
-                        } if (0 == $replace_count['reference']) {
-                            $extra_for_rule .= $rule_format_reference.';';
-                        }
-                        $tmp_rule = preg_replace('/;\s*\)/', '; '.$extra_for_rule.')', $tmp_rule);
+                    // some values were not replaced, so we need to add them ourselves, and insert them in the rule
+                    $extra_for_rule="";
+                    if (0 == $replace_count['sid']) {
+                        $extra_for_rule .= 'sid:'.$sid.';';
+                    } if (0 == $replace_count['rev']) {
+                        $extra_for_rule .= 'rev:1;';
+                    } if (0 == $replace_count['classtype']) {
+                        $extra_for_rule .= 'classtype:'.$classtype.';';
+                    } if (0 == $replace_count['msg']) {
+                        $extra_for_rule .= $tmp_message.';';
+                    } if (0 == $replace_count['reference']) {
+                        $extra_for_rule .= $rule_format_reference.';';
+                    }
+                    $tmp_rule = preg_replace('/;\s*\)/', '; '.$extra_for_rule.')', $tmp_rule);
 
-                        // finally the rule is cleaned up and can be outputed
-                        $rules[] = $tmp_rule;
+                    // finally the rule is cleaned up and can be outputed
+                    $rules[] = $tmp_rule;
 
-                        // TODO test using lots of snort rules.
-                    default:
-                        break;
-                }
+                    // TODO test using lots of snort rules.
+                default:
+                    break;
+
 
             }
 
