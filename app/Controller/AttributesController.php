@@ -315,6 +315,11 @@ class AttributesController extends AppController {
 			if ($this->Attribute->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 
+				// remove the published flag from the event
+				$this->Event->id = $this->request->data['Attribute']['event_id'];
+				$this->Event->saveField('published', 0);
+
+
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $event_id));
 			} else {
 				$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
