@@ -316,7 +316,8 @@ class AttributesController extends AppController {
 				$this->Session->setFlash(__('The attribute has been saved'));
 
 				// remove the published flag from the event
-				$this->Event->id = $this->request->data['Attribute']['event_id'];
+				$this->loadModel('Event');
+				$this->Event->id = $event_id;
 				$this->Event->saveField('published', 0);
 
 
