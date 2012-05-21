@@ -203,8 +203,7 @@ class Attribute extends AppModel {
 	function beforeDelete() {
 	    // delete attachments from the disk
 	    $this->read();  // first read the attribute from the db
-	    if('attachment' == $this->data['Attribute']['type'] ||
-	       'malware-sample'== $this->data['Attribute']['type'] ) {
+	    if($this->typeIsAttachment($this->data['Attribute']['type'])) {
 	        // FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 	        // only delete the file if it exists
 	        $filepath = APP."files/".$this->data['Attribute']['event_id']."/".$this->data['Attribute']['id'];
@@ -455,6 +454,22 @@ class Attribute extends AppModel {
 	                                              'order' => 'Attribute.event_id DESC', )
 	    );
 	    return $similar_events;
+	}
+
+	function typeIsAttachment($type) {
+        switch ($type) {
+            case 'attachment':
+            case 'malware-sample':
+                return true;
+            default:
+                return false;
+        }
+	}
+
+	function base64EncodeAttachment($attribute) {
+	    $filepath = APP."files/".$attribute['event_id']."/".$attribute['id'];
+	    $binary = fread(fopen($filepath, 'r'), filesize($filepath));
+	    return base64_encode($binary);
 	}
 
 }

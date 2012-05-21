@@ -69,8 +69,7 @@ class AttributesController extends AppController {
 
             // Give error if someone tried to submit a attribute with attachment or malware-sample type.
 		    // FIXME this is bad ... it should rather by a messagebox or should be filtered out on the view level
-		    if('attachment' == $this->request->data['Attribute']['type'] ||
-		       'malware-sample' == $this->request->data['Attribute']['type']) {
+		    if($this->Attribute->typeIsAttachment($this->request->data['Attribute']['type'])) {
 		        $this->Session->setFlash(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
 		        $this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 		    }

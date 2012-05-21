@@ -77,13 +77,19 @@ class EventsController extends AppController {
         if (!$this->Event->exists()) {
             throw new NotFoundException(__('Invalid event'));
         }
-        $this->set('event', $this->Event->read(null, $id));
+        $this->Event->read(null, $id);
 
         $relatedAttributes = array();
         $this->loadModel('Attribute');
         $fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
-        foreach ($this->Event->data['Attribute'] as $attribute) {
+        foreach ($this->Event->data['Attribute'] as $i => $attribute) {
             $relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
+            // for REST requests also add the encoded attachment
+            if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
+                // LATER check if this has a serious performance impact on XML conversion and memory usage
+                $encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
+                $this->Event->data['Attribute'][$i]['data'] = $encoded_file;
+            }
         }
         $this->set('relatedAttributes', $relatedAttributes);
 
@@ -107,6 +113,8 @@ class EventsController extends AppController {
             );
             $relatedEvents = $this->Event->find('all', $find_params);
         }
+
+        $this->set('event', $this->Event->data);
         $this->set('relatedEvents', $relatedEvents);
 
         $this->set('categories', $this->Attribute->validate['category']['rule'][1]);
