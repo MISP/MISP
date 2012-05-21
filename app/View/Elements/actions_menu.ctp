@@ -15,7 +15,6 @@
 		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 		<li>&nbsp;</li>
 		<h3><?php echo __('Sync Actions'); ?></h3>
-		<li><?php echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
 		<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>
         <?php endif; ?>
 
