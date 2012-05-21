@@ -109,7 +109,8 @@
     			<td><?php
     			$sig_display = nl2br(Sanitize::html($attribute['value']));
     			if('attachment' == $attribute['type'] ||
-    			   'malware-sample' == $attribute['type']) {
+    			   'malware-sample' == $attribute['type'] ||
+    			   strpos('|', $attribute['type']) === false) {
     			        $filename_hash = explode('|', Sanitize::html($attribute['value']));
     			        echo $this->Html->link($filename_hash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
     			        if (isset($filename_hash[1])) echo ' | '.$filename_hash[1];
