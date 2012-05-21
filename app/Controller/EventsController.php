@@ -128,8 +128,8 @@ class EventsController extends AppController {
                 // check if the uuid already exists
                 $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$this->request->data['Event']['uuid'])));
                 if ($existingEventCount > 0) {
-                    throw new MethodNotAllowedException('Event already exists');   // TODO throw errors a clean way using XML
-                }
+                    throw new MethodNotAllowedException('Event already exists');   // LATER throw errors a clean way using XML
+                } // TODO update the event if there are changes
 
                 // Workaround for different structure in XML/array than what CakePHP expects
                 if (is_array($this->request->data['Event']['Attribute'])) {
@@ -148,7 +148,7 @@ class EventsController extends AppController {
                 unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
             }
 
-            if ($this->Event->saveAssociated($this->request->data)) {
+            if ($this->Event->saveAssociated($this->request->data, array('validate' => true))) {
                 if ($this->_isRest()) {
                     // call _sendAlertEmail if published was set in the request
                     if (1 == $this->request->data['Event']['published']) {
