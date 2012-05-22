@@ -149,15 +149,7 @@ class EventsController extends AppController {
                         $this->request->data['Attribute'][0] = $this->request->data['Event']['Attribute'];
                     }
                 }
-                // cleanup the array from things we do not want to allow
-                // FIXME give a whitelist of things we want to allow in the saveAssiciated fieldList
-                foreach ($this->request->data['Attribute'] as $key => $value) {
-                    unset($this->request->data['Attribute'][$key]['id']);
-                    unset($this->request->data['Attribute'][$key]['event_id']);
-                }
                 unset($this->request->data['Event']['Attribute']);
-                unset($this->request->data['Event']['id']);
-
 
                 // the event_id field is not set (normal) so make sure no validation errors are thrown
                 // LATER do this with     $this->validator()->remove('event_id');
@@ -165,16 +157,18 @@ class EventsController extends AppController {
                 unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
             }
 
+            $fieldList = array(
+                    'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private'),
+                    'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
+                    );
             // this saveAssociated() function will save not only the event, but also the attributes
             // from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-            if ($this->Event->saveAssociated($this->request->data, array('validate' => true))) {
-                if ($this->_isRest()) {
-
+            if ($this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList))) {
+                if (!empty($this->request->data['Event']['published']) && 1 == $this->request->data['Event']['published']) {
                     // call _sendAlertEmail if published was set in the request
-                    if (1 == $this->request->data['Event']['published']) {
-                        $this->_sendAlertEmail($this->Event->getId());
-                    }
-
+                    $this->_sendAlertEmail($this->Event->getId());
+                }
+                if ($this->_isRest()) {
                     // REST users want to see the newly created event
                     $this->view($this->Event->getId());
                     $this->render('view');
@@ -208,6 +202,11 @@ class EventsController extends AppController {
         // only edit own events verified by isAuthorized
 
         if ($this->request->is('post') || $this->request->is('put')) {
+            if ($this->_isRest()) {
+                // TODO implement REST edit Event
+                throw new NotFoundException('Sorry, this is not yet implemented');
+            }
+
             // say what fields are to be updated
             $fieldList=array('user_id', 'date', 'risk', 'info', 'published', 'private');
             // always force the user and org, but do not force it for admins
