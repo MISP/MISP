@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
 /**
@@ -76,18 +77,18 @@ class Attribute extends AppModel {
 			'rule' => array('inList', array(
 							'Internal reference',
 			                'Payload delivery',
-		                    'Antivirus detection',
-		                    'Payload installation',
-		                    'Artifacts dropped',
-		                    'Persistence mechanism',
-		                    'Registry keys modified',
-		                    'Network activity',
-		                    'Payload type',
-		                    'Attribution',
-		                    'External analysis',
-		                    'Other',
-		                    '' // FIXME remove this once all attributes have a category. Otherwise sigs without category are not shown in the list
-		                )),
+			                'Antivirus detection',
+			                'Payload installation',
+			                'Artifacts dropped',
+			                'Persistence mechanism',
+			                'Registry keys modified',
+			                'Network activity',
+			                'Payload type',
+			                'Attribution',
+			                'External analysis',
+			                'Other',
+			                '' // FIXME remove this once all attributes have a category. Otherwise sigs without category are not shown in the list
+			                )),
 			'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
 		),
 		'value' => array(
@@ -198,6 +199,15 @@ class Attribute extends AppModel {
 
 	    // always return true after a beforeSave()
 	    return true;
+	}
+
+	function afterSave() {
+	    $result = true;
+        // if the 'data' field is set on the $this->data then save the data to the correct file
+        if ($this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
+            $result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']);
+        }
+        return $result;
 	}
 
 	function beforeDelete() {
@@ -468,8 +478,26 @@ class Attribute extends AppModel {
 
 	function base64EncodeAttachment($attribute) {
 	    $filepath = APP."files/".$attribute['event_id']."/".$attribute['id'];
-	    $binary = fread(fopen($filepath, 'r'), filesize($filepath));
-	    return base64_encode($binary);
+	    $file = new File($filepath);
+	    if (!$file->exists()) return '';
+        $content = $file->read();
+	    return base64_encode($content);
 	}
+
+	function saveBase64EncodedAttachment($attribute) {
+	    $root_dir = APP.DS."files".DS.$attribute['event_id'];
+	    $dir = new Folder($root_dir, true);                         // create directory structure
+	    $destpath = $root_dir.DS.$attribute['id'];
+	    $file = new File ($destpath, true);	                        // create the file
+	    $decoded_data = base64_decode($attribute['data']);          // decode
+        if ($file->write($decoded_data)){                           // save the data
+            return true;
+        } else {
+            // error
+            return false;
+        }
+	}
+
+
 
 }

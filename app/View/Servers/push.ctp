@@ -4,7 +4,7 @@
     <p>No failed pushes</p>
 	<?php else:?>
 	<ul>
-	<?php foreach ($fails as $key => $value) echo '<li>'.$key.' == '.h($value).'</li>'; ?>
+	<?php foreach ($fails as $key => $value) echo '<li>'.$key.' : '.h($value).'</li>'; ?>
 	</ul>
 	<?php endif;?>
 	<h2>Succeeded pushes</h2>
@@ -18,6 +18,9 @@
 </div>
 <div class="actions">
 	<ul>
+	    <li><?php echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
+		<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>
+		<li>&nbsp;</li>
         <?php echo $this->element('actions_menu'); ?>
     </ul>
 </div>

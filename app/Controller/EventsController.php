@@ -82,13 +82,13 @@ class EventsController extends AppController {
         $relatedAttributes = array();
         $this->loadModel('Attribute');
         $fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
-        foreach ($this->Event->data['Attribute'] as $i => $attribute) {
+        foreach ($this->Event->data['Attribute'] as $key => $attribute) {
             $relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
             // for REST requests also add the encoded attachment
             if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
                 // LATER check if this has a serious performance impact on XML conversion and memory usage
                 $encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
-                $this->Event->data['Attribute'][$i]['data'] = $encoded_file;
+                $this->Event->data['Attribute'][$key]['data'] = $encoded_file;
             }
         }
         $this->set('relatedAttributes', $relatedAttributes);
@@ -149,19 +149,32 @@ class EventsController extends AppController {
                         $this->request->data['Attribute'][0] = $this->request->data['Event']['Attribute'];
                     }
                 }
+                // cleanup the array from things we do not want to allow
+                // FIXME give a whitelist of things we want to allow in the saveAssiciated fieldList
+                foreach ($this->request->data['Attribute'] as $key => $value) {
+                    unset($this->request->data['Attribute'][$key]['id']);
+                    unset($this->request->data['Attribute'][$key]['event_id']);
+                }
                 unset($this->request->data['Event']['Attribute']);
                 unset($this->request->data['Event']['id']);
+
+
                 // the event_id field is not set (normal) so make sure no validation errors are thrown
+                // LATER do this with     $this->validator()->remove('event_id');
                 unset($this->Event->Attribute->validate['event_id']);
                 unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
             }
 
+            // this saveAssociated() function will save not only the event, but also the attributes
+            // from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
             if ($this->Event->saveAssociated($this->request->data, array('validate' => true))) {
                 if ($this->_isRest()) {
+
                     // call _sendAlertEmail if published was set in the request
                     if (1 == $this->request->data['Event']['published']) {
                         $this->_sendAlertEmail($this->Event->getId());
                     }
+
                     // REST users want to see the newly created event
                     $this->view($this->Event->getId());
                     $this->render('view');

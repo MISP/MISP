@@ -34,7 +34,7 @@ All details about this export can be found on the <?php echo $this->Html->link(_
 </tr>
 <tr><td>GET</td>
 <td>/events/123</td>
-<td>EventsController::view(123)</td>
+<td>EventsController::view(123) <sup>(2)</sup></td>
 </tr>
 <tr><td>POST</td>
 <td>/events</td>
@@ -54,7 +54,8 @@ All details about this export can be found on the <?php echo $this->Html->link(_
 </tr>
 </tbody>
 </table>
-<small>(1) Warning, there's a limit on the number of results when you call <code>index</code>.</small>
+<small>(1) Warning, there's a limit on the number of results when you call <code>index</code>.</small><br/>
+<small>(2) Attachments are included using base64 encoding below the <code>data</code> tag.</small><br/>
 <br/>
 
 <h4>Authentication</h4>

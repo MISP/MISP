@@ -8,7 +8,8 @@
 			<?php if ($isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<?php endif; ?>
-			<!--  th><?php echo $this->Paginator->sort('lastfetchedid');?></th -->
+			<th>Last Pulled ID</th>
+			<th>Last Pushed ID</th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
@@ -20,15 +21,17 @@
 		<?php if ($isAdmin): ?>
 		<td class="short"><?php echo h($server['Server']['org']); ?>&nbsp;</td>
 		<?php endif; ?>
-		<!-- td class="short"><?php echo h($server['Server']['lastfetchedid']); ?>&nbsp;</td -->
+        <td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
+        <td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $server['Server']['id'])); ?>
 			<?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $server['Server']['id']), null, __('Are you sure you want to delete # %s?', $server['Server']['id'])); ?>
-			<?php echo $this->Form->postLink(__('Pull'), array('action' => 'pull', $server['Server']['id']) ); ?>
-			<?php echo $this->Form->postLink(__('Push'), array('action' => 'push', $server['Server']['id']) ); ?>
 
-			<?php echo $this->Form->postLink(__('Pull All'), array('action' => 'pull', $server['Server']['id'], 'full') ); ?>
-			<?php echo $this->Form->postLink(__('Push All'), array('action' => 'push', $server['Server']['id'], 'full') ); ?>
+			<?php if ($server['Server']['pull']) echo $this->Form->postLink(__('Pull'), array('action' => 'pull', $server['Server']['id']) ); ?>
+			<?php if ($server['Server']['push']) echo $this->Form->postLink(__('Push'), array('action' => 'push', $server['Server']['id']) ); ?>
+
+			<?php if ($server['Server']['pull']) echo $this->Form->postLink(__('Pull All'), array('action' => 'pull', $server['Server']['id'], 'full') ); ?>
+			<?php if ($server['Server']['push']) echo $this->Form->postLink(__('Push All'), array('action' => 'push', $server['Server']['id'], 'full') ); ?>
 		</td>
 	</tr>
 <?php endforeach; ?>
@@ -47,9 +50,13 @@
 		echo $this->Paginator->next(__('next') . ' >', array(), null, array('class' => 'next disabled'));
 	?>
 	</div>
+
 </div>
 <div class="actions">
 	<ul>
+	    <li><?php echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
+		<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>
+		<li>&nbsp;</li>
         <?php echo $this->element('actions_menu'); ?>
     </ul>
 </div>
