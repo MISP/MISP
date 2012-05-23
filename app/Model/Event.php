@@ -176,4 +176,31 @@ class Event extends AppModel {
 	    );
 	    return $relatedEvents;
 	}
+
+
+	/**
+	 * Clean up an Event Array that was received by an XML request.
+	 * The structure needs to be changed a little bit to be compatible with what CakePHP expects
+	 *
+	 * This function receives the reference of the variable, so no return is required as it directly
+	 * modifies the original data.
+	 *
+	 * @param &$data The reference to the variable
+	 */
+	function cleanupEventArrayFromXML(&$data) {
+	    // Workaround for different structure in XML/array than what CakePHP expects
+	    if (is_array($data['Event']['Attribute'])) {
+	        if (is_numeric(implode(array_keys($data['Event']['Attribute']), ''))) {
+	            // normal array of multiple Attributes
+	            $data['Attribute'] = $data['Event']['Attribute'];
+	        } else {
+	            // single attribute
+	            $data['Attribute'][0] = $data['Event']['Attribute'];
+	        }
+	    }
+	    unset($data['Event']['Attribute']);
+
+
+	    return $data;
+	}
 }

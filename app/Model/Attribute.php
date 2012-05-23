@@ -87,7 +87,7 @@ class Attribute extends AppModel {
 			                'Attribution',
 			                'External analysis',
 			                'Other',
-			                '' // FIXME remove this once all attributes have a category. Otherwise sigs without category are not shown in the list
+			                '' // LATER remove this once all attributes have a category. Otherwise sigs without category are not shown in the list
 			                )),
 			'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
 		),

@@ -147,6 +147,7 @@ class ServersController extends AppController {
             throw new NotFoundException(__('Invalid server'));
         }
 
+        App::uses('HttpSocket', 'Network/Http');
         $this->Server->read(null, $id);
 
         if (false == $this->Server->data['Server']['pull']) {
@@ -156,8 +157,56 @@ class ServersController extends AppController {
 
         if ("full"==$full) {
             // pull everything
-            // TODO make the output of the sync functionality more user-friendly
-            $this->_import($this->Server->data['Server']['url'], $this->Server->data['Server']['authkey']);
+            //$this->_import($this->Server->data['Server']['url'], $this->Server->data['Server']['authkey']);
+
+            // get a list of the event_ids on the server
+            $event_ids = $this->_getEventIds(
+                    $this->Server->data['Server']['url'],
+                    $this->Server->data['Server']['authkey']);
+
+            $successes = array();
+            $fails = array();
+            // download each event
+            if (null != $event_ids) {
+                App::import('Controller', 'Events');
+                foreach ($event_ids as $event_id) {
+                    $event = $this->_downloadEvent(
+                            $event_id,
+                            $this->Server->data['Server']['url'],
+                            $this->Server->data['Server']['authkey']);
+                    if (null != $event) {
+                        // we have an Event array
+                        $event['Event']['private'] = true;
+                        $eventsController = new EventsController();
+                        try {
+                            $result = $eventsController->_add($event, $this->Auth, $fromXml=true);
+                        } catch (MethodNotAllowedException $e) {
+                            if ($e->getMessage() == 'Event already exists') {
+                                $successes[] = $event_id;
+                                continue;
+                            }
+                        }
+                        //$result = $this->_importEvent($event);
+                        // TODO error handling
+                    } else {
+                        // error
+                        $fails[$event_id] = 'failed';
+                    }
+
+                }
+                if (sizeof($fails) > 0) {
+                    // there are fails, take the lowest fail
+                    $lastpulledid = min(array_keys($fails));
+                } else {
+                    // no fails, take the highest success
+                    $lastpulledid = max($successes);
+                }
+                // increment lastid based on the highest ID seen
+                $this->Server->saveField('lastpulledid', $lastpulledid);
+
+            }
+
+
         } else {
             // TODO incremental pull
             // lastpulledid
@@ -165,6 +214,9 @@ class ServersController extends AppController {
 
             // increment lastid based on the highest ID seen
         }
+
+        $this->set('successes', $successes);
+        $this->set('fails', $fails);
     }
 
 
@@ -177,9 +229,7 @@ class ServersController extends AppController {
             throw new NotFoundException(__('Invalid server'));
         }
 
-        App::import('Controller', 'Events');
         App::uses('HttpSocket', 'Network/Http');
-
         $this->Server->read(null, $id);
 
         if (false == $this->Server->data['Server']['push']) {
@@ -187,12 +237,9 @@ class ServersController extends AppController {
             $this->redirect(array('action' => 'index'));
         }
 
-        if ("full"==$full) {
-            $lastpushedid = 0;
+        if ("full"==$full) $lastpushedid = 0;
+        else $lastpushedid = $this->Server->data['Server']['lastpushedid'];
 
-        } else {
-            $lastpushedid = $this->Server->data['Server']['lastpushedid'];
-        }
         $find_params = array(
                 'conditions' => array(
                         'Event.id >' => $lastpushedid,
@@ -205,94 +252,165 @@ class ServersController extends AppController {
         $events = $this->Event->find('all', $find_params);
 
 // FIXME now all events are uploaded, even if they exist on the remote server. No merging is done
-// FIXME file attachments are not synced
+
         $successes = array();
         $fails = array();
         $lowestfailedid = null;
 
         if (!empty($events)) {   // do nothing if there are no events to push
             $HttpSocket = new HttpSocket();
-            $uri = $this->Server->data['Server']['url'].'/events';
-            $request = array(
-                    'header' => array(
-                            'Authorization' => $this->Server->data['Server']['authkey'],
-                            'Accept' => 'application/xml',
-                            'Content-Type' => 'application/xml',
-                            //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
-                    )
-            );
 
             $this->loadModel('Attribute');
+            // upload each event separately and keep the results in the $successes and $fails arrays
             foreach ($events as $event) {
-                // LATER try to do this using a separate EventsController and renderAs() function
-                $xmlArray = array();
-                // rearrange things to be compatible with the Xml::fromArray()
-                $event['Event']['Attribute'] = $event['Attribute'];
-                unset($event['Attribute']);
-
-                // cleanup the array from things we do not want to expose
-                unset($event['Event']['user_id']);
-                unset($event['Event']['org']);
-                // remove value1 and value2 from the output
-                foreach($event['Event']['Attribute'] as $key => $attribute) {
-                    // do not keep attributes that are private
-                    if ($event['Event']['Attribute'][$key]['private']) {
-                        unset($event['Event']['Attribute'][$key]);
-                        continue; // stop processing this
-                    }
-                    // remove value1 and value2 from the output
-                    unset($event['Event']['Attribute'][$key]['value1']);
-                    unset($event['Event']['Attribute'][$key]['value2']);
-                    // also add the encoded attachment
-                    if ($this->Attribute->typeIsAttachment($event['Event']['Attribute'][$key]['type'])) {
-                        $encoded_file = $this->Attribute->base64EncodeAttachment($event['Event']['Attribute'][$key]);
-                        $event['Event']['Attribute'][$key]['data'] = $encoded_file;
-                    }
-                }
-
-                // display the XML to the user
-                $xmlArray['Event'][] = $event['Event'];
-                $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
-                $eventsXml = $xmlObject->asXML();
-                // do a REST POST request with the server
-                $data = $eventsXml;
-                // LATER validate HTTPS SSL certificate
-                $response = $HttpSocket->post($uri, $data, $request);
-                if ($response->isOk()) {
+                $result = $this->_uploadEvent(
+                        $event,
+                        $this->Server->data['Server']['url'],
+                        $this->Server->data['Server']['authkey'],
+                        $HttpSocket);
+                if (true == $result) {
                     $successes[] = $event['Event']['id'];
-                }
-                else {
-                    // parse the XML response and keep the reason why it failed
-                    $xml_array = Xml::toArray(Xml::build($response->body));
-                    if ("Event already exists" == $xml_array['response']['name']) {
-                        $successes[] = $event['Event']['id'];
-                    } else {
-                        $fails[$event['Event']['id']] = $xml_array['response']['name'];
-                    }
+                } else {
+                    $fails[$event['Event']['id']] = $result;
                 }
             }
-
             if (sizeof($fails) > 0) {
                 // there are fails, take the lowest fail
                 $lastpushedid = min(array_keys($fails));
             } else {
                 // no fails, take the highest success
                 $lastpushedid = max($successes);
-
             }
-            // FIXME FIXME test this $lastpushedid
-            // FIXME FIXME test this $lastpushedid
-            // FIXME FIXME test this $lastpushedid
-            // FIXME FIXME test this $lastpushedid
             // increment lastid based on the highest ID seen
             $this->Server->saveField('lastpushedid', $lastpushedid);
         }
 
-
         $this->set('successes', $successes);
         $this->set('fails', $fails);
+    }
+
+    /**
+     * Uploads the event and the associated Attributes to another instance
+     *
+     * @return bool true if success, error message if failed
+     */
+    private function _uploadEvent($event, $url, $authkey, $HttpSocket=null) {
+        if (null == $HttpSocket) {
+            $HttpSocket = new HttpSocket();
+        }
+        $request = array(
+                'header' => array(
+                        'Authorization' => $authkey,
+                        'Accept' => 'application/xml',
+                        'Content-Type' => 'application/xml',
+                        //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+                )
+        );
+        $uri = $url.'/events';
+
+        // LATER try to do this using a separate EventsController and renderAs() function
+        $xmlArray = array();
+        // rearrange things to be compatible with the Xml::fromArray()
+        $event['Event']['Attribute'] = $event['Attribute'];
+        unset($event['Attribute']);
+
+        // cleanup the array from things we do not want to expose
+        unset($event['Event']['user_id']);
+        unset($event['Event']['org']);
+        // remove value1 and value2 from the output
+        foreach($event['Event']['Attribute'] as $key => $attribute) {
+            // do not keep attributes that are private
+            if ($event['Event']['Attribute'][$key]['private']) {
+                unset($event['Event']['Attribute'][$key]);
+                continue; // stop processing this
+            }
+            // remove value1 and value2 from the output
+            unset($event['Event']['Attribute'][$key]['value1']);
+            unset($event['Event']['Attribute'][$key]['value2']);
+            // also add the encoded attachment
+            if ($this->Attribute->typeIsAttachment($event['Event']['Attribute'][$key]['type'])) {
+                $encoded_file = $this->Attribute->base64EncodeAttachment($event['Event']['Attribute'][$key]);
+                $event['Event']['Attribute'][$key]['data'] = $encoded_file;
+            }
+        }
+
+        // display the XML to the user
+        $xmlArray['Event'][] = $event['Event'];
+        $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
+        $eventsXml = $xmlObject->asXML();
+        // do a REST POST request with the server
+        $data = $eventsXml;
+        // LATER validate HTTPS SSL certificate
+        $response = $HttpSocket->post($uri, $data, $request);
+        if ($response->isOk()) {
+            return true;
+        }
+        else {
+            // parse the XML response and keep the reason why it failed
+            $xml_array = Xml::toArray(Xml::build($response->body));
+            if ("Event already exists" == $xml_array['response']['name']) {
+                return true;
+            } else {
+                return $xml_array['response']['name'];
+            }
+        }
+    }
 
 
+    private function _downloadEvent($event_id, $url, $authkey, $HttpSocket=null) {
+        if (null == $HttpSocket) {
+            $HttpSocket = new HttpSocket();
+        }
+        $request = array(
+                'header' => array(
+                        'Authorization' => $authkey,
+                        'Accept' => 'application/xml',
+                        'Content-Type' => 'application/xml',
+                        //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+                )
+        );
+        $uri = $url.'/events/'.$event_id;
+        // LATER validate HTTPS SSL certificate
+        $response = $HttpSocket->get($uri, $data='', $request);
+        if ($response->isOk()) {
+            $xml_array = Xml::toArray(Xml::build($response->body));
+            return $xml_array['response'];
+        }
+        else {
+            // parse the XML response and keep the reason why it failed
+            return null;
+        }
+
+
+    }
+
+    private function _getEventIds($url, $authkey, $HttpSocket=null) {
+        if (null == $HttpSocket) {
+            $HttpSocket = new HttpSocket();
+        }
+        $request = array(
+                'header' => array(
+                        'Authorization' => $authkey,
+                        'Accept' => 'application/xml',
+                        'Content-Type' => 'application/xml',
+                        //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+                )
+        );
+        $uri = $url.'/events/index/sort:id/direction:desc/limit:999'; // LATER verify if events are missing because we only selected the last 999
+        $response = $HttpSocket->get($uri, $data='', $request);
+
+        if ($response->isOk()) {
+            $xml = Xml::build($response->body);
+            $eventArray = Xml::toArray($xml);
+            $event_ids=array();
+            foreach ($eventArray['response']['Event'] as $event) {
+                if (1 != $event['published']) continue;  // do not keep non-published events
+                $event_ids[] = $event['id'];
+            }
+            return $event_ids;
+        }
+        // error, so return null
+        return null;
     }
 
 	private function _import($url, $key, $eventid=null) {

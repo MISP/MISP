@@ -127,47 +127,7 @@ class EventsController extends AppController {
      */
     public function add() {
         if ($this->request->is('post')) {
-            // force check userid and orgname to be from yourself
-            $this->request->data['Event']['user_id'] = $this->Auth->user('id');
-            $this->request->data['Event']['org'] = $this->Auth->user('org');
-            $this->Event->create();
-
-            if ($this->_isRest()) {
-                // check if the uuid already exists
-                $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$this->request->data['Event']['uuid'])));
-                if ($existingEventCount > 0) {
-                    throw new MethodNotAllowedException('Event already exists');   // LATER throw errors a clean way using XML
-                } // TODO update the event if there are changes
-
-                // Workaround for different structure in XML/array than what CakePHP expects
-                if (is_array($this->request->data['Event']['Attribute'])) {
-                    if (is_numeric(implode(array_keys($this->request->data['Event']['Attribute']), ''))) {
-                        // normal array of multiple Attributes
-                        $this->request->data['Attribute'] = $this->request->data['Event']['Attribute'];
-                    } else {
-                        // single attribute
-                        $this->request->data['Attribute'][0] = $this->request->data['Event']['Attribute'];
-                    }
-                }
-                unset($this->request->data['Event']['Attribute']);
-
-                // the event_id field is not set (normal) so make sure no validation errors are thrown
-                // LATER do this with     $this->validator()->remove('event_id');
-                unset($this->Event->Attribute->validate['event_id']);
-                unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-            }
-
-            $fieldList = array(
-                    'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private'),
-                    'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
-                    );
-            // this saveAssociated() function will save not only the event, but also the attributes
-            // from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-            if ($this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList))) {
-                if (!empty($this->request->data['Event']['published']) && 1 == $this->request->data['Event']['published']) {
-                    // call _sendAlertEmail if published was set in the request
-                    $this->_sendAlertEmail($this->Event->getId());
-                }
+            if ($this->_add($this->request->data, $this->Auth, $this->_isRest())) {
                 if ($this->_isRest()) {
                     // REST users want to see the newly created event
                     $this->view($this->Event->getId());
@@ -186,6 +146,52 @@ class EventsController extends AppController {
         $risks = $this->Event->validate['risk']['rule'][1];
         $risks = $this->_arrayToValuesIndexArray($risks);
         $this->set('risks',compact('risks'));
+    }
+
+    /**
+     * Low level functino to add an Event based on an Event $data array
+     *
+     * @return bool true if success
+     */
+    public function _add(&$data, &$auth, $fromXml) {
+        // force check userid and orgname to be from yourself
+        $data['Event']['user_id'] = $auth->user('id');
+        $data['Event']['org'] = $auth->user('org');
+        $this->Event->create();
+
+        if (isset($data['Event']['uuid'])) {
+            // check if the uuid already exists
+            $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$data['Event']['uuid'])));
+            if ($existingEventCount > 0) {
+                throw new MethodNotAllowedException('Event already exists');   // LATER throw errors a clean way using XML
+            } // TODO update the event if there are changes
+        }
+
+        if ($fromXml) {
+            // Workaround for different structure in XML/array than what CakePHP expects
+            $this->Event->cleanupEventArrayFromXML($data);
+
+            // the event_id field is not set (normal) so make sure no validation errors are thrown
+            // LATER do this with     $this->validator()->remove('event_id');
+            unset($this->Event->Attribute->validate['event_id']);
+            unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
+        }
+
+        $fieldList = array(
+                'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private'),
+                'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
+        );
+        // this saveAssociated() function will save not only the event, but also the attributes
+        // from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
+        if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
+            if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
+                // call _sendAlertEmail if published was set in the request
+                $this->_sendAlertEmail($this->Event->getId());
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -900,6 +906,8 @@ class EventsController extends AppController {
     }
 
 
+
+
     /**
      * // LATER move _dnsNameToRawFormat($name) function to a better place
      * Converts a DNS name to a raw format usable in NIDS like Snort.
@@ -925,6 +933,7 @@ class EventsController extends AppController {
         // and append |00| to terminate the name
         return $rawName;
     }
+
 
 
 
