@@ -311,7 +311,7 @@ class EventsController extends AppController {
         $this->Event->saveField('published', 1);
 
         // upload the event to remote servers
-        if ('true' != Configure::read('CyDefSIG.sync'))
+        if ('true' == Configure::read('CyDefSIG.sync'))
             $this->_uploadEventToServers($id);
     }
 
