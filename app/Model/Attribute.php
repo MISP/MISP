@@ -204,7 +204,7 @@ class Attribute extends AppModel {
 	function afterSave() {
 	    $result = true;
         // if the 'data' field is set on the $this->data then save the data to the correct file
-        if ($this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
+        if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
             $result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']);
         }
         return $result;
