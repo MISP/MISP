@@ -272,7 +272,7 @@ class EventsController extends AppController {
 
     /**
      * Uploads this specific event to all remote servers
-     * TODO move this to a helper or
+     * TODO move this to a component
      */
     function _uploadEventToServers($id) {
         // make sure we have all the data of the Event
@@ -311,7 +311,8 @@ class EventsController extends AppController {
         $this->Event->saveField('published', 1);
 
         // upload the event to remote servers
-        $this->_uploadEventToServers($id);
+        if ('true' != Configure::read('CyDefSIG.sync'))
+            $this->_uploadEventToServers($id);
     }
 
     /**

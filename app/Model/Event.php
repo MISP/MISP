@@ -207,6 +207,7 @@ class Event extends AppModel {
 
 	/**
 	 * Uploads the event and the associated Attributes to another Server
+	 * TODO move this to a component
 	 *
 	 * @return bool true if success, error message if failed
 	 */
@@ -280,7 +281,7 @@ class Event extends AppModel {
 
 	/**
 	 * Download a specific event from a Server
-	 *
+	 * TODO move this to a component
 	 * @return array|NULL
 	 */
 	function downloadEventFromServer($event_id, $server, $HttpSocket=null) {
@@ -313,6 +314,7 @@ class Event extends AppModel {
 
 	/**
 	 * Get an array of event_ids that are present on the remote server
+	 * TODO move this to a component
 	 * @return array of event_ids
 	 */
 	function getEventIdsFromServer($server, $HttpSocket=null) {
