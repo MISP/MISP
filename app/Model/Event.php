@@ -206,11 +206,14 @@ class Event extends AppModel {
 
 
 	/**
-	 * Uploads the event and the associated Attributes to another instance
+	 * Uploads the event and the associated Attributes to another Server
 	 *
 	 * @return bool true if success, error message if failed
 	 */
 	function uploadEventToServer($event, $server, $HttpSocket=null) {
+	    if (true ==$event['Event']['private'])  // never upload private events
+	        return "Event is private and non exportable";
+
 	    $url = $server['Server']['url'];
 	    $authkey = $server['Server']['authkey'];
 	    if (null == $HttpSocket) {
@@ -275,6 +278,11 @@ class Event extends AppModel {
 	    }
 	}
 
+	/**
+	 * Download a specific event from a Server
+	 *
+	 * @return array|NULL
+	 */
 	function downloadEventFromServer($event_id, $server, $HttpSocket=null) {
 	    $url = $server['Server']['url'];
 	    $authkey = $server['Server']['authkey'];
@@ -298,13 +306,13 @@ class Event extends AppModel {
 	        return $xml_array['response'];
 	    }
 	    else {
-	        // parse the XML response and keep the reason why it failed
+	        // TODO parse the XML response and keep the reason why it failed
 	        return null;
 	    }
 	}
 
 	/**
-	 * Get an array of event_ids that are present on the server
+	 * Get an array of event_ids that are present on the remote server
 	 * @return array of event_ids
 	 */
 	function getEventIdsFromServer($server, $HttpSocket=null) {
@@ -339,5 +347,8 @@ class Event extends AppModel {
 	    // error, so return null
 	    return null;
 	}
+
+
+
 
 }

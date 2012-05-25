@@ -93,4 +93,6 @@ class Server extends AppModel {
 	public function isOwnedByOrg($serverid, $org) {
 	    return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
 	}
+
+
 }

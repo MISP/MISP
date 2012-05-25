@@ -270,6 +270,49 @@ class EventsController extends AppController {
     }
 
 
+    /**
+     * Uploads this specific event to all remote servers
+     * TODO move this to a helper or
+     */
+    function _uploadEventToServers($id) {
+        // make sure we have all the data of the Event
+        $this->Event->id=$id;
+        $this->Event->recursive=1;
+        $this->Event->read();
+
+        // get a list of the servers
+        $this->loadModel('Server');
+        $servers = $this->Server->find('all', array(
+                'conditions' => array('Server.push' => true)
+        ));
+
+        // iterate over the servers and upload the event
+        if(empty($servers))
+            return;
+
+        App::uses('HttpSocket', 'Network/Http');
+        $HttpSocket = new HttpSocket();
+        foreach ($servers as $server) {
+            $this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
+        }
+    }
+
+    /**
+     * Performs all the actions required to publish an event
+     *
+     * @param unknown_type $id
+     */
+    function _publish($id) {
+        $this->Event->id = $id;
+        $this->Event->recursive = 0;
+        //$this->Event->read();
+
+        // update the DB to set the published flag
+        $this->Event->saveField('published', 1);
+
+        // upload the event to remote servers
+        $this->_uploadEventToServers($id);
+    }
 
     /**
      * Publishes the event without sending an alert email
@@ -280,16 +323,12 @@ class EventsController extends AppController {
             throw new NotFoundException(__('Invalid event'));
         }
 
+        // only allow publish for own events verified by isAuthorized
+
         // only allow form submit CSRF protection.
         if ($this->request->is('post') || $this->request->is('put')) {
-
-            $this->Event->id = $id;
-            $this->Event->read();
-
-            // only allow publish for own events verified by isAuthorized
-
-            // update the DB to set the published flag
-            $this->Event->saveField('published', 1);
+            // Performs all the actions required to publish an event
+            $this->_publish($id);
 
             // redirect to the view event page
             $this->Session->setFlash(__('Event published, but NO mail sent to any participants.', true));
@@ -312,17 +351,10 @@ class EventsController extends AppController {
 
         // only allow form submit CSRF protection.
         if ($this->request->is('post') || $this->request->is('put')) {
-            $this->Event->read();
-            // fetch the event and build the body
-            if (1 == $this->Event->data['Event']['published']) {
-                $this->Session->setFlash(__('Everyone has already been published for this event. To alert again, first edit this event.', true), 'default', array(), 'error');
-                $this->redirect(array('action' => 'view', $id));
-            }
-
             // send out the email
             if ($this->_sendAlertEmail($id)) {
-                // update the DB to set the published flag
-                $this->Event->saveField('published', 1);
+                // Performs all the actions required to publish an event
+                $this->_publish($id);
 
                 // redirect to the view event page
                 $this->Session->setFlash(__('Email sent to all participants.', true));
