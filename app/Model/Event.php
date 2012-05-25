@@ -203,4 +203,141 @@ class Event extends AppModel {
 
 	    return $data;
 	}
+
+
+	/**
+	 * Uploads the event and the associated Attributes to another instance
+	 *
+	 * @return bool true if success, error message if failed
+	 */
+	function uploadEventToServer($event, $server, $HttpSocket=null) {
+	    $url = $server['Server']['url'];
+	    $authkey = $server['Server']['authkey'];
+	    if (null == $HttpSocket) {
+	        App::uses('HttpSocket', 'Network/Http');
+	        $HttpSocket = new HttpSocket();
+	    }
+	    $request = array(
+	            'header' => array(
+	                    'Authorization' => $authkey,
+	                    'Accept' => 'application/xml',
+	                    'Content-Type' => 'application/xml',
+	                    //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+	            )
+	    );
+	    $uri = $url.'/events';
+
+	    // LATER try to do this using a separate EventsController and renderAs() function
+	    $xmlArray = array();
+	    // rearrange things to be compatible with the Xml::fromArray()
+	    $event['Event']['Attribute'] = $event['Attribute'];
+	    unset($event['Attribute']);
+
+	    // cleanup the array from things we do not want to expose
+	    unset($event['Event']['user_id']);
+	    unset($event['Event']['org']);
+	    // remove value1 and value2 from the output
+	    foreach($event['Event']['Attribute'] as $key => $attribute) {
+	        // do not keep attributes that are private
+	        if ($event['Event']['Attribute'][$key]['private']) {
+	            unset($event['Event']['Attribute'][$key]);
+	            continue; // stop processing this
+	        }
+	        // remove value1 and value2 from the output
+	        unset($event['Event']['Attribute'][$key]['value1']);
+	        unset($event['Event']['Attribute'][$key]['value2']);
+	        // also add the encoded attachment
+	        if ($this->Attribute->typeIsAttachment($event['Event']['Attribute'][$key]['type'])) {
+	            $encoded_file = $this->Attribute->base64EncodeAttachment($event['Event']['Attribute'][$key]);
+	            $event['Event']['Attribute'][$key]['data'] = $encoded_file;
+	        }
+	    }
+
+	    // display the XML to the user
+	    $xmlArray['Event'][] = $event['Event'];
+	    $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
+	    $eventsXml = $xmlObject->asXML();
+	    // do a REST POST request with the server
+	    $data = $eventsXml;
+	    // LATER validate HTTPS SSL certificate
+	    $response = $HttpSocket->post($uri, $data, $request);
+	    if ($response->isOk()) {
+	        return true;
+	    }
+	    else {
+	        // parse the XML response and keep the reason why it failed
+	        $xml_array = Xml::toArray(Xml::build($response->body));
+	        if ("Event already exists" == $xml_array['response']['name']) {
+	            return true;
+	        } else {
+	            return $xml_array['response']['name'];
+	        }
+	    }
+	}
+
+	function downloadEventFromServer($event_id, $server, $HttpSocket=null) {
+	    $url = $server['Server']['url'];
+	    $authkey = $server['Server']['authkey'];
+	    if (null == $HttpSocket) {
+	        App::uses('HttpSocket', 'Network/Http');
+	        $HttpSocket = new HttpSocket();
+	    }
+	    $request = array(
+	            'header' => array(
+	                    'Authorization' => $authkey,
+	                    'Accept' => 'application/xml',
+	                    'Content-Type' => 'application/xml',
+	                    //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+	            )
+	    );
+	    $uri = $url.'/events/'.$event_id;
+	    // LATER validate HTTPS SSL certificate
+	    $response = $HttpSocket->get($uri, $data='', $request);
+	    if ($response->isOk()) {
+	        $xml_array = Xml::toArray(Xml::build($response->body));
+	        return $xml_array['response'];
+	    }
+	    else {
+	        // parse the XML response and keep the reason why it failed
+	        return null;
+	    }
+	}
+
+	/**
+	 * Get an array of event_ids that are present on the server
+	 * @return array of event_ids
+	 */
+	function getEventIdsFromServer($server, $HttpSocket=null) {
+	    $url = $server['Server']['url'];
+	    $authkey = $server['Server']['authkey'];
+
+	    if (null == $HttpSocket) {
+	        App::uses('HttpSocket', 'Network/Http');
+	        $HttpSocket = new HttpSocket();
+	    }
+	    $request = array(
+	            'header' => array(
+	                    'Authorization' => $authkey,
+	                    'Accept' => 'application/xml',
+	                    'Content-Type' => 'application/xml',
+	                    //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+	            )
+	    );
+	    $uri = $url.'/events/index/sort:id/direction:desc/limit:999'; // LATER verify if events are missing because we only selected the last 999
+	    $response = $HttpSocket->get($uri, $data='', $request);
+
+	    if ($response->isOk()) {
+	        $xml = Xml::build($response->body);
+	        $eventArray = Xml::toArray($xml);
+	        $event_ids=array();
+	        foreach ($eventArray['response']['Event'] as $event) {
+	            if (1 != $event['published']) continue;  // do not keep non-published events
+	            $event_ids[] = $event['id'];
+	        }
+	        return $event_ids;
+	    }
+	    // error, so return null
+	    return null;
+	}
+
 }
