@@ -4,7 +4,7 @@
 			<legend><?php echo __('Add Attachment'); ?></legend>
 	<?php
 		echo $this->Form->hidden('event_id');
-		echo $this->Form->input('category');
+		echo $this->Form->input('category',  array('between' => $this->Html->div('forminfo', '', array('id'=> 'AttributeCategoryDiv'))));
 		echo $this->Form->file('value', array(
 			'error' => array('escape' => false),
 		));
@@ -15,8 +15,11 @@
         ));
         if ('true' == Configure::read('CyDefSIG.sync')) {
             echo $this->Form->input('private', array(
-                    'before' => $this->Html->div('forminfo', 'Prevent upload of this <em>complete Event</em> to other CyDefSIG servers.<br/>Otherwise you can still prevent specific Attributes to be uploaded.'),));
+                    'before' => $this->Html->div('forminfo', isset($attr_descriptions['private']['formdesc']) ? $attr_descriptions['private']['formdesc'] : $attr_descriptions['private']['desc']),));
         }
+        // link an onchange event to the form elements
+        $this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');
+        $this->Js->get('#AttributeCategory')->event('change', 'showFormInfo("#AttributeCategory")');
 	?>
 	</fieldset>
 <?php echo $this->Form->end(__('Upload'));?>
@@ -26,3 +29,31 @@
         <?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
+
+<script type="text/javascript">
+var formInfoValues = new Array();
+<?php 
+	foreach ($category_definitions as $category => $def) {
+		$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+		echo "formInfoValues['$category'] = \"$info\";\n";
+	}
+?>
+
+function showFormInfo(id) {
+	idDiv = id+'Div';
+	// LATER use nice animations
+	//$(idDiv).hide('fast');
+	// change the content
+	var value = $(id).val();    // get the selected value
+	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
+
+	// show it again
+	$(idDiv).fadeIn('slow');
+}
+
+// hide the formInfo things
+$('#AttributeTypeDiv').hide();
+$('#AttributeCategoryDiv').hide();
+
+</script>
+<?php echo $this->Js->writeBuffer(); // Write cached scripts ?>

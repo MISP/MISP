@@ -14,6 +14,17 @@ class Event extends AppModel {
  */
 	public $displayField = 'id';
 /**
+ * Description field
+ *
+ * @var array
+ */
+	
+	public $field_descriptions = array(
+			'risk' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels:<br/>low: mass-malware<br/>medium: APT malware<br/>high: sophisticated APT malware or 0-day attack'), 
+			'private' => array('desc' => 'This field tells if the event should be shared with other CyDefSIG servers')
+			);
+			
+/**
  * Validation rules
  *
  * @var array

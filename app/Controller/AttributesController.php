@@ -54,7 +54,13 @@ class AttributesController extends AppController {
  */
 	public function index() {
 		$this->Attribute->recursive = 0;
+		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
 		$this->set('attributes', $this->paginate());
+		
+		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
+		$this->set('type_definitions', $this->Attribute->type_definitions);
+		$this->set('category_definitions', $this->Attribute->category_definitions);
+		
 	}
 
 /**
@@ -145,6 +151,10 @@ class AttributesController extends AppController {
 		$categories = $this->Attribute->validate['category']['rule'][1];
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories',compact('categories'));
+		
+		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
+		$this->set('type_definitions', $this->Attribute->type_definitions);
+		$this->set('category_definitions', $this->Attribute->category_definitions);
 	}
 
 
@@ -282,6 +292,11 @@ class AttributesController extends AppController {
 	    $categories = $this->Attribute->validate['category']['rule'][1];
 	    $categories = $this->_arrayToValuesIndexArray($categories);
 	    $this->set('categories',compact('categories'));
+	    
+	    $this->set('attr_descriptions', $this->Attribute->field_descriptions);
+	    $this->set('type_definitions', $this->Attribute->type_definitions);
+	    $this->set('category_definitions', $this->Attribute->category_definitions);
+	    
 	}
 
 /**
@@ -336,6 +351,10 @@ class AttributesController extends AppController {
 		$categories = $this->Attribute->validate['category']['rule'][1];
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories',compact('categories'));
+
+		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
+		$this->set('type_definitions', $this->Attribute->type_definitions);
+		$this->set('category_definitions', $this->Attribute->category_definitions);
 	}
 
 
@@ -407,6 +426,9 @@ class AttributesController extends AppController {
     	    $categories = array_merge($categories, $this->Attribute->validate['category']['rule'][1]);
     	    $categories = $this->_arrayToValuesIndexArray($categories);
     	    $this->set('categories',compact('categories'));
+    	    
+    	    $this->set('type_definitions', $this->Attribute->type_definitions);
+    	    $this->set('category_definitions', $this->Attribute->category_definitions);
 	    }
 
 	}

@@ -6,7 +6,7 @@
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
-			<th>IDS Signature</th>
+			<th<?php echo ' title="' . $attr_descriptions['signature']['desc'] . '"';?>><?php echo $this->Paginator->sort('signature');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
@@ -15,9 +15,9 @@
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
 			<?php echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id'])); ?>
 		</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
+		<td title="<?php echo $category_definitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
 		<?php echo h($attribute['Attribute']['category']); ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
+		<td title="<?php echo $type_definitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
 		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
 		<?php

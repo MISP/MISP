@@ -4,20 +4,20 @@
 		<legend><?php echo __('Edit Attribute'); ?></legend>
 	<?php
 		echo $this->Form->input('id');
-		echo $this->Form->input('category');
+		echo $this->Form->input('category', array('between' => $this->Html->div('forminfo', '', array('id'=> 'AttributeCategoryDiv'))));
 		if($attachment) {
-		    echo $this->Form->hidden('type');
+		    echo $this->Form->hidden('type', array('between' => $this->Html->div('forminfo', '', array('id'=> 'AttributeTypeDiv'))));
 		    echo "<BR>Type: ".$this->Form->value('Attribute.type');
 		} else {
-    		echo $this->Form->input('type');
+    		echo $this->Form->input('type', array('between' => $this->Html->div('forminfo', '', array('id'=> 'AttributeTypeDiv'))));
 		}
 		if ('true' == Configure::read('CyDefSIG.sync')) {
 		    echo $this->Form->input('private', array(
-		            'before' => $this->Html->div('forminfo', 'Prevent upload of this <em>single Attribute</em> to other CyDefSIG servers.<br/>Only use when the Event is NOT set as Private.'),
+		            'before' => $this->Html->div('forminfo', isset($attr_descriptions['private']['formdesc']) ? $attr_descriptions['private']['formdesc'] : $attr_descriptions['private']['desc']),
 		    ));
 		}
 		echo $this->Form->input('to_ids', array(
-		    		'before' => $this->Html->div('forminfo', 'Can we make an IDS signature based on this attribute ?'),
+		    		'before' => $this->Html->div('forminfo', isset($attr_descriptions['signature']['formdesc']) ? $attr_descriptions['private']['formdesc'] : $attr_descriptions['private']['desc']),
 		        	'label' => 'IDS Signature?'
 		));
 		if($attachment) {
@@ -29,7 +29,9 @@
 					'error' => array('escape' => false),
 		));
 		}
-	?>
+		$this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');
+		$this->Js->get('#AttributeCategory')->event('change', 'showFormInfo("#AttributeCategory")');
+		?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit'));?>
 </div>
@@ -41,3 +43,38 @@
 	</ul>
 </div>
 
+<script type="text/javascript">
+
+
+	
+var formInfoValues = new Array();
+<?php 
+	foreach ($type_definitions as $type => $def) {
+		$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+		echo "formInfoValues['$type'] = \"$info\";\n";
+	}
+	
+	foreach ($category_definitions as $category => $def) {
+		$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+		echo "formInfoValues['$category'] = \"$info\";\n";
+	}
+?>
+
+function showFormInfo(id) {
+	idDiv = id+'Div';
+	// LATER use nice animations
+	//$(idDiv).hide('fast');
+	// change the content
+	var value = $(id).val();    // get the selected value
+	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
+
+	// show it again
+	$(idDiv).fadeIn('slow');
+}
+
+// hide the formInfo things
+$('#AttributeTypeDiv').hide();
+$('#AttributeCategoryDiv').hide();
+
+</script>
+<?php echo $this->Js->writeBuffer(); // Write cached scripts ?>

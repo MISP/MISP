@@ -5,10 +5,11 @@
 	<?php
 		echo $this->Form->input('id');
 		echo $this->Form->input('date');
-		echo $this->Form->input('risk');
+		echo $this->Form->input('risk', array(
+				'before' => $this->Html->div('forminfo', isset($event_descriptions['risk']['formdesc']) ? $event_descriptions['risk']['formdesc'] : $event_descriptions['risk']['desc'])));
 		if ('true' == Configure::read('CyDefSIG.sync')) {
 		    echo $this->Form->input('private', array(
-		            'before' => $this->Html->div('forminfo', 'Prevent upload of this <em>complete Event</em> to other CyDefSIG servers.<br/>Otherwise you can still prevent specific Attributes to be uploaded.'),));
+		           'before' => $this->Html->div('forminfo', isset($event_descriptions['private']['formdesc']) ? $event_descriptions['private']['formdesc'] : $event_descriptions['private']['desc']),));
         }
 		echo $this->Form->input('info');
 	?>
