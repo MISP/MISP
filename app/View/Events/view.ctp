@@ -36,7 +36,7 @@
 			<?php echo Sanitize::html($event['Event']['date']); ?>
 			&nbsp;
 		</dd>
-		<dt>Risk</dt>
+		<dt<?php echo ' title="' . $event_descriptions['risk']['desc'] . '"';?>>Risk</dt>
 		<dd>
 			<?php echo $event['Event']['risk']; ?>
 			&nbsp;
@@ -82,11 +82,11 @@
     		<th>Type</th>
     		<th>Value</th>
     		<th>Related Events</th>
-    		<th>IDS Signature</th>
+    		<th <?php echo "title='" . $attr_descriptions['signature']['desc'] . "'";?>>IDS Signature</th>
     		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
-    		<th>Private</th>
+    		<th <?php echo "title='" . $attr_descriptions['private']['desc'] . "'";?>>Private</th>
     		<?php endif;?>
-    		<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
+    		<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?> 		
     		<th class="actions">Actions</th>
     		<?php endif;?>
     	</tr>
@@ -97,7 +97,7 @@
     			if($attribute['category'] != $category) continue;
     		?>
     		<tr>
-    		    <td class="short"><?php
+    		    <td class="short" title="<?php if('' != $attribute['category']) echo $category_definitions[$attribute['category']]['desc'];?>"><?php
     		    if ($first) {
     		        if ('' == $attribute['category']) echo '(no category)';
     		        echo $attribute['category'];
@@ -105,7 +105,7 @@
     		        echo '&nbsp;';
     		    }
     		    ?></td>
-    			<td class="short"><?php echo $attribute['type'];?></td>
+    			<td class="short" title="<?php echo $type_definitions[$attribute['type']]['desc'];?>"><?php echo $attribute['type'];?></td>
     			<td><?php
     			$sig_display = nl2br(Sanitize::html($attribute['value']));
     			if('attachment' == $attribute['type'] ||

@@ -64,6 +64,7 @@ class EventsController extends AppController {
         if (!$this->Auth->user('gpgkey')) {
             $this->Session->setFlash('No GPG key set in your profile. To receive emails, submit your public key in your profile.');
         }
+        $this->set('event_descriptions', $this->Event->field_descriptions);
     }
 
     /**
@@ -108,8 +109,12 @@ class EventsController extends AppController {
             $relatedEvents = $this->Event->find('all', $find_params);
         }
         $this->set('relatedEvents', $relatedEvents);
-
+		// passing decriptions for model fields
+		$this->set('event_descriptions', $this->Event->field_descriptions);
+		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
         $this->set('categories', $this->Attribute->validate['category']['rule'][1]);
+        $this->set('type_definitions', $this->Attribute->type_definitions);
+        $this->set('category_definitions', $this->Attribute->category_definitions);
     }
 
     /**
@@ -171,6 +176,8 @@ class EventsController extends AppController {
         $risks = $this->Event->validate['risk']['rule'][1];
         $risks = $this->_arrayToValuesIndexArray($risks);
         $this->set('risks',compact('risks'));
+        
+        $this->set('event_descriptions', $this->Event->field_descriptions);
     }
 
     /**
@@ -216,6 +223,8 @@ class EventsController extends AppController {
         $risks = $this->Event->validate['risk']['rule'][1];
         $risks = $this->_arrayToValuesIndexArray($risks);
         $this->set('risks',compact('risks'));
+        
+        $this->set('event_descriptions', $this->Event->field_descriptions);
     }
 
 

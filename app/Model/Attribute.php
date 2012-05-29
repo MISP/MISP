@@ -19,8 +19,75 @@ class Attribute extends AppModel {
 	        'value' => 'IF (Attribute.value2="", Attribute.value1, CONCAT(Attribute.value1, "|", Attribute.value2))'
 	);
 
-
+/**
+ * Description field
+ *
+ * @var array
+ */
+	
+	// explanations of certain fields to be used in various views
+	
+	public $field_descriptions = array(
+			'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
+			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
+	);
+	
+	// these are definition of possible types + their descriptions and maybe LATER other behaviors
+	// e.g. if the attribute should be correlated with others or not
+	
+	public $type_definitions = array(
+			'md5' => array('desc' => 'A checksum in md5 format', 'formdesc' => "You are encouraged to use filename|md5 instead. <br/>A checksum in md5 format, only use this if you don't know the correct filename"),
+			'sha1' => array('desc' => 'A checksum in sha1 format', 'formdesc' => "You are encouraged to use filename|sha1 instead. <br/>A checksum in sha1 format, only use this if you don't know the correct filename"),
+			'filename' => array('desc' => 'Filename'),
+			'filename|md5' => array('desc' => 'A filename and an md5 hash separated by a |', 'formdesc' => "A filename and an md5 hash separated by a | (no spaces)"),
+			'filename|sha1' => array('desc' => 'A filename and an sha1 hash separated by a |', 'formdesc' => "A filename and an sha1 hash separated by a | (no spaces)"),
+			'ip-src' => array('desc' => "A source IP address of the attacker"),
+			'ip-dst' => array('desc' => 'A destination IP address of the attacker or C&C server', 'formdesc' => "A destination IP address of the attacker or C&C server. <br/>Also set the IDS flag on when this IP is hardcoded in malware"),
+			'hostname' => array('desc' => 'A full host/dnsname of an attacker', 'formdesc' => "A full host/dnsname of an attacker. <br/>Also set the IDS flag on when this hostname is hardcoded in malware"),
+			'domain' => array('desc' => 'A domain name used in the malware', 'formdesc' => "A domain name used in the malware. <br/>Use this instead of hostname when the upper domain is <br/>important or can be used to create links between events."),
+			'email-src' => array('desc' => "The email address (or domainname) used to send the malware."),
+			'email-dst' => array('desc' => "A recipient email address", 'formdesc' => "A recipient email address that is not related to your constituency."),
+			'email-subject' => array('desc' => "The subject of the email"),
+			'email-attachment' => array('desc' => "File name of the email attachment."),
+			'url' => array('desc' => 'url'),
+			'user-agent' => array('desc' => "The user-agent used by the malware in the HTTP request."),
+			'regkey' => array('desc' => "Registry key or value"),
+			'regkey|value' => array('desc' => "Registry value + data separated by |"),
+			'AS' => array('desc' => 'Autonomous system'),
+			'snort' => array('desc' => 'An IDS rule in Snort rule-format', 'formdesc' => "An IDS rule in Snort rule-format. <br/>This rule will be automatically rewritten in the NIDS exports."),
+			'pattern-in-file' => array('desc' => 'Pattern in file that identifies the malware'),
+			'pattern-in-traffic' => array('desc' => 'Pattern in network traffic that identifies the malware'),
+			'pattern-in-memory' => array('desc' => 'Pattern in memory dump that identifies the malware'),
+			'vulnerability' => array('desc' => 'A reference to the vulnerability used in the exploit'),
+			'attachment' => array('desc' => 'Attachment with external information', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button."),
+			'malware-sample' => array('desc' => 'Attachment containing encrypted malware sample', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button."),
+			'link' => array('desc' => 'Link to an external information'),
+			'comment' => array('desc' => 'Comment or description in a human language', 'formdesc' => 'Comment or description in a human language. <br/> This will not be correlated with other attributes (NOT IMPLEMENTED YET)'),
+			'description' => array('desc' => 'Comment or description in a human language'), //this is obsolete, use comment instead
+			'text' => array('desc' => 'Name, ID or a reference'),
+			'other' => array('desc' => 'Other attribute')
+	);
+    
+	// definitions of categories
+	public $category_definitions = array(
+			'Internal reference' => array('desc' => 'Reference used by the publishing party (e.g. ticket number)'),
+			'Anti-virus detection' => array('desc' => 'All the info about how the malware is detected by the antivirus products', 'formdesc' => 'List of anti-virus vendors detecting the malware or information on detection performance (e.g. 13/43 or 67%).<br/>Attachment with list of detection or link to VirusTotal could be placed here as well.'),
+			// strange but some attributes have "Antivirus detection" with no dash so we have to put it here as well - to be removed some day
+			'Antivirus detection' => array('desc' => 'All the info about how the malware is detected by the antivirus products', 'formdesc' => 'List of anti-virus vendors detecting the malware or information on detection performance (e.g. 13/43 or 67%).<br/>Attachment with list of detection or link to VirusTotal could be placed here as well.'),
+			'Payload delivery' => array('desc' => 'Information about how the malware is delivered', 'formdesc' => 'Information about the way the malware payload is initially delivered, <br/>for example information about the email or web-site, vulnerability used, originating IP etc. <br/>Malware sample itself should be attached here.'),
+			'Artifacts dropped' => array('desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system'),
+			'Payload installation' => array('desc' => 'Info on where the malware gets installed in the system', 'formdesc' => 'Information about the way the malware payload has been installed<br/>e.g. location where the payload was placed in the system (e.g. c:\windows\system32\malicious.exe).'),			
+			'Persistence mechanism' => array('desc' => 'Mechanisms used by the malware to start at boot', 'formdesc' => 'Mechanisms used by the malware to start at boot.<br/>This could be a registry key, legitimate driver modification, LNK file in startup'),
+			'Network activity' => array('desc' => 'Information about network traffic generated by the malware'),
+			'Payload type' => array('desc' => 'Information about the final payload(s)', 'formdesc' => 'Information about the final payload(s).<br/>Can contain a function of the payload, e.g. keylogger, RAT, or a name if identified, such as Poison Ivy.'),
+			'Attribution' => array('desc' => 'Identification of the group, organisation, or coountry behind the attack'),
+			'External analysis' => array('desc' => 'Any other result from additional analysis of the malware like tools output', 'formdesc' => 'Any other result from additional analysis of the malware like tools output<br/>Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.'),
+			'Other' => array('desc' => 'Attributes that are not part of any other category')
+	);
+	
 	var $order = array("Attribute.event_id" => "DESC", "Attribute.type" => "ASC");
+
+	
 /**
  * Validation rules
  *
@@ -38,13 +105,14 @@ class Attribute extends AppModel {
 			),
 		),
 		'type' => array(
+			// FIXME inList should be initialized from keys of $type_definitions but I don't know how to do it now	
+			// currently when adding a new attribute type we need to change it in both places
 			'rule' => array('inList', array('md5','sha1',
                                             'filename',
                                             'filename|md5',
 			                                'filename|sha1',
                                             'ip-src',
                                             'ip-dst',
-			                                'hostname',
                                             'domain',
                                             'email-src',
                                             'email-dst',
@@ -63,8 +131,9 @@ class Attribute extends AppModel {
                                             'attachment',
                                             'malware-sample',
                                             'link',
-                                            'description',
-                                            'other')),
+                                            'comment',
+                                            'text',
+                                            'other')),				
 			'message' => 'Options : md5, sha1, filename, ip, domain, email, url, regkey, AS, other, ...',
 			//'allowEmpty' => false,
 			'required' => true,
@@ -72,15 +141,15 @@ class Attribute extends AppModel {
 			//'on' => 'create', // Limit validation to 'create' or 'update' operations
 
 		),
+		// this could be initialized from category_definitions but dunno how at the moment
 		'category' => array(
 			'rule' => array('inList', array(
 							'Internal reference',
+							'Anti-virus detection',
 			                'Payload delivery',
-		                    'Antivirus detection',
 		                    'Payload installation',
 		                    'Artifacts dropped',
 		                    'Persistence mechanism',
-		                    'Registry keys modified',
 		                    'Network activity',
 		                    'Payload type',
 		                    'Attribution',
@@ -159,7 +228,7 @@ class Attribute extends AppModel {
 	);
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
-
+	
 /**
  * belongsTo associations
  *
