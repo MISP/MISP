@@ -38,7 +38,7 @@
 		<td class="actions">
 			<?php
 			if (0 == $event['Event']['published'] && ($isAdmin || $event['Event']['org'] == $me['org']))
-			    echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be published?');
+			    echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?');
 			elseif (0 == $event['Event']['published']) echo 'Not published';
 			?>
 			<?php

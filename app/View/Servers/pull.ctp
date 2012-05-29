@@ -1,15 +1,15 @@
 <div class="servers index">
-	<h2>Failed pushes</h2>
+	<h2>Failed pulls</h2>
 	<?php if (0==sizeof($fails)):?>
-    <p>No failed pushes</p>
+    <p>No failed pulls</p>
 	<?php else:?>
 	<ul>
 	<?php foreach ($fails as $key => $value) echo '<li>'.$key.' : '.h($value).'</li>'; ?>
 	</ul>
 	<?php endif;?>
-	<h2>Succeeded pushes</h2>
+	<h2>Succeeded pulls</h2>
 	<?php if (0==sizeof($successes)):?>
-	<p>No succeeded pushes</p>
+	<p>No succeeded pulls</p>
 	<?php else:?>
 	<ul>
 	<?php foreach ($successes as $success) echo '<li>'.$success.'</li>'; ?>

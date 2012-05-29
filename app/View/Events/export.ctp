@@ -7,11 +7,12 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 </p>
 
 <h3>XML Export</h3>
-<p>An automatic export of all events and attributes is available under a custom XML format.</p>
+<p>An automatic export of all events and attributes <small>(except file attachments)</small> is available under a custom XML format.</p>
 <p>You can configure your tools to automatically download the following file:</p>
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/xml/<?php echo $me['authkey']; ?></pre>
 <p>If you only want to fetch a specific event append the eventid number:</p>
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/xml/<?php echo $me['authkey']; ?>/1</pre>
+<p>Also check out the <?php echo $this->Html->link(__('User Guide', true), array('controller' => 'pages', 'action' => 'display', 'documentation')); ?> to read about the REST API.</p>
 <p></p>
 
 <h3>NIDS Export</h3>

@@ -1,9 +1,153 @@
 <div class="index">
-<h2>Documentation</h2>
-<p>
-</p>
+<h2>Table of Content</h2>
+
+<hr/>
+<h2>Layout and features</h2>
+<h3>Main page:</h3>
+<p>The main page lists the events stored in the
+CyDefSIG site. See data structure section for further details.</p>
+<p>The <b>site PGP public key</b> and <b>log-out
+button</b> are at the bottom of the page and will be accessible in
+any page of the site.</p>
+<h3>Left Menu</h3>
+<p>The left menu allows the user navigating to the different features/pages of the site:</p>
+<ul>
+	<li><em>New Event:</em>
+	    <p>Allow user to create a new event. See How to share a malware signatures in CyDefSIG
+	    section for further details.</p></li>
+	<li><em>List Events: </em>
+    	<p>List all events and allows users to </p>
+    	<ul>
+    	    <li>display the details of the events</li>
+    	    <li>contact the publishing party of an even by clicking <b>Contact Reporter </b>button in the Event page.</li>
+    	    <li>Modify or delete an event and attributes you have imported.</li>
+    	</ul>
+    	<p></p></li>
+	<li><em>List Attributes:</em>
+	    <p>Lists all attributes cross events.</p></li>
+	<li><em>Search Attribute:</em>
+    	<p>You can search for attributes based on key words
+    	and apply a filtering based on the category and or attribute type.</p></li>
+	<li><em>Export:</em>
+    	<p>Different format are supported: XML (all or per
+    	event), text (all or per attribute type), and IDS format. Note that
+    	only the attributes that have been selected to be in the part of IDS
+    	will be included in this latter.</p></li>
+	<li><em>News:</em>
+	    <p>Provide the latest news regarding the site like last changes.</p></li>
+	<li><em>My Profile:</em>
+    	<p>Allows to setup the user profile:</p>
+    	<ul>
+    		<li>email address to which new events will be sent,</li>
+    		<li>the AuthKey used to automate the export of events/attributes from the application
+    		(see Export),</li>
+    		<li>NIDS starting SID,</li>
+    		<li>PGP public key used to encrypt the events sent by email</li>
+    	</ul>
+    	<p></p></li>
+	<li><em>Member List</em>
+	    <p>Provide statstics about the site.</p></li>
+</ul>
 
 
+<h2><a name="how_to_share"></A>How to share a malware/attack attributes in CyDefSIG</h2>
+<h3>Data structure</h3>
+<p>The following diagram depicts the data structure to store malware signatures.</p>
+<p><img src="/img/doc/data-structure.gif"></p>
+<ul>
+	<li>An <em>Event</em> is a containers that hosts
+	one or more <em>attributes</em> of a malware. This is the main data
+	structure that host the signatures of a malware. An event is
+	identified by a unique id number automatically assigned by the
+	system.</li>
+	<li><p>An <em>Attribute</em> is a characteristic of
+	malware that can be used as a descriptor. Attributes are categorised
+	and always linked to an Event via the Event id.</p>
+</ul>
+<p>Note that it may happen that different events are
+related to a same malware or variants as the data may be imported by
+different groups. The application creates automatically links between
+events with same attributes.</p>
+
+<h3>Sharing malware/attack information steps by steps</h3>
+<img src="/img/doc/add-event.png" style="float:right;" />
+<p>Mandatory fields are marked with *</p>
+<ol>
+	<li>Click on <em>New Event</em> (left menu)</li>
+	<li>Fill-in the form:
+    	<ul>
+    	<li><em>Date*:</em> date of the malware was discovered</li>
+    	<li><em>Risk*:</em> estimated risk level related to the malware.<br/>
+	        Guideline for risk level:
+		    <ul>
+    			<li>Undefined (default)</li>
+    			<li>Low - TBD</li>
+    			<li>Med - Advanced Persistent Threat</li>
+    			<li>High - Very sophisticated APT (e.g. including 0-day)</li>
+		    </ul>
+		</li>
+		<li><em>Private*:</em> is the event sharable with other CyDefSIG servers. <small>(only in sync-mode)</small></li>
+        <li><em>Info*:</em> High level information that can help to understand the malware/attack,
+            like title and high level behavior.<br/>
+            This field should remain as short as possible (recommended max 50 words).
+            The full description of the malware behavior and its artifacts must
+            be defined as an attribute (other).</li>
+        </ul>
+    </li>
+	<li>Click <em>Submit</em>
+    	<img src="/img/doc/add-event-done.png" style="float:right;" />
+    	<p>Note that at this stage, the information is
+    	shared on the site but no notification is sent to the other parties
+    	yet.</p></li>
+	<li>Click <em>Add Attribute</em> or <em>Add Attachment</em>
+	</li>
+
+	<li>Fill-in the form:<br/>
+    	For Attribute:
+    	<img src="/img/doc/add-attribute.png" style="float:right;" />
+    	<ul>
+        	<li><em>Category*</em>: see Category section below</li>
+        	<li><em>Type*:</em> see Type section below</li>
+        	<li><em>Private*:</em> prevent upload of this specific Attribute to other CyDefSIG servers. <small>(only in sync-mode)</small></li>
+        	<li><em>IDS Signature?</em>: Check this box if you want
+        	the attribute to be part of the IDS signature generated by the site.
+        	Make sure that the information in value is usable in an IDS
+        	signature, do not check if it is free text, Vulnerability.</li>
+        	<li><em>Value:</em> enter the attribute value. Note
+        	that the value format will be validated for some types like hash and
+        	IP addresses.</li>
+        	<li><em>Batch Import:</em> check this box to import
+        	data in batch. Enter an attribute value per line, each entry will be
+        	assigned the selected Category and Type.</li>
+        	<li>Click <em>Submit</em></li>
+        </ul>
+    <li>For Attachment:
+        <img src="/img/doc/add-attachment.png" style="float:right;" />
+        <ul>
+        	<li><em>Category:</em> see Category section below</li>
+        	<li>Select the file to upload</li>
+        	<li><em>Malware:</em> Check this box if the file to upload is
+        	harmful. The system will then encrypt with zip before storing the
+        	file with the default password, <em>"infected"</em>. This will protect
+        	other systems against accidental infection.<br/>
+        	Note that a hash will be automatically computed
+        	and added to the event as an attribute.</li>
+        	<li>Click <em>Upload</em></li>
+        </ul>
+    <li>Redo steps 5-6 as many time as attributes you need to upload.</li>
+    <li>Click <em>Publish Event</em> once all attributes are uploaded.<br/>
+        <p>The application will then send the event with all uploaded information
+        to all users of the site.<br/>
+        In sync-mode the event will also be uploaded to other CyDefSIG servers users have configured in their profile.</p>
+        <p>You can modify, delete or add new attributes after publishing. In that case, any
+        change will be accessible by other users via the GUI and only
+        released by email to all users once you re-Publish the event.</p>
+</li>
+</ol>
+
+
+
+<hr/>
 <h2>Export and Import</h2>
 <p>CyDefSIG has full support for automated data export and import.</p>
 <h3>IDS and script export</h3>
@@ -34,7 +178,7 @@ All details about this export can be found on the <?php echo $this->Html->link(_
 </tr>
 <tr><td>GET</td>
 <td>/events/123</td>
-<td>EventsController::view(123)</td>
+<td>EventsController::view(123) <sup>(2)</sup></td>
 </tr>
 <tr><td>POST</td>
 <td>/events</td>
@@ -54,7 +198,8 @@ All details about this export can be found on the <?php echo $this->Html->link(_
 </tr>
 </tbody>
 </table>
-<small>(1) Warning, there's a limit on the number of results when you call <code>index</code>.</small>
+<small>(1) Warning, there's a limit on the number of results when you call <code>index</code>.</small><br/>
+<small>(2) Attachments are included using base64 encoding below the <code>data</code> tag.</small><br/>
 <br/>
 
 <h4>Authentication</h4>

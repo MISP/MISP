@@ -109,10 +109,14 @@
     			<td><?php
     			$sig_display = nl2br(Sanitize::html($attribute['value']));
     			if('attachment' == $attribute['type'] ||
-    			   'malware-sample' == $attribute['type']) {
-    			        $filename_hash = explode('|', Sanitize::html($attribute['value']));
-    			        echo $this->Html->link($filename_hash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
-    			        if (isset($filename_hash[1])) echo ' | '.$filename_hash[1];
+    			        'malware-sample' == $attribute['type'] ) {
+			        $filename_hash = explode('|', Sanitize::html($attribute['value']));
+			        echo $this->Html->link($filename_hash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
+			        if (isset($filename_hash[1])) echo ' | '.$filename_hash[1];
+    			} elseif (strpos($attribute['type'], '|') !== false) {
+    			    $filename_hash = explode('|', Sanitize::html($attribute['value']));
+    			    echo $filename_hash[0];
+    			    if (isset($filename_hash[1])) echo ' | '.$filename_hash[1];
     			} elseif ('vulnerability' == $attribute['type']) {
     			    echo $this->Html->link($sig_display, 'http://www.google.com/search?q='.$sig_display, array('target'=> '_blank'));
     			} else {

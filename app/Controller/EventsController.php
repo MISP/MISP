@@ -78,13 +78,19 @@ class EventsController extends AppController {
         if (!$this->Event->exists()) {
             throw new NotFoundException(__('Invalid event'));
         }
-        $this->set('event', $this->Event->read(null, $id));
+        $this->Event->read(null, $id);
 
         $relatedAttributes = array();
         $this->loadModel('Attribute');
         $fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
-        foreach ($this->Event->data['Attribute'] as $attribute) {
+        foreach ($this->Event->data['Attribute'] as $key => $attribute) {
             $relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
+            // for REST requests also add the encoded attachment
+            if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
+                // LATER check if this has a serious performance impact on XML conversion and memory usage
+                $encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
+                $this->Event->data['Attribute'][$key]['data'] = $encoded_file;
+            }
         }
         $this->set('relatedAttributes', $relatedAttributes);
 
@@ -108,11 +114,17 @@ class EventsController extends AppController {
             );
             $relatedEvents = $this->Event->find('all', $find_params);
         }
-        $this->set('relatedEvents', $relatedEvents);
+      
 		// passing decriptions for model fields
 		$this->set('event_descriptions', $this->Event->field_descriptions);
 		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
+
+        $this->set('event', $this->Event->data);
+        $this->set('relatedEvents', $relatedEvents);
+
         $this->set('categories', $this->Attribute->validate['category']['rule'][1]);
+
+        // passing type and category definitions (explanations)
         $this->set('type_definitions', $this->Attribute->type_definitions);
         $this->set('category_definitions', $this->Attribute->category_definitions);
     }
@@ -124,41 +136,8 @@ class EventsController extends AppController {
      */
     public function add() {
         if ($this->request->is('post')) {
-            // force check userid and orgname to be from yourself
-            $this->request->data['Event']['user_id'] = $this->Auth->user('id');
-            $this->request->data['Event']['org'] = $this->Auth->user('org');
-            $this->Event->create();
-
-            if ($this->_isRest()) {
-                // check if the uuid already exists
-                $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$this->request->data['Event']['uuid'])));
-                if ($existingEventCount > 0) {
-                    throw new MethodNotAllowedException('Event already exists');   // TODO throw errors a clean way using XML
-                }
-
-                // Workaround for different structure in XML/array than what CakePHP expects
-                if (is_array($this->request->data['Event']['Attribute'])) {
-                    if (is_numeric(implode(array_keys($this->request->data['Event']['Attribute']), ''))) {
-                        // normal array of multiple Attributes
-                        $this->request->data['Attribute'] = $this->request->data['Event']['Attribute'];
-                    } else {
-                        // single attribute
-                        $this->request->data['Attribute'][0] = $this->request->data['Event']['Attribute'];
-                    }
-                }
-                unset($this->request->data['Event']['Attribute']);
-                unset($this->request->data['Event']['id']);
-                // the event_id field is not set (normal) so make sure no validation errors are thrown
-                unset($this->Event->Attribute->validate['event_id']);
-                unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-            }
-
-            if ($this->Event->saveAssociated($this->request->data)) {
+            if ($this->_add($this->request->data, $this->Auth, $this->_isRest())) {
                 if ($this->_isRest()) {
-                    // call _sendAlertEmail if published was set in the request
-                    if (1 == $this->request->data['Event']['published']) {
-                        $this->_sendAlertEmail($this->Event->getId());
-                    }
                     // REST users want to see the newly created event
                     $this->view($this->Event->getId());
                     $this->render('view');
@@ -181,6 +160,52 @@ class EventsController extends AppController {
     }
 
     /**
+     * Low level functino to add an Event based on an Event $data array
+     *
+     * @return bool true if success
+     */
+    public function _add(&$data, &$auth, $fromXml) {
+        // force check userid and orgname to be from yourself
+        $data['Event']['user_id'] = $auth->user('id');
+        $data['Event']['org'] = $auth->user('org');
+        $this->Event->create();
+
+        if (isset($data['Event']['uuid'])) {
+            // check if the uuid already exists
+            $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$data['Event']['uuid'])));
+            if ($existingEventCount > 0) {
+                throw new MethodNotAllowedException('Event already exists');   // LATER throw errors a clean way using XML
+            } // TODO update the event if there are changes
+        }
+
+        if ($fromXml) {
+            // Workaround for different structure in XML/array than what CakePHP expects
+            $this->Event->cleanupEventArrayFromXML($data);
+
+            // the event_id field is not set (normal) so make sure no validation errors are thrown
+            // LATER do this with     $this->validator()->remove('event_id');
+            unset($this->Event->Attribute->validate['event_id']);
+            unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
+        }
+
+        $fieldList = array(
+                'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private'),
+                'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
+        );
+        // this saveAssociated() function will save not only the event, but also the attributes
+        // from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
+        if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
+            if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
+                // call _sendAlertEmail if published was set in the request
+                $this->_sendAlertEmail($this->Event->getId());
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * edit method
      *
      * @param int $id
@@ -194,6 +219,11 @@ class EventsController extends AppController {
         // only edit own events verified by isAuthorized
 
         if ($this->request->is('post') || $this->request->is('put')) {
+            if ($this->_isRest()) {
+                // TODO implement REST edit Event
+                throw new NotFoundException('Sorry, this is not yet implemented');
+            }
+
             // say what fields are to be updated
             $fieldList=array('user_id', 'date', 'risk', 'info', 'published', 'private');
             // always force the user and org, but do not force it for admins
@@ -253,6 +283,50 @@ class EventsController extends AppController {
     }
 
 
+    /**
+     * Uploads this specific event to all remote servers
+     * TODO move this to a component
+     */
+    function _uploadEventToServers($id) {
+        // make sure we have all the data of the Event
+        $this->Event->id=$id;
+        $this->Event->recursive=1;
+        $this->Event->read();
+
+        // get a list of the servers
+        $this->loadModel('Server');
+        $servers = $this->Server->find('all', array(
+                'conditions' => array('Server.push' => true)
+        ));
+
+        // iterate over the servers and upload the event
+        if(empty($servers))
+            return;
+
+        App::uses('HttpSocket', 'Network/Http');
+        $HttpSocket = new HttpSocket();
+        foreach ($servers as $server) {
+            $this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
+        }
+    }
+
+    /**
+     * Performs all the actions required to publish an event
+     *
+     * @param unknown_type $id
+     */
+    function _publish($id) {
+        $this->Event->id = $id;
+        $this->Event->recursive = 0;
+        //$this->Event->read();
+
+        // update the DB to set the published flag
+        $this->Event->saveField('published', 1);
+
+        // upload the event to remote servers
+        if ('true' == Configure::read('CyDefSIG.sync'))
+            $this->_uploadEventToServers($id);
+    }
 
     /**
      * Publishes the event without sending an alert email
@@ -263,16 +337,12 @@ class EventsController extends AppController {
             throw new NotFoundException(__('Invalid event'));
         }
 
+        // only allow publish for own events verified by isAuthorized
+
         // only allow form submit CSRF protection.
         if ($this->request->is('post') || $this->request->is('put')) {
-
-            $this->Event->id = $id;
-            $this->Event->read();
-
-            // only allow publish for own events verified by isAuthorized
-
-            // update the DB to set the published flag
-            $this->Event->saveField('published', 1);
+            // Performs all the actions required to publish an event
+            $this->_publish($id);
 
             // redirect to the view event page
             $this->Session->setFlash(__('Event published, but NO mail sent to any participants.', true));
@@ -295,17 +365,10 @@ class EventsController extends AppController {
 
         // only allow form submit CSRF protection.
         if ($this->request->is('post') || $this->request->is('put')) {
-            $this->Event->read();
-            // fetch the event and build the body
-            if (1 == $this->Event->data['Event']['published']) {
-                $this->Session->setFlash(__('Everyone has already been published for this event. To alert again, first edit this event.', true), 'default', array(), 'error');
-                $this->redirect(array('action' => 'view', $id));
-            }
-
             // send out the email
             if ($this->_sendAlertEmail($id)) {
-                // update the DB to set the published flag
-                $this->Event->saveField('published', 1);
+                // Performs all the actions required to publish an event
+                $this->_publish($id);
 
                 // redirect to the view event page
                 $this->Session->setFlash(__('Email sent to all participants.', true));
@@ -889,6 +952,8 @@ class EventsController extends AppController {
     }
 
 
+
+
     /**
      * // LATER move _dnsNameToRawFormat($name) function to a better place
      * Converts a DNS name to a raw format usable in NIDS like Snort.
@@ -914,6 +979,7 @@ class EventsController extends AppController {
         // and append |00| to terminate the name
         return $rawName;
     }
+
 
 
 

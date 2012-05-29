@@ -27,9 +27,11 @@ class ServersController extends AppController {
         if ('true' != Configure::read('CyDefSIG.sync'))
             throw new ConfigureException("The sync feature is not active in the configuration.");
 
-        // permit reuse of CSRF tokens on the search page.
-        if ('sync' == $this->request->params['action']) {
-            $this->Security->csrfUseOnce = false;
+        // permit reuse of CSRF tokens on some pages.
+        switch ($this->request->params['action']) {
+            case 'push':
+            case 'pull':
+                $this->Security->csrfUseOnce = false;
         }
     }
 
@@ -145,12 +147,65 @@ class ServersController extends AppController {
             throw new NotFoundException(__('Invalid server'));
         }
 
+        App::uses('HttpSocket', 'Network/Http');
         $this->Server->read(null, $id);
+
+        if (false == $this->Server->data['Server']['pull']) {
+            $this->Session->setFlash(__('Pull setting not enabled for this server.'));
+            $this->redirect(array('action' => 'index'));
+        }
 
         if ("full"==$full) {
             // pull everything
-            // TODO make the output of the sync functionality more user-friendly
-            $this->_import($this->Server->data['Server']['url'], $this->Server->data['Server']['authkey']);
+            //$this->_import($this->Server->data['Server']['url'], $this->Server->data['Server']['authkey']);
+
+            // get a list of the event_ids on the server
+            $event_ids = $this->Event->getEventIdsFromServer($this->Server->data);
+
+            $successes = array();
+            $fails = array();
+            // download each event
+            if (null != $event_ids) {
+                App::import('Controller', 'Events');
+                $HttpSocket = new HttpSocket();
+                foreach ($event_ids as $event_id) {
+                    $event = $this->Event->downloadEventFromServer(
+                            $event_id,
+                            $this->Server->data);
+                    if (null != $event) {
+                        // we have an Event array
+                        $event['Event']['private'] = true;
+                        $event['Event']['info'] .= "\n Imported from ".$this->Server->data['Server']['url'];
+                        $eventsController = new EventsController();
+                        try {
+                            $result = $eventsController->_add($event, $this->Auth, $fromXml=true);
+                        } catch (MethodNotAllowedException $e) {
+                            if ($e->getMessage() == 'Event already exists') {
+                                $successes[] = $event_id;
+                                continue;
+                            }
+                        }
+                        //$result = $this->_importEvent($event);
+                        // TODO error handling
+                    } else {
+                        // error
+                        $fails[$event_id] = 'failed';
+                    }
+
+                }
+                if (sizeof($fails) > 0) {
+                    // there are fails, take the lowest fail
+                    $lastpulledid = min(array_keys($fails));
+                } else {
+                    // no fails, take the highest success
+                    $lastpulledid = max($successes);
+                }
+                // increment lastid based on the highest ID seen
+                $this->Server->saveField('lastpulledid', $lastpulledid);
+
+            }
+
+
         } else {
             // TODO incremental pull
             // lastpulledid
@@ -158,6 +213,9 @@ class ServersController extends AppController {
 
             // increment lastid based on the highest ID seen
         }
+
+        $this->set('successes', $successes);
+        $this->set('fails', $fails);
     }
 
 
@@ -170,17 +228,17 @@ class ServersController extends AppController {
             throw new NotFoundException(__('Invalid server'));
         }
 
-        App::import('Controller', 'Events');
         App::uses('HttpSocket', 'Network/Http');
-
         $this->Server->read(null, $id);
 
-        if ("full"==$full) {
-            $lastpushedid = 0;
-
-        } else {
-            $lastpushedid = $this->Server->data['Server']['lastpushedid'];
+        if (false == $this->Server->data['Server']['push']) {
+            $this->Session->setFlash(__('Push setting not enabled for this server.'));
+            $this->redirect(array('action' => 'index'));
         }
+
+        if ("full"==$full) $lastpushedid = 0;
+        else $lastpushedid = $this->Server->data['Server']['lastpushedid'];
+
         $find_params = array(
                 'conditions' => array(
                         'Event.id >' => $lastpushedid,
@@ -193,101 +251,40 @@ class ServersController extends AppController {
         $events = $this->Event->find('all', $find_params);
 
 // FIXME now all events are uploaded, even if they exist on the remote server. No merging is done
-// FIXME file attachments are not synced
+
         $successes = array();
         $fails = array();
+        $lowestfailedid = null;
 
-        $HttpSocket = new HttpSocket();
-        $uri = $this->Server->data['Server']['url'].'/events';
-        $request = array(
-                'header' => array(
-                        'Authorization' => $this->Server->data['Server']['authkey'],
-                        'Accept' => 'application/xml',
-                        'Content-Type' => 'application/xml',
-                        //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
-                )
-        );
+        if (!empty($events)) {   // do nothing if there are no events to push
+            $HttpSocket = new HttpSocket();
 
-
-        foreach ($events as $event) {
-                // TODO try to do this using a separate EventsController
-//                 $eventsController = new EventsController();
-//                 $this->RequestHandler->renderAs($eventsController, 'xml');
-//                 debug($eventsController);
-//                 $eventsController->set('event', $event);
-//                 $eventsController->set('isAdmin', $this->_isAdmin());
-//                 $view = new View($eventsController);
-//                 $viewdata = $view->render('view');
-//                 print $viewdata;
-
-//                 // get the output in Xml
-//                 $this->RequestHandler->renderAs($this, 'xml');
-//                 $this->viewPath = 'Events';
-//                 $this->set('event', $event);
-//                 $this->set('isAdmin', $this->_isAdmin());
-//                 $eventsXml = $this->render('view');
-
-            $xmlArray = array();
-            // rearrange things to be compatible with the Xml::fromArray()
-            $event['Event']['Attribute'] = $event['Attribute'];
-            unset($event['Attribute']);
-
-            // cleanup the array from things we do not want to expose
-            unset($event['Event']['user_id']);
-            unset($event['Event']['org']);
-            // remove value1 and value2 from the output
-            foreach($event['Event']['Attribute'] as $key => $value) {
-                unset($event['Event']['Attribute'][$key]['value1']);
-                unset($event['Event']['Attribute'][$key]['value2']);
-                // do not keep attributes that are private
-                if ($event['Event']['Attribute'][$key]['private']) {
-                    unset($event['Event']['Attribute'][$key]);
+            $this->loadModel('Attribute');
+            // upload each event separately and keep the results in the $successes and $fails arrays
+            foreach ($events as $event) {
+                $result = $this->Event->uploadEventToServer(
+                        $event,
+                        $this->Server->data,
+                        $HttpSocket);
+                if (true == $result) {
+                    $successes[] = $event['Event']['id'];
+                } else {
+                    $fails[$event['Event']['id']] = $result;
                 }
             }
-
-            // display the XML to the user
-            $xmlArray['Event'][] = $event['Event'];
-            $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
-            $eventsXml = $xmlObject->asXML();
-            // do a REST POST request with the server
-            $data = $eventsXml;
-            // LATER validate HTTPS SSL certificate
-            $response = $HttpSocket->post($uri, $data, $request);
-            if ($response->isOk()) {
-                $successes[] = $event['Event']['id'];
+            if (sizeof($fails) > 0) {
+                // there are fails, take the lowest fail
+                $lastpushedid = min(array_keys($fails));
+            } else {
+                // no fails, take the highest success
+                $lastpushedid = max($successes);
             }
-            else {
-                $fails[$event['Event']['id']] = $response->body;
-            }
-            $lastpushedid = max($lastpushedid, $event['Event']['id']);
+            // increment lastid based on the highest ID seen
+            $this->Server->saveField('lastpushedid', $lastpushedid);
         }
 
         $this->set('successes', $successes);
         $this->set('fails', $fails);
-        // increment lastid based on the highest ID seen
-        $this->Server->saveField('lastpushedid', $lastpushedid);
-    }
-
-    private function _testXmlArrayProblem() {
-        $xmlArray = array(
-                'Event' => array(
-                        (int) 0 => array(
-                                'id' => '235',
-                                'Attribute' => array(
-                                        (int) 0 => array(
-                                                'id' => '9646',
-                                        ),
-                                        (int) 2 => array(
-                                                'id' => '9647',
-                                        )
-                                )
-                        )
-                )
-        );
-        $xmlObject = Xml::fromArray($xmlArray);
-        debug($xmlObject->asXML());
-
-        exit();
     }
 
 
@@ -312,64 +309,84 @@ class ServersController extends AppController {
             // check if the event already exists :
             // if it doesn't => create the event and all the signatures
             $params = array(
-                    'conditions' => array('Event.uuid' => $eventArray['event']['uuid']),
+                    'conditions' => array('Event.uuid' => $eventArray['Event']['uuid']),
                     'recursive' => 0,
                     'fields' => array('Event.id'),
             );
             $db_event = $this->Event->find('first', $params);
 
             if ($db_event) {
-                print 'Event '. $eventArray['event']['uuid'].' already exists.'."\n";
+                print 'Event '. $eventArray['Event']['uuid'].' already exists.'."\n";
                 // FIXME if event it exists, iterate over the attributes and import the new ones
 
             } else {
                 // create a new event
-                //print 'Event '. $eventArray['event']['uuid'].' doesn\'t exist yet.'."\n";
+                //print 'Event '. $eventArray['Event']['uuid'].' doesn\'t exist yet.'."\n";
 
                 $this->Event->create();
-                $this->Event->data['Event'] = $eventArray['event'];
-                unset($this->Event->data['Event']['id']);
-                unset($this->Event->data['Event']['attribute']);
-                if (empty($this->Event->data['Event']['info']))
-                    $this->Event->data['Event']['info'] = '-';
-
+                $this->Event->data['Event'] = $eventArray['Event'];
+debug($this->Event->data['Event']);
                 // force check userid and orgname to be from yourself
                 $this->Event->data['Event']['user_id'] = 0;
                 $this->Event->data['Event']['org'] = 'imported';
                 $this->Event->data['Event']['private'] = true;
 
+                // check if the uuid already exists
+                $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$this->Event->data['Event']['uuid'])));
+                if ($existingEventCount > 0) {
+                    throw new MethodNotAllowedException('Event already exists');   // LATER throw errors a clean way using XML
+                } // TODO update the event if there are changes
+
+                // Workaround for different structure in XML/array than what CakePHP expects
+                if (is_array($this->Event->data['Event']['Attribute'])) {
+                    if (is_numeric(implode(array_keys($this->Event->data['Event']['Attribute']), ''))) {
+                        // normal array of multiple Attributes
+                        $this->Event->data['Attribute'] = $this->Event->data['Event']['Attribute'];
+                    } else {
+                        // single attribute
+                        $this->Event->data['Attribute'][0] = $this->Event->data['Event']['Attribute'];
+                    }
+                }
+                unset($this->Event->data['Event']['Attribute']);
+                unset($this->Event->data['Event']['id']);
+                // the event_id field is not set (normal) so make sure no validation errors are thrown
+                unset($this->Event->Attribute->validate['event_id']);
+                unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
+
+
+
                 if ($this->Event->save($this->Event->data)) {
-                    print 'Event '.$eventArray['event']['uuid'].' saved'."\n";
+                    print 'Event '.$eventArray['Event']['uuid'].' saved'."\n";
                 } else {
-                    debug($eventArray['event']);
+                    debug($eventArray['Event']);
                     debug($this->Event->validationErrors);
-                    print 'ERROR Event NOT saved: '.$eventArray['event']['uuid']."\n";
+                    print 'ERROR Event NOT saved: '.$eventArray['Event']['uuid']."\n";
                     // ignore this event and continue to the next one
                     continue;
                 }
 
-                // when an event has only one attribute, the $eventArray['event']['attribute']
+                // when an event has only one attribute, the $eventArray['Event']['Attribute']
                 // is not an array containing the Attribute values, so we need a little workaround
-                if (isset($eventArray['event']['attribute']['id'])) {
-                    $attribute = $eventArray['event']['attribute'];
-                    unset($eventArray['event']['attribute']);
-                    $eventArray['event']['attribute'] = array($attribute);
+                if (isset($eventArray['Event']['Attribute']['id'])) {
+                    $attribute = $eventArray['Event']['Attribute'];
+                    unset($eventArray['Event']['Attribute']);
+                    $eventArray['Event']['Attribute'] = array($attribute);
                 }
 
                 // iterate over the array containing attributes
                 // LATER change to saveMany()
-                foreach ($eventArray['event']['attribute'] as $id => $attribute) {
+                foreach ($eventArray['Event']['Attribute'] as $id => $attribute) {
                     $this->Attribute->create();
                     $this->Attribute->data['Attribute'] = $attribute;
                     unset($this->Attribute->data['Attribute']['id']);
                     $this->Attribute->data['Attribute']['event_id'] = $this->Event->id;
 
                     if ($this->Attribute->save($this->Attribute->data)) {
-                        print 'Event '.$eventArray['event']['uuid'].' Attribute saved: '.$eventArray['event']['attribute'][$id]['uuid']."\n";
+                        print 'Event '.$eventArray['Event']['uuid'].' Attribute saved: '.$eventArray['Event']['Attribute'][$id]['uuid']."\n";
                     } else {
                         debug($attribute);
                         debug($this->Attribute->validationErrors);
-                        print 'ERROR Event '.$eventArray['event']['uuid'].' Attribute NOT saved: '.$eventArray['event']['attribute'][$id]['uuid']."\n";
+                        print 'ERROR Event '.$eventArray['Event']['uuid'].' Attribute NOT saved: '.$eventArray['Event']['Attribute'][$id]['uuid']."\n";
                     }
 
                 }
