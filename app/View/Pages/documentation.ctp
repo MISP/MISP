@@ -1,5 +1,5 @@
 <div class="index">
-<h2>Table of Content</h2>
+<div class="toc"></div>
 
 <hr/>
 <h2>Layout and features</h2>
@@ -152,19 +152,45 @@ App::import('Model', 'Attribute');
 $attr = new Attribute();
 //debug($attr);
 ?>
+
+<h2>Attribute Categories and Types</h2>
+<h3>Attribute Categories vs Types</h3>
+<table>
+<tr>
+    <th>Category</th>
+    <?php foreach ($attr->category_definitions as $cat => $cat_def ): ?>
+    <th style="width:5%; text-align:center; white-space:normal"><?php echo $cat; ?></th>
+    <?php endforeach;?>
+</tr>
+<?php foreach ($attr->type_definitions as $type => $def): ?>
+<tr>
+    <td><?php echo $type; ?></td>
+    <?php foreach ($attr->category_definitions as $cat => $cat_def ): ?>
+    <td style="text-align:center"><?php echo in_array($type, $cat_def['types'])? 'X' : ''; ?></td>
+    <?php endforeach;?>
+<?php endforeach;?>
+</tr>
+<tr>
+    <th>Category</th>
+    <?php foreach ($attr->category_definitions as $cat => $cat_def ): ?>
+    <th style="width:5%; text-align:center; white-space:normal"><?php echo $cat; ?></th>
+    <?php endforeach;?>
+</tr>
+</table>
 <h3>Categories</h3>
 <table>
 <tr>
     <th>Category</th>
     <th>Description</th>
 </tr>
-<?php foreach ($attr->category_definitions as $type => $def): ?>
+<?php foreach ($attr->category_definitions as $cat => $def): ?>
 <tr>
-    <td><?php echo $type; ?></td>
-    <td><?php echo (isset($def['formdesc']))? $def['formdesc'] : $def['desc']; ?></td>
+    <td><?php echo $cat; ?></td>
+    <td><?php echo isset($def['formdesc'])? $def['formdesc'] : $def['desc']; ?></td>
 <?php endforeach;?>
 </tr>
 </table>
+
 <h3>Types</h3>
 <table>
 <tr>
@@ -174,7 +200,7 @@ $attr = new Attribute();
 <?php foreach ($attr->type_definitions as $type => $def): ?>
 <tr>
     <td><?php echo $type; ?></td>
-    <td><?php echo (isset($def['formdesc']))? $def['formdesc'] : $def['desc']; ?></td>
+    <td><?php echo isset($def['formdesc'])? $def['formdesc'] : $def['desc']; ?></td>
 <?php endforeach;?>
 </tr>
 </table>
@@ -313,4 +339,7 @@ Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
         <?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
+
+<script type="text/javascript" src="/js/jquery-toc.js">
+</script>
 
