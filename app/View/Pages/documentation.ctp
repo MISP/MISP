@@ -94,16 +94,14 @@ events with same attributes.</p>
             be defined as an attribute (other).</li>
         </ul>
     </li>
-	<li>Click <em>Submit</em>
+    <li style="clear:both;">Click <em>Submit</em>
     	<img src="/img/doc/add-event-done.png" style="float:right;" />
     	<p>Note that at this stage, the information is
     	shared on the site but no notification is sent to the other parties
     	yet.</p></li>
-	<li>Click <em>Add Attribute</em> or <em>Add Attachment</em>
+    <li>Click <em>Add Attribute</em> or <em>Add Attachment</em>
 	</li>
-
-	<li>Fill-in the form:<br/>
-    	For Attribute:
+	<li style="clear:both;">For Attribute:
     	<img src="/img/doc/add-attribute.png" style="float:right;" />
     	<ul>
         	<li><em>Category*</em>: see Category section below</li>
@@ -121,7 +119,9 @@ events with same attributes.</p>
         	assigned the selected Category and Type.</li>
         	<li>Click <em>Submit</em></li>
         </ul>
-    <li>For Attachment:
+    </li>
+
+    <li style="clear:both;">For Attachment:
         <img src="/img/doc/add-attachment.png" style="float:right;" />
         <ul>
         	<li><em>Category:</em> see Category section below</li>
@@ -145,6 +145,39 @@ events with same attributes.</p>
 </li>
 </ol>
 
+
+<?php
+// Load the Attribute model to extract the documentation from the defintions
+App::import('Model', 'Attribute');
+$attr = new Attribute();
+//debug($attr);
+?>
+<h3>Categories</h3>
+<table>
+<tr>
+    <th>Category</th>
+    <th>Description</th>
+</tr>
+<?php foreach ($attr->category_definitions as $type => $def): ?>
+<tr>
+    <td><?php echo $type; ?></td>
+    <td><?php echo (isset($def['formdesc']))? $def['formdesc'] : $def['desc']; ?></td>
+<?php endforeach;?>
+</tr>
+</table>
+<h3>Types</h3>
+<table>
+<tr>
+    <th>Type</th>
+    <th>Description</th>
+</tr>
+<?php foreach ($attr->type_definitions as $type => $def): ?>
+<tr>
+    <td><?php echo $type; ?></td>
+    <td><?php echo (isset($def['formdesc']))? $def['formdesc'] : $def['desc']; ?></td>
+<?php endforeach;?>
+</tr>
+</table>
 
 
 <hr/>
