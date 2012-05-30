@@ -143,7 +143,7 @@ class Attribute extends AppModel {
 			),
 		),
 		'type' => array(
-			// FIXME inList should be initialized from keys of $type_definitions but I don't know how to do it now
+			// FIXME inList should be initialized from keys and mapping of $type_definitions but I don't know how to do it now
 			// currently when adding a new attribute type we need to change it in both places
 			'rule' => array('inList', array('md5','sha1',
                                             'filename',

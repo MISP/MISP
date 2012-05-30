@@ -7,9 +7,11 @@
 		echo $this->Form->hidden('event_id');
 		echo $this->Form->input('category', array(
 		        'between' => $this->Html->div('forminfo', '', array('id'=> 'AttributeCategoryDiv')),
+		        'empty' => '(choose one)'
 		        ));
 		echo $this->Form->input('type', array(
 		        'between' => $this->Html->div('forminfo', '', array('id'=> 'AttributeTypeDiv')),
+		        'empty' => '(first choose category)'
 		        ));
 		if ('true' == Configure::read('CyDefSIG.sync')) {
 		    echo $this->Form->input('private', array(
@@ -31,8 +33,9 @@
 		));
 
 		// link an onchange event to the form elements
+		$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
 		$this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');
-		$this->Js->get('#AttributeCategory')->event('change', 'showFormInfo("#AttributeCategory")');
+
 	?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit'));?>
@@ -43,20 +46,49 @@
     </ul>
 </div>
 <script type="text/javascript">
+//
+//Generate Category / Type filtering array
+//
+var category_type_mapping = new Array();
+<?php
+foreach ($category_definitions as $category => $def) {
+  echo "category_type_mapping['".addslashes($category)."'] = {";
+  $first = true;
+  foreach ($def['types'] as $type) {
+      if ($first) $first = false ;
+      else echo ', ';
+      echo "'".addslashes($type)."' : '".addslashes($type)."'";
+  }
+  echo "}; \n";
+}
+?>
 
+function formCategoryChanged(id) {
+	showFormInfo(id); // display the tooltip
+	// fill in the types
+	var options = $('#AttributeType').prop('options');
+	$('option', $('#AttributeType')).remove();
+	$.each(category_type_mapping[$('#AttributeCategory').val()], function(val, text) {
+	    options[options.length] = new Option(text, val);
+	});
+	// enable the form element
+	$('#AttributeType').prop('disabled', false);
+}
+
+
+//
+// Generate tooltip information
+//
 var formInfoValues = new Array();
 <?php
-	foreach ($type_definitions as $type => $def) {
-		$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-		// as we output JS code we need to add slashes
-		echo "formInfoValues['".addslashes($type)."'] = \"".addslashes($info)."\";\n";
-	}
-
-	foreach ($category_definitions as $category => $def) {
-		$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-		// as we output JS code we need to add slashes
-		echo "formInfoValues['".addslashes($category)."'] = \"".addslashes($info)."\";\n";
-	}
+foreach ($type_definitions as $type => $def) {
+	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+	echo "formInfoValues['".addslashes($type)."'] = \"".addslashes($info)."\";\n";  // as we output JS code we need to add slashes
+}
+foreach ($category_definitions as $category => $def) {
+	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+	echo "formInfoValues['".addslashes($category)."'] = \"".addslashes($info)."\";\n"; // as we output JS code we need to add slashes
+}
 ?>
 
 function showFormInfo(id) {
@@ -74,6 +106,8 @@ function showFormInfo(id) {
 // hide the formInfo things
 $('#AttributeTypeDiv').hide();
 $('#AttributeCategoryDiv').hide();
+$('#AttributeType').prop('disabled', true);
+
 
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts ?>

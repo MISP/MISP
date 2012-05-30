@@ -150,7 +150,6 @@ events with same attributes.</p>
 // Load the Attribute model to extract the documentation from the defintions
 App::import('Model', 'Attribute');
 $attr = new Attribute();
-//debug($attr);
 ?>
 
 <h2>Attribute Categories and Types</h2>
