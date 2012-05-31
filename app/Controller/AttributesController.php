@@ -56,11 +56,11 @@ class AttributesController extends AppController {
 		$this->Attribute->recursive = 0;
 		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
 		$this->set('attributes', $this->paginate());
-		
+
 		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
 		$this->set('type_definitions', $this->Attribute->type_definitions);
 		$this->set('category_definitions', $this->Attribute->category_definitions);
-		
+
 	}
 
 /**
@@ -143,14 +143,14 @@ class AttributesController extends AppController {
 		}
 
 		// combobox for types
-		$types = $this->Attribute->validate['type']['rule'][1];
+		$types = array_keys($this->Attribute->type_definitions);
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types',compact('types'));
 		// combobos for categories
 		$categories = $this->Attribute->validate['category']['rule'][1];
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories',compact('categories'));
-		
+
 		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
 		$this->set('type_definitions', $this->Attribute->type_definitions);
 		$this->set('category_definitions', $this->Attribute->category_definitions);
@@ -291,11 +291,11 @@ class AttributesController extends AppController {
 	    $categories = $this->Attribute->validate['category']['rule'][1];
 	    $categories = $this->_arrayToValuesIndexArray($categories);
 	    $this->set('categories',compact('categories'));
-	    
+
 	    $this->set('attr_descriptions', $this->Attribute->field_descriptions);
 	    $this->set('type_definitions', $this->Attribute->type_definitions);
 	    $this->set('category_definitions', $this->Attribute->category_definitions);
-	    
+
 	}
 
 /**
@@ -344,7 +344,7 @@ class AttributesController extends AppController {
 		}
 
 		// combobox for types
-		$types = $this->Attribute->validate['type']['rule'][1];
+		$types = $types = array_keys($this->Attribute->type_definitions);
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types',compact('types'));
 		// combobox for categories
@@ -387,6 +387,11 @@ class AttributesController extends AppController {
 
 
 	public function search() {
+
+	    $this->set('attr_descriptions', $this->Attribute->field_descriptions);
+	    $this->set('type_definitions', $this->Attribute->type_definitions);
+	    $this->set('category_definitions', $this->Attribute->category_definitions);
+
 	    if ($this->request->is('post')) {
 	        $keyword = $this->request->data['Attribute']['keyword'];
 	        $type = $this->request->data['Attribute']['type'];
@@ -417,7 +422,7 @@ class AttributesController extends AppController {
 	        // adding filtering by category and type
     	    // combobox for types
     	    $types = array('ALL');
-    	    $types = array_merge($types, $this->Attribute->validate['type']['rule'][1]);
+    	    $types = array_merge($types, array_keys($this->Attribute->type_definitions));
     	    $types = $this->_arrayToValuesIndexArray($types);
     	    $this->set('types',compact('types'));
 
@@ -426,11 +431,7 @@ class AttributesController extends AppController {
     	    $categories = array_merge($categories, $this->Attribute->validate['category']['rule'][1]);
     	    $categories = $this->_arrayToValuesIndexArray($categories);
     	    $this->set('categories',compact('categories'));
-    	    
-    	    $this->set('type_definitions', $this->Attribute->type_definitions);
-    	    $this->set('category_definitions', $this->Attribute->category_definitions);
 	    }
-
 	}
 
 }

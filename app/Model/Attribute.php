@@ -145,34 +145,8 @@ class Attribute extends AppModel {
 		'type' => array(
 			// FIXME inList should be initialized from keys and mapping of $type_definitions but I don't know how to do it now
 			// currently when adding a new attribute type we need to change it in both places
-			'rule' => array('inList', array('md5','sha1',
-                                            'filename',
-                                            'filename|md5',
-			                                'filename|sha1',
-                                            'ip-src',
-                                            'ip-dst',
-                                            'domain',
-                                            'email-src',
-                                            'email-dst',
-                                            'email-subject',
-                                            'email-attachment',
-                                            'url',
-                                            'user-agent',
-                                            'regkey',
-                                            'regkey|value',
-                                            'AS',
-                                            'snort',
-                                            'pattern-in-file',
-                                            'pattern-in-traffic',
-                                            'pattern-in-memory',
-                                            'vulnerability',
-                                            'attachment',
-                                            'malware-sample',
-                                            'link',
-                                            'comment',
-                                            'text',
-                                            'other')),
-			'message' => 'Options : md5, sha1, filename, ip, domain, email, url, regkey, AS, other, ...',
+			'rule' => array('validateTypeValue'),
+			'message' => 'Options depend on the selected category.',
 			//'allowEmpty' => false,
 			'required' => true,
 			//'last' => false, // Stop validation after this rule
@@ -380,6 +354,11 @@ class Attribute extends AppModel {
 	    return true;
 	}
 
+	function validateTypeValue($fields) {
+        $category = $this->data['Attribute']['category'];
+        return in_array($fields['type'], $this->category_definitions[$category]['types']);
+	}
+
 	function validateAttributeValue ($fields) {
 	    $value = $fields['value'];
 
@@ -509,7 +488,7 @@ class Attribute extends AppModel {
         // default composite types
         $composite_types = array('malware-sample');
         // dynamically generated list
-        foreach ($this->validate['type']['rule'][1] as $type) {
+        foreach (array_keys($this->type_definitions) as $type) {
             $pieces = explode('|', $type);
             if (2 == sizeof($pieces)) $composite_types[] = $type;
         }

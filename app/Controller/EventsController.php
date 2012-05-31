@@ -532,6 +532,7 @@ class EventsController extends AppController {
      *
      * Sends out an email with the request to be contacted about a specific event.
      * @todo move _sendContactEmail($id, $message) to a better place. (components?)
+     * FIXME this _sendContactEmail() gives bugs when a user is deleted. Maybe we should send emails to everyone?
      *
      * @param unknown_type $id The id of the event for wich you want to contact the person.
      * @param unknown_type $message The custom message that will be appended to the email.
@@ -650,7 +651,7 @@ class EventsController extends AppController {
 
         // generate the list of Attribute types
         $this->loadModel('Attribute');
-        $this->set('sig_types', $this->Attribute->validate['type']['rule'][1]);
+        $this->set('sig_types', array_keys($this->Attribute->type_definitions));
 
     }
 

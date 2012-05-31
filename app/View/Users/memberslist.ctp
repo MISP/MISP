@@ -35,7 +35,7 @@
         });
         var panel1 = Ext.create('widget.panel', {
             width: 800,
-            height: 500,
+            height: 800,
             //title: 'Attributes by Organisation',
             renderTo: 'graph',
             layout: 'fit',
