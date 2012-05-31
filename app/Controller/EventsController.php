@@ -114,7 +114,7 @@ class EventsController extends AppController {
             );
             $relatedEvents = $this->Event->find('all', $find_params);
         }
-      
+
 		// passing decriptions for model fields
 		$this->set('event_descriptions', $this->Event->field_descriptions);
 		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
@@ -155,7 +155,7 @@ class EventsController extends AppController {
         $risks = $this->Event->validate['risk']['rule'][1];
         $risks = $this->_arrayToValuesIndexArray($risks);
         $this->set('risks',compact('risks'));
-        
+
         $this->set('event_descriptions', $this->Event->field_descriptions);
     }
 
@@ -168,6 +168,7 @@ class EventsController extends AppController {
         // force check userid and orgname to be from yourself
         $data['Event']['user_id'] = $auth->user('id');
         $data['Event']['org'] = $auth->user('org');
+        unset ($data['Event']['id']);
         $this->Event->create();
 
         if (isset($data['Event']['uuid'])) {
@@ -253,7 +254,7 @@ class EventsController extends AppController {
         $risks = $this->Event->validate['risk']['rule'][1];
         $risks = $this->_arrayToValuesIndexArray($risks);
         $this->set('risks',compact('risks'));
-        
+
         $this->set('event_descriptions', $this->Event->field_descriptions);
     }
 
