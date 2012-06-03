@@ -202,6 +202,7 @@ class EventsController extends AppController {
             }
             return true;
         } else {
+            throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
             return false;
         }
     }
