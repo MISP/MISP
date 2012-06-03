@@ -64,7 +64,6 @@ class Attribute extends AppModel {
 			'malware-sample' => array('desc' => 'Attachment containing encrypted malware sample', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button."),
 			'link' => array('desc' => 'Link to an external information'),
 			'comment' => array('desc' => 'Comment or description in a human language', 'formdesc' => 'Comment or description in a human language. <br/> This will not be correlated with other attributes (NOT IMPLEMENTED YET)'),
-			'description' => array('desc' => 'Comment or description in a human language'), //this is obsolete, use comment instead
 			'text' => array('desc' => 'Name, ID or a reference'),
 			'other' => array('desc' => 'Other attribute')
 	);
@@ -511,7 +510,6 @@ class Attribute extends AppModel {
 	    }
         // exclude these specific types to be linked
         switch ($attribute['type']) {
-            case 'description':
             case 'other':
                 return null;
         }
