@@ -710,8 +710,14 @@ class EventsController extends AppController {
 
         $rules= array();
         $this->loadModel('Attribute');
-        $this->Attribute->recursive=0;
-        $items = $this->Attribute->findAllByTo_ids(1);
+
+        $params = array(
+                'conditions' => array('Attribute.to_ids' => 1), //array of conditions
+                'recursive' => 0, //int
+                'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+        );
+        $items = $this->Attribute->find('all', $params);
+
         $classtype = 'targeted-attack';
         foreach ($items as $item) {
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
