@@ -21,19 +21,19 @@
 	<dl>
 		<dt>ID</dt>
 		<dd>
-			<?php echo Sanitize::html($event['Event']['id']); ?>
+			<?php echo h($event['Event']['id']); ?>
 			&nbsp;
 		</dd>
 		<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 		<dt>Org</dt>
 		<dd>
-			<?php echo Sanitize::html($event['Event']['org']); ?>
+			<?php echo h($event['Event']['org']); ?>
 			&nbsp;
 		</dd>
 		<?php endif; ?>
 		<dt>Date</dt>
 		<dd>
-			<?php echo Sanitize::html($event['Event']['date']); ?>
+			<?php echo h($event['Event']['date']); ?>
 			&nbsp;
 		</dd>
 		<dt<?php echo ' title="' . $event_descriptions['risk']['desc'] . '"';?>>Risk</dt>
@@ -55,7 +55,7 @@
 		</dd -->
 		<dt>Info</dt>
 		<dd>
-			<?php echo nl2br(Sanitize::html($event['Event']['info'])); ?>
+			<?php echo nl2br(h($event['Event']['info'])); ?>
 			&nbsp;
 		</dd>
 	</dl>
@@ -86,7 +86,7 @@
     		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
     		<th <?php echo "title='" . $attr_descriptions['private']['desc'] . "'";?>>Private</th>
     		<?php endif;?>
-    		<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?> 		
+    		<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
     		<th class="actions">Actions</th>
     		<?php endif;?>
     	</tr>
@@ -107,14 +107,14 @@
     		    ?></td>
     			<td class="short" title="<?php echo $type_definitions[$attribute['type']]['desc'];?>"><?php echo $attribute['type'];?></td>
     			<td><?php
-    			$sig_display = nl2br(Sanitize::html($attribute['value']));
+    			$sig_display = nl2br(h($attribute['value']));
     			if('attachment' == $attribute['type'] ||
     			        'malware-sample' == $attribute['type'] ) {
-			        $filename_hash = explode('|', Sanitize::html($attribute['value']));
+			        $filename_hash = explode('|', h($attribute['value']));
 			        echo $this->Html->link($filename_hash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
 			        if (isset($filename_hash[1])) echo ' | '.$filename_hash[1];
     			} elseif (strpos($attribute['type'], '|') !== false) {
-    			    $filename_hash = explode('|', Sanitize::html($attribute['value']));
+    			    $filename_hash = explode('|', h($attribute['value']));
     			    echo $filename_hash[0];
     			    if (isset($filename_hash[1])) echo ' | '.$filename_hash[1];
     			} elseif ('vulnerability' == $attribute['type']) {

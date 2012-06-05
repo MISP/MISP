@@ -21,12 +21,12 @@
 		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
 		<?php
-		$sig_display = nl2br(Sanitize::html($attribute['Attribute']['value']));
+		$sig_display = nl2br(h($attribute['Attribute']['value']));
 		if('attachment' == $attribute['Attribute']['type'] ||
 		   'malware-sample' == $attribute['Attribute']['type']) {
 		    echo $this->Html->link($sig_display, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']));
 		} elseif('link' == $attribute['Attribute']['type']) {
-			?><A HREF="<?php echo $attribute['Attribute']['value']?>"><?php echo $attribute['Attribute']['value']?></A><?php	
+			?><A HREF="<?php echo $attribute['Attribute']['value']?>"><?php echo $attribute['Attribute']['value']?></A><?php
 		} else {
 			echo $sig_display;
 		}
