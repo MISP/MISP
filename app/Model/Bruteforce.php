@@ -1,5 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('Sanitize', 'Utility');
+
 /**
  * Bruteforce Model
  *
@@ -8,10 +10,10 @@ class Bruteforce extends AppModel {
 
 
     function insert($ip, $username) {
-//         $this->data['Bruteforce']['ip'] = $ip;
-//         $this->data['Bruteforce']['username'] = $username;
         $expire = Configure::read('SecureAuth.expire');
-
+        // sanitize fields
+        $ip = Sanitize::clean($ip);
+        $username = Sanitize::clean($username);
         $this->query("INSERT INTO `bruteforces` (`ip` , `username` , `expire` ) VALUES ('$ip', '$username', TIMESTAMPADD(SECOND,$expire, NOW()));");
     }
 
