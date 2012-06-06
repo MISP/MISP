@@ -142,7 +142,6 @@ class Attribute extends AppModel {
 			),
 		),
 		'type' => array(
-			// FIXME inList should be initialized from keys and mapping of $type_definitions but I don't know how to do it now
 			// currently when adding a new attribute type we need to change it in both places
 			'rule' => array('validateTypeValue'),
 			'message' => 'Options depend on the selected category.',

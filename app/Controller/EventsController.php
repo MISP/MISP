@@ -35,6 +35,8 @@ class EventsController extends AppController {
         $this->Auth->allow('xml');
         $this->Auth->allow('nids');
         $this->Auth->allow('text');
+
+        $this->Auth->allow('dot');
     }
 
     public function isAuthorized($user) {
@@ -385,7 +387,7 @@ class EventsController extends AppController {
         $this->Event->recursive = 1;
         $event = $this->Event->read(null, $id);
 
-        // The mail body, Sanitize::html() is NOT needed as we are sending plain-text mails.
+        // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";
         $appendlen = 20;
         $body .= 'URL         : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$event['Event']['id']."\n";
@@ -544,7 +546,7 @@ class EventsController extends AppController {
         $event = $this->Event->read(null, $id);
         $reporter = $event['User']; // email, gpgkey
 
-        // The mail body, Sanitize::html() is NOT needed as we are sending plain-text mails.
+        // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";
         $body .="Hello, \n";
         $body .="\n";
@@ -961,6 +963,68 @@ class EventsController extends AppController {
     }
 
 
+//     public function dot($key) {
+//         // check if the key is valid -> search for users based on key
+//         $this->loadModel('User');
+//         // no input sanitization necessary, it's done by model
+//         // TODO do not fetch recursive
+//         $this->User->recursive=0;
+//         $user = $this->User->findByAuthkey($key);
+//         if (empty($user)) {
+//             throw new UnauthorizedException('Incorrect authentication key');
+//         }
+//         // display the full snort rulebase
+//         $this->response->type('txt');    // set the content type
+//         $this->header('Content-Disposition: inline; filename="cydefsig.rules"');
+//         $this->layout = 'text/default';
+
+//         $rules= array();
+//         $this->loadModel('Attribute');
+
+//         $params = array(
+//                 'recursive' => 0,
+//                 'fields' => array('Attribute.*')
+//         );
+//         $items = $this->Attribute->find('all', $params);
+
+//         $composite_types = $this->Attribute->getCompositeTypes();
+//         // rebuild the array with the correct data
+//         foreach ($items as &$item) {
+//             if (in_array($item['Attribute']['type'], $composite_types)) {
+//                 // create a new item that will contain value2
+//                 $new_item = $item;
+//                 // set the correct type for the first item
+//                 $pieces = explode('|', $item['Attribute']['type']);
+//                 $item['Attribute']['type'] = $pieces[0];
+//                 // set the correct data for the new item
+//                 $new_item['Attribute']['type'] = (isset($pieces[1]))? $pieces[1] : 'md5';
+//                 $new_item['Attribute']['value'] = $item['Attribute']['value2'];
+//                 unset($new_item['Attribute']['value1']);
+//                 unset($new_item['Attribute']['value2']);
+//                 // store the new item
+//                 $items[] = $new_item;
+//             }
+//             // set the correct fields for the attribute
+//             if (isset($item['Attribute']['value1'])) {
+//                 $item['Attribute']['value'] = $item['Attribute']['value1'];
+//             }
+//             unset($item['Attribute']['value1']);
+//             unset($item['Attribute']['value2']);
+//         }
+//         debug($items);
+
+//         // iterate over the array to build the GV links
+//         require_once 'Image/GraphViz.php';
+//         $gv = new Image_GraphViz();
+//         $gv->addEdge(array('wake up'        => 'visit bathroom'));
+//         $gv->addEdge(array('visit bathroom' => 'make coffee'));
+//         foreach ($items as &$item) {
+//             $gv->addNode('Node 1',
+//                     array(''));
+//         }
+//         debug($gv);
+//         $gv->image();
+//     }
 
 
     /**
