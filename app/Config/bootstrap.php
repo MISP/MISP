@@ -102,6 +102,9 @@ Configure::write('GnuPG.email', 'no-reply@sig.mil.be');
 Configure::write('GnuPG.password', 'ii3naxoK|o2a');
 Configure::write('GnuPG.homedir', '/Users/chri/Documents/Work/Projects/201107-CyDefSIG/.gnupg/');
 
+Configure::write('SecureAuth.amount', 5);              // the maximum amount of failed logins
+Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
+
 /**
  * The settings below can be used to set additional paths to models, views and controllers.
  *

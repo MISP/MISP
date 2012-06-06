@@ -97,6 +97,18 @@ CREATE TABLE `users` (
   KEY `email` (`email`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=2 ;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bruteforces`
+--
+
+CREATE TABLE `bruteforces` (
+  `ip` varchar(255) COLLATE utf8_bin NOT NULL,
+  `username` varchar(255) COLLATE utf8_bin NOT NULL,
+  `expire` datetime NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
 
 --
 -- Dumping data for table `attributes`

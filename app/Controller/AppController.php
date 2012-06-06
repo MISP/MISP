@@ -37,11 +37,13 @@ class AppController extends Controller {
     public $components = array(
     		'Session',
     		'Auth' => array(
+    		    'className' => 'SecureAuth',
                 'authenticate' => array(
                     'Form' => array(
                         'fields' => array('username' => 'email')
                     )
                 ),
+    		    'authError' => 'Did you really think you are allowed to see that?',
     			'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
      			'logoutRedirect' => array('controller' => 'users', 'action' => 'login'),
     			'authorize' => array('Controller') // Added this line
@@ -81,8 +83,8 @@ class AppController extends Controller {
                 } else {
                     // User not authenticated correctly
                     // reset the session information
-                    // FIXME return a REST response with an error message
                     $this->Session->destroy();
+                    throw new ForbiddenException('Incorrect authentication key');
                 }
             }
         }
@@ -139,7 +141,8 @@ class AppController extends Controller {
      * Then run this function by setting debug = 1 (or more) and call /events/migrate01to02
      */
     function migrate01to02() {
-        if (Configure::read('debug') == 0) throw new NotFoundException();
+        if (!self::_isAdmin()) throw new NotFoundException();
+
         // generate uuids for events who have no uuid
         $this->loadModel('Event');
         $params = array(
@@ -181,7 +184,7 @@ class AppController extends Controller {
      * Then run this function by setting debug = 1 (or more) and call /events/migrate02to021
      */
     function migrate02to021() {
-        if (Configure::read('debug') == 0) throw new NotFoundException();
+        if (!self::_isAdmin()) throw new NotFoundException();
 
         // search for composite value1 fields and explode it to value1 and value2
         $this->loadModel('Attribute');
@@ -210,5 +213,37 @@ class AppController extends Controller {
 
     }
 
-    // FIXME change all Sanitize:html( to h( function. Shorter and same result.
+
+    function migrate021to022() {
+        if (!self::_isAdmin()) throw new NotFoundException();
+
+        // replace description by comment
+
+        // replace empty category
+        // not easy as we have to guess the category from the type
+//         $this->loadModel('Attribute');
+//         $params = array(
+//                 'conditions' => array('Attribute.type' => ''),
+//                 'recursive' => 0,
+//                 'fields' => array('Attribute.id'),
+//         );
+//         $attributes = $this->Attribute->find('all', $params);
+//         echo '<p>Replacing empty categories by OtherExploding composite fields in 2 columns: </p><ul>';
+//         foreach ($attributes as $attribute) {
+//             $pieces = explode('|', $attribute['Attribute']['value1']);
+//             if (2 != sizeof($pieces)) continue;    // do nothing if not 2 pieces
+
+//             $this->Attribute->id = $attribute['Attribute']['id'];
+//             echo '<li>'.$attribute['Attribute']['id'].' --> '.$attribute['Attribute']['value1'].' --> '.$pieces[0].' --> '.$pieces[1].'</li> ';
+//             $this->Attribute->saveField('value1', $pieces[0]);
+//             $this->Attribute->id = $attribute['Attribute']['id'];
+//             $this->Attribute->saveField('value2', $pieces[1]);
+//         }
+//         echo "</ul> DONE</p>";
+
+        // search for incompatible combination of category / type
+
+
+    }
+
 }
