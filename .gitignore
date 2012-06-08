@@ -8,5 +8,8 @@
 /README
 /app/tmp/sessions/sess_*
 /app/tmp/logs/*.log
+/app/tmp/cache/models/myapp*
+/app/tmp/cache/persistent/myapp*
+/app/tmp/cache/views/myapp*
 /app/files/*
 /app/webroot/img/logo.png
