@@ -6,9 +6,7 @@ foreach ($events as $key => $event) {
     $events[$key] = $events[$key]['Event'];
 
     // cleanup the array from things we do not want to expose
-    unset($events[$key]['User']);
     unset($events[$key]['Event']);
-    unset($events[$key]['user_id']);
     // hide the private field is we are not in sync mode
     if ('true' != Configure::read('CyDefSIG.sync')) {
         unset($events[$key]['private']);

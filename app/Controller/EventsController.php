@@ -168,7 +168,6 @@ class EventsController extends AppController {
      */
     public function _add(&$data, &$auth, $fromXml) {
         // force check userid and orgname to be from yourself
-        $data['Event']['user_id'] = $auth->user('id');
         $data['Event']['org'] = $auth->user('org');
         unset ($data['Event']['id']);
         $this->Event->create();
@@ -192,7 +191,7 @@ class EventsController extends AppController {
         }
 
         $fieldList = array(
-                'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private'),
+                'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private'),
                 'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
         );
         // this saveAssociated() function will save not only the event, but also the attributes
@@ -229,14 +228,10 @@ class EventsController extends AppController {
             }
 
             // say what fields are to be updated
-            $fieldList=array('user_id', 'date', 'risk', 'info', 'published', 'private');
-            // always force the user and org, but do not force it for admins
-            if (!$this->_isAdmin()) {
-                $this->request->data['Event']['user_id'] = $this->Auth->user('id');
-
-            } else {
-                $this->Event->read();
-                $this->request->data['Event']['user_id'] = $this->Event->data['Event']['user_id'];
+            $fieldList=array('date', 'risk', 'info', 'published', 'private');
+            // always force the org, but do not force it for admins
+            if ($this->_isAdmin()) {
+                $this->Event->read(); // FIXME URGENT this should be deleted? delete and test
                 $fieldList[]='org';
                 $this->request->data['Event']['org'] = $this->Event->data['Event']['org'];
             }
@@ -533,18 +528,19 @@ class EventsController extends AppController {
 
     /**
      *
-     * Sends out an email with the request to be contacted about a specific event.
+     * Sends out an email to all people within the same group
+     * with the request to be contacted about a specific event.
      * @todo move _sendContactEmail($id, $message) to a better place. (components?)
-     * FIXME this _sendContactEmail() gives bugs when a user is deleted. Maybe we should send emails to everyone?
      *
-     * @param unknown_type $id The id of the event for wich you want to contact the person.
+     * @param unknown_type $id The id of the event for wich you want to contact the org.
      * @param unknown_type $message The custom message that will be appended to the email.
      * @return True if success, False if error
      */
     private function _sendContactEmail($id, $message) {
         // fetch the event
         $event = $this->Event->read(null, $id);
-        $reporter = $event['User']; // email, gpgkey
+        $this->loadModel('User');
+        $org_members = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey'));
 
         // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";
@@ -601,28 +597,6 @@ class EventsController extends AppController {
         $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
         $body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
 
-        if (!empty($reporter['gpgkey'])) {
-            // import the key of the user into the keyring
-            // this isn't really necessary, but it gives it the fingerprint necessary for the next step
-            $key_import_output = $gpg->importKey($reporter['gpgkey']);
-            // say what key should be used to encrypt
-            $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-            $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
-
-            $body_enc_sig = $gpg->encrypt($body_signed, true);
-        } else {
-            $body_enc_sig = $body_signed;
-            // FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
-        }
-
-        // prepare the email
-        $this->Email->from = Configure::read('CyDefSIG.email');
-        $this->Email->to = $reporter['email'];
-        $this->Email->subject = "[CyDefSIG] Need info about event ".$id." - TLP Amber";
-        //$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
-        $this->Email->template = 'body';
-        $this->Email->sendAs = 'text';        // both text or html
-        $this->set('body', $body_enc_sig);
 
         // Add the GPG key of the user as attachment
         // LATER sign the attached GPG key
@@ -638,8 +612,44 @@ class EventsController extends AppController {
             );
         }
 
-        // send it
-        $result = $this->Email->send();
+        foreach ($org_members as $reporter) {
+            if (!empty($reporter['User']['gpgkey'])) {
+                // import the key of the user into the keyring
+                // this isn't really necessary, but it gives it the fingerprint necessary for the next step
+                $key_import_output = $gpg->importKey($reporter['User']['gpgkey']);
+                // say what key should be used to encrypt
+                $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+                $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
+
+                $body_enc_sig = $gpg->encrypt($body_signed, true);
+            } else {
+                $body_enc_sig = $body_signed;
+                // FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
+            }
+
+            // prepare the email
+            $this->Email->from = Configure::read('CyDefSIG.email');
+            $this->Email->to = $reporter['User']['email'];
+            $this->Email->subject = "[CyDefSIG] Need info about event ".$id." - TLP Amber";
+            //$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
+            $this->Email->template = 'body';
+            $this->Email->sendAs = 'text';        // both text or html
+            $this->set('body', $body_enc_sig);
+            // Add the GPG key of the user as attachment
+            // LATER sign the attached GPG key
+            if (!empty($me_user['gpgkey'])) {
+                // attach the gpg key
+                $this->Email->attachments = array(
+                        'gpgkey.asc' => $tmpfname
+                );
+            }
+            // send it
+            $result = $this->Email->send();
+            // If you wish to send multiple emails using a loop, you'll need
+            // to reset the email fields using the reset method of the Email component.
+            $this->Email->reset();
+
+        }
 
         // remove the temporary gpg file
         if (!empty($me_user['gpgkey']))
@@ -680,7 +690,7 @@ class EventsController extends AppController {
         } else {
             $conditions = array();
         }
-        // do not expose all the data like user_id, ...
+        // do not expose all the data ...
         $fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid');
         if ('true' == Configure::read('CyDefSIG.showorg')) {
             $fields[] = 'Event.org';

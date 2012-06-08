@@ -20,6 +20,8 @@
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 
+// TODO GPG encryption has issues when keys are expired
+
 App::uses('Controller', 'Controller');
 App::uses('Sanitize', 'Utility');
 

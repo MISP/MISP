@@ -69,16 +69,6 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'user_id' => array(
-			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
-		),
 		'published' => array(
 			'boolean' => array(
 				'rule' => array('boolean'),
@@ -126,15 +116,15 @@ class Event extends AppModel {
  *
  * @var array
  */
-	public $belongsTo = array(
-		'User' => array(
-			'className' => 'User',
-			'foreignKey' => 'user_id',
-			'conditions' => '',
-			'fields' => '',
-			'order' => ''
-		)
-	);
+// 	public $belongsTo = array(
+// 		'Org' => array(
+// 			'className' => 'Org',
+// 			'foreignKey' => 'org',
+// 			'conditions' => '',
+// 			'fields' => '',
+// 			'order' => ''
+// 		)
+// 	);
 
 /**
  * hasMany associations
@@ -258,7 +248,6 @@ class Event extends AppModel {
 	    unset($event['Attribute']);
 
 	    // cleanup the array from things we do not want to expose
-	    unset($event['Event']['user_id']);
 	    unset($event['Event']['org']);
 	    // remove value1 and value2 from the output
 	    foreach($event['Event']['Attribute'] as $key => $attribute) {
