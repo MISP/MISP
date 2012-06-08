@@ -510,7 +510,8 @@ class Attribute extends AppModel {
         // exclude these specific types to be linked
         switch ($attribute['type']) {
             case 'other':
-                return null;
+            case 'comment':
+            	return null;
         }
 
         // prepare the conditions
