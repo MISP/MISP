@@ -79,3 +79,12 @@ Don't forget to change the email, password and authentication key after installa
 Recommended patches
 -------------------
 By default CakePHP exposes his name and version in email headers. Apply a patch to remove this behavior.
+
+Multiple instances on a single server
+-------------------------------------
+If you want to install multiple instances on a single server, extract the CakePHP sources 
+in a central location like /opt/cakephp.
+ 
+Then edit /var/www/cydefsig/app/webroot/index.php and change :
+	define('CAKE_CORE_INCLUDE_PATH', '/opt/cakephp/lib');
+
