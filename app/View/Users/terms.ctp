@@ -1,12 +1,5 @@
 <div class="users form">
 <h2>CyDefSIG Terms and Conditions</h2>
-<?php
-if (!isset($termsaccepted)) {
-    echo $this->Form->create('User');
-    echo $this->Form->hidden('termsaccepted', array('default'=> '1'));
-    echo $this->Form->end(__('Accept Terms', true));
-}
-?>
 <p><i>CyDefSIG is a platform for a trusted official service to share Malware signatures with the Belgian Defence ADIV/SGRS.</i></p>
 <p>As a member of CyDefSIG you accept all the following:</p>
 <ul>
@@ -44,7 +37,7 @@ holder or other party has been advised of the possibility of such damages.</li>
 
 
 <?php
-if (!isset($termsaccepted)) {
+if (!$termsaccepted) {
     echo $this->Form->create('User');
     echo $this->Form->hidden('termsaccepted', array('default'=> '1'));
     echo $this->Form->end(__('Accept Terms', true));
