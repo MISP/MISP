@@ -179,7 +179,7 @@ class UsersController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$fields = array();
-			foreach (array_keys($this->request->data['User']) as $field) {
+			foreach (array_keys($this->request->data['User']) as &$field) {
 				if($field != 'password') array_push($fields, $field);
 			}
 			if ("" != $this->request->data['User']['password'])
@@ -308,7 +308,7 @@ class UsersController extends AppController {
 	    $sig_types = array_keys($this->Attribute->type_definitions);
 
 	    $graph_fields = '';
-	    foreach ($sig_types as $sig_type) {
+	    foreach ($sig_types as &$sig_type) {
 	        if ($graph_fields != "")  $graph_fields .= ", ";
 	        $graph_fields .= "'".$sig_type."'";
 	    }
@@ -318,7 +318,7 @@ class UsersController extends AppController {
 	    $graph_data=array();
 	    $prev_row_org = "";
 	    $i = -1;
-	    foreach ($types_histogram as $row) {
+	    foreach ($types_histogram as &$row) {
 	        if ($prev_row_org != $row['Event']['org']) {
 	            $i++; $graph_data[] = "";
 	            $prev_row_org = $row['Event']['org'];

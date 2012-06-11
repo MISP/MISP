@@ -100,9 +100,9 @@ class EventsController extends AppController {
         // This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
         $relatedEventIds = array();
         $relatedEvents = array();
-        foreach ($relatedAttributes as $relatedAttribute) {
+        foreach ($relatedAttributes as &$relatedAttribute) {
             if (null == $relatedAttribute) continue;
-            foreach ($relatedAttribute as $item) {
+            foreach ($relatedAttribute as &$item) {
                 $relatedEventsIds[] = $item['Attribute']['event_id'];
             }
         }
@@ -304,7 +304,7 @@ class EventsController extends AppController {
 
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket();
-        foreach ($servers as $server) {
+        foreach ($servers as &$server) {
             $this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
         }
     }
@@ -394,7 +394,7 @@ class EventsController extends AppController {
         $body .= 'Risk        : '.$event['Event']['risk']."\n";
         $relatedEvents = $this->Event->getRelatedEvents($id);
         if (!empty($relatedEvents)) {
-            foreach ($relatedEvents as $relatedEvent){
+            foreach ($relatedEvents as &$relatedEvent){
                 $body .= 'Related to  : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$relatedEvent['Event']['id'].' ('.$relatedEvent['Event']['date'].')'."\n" ;
 
             }
@@ -406,7 +406,7 @@ class EventsController extends AppController {
         $body_temp_other = "";
 
         if (isset($event['Attribute'])) {
-            foreach ($event['Attribute'] as $attribute){
+            foreach ($event['Attribute'] as &$attribute){
                 $line = '- '.$attribute['type'].str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])).': '.$attribute['value']."\n";
                 if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
                     $body_temp_other .= $line;
@@ -435,7 +435,7 @@ class EventsController extends AppController {
                     'recursive' => 0,
             ) );
             $alert_emails = Array();
-            foreach ($alert_users as $user) {
+            foreach ($alert_users as &$user) {
                 $alert_emails[] = $user['User']['email'];
             }
             // prepare the the unencrypted email
@@ -463,7 +463,7 @@ class EventsController extends AppController {
         )
         );
         // encrypt the mail for each user and send it separately
-        foreach ($alert_users as $user) {
+        foreach ($alert_users as &$user) {
             // send the email
             $this->Email->from = Configure::read('CyDefSIG.email');
             $this->Email->to = $user['User']['email'];
@@ -568,7 +568,7 @@ class EventsController extends AppController {
         $body .= 'Risk        : '.$event['Event']['risk']."\n";
         $relatedEvents = $this->Event->getRelatedEvents($id);
         if (!empty($relatedEvents)) {
-            foreach ($relatedEvents as $relatedEvent){
+            foreach ($relatedEvents as &$relatedEvent){
                 $body .= 'Related to  : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$relatedEvent['Event']['id'].' ('.$relatedEvent['Event']['date'].')'."\n" ;
 
             }
@@ -579,7 +579,7 @@ class EventsController extends AppController {
         $body .= 'Attributes  :'."\n";
         $body_temp_other = "";
         if (!empty($event['Attribute'])) {
-            foreach ($event['Attribute'] as $attribute){
+            foreach ($event['Attribute'] as &$attribute){
                 $line = '- '.$attribute['type'].str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])).': '.$attribute['value']."\n";
                 if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
                     $body_temp_other .= $line;
@@ -610,7 +610,7 @@ class EventsController extends AppController {
             );
         }
 
-        foreach ($org_members as $reporter) {
+        foreach ($org_members as &$reporter) {
             if (!empty($reporter['User']['gpgkey'])) {
                 // import the key of the user into the keyring
                 // this isn't really necessary, but it gives it the fingerprint necessary for the next step
@@ -729,7 +729,7 @@ class EventsController extends AppController {
         $items = $this->Attribute->find('all', $params);
 
         $classtype = 'targeted-attack';
-        foreach ($items as $item) {
+        foreach ($items as &$item) {
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
             $rule_format_msg = 'msg: "CyDefSIG %s, Event '.$item['Event']['id'].', '.$item['Event']['risk'].'"';
             $rule_format_reference = 'reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/view/'.$item['Event']['id'];
@@ -935,7 +935,7 @@ class EventsController extends AppController {
         print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
 
         print "#<pre> \n";
-        foreach ($rules as $rule)
+        foreach ($rules as &$rule)
             print $rule."\n";
         print "#</pre>\n";
 
@@ -1046,7 +1046,7 @@ class EventsController extends AppController {
         // explode using the dot
         $explodedNames = explode('.', $name);
         // for each part
-        foreach ($explodedNames as $explodedName) {
+        foreach ($explodedNames as &$explodedName) {
             // count the lenght of the part, and add |length| before
             $length = strlen($explodedName);
             if ($length > 255) exit('ERROR: dns name is to long for RFC'); // LATER log correctly without dying
