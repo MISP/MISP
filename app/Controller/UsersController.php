@@ -224,7 +224,6 @@ class UsersController extends AppController {
 
 
 	public function login() {
-	    // FIXME implement authentication brute-force protection
 	    if ($this->Auth->login()) {
 	        $this->redirect($this->Auth->redirect());
 	    } else {

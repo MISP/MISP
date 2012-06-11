@@ -85,13 +85,13 @@ class EventsController extends AppController {
         $relatedAttributes = array();
         $this->loadModel('Attribute');
         $fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
-        foreach ($this->Event->data['Attribute'] as $key => $attribute) {
+        foreach ($this->Event->data['Attribute'] as &$attribute) {
             $relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
             // for REST requests also add the encoded attachment
             if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
                 // LATER check if this has a serious performance impact on XML conversion and memory usage
                 $encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
-                $this->Event->data['Attribute'][$key]['data'] = $encoded_file;
+                $attribute['data'] = $encoded_file;
             }
         }
         $this->set('relatedAttributes', $relatedAttributes);
@@ -231,8 +231,8 @@ class EventsController extends AppController {
             $fieldList=array('date', 'risk', 'info', 'published', 'private');
             // always force the org, but do not force it for admins
             if ($this->_isAdmin()) {
-                $this->Event->read(); // FIXME URGENT this should be deleted? delete and test
-                $fieldList[]='org';
+                // set the same org as existed before
+                $this->Event->read();
                 $this->request->data['Event']['org'] = $this->Event->data['Event']['org'];
             }
             // we probably also want to remove the published flag
@@ -509,8 +509,6 @@ class EventsController extends AppController {
         if ($this->request->is('post') || $this->request->is('put')) {
             $message = $this->request->data['Event']['message'];
             if ($this->_sendContactEmail($id, $message)) {
-                // LATER when a user is deleted this will create problems.
-                // LATER send the email to all the people who are in the org that created the event
                 // redirect to the view event page
                 $this->Session->setFlash(__('Email sent to the reporter.', true));
             } else {
@@ -528,7 +526,7 @@ class EventsController extends AppController {
 
     /**
      *
-     * Sends out an email to all people within the same group
+     * Sends out an email to all people within the same org
      * with the request to be contacted about a specific event.
      * @todo move _sendContactEmail($id, $message) to a better place. (components?)
      *
@@ -709,7 +707,7 @@ class EventsController extends AppController {
         // check if the key is valid -> search for users based on key
         $this->loadModel('User');
         // no input sanitization necessary, it's done by model
-        // TODO do not fetch recursive
+        // do not fetch recursive
         $this->User->recursive=0;
         $user = $this->User->findByAuthkey($key);
         if (empty($user)) {
@@ -742,9 +740,9 @@ class EventsController extends AppController {
 
             $sid++;
             switch ($attribute['type']) {
-                // LATER test all the snort attributes
-                // LATER add the tag keyword in the rules to capture network traffic
-                // LATER sanitize every $attribute['value'] to not conflict with snort
+                // LATER nids - test all the snort attributes
+                // LATER nids - add the tag keyword in the rules to capture network traffic
+                // LATER nids - sanitize every $attribute['value'] to not conflict with snort
                 case 'ip-dst':
                     $rules[] = sprintf($rule_format,
                             'ip',                           // proto
@@ -806,7 +804,7 @@ class EventsController extends AppController {
                             );
                     break;
                 case 'email-subject':
-                    // LATER email-subject rule might not match because of line-wrapping
+                    // LATER nids - email-subject rule might not match because of line-wrapping
                     $rules[] = sprintf($rule_format,
                             'tcp',                          // proto
                             '$EXTERNAL_NET',                // src_ip
@@ -822,7 +820,7 @@ class EventsController extends AppController {
                             );
                     break;
                 case 'email-attachment':
-                    // LATER email-attachment rule might not match because of line-wrapping
+                    // LATER nids - email-attachment rule might not match because of line-wrapping
                     $rules[] = sprintf($rule_format,
                             'tcp',                          // proto
                             '$EXTERNAL_NET',                // src_ip
@@ -884,7 +882,7 @@ class EventsController extends AppController {
                     break;
                 case 'user-agent':
                     $rules[] = "";
-                    // TODO write snort user-agent rule
+                    // TODO nids - write snort user-agent rule
                     break;
                 case 'snort':
                     $tmp_rule = $attribute['value'];
@@ -926,7 +924,7 @@ class EventsController extends AppController {
                     // finally the rule is cleaned up and can be outputed
                     $rules[] = $tmp_rule;
 
-                    // TODO test using lots of snort rules.
+                    // LATER nids - test using lots of snort rules.
                 default:
                     break;
 
@@ -977,7 +975,6 @@ class EventsController extends AppController {
 //         // check if the key is valid -> search for users based on key
 //         $this->loadModel('User');
 //         // no input sanitization necessary, it's done by model
-//         // TODO do not fetch recursive
 //         $this->User->recursive=0;
 //         $user = $this->User->findByAuthkey($key);
 //         if (empty($user)) {

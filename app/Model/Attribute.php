@@ -33,7 +33,7 @@ class Attribute extends AppModel {
 			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
 	);
 
-	// these are definition of possible types + their descriptions and maybe LATER other behaviors
+	// these are definition of possible types + their descriptions and maybe later other behaviors
 	// e.g. if the attribute should be correlated with others or not
 
 	public $type_definitions = array(
@@ -298,7 +298,7 @@ class Attribute extends AppModel {
 	        $file = new File ($filepath);
 	        if($file->exists()) {
     	        if (!$file->delete()) {
-    	            $this->Session->setFlash(__('Delete failed. Please report to administrator', true), 'default', array(), 'error'); // TODO change this message. Throw an internal error
+    	            throw new InternalErrorException('Delete of file attachment failed. Please report to administrator.');
     	        }
 	        }
 	    }
@@ -517,7 +517,7 @@ class Attribute extends AppModel {
         // prepare the conditions
         $conditions = array(
                 'Attribute.event_id !=' => $attribute['event_id'],
-//                 'Attribute.type' => $attribute['type'],  // LATER also filter on type
+//                 'Attribute.type' => $attribute['type'],  // do not filter on type
                 );
         if (empty($attribute['value1']))   // prevent issues with empty fields
             return null;

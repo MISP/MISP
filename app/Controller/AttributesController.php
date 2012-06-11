@@ -74,7 +74,7 @@ class AttributesController extends AppController {
 		    // only own attributes verified by isAuthorized
 
             // Give error if someone tried to submit a attribute with attachment or malware-sample type.
-		    // FIXME this is bad ... it should rather by a messagebox or should be filtered out on the view level
+		    // TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
 		    if($this->Attribute->typeIsAttachment($this->request->data['Attribute']['type'])) {
 		        $this->Session->setFlash(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
 		        $this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
@@ -219,13 +219,14 @@ class AttributesController extends AppController {
 	        if($this->request->data['Attribute']['malware']) {
 	            $this->request->data['Attribute']['type'] = "malware-sample";
 	            $this->request->data['Attribute']['value'] = $filename.'|'.$tmpfile->md5(); // TODO gives problems with bigger files
+	            $this->request->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 	        }
 	        else {
 	            $this->request->data['Attribute']['type'] = "attachment";
 	            $this->request->data['Attribute']['value'] = $filename;
+	            $this->request->data['Attribute']['to_ids'] = 0;
 	        }
 	        $this->request->data['Attribute']['uuid'] = String::uuid();
-	        $this->request->data['Attribute']['to_ids'] = 0; // LATER permit user to send this to IDS
 	        $this->request->data['Attribute']['batch_import'] = 0;
 
 	        if ($this->Attribute->save($this->request->data)) {
@@ -316,7 +317,7 @@ class AttributesController extends AppController {
         if('attachment' == $this->Attribute->data['Attribute']['type'] ||
            'malware-sample'== $this->Attribute->data['Attribute']['type'] ) {
             $this->set('attachment', true);
-            //    FIXME we should ensure value cannot be changed here and not only on a view level (because of the associated file)
+            //    TODO we should ensure 'value' cannot be changed here and not only on a view level (because of the associated file)
             //    $this->Session->setFlash(__('You cannot edit attachment attributes.', true), 'default', array(), 'error');
             //    $this->redirect(array('controller' => 'events', 'action' => 'view', $old_attribute['Event']['id']));
         } else {
