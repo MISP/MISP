@@ -139,6 +139,8 @@ class ServersController extends AppController {
 
 
     public function pull($id = null, $full=false) {
+        // TODO should we de-activate data validation for type and category / and or mapping? Maybe other instances have other configurations that are incompatible.
+
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }

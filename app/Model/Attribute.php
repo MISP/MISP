@@ -354,7 +354,9 @@ class Attribute extends AppModel {
 
 	function validateTypeValue($fields) {
         $category = $this->data['Attribute']['category'];
-        return in_array($fields['type'], $this->category_definitions[$category]['types']);
+        if (isset($this->category_definitions[$category]['types']))
+            return in_array($fields['type'], $this->category_definitions[$category]['types']);
+        return false;
 	}
 
 	function validateAttributeValue ($fields) {
