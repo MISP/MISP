@@ -179,7 +179,7 @@ class UsersController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$fields = array();
-			foreach (array_keys($this->request->data['User']) as &$field) {
+			foreach (array_keys($this->request->data['User']) as $field) {
 				if($field != 'password') array_push($fields, $field);
 			}
 			if ("" != $this->request->data['User']['password'])
