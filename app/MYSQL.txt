@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Apr 25, 2012 at 01:16 PM
+-- Generation Time: Jun 13, 2012 at 02:38 PM
 -- Server version: 5.5.9
 -- PHP Version: 5.3.6
 
@@ -34,6 +34,18 @@ CREATE TABLE `attributes` (
   KEY `event_id` (`event_id`),
   KEY `uuid` (`uuid`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bruteforces`
+--
+
+CREATE TABLE `bruteforces` (
+  `ip` varchar(255) COLLATE utf8_bin NOT NULL,
+  `username` varchar(255) COLLATE utf8_bin NOT NULL,
+  `expire` datetime NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -69,8 +81,8 @@ CREATE TABLE `servers` (
   `org` varchar(255) COLLATE utf8_bin NOT NULL,
   `push` tinyint(1) NOT NULL,
   `pull` tinyint(1) NOT NULL,
-  `lastpushedif` int(11) NOT NULL,
-  `lastpulledif` int(11) NOT NULL,
+  `lastpushedid` int(11) NOT NULL,
+  `lastpulledid` int(11) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
@@ -95,19 +107,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   KEY `username` (`password`),
   KEY `email` (`email`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=2 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `bruteforces`
---
-
-CREATE TABLE `bruteforces` (
-  `ip` varchar(255) COLLATE utf8_bin NOT NULL,
-  `username` varchar(255) COLLATE utf8_bin NOT NULL,
-  `expire` datetime NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 
 --
