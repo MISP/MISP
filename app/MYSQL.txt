@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Jun 13, 2012 at 02:38 PM
+-- Generation Time: Jun 14, 2012 at 09:57 AM
 -- Server version: 5.5.9
 -- PHP Version: 5.3.6
 
@@ -32,7 +32,8 @@ CREATE TABLE `attributes` (
   `private` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
-  KEY `uuid` (`uuid`)
+  KEY `value1_key` (`value1`(5)),
+  KEY `value2_key` (`value2`(5))
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
@@ -61,11 +62,9 @@ CREATE TABLE `events` (
   `info` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `published` tinyint(1) NOT NULL DEFAULT '0',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
-  `revision` int(11) NOT NULL DEFAULT '0',
+  `revision` int(10) NOT NULL DEFAULT '0',
   `private` tinyint(1) NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `uuid` (`uuid`),
-  FULLTEXT KEY `info` (`info`)
+  PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
@@ -105,9 +104,8 @@ CREATE TABLE `users` (
   `termsaccepted` tinyint(1) NOT NULL,
   `newsread` date NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `username` (`password`),
   KEY `email` (`email`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=2 ;
 
 
 --
