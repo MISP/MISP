@@ -835,6 +835,7 @@ class EventsController extends AppController {
                             1                               // rev
                             );
                     break;
+                case 'hostname':
                 case 'domain':
                     $rules[] = sprintf($rule_format,
                             'udp',                          // proto
