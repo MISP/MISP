@@ -728,7 +728,7 @@ class EventsController extends AppController {
         );
         $items = $this->Attribute->find('all', $params);
 
-        $classtype = 'targeted-attack';
+        $classtype = 'trojan-activity';
         foreach ($items as &$item) {
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
             $rule_format_msg = 'msg: "CyDefSIG %s, Event '.$item['Event']['id'].', '.$item['Event']['risk'].'"';
