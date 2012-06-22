@@ -730,10 +730,23 @@ class EventsController extends AppController {
 
         $classtype = 'trojan-activity';
         foreach ($items as &$item) {
+            switch ($item['Event']['risk']) {
+                case 'Undefined':
+                    $priority = '4';
+                case 'Low':
+                    $priority = '3';
+                case 'Medium':
+                    $priority = '2';
+                case 'High':
+                    $priority = '1';
+                default:
+                    $priority = '4';
+            }
+
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
-            $rule_format_msg = 'msg: "CyDefSIG %s, Event '.$item['Event']['id'].', '.$item['Event']['risk'].'"';
+            $rule_format_msg = 'msg: "CyDefSIG e'.$item['Event']['id'].' %s"';
             $rule_format_reference = 'reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/view/'.$item['Event']['id'];
-            $rule_format = 'alert %s %s %s %s %s %s ('.$rule_format_msg.'; %s %s classtype:'.$classtype.'; sid:%d; rev:%d; '.$rule_format_reference.';) ';
+            $rule_format = 'alert %s %s %s %s %s %s ('.$rule_format_msg.'; %s %s classtype:'.$classtype.'; sid:%d; rev:%d; priority:'.$priority.'; '.$rule_format_reference.';) ';
 
             $sid = $user['User']['nids_sid']+($item['Attribute']['id']*10);  // leave 9 possible rules per attribute type
             $attribute = $item['Attribute'];
@@ -751,7 +764,7 @@ class EventsController extends AppController {
                             '->',                           // direction
                             $attribute['value'],            // dst_ip
                             'any',                          // dst_port
-                            'Outgoing To Bad IP',           // msg
+                            'Outgoing To IP: '.$attribute['value'],           // msg
                             '',                             // rule_content
                             '',                             // tag
                             $sid,                           // sid
@@ -766,7 +779,7 @@ class EventsController extends AppController {
                             '->',                           // direction
                             '$HOME_NET',                    // dst_ip
                             'any',                          // dst_port
-                            'Incoming From Bad IP',         // msg
+                            'Incoming From IP: '.$attribute['value'],         // msg
                             '',                             // rule_content
                             '',                             // tag
                             $sid,                           // sid
@@ -781,7 +794,7 @@ class EventsController extends AppController {
                             '<>',                           // direction
                             '$SMTP_SERVERS',                // dst_ip
                             '25',                           // dst_port
-                            'Bad Source Email Address',     // msg
+                            'Source Email Address: '.$attribute['value'],     // msg
                             'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;',  // rule_content
                             'tag:session,600,seconds;',     // tag
                             $sid,                           // sid
@@ -796,7 +809,7 @@ class EventsController extends AppController {
                             '<>',                           // direction
                             '$SMTP_SERVERS',                // dst_ip
                             '25',                           // dst_port
-                            'Bad Destination Email Address',// msg
+                            'Destination Email Address: '.$attribute['value'],// msg
                             'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;',  // rule_content
                             'tag:session,600,seconds;',     // tag
                             $sid,                           // sid
@@ -844,7 +857,7 @@ class EventsController extends AppController {
                             '->',                           // direction
                             'any',                          // dst_ip
                             '53',                           // dst_port
-                            'Lookup Of Bad Domain',         // msg
+                            'Domain: '.$attribute['value'],         // msg
                             'content:"'.$this->_dnsNameToRawFormat($attribute['value']).'"; nocase;',  // rule_content
                             '',                             // tag
                             $sid,                           // sid
@@ -858,7 +871,7 @@ class EventsController extends AppController {
                             '->',                           // direction
                             'any',                          // dst_ip
                             '53',                           // dst_port
-                            'Lookup Of Bad Domain',         // msg
+                            'Domain: '.$attribute['value'],         // msg
                             'content:"'.$this->_dnsNameToRawFormat($attribute['value']).'"; nocase;',  // rule_content
                             '',                             // tag
                             $sid,                           // sid
@@ -874,7 +887,7 @@ class EventsController extends AppController {
                             '->',                           // direction
                             '$EXTERNAL_NET',                // dst_ip
                             '$HTTP_PORTS',                  // dst_port
-                            'Outgoing Bad HTTP URL',        // msg
+                            'Outgoing HTTP URL: '.$attribute['value'],        // msg
                             'flow:to_server,established; uricontent:"'.$attribute['value'].'"; nocase;',  // rule_content
                             'tag:session,600,seconds;',     // tag
                             $sid,                           // sid
@@ -906,6 +919,7 @@ class EventsController extends AppController {
                     if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
                     $tmp_rule = preg_replace('/reference\s*:\s*.+;/', $rule_format_reference.';', $tmp_rule, -1, $replace_count['reference']);
                     if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
+// FIXME nids -  implement priority overwriting
 
                     // some values were not replaced, so we need to add them ourselves, and insert them in the rule
                     $extra_for_rule="";
