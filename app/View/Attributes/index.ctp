@@ -12,7 +12,7 @@
 	<?php
 	foreach ($attributes as $attribute): ?>
 	<tr>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
+		<td class="short">
 			<?php echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id'])); ?>
 		</td>
 		<td title="<?php echo $category_definitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
