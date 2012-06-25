@@ -8,7 +8,7 @@ App::uses('AppController', 'Controller');
 class UsersController extends AppController {
 
 
-    public $components = array('Security');
+    public $components = array('Acl','Security');	// TODO ACL, components
     public $paginate = array(
             'limit' => 60,
             'order' => array(
@@ -20,7 +20,7 @@ class UsersController extends AppController {
         parent::beforeFilter();
 
         // what pages are allowed for non-logged-in users
-        $this->Auth->allow('login', 'logout');
+        $this->Auth->allow('login', 'logout'); // TODO ACL, remove/add ,'initDB','checkDB' if needed
     }
 
     public function isAuthorized($user) {
@@ -74,7 +74,7 @@ class UsersController extends AppController {
 		// Only own profile verified by isAuthorized
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    // What fields should be saved (allowed to be saved)
-		    $fieldList=array('email', 'autoalert', 'gpgkey', 'nids_sid' );
+		    $fieldList=array('email', 'autoalert', 'gpgkey', 'nids_sid');	// TODO ACL, check, My Profile not edit group_id.
 		    if ("" != $this->request->data['User']['password'])
 		        $fieldList[] = 'password';
 		    // Save the data
@@ -92,6 +92,9 @@ class UsersController extends AppController {
 			$this->request->data = $this->User->data;
 		}
 		$this->request->data['User']['org']=$this->Auth->user('org');
+		// XXX ACL groups
+		$groups = $this->User->Group->find('list');
+		$this->set(compact('groups'));
 	}
 
 /**
@@ -164,6 +167,9 @@ class UsersController extends AppController {
 			$newkey = $this->User->generateAuthKey();
 			$this->set('authkey', $newkey);
 		}
+		// XXX ACL groups
+		$groups = $this->User->Group->find('list');
+		$this->set(compact('groups'));
 	}
 
 /**
@@ -182,9 +188,48 @@ class UsersController extends AppController {
 			foreach (array_keys($this->request->data['User']) as $field) {
 				if($field != 'password') array_push($fields, $field);
 			}
+			// TODO Audit, extraLog, fields get orig
+			$fields_oldValues = array();
+			foreach ($fields as $field) {
+				if($field != 'confirm_password') array_push($fields_oldValues, $this->User->field($field));
+				else array_push($fields_oldValues, $this->User->field('password'));
+			}
+			// TODO Audit, extraLog, fields get orig END
 			if ("" != $this->request->data['User']['password'])
 				$fields[] = 'password';
 			if ($this->User->save($this->request->data, true, $fields)) {
+				// TODO Audit, extraLog, fields compare
+				// newValues to array
+				$fields_newValues = array();
+				foreach ($fields as $field) {
+					if($field != 'confirm_password') {
+						$newValue = $this->data['User'][$field];
+						if (gettype($newValue) == 'array') {
+							$newValueStr = '';
+							$c_p = 0;
+							foreach ($newValue as $newValuePart) {
+								if ($c_p < 2) $newValueStr .= '-' . $newValuePart;
+								else  $newValueStr = $newValuePart.$newValueStr;
+								$c_p++;
+							}
+							array_push($fields_newValues, $newValueStr);
+						}
+						else array_push($fields_newValues, $newValue);
+					}
+					else array_push($fields_newValues, $this->data['User']['password']);
+				}
+				// compare
+				$fields_result_str = '';
+				$c = 0;
+				foreach ($fields as $field) {
+					if ($fields_oldValues[$c] != $fields_newValues[$c]) {
+						if($field != 'confirm_password') $fields_result_str = $fields_result_str. ', '.$field.' ('.$fields_oldValues[$c]. ') => ('.$fields_newValues[$c].')';
+					}
+					$c++;
+				}
+				$fields_result_str = substr($fields_result_str, 2);
+				$this->extraLog("admin_modify", "user", $fields_result_str);	// TODO Audit, check: modify User
+				// TODO Audit, extraLog, fields compare END
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->_refreshAuth(); // in case we modify ourselves
 				$this->redirect(array('action' => 'index'));
@@ -198,6 +243,13 @@ class UsersController extends AppController {
 			$this->request->data = $this->User->data;
 
 		}
+        // TODO ACL CLEANUP combobox for orgs
+        $org_ids =  array('ADMIN', 'NCIRC','Other MOD');
+        $org_ids = $this->_arrayToValuesIndexArray($org_ids);
+        $this->set('org_ids',compact('org_ids'));
+		// XXX ACL, Groups in Users
+		$groups = $this->User->Group->find('list');
+		$this->set(compact('groups'));
 	}
 
 /**
@@ -226,6 +278,7 @@ class UsersController extends AppController {
 	public function login() {
 	    // FIXME implement authentication brute-force protection
 	    if ($this->Auth->login()) {
+	        $this->extraLog("login");	// TODO Audit, extraLog, check: customLog i.s.o. extraLog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
 	        $this->redirect($this->Auth->redirect());
 	    } else {
                 // don't display "invalid user" before first login attempt
@@ -241,7 +294,7 @@ class UsersController extends AppController {
 	    }
 
 	    // News page
-	    $new_newsdate = new DateTime("2012-03-27");
+	    $new_newsdate = new DateTime("2012-03-27");	// TODO general, fixed odd date??
 	    $newsdate = new DateTime($this->Auth->user('newsread'));
 	    if ($new_newsdate > $newsdate) {
 	        $this->redirect(array('action' => 'news'));
@@ -252,6 +305,7 @@ class UsersController extends AppController {
 	}
 
 	public function logout() {
+		$this->extraLog("logout");	// TODO Audit, extraLog, check: customLog i.s.o. extraLog, $this->User->customLog('logout', $this->Auth->user('id'), array());
 	    $this->Session->setFlash('Good-Bye');
 	    $this->redirect($this->Auth->logout());
 	}
@@ -349,7 +403,96 @@ class UsersController extends AppController {
 	    $this->_refreshAuth();  // refresh auth info
 	}
 
+    public function extraLog($action = null, $description = null, $fields_result = null) {	// TODO move audit to AuditsController?
+		// configuration
+		ClassRegistry::init('ConnectionManager');
+    	$dbh = ConnectionManager::getDataSource('default');
+		$dbhost     = $dbh->config['host'];
+    	$dbport     = $dbh->config['port'];
+		$dbname     = $dbh->config['database'];
+		$dbuser     = $dbh->config['login'];
+    	$dbpass     = $dbh->config['password'];
+    	$dbprefix   = $dbh->config['prefix'];	// TODO Audit, extra, db prefix delimiter?
+		
+		// database connection
+		$conn = new PDO("mysql:host=$dbhost;port=$dbport;dbname=$dbname",$dbuser,$dbpass);
 
+		// new data
+		$user_id = $this->Auth->user('id');
+		$model = 'User';
+		$model_id = $this->Auth->user('id');
+		$org = $this->Auth->user('org');
+		$email = $this->Auth->user('email');
+		$action_date = new DateTime();
+		$action_date_str = $action_date->format('Y-m-d H:i:sP');
+		$description = "User (". $this->Auth->user('id')."): " .$this->Auth->user('email');
 
+				// query
+		$sql = "INSERT INTO ".$dbprefix."logs (org,email,created,action,title,`change`) VALUES (:org,:email,:created,:action,:title,:change)";
+		$q = $conn->prepare($sql);
+		$q->execute(array(':org'=>$org,
+				          ':email'=>$email,
+				          ':created'=>$action_date_str,
+				          ':action'=>$action,
+				          ':title'=>$description,
+				          ':change'=>$fields_result));
 
+		// database connection disconnect
+		$dbh = null;
+		
+		// write to syslogd as well
+		$syslog = new SysLog();
+		if ($fields_result) $syslog->write('notice', $description.' -- '.$action.' -- '.$fields_result);
+		else $syslog->write('notice', $description.' -- '.$action);		
+	}
+	
+	// used for fields_before and fields for audit
+	public function arrayCopy( array $array ) {
+        $result = array();
+        foreach( $array as $key => $val ) {
+            if( is_array( $val ) ) {
+                $result[$key] = arrayCopy( $val );
+            } elseif ( is_object( $val ) ) {
+                $result[$key] = clone $val;
+            } else {
+                $result[$key] = $val;
+            }
+        }
+        return $result;
+	}
+	
+	// TODO ACL examples
+	
+	public function checkDB() {		
+		define('DEBUG', 3);	// general
+		$group = $this->User->Group;
+		//Allow admins to everything
+		$group->id = 2;
+		echo 'check1 controllers: ';
+		if ($this->Acl->check($group, 'controllers', '*')) echo 'true';
+		else echo 'false';
+		echo '<br>';
+		echo 'check2 Events: ';
+		if ($this->Acl->check($group, 'controllers/Events', '*')) echo 'true';
+		else echo 'false';
+		echo '<br>';
+		echo 'check3 Attributes: ';
+		if ($this->Acl->check($group, 'controllers/Attributes', '*')) echo 'true';
+		else echo 'false';
+		echo '<br>';
+		exit;
+	}
+		
+	public function initDB() {
+		$group = $this->User->Group;
+		//Allow admins to everything
+		$group->id = 2;
+		$this->Acl->allow($group, 'controllers');
+		$this->Acl->deny($group, 'controllers/Groups');
+		$this->Acl->allow($group, 'controllers/Users');
+		$this->Acl->allow($group, 'controllers/Events');
+		$this->Acl->allow($group, 'controllers/Attributes');
+		echo "all done";
+		exit;
+	}
 }

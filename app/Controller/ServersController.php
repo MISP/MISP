@@ -9,7 +9,7 @@ App::uses('Xml', 'Utility');
  */
 class ServersController extends AppController {
 
-    public $components = array('Security' ,'RequestHandler');
+    public $components = array('Acl' ,'Security' ,'RequestHandler');	// XXX ACL component
     public $paginate = array(
             'limit' => 60,
             'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 events

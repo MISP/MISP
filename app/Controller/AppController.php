@@ -46,7 +46,8 @@ class AppController extends Controller {
     		    'authError' => 'Did you really think you are allowed to see that?',
     			'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
      			'logoutRedirect' => array('controller' => 'users', 'action' => 'login'),
-    			'authorize' => array('Controller') // Added this line
+    			'authorize' => array('Controller', // Added this line
+    			'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
     )
     );
 
@@ -92,6 +93,11 @@ class AppController extends Controller {
         // These variables are required for every view
         $this->set('me', $this->Auth->user());
         $this->set('isAdmin', $this->_isAdmin());
+        
+		// TODO ACL: 5: from Controller to Views
+        $this->set('isAclAdd', $this->checkAcl('add'));
+        $this->set('isAclModify', $this->checkAcl('edit')); 
+        $this->set('isAclPublish', $this->checkAcl('publish'));
     }
 
 
@@ -246,4 +252,47 @@ class AppController extends Controller {
 
     }
 
+    /**
+     * Updates the missing fields from v0.2.2 to v0.2.3 of CyDefSIG
+     * First you will need to manually update the database to the new schema.
+     * Log in as admin user and
+     * Then run this function by setting debug = 1 (or more) and call /events/migrate022to023
+     */
+    function migrate022to023() {
+        if (!self::_isAdmin()) throw new NotFoundException();
+
+        // generate group_id for users who have no group_id
+        $this->loadModel('User');
+        $params = array(
+                'conditions' => array('User.group_id' => ''),
+                'recursive' => 0,
+                'fields' => array('User.id'),
+        );
+        $users = $this->User->find('all', $params);
+
+        echo '<p>Generating UUID for events: ';
+        foreach ($users as $user) {
+            $this->User->id = $user['User']['id'];
+            $this->User->saveField('group_id', '2');	// ACL, CHECK, default to ADMIN group
+            echo $user['User']['id'].' ';
+        }
+        echo "</p>";
+    }
+    
+	// TODO ACL, 6b: check on Group and per Model (not used)
+	function checkAccess() {
+		$aco = ucfirst($this->params['controller']);
+		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
+		return $this->Acl->check($user, 'controllers/'.$aco, '*');
+	}
+	
+	// TODO ACL, 6: check on Group and any Model
+	function checkAcl($action) {
+		$aco = 'Events';	// TODO ACL was 'Attributes'
+		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
+		// TODO ACL, CHECK, below if indicates some wrong: Fatal error: Call to a member function check() on a non-object in /var/www/cydefsig/app/Controller/AppController.php on line 289 
+		if ($this->Acl) return $this->Acl->check($user, 'controllers/'.$aco.'/'.$action, '*');
+		else return true;
+	}
+	
 }

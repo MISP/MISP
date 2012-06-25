@@ -1,14 +1,25 @@
                                                                      
-
-TODOs
+TODOs v0.2.2 to v0.2.3
 -----
 
 Auth
 - Prevent bruteforce auth attempts
 
-implement auditing/logging system
-- add / edit events and signatures
-- failed / success logins (with source IP, headers,...)
+Acl
+- inactive buttons
+	- must be non-clickable.
+	- JavaScript include.
+	- DOM read and disable button_offXX.
+- clean-up to first cut.
+	- My Profile, Group, make non-link.
+	- saveAcl, from GroupsController to AppController and inherit to *Controllers.
+
+auditing/logging system
+- Action, popup.
+- Change, regex remove ', revision (1) => (2) '.
+- logins
+	- add source IP (headers,...);
+	- failed logins.
 
 Security
 - force cookie reset after login
@@ -18,7 +29,7 @@ INSTALLATION INSTRUCTIONS
 -------------------------
 Install the following libraries:
 apt-get install zip
-apt-get install pear
+apt-get install php-pear
 pear install Crypt_GPG    # need version >1.3.0 
 
 TODO rewrite instructions using git clones and git submodules
