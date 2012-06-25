@@ -849,6 +849,7 @@ class EventsController extends AppController {
                             );
                     break;
                 case 'hostname':
+                    // TODO nids - fix the hostname format and the domain format to have no false positives (include regex after content)
                 case 'domain':
                     $rules[] = sprintf($rule_format,
                             'udp',                          // proto
@@ -905,8 +906,9 @@ class EventsController extends AppController {
                     //   sid       - '/sid\s*:\s*[0-9]+\s*;/'
                     //   rev       - '/rev\s*:\s*[0-9]+\s*;/'
                     //   classtype - '/classtype:[a-zA-Z_-]+;/'
-                    //   msg       - '/msg\s*:\s*".*"\s*;/'
-                    //   reference - '/reference\s*:\s*.+;/'
+                    //   msg       - '/msg\s*:\s*".*?"\s*;/'
+                    //   reference - '/reference\s*:\s*.+?;/'
+                    //   tag       - '/tag\s*:\s*.+?;/'
                     $replace_count=array();
                     $tmp_rule = preg_replace('/sid\s*:\s*[0-9]+\s*;/', 'sid:'.$sid.';', $tmp_rule, -1, $replace_count['sid']);
                     if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
@@ -915,9 +917,11 @@ class EventsController extends AppController {
                     $tmp_rule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:'.$classtype.';', $tmp_rule, -1, $replace_count['classtype']);
                     if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
                     $tmp_message = sprintf($rule_format_msg, 'snort-rule');
-                    $tmp_rule = preg_replace('/msg\s*:\s*".*"\s*;/', $tmp_message.';', $tmp_rule, -1, $replace_count['msg']);
+                    $tmp_rule = preg_replace('/msg\s*:\s*".*?"\s*;/', $tmp_message.';', $tmp_rule, -1, $replace_count['msg']);
                     if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-                    $tmp_rule = preg_replace('/reference\s*:\s*.+;/', $rule_format_reference.';', $tmp_rule, -1, $replace_count['reference']);
+                    $tmp_rule = preg_replace('/reference\s*:\s*.+?;/', $rule_format_reference.';', $tmp_rule, -1, $replace_count['reference']);
+                    if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
+                    $tmp_rule = preg_replace('/reference\s*:\s*.+?;/', $rule_format_reference.';', $tmp_rule, -1, $replace_count['reference']);
                     if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
 // FIXME nids -  implement priority overwriting
 
