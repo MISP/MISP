@@ -19,11 +19,6 @@
 			<?php echo h($user['User']['org']); ?>
 			&nbsp;
 		</dd>
-		<dt><?php echo __('Group'); ?></dt>
-		<dd>
-			<?php echo $this->Html->link($user['Group']['name'], array('controller' => 'groups', 'action' => 'view', $user['Group']['id'])); ?>		<!-- TODO ACL, check, My Profile not edit group_id. -->
-			&nbsp;
-		</dd>
 		<dt><?php echo __('Autoalert'); ?></dt>
 		<dd>
 			<?php echo h(0 == ($user['User']['autoalert'])) ? 'no' : 'yes'; ?>

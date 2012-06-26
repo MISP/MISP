@@ -8,7 +8,6 @@
    		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
 		if ($isAdmin) echo $this->Form->input('org');
 		else echo $this->Form->input('org', array('disabled' => 'disabled'));
-		echo $this->Form->input('group_id', array('disabled' => 'disabled'));	// TODO ACL, check, My Profile not edit group_id.
 		echo $this->Form->input('autoalert');
 		echo $this->Form->input('nids_sid');
 		echo $this->Form->input('gpgkey');

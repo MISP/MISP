@@ -9,16 +9,6 @@ App::uses('File', 'Utility');
  * @property Event $Event
  */
 class Attribute extends AppModel {
-
-	var $combinedKeys = array('event_id', 'category', 'type');
-	
-	var $name = 'Attribute';				// TODO general
-	var $actsAs = array('Logable' => array(	// TODO Audit, logable
-        'userModel' => 'User', 
-        'userKey' => 'user_id', 
-        'change' => 'full'
-    ));
-    
 /**
  * Display field
  *

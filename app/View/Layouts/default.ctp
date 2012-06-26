@@ -37,8 +37,6 @@
 
 		echo $this->Html->script('jquery-1.7.2.min'); // Include jQuery library
 	?>
-
-<!--?php echo $scripts_for_layout; ?-->
 </head>
 <body>
 	<div id="container">

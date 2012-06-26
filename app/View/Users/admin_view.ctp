@@ -1,11 +1,6 @@
-<?php
-$button_add_status = $isAclAdd ? 'button_on':'button_off';
-$may_modify = $isAclModify || ($user['User']['org'] == $me['org']); $button_modify_status = $may_modify ? 'button_on':'button_off';
-$buttonCounter = 0;
-?>
 <div class="users view">
 <div class="actions" style="float:right;">
-	<ul><li><?php echo $this->Html->link(__('Edit Profile', true), array('admin' => true, 'action' => 'edit', $user['User']['id']), array('id' => $button_modify_status.$buttonCounter++,'class' => $button_modify_status)); ?> </li></ul>
+	<ul><li><?php echo $this->Html->link(__('Edit Profile', true), array('admin' => true, 'action' => 'edit', $user['User']['id'])); ?> </li></ul>
 </div>
 <h2><?php  echo __('User');?></h2>
 	<dl>
@@ -22,11 +17,6 @@ $buttonCounter = 0;
 		<dt><?php echo __('Org'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['org']); ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Group'); ?></dt>
-		<dd>
-			<?php echo $this->Html->link($user['Group']['name'], array('controller' => 'groups', 'action' => 'view', $user['Group']['id'])); ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Email'); ?></dt>
@@ -76,15 +66,12 @@ $buttonCounter = 0;
 <div class="actions">
 	<h3><?php echo __('Actions'); ?></h3>
 	<ul>
-		<li><?php echo $this->Html->link(__('Edit User'), array('admin' => true, 'action' => 'edit', $user['User']['id']), array('id' => $button_modify_status.$buttonCounter++,'class' => $button_modify_status)); ?> </li>
-		<li><?php
-		if ($may_modify) echo $this->Form->postLink(__('Delete User'), array('admin' => true, 'action' => 'delete', $user['User']['id']), null, __('Are you sure you want to delete # %s?', $user['User']['id']));
-		else echo $this->Html->link(__('Delete User'), array('admin' => true, 'action' => 'delete', $user['User']['id']),  array('id' => $button_modify_status.$buttonCounter++,'class' => $button_modify_status));
-		?> </li>
+		<li><?php echo $this->Html->link(__('Edit User'), array('admin' => true, 'action' => 'edit', $user['User']['id'])); ?> </li>
+		<li><?php echo $this->Form->postLink(__('Delete User'), array('admin' => true, 'action' => 'delete', $user['User']['id']), null, __('Are you sure you want to delete # %s?', $user['User']['id'])); ?> </li>
 		<li><?php echo $this->Html->link(__('List Users'), array('admin' => true, 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link(__('New User'), array('admin' => true, 'action' => 'add'), array('id' => $button_add_status,'class' => $button_add_status,'disabled'=>'disabled','readonly'=>'readonly')); ?> </li>
+		<li><?php echo $this->Html->link(__('New User'), array('admin' => true, 'action' => 'add')); ?> </li>
 		<li><?php echo $this->Html->link(__('List Events'), array('controller' => 'events', 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link(__('New Event'), array('controller' => 'events', 'action' => 'add'), array('id' => $button_add_status,'class' => $button_add_status,'disabled'=>'disabled','readonly'=>'readonly')); ?> </li>
+		<li><?php echo $this->Html->link(__('New Event'), array('controller' => 'events', 'action' => 'add')); ?> </li>
 	</ul>
 </div>
 <div class="related">
@@ -116,11 +103,8 @@ $buttonCounter = 0;
 			<td><?php echo $event['uuid'];?></td>
 			<td class="actions">
 				<?php echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $event['id'])); ?>
-				<?php echo $this->Html->link(__('Edit'), array('controller' => 'events', 'action' => 'edit', $event['id']), array('id' => $button_modify_status.$buttonCounter++,'class' => $button_modify_status)); ?>
-				<?php
-				if ($may_modify) echo $this->Form->postLink(__('Delete'), array('controller' => 'events', 'action' => 'delete', $event['id']), null, __('Are you sure you want to delete # %s?', $event['id']));
-				else echo $this->Html->link(__('Delete'), array('controller' => 'events', 'action' => 'delete', $event['id']), array('id' => $button_modify_status.$buttonCounter++,'class' => $button_modify_status));
-				?>
+				<?php echo $this->Html->link(__('Edit'), array('controller' => 'events', 'action' => 'edit', $event['id'])); ?>
+				<?php echo $this->Form->postLink(__('Delete'), array('controller' => 'events', 'action' => 'delete', $event['id']), null, __('Are you sure you want to delete # %s?', $event['id'])); ?>
 			</td>
 		</tr>
 	<?php endforeach; ?>
