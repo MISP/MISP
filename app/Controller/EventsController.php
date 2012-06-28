@@ -733,12 +733,16 @@ class EventsController extends AppController {
             switch ($item['Event']['risk']) {
                 case 'Undefined':
                     $priority = '4';
+                    break;
                 case 'Low':
                     $priority = '3';
+                    break;
                 case 'Medium':
                     $priority = '2';
+                    break;
                 case 'High':
                     $priority = '1';
+                    break;
                 default:
                     $priority = '4';
             }
@@ -848,9 +852,9 @@ class EventsController extends AppController {
                             1                               // rev
                             );
                     break;
-                case 'hostname':
-                    // TODO nids - fix the hostname format and the domain format to have no false positives (include regex after content)
                 case 'domain':
+                    // TODO nids - fix the hostname format and the domain format to have no false positives (include regex after content)
+                case 'hostname':
                     $rules[] = sprintf($rule_format,
                             'udp',                          // proto
                             'any',                          // src_ip
@@ -889,7 +893,7 @@ class EventsController extends AppController {
                             '$EXTERNAL_NET',                // dst_ip
                             '$HTTP_PORTS',                  // dst_port
                             'Outgoing HTTP URL: '.$attribute['value'],        // msg
-                            'flow:to_server,established; uricontent:"'.$attribute['value'].'"; nocase;',  // rule_content
+                            'flow:to_server,established; uricontent:"'.$attribute['value'].'"; nocase; http_header',  // rule_content
                             'tag:session,600,seconds;',     // tag
                             $sid,                           // sid
                             1                               // rev
