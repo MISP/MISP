@@ -1,14 +1,25 @@
                                                                      
-
-TODOs
+TODOs v0.2.2 to v0.2.3
 -----
+
+DB Update
+- UpdateShell with in/out
 
 Auth
 - Prevent bruteforce auth attempts
 
-implement auditing/logging system
-- add / edit events and signatures
-- failed / success logins (with source IP, headers,...)
+Acl
+- inactive buttons
+	- must be non-clickable.
+	- JavaScript include.
+	- DOM read and disable button_offXX.
+- clean-up to first cut.
+	- saveAcl, from GroupsController to AppController and inherit to *Controllers.
+
+auditing/logging system
+- logins
+	- add source IP (headers,...);
+	- failed logins.
 
 Security
 - force cookie reset after login
@@ -18,7 +29,7 @@ INSTALLATION INSTRUCTIONS
 -------------------------
 Install the following libraries:
 apt-get install zip
-apt-get install pear
+apt-get install php-pear
 pear install Crypt_GPG    # need version >1.3.0 
 
 TODO rewrite instructions using git clones and git submodules
@@ -74,6 +85,17 @@ Now log in using the webinterface:
 The default user/pass = admin@admin.test/admin 
 
 Don't forget to change the email, password and authentication key after installation.
+
+
+
+UPDATE INSTRUCTIONS
+-------------------
+
+To be sure, dump your database before updating.
+
+CyDefSIG from 0.2.2 to 0.2.3 needs a database migration and population.
+This is done executing /var/www/cydefsig/app/Console/shell/migrate-0.2.2-0.2.3.sh
+and answer (y)es to all the questions asked.
 
 
 

@@ -15,6 +15,13 @@ class User extends AppModel {
  * @var string
  */
 	public $displayField = 'email';
+	public $orgField = 'org';	// TODO Audit, LogableBehaviour + org
+/**
+ * Model Name
+ *
+ * @var string
+ */
+	var $name = 'User';			// TODO general
 /**
  * Validation rules
  *
@@ -61,6 +68,16 @@ class User extends AppModel {
 			'notempty' => array(
 				'rule' => array('notempty'),
 				'message' => 'Please specify the organisation where you are working.',
+				//'allowEmpty' => false,
+				//'required' => false,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
+		),
+		'org_id' => array(
+			'notempty' => array(
+				'rule' => array('notempty'),
+				'message' => 'Please specify the organisation ID where you are working.',	// TODO ACL, org_id in Users
 				//'allowEmpty' => false,
 				//'required' => false,
 				//'last' => false, // Stop validation after this rule
@@ -156,6 +173,21 @@ class User extends AppModel {
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
 /**
+ * belongsTo associations
+ *
+ * @var array
+ */
+	public $belongsTo = array(
+		'Group' => array(
+			'className' => 'Group',
+			'foreignKey' => 'group_id',
+			'conditions' => '',
+			'fields' => '',
+			'order' => ''
+		)
+	);
+
+/**
  * hasMany associations
  *
  * @var array
@@ -176,7 +208,32 @@ class User extends AppModel {
 		)
 	);
 
+	// TODO ACL: 1: be requester to CakePHP ACL system
+	public $actsAs = array('Acl' => array('type' => 'requester', 'enabled' => false));	// TODO ACL, + 'enabled' => false
+    
+	// TODO ACL: 2: hook User into CakePHP ACL system (so link to aros)
+	public function parentNode() {
+        if (!$this->id && empty($this->data)) {
+            return null;
+        }
+        if (isset($this->data['User']['group_id'])) {
+            $groupId = $this->data['User']['group_id'];
+        } else {
+            $groupId = $this->field('group_id');
+        }
+        if (!$groupId) {
+            return null;
+        } else {
+            return array('Group' => array('id' => $groupId));
+        }
+    }
 
+    // TODO ACL: 3: rights on Groups: http://stackoverflow.com/questions/6154285/aros-table-in-cakephp-is-still-including-users-even-after-bindnode
+	function bindNode($user) {
+    	// return array('model' => 'Group', 'foreign_key' => $user['User']['group_id']);
+		return array('Group' => array('id' => $user['User']['group_id']));
+	}
+	
 	public function beforeSave() {
 	    if (isset($this->data[$this->alias]['password'])) {
 	        $this->data[$this->alias]['password'] = AuthComponent::password($this->data[$this->alias]['password']);

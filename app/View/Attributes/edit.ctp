@@ -1,3 +1,7 @@
+<?php
+$button_modify_status = $isAclModify ? 'button_on':'button_off';
+$buttonCounter = 0;
+?>
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute');?>
 	<fieldset>
@@ -38,7 +42,10 @@
 </div>
 <div class="actions">
 	<ul>
-	    <li><?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Attribute.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Attribute.id'))); ?></li>
+	    <li><?php
+		$attribute = ClassRegistry::init('Attribute')->findById($this->Form->value('Attribute.id'));	// TODO ACL $attribute??
+	    if ($isAclModify || $attribute['Event']['user_id'] == $me['id']) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Attribute.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Attribute.id')));
+		else echo $this->Html->link(__('Delete'), array('action' => 'delete', $this->Form->value('Attribute.id')), array('id' => $button_modify_status.$buttonCounter++,'class' => $button_modify_status));	?></li>
 	    <li>&nbsp;</li>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
@@ -112,3 +119,10 @@ $('#AttributeType').val(type_value);
 
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts ?>
+<!--?php $javascript->link('deactivateButtons.js', false); ?-->
+<!--script type="text/javascript" src="deactivateButtons.js"></script-->
+<script type="text/javascript">
+$('#button_off').click(function() {
+	return false;
+});
+</script>
