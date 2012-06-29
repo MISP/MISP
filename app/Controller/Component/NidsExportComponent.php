@@ -47,7 +47,6 @@ class NidsExportComponent extends Component {
             $attribute = &$item['Attribute'];
 
             $sid++;
-$this->rules[] = "## ".$attribute['type'];
             switch ($attribute['type']) {
                 // LATER nids - test all the snort attributes
                 // LATER nids - add the tag keyword in the rules to capture network traffic
