@@ -1,5 +1,13 @@
 <div class="news view">
 <h2>News</h2>
+<h3>June 2012</h3>
+<p><b>Audit</b><br/>
+There is now log on every login, logout, addition, change and deletion.<br/>
+<p>
+<p><b>Access Control granulation</b><br/>
+There is Access Control, an user must be bound to a users-group,<br/>
+so we are able to grant global add, modify and publish rights.<br/>
+<p>
 <h3>April 2012</h3>
 <p><b>REST API (output)</b><br/>
 From now on you can use the REST API that uses this XML export. For more information check out the export page.<br/>
