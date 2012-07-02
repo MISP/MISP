@@ -139,6 +139,8 @@ class ServersController extends AppController {
 
 
     public function pull($id = null, $full=false) {
+        // TODO should we de-activate data validation for type and category / and or mapping? Maybe other instances have other configurations that are incompatible.
+
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
@@ -165,7 +167,7 @@ class ServersController extends AppController {
             if (null != $event_ids) {
                 App::import('Controller', 'Events');
                 $HttpSocket = new HttpSocket();
-                foreach ($event_ids as $event_id) {
+                foreach ($event_ids as &$event_id) {
                     $event = $this->Event->downloadEventFromServer(
                             $event_id,
                             $this->Server->data);
@@ -258,7 +260,7 @@ class ServersController extends AppController {
 
             $this->loadModel('Attribute');
             // upload each event separately and keep the results in the $successes and $fails arrays
-            foreach ($events as $event) {
+            foreach ($events as &$event) {
                 $result = $this->Event->uploadEventToServer(
                         $event,
                         $this->Server->data,

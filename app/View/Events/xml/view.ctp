@@ -5,7 +5,6 @@ $event['Event']['Attribute'] = $event['Attribute'];
 unset($event['Attribute']);
 
 // cleanup the array from things we do not want to expose
-unset($event['Event']['user_id']);
 // remove value1 and value2 from the output
 foreach($event['Event']['Attribute'] as $key => $value) {
     unset($event['Event']['Attribute'][$key]['value1']);

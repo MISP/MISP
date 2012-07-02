@@ -19,6 +19,7 @@ class EventsController extends AppController {
             'Security',
             'Email',
             'RequestHandler',
+            'NidsExport'
             );
     public $paginate = array(
             'limit' => 60,
@@ -85,13 +86,13 @@ class EventsController extends AppController {
         $relatedAttributes = array();
         $this->loadModel('Attribute');
         $fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
-        foreach ($this->Event->data['Attribute'] as $key => $attribute) {
+        foreach ($this->Event->data['Attribute'] as &$attribute) {
             $relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
             // for REST requests also add the encoded attachment
             if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
                 // LATER check if this has a serious performance impact on XML conversion and memory usage
                 $encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
-                $this->Event->data['Attribute'][$key]['data'] = $encoded_file;
+                $attribute['data'] = $encoded_file;
             }
         }
         $this->set('relatedAttributes', $relatedAttributes);
@@ -100,9 +101,9 @@ class EventsController extends AppController {
         // This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
         $relatedEventIds = array();
         $relatedEvents = array();
-        foreach ($relatedAttributes as $relatedAttribute) {
+        foreach ($relatedAttributes as &$relatedAttribute) {
             if (null == $relatedAttribute) continue;
-            foreach ($relatedAttribute as $item) {
+            foreach ($relatedAttribute as &$item) {
                 $relatedEventsIds[] = $item['Attribute']['event_id'];
             }
         }
@@ -168,7 +169,6 @@ class EventsController extends AppController {
      */
     public function _add(&$data, &$auth, $fromXml) {
         // force check userid and orgname to be from yourself
-        $data['Event']['user_id'] = $auth->user('id');
         $data['Event']['org'] = $auth->user('org');
         unset ($data['Event']['id']);
         $this->Event->create();
@@ -192,7 +192,7 @@ class EventsController extends AppController {
         }
 
         $fieldList = array(
-                'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private'),
+                'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private'),
                 'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
         );
         // this saveAssociated() function will save not only the event, but also the attributes
@@ -229,15 +229,11 @@ class EventsController extends AppController {
             }
 
             // say what fields are to be updated
-            $fieldList=array('user_id', 'date', 'risk', 'info', 'published', 'private');
-            // always force the user and org, but do not force it for admins
-            if (!$this->_isAdmin()) {
-                $this->request->data['Event']['user_id'] = $this->Auth->user('id');
-
-            } else {
+            $fieldList=array('date', 'risk', 'info', 'published', 'private');
+            // always force the org, but do not force it for admins
+            if ($this->_isAdmin()) {
+                // set the same org as existed before
                 $this->Event->read();
-                $this->request->data['Event']['user_id'] = $this->Event->data['Event']['user_id'];
-                $fieldList[]='org';
                 $this->request->data['Event']['org'] = $this->Event->data['Event']['org'];
             }
             // we probably also want to remove the published flag
@@ -309,7 +305,7 @@ class EventsController extends AppController {
 
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket();
-        foreach ($servers as $server) {
+        foreach ($servers as &$server) {
             $this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
         }
     }
@@ -399,7 +395,7 @@ class EventsController extends AppController {
         $body .= 'Risk        : '.$event['Event']['risk']."\n";
         $relatedEvents = $this->Event->getRelatedEvents($id);
         if (!empty($relatedEvents)) {
-            foreach ($relatedEvents as $relatedEvent){
+            foreach ($relatedEvents as &$relatedEvent){
                 $body .= 'Related to  : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$relatedEvent['Event']['id'].' ('.$relatedEvent['Event']['date'].')'."\n" ;
 
             }
@@ -411,7 +407,7 @@ class EventsController extends AppController {
         $body_temp_other = "";
 
         if (isset($event['Attribute'])) {
-            foreach ($event['Attribute'] as $attribute){
+            foreach ($event['Attribute'] as &$attribute){
                 $line = '- '.$attribute['type'].str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])).': '.$attribute['value']."\n";
                 if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
                     $body_temp_other .= $line;
@@ -440,7 +436,7 @@ class EventsController extends AppController {
                     'recursive' => 0,
             ) );
             $alert_emails = Array();
-            foreach ($alert_users as $user) {
+            foreach ($alert_users as &$user) {
                 $alert_emails[] = $user['User']['email'];
             }
             // prepare the the unencrypted email
@@ -468,7 +464,7 @@ class EventsController extends AppController {
         )
         );
         // encrypt the mail for each user and send it separately
-        foreach ($alert_users as $user) {
+        foreach ($alert_users as &$user) {
             // send the email
             $this->Email->from = Configure::read('CyDefSIG.email');
             $this->Email->to = $user['User']['email'];
@@ -514,8 +510,6 @@ class EventsController extends AppController {
         if ($this->request->is('post') || $this->request->is('put')) {
             $message = $this->request->data['Event']['message'];
             if ($this->_sendContactEmail($id, $message)) {
-                // LATER when a user is deleted this will create problems.
-                // LATER send the email to all the people who are in the org that created the event
                 // redirect to the view event page
                 $this->Session->setFlash(__('Email sent to the reporter.', true));
             } else {
@@ -533,18 +527,19 @@ class EventsController extends AppController {
 
     /**
      *
-     * Sends out an email with the request to be contacted about a specific event.
+     * Sends out an email to all people within the same org
+     * with the request to be contacted about a specific event.
      * @todo move _sendContactEmail($id, $message) to a better place. (components?)
-     * FIXME this _sendContactEmail() gives bugs when a user is deleted. Maybe we should send emails to everyone?
      *
-     * @param unknown_type $id The id of the event for wich you want to contact the person.
+     * @param unknown_type $id The id of the event for wich you want to contact the org.
      * @param unknown_type $message The custom message that will be appended to the email.
      * @return True if success, False if error
      */
     private function _sendContactEmail($id, $message) {
         // fetch the event
         $event = $this->Event->read(null, $id);
-        $reporter = $event['User']; // email, gpgkey
+        $this->loadModel('User');
+        $org_members = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey'));
 
         // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";
@@ -574,7 +569,7 @@ class EventsController extends AppController {
         $body .= 'Risk        : '.$event['Event']['risk']."\n";
         $relatedEvents = $this->Event->getRelatedEvents($id);
         if (!empty($relatedEvents)) {
-            foreach ($relatedEvents as $relatedEvent){
+            foreach ($relatedEvents as &$relatedEvent){
                 $body .= 'Related to  : '.Configure::read('CyDefSIG.baseurl').'/events/view/'.$relatedEvent['Event']['id'].' ('.$relatedEvent['Event']['date'].')'."\n" ;
 
             }
@@ -585,7 +580,7 @@ class EventsController extends AppController {
         $body .= 'Attributes  :'."\n";
         $body_temp_other = "";
         if (!empty($event['Attribute'])) {
-            foreach ($event['Attribute'] as $attribute){
+            foreach ($event['Attribute'] as &$attribute){
                 $line = '- '.$attribute['type'].str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])).': '.$attribute['value']."\n";
                 if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
                     $body_temp_other .= $line;
@@ -601,28 +596,6 @@ class EventsController extends AppController {
         $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
         $body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
 
-        if (!empty($reporter['gpgkey'])) {
-            // import the key of the user into the keyring
-            // this isn't really necessary, but it gives it the fingerprint necessary for the next step
-            $key_import_output = $gpg->importKey($reporter['gpgkey']);
-            // say what key should be used to encrypt
-            $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-            $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
-
-            $body_enc_sig = $gpg->encrypt($body_signed, true);
-        } else {
-            $body_enc_sig = $body_signed;
-            // FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
-        }
-
-        // prepare the email
-        $this->Email->from = Configure::read('CyDefSIG.email');
-        $this->Email->to = $reporter['email'];
-        $this->Email->subject = "[CyDefSIG] Need info about event ".$id." - TLP Amber";
-        //$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
-        $this->Email->template = 'body';
-        $this->Email->sendAs = 'text';        // both text or html
-        $this->set('body', $body_enc_sig);
 
         // Add the GPG key of the user as attachment
         // LATER sign the attached GPG key
@@ -638,8 +611,44 @@ class EventsController extends AppController {
             );
         }
 
-        // send it
-        $result = $this->Email->send();
+        foreach ($org_members as &$reporter) {
+            if (!empty($reporter['User']['gpgkey'])) {
+                // import the key of the user into the keyring
+                // this isn't really necessary, but it gives it the fingerprint necessary for the next step
+                $key_import_output = $gpg->importKey($reporter['User']['gpgkey']);
+                // say what key should be used to encrypt
+                $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+                $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
+
+                $body_enc_sig = $gpg->encrypt($body_signed, true);
+            } else {
+                $body_enc_sig = $body_signed;
+                // FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
+            }
+
+            // prepare the email
+            $this->Email->from = Configure::read('CyDefSIG.email');
+            $this->Email->to = $reporter['User']['email'];
+            $this->Email->subject = "[CyDefSIG] Need info about event ".$id." - TLP Amber";
+            //$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
+            $this->Email->template = 'body';
+            $this->Email->sendAs = 'text';        // both text or html
+            $this->set('body', $body_enc_sig);
+            // Add the GPG key of the user as attachment
+            // LATER sign the attached GPG key
+            if (!empty($me_user['gpgkey'])) {
+                // attach the gpg key
+                $this->Email->attachments = array(
+                        'gpgkey.asc' => $tmpfname
+                );
+            }
+            // send it
+            $result = $this->Email->send();
+            // If you wish to send multiple emails using a loop, you'll need
+            // to reset the email fields using the reset method of the Email component.
+            $this->Email->reset();
+
+        }
 
         // remove the temporary gpg file
         if (!empty($me_user['gpgkey']))
@@ -680,7 +689,7 @@ class EventsController extends AppController {
         } else {
             $conditions = array();
         }
-        // do not expose all the data like user_id, ...
+        // do not expose all the data ...
         $fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid');
         if ('true' == Configure::read('CyDefSIG.showorg')) {
             $fields[] = 'Event.org';
@@ -699,7 +708,7 @@ class EventsController extends AppController {
         // check if the key is valid -> search for users based on key
         $this->loadModel('User');
         // no input sanitization necessary, it's done by model
-        // TODO do not fetch recursive
+        // do not fetch recursive
         $this->User->recursive=0;
         $user = $this->User->findByAuthkey($key);
         if (empty($user)) {
@@ -710,7 +719,6 @@ class EventsController extends AppController {
         $this->header('Content-Disposition: inline; filename="cydefsig.rules"');
         $this->layout = 'text/default';
 
-        $rules= array();
         $this->loadModel('Attribute');
 
         $params = array(
@@ -720,214 +728,11 @@ class EventsController extends AppController {
         );
         $items = $this->Attribute->find('all', $params);
 
-        $classtype = 'targeted-attack';
-        foreach ($items as $item) {
-            # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
-            $rule_format_msg = 'msg: "CyDefSIG %s, Event '.$item['Event']['id'].', '.$item['Event']['risk'].'"';
-            $rule_format_reference = 'reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/view/'.$item['Event']['id'];
-            $rule_format = 'alert %s %s %s %s %s %s ('.$rule_format_msg.'; %s %s classtype:'.$classtype.'; sid:%d; rev:%d; '.$rule_format_reference.';) ';
-
-            $sid = $user['User']['nids_sid']+($item['Attribute']['id']*10);  // leave 9 possible rules per attribute type
-            $attribute = $item['Attribute'];
-
-            $sid++;
-            switch ($attribute['type']) {
-                // LATER test all the snort attributes
-                // LATER add the tag keyword in the rules to capture network traffic
-                // LATER sanitize every $attribute['value'] to not conflict with snort
-                case 'ip-dst':
-                    $rules[] = sprintf($rule_format,
-                            'ip',                           // proto
-                            '$HOME_NET',                    // src_ip
-                            'any',                          // src_port
-                            '->',                           // direction
-                            $attribute['value'],            // dst_ip
-                            'any',                          // dst_port
-                            'Outgoing To Bad IP',           // msg
-                            '',                             // rule_content
-                            '',                             // tag
-                            $sid,                           // sid
-                            1                               // rev
-                            );
-                    break;
-                case 'ip-src':
-                    $rules[] = sprintf($rule_format,
-                            'ip',                           // proto
-                            $attribute['value'],            // src_ip
-                            'any',                          // src_port
-                            '->',                           // direction
-                            '$HOME_NET',                    // dst_ip
-                            'any',                          // dst_port
-                            'Incoming From Bad IP',         // msg
-                            '',                             // rule_content
-                            '',                             // tag
-                            $sid,                           // sid
-                            1                               // rev
-                            );
-                    break;
-                case 'email-src':
-                    $rules[] = sprintf($rule_format,
-                            'tcp',                          // proto
-                            '$EXTERNAL_NET',                // src_ip
-                            'any',                          // src_port
-                            '<>',                           // direction
-                            '$SMTP_SERVERS',                // dst_ip
-                            '25',                           // dst_port
-                            'Bad Source Email Address',     // msg
-                            'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;',  // rule_content
-                            'tag:session,600,seconds;',     // tag
-                            $sid,                           // sid
-                            1                               // rev
-                            );
-                    break;
-                case 'email-dst':
-                    $rules[] = sprintf($rule_format,
-                            'tcp',                          // proto
-                            '$EXTERNAL_NET',                // src_ip
-                            'any',                          // src_port
-                            '<>',                           // direction
-                            '$SMTP_SERVERS',                // dst_ip
-                            '25',                           // dst_port
-                            'Bad Destination Email Address',// msg
-                            'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;',  // rule_content
-                            'tag:session,600,seconds;',     // tag
-                            $sid,                           // sid
-                            1                               // rev
-                            );
-                    break;
-                case 'email-subject':
-                    // LATER email-subject rule might not match because of line-wrapping
-                    $rules[] = sprintf($rule_format,
-                            'tcp',                          // proto
-                            '$EXTERNAL_NET',                // src_ip
-                            'any',                          // src_port
-                            '<>',                           // direction
-                            '$SMTP_SERVERS',                // dst_ip
-                            '25',                           // dst_port
-                            'Bad Email Subject',            // msg
-                            'flow:established,to_server; content:"Subject|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;',  // rule_content
-                            'tag:session,600,seconds;',     // tag
-                            $sid,                           // sid
-                            1                               // rev
-                            );
-                    break;
-                case 'email-attachment':
-                    // LATER email-attachment rule might not match because of line-wrapping
-                    $rules[] = sprintf($rule_format,
-                            'tcp',                          // proto
-                            '$EXTERNAL_NET',                // src_ip
-                            'any',                          // src_port
-                            '<>',                           // direction
-                            '$SMTP_SERVERS',                // dst_ip
-                            '25',                           // dst_port
-                            'Bad Email Attachment',         // msg
-                            'flow:established,to_server; content:"Content-Disposition: attachment|3b| filename=|22|"; content:"'.$attribute['value'].'|22|";',  // rule_content   // LATER test and finetune this snort rule https://secure.wikimedia.org/wikipedia/en/wiki/MIME#Content-Disposition
-                            'tag:session,600,seconds;',     // tag
-                            $sid,                           // sid
-                            1                               // rev
-                            );
-                    break;
-                case 'domain':
-                    $rules[] = sprintf($rule_format,
-                            'udp',                          // proto
-                            'any',                          // src_ip
-                            'any',                          // src_port
-                            '->',                           // direction
-                            'any',                          // dst_ip
-                            '53',                           // dst_port
-                            'Lookup Of Bad Domain',         // msg
-                            'content:"'.$this->_dnsNameToRawFormat($attribute['value']).'"; nocase;',  // rule_content
-                            '',                             // tag
-                            $sid,                           // sid
-                            1                               // rev
-                            );
-                    $sid++;
-                    $rules[] = sprintf($rule_format,
-                            'tcp',                          // proto
-                            'any',                          // src_ip
-                            'any',                          // src_port
-                            '->',                           // direction
-                            'any',                          // dst_ip
-                            '53',                           // dst_port
-                            'Lookup Of Bad Domain',         // msg
-                            'content:"'.$this->_dnsNameToRawFormat($attribute['value']).'"; nocase;',  // rule_content
-                            '',                             // tag
-                            $sid,                           // sid
-                            1                               // rev
-                            );
-                    $sid++;
-                    //break; // domain should also detect the domain name in a url
-                case 'url':
-                    $rules[] = sprintf($rule_format,
-                            'tcp',                          // proto
-                            '$HOME_NET',                    // src_ip
-                            'any',                          // src_port
-                            '->',                           // direction
-                            '$EXTERNAL_NET',                // dst_ip
-                            '$HTTP_PORTS',                  // dst_port
-                            'Outgoing Bad HTTP URL',        // msg
-                            'flow:to_server,established; uricontent:"'.$attribute['value'].'"; nocase;',  // rule_content
-                            'tag:session,600,seconds;',     // tag
-                            $sid,                           // sid
-                            1                               // rev
-                            );
-                    break;
-                case 'user-agent':
-                    $rules[] = "";
-                    // TODO write snort user-agent rule
-                    break;
-                case 'snort':
-                    $tmp_rule = $attribute['value'];
-
-                    // rebuild the rule by overwriting the different keywords using preg_replace()
-                    //   sid       - '/sid\s*:\s*[0-9]+\s*;/'
-                    //   rev       - '/rev\s*:\s*[0-9]+\s*;/'
-                    //   classtype - '/classtype:[a-zA-Z_-]+;/'
-                    //   msg       - '/msg\s*:\s*".*"\s*;/'
-                    //   reference - '/reference\s*:\s*.+;/'
-                    $replace_count=array();
-                    $tmp_rule = preg_replace('/sid\s*:\s*[0-9]+\s*;/', 'sid:'.$sid.';', $tmp_rule, -1, $replace_count['sid']);
-                    if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-                    $tmp_rule = preg_replace('/rev\s*:\s*[0-9]+\s*;/', 'rev:1;', $tmp_rule, -1, $replace_count['rev']);
-                    if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-                    $tmp_rule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:'.$classtype.';', $tmp_rule, -1, $replace_count['classtype']);
-                    if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-                    $tmp_message = sprintf($rule_format_msg, 'snort-rule');
-                    $tmp_rule = preg_replace('/msg\s*:\s*".*"\s*;/', $tmp_message.';', $tmp_rule, -1, $replace_count['msg']);
-                    if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-                    $tmp_rule = preg_replace('/reference\s*:\s*.+;/', $rule_format_reference.';', $tmp_rule, -1, $replace_count['reference']);
-                    if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-
-                    // some values were not replaced, so we need to add them ourselves, and insert them in the rule
-                    $extra_for_rule="";
-                    if (0 == $replace_count['sid']) {
-                        $extra_for_rule .= 'sid:'.$sid.';';
-                    } if (0 == $replace_count['rev']) {
-                        $extra_for_rule .= 'rev:1;';
-                    } if (0 == $replace_count['classtype']) {
-                        $extra_for_rule .= 'classtype:'.$classtype.';';
-                    } if (0 == $replace_count['msg']) {
-                        $extra_for_rule .= $tmp_message.';';
-                    } if (0 == $replace_count['reference']) {
-                        $extra_for_rule .= $rule_format_reference.';';
-                    }
-                    $tmp_rule = preg_replace('/;\s*\)/', '; '.$extra_for_rule.')', $tmp_rule);
-
-                    // finally the rule is cleaned up and can be outputed
-                    $rules[] = $tmp_rule;
-
-                    // TODO test using lots of snort rules.
-                default:
-                    break;
-
-
-            }
-
-        }
+        $rules = $this->NidsExport->suricataRules($items, $user['User']['nids_sid']);
         print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
 
         print "#<pre> \n";
-        foreach ($rules as $rule)
+        foreach ($rules as &$rule)
             print $rule."\n";
         print "#</pre>\n";
 
@@ -967,7 +772,6 @@ class EventsController extends AppController {
 //         // check if the key is valid -> search for users based on key
 //         $this->loadModel('User');
 //         // no input sanitization necessary, it's done by model
-//         // TODO do not fetch recursive
 //         $this->User->recursive=0;
 //         $user = $this->User->findByAuthkey($key);
 //         if (empty($user)) {
@@ -1025,34 +829,6 @@ class EventsController extends AppController {
 //         debug($gv);
 //         $gv->image();
 //     }
-
-
-    /**
-     * // LATER move _dnsNameToRawFormat($name) function to a better place
-     * Converts a DNS name to a raw format usable in NIDS like Snort.
-     *   example: foobar.com becomes |06|foobar|03|com|00|
-     * @param string $name dns name to be converted
-     * @return string raw snort compatible format of the dns name
-     */
-    private function _dnsNameToRawFormat($name) {
-        $rawName = "";
-        // explode using the dot
-        $explodedNames = explode('.', $name);
-        // for each part
-        foreach ($explodedNames as $explodedName) {
-            // count the lenght of the part, and add |length| before
-            $length = strlen($explodedName);
-            if ($length > 255) exit('ERROR: dns name is to long for RFC'); // LATER log correctly without dying
-            $hexLength = dechex($length);
-            if (1 == strlen($hexLength)) $hexLength = '0'.$hexLength;
-            $rawName .= '|'.$hexLength.'|'.$explodedName;
-        }
-        // put all together
-        $rawName .= '|00|';
-        // and append |00| to terminate the name
-        return $rawName;
-    }
-
 
 
 

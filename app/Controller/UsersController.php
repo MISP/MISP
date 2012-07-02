@@ -224,7 +224,6 @@ class UsersController extends AppController {
 
 
 	public function login() {
-	    // FIXME implement authentication brute-force protection
 	    if ($this->Auth->login()) {
 	        $this->redirect($this->Auth->redirect());
 	    } else {
@@ -309,7 +308,7 @@ class UsersController extends AppController {
 	    $sig_types = array_keys($this->Attribute->type_definitions);
 
 	    $graph_fields = '';
-	    foreach ($sig_types as $sig_type) {
+	    foreach ($sig_types as &$sig_type) {
 	        if ($graph_fields != "")  $graph_fields .= ", ";
 	        $graph_fields .= "'".$sig_type."'";
 	    }
@@ -319,7 +318,7 @@ class UsersController extends AppController {
 	    $graph_data=array();
 	    $prev_row_org = "";
 	    $i = -1;
-	    foreach ($types_histogram as $row) {
+	    foreach ($types_histogram as &$row) {
 	        if ($prev_row_org != $row['Event']['org']) {
 	            $i++; $graph_data[] = "";
 	            $prev_row_org = $row['Event']['org'];

@@ -20,36 +20,26 @@ Install the following libraries:
 apt-get install zip
 apt-get install pear
 pear install Crypt_GPG    # need version >1.3.0 
+pear install Net_GeoIP
+# ideally make sure geoip database is updated using crontab
+#wget 'http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz'
+#gunzip GeoIP.dat.gz
+
 
 TODO rewrite instructions using git clones and git submodules
 
+# Download CakePHP from github
+cd /opt/
+git pull https://github.com/cakephp/cakephp.git
+chmod -R 755 /opt/cakephp
 
-Download CyDefSIG using git in the /var/www/ directory. 
 
+# Download CyDefSIG using git in the /var/www/ directory. 
 cd /var/www/
-git clone git@code.lab.modiss.be:cydefsig.git
-
-Download and extract CakePHP 2.x to the web root directory:
-
-cd /tmp/
-wget https://nodeload.github.com/cakephp/cakephp/tarball/2.1
-tar zxvf cakephp-cakephp-<version>.tar.gz
-cd cakephp-cakephp-*
-
-Now remove the app directory and move everything from CakePHP to var/www
-
-rm -Rf app .gitignore 
-mv * /var/www/cydefsig/
-mv .??* /var/www/cydefsig/
-
-TODO TODO Install the CakePHP REST Plugin in the plugins directory.
-(https://github.com/kvz/cakephp-rest-plugin/tree/cake-2.0)  
-using git submodule
+git clone git@code.lab.modiss.be:cydefsig.git 
 
 
-
-Check if the permissions are set correctly using the following commands as root:
-
+# Check if the permissions are set correctly using the following commands as root:
 chown -R <user>:www-data /var/www/cydefsig
 chmod -R 750 /var/www/cydefsig
 chmod -R g+s /var/www/cydefsig
@@ -57,17 +47,26 @@ cd /var/www/cydefsig/app/
 chmod -R g+w tmp
 chmod -R g+w files
 
-Import the empty MySQL database in /var/www/cydefsig/app/MYSQL.txt using phpmyadmin or mysql>.
+# Import the empty MySQL database in /var/www/cydefsig/app/MYSQL.txt using phpmyadmin or mysql>.
 
-Now configure your apache server with the DocumentRoot /var/www/cydefsig/app/webroot/
+# Now configure your apache server with the DocumentRoot /var/www/cydefsig/app/webroot/
 
-Configure the fields in the files:
+
+# Configure the fields in the files:
 database.php : login, port, password, database
 bootstrap.php: CyDefSIG.*, GnuPG.*
 core.php : debug, 
+webroot/index.php : CAKE_CORE_INCLUDE_PATH   (optional for multi-cydefsig installations)
 
-Generate a GPG encryption key.
+# Generate a GPG encryption key.
+mkdir /var/www/cydefsig/.gnupg
+chown www-data:www-data /var/www/cydefsig/.gnupg
+chmod 700 /var/www/cydefsig/.gnupg
 sudo -u www-data gpg --homedir /var/www/cydefsig/.gnupg --gen-key
+
+# And export the public key to the webroot
+sudo -u www-data gpg --homedir .gnupg --export --armor no-reply > app/webroot/gpg.asc
+
 
 
 Now log in using the webinterface:
@@ -80,3 +79,12 @@ Don't forget to change the email, password and authentication key after installa
 Recommended patches
 -------------------
 By default CakePHP exposes his name and version in email headers. Apply a patch to remove this behavior.
+
+Multiple instances on a single server
+-------------------------------------
+If you want to install multiple instances on a single server, extract the CakePHP sources 
+in a central location like /opt/cakephp.
+ 
+Then edit /var/www/cydefsig/app/webroot/index.php and change :
+	define('CAKE_CORE_INCLUDE_PATH', '/opt/cakephp/lib');
+

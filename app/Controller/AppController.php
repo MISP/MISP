@@ -20,6 +20,8 @@
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 
+// TODO GPG encryption has issues when keys are expired
+
 App::uses('Controller', 'Controller');
 App::uses('Sanitize', 'Utility');
 
@@ -187,18 +189,23 @@ class AppController extends Controller {
         if (!self::_isAdmin()) throw new NotFoundException();
 
         // search for composite value1 fields and explode it to value1 and value2
+        _explodeValueToValues();
+
+    }
+    function _explodeValueToValues() {
+        // search for composite value1 fields and explode it to value1 and value2
         $this->loadModel('Attribute');
         $params = array(
                 'conditions' => array(
                         'OR' => array(
                                 'Attribute.type' => $this->Attribute->getCompositeTypes()
-                                )
-                        ),
+                        )
+                ),
                 'recursive' => 0,
                 'fields' => array('Attribute.id', 'Attribute.value1'),
         );
         $attributes = $this->Attribute->find('all', $params);
-        echo '<p>Exploding composite fields in 2 columns: </p><ul>';
+        echo '<h2>Exploding composite fields in 2 columns: </h2><ul>';
         foreach ($attributes as $attribute) {
             $pieces = explode('|', $attribute['Attribute']['value1']);
             if (2 != sizeof($pieces)) continue;    // do nothing if not 2 pieces
@@ -209,8 +216,7 @@ class AppController extends Controller {
             $this->Attribute->id = $attribute['Attribute']['id'];
             $this->Attribute->saveField('value2', $pieces[1]);
         }
-        echo "</ul> DONE</p>";
-
+        echo "</ul> DONE.";
     }
 
 
@@ -242,6 +248,55 @@ class AppController extends Controller {
 //         echo "</ul> DONE</p>";
 
         // search for incompatible combination of category / type
+
+
+    }
+
+    function miratemisp02to10() {
+        if (!self::_isAdmin()) throw new NotFoundException();
+
+        // add missing columns, rename other columns
+        $queries = array(
+        // ATTRIBUTES
+                // rename value to value1
+                 "ALTER TABLE `attributes` CHANGE `value` `value1` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL "
+                // add value2
+                ,"ALTER TABLE `attributes` ADD `value2` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL AFTER `value1` "
+                // fix the keys
+                ,"ALTER TABLE `attributes` DROP INDEX `uuid`;"
+                ,"ALTER TABLE `attributes` ADD INDEX `value1_key` ( `value1` ( 5 ) ) ;"
+                ,"ALTER TABLE `attributes` ADD INDEX `value2_key` ( `value2` ( 5 ) ) ;"
+        // EVENTS
+                // remove useless things
+                ,"ALTER TABLE `events` DROP `user_id`"
+                ,"ALTER TABLE `events` DROP `alerted`"
+                ,"ALTER TABLE `events` ADD `revision` INT( 10 ) NOT NULL DEFAULT '0' AFTER `uuid` "
+                // fix the keys
+                ,"ALTER TABLE events DROP INDEX uuid"
+                ,"ALTER TABLE events DROP INDEX info"
+        // SERVERS
+                // rename lastfetchedid to lastpushedid
+                ,"ALTER TABLE `servers` CHANGE `lastfetchedid` `lastpushedid` INT( 11 ) NOT NULL "
+                // add lastpulledid
+                ,"ALTER TABLE `servers` ADD `lastpulledid` INT( 11 ) NOT NULL AFTER `lastpushedid` "
+        // USERS
+                // fix keys
+                ,"ALTER TABLE `users` DROP INDEX `username`"
+                ,"ALTER TABLE `users` ADD INDEX `email` ( `email` ) "
+        );
+        // execute the queries
+        foreach ($queries as &$query) {
+            $result = $this->{$this->modelClass}->query($query);
+
+        }
+
+
+        // TODO first search for incompatible combination of category / type
+
+
+        // then search for composite value1 fields and explode it to value1 and value2
+        //_explodeValueToValues();
+
 
 
     }

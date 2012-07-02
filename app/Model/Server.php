@@ -17,7 +17,7 @@ class Server extends AppModel {
  * @var array
  */
 	public $validate = array(
-		'url' => array( // TODO add extra validation to refuse multiple urls from the same org
+		'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
 			'url' => array(
 				'rule' => array('url'),
 				'message' => 'Please enter a valid base-url.',

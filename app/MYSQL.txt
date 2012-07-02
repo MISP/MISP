@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Apr 25, 2012 at 01:16 PM
+-- Generation Time: Jun 14, 2012 at 09:57 AM
 -- Server version: 5.5.9
 -- PHP Version: 5.3.6
 
@@ -32,8 +32,21 @@ CREATE TABLE `attributes` (
   `private` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
-  KEY `uuid` (`uuid`)
+  KEY `value1_key` (`value1`(5)),
+  KEY `value2_key` (`value2`(5))
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bruteforces`
+--
+
+CREATE TABLE `bruteforces` (
+  `ip` varchar(255) COLLATE utf8_bin NOT NULL,
+  `username` varchar(255) COLLATE utf8_bin NOT NULL,
+  `expire` datetime NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -47,13 +60,11 @@ CREATE TABLE `events` (
   `date` date NOT NULL,
   `risk` enum('Undefined','Low','Medium','High') COLLATE utf8_bin NOT NULL,
   `info` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `user_id` int(11) NOT NULL,
   `published` tinyint(1) NOT NULL DEFAULT '0',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `revision` int(10) NOT NULL DEFAULT '0',
   `private` tinyint(1) NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `uuid` (`uuid`),
-  FULLTEXT KEY `info` (`info`)
+  PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
@@ -69,8 +80,8 @@ CREATE TABLE `servers` (
   `org` varchar(255) COLLATE utf8_bin NOT NULL,
   `push` tinyint(1) NOT NULL,
   `pull` tinyint(1) NOT NULL,
-  `lastpushedif` int(11) NOT NULL,
-  `lastpulledif` int(11) NOT NULL,
+  `lastpushedid` int(11) NOT NULL,
+  `lastpulledid` int(11) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
@@ -93,21 +104,8 @@ CREATE TABLE `users` (
   `termsaccepted` tinyint(1) NOT NULL,
   `newsread` date NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `username` (`password`),
   KEY `email` (`email`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=2 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `bruteforces`
---
-
-CREATE TABLE `bruteforces` (
-  `ip` varchar(255) COLLATE utf8_bin NOT NULL,
-  `username` varchar(255) COLLATE utf8_bin NOT NULL,
-  `expire` datetime NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 
 --

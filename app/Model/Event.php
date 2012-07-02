@@ -69,16 +69,6 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'user_id' => array(
-			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
-		),
 		'published' => array(
 			'boolean' => array(
 				'rule' => array('boolean'),
@@ -126,15 +116,15 @@ class Event extends AppModel {
  *
  * @var array
  */
-	public $belongsTo = array(
-		'User' => array(
-			'className' => 'User',
-			'foreignKey' => 'user_id',
-			'conditions' => '',
-			'fields' => '',
-			'order' => ''
-		)
-	);
+// 	public $belongsTo = array(
+// 		'Org' => array(
+// 			'className' => 'Org',
+// 			'foreignKey' => 'org',
+// 			'conditions' => '',
+// 			'fields' => '',
+// 			'order' => ''
+// 		)
+// 	);
 
 /**
  * hasMany associations
@@ -175,12 +165,12 @@ class Event extends AppModel {
 	    // first get a list of related event_ids
 	    // then do a single query to search for all the events with that id
 	    $relatedEventIds = Array();
-	    foreach ($this->data['Attribute'] as $attribute ) {
+	    foreach ($this->data['Attribute'] as &$attribute ) {
 	        if ($attribute['type'] == 'other')
 	        continue;  // sigs of type 'other' should not be matched against the others
 	        $conditions = array('Attribute.value =' => $attribute['value'], 'Attribute.type =' => $attribute['type']);
 	        $similar_attributes = $this->Attribute->find('all',array('conditions' => $conditions));
-	        foreach ($similar_attributes as $similar_attribute) {
+	        foreach ($similar_attributes as &$similar_attribute) {
 	            if ($this->id == $similar_attribute['Attribute']['event_id'])
 	            continue; // same as this event, not needed in the list
 	            $relatedEventIds[] = $similar_attribute['Attribute']['event_id'];
@@ -258,22 +248,21 @@ class Event extends AppModel {
 	    unset($event['Attribute']);
 
 	    // cleanup the array from things we do not want to expose
-	    unset($event['Event']['user_id']);
 	    unset($event['Event']['org']);
 	    // remove value1 and value2 from the output
-	    foreach($event['Event']['Attribute'] as $key => $attribute) {
+	    foreach($event['Event']['Attribute'] as $key => &$attribute) {
 	        // do not keep attributes that are private
-	        if ($event['Event']['Attribute'][$key]['private']) {
+	        if ($attribute['private']) {
 	            unset($event['Event']['Attribute'][$key]);
 	            continue; // stop processing this
 	        }
 	        // remove value1 and value2 from the output
-	        unset($event['Event']['Attribute'][$key]['value1']);
-	        unset($event['Event']['Attribute'][$key]['value2']);
+	        unset($attribute['value1']);
+	        unset($attribute['value2']);
 	        // also add the encoded attachment
-	        if ($this->Attribute->typeIsAttachment($event['Event']['Attribute'][$key]['type'])) {
-	            $encoded_file = $this->Attribute->base64EncodeAttachment($event['Event']['Attribute'][$key]);
-	            $event['Event']['Attribute'][$key]['data'] = $encoded_file;
+	        if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+	            $encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
+	            $attribute['data'] = $encoded_file;
 	        }
 	    }
 
@@ -360,7 +349,7 @@ class Event extends AppModel {
 	        $xml = Xml::build($response->body);
 	        $eventArray = Xml::toArray($xml);
 	        $event_ids=array();
-	        foreach ($eventArray['response']['Event'] as $event) {
+	        foreach ($eventArray['response']['Event'] as &$event) {
 	            if (1 != $event['published']) continue;  // do not keep non-published events
 	            $event_ids[] = $event['id'];
 	        }
