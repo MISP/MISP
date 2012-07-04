@@ -185,13 +185,6 @@ class AppController extends Controller {
      * Log in as admin user and
      * Then run this function by setting debug = 1 (or more) and call /events/migrate02to021
      */
-    function migrate02to021() {
-        if (!self::_isAdmin()) throw new NotFoundException();
-
-        // search for composite value1 fields and explode it to value1 and value2
-        _explodeValueToValues();
-
-    }
     function _explodeValueToValues() {
         // search for composite value1 fields and explode it to value1 and value2
         $this->loadModel('Attribute');
@@ -219,6 +212,13 @@ class AppController extends Controller {
         echo "</ul> DONE.";
     }
 
+    function migrate02to021() {
+        if (!self::_isAdmin()) throw new NotFoundException();
+
+        // search for composite value1 fields and explode it to value1 and value2
+        $this->_explodeValueToValues();
+
+    }
 
     function migrate021to022() {
         if (!self::_isAdmin()) throw new NotFoundException();
@@ -227,25 +227,25 @@ class AppController extends Controller {
 
         // replace empty category
         // not easy as we have to guess the category from the type
-//         $this->loadModel('Attribute');
-//         $params = array(
-//                 'conditions' => array('Attribute.type' => ''),
-//                 'recursive' => 0,
-//                 'fields' => array('Attribute.id'),
-//         );
-//         $attributes = $this->Attribute->find('all', $params);
-//         echo '<p>Replacing empty categories by OtherExploding composite fields in 2 columns: </p><ul>';
-//         foreach ($attributes as $attribute) {
-//             $pieces = explode('|', $attribute['Attribute']['value1']);
-//             if (2 != sizeof($pieces)) continue;    // do nothing if not 2 pieces
+        //$this->loadModel('Attribute');
+        // $params = array(
+        //         'conditions' => array('Attribute.type' => ''),
+        //         'recursive' => 0,
+        //         'fields' => array('Attribute.id'),
+        // );
+        // $attributes = $this->Attribute->find('all', $params);
+        // echo '<p>Replacing empty categories by OtherExploding composite fields in 2 columns: </p><ul>';
+        // foreach ($attributes as $attribute) {
+        //     $pieces = explode('|', $attribute['Attribute']['value1']);
+        //     if (2 != sizeof($pieces)) continue;    // do nothing if not 2 pieces
 
-//             $this->Attribute->id = $attribute['Attribute']['id'];
-//             echo '<li>'.$attribute['Attribute']['id'].' --> '.$attribute['Attribute']['value1'].' --> '.$pieces[0].' --> '.$pieces[1].'</li> ';
-//             $this->Attribute->saveField('value1', $pieces[0]);
-//             $this->Attribute->id = $attribute['Attribute']['id'];
-//             $this->Attribute->saveField('value2', $pieces[1]);
-//         }
-//         echo "</ul> DONE</p>";
+        //     $this->Attribute->id = $attribute['Attribute']['id'];
+        //     echo '<li>'.$attribute['Attribute']['id'].' --> '.$attribute['Attribute']['value1'].' --> '.$pieces[0].' --> '.$pieces[1].'</li> ';
+        //     $this->Attribute->saveField('value1', $pieces[0]);
+        //     $this->Attribute->id = $attribute['Attribute']['id'];
+        //     $this->Attribute->saveField('value2', $pieces[1]);
+        // }
+        // echo "</ul> DONE</p>";
 
         // search for incompatible combination of category / type
 
