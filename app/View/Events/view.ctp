@@ -119,6 +119,8 @@
     			    if (isset($filename_hash[1])) echo ' | '.$filename_hash[1];
     			} elseif ('vulnerability' == $attribute['type']) {
     			    echo $this->Html->link($sig_display, 'http://www.google.com/search?q='.$sig_display, array('target'=> '_blank'));
+			} elseif ('link' == $attribute['type']) {
+			    echo $this->Html->link($sig_display, $sig_display);
     			} else {
     			    echo $sig_display;
     			}
