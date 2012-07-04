@@ -443,7 +443,7 @@ class EventsController extends AppController {
             $this->Email->from = Configure::read('CyDefSIG.email');
             //$this->Email->to = "CyDefSIG <sig@cyber-defence.be>"; TODO check if it doesn't break things to not set a to , like being spammed away
             $this->Email->bcc = $alert_emails;
-            $this->Email->subject = "[CyDefSIG] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
+            $this->Email->subject =  "[".Configure::read('CyDefSIG.name')."] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
             $this->Email->template = 'body';
             $this->Email->sendAs = 'text';        // both text or html
             $this->set('body', $body_signed);
@@ -468,7 +468,7 @@ class EventsController extends AppController {
             // send the email
             $this->Email->from = Configure::read('CyDefSIG.email');
             $this->Email->to = $user['User']['email'];
-            $this->Email->subject = "[CyDefSIG] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
+            $this->Email->subject = "[".Configure::read('CyDefSIG.name')."] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
             $this->Email->template = 'body';
             $this->Email->sendAs = 'text';        // both text or html
 
