@@ -264,14 +264,15 @@ class Attribute extends AppModel {
 	    // or copy value to value1 if not composite type
 	    if (!empty($this->data['Attribute']['type'])) {
     	    $composite_types = $this->getCompositeTypes();
+   	        // explode composite types in value1 and value2
+    	    $pieces = explode('|', $this->data['Attribute']['value']);
     	    if (in_array($this->data['Attribute']['type'], $composite_types)) {
-    	        // explode composite types in value1 and value2
-        	    $pieces = explode('|', $this->data['Attribute']['value']);
         	    if (2 != sizeof($pieces)) throw new InternalErrorException('Composite type, but value not explodable');
     	        $this->data['Attribute']['value1'] = $pieces[0];
     	        $this->data['Attribute']['value2'] = $pieces[1];
     	    } else {
-    	        $this->data['Attribute']['value1'] = $this->data['Attribute']['value'];
+    	        $this->data['Attribute']['value1'] = $pieces[0];
+    	        $this->data['Attribute']['value2'] = '';
     	    }
 	    }
 
