@@ -33,6 +33,13 @@ class Attribute extends AppModel {
 			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
 	);
 
+	// if these then a category my have upload
+
+	public $upload_definitions = array(
+			'attachment',
+			'malware-sample'
+	);
+
 	// these are definition of possible types + their descriptions and maybe LATER other behaviors
 	// e.g. if the attribute should be correlated with others or not
 
@@ -551,13 +558,8 @@ class Attribute extends AppModel {
 	}
 
 	function typeIsAttachment($type) {
-        switch ($type) {
-            case 'attachment':
-            case 'malware-sample':
-                return true;
-            default:
-                return false;
-        }
+		if (in_array($type, $upload_definitions)) return true;
+        else return false;
 	}
 
 	function base64EncodeAttachment($attribute) {

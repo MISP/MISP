@@ -5,6 +5,7 @@
 	<?php
 		echo $this->Form->hidden('event_id');
 		echo $this->Form->input('category',  array('between' => $this->Html->div('forminfo', '', array('id'=> 'AttributeCategoryDiv'))));
+		echo '<div class="upload">';
 		echo $this->Form->file('value', array(
 			'error' => array('escape' => false),
 		));
@@ -13,6 +14,7 @@
                 'checked' => false,
                 'after' => '<br>Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"',
         ));
+		echo '</div>';
         if ('true' == Configure::read('CyDefSIG.sync')) {
             echo $this->Form->input('private', array(
                     'before' => $this->Html->div('forminfo', isset($attr_descriptions['private']['formdesc']) ? $attr_descriptions['private']['formdesc'] : $attr_descriptions['private']['desc']),));
@@ -39,6 +41,20 @@ var formInfoValues = new Array();
 	}
 ?>
 
+var formTypeValues = new Array();
+<?php 
+	foreach ($category_definitions as $category => $def) {
+		$types = $def['types'];
+		$alreadySet = false;
+		foreach ($types as $type) {
+			if (in_array($type, $upload_definitions) && !$alreadySet) {
+				$alreadySet = true;
+				echo "formTypeValues['$category'] = \"true\";\n";
+			}
+		}
+	}
+?>
+
 function showFormInfo(id) {
 	idDiv = id+'Div';
 	// LATER use nice animations
@@ -49,11 +65,20 @@ function showFormInfo(id) {
 
 	// show it again
 	$(idDiv).fadeIn('slow');
+	
+	// do/not show upload
+	if (formTypeValues[value] == "true") {
+        $('div.upload').show();
+    } else {
+        $('div.upload').hide();
+    }
 }
 
 // hide the formInfo things
 $('#AttributeTypeDiv').hide();
 $('#AttributeCategoryDiv').hide();
+// hide upload
+$('div.upload').hide();
 
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts ?>

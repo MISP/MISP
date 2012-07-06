@@ -296,6 +296,7 @@ class AttributesController extends AppController {
 	    $this->set('type_definitions', $this->Attribute->type_definitions);
 	    $this->set('category_definitions', $this->Attribute->category_definitions);
 
+	    $this->set('upload_definitions', $this->Attribute->upload_definitions);
 	}
 
 /**
