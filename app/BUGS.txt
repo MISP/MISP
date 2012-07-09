@@ -12,4 +12,5 @@ Fixed bugs:
 - list servers: error lastpushed/pulledid.
 - attribute with type filename|md5 -> filename, remove |..
 - add attachment show only categroies with attachment and malware-sample types.
-- edit attribute, non-valide, correct, ´black-holed´.
+- add attribute, non-valide, correct, ´black-holed´.
+- view event, edit attribute, no validation.
