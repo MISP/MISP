@@ -24,6 +24,7 @@ class AttributesController extends AppController {
         if ('search' == $this->request->params['action']) {
             $this->Security->csrfUseOnce = false;
         }
+        $this->Security->validatePost = false;
     }
 
 
