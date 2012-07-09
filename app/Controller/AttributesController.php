@@ -289,7 +289,23 @@ class AttributesController extends AppController {
 
 	    // combobos for categories
 	    $categories = $this->Attribute->validate['category']['rule'][1];
-	    $categories = $this->_arrayToValuesIndexArray($categories);
+	    // just get them with attachments..
+	    $selectedCategories = array();
+		foreach ($categories as $category) {
+			if (isset($this->Attribute->category_definitions[$category])) {
+				$types = $this->Attribute->category_definitions[$category]['types'];
+				$alreadySet = false;
+				foreach ($types as $type) {
+					if (in_array($type, $this->Attribute->upload_definitions) && !$alreadySet) {
+						// add to the whole..207.204.231.231
+						$selectedCategories[] = $category;
+						$alreadySet = true;
+						continue;
+					}
+				}
+			}
+		};
+	    $categories = $this->_arrayToValuesIndexArray($selectedCategories);
 	    $this->set('categories',compact('categories'));
 
 	    $this->set('attr_descriptions', $this->Attribute->field_descriptions);

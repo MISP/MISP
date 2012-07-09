@@ -558,7 +558,7 @@ class Attribute extends AppModel {
 	}
 
 	function typeIsAttachment($type) {
-		if (in_array($type, $upload_definitions)) return true;
+		if (in_array($type, $this->upload_definitions)) return true;
         else return false;
 	}
 
