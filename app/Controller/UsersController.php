@@ -7,7 +7,8 @@ App::uses('AppController', 'Controller');
  */
 class UsersController extends AppController {
 
-
+    public $newkey;
+	
     public $components = array('Security');
     public $paginate = array(
             'limit' => 60,
@@ -157,12 +158,14 @@ class UsersController extends AppController {
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
+				// reset auth key for a new user
+				$this->set('authkey', $this->newkey);
 				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
 			}
 		} else {
 			// generate auth key for a new user
-			$newkey = $this->User->generateAuthKey();
-			$this->set('authkey', $newkey);
+			$this->newkey = $this->User->generateAuthKey();
+			$this->set('authkey', $this->newkey);
 		}
 	}
 
