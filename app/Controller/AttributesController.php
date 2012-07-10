@@ -176,11 +176,12 @@ class AttributesController extends AppController {
             throw new NotFoundException(__('Attribute not an attachment or malware-sample'));
         }
 
-        $file_ext = explode(".", $filename);
+        $file_ext = pathinfo($filename, PATHINFO_EXTENSION);
         $this->viewClass = 'Media';
         $params = array(
                 'id'        => $file->path,
                 'name'      => $filename,
+                'extension' => $file_ext,
                 'download'  => true,
                 'path'      => DS
         );
