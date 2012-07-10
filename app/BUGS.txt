@@ -1,9 +1,10 @@
 Existing bugs:
 
 - timeout admin_user.
-- search attributes: next page goes to search, search again, then at next page.
+2 search attributes: next page goes to search, search again, then at next page.
 - Somehow there got a user_id 0 in events.
 - View User and Events got lost(?), but is still there in 0.2.2
+1 IE, no download (Js)
 
 Fixed bugs:
 
