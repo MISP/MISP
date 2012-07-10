@@ -169,14 +169,16 @@ class AttributesController extends AppController {
 	    $filename = '';
         if('attachment' == $this->Attribute->data['Attribute']['type']) {
             $filename= $this->Attribute->data['Attribute']['value'];
+            $file_ext = pathinfo($filename, PATHINFO_EXTENSION);
+            $filename= substr($filename,0,strlen($filename)-strlen($file_ext));
         } elseif ('malware-sample'== $this->Attribute->data['Attribute']['type']) {
             $filename_hash = explode('|', $this->Attribute->data['Attribute']['value']);
-            $filename = $filename_hash[0].".zip";
+            $filename = $filename_hash[0];
+            $file_ext = "zip";
         } else {
             throw new NotFoundException(__('Attribute not an attachment or malware-sample'));
         }
 
-        $file_ext = pathinfo($filename, PATHINFO_EXTENSION);
         $this->viewClass = 'Media';
         $params = array(
                 'id'        => $file->path,
