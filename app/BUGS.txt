@@ -4,7 +4,7 @@ Existing bugs:
 2 search attributes: next page goes to search, search again, then at next page.
 - Somehow there got a user_id 0 in events.
 - View User and Events got lost(?), but is still there in 0.2.2
-1 IE, no download (Js)
+1 IE, no download (Js) (CakePHP bug #2554 related?)
 
 Fixed bugs:
 
@@ -15,3 +15,4 @@ Fixed bugs:
 - add attachment show only categroies with attachment and malware-sample types.
 - add attribute, non-valide, correct, ´black-holed´.
 - view event, edit attribute, no validation.
+- add user, some validation error then extra: authkey not defined.
