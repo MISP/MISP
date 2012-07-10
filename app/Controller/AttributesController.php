@@ -297,8 +297,8 @@ class AttributesController extends AppController {
 				$types = $this->Attribute->category_definitions[$category]['types'];
 				$alreadySet = false;
 				foreach ($types as $type) {
-					if (in_array($type, $this->Attribute->upload_definitions) && !$alreadySet) {
-						// add to the whole..207.204.231.231
+					if ($this->Attribute->typeIsAttachment($type) && !$alreadySet) {
+						// add to the whole..
 						$selectedCategories[] = $category;
 						$alreadySet = true;
 						continue;
@@ -313,6 +313,7 @@ class AttributesController extends AppController {
 	    $this->set('type_definitions', $this->Attribute->type_definitions);
 	    $this->set('category_definitions', $this->Attribute->category_definitions);
 
+	    $this->set('zipped_definitions', $this->Attribute->zipped_definitions);
 	    $this->set('upload_definitions', $this->Attribute->upload_definitions);
 	}
 

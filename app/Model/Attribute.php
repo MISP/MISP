@@ -33,11 +33,16 @@ class Attribute extends AppModel {
 			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
 	);
 
+	// if these then a category my have upload to be zipped
+
+	public $zipped_definitions = array(
+			'malware-sample'
+	);
+
 	// if these then a category my have upload
 
 	public $upload_definitions = array(
-			'attachment',
-			'malware-sample'
+			'attachment'
 	);
 
 	// these are definition of possible types + their descriptions and maybe LATER other behaviors
@@ -557,11 +562,16 @@ class Attribute extends AppModel {
 	    return $similar_events;
 	}
 
-	function typeIsAttachment($type) {
-		if (in_array($type, $this->upload_definitions)) return true;
+	function typeIsMalware($type) {
+		if (in_array($type, $this->zipped_definitions)) return true;
         else return false;
 	}
-
+	
+	function typeIsAttachment($type) {
+		if ((in_array($type, $this->zipped_definitions)) || (in_array($type, $this->upload_definitions))) return true;
+        else return false;
+	}
+	
 	function base64EncodeAttachment($attribute) {
 	    $filepath = APP."files/".$attribute['event_id']."/".$attribute['id'];
 	    $file = new File($filepath);

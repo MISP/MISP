@@ -10,7 +10,7 @@
 		));
         echo $this->Form->input('malware', array(
                 'type' => 'checkbox',
-                'checked' => true,
+                'checked' => false,
                 'after' => '<br>Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"',
         ));
         if ('true' == Configure::read('CyDefSIG.sync')) {
@@ -45,13 +45,29 @@ var formTypeValues = new Array();
 		$types = $def['types'];
 		$alreadySet = false;
 		foreach ($types as $type) {
-			if (in_array($type, $upload_definitions) && !$alreadySet) {
+			if (in_array($type, $zipped_definitions) && !$alreadySet) {
 				$alreadySet = true;
 				echo "formTypeValues['$category'] = \"true\";\n";
 			}
 		}
 	}
 ?>
+
+function showFormType(id) {
+	idDiv = id+'Div';
+	// LATER use nice animations
+	//$(idDiv).hide('fast');
+	// change the content
+	var value = $(id).val();    // get the selected value
+	//$(idDiv).html(formInfoValues[value]);    // search in a lookup table
+	
+	// do checkbox un/ticked when the document is changed
+	if (formTypeValues[value] == "true") {
+        document.getElementById("AttributeMalware").setAttribute("checked", "checked");
+    } else {
+        document.getElementById("AttributeMalware").removeAttribute("checked");
+    }    
+}
 
 function showFormInfo(id) {
 	idDiv = id+'Div';
@@ -64,17 +80,22 @@ function showFormInfo(id) {
 	// show it again
 	$(idDiv).fadeIn('slow');
 	
-	// do/not show upload
+	// do checkbox un/ticked when the document is changed
 	if (formTypeValues[value] == "true") {
-        $('div.upload').show();
+        document.getElementById("AttributeMalware").setAttribute("checked", "checked");
     } else {
-        $('div.upload').hide();
-    }
+        document.getElementById("AttributeMalware").removeAttribute("checked");
+    }    
 }
 
 // hide the formInfo things
 $('#AttributeTypeDiv').hide();
 $('#AttributeCategoryDiv').hide();
+$(function(){
+    // do checkbox un/ticked when the document is ready
+    showFormType("#AttributeCategory");
+    }
+);
 
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts ?>
