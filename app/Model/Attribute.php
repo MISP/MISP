@@ -329,6 +329,11 @@ class Attribute extends AppModel {
 	        case 'hostname':
 	            $this->data['Attribute']['value'] = strtolower($this->data['Attribute']['value']);
 	            break;
+	        case 'filename|md5':
+	        case 'filename|sha1':
+	        	$pieces = explode('|', $this->data['Attribute']['value']);
+	            $this->data['Attribute']['value'] = $pieces[0].'|'.strtolower($pieces[1]);
+	        	break;
 	    }
 
 	    // generate UUID if it doesn't exist
