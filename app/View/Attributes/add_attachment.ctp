@@ -1,5 +1,5 @@
 <div class="attributes form">
-<?php echo $this->Form->create('Attribute', array('enctype' => 'multipart/form-data'));?>
+<?php echo $this->Form->create('Attribute', array('enctype' => 'multipart/form-data','onSubmit' => 'document.getElementById("AttributeMalware").removeAttribute("disabled");'));?>
 	<fieldset>
 			<legend><?php echo __('Add Attachment'); ?></legend>
 	<?php
@@ -39,7 +39,7 @@ var formInfoValues = new Array();
 	}
 ?>
 
-var formTypeValues = new Array();
+var formZipTypeValues = new Array();
 <?php 
 	foreach ($category_definitions as $category => $def) {
 		$types = $def['types'];
@@ -47,8 +47,28 @@ var formTypeValues = new Array();
 		foreach ($types as $type) {
 			if (in_array($type, $zipped_definitions) && !$alreadySet) {
 				$alreadySet = true;
-				echo "formTypeValues['$category'] = \"true\";\n";
+				echo "formZipTypeValues['$category'] = \"true\";\n";
 			}
+		}
+		if (!$alreadySet) {
+			echo "formZipTypeValues['$category'] = \"false\";\n";
+		}
+	}
+?>
+
+var formAttTypeValues = new Array();
+<?php 
+	foreach ($category_definitions as $category => $def) {
+		$types = $def['types'];
+		$alreadySet = false;
+		foreach ($types as $type) {
+			if (in_array($type, $upload_definitions) && !$alreadySet) {
+				$alreadySet = true;
+				echo "formAttTypeValues['$category'] = \"true\";\n";
+			}
+		}
+		if (!$alreadySet) {
+			echo "formAttTypeValues['$category'] = \"false\";\n";
 		}
 	}
 ?>
@@ -61,11 +81,15 @@ function showFormType(id) {
 	var value = $(id).val();    // get the selected value
 	//$(idDiv).html(formInfoValues[value]);    // search in a lookup table
 	
-	// do checkbox un/ticked when the document is changed
-	if (formTypeValues[value] == "true") {
+	// do checkbox un/ticked when the document is changed	
+	if (formZipTypeValues[value] == "true") {
         document.getElementById("AttributeMalware").setAttribute("checked", "checked");
-    } else {
+        if (formAttTypeValues[value] == "false") document.getElementById("AttributeMalware").setAttribute("disabled", "disabled");
+        else document.getElementById("AttributeMalware").removeAttribute("disabled");
+	} else {
         document.getElementById("AttributeMalware").removeAttribute("checked");
+        if (formAttTypeValues[value] == "true") document.getElementById("AttributeMalware").setAttribute("disabled", "disabled");
+        else document.getElementById("AttributeMalware").removeAttribute("disabled");
     }    
 }
 
@@ -81,10 +105,14 @@ function showFormInfo(id) {
 	$(idDiv).fadeIn('slow');
 	
 	// do checkbox un/ticked when the document is changed
-	if (formTypeValues[value] == "true") {
+	if (formZipTypeValues[value] == "true") {
         document.getElementById("AttributeMalware").setAttribute("checked", "checked");
+        if (formAttTypeValues[value] == "false") document.getElementById("AttributeMalware").setAttribute("disabled", "disabled");
+        else document.getElementById("AttributeMalware").removeAttribute("disabled");
     } else {
         document.getElementById("AttributeMalware").removeAttribute("checked");
+        if (formAttTypeValues[value] == "true") document.getElementById("AttributeMalware").setAttribute("disabled", "disabled");
+        else document.getElementById("AttributeMalware").removeAttribute("disabled");
     }    
 }
 
