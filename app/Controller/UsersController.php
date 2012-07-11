@@ -231,7 +231,11 @@ class UsersController extends AppController {
 	    if ($this->Auth->login()) {
 	        $this->redirect($this->Auth->redirect());
 	    } else {
-                // don't display "invalid user" before first login attempt
+	    	// don't display authError before first login attempt
+			if (str_replace("//","/",$this->webroot.$this->Session->read('Auth.redirect')) == $this->webroot && $this->Session->read('Message.auth.message') == $this->Auth->authError) {
+			    $this->Session->delete('Message.auth');
+			}
+	    	// don't display "invalid user" before first login attempt
                if($this->request->is('post')) $this->Session->setFlash(__('Invalid username or password, try again'));
 
 	    }
