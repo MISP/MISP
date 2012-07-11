@@ -24,6 +24,7 @@ class AttributesController extends AppController {
         if ('search' == $this->request->params['action']) {
             $this->Security->csrfUseOnce = false;
         }
+        $this->Security->validatePost = false;
     }
 
 
@@ -168,18 +169,21 @@ class AttributesController extends AppController {
 	    $filename = '';
         if('attachment' == $this->Attribute->data['Attribute']['type']) {
             $filename= $this->Attribute->data['Attribute']['value'];
+            $file_ext = pathinfo($filename, PATHINFO_EXTENSION);
+            $filename= substr($filename,0,strlen($filename)-strlen($file_ext));
         } elseif ('malware-sample'== $this->Attribute->data['Attribute']['type']) {
             $filename_hash = explode('|', $this->Attribute->data['Attribute']['value']);
-            $filename = $filename_hash[0].".zip";
+            $filename = $filename_hash[0];
+            $file_ext = "zip";
         } else {
             throw new NotFoundException(__('Attribute not an attachment or malware-sample'));
         }
 
-        $file_ext = explode(".", $filename);
         $this->viewClass = 'Media';
         $params = array(
                 'id'        => $file->path,
                 'name'      => $filename,
+                'extension' => $file_ext,
                 'download'  => true,
                 'path'      => DS
         );
@@ -290,13 +294,31 @@ class AttributesController extends AppController {
 
 	    // combobos for categories
 	    $categories = $this->Attribute->validate['category']['rule'][1];
-	    $categories = $this->_arrayToValuesIndexArray($categories);
+	    // just get them with attachments..
+	    $selectedCategories = array();
+		foreach ($categories as $category) {
+			if (isset($this->Attribute->category_definitions[$category])) {
+				$types = $this->Attribute->category_definitions[$category]['types'];
+				$alreadySet = false;
+				foreach ($types as $type) {
+					if ($this->Attribute->typeIsAttachment($type) && !$alreadySet) {
+						// add to the whole..
+						$selectedCategories[] = $category;
+						$alreadySet = true;
+						continue;
+					}
+				}
+			}
+		};
+	    $categories = $this->_arrayToValuesIndexArray($selectedCategories);
 	    $this->set('categories',compact('categories'));
 
 	    $this->set('attr_descriptions', $this->Attribute->field_descriptions);
 	    $this->set('type_definitions', $this->Attribute->type_definitions);
 	    $this->set('category_definitions', $this->Attribute->category_definitions);
 
+	    $this->set('zipped_definitions', $this->Attribute->zipped_definitions);
+	    $this->set('upload_definitions', $this->Attribute->upload_definitions);
 	}
 
 /**
@@ -327,7 +349,7 @@ class AttributesController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    // say what fields are to be updated
 		    $fieldList=array('category', 'type', 'value1', 'value2', 'to_ids', 'private');
-			if ($this->Attribute->save($this->request->data, true, $fieldList)) {
+			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 
 				// remove the published flag from the event

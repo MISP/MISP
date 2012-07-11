@@ -7,7 +7,8 @@ App::uses('AppController', 'Controller');
  */
 class UsersController extends AppController {
 
-
+    public $newkey;
+	
     public $components = array('Security');
     public $paginate = array(
             'limit' => 60,
@@ -157,12 +158,14 @@ class UsersController extends AppController {
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
+				// reset auth key for a new user
+				$this->set('authkey', $this->newkey);
 				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
 			}
 		} else {
 			// generate auth key for a new user
-			$newkey = $this->User->generateAuthKey();
-			$this->set('authkey', $newkey);
+			$this->newkey = $this->User->generateAuthKey();
+			$this->set('authkey', $this->newkey);
 		}
 	}
 
@@ -227,7 +230,11 @@ class UsersController extends AppController {
 	    if ($this->Auth->login()) {
 	        $this->redirect($this->Auth->redirect());
 	    } else {
-                // don't display "invalid user" before first login attempt
+	    	// don't display authError before first login attempt
+			if (str_replace("//","/",$this->webroot.$this->Session->read('Auth.redirect')) == $this->webroot && $this->Session->read('Message.auth.message') == $this->Auth->authError) {
+			    $this->Session->delete('Message.auth');
+			}
+	    	// don't display "invalid user" before first login attempt
                if($this->request->is('post')) $this->Session->setFlash(__('Invalid username or password, try again'));
 
 	    }

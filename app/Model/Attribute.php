@@ -36,6 +36,18 @@ class Attribute extends AppModel {
 	// these are definition of possible types + their descriptions and maybe later other behaviors
 	// e.g. if the attribute should be correlated with others or not
 
+	// if these then a category my have upload to be zipped
+
+	public $zipped_definitions = array(
+			'malware-sample'
+	);
+
+	// if these then a category my have upload
+
+	public $upload_definitions = array(
+			'attachment'
+	);
+
 	public $type_definitions = array(
 			'md5' => array('desc' => 'A checksum in md5 format', 'formdesc' => "You are encouraged to use filename|md5 instead. <br/>A checksum in md5 format, only use this if you don't know the correct filename"),
 			'sha1' => array('desc' => 'A checksum in sha1 format', 'formdesc' => "You are encouraged to use filename|sha1 instead. <br/>A checksum in sha1 format, only use this if you don't know the correct filename"),
@@ -264,14 +276,15 @@ class Attribute extends AppModel {
 	    // or copy value to value1 if not composite type
 	    if (!empty($this->data['Attribute']['type'])) {
     	    $composite_types = $this->getCompositeTypes();
+   	        // explode composite types in value1 and value2
+    	    $pieces = explode('|', $this->data['Attribute']['value']);
     	    if (in_array($this->data['Attribute']['type'], $composite_types)) {
-    	        // explode composite types in value1 and value2
-        	    $pieces = explode('|', $this->data['Attribute']['value']);
         	    if (2 != sizeof($pieces)) throw new InternalErrorException('Composite type, but value not explodable');
     	        $this->data['Attribute']['value1'] = $pieces[0];
     	        $this->data['Attribute']['value2'] = $pieces[1];
     	    } else {
-    	        $this->data['Attribute']['value1'] = $this->data['Attribute']['value'];
+    	        $this->data['Attribute']['value1'] = $pieces[0];
+    	        $this->data['Attribute']['value2'] = '';
     	    }
 	    }
 
@@ -316,6 +329,11 @@ class Attribute extends AppModel {
 	        case 'hostname':
 	            $this->data['Attribute']['value'] = strtolower($this->data['Attribute']['value']);
 	            break;
+	        case 'filename|md5':
+	        case 'filename|sha1':
+	        	$pieces = explode('|', $this->data['Attribute']['value']);
+	            $this->data['Attribute']['value'] = $pieces[0].'|'.strtolower($pieces[1]);
+	        	break;
 	    }
 
 	    // generate UUID if it doesn't exist
@@ -551,16 +569,16 @@ class Attribute extends AppModel {
 	    return $similar_events;
 	}
 
-	function typeIsAttachment($type) {
-        switch ($type) {
-            case 'attachment':
-            case 'malware-sample':
-                return true;
-            default:
-                return false;
-        }
+	function typeIsMalware($type) {
+		if (in_array($type, $this->zipped_definitions)) return true;
+        else return false;
 	}
-
+	
+	function typeIsAttachment($type) {
+		if ((in_array($type, $this->zipped_definitions)) || (in_array($type, $this->upload_definitions))) return true;
+        else return false;
+	}
+	
 	function base64EncodeAttachment($attribute) {
 	    $filepath = APP."files/".$attribute['event_id']."/".$attribute['id'];
 	    $file = new File($filepath);
