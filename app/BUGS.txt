@@ -16,3 +16,4 @@ Fixed bugs:
 - add attribute, non-valide, correct, ´black-holed´.
 - view event, edit attribute, no validation.
 - add user, some validation error then extra: authkey not defined.
+- authError gets displayed before login.
