@@ -170,7 +170,7 @@ class AttributesController extends AppController {
         if('attachment' == $this->Attribute->data['Attribute']['type']) {
             $filename= $this->Attribute->data['Attribute']['value'];
             $file_ext = pathinfo($filename, PATHINFO_EXTENSION);
-            $filename= substr($filename,0,strlen($filename)-strlen($file_ext));
+            $filename= substr($filename,0,strlen($filename)-strlen($file_ext)-1);
         } elseif ('malware-sample'== $this->Attribute->data['Attribute']['type']) {
             $filename_hash = explode('|', $this->Attribute->data['Attribute']['value']);
             $filename = $filename_hash[0];
