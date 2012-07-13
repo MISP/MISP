@@ -1,7 +1,6 @@
 Existing bugs:
 
 - timeout admin_user.
-1 search attributes: next page goes to search, search again, then at next page.
 - Somehow there got a user_id 0 in events.
 - View User and Events got lost(?), but is still there in 0.2.2
 
@@ -18,3 +17,4 @@ Fixed bugs:
 - authError gets displayed before login.
 - IE, no download (Js) (CakePHP bug #2554 related?)
 - uppercases in md5 or sha1 when type filename|md5/sha1 is not lc like type md5/sha1.
+- search attributes: next page goes to search, search again, then at next page.
