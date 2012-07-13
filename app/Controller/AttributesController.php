@@ -410,51 +410,74 @@ class AttributesController extends AppController {
 
 
 	public function search() {
+		
+		$fullAddress = '/attributes/search';
+		
+		if ($this->request->here == $fullAddress) {
+			
+		    $this->set('attr_descriptions', $this->Attribute->field_descriptions);
+		    $this->set('type_definitions', $this->Attribute->type_definitions);
+		    $this->set('category_definitions', $this->Attribute->category_definitions);
+	
+		    // reset the paginate_conditions
+		    $this->Session->write('paginate_conditions',array());
+		    
+		    if ($this->request->is('post') && ($this->request->here == $fullAddress)) {
+		    	$keyword = $this->request->data['Attribute']['keyword'];
+		        $type = $this->request->data['Attribute']['type'];
+		        $category = $this->request->data['Attribute']['category'];
+	
+		        // search the db
+		        $conditions = array();
+	            if($keyword) {
+	                $conditions['Attribute.value LIKE'] = '%'.$keyword.'%';
+	            }
+	            if($type != 'ALL') {
+	                $conditions['Attribute.type ='] = $type;
+	            }
+	            if($category != 'ALL') {
+	                $conditions['Attribute.category ='] = $category;
+	            }
+	            $this->Attribute->recursive = 0;
+	            $this->paginate = array(
+	                'conditions' => $conditions
+	            );
+		        $this->set('attributes', $this->paginate());
 
-	    $this->set('attr_descriptions', $this->Attribute->field_descriptions);
-	    $this->set('type_definitions', $this->Attribute->type_definitions);
-	    $this->set('category_definitions', $this->Attribute->category_definitions);
+		        // and store into session
+		        $this->Session->write('paginate_conditions',$this->paginate);
+		        
+		        // set the same view as the index page
+		        $this->render('index');
+		    } else {
+		        // no search keyword is given, show the search form
+	
+		        // adding filtering by category and type
+	    	    // combobox for types
+	    	    $types = array('ALL');
+	    	    $types = array_merge($types, array_keys($this->Attribute->type_definitions));
+	    	    $types = $this->_arrayToValuesIndexArray($types);
+	    	    $this->set('types',compact('types'));
+	
+	    	    // combobox for categories
+	    	    $categories = array('ALL');
+	    	    $categories = array_merge($categories, $this->Attribute->validate['category']['rule'][1]);
+	    	    $categories = $this->_arrayToValuesIndexArray($categories);
+	    	    $this->set('categories',compact('categories'));
+		    }
+		} else {
+			$this->set('attr_descriptions', $this->Attribute->field_descriptions);
+			$this->set('type_definitions', $this->Attribute->type_definitions);
+		    $this->set('category_definitions', $this->Attribute->category_definitions);
 
-	    if ($this->request->is('post')) {
-	        $keyword = $this->request->data['Attribute']['keyword'];
-	        $type = $this->request->data['Attribute']['type'];
-	        $category = $this->request->data['Attribute']['category'];
-
-	        // search the db
-	        $conditions = array();
-            if($keyword) {
-                $conditions['Attribute.value LIKE'] = '%'.$keyword.'%';
-            }
-            if($type != 'ALL') {
-                $conditions['Attribute.type ='] = $type;
-            }
-            if($category != 'ALL') {
-                $conditions['Attribute.category ='] = $category;
-            }
-            $this->Attribute->recursive = 0;
-            $this->paginate = array(
-                'conditions' => $conditions
-            );
-	        $this->set('attributes', $this->paginate());
-
-	        // set the same view as the index page
-	        $this->render('index');
-	    } else {
-	        // no search keyword is given, show the search form
-
-	        // adding filtering by category and type
-    	    // combobox for types
-    	    $types = array('ALL');
-    	    $types = array_merge($types, array_keys($this->Attribute->type_definitions));
-    	    $types = $this->_arrayToValuesIndexArray($types);
-    	    $this->set('types',compact('types'));
-
-    	    // combobox for categories
-    	    $categories = array('ALL');
-    	    $categories = array_merge($categories, $this->Attribute->validate['category']['rule'][1]);
-    	    $categories = $this->_arrayToValuesIndexArray($categories);
-    	    $this->set('categories',compact('categories'));
-	    }
+		    $this->Attribute->recursive = 0;
+			// re-get pagination
+			$this->paginate = $this->Session->read('paginate_conditions');
+	    	$this->set('attributes', $this->paginate());
+	
+		    // set the same view as the index page
+	    	$this->render('index');		
+		}
 	}
 
 }
