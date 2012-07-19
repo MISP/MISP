@@ -5,6 +5,7 @@
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
+			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('date');?></th>
 	        <th<?php echo ' title="' . $event_descriptions['risk']['desc'] . '"';?>><?php echo $this->Paginator->sort('risk');?></th>
@@ -24,6 +25,8 @@
 		<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
 		<?php echo h($event['Event']['org']); ?>&nbsp;</td>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
+		<?php echo h($event['User']['email']); ?>&nbsp;</td>
 		<?php endif; ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
 		<?php echo $event['Event']['date']; ?>&nbsp;</td>

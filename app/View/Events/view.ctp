@@ -30,6 +30,11 @@
 			<?php echo h($event['Event']['org']); ?>
 			&nbsp;
 		</dd>
+		<dt>Email</dt>
+		<dd>
+			<?php echo h($event['User']['email']); ?>
+			&nbsp;
+		</dd>
 		<?php endif; ?>
 		<dt>Date</dt>
 		<dd>
