@@ -629,7 +629,7 @@ class EventsController extends AppController {
             // prepare the email
             $this->Email->from = Configure::read('CyDefSIG.email');
             $this->Email->to = $reporter['User']['email'];
-            $this->Email->subject = "[CyDefSIG] Need info about event ".$id." - TLP Amber";
+            $this->Email->subject = "[".Configure::read('CyDefSIG.name'). "] Need info about event ".$id." - TLP Amber";
             //$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
             $this->Email->template = 'body';
             $this->Email->sendAs = 'text';        // both text or html

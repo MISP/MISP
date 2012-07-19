@@ -19,7 +19,6 @@ During this rewrite the code was cleaned up, CSRF protection should now be prese
 Password strength validation and better security has been implemented.<br/>
 Signatures are now known as Attributes.<br/>
 Many known bugs have been fixed.<br/>
-Some intermittent bugs might have slipped in during the (manual) conversion. Please contact me <a href="mailto:user1088@qet.be">user1088@qet.be</a> to report any issues.
 </p>
 <h3>March 2012</h3>
 <p><b>Terms and News</b><br/>
