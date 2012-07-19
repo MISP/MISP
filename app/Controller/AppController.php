@@ -289,16 +289,22 @@ class AppController extends Controller {
             $result = $this->{$this->modelClass}->query($query);
 
         }
+    }
+        
+   function miratemisp10to11() {
+        if (!self::_isAdmin()) throw new NotFoundException();
 
+        // add missing columns, rename other columns
+        $queries = array(
+        // EVENTS
+                // bring user_id back in
+                "ALTER TABLE `events` ADD `user_id` INT( 11 ) NOT NULL AFTER `info` "
+        );
+        // execute the queries
+        foreach ($queries as &$query) {
+            $result = $this->{$this->modelClass}->query($query);
 
-        // TODO first search for incompatible combination of category / type
-
-
-        // then search for composite value1 fields and explode it to value1 and value2
-        //_explodeValueToValues();
-
-
-
+        }
     }
 
 }

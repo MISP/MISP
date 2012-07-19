@@ -116,7 +116,7 @@ class Event extends AppModel {
  *
  * @var array
  */
-// 	public $belongsTo = array(
+	public $belongsTo = array(
 // 		'Org' => array(
 // 			'className' => 'Org',
 // 			'foreignKey' => 'org',
@@ -124,7 +124,14 @@ class Event extends AppModel {
 // 			'fields' => '',
 // 			'order' => ''
 // 		)
-// 	);
+ 		'User' => array(
+			'className' => 'User',
+			'foreignKey' => 'user_id',
+			'conditions' => '',
+			'fields' => '',
+			'order' => ''
+		)
+	);
 
 /**
  * hasMany associations
