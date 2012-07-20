@@ -20,7 +20,7 @@
 	?>
 	<tr>
 		<td class="short">
-		<?php echo $this->Html->link($event['Event']['id'], array('controller' => 'events', 'action' => 'view', $event['Event']['id'])); ?>
+		<?php echo $this->Html->link($event['Event']['id'], array('controller' => 'attributes', 'action' => 'event', $event['Event']['id'])); ?>
 		&nbsp;</td>
 		<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
@@ -50,7 +50,7 @@
   			   echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id']));
 			}
 			?>
-			<?php echo $this->Html->link(__('View', true), array('action' => 'view', $event['Event']['id'])); ?>
+			<?php echo $this->Html->link(__('View', true), array('controller' => 'attributes', 'action' => 'event', $event['Event']['id'])); ?>
 		</td>
 	</tr>
 <?php endforeach; ?>

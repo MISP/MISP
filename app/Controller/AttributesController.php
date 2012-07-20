@@ -480,4 +480,78 @@ class AttributesController extends AppController {
 		}
 	}
 
+    /**
+     * event method (bluntly copied from EventsController.view()
+     *
+     * @param int $id
+     * @return void
+     */
+	public function event($id = null) {
+
+		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
+		$this->set('type_definitions', $this->Attribute->type_definitions);
+		$this->set('category_definitions', $this->Attribute->category_definitions);
+
+		// search the db
+		$conditions = array();
+		if(isset($this->params['named']['event'])) {
+			$attribute_id = $this->params['named']['event'];
+		} else {
+			$attribute_id = $id;
+		}
+		$conditions['Attribute.event_id ='] = $attribute_id;
+
+		$this->paginate = array(
+			'order' => array('Attribute.category_order' => 'asc', 'Attribute.type' => 'asc'),
+			'limit' => 60,
+			'conditions' => $conditions
+		);
+		$this->set('attributes', $this->paginate());
+
+		// the parent event..
+		$event = ClassRegistry::init('Event')->findById($attribute_id);
+		$this->set('event', $event);
+		$this->loadModel('Event');
+		$this->set('event_descriptions', $this->Event->field_descriptions);
+
+		// get related
+		$relatedAttributes = array();
+		$this->loadModel('Attribute');
+		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
+		foreach ($event['Attribute'] as &$attribute) {
+			$relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
+			// for REST requests also add the encoded attachment
+			if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
+				// LATER check if this has a serious performance impact on XML conversion and memory usage
+				$encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
+				$attribute['data'] = $encoded_file;
+			}
+		}
+		$this->set('relatedAttributes', $relatedAttributes);
+
+		// search for related Events using the results form the related attributes
+		// This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
+		$relatedEventIds = array();
+		$relatedEvents = array();
+		foreach ($relatedAttributes as &$relatedAttribute) {
+			if (null == $relatedAttribute) continue;
+			foreach ($relatedAttribute as &$item) {
+				$relatedEventsIds[] = $item['Attribute']['event_id'];
+			}
+		}
+		if (isset($relatedEventsIds)) {
+			$relatedEventsIds = array_unique($relatedEventsIds);
+			$find_params = array(
+                    'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
+                    'recursive' => 0, //int
+                    'fields' => array('Event.id', 'Event.date', 'Event.uuid'), //array of field names
+                    'order' => array('Event.date DESC'), //string or array defining order
+			);
+			$relatedEvents = $this->Event->find('all', $find_params);
+		}
+		$this->set('relatedEvents', $relatedEvents);
+
+		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
+	}
+
 }

@@ -17,8 +17,18 @@ class Attribute extends AppModel {
 	public $displayField = 'value';
 
 	public $virtualFields = array(
-	        'value' => 'IF (Attribute.value2="", Attribute.value1, CONCAT(Attribute.value1, "|", Attribute.value2))'
-	);
+	        'value' => 'IF (Attribute.value2="", Attribute.value1, CONCAT(Attribute.value1, "|", Attribute.value2))',
+			'category_order' => 'IF (Attribute.category="Internal reference", "a",
+IF (Attribute.category="Antivirus detection", "b", 
+IF (Attribute.category="Payload delivery", "c", 
+IF (Attribute.category="Payload installation", "d", 
+IF (Attribute.category="Artifacts dropped", "e", 
+IF (Attribute.category="Persistence mechanism", "f", 
+IF (Attribute.category="Network activity", "g", 
+IF (Attribute.category="Payload type", "h", 
+IF (Attribute.category="Attribution", "i", 
+IF (Attribute.category="External analysis", "j", "k"))))))))))'
+	); 	// TODO hardcoded
 
 /**
  * Description field
