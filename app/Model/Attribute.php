@@ -283,7 +283,8 @@ class Attribute extends AppModel {
     	        $this->data['Attribute']['value1'] = $pieces[0];
     	        $this->data['Attribute']['value2'] = $pieces[1];
     	    } else {
-    	        $this->data['Attribute']['value1'] = $pieces[0];
+    	        $total = implode('|', $pieces);
+    	        $this->data['Attribute']['value1'] = $total;
     	        $this->data['Attribute']['value2'] = '';
     	    }
 	    }
@@ -504,7 +505,7 @@ class Attribute extends AppModel {
     function getCompositeTypes() {
         // build the list of composite Attribute.type dynamically by checking if type contains a |
         // default composite types
-        $composite_types = array('malware-sample');
+        $composite_types = array('malware-sample');	// TODO hardcoded composite
         // dynamically generated list
         foreach (array_keys($this->type_definitions) as $type) {
             $pieces = explode('|', $type);
