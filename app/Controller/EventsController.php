@@ -16,6 +16,7 @@ class EventsController extends AppController {
      */
 
     public $components = array(
+            'Acl',	// XXX ACL component
             'Security',
             'Email',
             'RequestHandler',
@@ -38,6 +39,13 @@ class EventsController extends AppController {
         $this->Auth->allow('text');
 
         $this->Auth->allow('dot');
+        
+        // TODO Audit, activate logable in a Controller
+        if (sizeof($this->uses) && $this->{$this->modelClass}->Behaviors->attached('Logable')) {
+            $this->{$this->modelClass}->setUserData($this->activeUser);
+        }
+    
+        // TODO ACL, if on ent/attr level, $this->set('isAcl', $this->checkAccess());
     }
 
     public function isAuthorized($user) {
@@ -46,7 +54,7 @@ class EventsController extends AppController {
             return true;
         }
         // Only on own events for these actions
-        if (in_array($this->action, array('edit', 'delete', 'alert', 'publish'))) {
+        if (in_array($this->action, array('alert'))) {	// TODO ACL, CHECK, remove overruling 'edit', 'delete' and 'publish'
             $eventid = $this->request->params['pass'][0];
             return $this->Event->isOwnedByOrg($eventid, $this->Auth->user('org'));
         }

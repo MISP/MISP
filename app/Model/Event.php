@@ -7,6 +7,14 @@ App::uses('AppModel', 'Model');
  * @property Attribute $Attribute
  */
 class Event extends AppModel {
+	
+	var $name = 'Event';					// TODO general
+    var $actsAs = array('Logable' => array(	// TODO Audit, logable
+        'userModel' => 'User', 
+        'userKey' => 'user_id', 
+        'change' => 'full'
+    ));
+	
 /**
  * Display field
  *

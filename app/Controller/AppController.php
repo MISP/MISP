@@ -24,7 +24,6 @@
 
 App::uses('Controller', 'Controller');
 App::uses('Sanitize', 'Utility');
-
 /**
  * Application Controller
  *
@@ -37,6 +36,7 @@ App::uses('Sanitize', 'Utility');
 class AppController extends Controller {
 
     public $components = array(
+            'Acl',			// TODO XXX remove
     		'Session',
     		'Auth' => array(
     		    'className' => 'SecureAuth',
@@ -48,7 +48,8 @@ class AppController extends Controller {
     		    'authError' => 'Did you really think you are allowed to see that?',
     			'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
      			'logoutRedirect' => array('controller' => 'users', 'action' => 'login'),
-    			'authorize' => array('Controller') // Added this line
+    			'authorize' => array('Controller', // Added this line
+    			'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
     )
     );
 
@@ -94,6 +95,11 @@ class AppController extends Controller {
         // These variables are required for every view
         $this->set('me', $this->Auth->user());
         $this->set('isAdmin', $this->_isAdmin());
+        
+		// TODO ACL: 5: from Controller to Views
+        $this->set('isAclAdd', $this->checkAcl('add'));
+        $this->set('isAclModify', $this->checkAcl('edit')); 
+        $this->set('isAclPublish', $this->checkAcl('publish'));
     }
 
 
@@ -307,4 +313,20 @@ class AppController extends Controller {
         }
     }
 
+	// TODO ACL, 6b: check on Group and per Model (not used)
+	function checkAccess() {
+		$aco = ucfirst($this->params['controller']);
+		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
+		return $this->Acl->check($user, 'controllers/'.$aco, '*');
+	}
+	
+	// TODO ACL, 6: check on Group and any Model
+	function checkAcl($action) {
+        $aco = 'Events';	// TODO ACL was 'Attributes'
+		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
+		// TODO ACL, CHECK, below if indicates some wrong: Fatal error: Call to a member function check() on a non-object in /var/www/cydefsig/app/Controller/AppController.php on line 289 
+		if ($this->Acl) return $this->Acl->check($user, 'controllers/'.$aco.'/'.$action, '*');
+		else return true;
+	}
+	
 }

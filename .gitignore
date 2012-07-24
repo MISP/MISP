@@ -13,3 +13,5 @@
 /app/tmp/cache/views/myapp*
 /app/files/*
 /app/webroot/img/logo.png
+/app/Config/bootstrap.php
+/app/Config/database.php

@@ -10,7 +10,7 @@ App::uses('File', 'Utility');
  */
 class AttributesController extends AppController {
 
-    public $components = array('Security', 'RequestHandler');
+    public $components = array('Acl', 'Security', 'RequestHandler');	// XXX ACL component
     public $paginate = array(
             'limit' => 60,
             'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 events
@@ -34,7 +34,7 @@ class AttributesController extends AppController {
             return true;
         }
         // Only on own attributes for these actions
-        if (in_array($this->action, array('edit', 'delete'))) {
+        if (in_array($this->action, array('delete'))) {	// TODO ACL, removed 'edit' override
             $attributeid = $this->request->params['pass'][0];
             return $this->Attribute->isOwnedByOrg($attributeid, $this->Auth->user('org'));
         }

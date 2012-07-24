@@ -772,3 +772,11 @@ pre {
 #url-rewriting-warning {
 	display:none;
 }
+
+/* to show a button as off/not-usable */
+a.button_off:link,a.button_off:visited, a.button_off:active {
+	color:#C1C1C1;
+	font-size:12px;
+	background-color:#ffffff;
+	text-decoration:none;
+}

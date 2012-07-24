@@ -142,3 +142,6 @@ Configure::write('SecureAuth.expire', 300);            // the time-window for th
  * CakePlugin::load('DebugKit'); //Loads a single plugin named DebugKit
  *
  */
+
+CakePlugin::load('SysLog');
+CakePlugin::load('AclExtras');
