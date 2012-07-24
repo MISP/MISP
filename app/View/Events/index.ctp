@@ -20,7 +20,7 @@
 	?>
 	<tr>
 		<td class="short">
-		<?php echo $this->Html->link($event['Event']['id'], array('controller' => 'attributes', 'action' => 'event', $event['Event']['id'])); ?>
+		<?php echo $this->Html->link($event['Event']['id'], array('controller' => 'events', 'action' => 'view', $event['Event']['id'])); ?>
 		&nbsp;</td>
 		<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true) ;?>';">
