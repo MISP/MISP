@@ -19,6 +19,8 @@ class EventsController extends AppController {
             'Security',
             'Email',
             'RequestHandler',
+            'HidsMd5Export',
+            'HidsSha1Export',
             'NidsExport'
             );
     public $paginate = array(
@@ -35,6 +37,8 @@ class EventsController extends AppController {
         // what pages are allowed for non-logged-in users
         $this->Auth->allow('xml');
         $this->Auth->allow('nids');
+        $this->Auth->allow('hids_md5');
+        $this->Auth->allow('hids_sha1');
         $this->Auth->allow('text');
 
         $this->Auth->allow('dot');
@@ -740,6 +744,90 @@ class EventsController extends AppController {
 
     }
 
+
+    public function hids_md5($key) {
+        // check if the key is valid -> search for users based on key
+        $this->loadModel('User');
+        // no input sanitization necessary, it's done by model
+        // do not fetch recursive
+        $this->User->recursive=0;
+        $user = $this->User->findByAuthkey($key);
+        if (empty($user)) {
+            throw new UnauthorizedException('Incorrect authentication key');
+        }
+        // display the full md5 set
+        $this->response->type(array('txt' => 'text/html'));    // set the content type
+        $this->header('Content-Disposition: inline; filename="cydefsig.rules"');
+        $this->layout = 'text/default';
+
+        $this->loadModel('Attribute');
+
+        $params = array(
+                'conditions' => array('Attribute.to_ids' => 1), //array of conditions
+                'recursive' => 0, //int
+                'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+        );
+        $items = $this->Attribute->find('all', $params);
+
+        $rules = $this->HidsMd5Export->suricataRules($items);	// TODO NIDS_SID??
+        if (count($rules) >= 4) {
+                print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
+
+        print "#<pre> \n";
+        foreach ($rules as &$rule)
+            print $rule."\n";
+        print "#</pre>\n";
+
+        $this->set('rules', $rules);
+        } else {
+        	print "Not any MD5 found to export\n";
+        }
+        $this->render('hids');
+
+    }
+
+
+    public function hids_sha1($key) {
+        // check if the key is valid -> search for users based on key
+        $this->loadModel('User');
+        // no input sanitization necessary, it's done by model
+        // do not fetch recursive
+        $this->User->recursive=0;
+        $user = $this->User->findByAuthkey($key);
+        if (empty($user)) {
+            throw new UnauthorizedException('Incorrect authentication key');
+        }
+        // display the full SHA-1 set
+        $this->response->type(array('txt' => 'text/html'));    // set the content type
+        $this->header('Content-Disposition: inline; filename="cydefsig.rules"');
+        $this->layout = 'text/default';
+
+        $this->loadModel('Attribute');
+
+        $params = array(
+                'conditions' => array('Attribute.to_ids' => 1), //array of conditions
+                'recursive' => 0, //int
+                'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+        );
+        $items = $this->Attribute->find('all', $params);
+
+        $rules = $this->HidsSha1Export->suricataRules($items);	// TODO NIDS_SID??
+        if (count($rules) >= 4) {
+        print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
+
+        print "#<pre> \n";
+        foreach ($rules as &$rule)
+            print $rule."\n";
+        print "#</pre>\n";
+
+        $this->set('rules', $rules);
+        } else {
+        	print "Not any SHA-1 found to export\n";
+        }
+        $this->render('hids');
+        
+    }
+    
 
     public function text($key, $type="") {
         // check if the key is valid -> search for users based on key
