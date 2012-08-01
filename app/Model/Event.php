@@ -373,18 +373,20 @@ class Event extends AppModel {
 	            )
 	    );
 	    $uri = $url.'/events/index/sort:id/direction:desc/limit:999'; // LATER verify if events are missing because we only selected the last 999
-	    $response = $HttpSocket->get($uri, $data='', $request);
-
-	    if ($response->isOk()) {
-	        $xml = Xml::build($response->body);
-	        $eventArray = Xml::toArray($xml);
-	        $event_ids=array();
-	        foreach ($eventArray['response']['Event'] as &$event) {
-	            if (1 != $event['published']) continue;  // do not keep non-published events
-	            $event_ids[] = $event['id'];
-	        }
-	        return $event_ids;
-	    }
+	    if ($this->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+		    $response = $HttpSocket->get($uri, $data='', $request);
+	
+		    if ($response->isOk()) {
+		        $xml = Xml::build($response->body);
+		        $eventArray = Xml::toArray($xml);
+		        $event_ids=array();
+		        foreach ($eventArray['response']['Event'] as &$event) {
+		            if (1 != $event['published']) continue;  // do not keep non-published events
+		            $event_ids[] = $event['id'];
+		        }
+		        return $event_ids;
+		    }
+		}
 	    // error, so return null
 	    return null;
 	}
