@@ -280,19 +280,42 @@ class Event extends AppModel {
 	    // do a REST POST request with the server
 	    $data = $eventsXml;
 	    // LATER validate HTTPS SSL certificate
-	    $response = $HttpSocket->post($uri, $data, $request);
-	    if ($response->isOk()) {
-	        return true;
+	    if ($this->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+	    	// TODO NETWORK for now do not know how to catch the following..
+	    	// TODO NETWORK No route to host
+		    $response = $HttpSocket->post($uri, $data, $request);
+		    if ($response->isOk()) {
+		        return true;
+		    }
+		    else {
+	    		try {		    		
+		       		// parse the XML response and keep the reason why it failed
+		        	$xml_array = Xml::toArray(Xml::build($response->body));
+				} catch (XmlException $e) {
+    				return true;
+				}
+		        if ("Event already exists" == $xml_array['response']['name']) {
+		            return true;
+		        } else {
+		            return $xml_array['response']['name'];
+		        }
+		    }
 	    }
-	    else {
-	        // parse the XML response and keep the reason why it failed
-	        $xml_array = Xml::toArray(Xml::build($response->body));
-	        if ("Event already exists" == $xml_array['response']['name']) {
-	            return true;
-	        } else {
-	            return $xml_array['response']['name'];
-	        }
-	    }
+	}
+		
+	function testipaddress ($nametotest) {
+		if(intval($nametotest)>0){
+			return true;
+		} else {
+			$ipaddress = $nametotest;
+			$ipaddress = gethostbyname($nametotest);
+			if ($ipaddress == $nametotest) {
+				return false;
+			}
+			else {
+				return true;
+			}
+		}
 	}
 
 	/**
