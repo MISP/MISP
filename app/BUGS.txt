@@ -3,7 +3,6 @@ Existing bugs:
 - timeout admin_user.
 - Somehow there got a user_id 0 in events.
 - View User and Events got lost(?), but is still there in 0.2.2
-- no paging on event with lots of attributes.
 
 Fixed bugs:
 
@@ -20,3 +19,7 @@ Fixed bugs:
 - uppercases in md5 or sha1 when type filename|md5/sha1 is not lc like type md5/sha1.
 - search attributes: next page goes to search, search again, then at next page.
 - non-printable in no-composite attribute and all input behind it gets lost.
+- no paging on event with lots of attributes.
+- a server containing no MISP gives "XML cannot be read." on publish.
+- a server having a non-existing internet name gives 
+  "php_network_getaddresses: getaddrinfo failed: Name or service not known" on publish.
