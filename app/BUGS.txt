@@ -22,4 +22,5 @@ Fixed bugs:
 - no paging on event with lots of attributes.
 - a server containing no MISP gives "XML cannot be read." on publish.
 - a server having a non-existing internet name gives 
-  "php_network_getaddresses: getaddrinfo failed: Name or service not known" on publish.
+  "php_network_getaddresses: getaddrinfo failed: Name or service not known" on publish
+  and pull.
