@@ -105,6 +105,23 @@ Configure::write('GnuPG.homedir', '/Users/chri/Documents/Work/Projects/201107-Cy
 Configure::write('SecureAuth.amount', 5);              // the maximum amount of failed logins
 Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
 
+Configure::write('CyDefSIG.correlation', 'sql');        // correlation between attributes of events.
+                                                       // possible values: 
+                                                       // - default, like it was
+                                                       // - db, correlation in database
+                                                       // - sql, selection on event i.s.o. per attribute (improvement possible)
+/**
+ * Network activity, ip-src
+ * 30 class-C network ip addresses
+ * (time in ms)
+ * 
+ *           default     db    sql
+ * all         25366  16601  15941
+ *             24839  16604  15611
+ * paginated   16759   8447   6615
+ *             17734   8639   8846
+ */
+
 /**
  * The settings below can be used to set additional paths to models, views and controllers.
  *

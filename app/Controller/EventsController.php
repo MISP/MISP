@@ -88,39 +88,100 @@ class EventsController extends AppController {
         $this->Event->read(null, $id);
 
         $relatedAttributes = array();
-        $this->loadModel('Attribute');
-        $fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
-        foreach ($this->Event->data['Attribute'] as &$attribute) {
-            $relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
-            // for REST requests also add the encoded attachment
-            if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
-                // LATER check if this has a serious performance impact on XML conversion and memory usage
-                $encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
-                $attribute['data'] = $encoded_file;
-            }
-        }
-        $this->set('relatedAttributes', $relatedAttributes);
+	    $this->loadModel('Attribute');
+        if ('db' == Configure::read('CyDefSIG.correlation')) {
+        	$this->loadModel('Correlation');
+	        $fields = array('Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date');
+	        $fields2 = array('Correlation.1_attribute_id','Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date');
+        	$relatedAttributes2 = array();
+        		$relatedAttributes2 = $this->Correlation->find('all',array(
+        		'fields' => $fields2,
+        		'conditions' => array(
+                        'OR' => array(
+                                'Correlation.1_event_id' => $id
+                        )
+                ),
+        		'recursive' => 0));
+        	foreach ($relatedAttributes2 as $relatedAttribute2) {
+        		$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = $relatedAttribute2;
+        	}
+        	
+        	foreach ($this->Event->data['Attribute'] as $attribute) {
+	            // for REST requests also add the encoded attachment
+	            if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
+	                // LATER check if this has a serious performance impact on XML conversion and memory usage
+	                $encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
+	                $attribute['data'] = $encoded_file;
+	            }
+        	}
 
-        // search for related Events using the results form the related attributes
-        // This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
-        $relatedEventIds = array();
-        $relatedEvents = array();
-        foreach ($relatedAttributes as &$relatedAttribute) {
-            if (null == $relatedAttribute) continue;
-            foreach ($relatedAttribute as &$item) {
-                $relatedEventsIds[] = $item['Attribute']['event_id'];
-            }
+	        // search for related Events using the results form the related attributes
+	        // This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
+	        $relatedEventIds = array();
+	        $relatedEventDates = array();
+	        $relatedEvents = array();
+	        foreach ($relatedAttributes as &$relatedAttribute) {
+	            if (null == $relatedAttribute) continue;
+	            foreach ($relatedAttribute as &$item) {
+	                $relatedEventsIds[] = $item['Correlation']['event_id'];
+	                $relatedEventsDates[$item['Correlation']['event_id']] = $item['Correlation']['date'];
+	            }
+	        }
+
+	        arsort($relatedEventsDates);
+	        if (isset($relatedEventsDates)) {
+	            $relatedEventsDates = array_unique($relatedEventsDates);
+	            foreach ($relatedEventsDates as $key => $relatedEventsDate) {
+	            	$relatedEvents[] = array('id' => $key, 'date' => $relatedEventsDate);
+	            }
+	        }
+        } else {
+	        $fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
+	        if ('sql' == Configure::read('CyDefSIG.correlation')) {
+	        	$double = $this->Attribute->doubleAttributes();
+	        }
+	        foreach ($this->Event->data['Attribute'] as &$attribute) {
+	        	if ('sql' == Configure::read('CyDefSIG.correlation')) {
+	        		if (in_array($attribute['value1'],$double) || in_array($attribute['value2'],$double)) {
+	        			$relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
+	        		} else {
+	        			$relatedAttributes[$attribute['id']] = array();
+	        		}
+	        	} else {
+		        	$relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
+	        	}
+	            // for REST requests also add the encoded attachment
+	            if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
+	                // LATER check if this has a serious performance impact on XML conversion and memory usage
+	                $encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
+	                $attribute['data'] = $encoded_file;
+	            }
+	        }
+
+	        // search for related Events using the results form the related attributes
+	        // This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
+	        $relatedEventIds = array();
+	        $relatedEvents = array();
+	        foreach ($relatedAttributes as &$relatedAttribute) {
+	            if (null == $relatedAttribute) continue;
+	            foreach ($relatedAttribute as &$item) {
+	                $relatedEventsIds[] = $item['Attribute']['event_id'];
+	            }
+	        }
+        
+	        if (isset($relatedEventsIds)) {
+	            $relatedEventsIds = array_unique($relatedEventsIds);
+	            $find_params = array(
+	                    'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
+	                    'recursive' => 0, //int
+	                    'fields' => array('Event.id', 'Event.date', 'Event.uuid'), //array of field names
+	                    'order' => array('Event.date DESC'), //string or array defining order
+	            );
+	            $relatedEvents = $this->Event->find('all', $find_params);
+	        }
         }
-        if (isset($relatedEventsIds)) {
-            $relatedEventsIds = array_unique($relatedEventsIds);
-            $find_params = array(
-                    'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
-                    'recursive' => 0, //int
-                    'fields' => array('Event.id', 'Event.date', 'Event.uuid'), //array of field names
-                    'order' => array('Event.date DESC'), //string or array defining order
-            );
-            $relatedEvents = $this->Event->find('all', $find_params);
-        }
+        $this->set('correlation', Configure::read('CyDefSIG.correlation'));
+        $this->set('relatedAttributes', $relatedAttributes);
 
 		// passing decriptions for model fields
 		$this->set('event_descriptions', $this->Event->field_descriptions);

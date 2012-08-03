@@ -252,7 +252,7 @@ class AppController extends Controller {
 
     }
 
-    function miratemisp02to10() {
+    function migratemisp02to10() {
         if (!self::_isAdmin()) throw new NotFoundException();
 
         // add missing columns, rename other columns
@@ -291,7 +291,7 @@ class AppController extends Controller {
         }
     }
         
-   function miratemisp10to11() {
+   function migratemisp10to11() {
         if (!self::_isAdmin()) throw new NotFoundException();
 
         // add missing columns, rename other columns
@@ -305,6 +305,33 @@ class AppController extends Controller {
             $result = $this->{$this->modelClass}->query($query);
 
         }
+   }
+   
+   function generateCorrelation() {
+        if (!self::_isAdmin()) throw new NotFoundException();
+        
+		$this->loadModel('Correlation');
+        $this->loadModel('Attribute');
+		$fields = array('Attribute.id', 'Attribute.event_id', 'Event.date');
+		// get all attributes..
+		$attributes = $this->Attribute->find('all',array('recursive' => 0));
+    	// for all attributes..
+	    foreach ($attributes as $attribute) {
+	    	$this->Attribute->setRelatedAttributes($attribute['Attribute'], $fields=array());
+	    	
+//	    	// i want to keep this in repo for a moment
+//    		$relatedAttributes = $this->Attribute->getRelatedAttributes($attribute['Attribute'], $fields);
+//    		if ($relatedAttributes) {
+//	    		foreach ($relatedAttributes as $relatedAttribute) {
+//    				//    			// and store into table
+//    				$this->Correlation->create();
+//    				$this->Correlation->save(array('Correlation' => array(
+//    				'1_event_id' => $attribute['Attribute']['event_id'], '1_attribute_id' => $attribute['Attribute']['id'],
+//    				'event_id' => $relatedAttribute['Attribute']['event_id'], 'attribute_id' => $relatedAttribute['Attribute']['id'],
+//    				'date' => $relatedAttribute['Event']['date'])));
+//	    		}
+//    		}
+	    }
     }
 
 }
