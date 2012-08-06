@@ -20,6 +20,7 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <p>You can configure your tools to automatically download the following file:</p>
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/nids/<?php echo $me['authkey']; ?></pre>
 <p></p>
+<p>Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.</p>
 
 <h3>HIDS MD5 Export</h3>
 <p>An automatic export of all host related attributes is available, containing MD5 checksums. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
