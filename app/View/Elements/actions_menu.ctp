@@ -21,6 +21,8 @@
 		<?php if($isAdmin): ?>
 		<li>&nbsp;</li>
 		<h3><?php echo __('Administration'); ?></h3>
+		<li><?php echo $this->Html->link(__('Whitelist', true), array('controller' => 'whitelists', 'action' => 'index', 'admin' => true)); ?> </li>
+		<li>&nbsp;</li>
 		<li><?php echo $this->Html->link(__('New User', true), array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
 		<li><?php echo $this->Html->link(__('List Users', true), array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
 		<?php endif; ?>
