@@ -234,18 +234,10 @@ class EventsController extends AppController {
      */
     public function _add(&$data, &$auth, $fromXml) {
         // force check userid and orgname to be from yourself
-        $data['Event']['user_id'] = $auth->user('id');
+        if (!$fromXml) $data['Event']['user_id'] = $auth->user('id');
         $data['Event']['org'] = $auth->user('org');
         unset ($data['Event']['id']);
         $this->Event->create();
-
-        if (isset($data['Event']['uuid'])) {
-            // check if the uuid already exists
-            $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$data['Event']['uuid'])));
-            if ($existingEventCount > 0) {
-                throw new MethodNotAllowedException('Event already exists');   // LATER throw errors a clean way using XML
-            } // TODO update the event if there are changes
-        }
 
         if ($fromXml) {
             // Workaround for different structure in XML/array than what CakePHP expects
@@ -255,9 +247,39 @@ class EventsController extends AppController {
             // LATER do this with     $this->validator()->remove('event_id');
             unset($this->Event->Attribute->validate['event_id']);
             unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
+
+            // thing a 'pull from server' sets ServersController.php:176
+            // Event.info is appended from the publishing side, given the need to have Server.url
+            $data['Event']['private'] = true;
         }
 
-        $fieldList = array(
+        if (isset($data['Event']['uuid'])) {
+            // check if the uuid already exists
+            $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$data['Event']['uuid'])));
+            if ($existingEventCount > 0) {
+            	$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid'=>$data['Event']['uuid'])));
+            	$data['Event']['id'] = $existingEvent['Event']['id'];
+            	// attributes..
+            	$c = 0;
+		        if (isset($data['Attribute'])) {
+		            foreach ($data['Attribute'] as $attribute){
+		            	// ..do some
+			            $existingAttributeCount = $this->Event->Attribute->find('count', array('conditions' => array('Attribute.uuid'=>$attribute['uuid'])));
+			            if ($existingAttributeCount > 0) {
+			            	$existingAttribute = $this->Event->Attribute->find('first', array('conditions' => array('Attribute.uuid'=>$attribute['uuid'])));
+            	        	$data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
+			            }
+			            $c++;
+		            }
+		        }
+            }
+        }
+        
+        if ($fromXml) $fieldList = array(
+                'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private'),
+                'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
+        );
+        else $fieldList = array(
                 'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private'),
                 'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
         );
@@ -266,7 +288,9 @@ class EventsController extends AppController {
         if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
             if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
                 // call _sendAlertEmail if published was set in the request
-                $this->_sendAlertEmail($this->Event->getId());
+		        if (!$fromXml) {
+        	    	$this->_sendAlertEmail($this->Event->getId());
+		        }
             }
             return true;
         } else {
@@ -290,8 +314,34 @@ class EventsController extends AppController {
 
         if ($this->request->is('post') || $this->request->is('put')) {
             if ($this->_isRest()) {
-                // TODO implement REST edit Event
-                throw new NotFoundException('Sorry, this is not yet implemented');
+	            // Workaround for different structure in XML/array than what CakePHP expects
+	            $this->Event->cleanupEventArrayFromXML($data);
+	            
+	            // the event_id field is not set (normal) so make sure no validation errors are thrown
+	            // LATER do this with     $this->validator()->remove('event_id');
+	            unset($this->Event->Attribute->validate['event_id']);
+	            unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
+	
+	            $fieldList = array(
+	                'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private'),
+	                'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
+	            );
+	            // this saveAssociated() function will save not only the event, but also the attributes
+	            // from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
+	            if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
+	                $message = 'Saved';
+	
+		            $this->set('event', $this->Event);
+		            
+		            // REST users want to see the newly created event
+		            $this->view($this->Event->getId());
+		            $this->render('view');
+		            return true;
+		        } else {
+		            $message = 'Error';
+		            //throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
+		            return false;
+		        }
             }
 
             // say what fields are to be updated

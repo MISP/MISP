@@ -282,6 +282,10 @@ class Event extends AppModel {
 	            $attribute['data'] = $encoded_file;
 	        }
 	    }
+	    
+	    // add the 'Imported from' conform ServersController.php:177
+	    // no need to remove lateron cause on pushing server Event is already saved.
+	    $event['Event']['info'] .= "\n Imported from ".$url;
 
 	    // display the XML to the user
 	    $xmlArray['Event'][] = $event['Event'];
@@ -304,7 +308,7 @@ class Event extends AppModel {
 				} catch (XmlException $e) {
     				return true;
 				}
-		        if ("Event already exists" == $xml_array['response']['name']) {
+				if (strpos($xml_array['response']['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
 		            return true;
 		        } else {
 		            return $xml_array['response']['name'];
