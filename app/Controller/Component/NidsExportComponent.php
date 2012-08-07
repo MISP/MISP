@@ -314,12 +314,13 @@ class NidsExportComponent extends Component {
     }
 
     function urlRule($rule_format, $attribute, &$sid) {
-    	$hostpart = parse_url($attribute['value'], PHP_URL_HOST);
-    	$overruled = $this->checkNames($hostpart);
+    	// TODO in hindsight, an url should not be excluded given a host or domain name.
+//    	$hostpart = parse_url($attribute['value'], PHP_URL_HOST);
+//    	$overruled = $this->checkNames($hostpart);
     	// warning: only suricata compatible
         $content = 'flow:to_server,established; content:"'.$attribute['value'].'"; nocase; http_uri;';
         $this->rules[] = sprintf($rule_format,
-        		($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+        		(false) ? '#OVERRULED BY WHITELIST# ' : '',
                 'http',                          // proto
                 '$HOME_NET',                    // src_ip
                 'any',                          // src_port
