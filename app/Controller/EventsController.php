@@ -883,14 +883,14 @@ class EventsController extends AppController {
 
         $rules = $this->HidsMd5Export->suricataRules($items);	// TODO NIDS_SID??
         if (count($rules) >= 4) {
-                print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
+            print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
 
-        print "#<pre> \n";
-        foreach ($rules as &$rule)
-            print $rule."\n";
-        print "#</pre>\n";
-
-        $this->set('rules', $rules);
+	        print "#<pre> \n";
+	        foreach ($rules as &$rule)
+	            print $rule."\n";
+	        print "#</pre>\n";
+	
+	        $this->set('rules', $rules);
         } else {
         	print "Not any MD5 found to export\n";
         }

@@ -5,16 +5,14 @@ class HidsSha1ExportComponent extends Component {
     public $rules = array();
 
     function explain() {
-        $this->rules[] = '# These HIDS export contains SHA-1 checksums.';
-        $this->rules[] = '# Keep in mind SHA-1 still has a theoretical collision possibility';
-        $this->rules[] = '# ';
+        // unshift add in reverse order
+        array_unshift($this->rules, '# ');
+    	array_unshift($this->rules, '# Keep in mind SHA-1 still has a theoretical collision possibility');
+        array_unshift($this->rules, '# These HIDS export contains SHA-1 checksums.');
     }
-
     function suricataRules($items) {
 
-        $this->explain();
-
-	$itemsDone = array();
+		$itemsDone = array();
 
         foreach ($items as &$item) {
 
@@ -45,8 +43,9 @@ class HidsSha1ExportComponent extends Component {
 
         }
 
-
-
+		sort($this->rules);
+        $this->explain();
+        
 		return $this->rules;
 
 

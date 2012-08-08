@@ -4,17 +4,17 @@ class HidsMd5ExportComponent extends Component {
 
     public $rules = array();
 
-    function explain() {
-        $this->rules[] = '# These HIDS export contains MD5 checksums.';
-        $this->rules[] = '# Keep in mind MD5 is not collision resistant';
-        $this->rules[] = '# ';
-    }
 
+    function explain() {
+    	// unshift add in reverse order
+        array_unshift($this->rules, '# ');
+        array_unshift($this->rules, '# Keep in mind MD5 is not collision resistant');
+    	array_unshift($this->rules, '# These HIDS export contains MD5 checksums.');
+    }
+    
     function suricataRules($items) {
 
-        $this->explain();
-
-	$itemsDone = array();
+		$itemsDone = array();
         foreach ($items as &$item) {
 
 
@@ -45,7 +45,8 @@ class HidsMd5ExportComponent extends Component {
 
         }
 
-
+		sort($this->rules);
+        $this->explain();
 
 		return $this->rules;
 
