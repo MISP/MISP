@@ -21,15 +21,12 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/nids/<?php echo $me['authkey']; ?></pre>
 <p></p>
 
-<h3>HIDS MD5 Export</h3>
+<h3>HIDS Export</h3>
 <p>An automatic export of all host related attributes is available, containing MD5 checksums. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
-<p>You can configure your tools to automatically download the following file:</p>
+<p>You can configure your tools to automatically download the following files:</p>
+<h4>md5</h4>
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/hids_md5/<?php echo $me['authkey']; ?></pre>
-<p></p>
-
-<h3>HIDS SHA-1 Export</h3>
-<p>An automatic export of all host related attributes is available, containing SHA-1 checksums. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
-<p>You can configure your tools to automatically download the following file:</p>
+<h4>sha1</h4>
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/hids_sha1/<?php echo $me['authkey']; ?></pre>
 <p></p>
 
