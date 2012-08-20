@@ -233,7 +233,7 @@ class NidsExportComponent extends Component {
         $sid++;
         // also do http requests
         // warning: only suricata compatible
-        $content = 'flow:to_server,established; content: "Host: '.$attribute['value'].'"; nocase; http_header; ';
+        $content = 'flow:to_server,established; content: "Host: '.$attribute['value'].'"; nocase; http_header; pcre: "/[^A-Za-z0-9-]'.preg_quote($attribute['value']).'[^A-Za-z0-9-]/";';
         $this->rules[] = sprintf($rule_format,
                 'http',                         // proto
                 '$HOME_NET',                    // src_ip
@@ -248,6 +248,7 @@ class NidsExportComponent extends Component {
                 1                               // rev
         );
     }
+
     function domainRule($rule_format, $attribute, &$sid) {
         $content = 'content:"'.$this->dnsNameToRawFormat($attribute['value']).'"; nocase;';
         $this->rules[] = sprintf($rule_format,
@@ -280,7 +281,7 @@ class NidsExportComponent extends Component {
         $sid++;
         // also do http requests,
         // warning: only suricata compatible
-        $content = 'flow:to_server,established; content: "Host:"; nocase; http_header; content:"'.$attribute['value'].'"; nocase; http_header; ';
+        $content = 'flow:to_server,established; content: "Host:"; nocase; http_header; content:"'.$attribute['value'].'"; nocase; http_header; pcre: "/[^A-Za-z0-9-]'.preg_quote($attribute['value']).'[^A-Za-z0-9-]/";';
         $this->rules[] = sprintf($rule_format,
                 'http',                         // proto
                 '$HOME_NET',                    // src_ip
