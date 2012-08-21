@@ -323,7 +323,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
 	    if($this->typeIsAttachment($this->data['Attribute']['type'])) {
 	        // FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 	        // only delete the file if it exists
-	        $filepath = APP."files/".$this->data['Attribute']['event_id']."/".$this->data['Attribute']['id'];
+	        $filepath = APP."files".DS.$this->data['Attribute']['event_id'].DS.$this->data['Attribute']['id'];
 	        $file = new File ($filepath);
 	        if($file->exists()) {
     	        if (!$file->delete()) {
@@ -601,7 +601,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
 	}
 	
 	function base64EncodeAttachment($attribute) {
-	    $filepath = APP."files/".$attribute['event_id']."/".$attribute['id'];
+	    $filepath = APP."files".DS.$attribute['event_id'].DS.$attribute['id'];
 	    $file = new File($filepath);
 	    if (!$file->exists()) return '';
         $content = $file->read();
