@@ -388,26 +388,72 @@ class AttributesController extends AppController {
  * @return void
  */
 	public function delete($id = null) {
-		if (!$this->request->is('post')) {
+		if (!$this->request->is('post') && !$this->_isRest()) {
 			throw new MethodNotAllowedException();
 		}
+
+    	$uuid = '';
+    	if ( !$this->_isRest() || !isset($this->params['url']['uuid'])) {
+    		// curl -H "Accept: application/xml" -H "Authorization: vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb" -X DELETE http://localhost/attributes/9831
+    		$result = $this->Attribute->find('first', array('conditions' => array('Attribute.id' => $id)));
+			$uuid = $result['Attribute']['uuid'];
+    	} else {
+			// curl -H "Accept: application/xml" -H "Authorization: vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb" -X DELETE http://localhost/attributes/0?uuid=50325563-5878-495b-9f38-27f7ff32448e
+        	// UUID to ID
+			$uuid = $this->params['url']['uuid'];
+			$result = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $uuid)));
+			$id = $result['Attribute']['id'];
+		}
+		
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
-		// only own attributes verified by isAuthorized
 
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->delete()) {
+        
+	        // delete the attribute from remote servers
+			if ('true' == Configure::read('CyDefSIG.sync')) {
+	            $this->_deleteAttributeFromServers($uuid);
+	        }
+        	
 			$this->Session->setFlash(__('Attribute deleted'));
 		} else {
 		    $this->Session->setFlash(__('Attribute was not deleted'));
 		}
 
-		$this->redirect($this->referer());
+		if (!$this->_isRest()) $this->redirect($this->referer());	// TODO check
+        else $this->redirect(array('action' => 'index'));
 	}
 
+    /**
+     * Deletes this specific attribute from all remote servers
+     * TODO move this to a component(?)
+     */
+    function _deleteAttributeFromServers($uuid) {
+    	$result = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $uuid)));
+		$id = $result['Attribute']['id'];
 
+        // make sure we have all the data of the Attribute
+        $this->Attribute->id=$id;
+        $this->Attribute->recursive=1;
+        $this->Attribute->read();
+
+        // get a list of the servers
+        $this->loadModel('Server');
+        $servers = $this->Server->find('all', array());
+
+        // iterate over the servers and upload the attribute
+        if(empty($servers))
+            return;
+
+        App::uses('HttpSocket', 'Network/Http');
+        $HttpSocket = new HttpSocket();
+        foreach ($servers as &$server) {
+            $this->Attribute->deleteAttributeFromServer($this->Attribute->data, $server, $HttpSocket);
+        }
+    }
 
 	public function search() {
 		

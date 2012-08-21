@@ -381,17 +381,36 @@ class EventsController extends AppController {
      * @return void
      */
     public function delete($id = null) {
-        if (!$this->request->is('post')) {
+        if (!$this->request->is('post') && !$this->_isRest()) {
             throw new MethodNotAllowedException();
         }
+        
+    	$uuid = '';
+    	if ( !$this->_isRest() || !isset($this->params['url']['uuid'])) {
+			// curl -H "Accept: application/xml" -H "Authorization: vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb" -X DELETE http://localhost/events/31
+    		$result = $this->Event->find('first', array('conditions' => array('Event.id' => $id)));
+			$uuid = $result['Event']['uuid'];
+    	} else {
+			// curl -H "Accept: application/xml" -H "Authorization: vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb" -X DELETE http://localhost/events/0?uuid=5031ffe0-b7b0-43a7-9aa9-1b2cff32448e
+			// UUID to ID
+			$uuid = $this->params['url']['uuid'];
+			$result = $this->Event->find('first', array('conditions' => array('Event.uuid' => $uuid)));
+			$id = $result['Event']['id'];
+    	}
+        
         $this->Event->id = $id;
         if (!$this->Event->exists()) {
             throw new NotFoundException(__('Invalid event'));
         }
-        // only edit own events verified by isAuthorized
 
         if ($this->Event->delete()) {
-            $this->Session->setFlash(__('Event deleted'));
+        
+	        // delete the event from remote servers
+	        if ('true' == Configure::read('CyDefSIG.sync')) {
+	            $this->_deleteEventFromServers($uuid);
+	        }
+        	
+        	$this->Session->setFlash(__('Event deleted'));
             $this->redirect(array('action' => 'index'));
         }
         $this->Session->setFlash(__('Event was not deleted'));
@@ -426,6 +445,27 @@ class EventsController extends AppController {
         }
     }
 
+    /**
+     * Delets this specific event to all remote servers
+     * TODO move this to a component(?)
+     */
+    function _deleteEventFromServers($uuid) {
+
+        // get a list of the servers
+        $this->loadModel('Server');
+        $servers = $this->Server->find('all', array());
+
+        // iterate over the servers and upload the event
+        if(empty($servers))
+            return;
+
+        App::uses('HttpSocket', 'Network/Http');
+        $HttpSocket = new HttpSocket();
+        foreach ($servers as &$server) {
+            $this->Event->deleteEventFromServer($uuid, $server, $HttpSocket);
+        }
+    }
+    
     /**
      * Performs all the actions required to publish an event
      *

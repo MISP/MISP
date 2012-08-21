@@ -285,7 +285,7 @@ class Event extends AppModel {
 	    
 	    // add the 'Imported from' conform ServersController.php:177
 	    // no need to remove lateron cause on pushing server Event is already saved.
-	    $event['Event']['info'] .= "\n Imported from ".$url;
+	    $event['Event']['info'] .= "\n Published from ".Configure::read('CyDefSIG.baseurl');
 
 	    // display the XML to the user
 	    $xmlArray['Event'][] = $event['Event'];
@@ -294,7 +294,8 @@ class Event extends AppModel {
 	    // do a REST POST request with the server
 	    $data = $eventsXml;
 	    // LATER validate HTTPS SSL certificate
-	    if ($this->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+	    $this->Dns = ClassRegistry::init('Dns');
+	    if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
 	    	// TODO NETWORK for now do not know how to catch the following..
 	    	// TODO NETWORK No route to host
 		    $response = $HttpSocket->post($uri, $data, $request);
@@ -317,19 +318,39 @@ class Event extends AppModel {
 	    }
 	}
 		
-	function testipaddress ($nametotest) {
-		if(intval($nametotest)>0){
-			return true;
-		} else {
-			$ipaddress = $nametotest;
-			$ipaddress = gethostbyname($nametotest);
-			if ($ipaddress == $nametotest) {
-				return false;
-			}
-			else {
-				return true;
-			}
-		}
+	/**
+	 * Deletes the event and the associated Attributes from another Server
+	 * TODO move this to a component
+	 *
+	 * @return bool true if success, error message if failed
+	 */
+	function deleteEventFromServer($uuid, $server, $HttpSocket=null) {
+		// TODO private and delete(?)
+
+	    $url = $server['Server']['url'];
+	    $authkey = $server['Server']['authkey'];
+	    if (null == $HttpSocket) {
+	        App::uses('HttpSocket', 'Network/Http');
+	        $HttpSocket = new HttpSocket();
+	    }
+	    $request = array(
+	            'header' => array(
+	                    'Authorization' => $authkey,
+	                    'Accept' => 'application/xml',
+	                    'Content-Type' => 'application/xml',
+	                    //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+	            )
+	    );
+	    $uri = $url.'/events/0?uuid='.$uuid;
+
+	    // LATER validate HTTPS SSL certificate
+	    $this->Dns = ClassRegistry::init('Dns');
+	    if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+	    	// TODO NETWORK for now do not know how to catch the following..
+	    	// TODO NETWORK No route to host
+		    $response = $HttpSocket->delete($uri, array(), $request);
+		    // TODO REST, DELETE, no responce needed
+	    }
 	}
 
 	/**
@@ -387,7 +408,8 @@ class Event extends AppModel {
 	            )
 	    );
 	    $uri = $url.'/events/index/sort:id/direction:desc/limit:999'; // LATER verify if events are missing because we only selected the last 999
-	    if ($this->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+	    $this->Dns = ClassRegistry::init('Dns');
+	    if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
 		    $response = $HttpSocket->get($uri, $data='', $request);
 	
 		    if ($response->isOk()) {

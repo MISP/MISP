@@ -696,4 +696,41 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
 		}
 	}
 
+	/**
+	 * Deletes the attribute from another Server
+	 * TODO move this to a component
+	 *
+	 * @return bool true if success, error message if failed
+	 */
+	function deleteAttributeFromServer($attribute, $server, $HttpSocket=null) {
+		// TODO private and delete
+	    if (true ==$attribute['Attribute']['private'])  // never upload private attributes
+	        return "Attribute is private and non exportable";
+
+	    $url = $server['Server']['url'];
+	    $authkey = $server['Server']['authkey'];
+	    if (null == $HttpSocket) {
+	        App::uses('HttpSocket', 'Network/Http');
+	        $HttpSocket = new HttpSocket();
+	    }
+	    $request = array(
+	            'header' => array(
+	                    'Authorization' => $authkey,
+	                    'Accept' => 'application/xml',
+	                    'Content-Type' => 'application/xml',
+	                    //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+	            )
+	    );
+	    $uri = $url.'/attributes/0?uuid='.$attribute['Attribute']['uuid'];
+
+	    // LATER validate HTTPS SSL certificate
+	    $this->Dns = ClassRegistry::init('Dns');
+	    if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+	    	// TODO NETWORK for now do not know how to catch the following..
+	    	// TODO NETWORK No route to host
+		    $response = $HttpSocket->delete($uri, array(), $request);
+		    // TODO REST, DELETE, no responce needed
+	    }
+	}
+
 }
