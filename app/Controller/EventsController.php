@@ -177,6 +177,7 @@ class EventsController extends AppController {
      */
     public function _add(&$data, &$auth, $fromXml) {
         // force check userid and orgname to be from yourself
+        if (!$fromXml) $data['Event']['user_id'] = $auth->user('id');
         $data['Event']['org'] = $auth->user('org');
         unset ($data['Event']['id']);
         $this->Event->create();
@@ -200,7 +201,7 @@ class EventsController extends AppController {
         }
 
         $fieldList = array(
-                'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private'),
+                'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private'),
                 'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
         );
         // this saveAssociated() function will save not only the event, but also the attributes
