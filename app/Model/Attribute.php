@@ -622,6 +622,66 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
         }
 	}
 
+/**
+ * add_attachment method
+ *
+ * @return void
+ */
+	public function uploadAttachment($fileP,$realFileName,$malware,$event_id = null) {
 
+        // Check if there were problems with the file upload
+        // only keep the last part of the filename, this should prevent directory attacks
+        $filename = basename($fileP);
+        $tmpfile = new File($fileP);
+
+        // save the file-info in the database
+        $this->create();
+        $this->data['Attribute']['event_id'] = $event_id;
+        if($malware) {
+        	$this->data['Attribute']['category'] = "Payload delivery";
+        	$this->data['Attribute']['type'] = "malware-sample";
+            $this->data['Attribute']['value'] = $realFileName.'|'.$tmpfile->md5(); // TODO gives problems with bigger files
+            $this->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
+        }
+        else {
+        	$this->data['Attribute']['category'] = "Artifacts dropped";
+        	$this->data['Attribute']['type'] = "attachment";
+            $this->data['Attribute']['value'] = $realFileName;
+            $this->data['Attribute']['to_ids'] = 0;
+        }
+
+        if ($this->save($this->data)) {
+             // attribute saved correctly in the db
+        } else {
+        	// do some?
+        }
+
+        // no errors in file upload, entry already in db, now move the file where needed and zip it if required.
+        // no sanitization is required on the filename, path or type as we save
+        // create directory structure
+        $root_dir = APP.DS."files".DS.$event_id;
+        $dir = new Folder($root_dir, true);
+        // move the file to the correct location
+        $destpath = $root_dir.DS.$this->getId();   // id of the new attribute in the database
+        $file = new File ($destpath);
+        $zipfile = new File ($destpath.'.zip');
+        $file_in_zip = new File($root_dir.DS.$filename); // FIXME do sanitization of the filename
+
+        // zip and password protect the malware files
+        if($malware) {
+            // TODO check if CakePHP has no easy/safe wrapper to execute commands
+            $exec_retval = ''; $exec_output = array();
+            exec("zip -j -P infected ".$zipfile->path.' "'.addslashes($file_in_zip->path).'"', $exec_output, $exec_retval);
+            if($exec_retval != 0) {   // not EXIT_SUCCESS
+                // do some?
+            };
+            $file_in_zip->delete();              // delete the original not-zipped-file
+            rename($zipfile->path, $file->path); // rename the .zip to .nothing
+        } else {
+        	$file_attach = new File($fileP);
+        	rename($file_attach->path, $file->path);
+        }
+	}
+	
 
 }

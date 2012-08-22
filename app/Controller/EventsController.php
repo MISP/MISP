@@ -147,21 +147,35 @@ class EventsController extends AppController {
      */
     public function add() {
         if ($this->request->is('post')) {
-            if ($this->_add($this->request->data, $this->Auth, $this->_isRest())) {
-                if ($this->_isRest()) {
-                    // REST users want to see the newly created event
-                    $this->view($this->Event->getId());
-                    $this->render('view');
-                } else {
-                    // redirect to the view of the newly created event
-                    $this->Session->setFlash(__('The event has been saved'));
-                    $this->redirect(array('action' => 'view', $this->Event->getId()));
-                }
-            } else {
-                $this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
-                // TODO return error if REST
-            }
-        }
+    		if (!empty($this->data)) {
+    			App::uses('File', 'Utility');
+    			$file = new File($this->data['Event']['submittedfile']['name']);
+    			$ext = $file->ext();
+    			if ($ext != 'zip' && $this->data['Event']['submittedfile']['size'] > 0 &&
+    		is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
+    				//return false;
+    				$this->Session->setFlash('You may only upload GFI Sandbox zip files.');
+    			} else {
+		            if ($this->_add($this->request->data, $this->Auth, $this->_isRest())) {
+		                if ($this->_isRest()) {
+		                    // REST users want to see the newly created event
+		                    $this->view($this->Event->getId());
+		                    $this->render('view');
+		                } else {
+		                	// TODO now save uploaded attributes using $this->Event->getId() ..
+		                	$this->addGfiZip($this->Event->getId());
+		                	
+		                    // redirect to the view of the newly created event
+		                    $this->Session->setFlash(__('The event has been saved'));
+		                    $this->redirect(array('action' => 'view', $this->Event->getId()));
+		                }
+		            } else {
+		                $this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
+		                // TODO return error if REST
+		            }
+    			}
+    		}
+    	}
         // combobox for risks
         $risks = $this->Event->validate['risk']['rule'][1];
         $risks = $this->_arrayToValuesIndexArray($risks);
@@ -847,5 +861,156 @@ class EventsController extends AppController {
     	return $name;
     }
 
+    function addGfiZip($id) {
+    	if (!empty($this->data) && $this->data['Event']['submittedfile']['size'] > 0 &&
+    	is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
+    		$zipData = fread(fopen($this->data['Event']['submittedfile']['tmp_name'], "r"),
+    		$this->data['Event']['submittedfile']['size']);
+
+    		// write
+    		$root_dir = APP."files".DS.$id.DS;
+    		App::uses('Folder', 'Utility');
+    		$dir = new Folder($root_dir, true);
+    		$destpath = $root_dir;
+    		$file = new File ($destpath);
+    		$zipfile = new File ($destpath.DS.$this->data['Event']['submittedfile']['name']);
+    		$result = $zipfile->write($zipData);
+    		if (!$result) $this->Session->setFlash(__('Problem with writing the zip file. Please report to administrator.'));
+
+    		// extract zip..
+    		$exec_retval = '';
+    		exec("unzip ".$zipfile->path.' -d "'.addslashes($root_dir).'"', $exec_output, $exec_retval);
+    		$exec_output = array();
+    		if($exec_retval != 0) {   // not EXIT_SUCCESS
+    			// do some?
+    		}
+
+    		// now open the xml..
+    		$xml = $root_dir.DS.'Analysis'.DS.'analysis.xml';
+    		$fileData = fread(fopen($xml, "r"),$this->data['Event']['submittedfile']['size']);
+    		
+    		// read XML
+    		$this->readGfiXML($fileData,$id);
+    	}
+    }
+
+	function readGfiXML($data,$id) {
+		$this->loadModel('Attribute');
+		
+		// import XML class
+		App::uses('Xml', 'Utility');
+		// now parse it
+		$parsed_xml =& Xml::build($data, array('return' => 'simplexml'));
+
+		// xpath..
+		
+		//Payload delivery -- malware-sample
+		$results = $parsed_xml->xpath('/analysis');
+		foreach ($results as $result) {
+			foreach ( $result[0]->attributes() as $key => $val ) {
+				if ((string)$key == 'filename') $realFileName = (string)$val;
+			}
+		}
+		$root_dir = APP."files".DS.$id.DS;
+		$malware = $root_dir.DS.'sample';
+    	$this->Event->Attribute->uploadAttachment($malware,$realFileName,true,$id);
+		
+		//Artifacts dropped -- filename|md5
+		$files = array();
+		// TODO what about stored_modified_file ??
+		$results = $parsed_xml->xpath('/analysis/processes/process/stored_files/stored_created_file');
+		foreach ($results as $result) {
+			$arrayItemKey = '';
+			$arrayItemValue = '';
+			foreach ( $result[0]->attributes() as $key => $val ) {
+				if ($key == 'filename') $arrayItemKey = (string)$val;
+				if ($key == 'md5') $arrayItemValue = (string)$val;
+			}
+			$files[str_replace('C:\Users\John','%UserProfile%',$arrayItemKey)] = $arrayItemValue;
+		}
+		//$files = array_unique($files);
+
+		// write content..
+		foreach ($files as $key => $val) {
+			// add attribute..
+			$this->Attribute->read(null, 1);
+			$this->Attribute->save(array(
+    		'event_id' => $id,
+			'category' => 'Artifacts dropped',
+			'type' => 	'filename|md5',
+    		'value' => $key.'|'.$val,
+			'to_ids' => false));
+			
+			// the actual files..
+			// seek $val in dirs and add..
+			$ext = substr($key,strrpos ( $key , '.'));
+			$actualFileName = $val.$ext;
+			$realFileName = end(explode('\\',$key));
+			// have the filename, now look at parents parent for the process number
+			$express = "/analysis/processes/process/stored_files/stored_created_file[@md5='".$val."']/../..";
+			$results = $parsed_xml->xpath($express);
+			foreach ($results as $result) {
+				foreach ( $result[0]->attributes() as $key => $val ) {
+					if ((string)$key == 'index') $index = (string)$val;
+				}
+			}
+			$actualFile = $root_dir.DS.'Analysis'.DS.'proc_'.$index.DS.'modified_files'.DS.$actualFileName;
+			$this->Event->Attribute->uploadAttachment($actualFile,$realFileName,false,$id);
+		}
+
+		//Network activity -- ip-dst
+		$ips = array();
+		$results = $parsed_xml->xpath('/analysis/processes/process/networkpacket_section/connect_to_computer');
+		foreach ($results as $result) {
+			foreach ( $result[0]->attributes() as $key => $val ) {
+				if ($key == 'remote_ip') $ips[] = (string)$val;
+			}
+		}
+		// write content..
+		foreach ($ips as $ip) {
+			// add attribute..
+			$this->Attribute->read(null, 1);
+			$this->Attribute->save(array(
+    		'event_id' => $id,
+			'category' => 'Network activity',
+			'type' => 	'ip-dst',
+    		'value' => $ip,
+			'to_ids' => false));
+		}
+
+		// Persistence mechanism -- regkey|value
+		$regs = array();
+		$results = $parsed_xml->xpath('/analysis/processes/process/registry_section/set_value');
+		foreach ($results as $result) {
+			$arrayItemKey = '';
+			$arrayItemValue = '';
+			foreach ( $result[0]->attributes() as $key => $val ) {
+				if ($key == 'key_name') $arrayItemKey = (string)$val;
+				if ($key == 'data') $arrayItemValue = (string)$val;
+			}
+			$arrayItemKey = preg_replace('@\\\REGISTRY\\\USER\\\S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){2}-[0-9]{9}-[0-9]{4}@','HKEY_CURRENT_USER',$arrayItemKey);
+			$regs[$arrayItemKey] = str_replace('(UNICODE_0x00000000)','',$arrayItemValue);
+		}
+		//$regs = array_unique($regs);
+
+		// write content..
+		foreach ($regs as $key => $val) {
+			// add attribute..
+			$this->Attribute->read(null, 1);
+			if ($val == '[binary_data]') {
+				$itsType = 'regkey';
+				$itsValue =  $key;
+			} else {
+				$itsType = 'regkey|value';
+				$itsValue =  $key.'|'.$val;
+			}
+			$this->Attribute->save(array(
+    			'event_id' => $id,
+				'category' => 'Persistence mechanism',
+				'type' => $itsType,
+    			'value' => $itsValue,
+				'to_ids' => false));
+		}
+	}
 
 }
