@@ -3,6 +3,7 @@
 class NidsExportComponent extends Component {
 
     public $rules = array();
+    public $classtype = 'trojan-activity';
 
     function explain() {
         $this->rules[] = '# These NIDS rules contain some variables that need to exist in your configuration.';
@@ -19,7 +20,6 @@ class NidsExportComponent extends Component {
 
         $this->explain();
 
-        $classtype = 'trojan-activity';
         foreach ($items as &$item) {
             switch ($item['Event']['risk']) {
                 case 'Undefined':
@@ -41,7 +41,7 @@ class NidsExportComponent extends Component {
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
             $rule_format_msg = 'msg: "CyDefSIG e'.$item['Event']['id'].' %s"';
             $rule_format_reference = 'reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/view/'.$item['Event']['id'];
-            $rule_format = 'alert %s %s %s %s %s %s ('.$rule_format_msg.'; %s %s classtype:'.$classtype.'; sid:%d; rev:%d; priority:'.$priority.'; '.$rule_format_reference.';) ';
+            $rule_format = 'alert %s %s %s %s %s %s ('.$rule_format_msg.'; %s %s classtype:'.$this->classtype.'; sid:%d; rev:%d; priority:'.$priority.'; '.$rule_format_reference.';) ';
 
             $sid = $start_sid+($item['Attribute']['id']*10);  // leave 9 possible rules per attribute type
             $attribute = &$item['Attribute'];
@@ -82,7 +82,7 @@ class NidsExportComponent extends Component {
                     $this->userAgentRule($rule_format, $attribute, $sid);
                     break;
                 case 'snort':
-                    $this->snortRule($rule_format, $attribute, $sid);
+                    $this->snortRule($rule_format, $attribute, $sid, $rule_format_msg, $rule_format_reference);
                 default:
                     break;
 
@@ -320,7 +320,7 @@ class NidsExportComponent extends Component {
 
     }
 
-    function snortRule($rule_format, $attribute, &$sid) {
+    function snortRule($rule_format, $attribute, &$sid, $rule_format_msg, $rule_format_reference) {
         // LATER nids - test using lots of snort rules.
         $tmp_rule = $attribute['value'];
 
@@ -336,7 +336,7 @@ class NidsExportComponent extends Component {
         if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
         $tmp_rule = preg_replace('/rev\s*:\s*[0-9]+\s*;/', 'rev:1;', $tmp_rule, -1, $replace_count['rev']);
         if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-        $tmp_rule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:'.$classtype.';', $tmp_rule, -1, $replace_count['classtype']);
+        $tmp_rule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:'.$this->classtype.';', $tmp_rule, -1, $replace_count['classtype']);
         if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
         $tmp_message = sprintf($rule_format_msg, 'snort-rule');
         $tmp_rule = preg_replace('/msg\s*:\s*".*?"\s*;/', $tmp_message.';', $tmp_rule, -1, $replace_count['msg']);
@@ -354,7 +354,7 @@ class NidsExportComponent extends Component {
         } if (0 == $replace_count['rev']) {
             $extra_for_rule .= 'rev:1;';
         } if (0 == $replace_count['classtype']) {
-            $extra_for_rule .= 'classtype:'.$classtype.';';
+            $extra_for_rule .= 'classtype:'.$this->classtype.';';
         } if (0 == $replace_count['msg']) {
             $extra_for_rule .= $tmp_message.';';
         } if (0 == $replace_count['reference']) {
