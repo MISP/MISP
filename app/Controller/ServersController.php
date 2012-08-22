@@ -286,5 +286,12 @@ class ServersController extends AppController {
         $this->set('fails', $fails);
     }
 
+    public function getName($id = null) {
+    	$servers = $this->Server->find('first', array(
+                'conditions' => array('Server.id' => $id)
+        ));
+        $name = $servers['Server']['url'];
+    	return $name;
+    }
 
 }

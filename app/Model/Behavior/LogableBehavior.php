@@ -66,7 +66,7 @@ App::import('Lib', 'SysLog.SysLog');	// Audit, syslogd, extra
  */
 
 class LogableBehavior extends ModelBehavior {
-
+	
 	public $user = NULL;
 
 	public $UserModel = FALSE;
@@ -553,7 +553,12 @@ class LogableBehavior extends ModelBehavior {
 					$title = 'User ('. $Model->data[$Model->alias]['id'].') '.  $Model->data[$Model->alias]['email'];
 					break;
 				case "Event":
-					$title = 'Event ('. $Model->data[$Model->alias]['id'].'): '.  $Model->data[$Model->alias]['info'];
+					$this->Events = new EventsController();
+        			$this->Events->constructClasses();
+        			debug($Model->data[$Model->alias]['id']);
+        			debug($this->Events->getName($Model->data[$Model->alias]['id']));
+        			debug(false);
+					$title = 'Event ('. $Model->data[$Model->alias]['id'].'): '.$this->Events->getName($Model->data[$Model->alias]['id']);
 					$logData['Log']['title'] = $title;
 					break;
 				case "Attribute":
@@ -565,7 +570,9 @@ class LogableBehavior extends ModelBehavior {
 					}
 					break;
 				case "Server":
-					$title = 'Server ('. $Model->data[$Model->alias]['id'].'): '. $Model->data[$Model->alias]['url'];
+					$this->Servers = new ServersController();
+        			$this->Servers->constructClasses();
+					$title = 'Server ('. $Model->data[$Model->alias]['id'].'): '. $this->Servers->getName($Model->data[$Model->alias]['id']);
 					$logData['Log']['title'] = $title;
 					break;
 				default:

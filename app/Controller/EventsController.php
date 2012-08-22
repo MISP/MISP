@@ -838,6 +838,13 @@ class EventsController extends AppController {
 //         $gv->image();
 //     }
 
+    public function getName($id = null) {
+    	$events = $this->Event->find('first', array(
+                'conditions' => array('Event.id' => $id)
+        ));
+        $name = $events['Event']['info'];
+    	return $name;
+    }
 
 
 }
