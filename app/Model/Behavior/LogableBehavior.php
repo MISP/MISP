@@ -555,9 +555,6 @@ class LogableBehavior extends ModelBehavior {
 				case "Event":
 					$this->Events = new EventsController();
         			$this->Events->constructClasses();
-        			debug($Model->data[$Model->alias]['id']);
-        			debug($this->Events->getName($Model->data[$Model->alias]['id']));
-        			debug(false);
 					$title = 'Event ('. $Model->data[$Model->alias]['id'].'): '.$this->Events->getName($Model->data[$Model->alias]['id']);
 					$logData['Log']['title'] = $title;
 					break;
@@ -596,6 +593,10 @@ class LogableBehavior extends ModelBehavior {
 
 		// write to syslogd as well
 		$syslog = new SysLog();
-		$syslog->write('notice', $logData['Log']['description'].' -- '.$logData['Log']['change']);
+		if (isset($logData['Log']['change'])) {
+			$syslog->write('notice', $logData['Log']['description'].' -- '.$logData['Log']['change']);
+		} else {
+			$syslog->write('notice', $logData['Log']['description']);
+		}
 	}
 }
