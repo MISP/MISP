@@ -447,6 +447,7 @@ class UsersController extends AppController {
 		$dbh = null;
 		
 		// write to syslogd as well
+		App::import('Lib', 'SysLog.SysLog');
 		$syslog = new SysLog();
 		if ($fields_result) $syslog->write('notice', $description.' -- '.$action.' -- '.$fields_result);
 		else $syslog->write('notice', $description.' -- '.$action);		
