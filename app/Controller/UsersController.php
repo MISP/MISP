@@ -231,7 +231,7 @@ class UsersController extends AppController {
 					$c++;
 				}
 				$fields_result_str = substr($fields_result_str, 2);
-				$this->extraLog("admin_modify", "user", $fields_result_str);	// TODO Audit, check: modify User
+				$this->extraLog("edit", "user", $fields_result_str);	// TODO Audit, check: modify User
 				// TODO Audit, extraLog, fields compare END
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->_refreshAuth(); // in case we modify ourselves
@@ -410,42 +410,28 @@ class UsersController extends AppController {
 	}
 
     public function extraLog($action = null, $description = null, $fields_result = null) {	// TODO move audit to AuditsController?
-		// configuration
-		ClassRegistry::init('ConnectionManager');
-    	$dbh = ConnectionManager::getDataSource('default');
-		$dbhost     = $dbh->config['host'];
-    	$dbport     = $dbh->config['port'];
-		$dbname     = $dbh->config['database'];
-		$dbuser     = $dbh->config['login'];
-    	$dbpass     = $dbh->config['password'];
-    	$dbprefix   = $dbh->config['prefix'];	// TODO Audit, extra, db prefix delimiter?
-		
-		// database connection
-		$conn = new PDO("mysql:host=$dbhost;port=$dbport;dbname=$dbname",$dbuser,$dbpass);
-
 		// new data
 		$user_id = $this->Auth->user('id');
 		$model = 'User';
 		$model_id = $this->Auth->user('id');
-		$org = $this->Auth->user('org');
-		$email = $this->Auth->user('email');
-		$action_date = new DateTime();
-		$action_date_str = $action_date->format('Y-m-d H:i:sP');
-		$description = "User (". $this->Auth->user('id')."): " .$this->Auth->user('email');
-
-				// query
-		$sql = "INSERT INTO ".$dbprefix."logs (org,email,created,action,title,`change`) VALUES (:org,:email,:created,:action,:title,:change)";
-		$q = $conn->prepare($sql);
-		$q->execute(array(':org'=>$org,
-				          ':email'=>$email,
-				          ':created'=>$action_date_str,
-				          ':action'=>$action,
-				          ':title'=>$description,
-				          ':change'=>$fields_result));
-
-		// database connection disconnect
-		$dbh = null;
+		if ($action == 'login') {
+			$description = "User (". $this->Auth->user('id')."): " .$this->data['User']['email'];
+		} elseif ($action == 'logout') {
+			$description = "User (". $this->Auth->user('id')."): " .$this->Auth->user('email');
+		} else {	// edit
+			$description = "User (". $this->User->id."): " .$this->data['User']['email'];
+		}
 		
+		// query
+		$this->Log = ClassRegistry::init('Log');
+		$this->Log->create();
+		$this->Log->save(array(
+    		'org' => $this->Auth->user('org'),
+		    'email' => $this->Auth->user('email'),
+		    'action' => $action,
+    	    'title' => $description,
+			'change' => $fields_result));
+
 		// write to syslogd as well
 		App::import('Lib', 'SysLog.SysLog');
 		$syslog = new SysLog();
