@@ -342,6 +342,10 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
 	    // remove leading and trailing blanks
 	    $this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
 
+	    if (!isset($this->data['Attribute']['type'])) {
+	    	return false;
+	    }
+	    
 	    switch($this->data['Attribute']['type']) {
 	        // lowercase these things
 	        case 'md5':
