@@ -36,3 +36,4 @@ Fixed bugs:
 - Edit event already published to other servers, then (re)publish does not work
   so no other participating servers have the new edited event.
 - An authkey with any length, so less then 40, can be entered.
+- Add attribute, do not fill in any, and hit Submit, gives error messages.
