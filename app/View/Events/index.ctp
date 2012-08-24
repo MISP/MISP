@@ -50,7 +50,7 @@
   			   echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id']));
 			}
 			?>
-			<?php echo $this->Html->link(__('View', true), array('controller' => 'attributes', 'action' => 'event', $event['Event']['id'])); ?>
+			<?php echo $this->Html->link(__('View', true), array('controller' => 'events', 'action' => 'view', $event['Event']['id'])); ?>
 		</td>
 	</tr>
 <?php endforeach; ?>
