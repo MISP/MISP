@@ -265,7 +265,7 @@ class Event extends AppModel {
 	    unset($event['Attribute']);
 
 	    // cleanup the array from things we do not want to expose
-	    unset($event['Event']['org']);
+	    //unset($event['Event']['org']);
 	    // remove value1 and value2 from the output
 	    foreach($event['Event']['Attribute'] as $key => &$attribute) {
 	        // do not keep attributes that are private
@@ -286,7 +286,8 @@ class Event extends AppModel {
 	    // add the 'Imported from' conform ServersController.php:177
 	    // no need to remove lateron cause on pushing server Event is already saved.
 	    $event['Event']['info'] .= "\n Published from ".Configure::read('CyDefSIG.baseurl');
-
+	    if ($event['Event']['user_id'] != '0') $event['Event']['org'] = Configure::read('CyDefSIG.org');	// TODO
+	    
 	    // display the XML to the user
 	    $xmlArray['Event'][] = $event['Event'];
 	    $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
@@ -299,21 +300,23 @@ class Event extends AppModel {
 	    	// TODO NETWORK for now do not know how to catch the following..
 	    	// TODO NETWORK No route to host
 		    $response = $HttpSocket->post($uri, $data, $request);
-		    if ($response->isOk()) {
-		        return true;
-		    }
-		    else {
-	    		try {		    		
-		       		// parse the XML response and keep the reason why it failed
-		        	$xml_array = Xml::toArray(Xml::build($response->body));
-				} catch (XmlException $e) {
-    				return true;
-				}
-				if (strpos($xml_array['response']['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
-		            return true;
-		        } else {
-		            return $xml_array['response']['name'];
-		        }
+		    if ($response->code == '200') {	// 200 (OK) + entity-action-result
+			    if ($response->isOk()) {
+			        return true;
+			    }
+			    else {
+		    		try {
+			       		// parse the XML response and keep the reason why it failed
+			        	$xml_array = Xml::toArray(Xml::build($response->body));
+					} catch (XmlException $e) {
+	    				return true;
+					}
+					if (strpos($xml_array['response']['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
+			            return true;
+			        } else {
+			            return $xml_array['response']['name'];
+			        }
+			    }
 		    }
 	    }
 	}
@@ -349,7 +352,7 @@ class Event extends AppModel {
 	    	// TODO NETWORK for now do not know how to catch the following..
 	    	// TODO NETWORK No route to host
 		    $response = $HttpSocket->delete($uri, array(), $request);
-		    // TODO REST, DELETE, no responce needed
+		    // TODO REST, DELETE, some responce needed
 	    }
 	}
 

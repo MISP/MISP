@@ -91,6 +91,8 @@ Configure::write('CyDefSIG.name', 'CyDefSIG');
 Configure::write('CyDefSIG.header', 'CyDefSIG: Cyber Defence Signature Sharing Platform');
 Configure::write('CyDefSIG.footer', 'Powered by CyDefSIG &copy; Belgian Defense CERT & NCIRC');
 //Configure::write('CyDefSIG.logo', '/img/logo_big.gif');
+Configure::write('CyDefSIG.org', 'BE MOD');                // if sync this will be Event.org content on the peer side
+Configure::write('CyDefSIG.logo', 'logo_defense.jpg');     // used in Events::index for owned events
 
 
 Configure::write('CyDefSIG.showorg', 'false');             // show the name of the organisation that uploaded the data

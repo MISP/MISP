@@ -8,6 +8,14 @@
 		            'label' => 'Base URL',
 		            'before' => $this->Html->div('forminfo', 'The base-url to the external server you want to sync with.<br/>Example: <i>https://foo.sig.mil.be</i>'),
 		    ));
+		echo $this->Form->input('organization', array(
+		            'label' => 'Organization',
+		            'before' => $this->Html->div('forminfo', 'The organization having the external server you want to sync with.<br/>Example: <i>https://foo.sig.mil.be</i>'),
+		    ));
+	    echo $this->Form->input('logo', array(
+		            'label' => 'Logo',
+		            'before' => $this->Html->div('forminfo', 'The logo of the organization having the external server you want to sync with.<br/>Example: <i>jaune.jpg</i>'),
+		    ));
 		echo $this->Form->input('authkey', array(
 		            'before' => $this->Html->div('forminfo', 'You can find the authentication key on your profile on the external server.<br/><i>Leave empty if you don\'t want to change it</i>.'),
 		    ));

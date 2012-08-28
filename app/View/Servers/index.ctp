@@ -5,6 +5,8 @@
 			<th><?php echo $this->Paginator->sort('push');?></th>
 			<th><?php echo $this->Paginator->sort('pull');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
+			<th>From</th>
+			<th>Logo</th>
 			<?php if ($isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<?php endif; ?>
@@ -18,6 +20,8 @@
 		<td class="short" style="text-align: center;"><?php echo ($server['Server']['push'])? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td class="short" style="text-align: center;"><?php echo ($server['Server']['pull'])? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
+		<td><?php echo h($server['Server']['organization']); ?>&nbsp;</td>
+		<td><?php echo h($server['Server']['logo']); ?>&nbsp;</td>
 		<?php if ($isAdmin): ?>
 		<td class="short"><?php echo h($server['Server']['org']); ?>&nbsp;</td>
 		<?php endif; ?>

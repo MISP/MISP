@@ -2,6 +2,7 @@
 	<h2>Events</h2>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
+			<th></th>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
@@ -19,6 +20,10 @@
 	foreach ($events as $event):
 	?>
 	<tr>
+		<td class="short"><?php 
+		if ($event['User']['email']) echo $this->Html->image($logo, array('alt' => $logo_alt,'width'=>'50','hight'=>'38'));
+		else echo $this->Html->image($logos[$event['Event']['org']], array('alt' => $event['Event']['org'],'width'=>'50','hight'=>'38'));
+		?></td>
 		<td class="short">
 		<?php echo $this->Html->link($event['Event']['id'], array('controller' => 'events', 'action' => 'view', $event['Event']['id'])); ?>
 		&nbsp;</td>

@@ -98,7 +98,7 @@ class ServersController extends AppController {
 
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    // say what fields are to be updated
-		    $fieldList=array('url', 'push', 'pull');
+		    $fieldList=array('url', 'push', 'pull', 'organization','logo');
 		    if ("" != $this->request->data['Server']['authkey'])
 		        $fieldList[] = 'authkey';
 		    // Save the data
@@ -177,7 +177,7 @@ class ServersController extends AppController {
                         $event['Event']['info'] .= "\n Imported from ".$this->Server->data['Server']['url'];
                         $eventsController = new EventsController();
                         try {
-                            $result = $eventsController->_add($event, $this->Auth, $fromXml=true);
+                            $result = $eventsController->_add($event, $this->Auth, $fromXml=true, $this->Server->data['Server']['organization']);
                         } catch (MethodNotAllowedException $e) {
                             if ($e->getMessage() == 'Event already exists') {
                                 //$successes[] = $event_id;	// commented given it's in a catch..

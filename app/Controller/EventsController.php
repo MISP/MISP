@@ -72,6 +72,10 @@ class EventsController extends AppController {
             $this->Session->setFlash('No GPG key set in your profile. To receive emails, submit your public key in your profile.');
         }
         $this->set('event_descriptions', $this->Event->field_descriptions);
+        
+        $this->set('logo', Configure::read('CyDefSIG.logo'));
+        $this->set('logo_alt', Configure::read('CyDefSIG.org'));
+		$this->set('logos', ClassRegistry::init('Server')->getLogos());
     }
 
     /**
@@ -204,7 +208,7 @@ class EventsController extends AppController {
      */
     public function add() {
         if ($this->request->is('post')) {
-            if ($this->_add($this->request->data, $this->Auth, $this->_isRest())) {
+            if ($this->_add($this->request->data, $this->Auth, $this->_isRest(),'')) {
                 if ($this->_isRest()) {
                     // REST users want to see the newly created event
                     $this->view($this->Event->getId());
@@ -232,10 +236,12 @@ class EventsController extends AppController {
      *
      * @return bool true if success
      */
-    public function _add(&$data, &$auth, $fromXml) {
+    public function _add(&$data, &$auth, $fromXml, $or='') {
         // force check userid and orgname to be from yourself
         if (!$fromXml) $data['Event']['user_id'] = $auth->user('id');
-        $data['Event']['org'] = $auth->user('org');
+        else $data['Event']['user_id'] = '0';
+        if (!$fromXml) $data['Event']['org'] = $auth->user('org');
+        if (strlen($or)) $data['Event']['org'] = $or;
         unset ($data['Event']['id']);
         $this->Event->create();
 
@@ -253,12 +259,13 @@ class EventsController extends AppController {
             $data['Event']['private'] = true;
         }
 
-        if (isset($data['Event']['uuid'])) {
+        if (isset($data['Event']['uuid'])) {	// TODO here we should start RESTful dialog
             // check if the uuid already exists
             $existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid'=>$data['Event']['uuid'])));
             if ($existingEventCount > 0) {
             	$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid'=>$data['Event']['uuid'])));
             	$data['Event']['id'] = $existingEvent['Event']['id'];
+            	$data['Event']['org'] = $existingEvent['Event']['org'];
             	// attributes..
             	$c = 0;
 		        if (isset($data['Attribute'])) {
@@ -406,7 +413,7 @@ class EventsController extends AppController {
         if ($this->Event->delete()) {
         
 	        // delete the event from remote servers
-	        if ('true' == Configure::read('CyDefSIG.sync')) {
+	        if ('true' == Configure::read('CyDefSIG.sync')) {	// TODO test..(!$this->_isRest()) &&
 	            $this->_deleteEventFromServers($uuid);
 	        }
         	
