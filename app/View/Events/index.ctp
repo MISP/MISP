@@ -21,8 +21,8 @@
 	?>
 	<tr>
 		<td class="short"><?php 
-		if ($event['User']['email']) echo $this->Html->image($logo, array('alt' => $logo_alt,'width'=>'50','hight'=>'38'));
-		else echo $this->Html->image($logos[$event['Event']['org']], array('alt' => $event['Event']['org'],'width'=>'50','hight'=>'38'));
+		if ($event['User']['email']) echo $this->Html->image($logo, array('alt' => $logo_alt,'width'=>'50','hight'=>'50'));
+		else echo $this->Html->image($logos[$event['Event']['org']], array('alt' => $event['Event']['org'],'width'=>'50','hight'=>'50'));
 		?></td>
 		<td class="short">
 		<?php echo $this->Html->link($event['Event']['id'], array('controller' => 'events', 'action' => 'view', $event['Event']['id'])); ?>
