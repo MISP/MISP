@@ -110,6 +110,18 @@ CREATE TABLE `users` (
   KEY `email` (`email`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=2 ;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `whitelist`
+--
+
+CREATE TABLE `whitelist` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(254) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+
 
 --
 -- Dumping data for table `attributes`
