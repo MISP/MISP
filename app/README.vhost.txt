@@ -22,5 +22,5 @@ containing:
 
         # Indexes + Directory Root.
         DirectoryIndex index.php
-        DocumentRoot /var/www/second_instance/cydefsig
+        DocumentRoot /var/www/second_instance/cydefsig/app/webroot
 </VirtualHost>
