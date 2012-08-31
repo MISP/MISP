@@ -72,10 +72,6 @@ class EventsController extends AppController {
             $this->Session->setFlash('No GPG key set in your profile. To receive emails, submit your public key in your profile.');
         }
         $this->set('event_descriptions', $this->Event->field_descriptions);
-        
-        $this->set('logo', Configure::read('CyDefSIG.logo'));
-        $this->set('logo_alt', Configure::read('CyDefSIG.org'));
-		$this->set('logos', ClassRegistry::init('Server')->getLogos());
     }
 
     /**
@@ -109,7 +105,7 @@ class EventsController extends AppController {
         	foreach ($relatedAttributes2 as $relatedAttribute2) {
         		$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = $relatedAttribute2;
         	}
-        	
+
         	foreach ($this->Event->data['Attribute'] as $attribute) {
 	            // for REST requests also add the encoded attachment
 	            if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
@@ -172,7 +168,7 @@ class EventsController extends AppController {
 	                $relatedEventsIds[] = $item['Attribute']['event_id'];
 	            }
 	        }
-        
+
 	        if (isset($relatedEventsIds)) {
 	            $relatedEventsIds = array_unique($relatedEventsIds);
 	            $find_params = array(
@@ -281,7 +277,7 @@ class EventsController extends AppController {
 		        }
             }
         }
-        
+
         if ($fromXml) $fieldList = array(
                 'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private'),
                 'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
@@ -323,12 +319,12 @@ class EventsController extends AppController {
             if ($this->_isRest()) {
 	            // Workaround for different structure in XML/array than what CakePHP expects
 	            $this->Event->cleanupEventArrayFromXML($data);
-	            
+
 	            // the event_id field is not set (normal) so make sure no validation errors are thrown
 	            // LATER do this with     $this->validator()->remove('event_id');
 	            unset($this->Event->Attribute->validate['event_id']);
 	            unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-	
+
 	            $fieldList = array(
 	                'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private'),
 	                'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
@@ -337,9 +333,9 @@ class EventsController extends AppController {
 	            // from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
 	            if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
 	                $message = 'Saved';
-	
+
 		            $this->set('event', $this->Event);
-		            
+
 		            // REST users want to see the newly created event
 		            $this->view($this->Event->getId());
 		            $this->render('view');
@@ -391,7 +387,7 @@ class EventsController extends AppController {
         if (!$this->request->is('post') && !$this->_isRest()) {
             throw new MethodNotAllowedException();
         }
-        
+
     	$uuid = '';
     	if ( !$this->_isRest() || !isset($this->params['url']['uuid'])) {
 			// curl -H "Accept: application/xml" -H "Authorization: vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb" -X DELETE http://localhost/events/31
@@ -404,19 +400,19 @@ class EventsController extends AppController {
 			$result = $this->Event->find('first', array('conditions' => array('Event.uuid' => $uuid)));
 			$id = $result['Event']['id'];
     	}
-        
+
         $this->Event->id = $id;
         if (!$this->Event->exists()) {
             throw new NotFoundException(__('Invalid event'));
         }
 
         if ($this->Event->delete()) {
-        
+
 	        // delete the event from remote servers
 	        if ('true' == Configure::read('CyDefSIG.sync')) {	// TODO test..(!$this->_isRest()) &&
 	            $this->_deleteEventFromServers($uuid);
 	        }
-        	
+
         	$this->Session->setFlash(__('Event deleted'));
             $this->redirect(array('action' => 'index'));
         }
@@ -472,7 +468,7 @@ class EventsController extends AppController {
             $this->Event->deleteEventFromServer($uuid, $server, $HttpSocket);
         }
     }
-    
+
     /**
      * Performs all the actions required to publish an event
      *
@@ -946,7 +942,7 @@ class EventsController extends AppController {
 	        foreach ($rules as &$rule)
 	            print $rule."\n";
 	        print "#</pre>\n";
-	
+
 	        $this->set('rules', $rules);
         } else {
         	print "Not any MD5 found to export\n";
