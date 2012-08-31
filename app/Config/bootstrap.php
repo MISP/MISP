@@ -95,7 +95,8 @@ Configure::write('CyDefSIG.org', 'BE MOD');                // if sync this will 
 Configure::write('CyDefSIG.logo', 'square_defense.jpg');     // used in Events::index for owned events
 
 
-Configure::write('CyDefSIG.showorg', 'false');             // show the name of the organisation that uploaded the data
+Configure::write('CyDefSIG.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
+Configure::write('CyDefSIG.showowner', 'false');           // show the email of the owner that uploaded the data
 Configure::write('CyDefSIG.sync', 'true');                 // enable features related to syncing with other CyDefSIG instances
 Configure::write('CyDefSIG.email', 'no-reply@sig.mil.be'); // email from for all the mails
 
@@ -108,7 +109,7 @@ Configure::write('SecureAuth.amount', 5);              // the maximum amount of 
 Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
 
 Configure::write('CyDefSIG.correlation', 'sql');        // correlation between attributes of events.
-                                                       // possible values: 
+                                                       // possible values:
                                                        // - default, like it was
                                                        // - db, correlation in database
                                                        // - sql, selection on event i.s.o. per attribute (improvement possible)
@@ -116,7 +117,7 @@ Configure::write('CyDefSIG.correlation', 'sql');        // correlation between a
  * Network activity, ip-src
  * 30 class-C network ip addresses
  * (time in ms)
- * 
+ *
  *           default     db    sql
  * all         25366  16601  15941
  *             24839  16604  15611
