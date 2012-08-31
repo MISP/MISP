@@ -94,16 +94,4 @@ class Server extends AppModel {
 	    return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
 	}
 
-	public function getLogos() {
-		$logos = array();
-	    $results = $this->find('all',
-                        array('recursive' => 0,
-                              'fields' => 'Server.organization,Server.logo'
-                            ));
-	    foreach ($results as $result ) {
-	    	$logos[$result['Server']['organization']] = $result['Server']['logo'];
-	    }
-        return $logos;
-	}
-
 }
