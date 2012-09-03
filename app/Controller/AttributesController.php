@@ -417,7 +417,7 @@ class AttributesController extends AppController {
 	        // delete the attribute from remote servers
 			if ('true' == Configure::read('CyDefSIG.sync')) {
 			    // find the uuid
-			    $result = $this->Event->find('first', array('conditions' => array('Attribute.id' => $id)));
+			    $result = $this->Attribute->find('first', array('conditions' => array('Attribute.id' => $id)));
 	            $this->_deleteAttributeFromServers($result['Attribute']['uuid']);
 	        }
 
