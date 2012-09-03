@@ -42,6 +42,20 @@ class EventsController extends AppController {
         $this->Auth->allow('text');
 
         $this->Auth->allow('dot');
+
+        // convert uuid to id if present in the url, and overwrite id field
+        if (isset($this->params->query['uuid'])) {
+            $params = array(
+                    'conditions' => array('Event.uuid' => $this->params->query['uuid']),
+                    'recursive' => 0,
+                    'fields' => 'Event.id'
+                    );
+            $result = $this->Event->find('first', $params);
+            if (isset($result['Event']) && isset($result['Event']['id'])) {
+                $id = $result['Event']['id'];
+                $this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
+            }
+        }
     }
 
     public function isAuthorized($user) {
@@ -384,20 +398,7 @@ class EventsController extends AppController {
             throw new MethodNotAllowedException();
         }
 
-    	$uuid = '';
-    	if ( !$this->_isRest() || !isset($this->params['url']['uuid'])) {
-			// curl -H "Accept: application/xml" -H "Authorization: vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb" -X DELETE http://localhost/events/31
-    		$result = $this->Event->find('first', array('conditions' => array('Event.id' => $id)));
-			$uuid = $result['Event']['uuid'];
-    	} else {
-			// curl -H "Accept: application/xml" -H "Authorization: vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb" -X DELETE http://localhost/events/0?uuid=5031ffe0-b7b0-43a7-9aa9-1b2cff32448e
-			// UUID to ID
-			$uuid = $this->params['url']['uuid'];
-			$result = $this->Event->find('first', array('conditions' => array('Event.uuid' => $uuid)));
-			$id = $result['Event']['id'];
-    	}
-
-        $this->Event->id = $id;
+    	$this->Event->id = $id;
         if (!$this->Event->exists()) {
             throw new NotFoundException(__('Invalid event'));
         }
@@ -406,7 +407,9 @@ class EventsController extends AppController {
 
 	        // delete the event from remote servers
 	        if ('true' == Configure::read('CyDefSIG.sync')) {	// TODO test..(!$this->_isRest()) &&
-	            $this->_deleteEventFromServers($uuid);
+	            // find the uuid
+	            $result = $this->Event->find('first', array('conditions' => array('Event.id' => $id)));
+	            $this->_deleteEventFromServers($result['Event']['uuid']);
 	        }
 
         	$this->Session->setFlash(__('Event deleted'));
