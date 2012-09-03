@@ -312,7 +312,7 @@ class EventsController extends AppController {
         if ($this->request->is('post') || $this->request->is('put')) {
             if ($this->_isRest()) {
 	            // Workaround for different structure in XML/array than what CakePHP expects
-	            $this->Event->cleanupEventArrayFromXML($data);
+	            $this->Event->cleanupEventArrayFromXML($this->request->data);
 
 	            // the event_id field is not set (normal) so make sure no validation errors are thrown
 	            // LATER do this with     $this->validator()->remove('event_id');
@@ -325,7 +325,7 @@ class EventsController extends AppController {
 	            );
 	            // this saveAssociated() function will save not only the event, but also the attributes
 	            // from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-	            if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
+	            if ($this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList))) {
 	                $message = 'Saved';
 
 		            $this->set('event', $this->Event);
@@ -336,6 +336,8 @@ class EventsController extends AppController {
 		            return true;
 		        } else {
 		            $message = 'Error';
+		            $this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
+		            $this->render('edit');
 		            //throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
 		            return false;
 		        }
