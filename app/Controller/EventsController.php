@@ -248,10 +248,8 @@ class EventsController extends AppController {
      */
     public function _add(&$data, &$auth, $fromXml, $or='') {
         // force check userid and orgname to be from yourself
-        if (!$fromXml) $data['Event']['user_id'] = $auth->user('id');
-        else $data['Event']['user_id'] = '0';
-        if (!$fromXml) $data['Event']['org'] = $auth->user('org');
-        if (strlen($or)) $data['Event']['org'] = $or;
+        $data['Event']['user_id'] = $auth->user('id');
+        $data['Event']['org'] = strlen($or) ? $or : $auth->user('org');
         unset ($data['Event']['id']);
         $this->Event->create();
 
@@ -292,11 +290,7 @@ class EventsController extends AppController {
             }
         }
 
-        if ($fromXml) $fieldList = array(
-                'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private'),
-                'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
-        );
-        else $fieldList = array(
+        $fieldList = array(
                 'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private'),
                 'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
         );
@@ -581,7 +575,7 @@ class EventsController extends AppController {
 
         // sign the body
         require_once 'Crypt/GPG.php';
-        $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+        $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
         $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
         $body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
 
