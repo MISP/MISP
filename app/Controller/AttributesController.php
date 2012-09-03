@@ -25,6 +25,20 @@ class AttributesController extends AppController {
             $this->Security->csrfUseOnce = false;
         }
         $this->Security->validatePost = false;
+
+        // convert uuid to id if present in the url, and overwrite id field
+        if (isset($this->params->query['uuid'])) {
+            $params = array(
+                    'conditions' => array('Attribute.uuid' => $this->params->query['uuid']),
+                    'recursive' => 0,
+                    'fields' => 'Attribute.id'
+                    );
+            $result = $this->Attribute->find('first', $params);
+            if (isset($result['Attribute']) && isset($result['Attribute']['id'])) {
+                $id = $result['Attribute']['id'];
+                $this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
+            }
+        }
     }
 
 
@@ -392,32 +406,21 @@ class AttributesController extends AppController {
 			throw new MethodNotAllowedException();
 		}
 
-    	$uuid = '';
-    	if ( !$this->_isRest() || !isset($this->params['url']['uuid'])) {
-    		// curl -H "Accept: application/xml" -H "Authorization: vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb" -X DELETE http://localhost/attributes/9831
-    		$result = $this->Attribute->find('first', array('conditions' => array('Attribute.id' => $id)));
-			$uuid = $result['Attribute']['uuid'];
-    	} else {
-			// curl -H "Accept: application/xml" -H "Authorization: vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb" -X DELETE http://localhost/attributes/0?uuid=50325563-5878-495b-9f38-27f7ff32448e
-        	// UUID to ID
-			$uuid = $this->params['url']['uuid'];
-			$result = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $uuid)));
-			$id = $result['Attribute']['id'];
-		}
-		
-		$this->Attribute->id = $id;
+    	$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
 
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->delete()) {
-        
+
 	        // delete the attribute from remote servers
 			if ('true' == Configure::read('CyDefSIG.sync')) {
-	            $this->_deleteAttributeFromServers($uuid);
+			    // find the uuid
+			    $result = $this->Event->find('first', array('conditions' => array('Attribute.id' => $id)));
+	            $this->_deleteAttributeFromServers($result['Attribute']['uuid']);
 	        }
-        	
+
 			$this->Session->setFlash(__('Attribute deleted'));
 		} else {
 		    $this->Session->setFlash(__('Attribute was not deleted'));
@@ -456,23 +459,23 @@ class AttributesController extends AppController {
     }
 
 	public function search() {
-		
+
 		$fullAddress = '/attributes/search';
-		
+
 		if ($this->request->here == $fullAddress) {
-			
+
 		    $this->set('attr_descriptions', $this->Attribute->field_descriptions);
 		    $this->set('type_definitions', $this->Attribute->type_definitions);
 		    $this->set('category_definitions', $this->Attribute->category_definitions);
-	
+
 		    // reset the paginate_conditions
 		    $this->Session->write('paginate_conditions',array());
-		    
+
 		    if ($this->request->is('post') && ($this->request->here == $fullAddress)) {
 		    	$keyword = $this->request->data['Attribute']['keyword'];
 		        $type = $this->request->data['Attribute']['type'];
 		        $category = $this->request->data['Attribute']['category'];
-	
+
 		        // search the db
 		        $conditions = array();
 	            if($keyword) {
@@ -492,19 +495,19 @@ class AttributesController extends AppController {
 
 		        // and store into session
 		        $this->Session->write('paginate_conditions',$this->paginate);
-		        
+
 		        // set the same view as the index page
 		        $this->render('index');
 		    } else {
 		        // no search keyword is given, show the search form
-	
+
 		        // adding filtering by category and type
 	    	    // combobox for types
 	    	    $types = array('ALL');
 	    	    $types = array_merge($types, array_keys($this->Attribute->type_definitions));
 	    	    $types = $this->_arrayToValuesIndexArray($types);
 	    	    $this->set('types',compact('types'));
-	
+
 	    	    // combobox for categories
 	    	    $categories = array('ALL');
 	    	    $categories = array_merge($categories, $this->Attribute->validate['category']['rule'][1]);
@@ -520,9 +523,9 @@ class AttributesController extends AppController {
 			// re-get pagination
 			$this->paginate = $this->Session->read('paginate_conditions');
 	    	$this->set('attributes', $this->paginate());
-	
+
 		    // set the same view as the index page
-	    	$this->render('index');		
+	    	$this->render('index');
 		}
 	}
 
