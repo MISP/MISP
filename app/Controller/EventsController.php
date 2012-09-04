@@ -121,7 +121,7 @@ class EventsController extends AppController {
             }
             else {
             	foreach ($relatedAttributes2 as $relatedAttribute2) {
-            		$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = $relatedAttribute2;
+            		$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = array('Attribute' => $relatedAttribute2['Correlation']);
             	}
 
             	foreach ($this->Event->data['Attribute'] as $attribute) {
@@ -141,8 +141,8 @@ class EventsController extends AppController {
     	        foreach ($relatedAttributes as &$relatedAttribute) {
     	            if (null == $relatedAttribute) continue;
     	            foreach ($relatedAttribute as &$item) {
-    	                $relatedEventsIds[] = $item['Correlation']['event_id'];
-    	                $relatedEventsDates[$item['Correlation']['event_id']] = $item['Correlation']['date'];
+    	                $relatedEventsIds[] = $item['Attribute']['event_id'];
+    	                $relatedEventsDates[$item['Attribute']['event_id']] = $item['Attribute']['date'];
     	            }
     	        }
 
@@ -150,7 +150,7 @@ class EventsController extends AppController {
     	        if (isset($relatedEventsDates)) {
     	            $relatedEventsDates = array_unique($relatedEventsDates);
     	            foreach ($relatedEventsDates as $key => $relatedEventsDate) {
-    	            	$relatedEvents[] = array('id' => $key, 'date' => $relatedEventsDate);
+    	            	$relatedEvents[] = array('Event' => array('id' => $key, 'date' => $relatedEventsDate));
     	            }
     	        }
             }
@@ -199,7 +199,7 @@ class EventsController extends AppController {
 	            $relatedEvents = $this->Event->find('all', $find_params);
 	        }
         }
-        $this->set('correlation', Configure::read('CyDefSIG.correlation'));
+
         $this->set('relatedAttributes', $relatedAttributes);
 
 		// passing decriptions for model fields
