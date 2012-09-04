@@ -577,81 +577,86 @@ class EventsController extends AppController {
 
         // sign the body
         require_once 'Crypt/GPG.php';
-        $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
-        $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-        $body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-
-        $this->loadModel('User');
-
-        //
-        // Build a list of the recipients that get a non-encrypted mail
-        // But only do this if it is allowed in the bootstrap.php file.
-        //
-        if ('false' == Configure::read('GnuPG.onlyencrypted')) {
-            $alert_users = $this->User->find('all', array(
-                    'conditions' => array('User.autoalert' => 1,
-                                          'User.gpgkey =' => ""),
-                    'recursive' => 0,
-            ) );
-            $alert_emails = Array();
-            foreach ($alert_users as &$user) {
-                $alert_emails[] = $user['User']['email'];
-            }
-            // prepare the the unencrypted email
-            $this->Email->from = Configure::read('CyDefSIG.email');
-            //$this->Email->to = "CyDefSIG <sig@cyber-defence.be>"; TODO check if it doesn't break things to not set a to , like being spammed away
-            $this->Email->bcc = $alert_emails;
-            $this->Email->subject =  "[".Configure::read('CyDefSIG.name')."] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
-            $this->Email->template = 'body';
-            $this->Email->sendAs = 'text';        // both text or html
-            $this->set('body', $body_signed);
-            // send it
-            $this->Email->send();
-            // If you wish to send multiple emails using a loop, you'll need
-            // to reset the email fields using the reset method of the Email component.
-            $this->Email->reset();
+        try {
+	        $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
+	        $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+	        $body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+	
+	        $this->loadModel('User');
+	
+	        //
+	        // Build a list of the recipients that get a non-encrypted mail
+	        // But only do this if it is allowed in the bootstrap.php file.
+	        //
+	        if ('false' == Configure::read('GnuPG.onlyencrypted')) {
+	            $alert_users = $this->User->find('all', array(
+	                    'conditions' => array('User.autoalert' => 1,
+	                                          'User.gpgkey =' => ""),
+	                    'recursive' => 0,
+	            ) );
+	            $alert_emails = Array();
+	            foreach ($alert_users as &$user) {
+	                $alert_emails[] = $user['User']['email'];
+	            }
+	            // prepare the the unencrypted email
+	            $this->Email->from = Configure::read('CyDefSIG.email');
+	            //$this->Email->to = "CyDefSIG <sig@cyber-defence.be>"; TODO check if it doesn't break things to not set a to , like being spammed away
+	            $this->Email->bcc = $alert_emails;
+	            $this->Email->subject =  "[".Configure::read('CyDefSIG.name')."] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
+	            $this->Email->template = 'body';
+	            $this->Email->sendAs = 'text';        // both text or html
+	            $this->set('body', $body_signed);
+	            // send it
+	            $this->Email->send();
+	            // If you wish to send multiple emails using a loop, you'll need
+	            // to reset the email fields using the reset method of the Email component.
+	            $this->Email->reset();
+	        }
+	
+	        //
+	        // Build a list of the recipients that wish to receive encrypted mails.
+	        //
+	        $alert_users = $this->User->find('all', array(
+	                'conditions' => array(  'User.autoalert' => 1,
+	                        'User.gpgkey !=' => ""),
+	                'recursive' => 0,
+	        )
+	        );
+	        // encrypt the mail for each user and send it separately
+	        foreach ($alert_users as &$user) {
+	            // send the email
+	            $this->Email->from = Configure::read('CyDefSIG.email');
+	            $this->Email->to = $user['User']['email'];
+	            $this->Email->subject = "[".Configure::read('CyDefSIG.name')."] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
+	            $this->Email->template = 'body';
+	            $this->Email->sendAs = 'text';        // both text or html
+	
+	            // import the key of the user into the keyring
+	            // this is not really necessary, but it enables us to find
+	            // the correct key-id even if it is not the same as the emailaddress
+	            $key_import_output = $gpg->importKey($user['User']['gpgkey']);
+	            // say what key should be used to encrypt
+	            try {
+	                $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+	                $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
+	
+	                $body_enc_sig = $gpg->encrypt($body_signed, true);
+	
+	                $this->set('body', $body_enc_sig);
+	                $this->Email->send();
+	            } catch (Exception $e){
+	                // catch errors like expired PGP keys
+	                $this->log($e->getMessage());
+	            }
+	            // If you wish to send multiple emails using a loop, you'll need
+	            // to reset the email fields using the reset method of the Email component.
+	            $this->Email->reset();
+	        }
+        } catch (Exception $e){
+            // catch errors like expired PGP keys
+            $this->log($e->getMessage());
         }
-
-        //
-        // Build a list of the recipients that wish to receive encrypted mails.
-        //
-        $alert_users = $this->User->find('all', array(
-                'conditions' => array(  'User.autoalert' => 1,
-                        'User.gpgkey !=' => ""),
-                'recursive' => 0,
-        )
-        );
-        // encrypt the mail for each user and send it separately
-        foreach ($alert_users as &$user) {
-            // send the email
-            $this->Email->from = Configure::read('CyDefSIG.email');
-            $this->Email->to = $user['User']['email'];
-            $this->Email->subject = "[".Configure::read('CyDefSIG.name')."] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
-            $this->Email->template = 'body';
-            $this->Email->sendAs = 'text';        // both text or html
-
-            // import the key of the user into the keyring
-            // this is not really necessary, but it enables us to find
-            // the correct key-id even if it is not the same as the emailaddress
-            $key_import_output = $gpg->importKey($user['User']['gpgkey']);
-            // say what key should be used to encrypt
-            try {
-                $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-                $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
-
-                $body_enc_sig = $gpg->encrypt($body_signed, true);
-
-                $this->set('body', $body_enc_sig);
-                $this->Email->send();
-            } catch (Exception $e){
-                // catch errors like expired PGP keys
-                $this->log($e->getMessage());
-            }
-            // If you wish to send multiple emails using a loop, you'll need
-            // to reset the email fields using the reset method of the Email component.
-            $this->Email->reset();
-        }
-
+        
         // LATER check if sending email succeeded and return appropriate result
         return true;
 
