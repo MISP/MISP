@@ -73,13 +73,8 @@
 		<ul>
 		<?php foreach ($relatedEvents as $relatedEvent): ?>
 		<li><?php
-		if ('db' == Configure::read('CyDefSIG.correlation')) {	// TODO array key
-			$link_text = $relatedEvent['date'].' ('.$relatedEvent['id'].')';
-			echo $this->Html->link($link_text, array('controller' => 'events', 'action' => 'view', $relatedEvent['id']));
-		} else {
-			$link_text = $relatedEvent['Event']['date'].' ('.$relatedEvent['Event']['id'].')';
-			echo $this->Html->link($link_text, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
-		}
+		$link_text = $relatedEvent['Event']['date'].' ('.$relatedEvent['Event']['id'].')';
+		echo $this->Html->link($link_text, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
 		?></li>
 	    <?php endforeach; ?>
 	    </ul>
@@ -143,11 +138,7 @@
     			$first = 0;
                 if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
     			    foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
-						if ('db' == Configure::read('CyDefSIG.correlation')) {	// TODO array key
-	    			    	echo $this->Html->link($relatedAttribute['Correlation']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Correlation']['event_id']));
-						} else {
-	    			    	echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
-						}
+						echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
     			        echo ' ';
     			    }
     			}

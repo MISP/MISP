@@ -116,39 +116,44 @@ class EventsController extends AppController {
                         )
                 ),
         		'recursive' => 0));
-        	foreach ($relatedAttributes2 as $relatedAttribute2) {
-        		$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = $relatedAttribute2;
-        	}
+            if (empty($relatedAttributes2)) {
+                $relatedEvents = null;
+            }
+            else {
+            	foreach ($relatedAttributes2 as $relatedAttribute2) {
+            		$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = array('Attribute' => $relatedAttribute2['Correlation']);
+            	}
 
-        	foreach ($this->Event->data['Attribute'] as $attribute) {
-	            // for REST requests also add the encoded attachment
-	            if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
-	                // LATER check if this has a serious performance impact on XML conversion and memory usage
-	                $encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
-	                $attribute['data'] = $encoded_file;
-	            }
-        	}
+            	foreach ($this->Event->data['Attribute'] as $attribute) {
+    	            // for REST requests also add the encoded attachment
+    	            if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
+    	                // LATER check if this has a serious performance impact on XML conversion and memory usage
+    	                $encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
+    	                $attribute['data'] = $encoded_file;
+    	            }
+            	}
 
-	        // search for related Events using the results form the related attributes
-	        // This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
-	        $relatedEventIds = array();
-	        $relatedEventDates = array();
-	        $relatedEvents = array();
-	        foreach ($relatedAttributes as &$relatedAttribute) {
-	            if (null == $relatedAttribute) continue;
-	            foreach ($relatedAttribute as &$item) {
-	                $relatedEventsIds[] = $item['Correlation']['event_id'];
-	                $relatedEventsDates[$item['Correlation']['event_id']] = $item['Correlation']['date'];
-	            }
-	        }
+    	        // search for related Events using the results form the related attributes
+    	        // This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
+    	        $relatedEventIds = array();
+    	        $relatedEventDates = array();
+    	        $relatedEvents = array();
+    	        foreach ($relatedAttributes as &$relatedAttribute) {
+    	            if (null == $relatedAttribute) continue;
+    	            foreach ($relatedAttribute as &$item) {
+    	                $relatedEventsIds[] = $item['Attribute']['event_id'];
+    	                $relatedEventsDates[$item['Attribute']['event_id']] = $item['Attribute']['date'];
+    	            }
+    	        }
 
-	        arsort($relatedEventsDates);
-	        if (isset($relatedEventsDates)) {
-	            $relatedEventsDates = array_unique($relatedEventsDates);
-	            foreach ($relatedEventsDates as $key => $relatedEventsDate) {
-	            	$relatedEvents[] = array('id' => $key, 'date' => $relatedEventsDate);
-	            }
-	        }
+    	        arsort($relatedEventsDates);
+    	        if (isset($relatedEventsDates)) {
+    	            $relatedEventsDates = array_unique($relatedEventsDates);
+    	            foreach ($relatedEventsDates as $key => $relatedEventsDate) {
+    	            	$relatedEvents[] = array('Event' => array('id' => $key, 'date' => $relatedEventsDate));
+    	            }
+    	        }
+            }
         } else {
 	        $fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
 	        if ('sql' == Configure::read('CyDefSIG.correlation')) {
@@ -194,7 +199,7 @@ class EventsController extends AppController {
 	            $relatedEvents = $this->Event->find('all', $find_params);
 	        }
         }
-        $this->set('correlation', Configure::read('CyDefSIG.correlation'));
+
         $this->set('relatedAttributes', $relatedAttributes);
 
 		// passing decriptions for model fields
@@ -249,7 +254,7 @@ class EventsController extends AppController {
     public function _add(&$data, &$auth, $fromXml, $or='') {
         // force check userid and orgname to be from yourself
         $data['Event']['user_id'] = $auth->user('id');
-        $data['Event']['org'] = strlen($or) ? $or : $auth->user('org');
+        $data['Event']['org'] = strlen($or) ? $or : $auth->user('org'); // FIXME security - org problem
         unset ($data['Event']['id']);
         $this->Event->create();
 
