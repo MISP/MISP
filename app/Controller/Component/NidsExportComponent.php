@@ -444,13 +444,13 @@ class NidsExportComponent extends Component {
     }
 
     public $whitelist = array();
-    
+
     function populateWhitelist() {
     	$whitelistCheck = array();
-    	
+
 		$this->Whitelist = ClassRegistry::init('Whitelist');
         $whitelist = $this->Whitelist->find('all', array('recursive' => 0,'fields' => 'name'));
-    	
+
     	// loop through whitelist table,
     	foreach ($whitelist as $whitelistItem) {
     		$ipl = array();
@@ -464,13 +464,15 @@ class NidsExportComponent extends Component {
     	}
     	return $whitelistCheck;
     }
-    
+
     function nametoipl($name) {
     	if (!$ips = gethostbynamel($name)) $ips = array();
     	return $ips;
     }
-    
+
     function checkNames($name) {
+    	return false;
+    	// FIXME fix the checkNames() function and concept
     	$ipl = $this->nametoipl($name);
     	$ipl[] = $name;
     	$overruled = false;
