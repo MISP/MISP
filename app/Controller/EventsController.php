@@ -407,14 +407,18 @@ class EventsController extends AppController {
         if (!$this->Event->exists()) {
             throw new NotFoundException(__('Invalid event'));
         }
-
+        
+        if ('true' == Configure::read('CyDefSIG.sync')) {
+            // find the uuid
+            $result = $this->Event->findById($id);
+            $uuid = $result['Event']['uuid'];
+        }
+        
         if ($this->Event->delete()) {
 
 	        // delete the event from remote servers
 	        if ('true' == Configure::read('CyDefSIG.sync')) {	// TODO test..(!$this->_isRest()) &&
-	            // find the uuid
-	            $result = $this->Event->find('first', array('conditions' => array('Event.id' => $id)));
-	            $this->_deleteEventFromServers($result['Event']['uuid']);
+	            $this->_deleteEventFromServers($uuid);
 	        }
 
         	$this->Session->setFlash(__('Event deleted'));
