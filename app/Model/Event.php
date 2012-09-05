@@ -282,12 +282,7 @@ class Event extends AppModel {
 	            $attribute['data'] = $encoded_file;
 	        }
 	    }
-	    
-	    // add the 'Imported from' conform ServersController.php:177
-	    // no need to remove lateron cause on pushing server Event is already saved.
-	    $event['Event']['info'] .= "\n Published from ".Configure::read('CyDefSIG.baseurl');
-	    if ($event['Event']['user_id'] != '0') $event['Event']['org'] = Configure::read('CyDefSIG.org');	// TODO
-	    
+
 	    // display the XML to the user
 	    $xmlArray['Event'][] = $event['Event'];
 	    $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
@@ -320,7 +315,7 @@ class Event extends AppModel {
 		    }
 	    }
 	}
-		
+
 	/**
 	 * Deletes the event and the associated Attributes from another Server
 	 * TODO move this to a component
@@ -414,7 +409,7 @@ class Event extends AppModel {
 	    $this->Dns = ClassRegistry::init('Dns');
 	    if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
 		    $response = $HttpSocket->get($uri, $data='', $request);
-	
+
 		    if ($response->isOk()) {
 		        $xml = Xml::build($response->body);
 		        $eventArray = Xml::toArray($xml);
