@@ -533,12 +533,19 @@ class EventsController extends AppController {
         // only allow form submit CSRF protection.
         if ($this->request->is('post') || $this->request->is('put')) {
             // send out the email
-            if ($this->_sendAlertEmail($id)) {
+            $emailResult = $this->_sendAlertEmail($id);
+            if (is_bool($emailResult) && $emailResult = true) {
                 // Performs all the actions required to publish an event
                 $this->_publish($id);
 
                 // redirect to the view event page
                 $this->Session->setFlash(__('Email sent to all participants.', true));
+            } elseif (!is_bool($emailResult)) {
+                // Performs all the actions required to publish an event
+                $this->_publish($id);
+
+                // redirect to the view event page
+                $this->Session->setFlash(__('Published but no email sent given GnuPG is not configured.', true));
             } else {
                 $this->Session->setFlash('Sending of email failed', 'default', array(), 'error');
             }
@@ -656,6 +663,7 @@ class EventsController extends AppController {
 	            } catch (Exception $e){
 	                // catch errors like expired PGP keys
 	                $this->log($e->getMessage());
+                    return $e->getMessage();
 	            }
 	            // If you wish to send multiple emails using a loop, you'll need
 	            // to reset the email fields using the reset method of the Email component.
@@ -664,6 +672,7 @@ class EventsController extends AppController {
         } catch (Exception $e){
             // catch errors like expired PGP keys
             $this->log($e->getMessage());
+            return $e->getMessage();
         }
         
         // LATER check if sending email succeeded and return appropriate result
