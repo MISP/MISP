@@ -410,15 +410,20 @@ class AttributesController extends AppController {
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
-
+		
+        if ('true' == Configure::read('CyDefSIG.sync')) {
+            // find the uuid
+            $result = $this->Attribute->findById($id);
+            $uuid = $result['Attribute']['uuid'];
+        }
+		
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->delete()) {
 
 	        // delete the attribute from remote servers
 			if ('true' == Configure::read('CyDefSIG.sync')) {
 			    // find the uuid
-			    $result = $this->Attribute->find('first', array('conditions' => array('Attribute.id' => $id)));
-	            $this->_deleteAttributeFromServers($result['Attribute']['uuid']);
+	            $this->_deleteAttributeFromServers($uuid);
 	        }
 
 			$this->Session->setFlash(__('Attribute deleted'));
