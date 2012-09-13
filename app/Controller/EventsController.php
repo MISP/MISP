@@ -124,7 +124,7 @@ class EventsController extends AppController {
             		$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = array('Attribute' => $relatedAttribute2['Correlation']);
             	}
 
-            	foreach ($this->Event->data['Attribute'] as $attribute) {
+            	foreach ($this->Event->data['Attribute'] as &$attribute) {
     	            // for REST requests also add the encoded attachment
     	            if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
     	                // LATER check if this has a serious performance impact on XML conversion and memory usage
