@@ -109,6 +109,11 @@ class User extends AppModel {
 			),
 		),
 		'authkey' => array(
+			'minlength' => array(
+				'rule' => array('minlength', 40),
+				'message' => 'A authkey of a minimum length of 40 is required.',
+				'required' => true,
+			),
 			'notempty' => array(
 				'rule' => array('notempty'),
 				//'message' => 'Your custom message here',

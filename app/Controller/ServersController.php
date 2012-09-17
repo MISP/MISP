@@ -98,7 +98,7 @@ class ServersController extends AppController {
 
 		if ($this->request->is('post') || $this->request->is('put')) {
 		    // say what fields are to be updated
-		    $fieldList=array('url', 'push', 'pull');
+		    $fieldList=array('url', 'push', 'pull', 'organization');
 		    if ("" != $this->request->data['Server']['authkey'])
 		        $fieldList[] = 'authkey';
 		    // Save the data
@@ -177,13 +177,14 @@ class ServersController extends AppController {
                         $event['Event']['info'] .= "\n Imported from ".$this->Server->data['Server']['url'];
                         $eventsController = new EventsController();
                         try {
-                            $result = $eventsController->_add($event, $this->Auth, $fromXml=true);
+                            $result = $eventsController->_add($event, $this->Auth, $fromXml=true, $this->Server->data['Server']['organization']);
                         } catch (MethodNotAllowedException $e) {
                             if ($e->getMessage() == 'Event already exists') {
-                                $successes[] = $event_id;
+                                //$successes[] = $event_id;	// commented given it's in a catch..
                                 continue;
                             }
                         }
+                        $successes[] = $event_id;			// ..moved, so $successes does keep administration.
                         //$result = $this->_importEvent($event);
                         // TODO error handling
                     } else {
@@ -197,7 +198,7 @@ class ServersController extends AppController {
                     $lastpulledid = min(array_keys($fails));
                 } else {
                     // no fails, take the highest success
-                    $lastpulledid = max($successes);
+                    $lastpulledid = count($successes) > 0 ? max($successes) : 0;
                 }
                 // increment lastid based on the highest ID seen
                 $this->Server->saveField('lastpulledid', $lastpulledid);

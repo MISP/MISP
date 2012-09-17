@@ -102,5 +102,4 @@ class Server extends AppModel {
 	    return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
 	}
 
-
 }

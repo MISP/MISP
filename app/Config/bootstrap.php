@@ -90,11 +90,13 @@ Configure::write('CyDefSIG.baseurl', 'http://localhost:8888');
 Configure::write('CyDefSIG.name', 'CyDefSIG');
 Configure::write('CyDefSIG.header', 'CyDefSIG: Cyber Defence Signature Sharing Platform');
 Configure::write('CyDefSIG.footer', 'Powered by CyDefSIG &copy; Belgian Defense CERT & NCIRC');
-//Configure::write('CyDefSIG.logo', '/img/logo_big.gif');
+Configure::write('CyDefSIG.org', 'BE MOD');                // if sync this will be Event.org content on the peer side
+Configure::write('CyDefSIG.logo', 'orgs/MIL.be.png');     // used in Events::index for owned events
 
 
-Configure::write('CyDefSIG.showorg', 'false');             // show the name of the organisation that uploaded the data
-Configure::write('CyDefSIG.sync', 'true');                 // enable features related to syncing with other CyDefSIG instances
+Configure::write('CyDefSIG.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
+Configure::write('CyDefSIG.showowner', 'false');           // show the email of the owner that uploaded the data
+Configure::write('CyDefSIG.sync', 'false');                 // enable features related to syncing with other CyDefSIG instances
 Configure::write('CyDefSIG.email', 'no-reply@sig.mil.be'); // email from for all the mails
 
 Configure::write('GnuPG.onlyencrypted', 'true');         // only allow encrypted email, do not allow plaintext mails
@@ -104,6 +106,23 @@ Configure::write('GnuPG.homedir', '/Users/chri/Documents/Work/Projects/201107-Cy
 
 Configure::write('SecureAuth.amount', 5);              // the maximum amount of failed logins
 Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
+
+Configure::write('CyDefSIG.correlation', 'sql');        // correlation between attributes of events.
+                                                       // possible values:
+                                                       // - default, like it was
+                                                       // - db, correlation in database
+                                                       // - sql, selection on event i.s.o. per attribute (improvement possible)
+/**
+ * Network activity, ip-src
+ * 30 class-C network ip addresses
+ * (time in ms)
+ *
+ *           default     db    sql
+ * all         25366  16601  15941
+ *             24839  16604  15611
+ * paginated   16759   8447   6615
+ *             17734   8639   8846
+ */
 
 /**
  * The settings below can be used to set additional paths to models, views and controllers.

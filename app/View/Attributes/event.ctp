@@ -4,15 +4,15 @@
 // only show button if alert has not been sent  // LATER show the ALERT button in red-ish
 ?>
     <ul><li><?php
-    echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?');
-    echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!');
+    echo $this->Form->postLink('Publish Event', array('controller' => 'events', 'action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?');
+    echo $this->Form->postLink('Publish (no email)', array('controller' => 'events', 'action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!');
     ?> </li></ul>
 <?php elseif (0 == $event['Event']['published']): ?>
     <ul><li>Not published</li></ul>
 <?php else: ?>
     <!-- ul><li>Alert already sent</li></ul -->
 <?php endif; ?>
-    <ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id'])); ?> </li></ul>
+    <ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('controller' => 'events', 'action' => 'contact', $event['Event']['id'])); ?> </li></ul>
 </div>
 
 
@@ -70,8 +70,13 @@
 		<ul>
 		<?php foreach ($relatedEvents as $relatedEvent): ?>
 		<li><?php
-		$link_text = $relatedEvent['Event']['date'].' ('.$relatedEvent['Event']['id'].')';
-		echo $this->Html->link($link_text, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
+		if ('db' == Configure::read('CyDefSIG.correlation')) {	// TODO array key
+			$link_text = $relatedEvent['date'].' ('.$relatedEvent['id'].')';
+			echo $this->Html->link($link_text, array('controller' => 'attributes', 'action' => 'event', $relatedEvent['id']));
+		} else {
+			$link_text = $relatedEvent['Event']['date'].' ('.$relatedEvent['Event']['id'].')';
+			echo $this->Html->link($link_text, array('controller' => 'attributes', 'action' => 'event', $relatedEvent['Event']['id']));
+		}
 		?></li>
 	    <?php endforeach; ?>
 	    </ul>
@@ -133,9 +138,13 @@
     			<td class="short" style="text-align: center;">
     			<?php
     			$first = 0;
-                if (null != $relatedAttributes[$attribute['Attribute']['id']]) {
+                if (isset($relatedAttributes[$attribute['Attribute']['id']]) && (null != $relatedAttributes[$attribute['Attribute']['id']])) {
     			    foreach ($relatedAttributes[$attribute['Attribute']['id']] as $relatedAttribute) {
-    			        echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
+						if ('db' == Configure::read('CyDefSIG.correlation')) {	// TODO array key
+    			    		echo $this->Html->link($relatedAttribute['Correlation']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Correlation']['event_id']));
+						} else {
+    			    		echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
+						}
     			        echo ' ';
     			    }
     			}
@@ -189,11 +198,10 @@
 	<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
     	<li><?php echo $this->Html->link(__('Add Attribute', true), array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?> </li>
 		<li><?php echo $this->Html->link(__('Add Attachment', true), array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link(__('Edit Event', true), array('action' => 'edit', $event['Event']['id'])); ?> </li>
-		<li><?php echo $this->Form->postLink(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
+		<li><?php echo $this->Html->link(__('Edit Event', true), array('controller' => 'events', 'action' => 'edit', $event['Event']['id'])); ?> </li>
+		<li><?php echo $this->Form->postLink(__('Delete Event'), array('controller' => 'events', 'action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
 		<li>&nbsp;</li>
 	<?php endif; ?>
         <?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
-

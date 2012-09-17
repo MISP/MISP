@@ -314,7 +314,12 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
 	}
 
 	function afterSave() {
-	    $result = true;
+        if ('db' == Configure::read('CyDefSIG.correlation')) {
+	    	// update correlation..
+			$this->_afterSaveCorrelation($this->data['Attribute']);
+        }
+		
+        $result = true;
         // if the 'data' field is set on the $this->data then save the data to the correct file
         if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
             $result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']);
@@ -328,7 +333,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
 	    if($this->typeIsAttachment($this->data['Attribute']['type'])) {
 	        // FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 	        // only delete the file if it exists
-	        $filepath = APP."files/".$this->data['Attribute']['event_id']."/".$this->data['Attribute']['id'];
+	        $filepath = APP."files".DS.$this->data['Attribute']['event_id'].DS.$this->data['Attribute']['id'];
 	        $file = new File ($filepath);
 	        if($file->exists()) {
     	        if (!$file->delete()) {
@@ -336,12 +341,21 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
     	        }
 	        }
 	    }
+	    
+        if ('db' == Configure::read('CyDefSIG.correlation')) {
+	    	// update correlation..
+	    	$this->_beforeDeleteCorrelation($this->data['Attribute']['id']);
+        }
 	}
 
 	function beforeValidate() {
 	    // remove leading and trailing blanks
 	    $this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
 
+	    if (!isset($this->data['Attribute']['type'])) {
+	    	return false;
+	    }
+	    
 	    switch($this->data['Attribute']['type']) {
 	        // lowercase these things
 	        case 'md5':
@@ -601,7 +615,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
 	}
 	
 	function base64EncodeAttachment($attribute) {
-	    $filepath = APP."files/".$attribute['event_id']."/".$attribute['id'];
+	    $filepath = APP."files".DS.$attribute['event_id'].DS.$attribute['id'];
 	    $file = new File($filepath);
 	    if (!$file->exists()) return '';
         $content = $file->read();
@@ -627,8 +641,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
  *
  * @return void
  */
-	public function uploadAttachment($fileP,$realFileName,$malware,$event_id = null) {
-
+    public function uploadAttachment($fileP,$realFileName,$malware,$event_id = null) {
         // Check if there were problems with the file upload
         // only keep the last part of the filename, this should prevent directory attacks
         $filename = basename($fileP);
@@ -683,5 +696,115 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
         }
 	}
 	
+    function _afterSaveCorrelation($attribute) {
+        $this->_beforeDeleteCorrelation($attribute);
+        // re-add
+        $this->setRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Event.date'));
+    }
+
+    function _beforeDeleteCorrelation($attribute) {
+		$this->Correlation = ClassRegistry::init('Correlation');
+		$dummy = $this->Correlation->deleteAll(array('OR' => array(
+                        'Correlation.1_attribute_id' => $attribute,
+		                'Correlation.attribute_id' => $attribute))
+		);
+	}
+
+	/**
+	 * return an array containing 'double-values'
+	 *
+	 * @return array()
+	 */
+	function doubleAttributes() {
+		$doubleAttributes = array();
+
+		$similar_value1 = $this->find('all',array('conditions' => array(),
+	                                              'fields' => 'value1',
+	                                              'recursive' => 0,
+	                                              'group' => 'Attribute.value1 HAVING count(1)>1' ));
+		$similar_value2 = $this->find('all',array('conditions' => array(),
+	                                              'fields' => 'value2',
+	                                              'recursive' => 0,
+	                                              'group' => 'Attribute.value2 HAVING count(1)>1' ));
+		$similar_values = $this->find('all', array('joins' => array(array(
+															'table' => 'attributes',
+															'alias' => 'att2',
+     														'type' => 'INNER',
+															'conditions' => array('Attribute.value2 = att2.value1'))),
+															'fields' => array('att2.value1')));
+		$doubleAttributes = array_merge($similar_value1,$similar_value2);
+		$doubleAttributes = array_merge($doubleAttributes,$similar_values);
+
+		$double = array();
+		foreach ($doubleAttributes as  $key => $doubleAttribute) {
+			$v = isset($doubleAttribute['Attribute']) ? $doubleAttribute['Attribute'] : $doubleAttribute['att2'];
+			$v = isset($v['value1']) ? $v['value1'] : $v['value2'];
+			if ($v != '') {
+				$double[] = $v;
+			}
+		}
+		return $double;
+	}
+
+	function setRelatedAttributes($attribute, $fields=array()) {
+		$this->Event = ClassRegistry::init('Event');
+		$relatedAttributes = $this->getRelatedAttributes($attribute, $fields);
+		if ($relatedAttributes) {
+			foreach ($relatedAttributes as $relatedAttribute) {
+				// and store into table
+				$params = array(
+                	'conditions' => array('Event.id' => $relatedAttribute['Attribute']['event_id']),
+                	'recursive' => 0,
+                	'fields' => array('Event.date')
+				);
+				$event_date = $this->Event->find('first', $params);
+				$this->Correlation = ClassRegistry::init('Correlation');
+				$this->Correlation->create();
+				$this->Correlation->save(array(
+					'Correlation' => array(
+    					'1_event_id' => $attribute['event_id'], '1_attribute_id' => $attribute['id'],
+    					'event_id' => $relatedAttribute['Attribute']['event_id'], 'attribute_id' => $relatedAttribute['Attribute']['id'],
+    					'date' => $event_date['Event']['date']))
+				);
+			}
+		}
+	}
+
+	/**
+	 * Deletes the attribute from another Server
+	 * TODO move this to a component
+	 *
+	 * @return bool true if success, error message if failed
+	 */
+	function deleteAttributeFromServer($attribute, $server, $HttpSocket=null) {
+		// TODO private and delete
+	    if (true ==$attribute['Attribute']['private'])  // never upload private attributes
+	        return "Attribute is private and non exportable";
+
+	    $url = $server['Server']['url'];
+	    $authkey = $server['Server']['authkey'];
+	    if (null == $HttpSocket) {
+	        App::uses('HttpSocket', 'Network/Http');
+	        $HttpSocket = new HttpSocket();
+	    }
+	    $request = array(
+	            'header' => array(
+	                    'Authorization' => $authkey,
+	                    'Accept' => 'application/xml',
+	                    'Content-Type' => 'application/xml',
+	                    //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+	            )
+	    );
+	    $uri = $url.'/attributes/0?uuid='.$attribute['Attribute']['uuid'];
+
+	    // LATER validate HTTPS SSL certificate
+	    $this->Dns = ClassRegistry::init('Dns');
+	    if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+	    	// TODO NETWORK for now do not know how to catch the following..
+	    	// TODO NETWORK No route to host
+		    $response = $HttpSocket->delete($uri, array(), $request);
+		    // TODO REST, DELETE, no responce needed
+	    }
+	}
 
 }

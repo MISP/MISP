@@ -25,6 +25,20 @@ class AttributesController extends AppController {
             $this->Security->csrfUseOnce = false;
         }
         $this->Security->validatePost = false;
+
+        // convert uuid to id if present in the url, and overwrite id field
+        if (isset($this->params->query['uuid'])) {
+            $params = array(
+                    'conditions' => array('Attribute.uuid' => $this->params->query['uuid']),
+                    'recursive' => 0,
+                    'fields' => 'Attribute.id'
+                    );
+            $result = $this->Attribute->find('first', $params);
+            if (isset($result['Attribute']) && isset($result['Attribute']['id'])) {
+                $id = $result['Attribute']['id'];
+                $this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
+            }
+        }
     }
 
 
@@ -76,7 +90,7 @@ class AttributesController extends AppController {
 
             // Give error if someone tried to submit a attribute with attachment or malware-sample type.
 		    // TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
-		    if($this->Attribute->typeIsAttachment($this->request->data['Attribute']['type'])) {
+		    if(isset($this->request->data['Attribute']['type']) && $this->Attribute->typeIsAttachment($this->request->data['Attribute']['type'])) {
 		        $this->Session->setFlash(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
 		        $this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 		    }
@@ -388,45 +402,85 @@ class AttributesController extends AppController {
  * @return void
  */
 	public function delete($id = null) {
-		if (!$this->request->is('post')) {
+		if (!$this->request->is('post') && !$this->_isRest()) {
 			throw new MethodNotAllowedException();
 		}
-		$this->Attribute->id = $id;
+
+    	$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
-		// only own attributes verified by isAuthorized
-
+		
+        if ('true' == Configure::read('CyDefSIG.sync')) {
+            // find the uuid
+            $result = $this->Attribute->findById($id);
+            $uuid = $result['Attribute']['uuid'];
+        }
+		
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->delete()) {
+
+	        // delete the attribute from remote servers
+			if ('true' == Configure::read('CyDefSIG.sync')) {
+			    // find the uuid
+	            $this->_deleteAttributeFromServers($uuid);
+	        }
+
 			$this->Session->setFlash(__('Attribute deleted'));
 		} else {
 		    $this->Session->setFlash(__('Attribute was not deleted'));
 		}
 
-		$this->redirect($this->referer());
+		if (!$this->_isRest()) $this->redirect($this->referer());	// TODO check
+        else $this->redirect(array('action' => 'index'));
 	}
 
+    /**
+     * Deletes this specific attribute from all remote servers
+     * TODO move this to a component(?)
+     */
+    function _deleteAttributeFromServers($uuid) {
+    	$result = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $uuid)));
+		$id = $result['Attribute']['id'];
 
+        // make sure we have all the data of the Attribute
+        $this->Attribute->id=$id;
+        $this->Attribute->recursive=1;
+        $this->Attribute->read();
+
+        // get a list of the servers
+        $this->loadModel('Server');
+        $servers = $this->Server->find('all', array());
+
+        // iterate over the servers and upload the attribute
+        if(empty($servers))
+            return;
+
+        App::uses('HttpSocket', 'Network/Http');
+        $HttpSocket = new HttpSocket();
+        foreach ($servers as &$server) {
+            $this->Attribute->deleteAttributeFromServer($this->Attribute->data, $server, $HttpSocket);
+        }
+    }
 
 	public function search() {
-		
+
 		$fullAddress = '/attributes/search';
-		
+
 		if ($this->request->here == $fullAddress) {
-			
+
 		    $this->set('attr_descriptions', $this->Attribute->field_descriptions);
 		    $this->set('type_definitions', $this->Attribute->type_definitions);
 		    $this->set('category_definitions', $this->Attribute->category_definitions);
-	
+
 		    // reset the paginate_conditions
 		    $this->Session->write('paginate_conditions',array());
-		    
+
 		    if ($this->request->is('post') && ($this->request->here == $fullAddress)) {
 		    	$keyword = $this->request->data['Attribute']['keyword'];
 		        $type = $this->request->data['Attribute']['type'];
 		        $category = $this->request->data['Attribute']['category'];
-	
+
 		        // search the db
 		        $conditions = array();
 	            if($keyword) {
@@ -446,19 +500,19 @@ class AttributesController extends AppController {
 
 		        // and store into session
 		        $this->Session->write('paginate_conditions',$this->paginate);
-		        
+
 		        // set the same view as the index page
 		        $this->render('index');
 		    } else {
 		        // no search keyword is given, show the search form
-	
+
 		        // adding filtering by category and type
 	    	    // combobox for types
 	    	    $types = array('ALL');
 	    	    $types = array_merge($types, array_keys($this->Attribute->type_definitions));
 	    	    $types = $this->_arrayToValuesIndexArray($types);
 	    	    $this->set('types',compact('types'));
-	
+
 	    	    // combobox for categories
 	    	    $categories = array('ALL');
 	    	    $categories = array_merge($categories, $this->Attribute->validate['category']['rule'][1]);
@@ -474,9 +528,9 @@ class AttributesController extends AppController {
 			// re-get pagination
 			$this->paginate = $this->Session->read('paginate_conditions');
 	    	$this->set('attributes', $this->paginate());
-	
+
 		    // set the same view as the index page
-	    	$this->render('index');		
+	    	$this->render('index');
 		}
 	}
 
@@ -517,39 +571,100 @@ class AttributesController extends AppController {
 		// get related
 		$relatedAttributes = array();
 		$this->loadModel('Attribute');
-		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
-		foreach ($event['Attribute'] as &$attribute) {
-			$relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
-			// for REST requests also add the encoded attachment
-			if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
-				// LATER check if this has a serious performance impact on XML conversion and memory usage
-				$encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
-				$attribute['data'] = $encoded_file;
-			}
-		}
-		$this->set('relatedAttributes', $relatedAttributes);
+        if ('db' == Configure::read('CyDefSIG.correlation')) {
+        	$this->loadModel('Correlation');
+	        $fields = array('Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date');
+	        $fields2 = array('Correlation.1_attribute_id','Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date');
+        	$relatedAttributes2 = array();
+        		$relatedAttributes2 = $this->Correlation->find('all',array(
+        		'fields' => $fields2,
+        		'conditions' => array(
+                        'OR' => array(
+                                'Correlation.1_event_id' => $id
+                        )
+                ),
+        		'recursive' => 0));
+        	foreach ($relatedAttributes2 as $relatedAttribute2) {
+        		$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = $relatedAttribute2;
+        	}
 
-		// search for related Events using the results form the related attributes
-		// This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
-		$relatedEventIds = array();
-		$relatedEvents = array();
-		foreach ($relatedAttributes as &$relatedAttribute) {
-			if (null == $relatedAttribute) continue;
-			foreach ($relatedAttribute as &$item) {
-				$relatedEventsIds[] = $item['Attribute']['event_id'];
+			foreach ($event['Attribute'] as &$attribute) {
+        		// for REST requests also add the encoded attachment
+	            if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
+	                // LATER check if this has a serious performance impact on XML conversion and memory usage
+	                $encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
+	                $attribute['data'] = $encoded_file;
+	            }
+        	}
+
+	        // search for related Events using the results form the related attributes
+	        // This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
+	        $relatedEventIds = array();
+	        $relatedEventDates = array();
+	        $relatedEvents = array();
+	        foreach ($relatedAttributes as &$relatedAttribute) {
+	            if (null == $relatedAttribute) continue;
+	            foreach ($relatedAttribute as &$item) {
+	                $relatedEventsIds[] = $item['Correlation']['event_id'];
+	                $relatedEventsDates[$item['Correlation']['event_id']] = $item['Correlation']['date'];
+	            }
+	        }
+
+	        arsort($relatedEventsDates);
+	        if (isset($relatedEventsDates)) {
+	            $relatedEventsDates = array_unique($relatedEventsDates);
+	            foreach ($relatedEventsDates as $key => $relatedEventsDate) {
+	            	$relatedEvents[] = array('id' => $key, 'date' => $relatedEventsDate);
+	            }
+	        }
+        } else {
+			$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
+	        if ('sql' == Configure::read('CyDefSIG.correlation')) {
+	        	$double = $this->Attribute->doubleAttributes();
+	        }
+			foreach ($event['Attribute'] as &$attribute) {
+	        	if ('sql' == Configure::read('CyDefSIG.correlation')) {
+	        		if (in_array($attribute['value1'],$double) || in_array($attribute['value2'],$double)) {
+	        			$relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
+	        		} else {
+	        			$relatedAttributes[$attribute['id']] = array();
+	        		}
+	        	} else {
+					$relatedAttributes[$attribute['id']] = $this->Attribute->getRelatedAttributes($attribute, $fields);
+	        	}
+				// for REST requests also add the encoded attachment
+				if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
+					// LATER check if this has a serious performance impact on XML conversion and memory usage
+					$encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
+					$attribute['data'] = $encoded_file;
+				}
 			}
-		}
-		if (isset($relatedEventsIds)) {
-			$relatedEventsIds = array_unique($relatedEventsIds);
-			$find_params = array(
-                    'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
-                    'recursive' => 0, //int
-                    'fields' => array('Event.id', 'Event.date', 'Event.uuid'), //array of field names
-                    'order' => array('Event.date DESC'), //string or array defining order
-			);
-			$relatedEvents = $this->Event->find('all', $find_params);
-		}
-		$this->set('relatedEvents', $relatedEvents);
+
+			// search for related Events using the results form the related attributes
+			// This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
+			$relatedEventIds = array();
+			$relatedEvents = array();
+			foreach ($relatedAttributes as &$relatedAttribute) {
+				if (null == $relatedAttribute) continue;
+				foreach ($relatedAttribute as &$item) {
+					$relatedEventsIds[] = $item['Attribute']['event_id'];
+				}
+			}
+			if (isset($relatedEventsIds)) {
+				$relatedEventsIds = array_unique($relatedEventsIds);
+				$find_params = array(
+	                    'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
+	                    'recursive' => 0, //int
+	                    'fields' => array('Event.id', 'Event.date', 'Event.uuid'), //array of field names
+	                    'order' => array('Event.date DESC'), //string or array defining order
+				);
+				$relatedEvents = $this->Event->find('all', $find_params);
+			}
+        }
+        $this->set('correlation', Configure::read('CyDefSIG.correlation'));
+        $this->set('relatedAttributes', $relatedAttributes);
+
+        $this->set('relatedEvents', $relatedEvents);
 
 		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
 	}

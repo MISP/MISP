@@ -17,13 +17,13 @@ $buttonCounter = 0;
 	foreach ($attributes as $attribute): ?>
 	<tr>
 		<td class="short">
-			<?php echo $this->Html->link($attribute['Event']['id'], array('controller' => 'attributes', 'action' => 'event', $attribute['Event']['id'])); ?>
+			<?php echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id'])); ?>
 		</td>
-		<td title="<?php echo $category_definitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'attributes', 'action' => 'event', $attribute['Attribute']['event_id']), true) ;?>';">
+		<td title="<?php echo $category_definitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
 		<?php echo h($attribute['Attribute']['category']); ?>&nbsp;</td>
-		<td title="<?php echo $type_definitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'attributes', 'action' => 'event', $attribute['Attribute']['event_id']), true) ;?>';">
+		<td title="<?php echo $type_definitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
 		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
-		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'attributes', 'action' => 'event', $attribute['Attribute']['event_id']), true) ;?>';">
+		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
 		<?php
 		$sig_display = nl2br(h($attribute['Attribute']['value']));
 		if('attachment' == $attribute['Attribute']['type'] ||
@@ -36,7 +36,7 @@ $buttonCounter = 0;
 			echo $sig_display;
 		}
 		?>&nbsp;</td>
-		<td class="short" style="text-align: center;" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'attributes', 'action' => 'event', $attribute['Attribute']['event_id']), true) ;?>';">
+		<td class="short" style="text-align: center;" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true) ;?>';">
 		<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td class="actions"><?php
 			if ($isAdmin || $attribute['Event']['org'] == $me['org']) {
@@ -44,7 +44,7 @@ $buttonCounter = 0;
 				if ($isAclModify || $attribute['Event']['user_id'] == $me['id']) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $attribute['Attribute']['id']), null, __('Are you sure you want to delete this attribute?'));
 				else echo $this->Html->link(__('Delete'), array('action' => 'delete', $attribute['Attribute']['id']), array('id' => $button_modify_status.$buttonCounter++,'class' => $button_modify_status));
 			}
-			echo $this->Html->link(__('View'), array('controller' => 'attributes', 'action' => 'event', $attribute['Attribute']['event_id']));
+			echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']));
 			?>
 		</td>
 	</tr>

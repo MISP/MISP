@@ -3,6 +3,7 @@
 class NidsExportComponent extends Component {
 
     public $rules = array();
+    public $classtype = 'trojan-activity';
 
     function explain() {
         $this->rules[] = '# These NIDS rules contain some variables that need to exist in your configuration.';
@@ -16,10 +17,10 @@ class NidsExportComponent extends Component {
     }
 
     function suricataRules($items, $start_sid) {
+		$this->whitelist = $this->populateWhitelist();
 
         $this->explain();
 
-        $classtype = 'trojan-activity';
         foreach ($items as &$item) {
             switch ($item['Event']['risk']) {
                 case 'Undefined':
@@ -41,7 +42,7 @@ class NidsExportComponent extends Component {
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
             $rule_format_msg = 'msg: "CyDefSIG e'.$item['Event']['id'].' %s"';
             $rule_format_reference = 'reference:url,'.Configure::read('CyDefSIG.baseurl').'/events/view/'.$item['Event']['id'];
-            $rule_format = 'alert %s %s %s %s %s %s ('.$rule_format_msg.'; %s %s classtype:'.$classtype.'; sid:%d; rev:%d; priority:'.$priority.'; '.$rule_format_reference.';) ';
+            $rule_format = '%salert %s %s %s %s %s %s ('.$rule_format_msg.'; %s %s classtype:'.$this->classtype.'; sid:%d; rev:%d; priority:'.$priority.'; '.$rule_format_reference.';) ';
 
             $sid = $start_sid+($item['Attribute']['id']*10);  // leave 9 possible rules per attribute type
             $attribute = &$item['Attribute'];
@@ -82,7 +83,7 @@ class NidsExportComponent extends Component {
                     $this->userAgentRule($rule_format, $attribute, $sid);
                     break;
                 case 'snort':
-                    $this->snortRule($rule_format, $attribute, $sid);
+                    $this->snortRule($rule_format, $attribute, $sid, $rule_format_msg, $rule_format_reference);
                 default:
                     break;
 
@@ -99,7 +100,9 @@ class NidsExportComponent extends Component {
     }
 
     function ipDstRule($rule_format, $attribute, &$sid) {
+    	$overruled = in_array($attribute['value'], $this->whitelist);
         $this->rules[] = sprintf($rule_format,
+        		($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'ip',                           // proto
                 '$HOME_NET',                    // src_ip
                 'any',                          // src_port
@@ -116,7 +119,9 @@ class NidsExportComponent extends Component {
     }
 
     function ipSrcRule($rule_format, $attribute, &$sid) {
-        $this->rules[] = sprintf($rule_format,
+    	$overruled = in_array($attribute['value'], $this->whitelist);
+    	$this->rules[] = sprintf($rule_format,
+        		($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'ip',                           // proto
                 $attribute['value'],            // src_ip
                 'any',                          // src_port
@@ -132,8 +137,9 @@ class NidsExportComponent extends Component {
     }
 
     function emailSrcRule($rule_format, $attribute, &$sid) {
-        $content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;';
+    	$content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;';
         $this->rules[] = sprintf($rule_format,
+        		(false) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',                          // proto
                 '$EXTERNAL_NET',                // src_ip
                 'any',                          // src_port
@@ -149,8 +155,9 @@ class NidsExportComponent extends Component {
     }
 
     function emailDstRule($rule_format, $attribute, &$sid) {
-        $content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;';
+    	$content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;';
         $this->rules[] = sprintf($rule_format,
+        		(false) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',                          // proto
                 '$EXTERNAL_NET',                // src_ip
                 'any',                          // src_port
@@ -166,9 +173,10 @@ class NidsExportComponent extends Component {
     }
 
     function emailSubjectRule($rule_format, $attribute, &$sid) {
-        // LATER nids - email-subject rule might not match because of line-wrapping
+    	// LATER nids - email-subject rule might not match because of line-wrapping
         $content = 'flow:established,to_server; content:"Subject|3a|"; nocase; content:"'.$attribute['value'].'"; nocase;';
         $this->rules[] = sprintf($rule_format,
+        		(false) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',                          // proto
                 '$EXTERNAL_NET',                // src_ip
                 'any',                          // src_port
@@ -184,9 +192,10 @@ class NidsExportComponent extends Component {
     }
 
     function emailAttachmentRule($rule_format, $attribute, &$sid) {
-        // LATER nids - email-attachment rule might not match because of line-wrapping
+    	// LATER nids - email-attachment rule might not match because of line-wrapping
         $content = 'flow:established,to_server; content:"Content-Disposition: attachment|3b| filename=|22|"; content:"'.$attribute['value'].'|22|";';
         $this->rules[] = sprintf($rule_format,
+        		(false) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',                          // proto
                 '$EXTERNAL_NET',                // src_ip
                 'any',                          // src_port
@@ -202,8 +211,10 @@ class NidsExportComponent extends Component {
     }
 
     function hostnameRule($rule_format, $attribute, &$sid) {
-        $content = 'content:"'.$this->dnsNameToRawFormat($attribute['value'], 'hostname').'"; nocase;';
+    	$overruled = $this->checkNames($attribute['value']);
+    	$content = 'content:"'.$this->dnsNameToRawFormat($attribute['value'], 'hostname').'"; nocase;';
         $this->rules[] = sprintf($rule_format,
+        		($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'udp',                          // proto
                 'any',                          // src_ip
                 'any',                          // src_port
@@ -218,6 +229,7 @@ class NidsExportComponent extends Component {
         );
         $sid++;
         $this->rules[] = sprintf($rule_format,
+        		($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',                          // proto
                 'any',                          // src_ip
                 'any',                          // src_port
@@ -233,8 +245,9 @@ class NidsExportComponent extends Component {
         $sid++;
         // also do http requests
         // warning: only suricata compatible
-        $content = 'flow:to_server,established; content: "Host: '.$attribute['value'].'"; nocase; http_header; ';
+        $content = 'flow:to_server,established; content: "Host: '.$attribute['value'].'"; nocase; http_header; pcre: "/[^A-Za-z0-9-]'.preg_quote($attribute['value']).'[^A-Za-z0-9-]/";';
         $this->rules[] = sprintf($rule_format,
+			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'http',                         // proto
                 '$HOME_NET',                    // src_ip
                 'any',                          // src_port
@@ -248,9 +261,12 @@ class NidsExportComponent extends Component {
                 1                               // rev
         );
     }
+
     function domainRule($rule_format, $attribute, &$sid) {
-        $content = 'content:"'.$this->dnsNameToRawFormat($attribute['value']).'"; nocase;';
+    	$overruled = $this->checkNames($attribute['value']);
+       	$content = 'content:"'.$this->dnsNameToRawFormat($attribute['value']).'"; nocase;';
         $this->rules[] = sprintf($rule_format,
+        		($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'udp',                          // proto
                 'any',                          // src_ip
                 'any',                          // src_port
@@ -265,6 +281,7 @@ class NidsExportComponent extends Component {
                 );
         $sid++;
         $this->rules[] = sprintf($rule_format,
+        		($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',                          // proto
                 'any',                          // src_ip
                 'any',                          // src_port
@@ -280,8 +297,9 @@ class NidsExportComponent extends Component {
         $sid++;
         // also do http requests,
         // warning: only suricata compatible
-        $content = 'flow:to_server,established; content: "Host:"; nocase; http_header; content:"'.$attribute['value'].'"; nocase; http_header; ';
+        $content = 'flow:to_server,established; content: "Host:"; nocase; http_header; content:"'.$attribute['value'].'"; nocase; http_header; pcre: "/[^A-Za-z0-9-]'.preg_quote($attribute['value']).'[^A-Za-z0-9-]/";';
         $this->rules[] = sprintf($rule_format,
+			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'http',                         // proto
                 '$HOME_NET',                    // src_ip
                 'any',                          // src_port
@@ -297,9 +315,13 @@ class NidsExportComponent extends Component {
     }
 
     function urlRule($rule_format, $attribute, &$sid) {
-        // warning: only suricata compatible
+    	// TODO in hindsight, an url should not be excluded given a host or domain name.
+//    	$hostpart = parse_url($attribute['value'], PHP_URL_HOST);
+//    	$overruled = $this->checkNames($hostpart);
+    	// warning: only suricata compatible
         $content = 'flow:to_server,established; content:"'.$attribute['value'].'"; nocase; http_uri;';
         $this->rules[] = sprintf($rule_format,
+        		(false) ? '#OVERRULED BY WHITELIST# ' : '',
                 'http',                          // proto
                 '$HOME_NET',                    // src_ip
                 'any',                          // src_port
@@ -319,7 +341,7 @@ class NidsExportComponent extends Component {
 
     }
 
-    function snortRule($rule_format, $attribute, &$sid) {
+    function snortRule($rule_format, $attribute, &$sid, $rule_format_msg, $rule_format_reference) {
         // LATER nids - test using lots of snort rules.
         $tmp_rule = $attribute['value'];
 
@@ -335,7 +357,7 @@ class NidsExportComponent extends Component {
         if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
         $tmp_rule = preg_replace('/rev\s*:\s*[0-9]+\s*;/', 'rev:1;', $tmp_rule, -1, $replace_count['rev']);
         if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
-        $tmp_rule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:'.$classtype.';', $tmp_rule, -1, $replace_count['classtype']);
+        $tmp_rule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:'.$this->classtype.';', $tmp_rule, -1, $replace_count['classtype']);
         if (null == $tmp_rule ) break;  // don't output the rule on error with the regex
         $tmp_message = sprintf($rule_format_msg, 'snort-rule');
         $tmp_rule = preg_replace('/msg\s*:\s*".*?"\s*;/', $tmp_message.';', $tmp_rule, -1, $replace_count['msg']);
@@ -353,7 +375,7 @@ class NidsExportComponent extends Component {
         } if (0 == $replace_count['rev']) {
             $extra_for_rule .= 'rev:1;';
         } if (0 == $replace_count['classtype']) {
-            $extra_for_rule .= 'classtype:'.$classtype.';';
+            $extra_for_rule .= 'classtype:'.$this->classtype.';';
         } if (0 == $replace_count['msg']) {
             $extra_for_rule .= $tmp_message.';';
         } if (0 == $replace_count['reference']) {
@@ -421,7 +443,41 @@ class NidsExportComponent extends Component {
         return $rawName;
     }
 
-
-
-
+    public $whitelist = array();
+    
+    function populateWhitelist() {
+    	$whitelistCheck = array();
+    	
+		$this->Whitelist = ClassRegistry::init('Whitelist');
+        $whitelist = $this->Whitelist->find('all', array('recursive' => 0,'fields' => 'name'));
+    	
+    	// loop through whitelist table,
+    	foreach ($whitelist as $whitelistItem) {
+    		$ipl = array();
+    		$ipl = $this->nametoipl($whitelistItem['Whitelist']['name']);
+    		$whitelistCheck = array_merge($whitelistCheck,$ipl);
+    		if (count($ipl) > 0 && $whitelistItem != $ipl[0]) {
+	    		$dummyArray = array();
+	    		$dummyArray[] = $whitelistItem['Whitelist']['name'];
+	    		$whitelistCheck = array_merge($whitelistCheck,$dummyArray);
+    		}
+    	}
+    	return $whitelistCheck;
+    }
+    
+    function nametoipl($name) {
+    	if (!$ips = gethostbynamel($name)) $ips = array();
+    	return $ips;
+    }
+    
+    function checkNames($name) {
+    	$ipl = $this->nametoipl($name);
+    	$ipl[] = $name;
+    	$overruled = false;
+    	foreach ($ipl as $ip) {
+    		$overruled = in_array($ip, $this->whitelist);
+    		if ($overruled) break;
+    	}
+        return $overruled;
+    }
 }

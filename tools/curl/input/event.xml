@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Event>
+	<id>14</id>
+	<org>NCIRC</org>
+	<date>2012-04-12</date>
+	<risk>Medium</risk>
+	<info>TT6666: malixioious XLS (EDIT 234..5)</info>
+	<user_id>3</user_id>
+	<alerted>0</alerted>
+	<uuid>4f8c2c4e-00dc-42c9-83ad-76e9ff32448e</uuid>
+	<private>0</private>
+	<published>0</published>
+	<Attribute>
+		<id>116</id>
+		<event_id>14</event_id>
+		<type>ip-dst</type>
+		<category>Network activity</category>
+		<to_ids>1</to_ids>
+		<uuid>4f8c2cc3-0410-4bf0-8559-5b9dff32448e</uuid>
+		<revision>1</revision>
+		<private>0</private>
+		<value>1.1.1.111</value>
+		<category_order>g</category_order>
+	</Attribute>
+	<Attribute>
+		<id>117</id>
+		<event_id>14</event_id>
+		<type>malware-sample</type>
+		<category>Payload delivery</category>
+		<to_ids>0</to_ids>
+		<uuid>4f8c2d08-7e6c-4648-8730-50a7ff32448e</uuid>
+		<revision>1</revision>
+		<private>0</private>
+		<value>Summary_report_Vienna_2012 27 March
+			ok_z.doc|b34a8fcf8e5c81de3f6f177bb6171929</value>
+		<category_order>c</category_order>
+		<data />
+	</Attribute>
+	<Attribute>
+		<id>115</id>
+		<event_id>14</event_id>
+		<type>vulnerability</type>
+		<category>Payload delivery</category>
+		<to_ids>1</to_ids>
+		<uuid>4f8c2c69-9bf8-4279-8d03-2138ff32448e</uuid>
+		<revision>1</revision>
+		<private>0</private>
+		<value>CVE-2010-3333</value>
+		<category_order>c</category_order>
+	</Attribute>
+	<RelatedEvent>
+		<id>11</id>
+		<date>2012-04-03</date>
+		<uuid>4f8812ff-ded0-4592-9227-0615ff32448e</uuid>
+	</RelatedEvent>
+	<RelatedEvent>
+		<id>9</id>
+		<date>2012-04-02</date>
+		<uuid>4f85981e-d044-4b16-bc16-0a35ff32448e</uuid>
+	</RelatedEvent>
+	<RelatedEvent>
+		<id>6</id>
+		<date>2012-03-22</date>
+		<uuid>4f7a9faa-91d4-4c91-8ec6-0878ff32448e</uuid>
+	</RelatedEvent>
+</Event>

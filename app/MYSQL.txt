@@ -60,6 +60,7 @@ CREATE TABLE `events` (
   `date` date NOT NULL,
   `risk` enum('Undefined','Low','Medium','High') COLLATE utf8_bin NOT NULL,
   `info` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `user_id` int(11) NOT NULL,
   `published` tinyint(1) NOT NULL DEFAULT '0',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `revision` int(10) NOT NULL DEFAULT '0',
@@ -82,6 +83,8 @@ CREATE TABLE `servers` (
   `pull` tinyint(1) NOT NULL,
   `lastpushedid` int(11) NOT NULL,
   `lastpulledid` int(11) NOT NULL,
+  `organization` varchar(10) COLLATE utf8_bin NOT NULL,
+  `logo` varchar(20) COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
@@ -106,6 +109,18 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   KEY `email` (`email`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=2 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `whitelist`
+--
+
+CREATE TABLE `whitelist` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(254) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 
 --

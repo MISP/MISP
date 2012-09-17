@@ -88,6 +88,16 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
+		'user_id' => array(
+			'numeric' => array(
+				'rule' => array('numeric'),
+				//'message' => 'Your custom message here',
+				//'allowEmpty' => false,
+				//'required' => false,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
+		),
 		'published' => array(
 			'boolean' => array(
 				'rule' => array('boolean'),
@@ -300,7 +310,7 @@ class Event extends AppModel {
 	    unset($event['Attribute']);
 
 	    // cleanup the array from things we do not want to expose
-	    unset($event['Event']['org']);
+	    //unset($event['Event']['org']);
 	    // remove value1 and value2 from the output
 	    foreach($event['Event']['Attribute'] as $key => &$attribute) {
 	        // do not keep attributes that are private
@@ -325,18 +335,64 @@ class Event extends AppModel {
 	    // do a REST POST request with the server
 	    $data = $eventsXml;
 	    // LATER validate HTTPS SSL certificate
-	    $response = $HttpSocket->post($uri, $data, $request);
-	    if ($response->isOk()) {
-	        return true;
+	    $this->Dns = ClassRegistry::init('Dns');
+	    if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+	    	// TODO NETWORK for now do not know how to catch the following..
+	    	// TODO NETWORK No route to host
+		    $response = $HttpSocket->post($uri, $data, $request);
+		    if ($response->code == '200') {	// 200 (OK) + entity-action-result
+			    if ($response->isOk()) {
+			        return true;
+			    }
+			    else {
+		    		try {
+			       		// parse the XML response and keep the reason why it failed
+			        	$xml_array = Xml::toArray(Xml::build($response->body));
+					} catch (XmlException $e) {
+	    				return true;
+					}
+					if (strpos($xml_array['response']['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
+			            return true;
+			        } else {
+			            return $xml_array['response']['name'];
+			        }
+			    }
+		    }
 	    }
-	    else {
-	        // parse the XML response and keep the reason why it failed
-	        $xml_array = Xml::toArray(Xml::build($response->body));
-	        if ("Event already exists" == $xml_array['response']['name']) {
-	            return true;
-	        } else {
-	            return $xml_array['response']['name'];
-	        }
+	}
+
+	/**
+	 * Deletes the event and the associated Attributes from another Server
+	 * TODO move this to a component
+	 *
+	 * @return bool true if success, error message if failed
+	 */
+	function deleteEventFromServer($uuid, $server, $HttpSocket=null) {
+		// TODO private and delete(?)
+
+	    $url = $server['Server']['url'];
+	    $authkey = $server['Server']['authkey'];
+	    if (null == $HttpSocket) {
+	        App::uses('HttpSocket', 'Network/Http');
+	        $HttpSocket = new HttpSocket();
+	    }
+	    $request = array(
+	            'header' => array(
+	                    'Authorization' => $authkey,
+	                    'Accept' => 'application/xml',
+	                    'Content-Type' => 'application/xml',
+	                    //'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+	            )
+	    );
+	    $uri = $url.'/events/0?uuid='.$uuid;
+
+	    // LATER validate HTTPS SSL certificate
+	    $this->Dns = ClassRegistry::init('Dns');
+	    if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+	    	// TODO NETWORK for now do not know how to catch the following..
+	    	// TODO NETWORK No route to host
+		    $response = $HttpSocket->delete($uri, array(), $request);
+		    // TODO REST, DELETE, some responce needed
 	    }
 	}
 
@@ -395,18 +451,21 @@ class Event extends AppModel {
 	            )
 	    );
 	    $uri = $url.'/events/index/sort:id/direction:desc/limit:999'; // LATER verify if events are missing because we only selected the last 999
-	    $response = $HttpSocket->get($uri, $data='', $request);
+	    $this->Dns = ClassRegistry::init('Dns');
+	    if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+		    $response = $HttpSocket->get($uri, $data='', $request);
 
-	    if ($response->isOk()) {
-	        $xml = Xml::build($response->body);
-	        $eventArray = Xml::toArray($xml);
-	        $event_ids=array();
-	        foreach ($eventArray['response']['Event'] as &$event) {
-	            if (1 != $event['published']) continue;  // do not keep non-published events
-	            $event_ids[] = $event['id'];
-	        }
-	        return $event_ids;
-	    }
+		    if ($response->isOk()) {
+		        $xml = Xml::build($response->body);
+		        $eventArray = Xml::toArray($xml);
+		        $event_ids=array();
+		        foreach ($eventArray['response']['Event'] as &$event) {
+		            if (1 != $event['published']) continue;  // do not keep non-published events
+		            $event_ids[] = $event['id'];
+		        }
+		        return $event_ids;
+		    }
+		}
 	    // error, so return null
 	    return null;
 	}
