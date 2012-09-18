@@ -6,28 +6,28 @@ unset($event['Attribute']);
 
 // cleanup the array from things we do not want to expose
 // remove value1 and value2 from the output
-foreach($event['Event']['Attribute'] as $key => $value) {
-    unset($event['Event']['Attribute'][$key]['value1']);
-    unset($event['Event']['Attribute'][$key]['value2']);
+foreach ($event['Event']['Attribute'] as $key => $value) {
+	unset($event['Event']['Attribute'][$key]['value1']);
+	unset($event['Event']['Attribute'][$key]['value2']);
 }
 
 // hide the private fields is we are not in sync mode
 if ('true' != Configure::read('CyDefSIG.sync')) {
-    unset($event['Event']['private']);
-    foreach($event['Event']['Attribute'] as $key => $value) {
-        unset($event['Event']['Attribute'][$key]['private']);
-    }
+	unset($event['Event']['private']);
+	foreach ($event['Event']['Attribute'] as $key => $value) {
+		unset($event['Event']['Attribute'][$key]['private']);
+	}
 }
 // hide the org field is we are not in showorg mode
 if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
-    unset($event['Event']['org']);
+	unset($event['Event']['org']);
 }
 
 // build up a list of the related events
 if (isset($relatedEvents)) {
-    foreach ($relatedEvents as $relatedEvent) {
-        $event['Event']['RelatedEvent'][] = $relatedEvent['Event'];
-    }
+	foreach ($relatedEvents as $relatedEvent) {
+		$event['Event']['RelatedEvent'][] = $relatedEvent['Event'];
+	}
 }
 
 // display the XML to the user

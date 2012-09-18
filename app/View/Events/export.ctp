@@ -36,7 +36,7 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <p>You can configure your tools to automatically download the following files:</p>
 <pre>
 <?php foreach ($sig_types as $sig_type):?>
-<?php echo Configure::read('CyDefSIG.baseurl');?>/events/text/<?php echo $me['authkey']; ?>/<?php echo $sig_type."\n";?>
+<?php echo Configure::read('CyDefSIG.baseurl');?>/events/text/<?php echo $me['authkey']; ?>/<?php echo $sig_type . "\n";?>
 <?php endforeach;?>
 </pre>
 <p></p>

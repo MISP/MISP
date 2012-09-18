@@ -1,11 +1,12 @@
 <?php
 /*
  * Reset a password
- * 
+ *
  * arg0 = email
  * arg1 = new password
  */
 class PasswordShell extends AppShell {
+
 	public $uses = array('User');
 
 	public function main() {

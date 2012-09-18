@@ -23,8 +23,8 @@
 		<?php if ($isAdmin): ?>
 		<td class="short"><?php echo h($server['Server']['org']); ?>&nbsp;</td>
 		<?php endif; ?>
-        <td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
-        <td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
+		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
+		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $server['Server']['id'])); ?>
 			<?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $server['Server']['id']), null, __('Are you sure you want to delete # %s?', $server['Server']['id'])); ?>
@@ -56,9 +56,9 @@
 </div>
 <div class="actions">
 	<ul>
-	    <li><?php echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
+		<li><?php echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
 		<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>
 		<li>&nbsp;</li>
-        <?php echo $this->element('actions_menu'); ?>
-    </ul>
+		<?php echo $this->element('actions_menu'); ?>
+	</ul>
 </div>

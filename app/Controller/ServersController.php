@@ -9,45 +9,46 @@ App::uses('Xml', 'Utility');
  */
 class ServersController extends AppController {
 
-    public $components = array('Security' ,'RequestHandler');
-    public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 events
-            'order' => array(
-                    'Server.url' => 'ASC'
-            )
-    );
+	public $components = array('Security' ,'RequestHandler');
 
-    public $uses = array('Server', 'Event');
+	public $paginate = array(
+			'limit' => 60,
+			'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 events
+			'order' => array(
+					'Server.url' => 'ASC'
+			)
+	);
 
-    function beforeFilter() {
-        parent::beforeFilter();
+	public $uses = array('Server', 'Event');
 
-        // Disable this feature if the sync configuration option is not active
-        if ('true' != Configure::read('CyDefSIG.sync'))
-            throw new ConfigureException("The sync feature is not active in the configuration.");
+	public function beforeFilter() {
+		parent::beforeFilter();
 
-        // permit reuse of CSRF tokens on some pages.
-        switch ($this->request->params['action']) {
-            case 'push':
-            case 'pull':
-                $this->Security->csrfUseOnce = false;
-        }
-    }
+		// Disable this feature if the sync configuration option is not active
+		if ('true' != Configure::read('CyDefSIG.sync'))
+			throw new ConfigureException("The sync feature is not active in the configuration.");
 
-    public function isAuthorized($user) {
-        // Admins can access everything
-        if (parent::isAuthorized($user)) {
-            return true;
-        }
-        // Only on own servers for these actions
-        if (in_array($this->action, array('edit', 'delete', 'pull'))) {
-            $serverid = $this->request->params['pass'][0];
-            return $this->Server->isOwnedByOrg($serverid, $this->Auth->user('org'));
-        }
-        // the other pages are allowed by logged in users
-        return true;
-    }
+		// permit reuse of CSRF tokens on some pages.
+		switch ($this->request->params['action']) {
+			case 'push':
+			case 'pull':
+				$this->Security->csrfUseOnce = false;
+		}
+	}
+
+	public function isAuthorized($user) {
+		// Admins can access everything
+		if (parent::isAuthorized($user)) {
+			return true;
+		}
+		// Only on own servers for these actions
+		if (in_array($this->action, array('edit', 'delete', 'pull'))) {
+			$serverid = $this->request->params['pass'][0];
+			return $this->Server->isOwnedByOrg($serverid, $this->Auth->user('org'));
+		}
+		// the other pages are allowed by logged in users
+		return true;
+	}
 
 /**
  * index method
@@ -58,7 +59,7 @@ class ServersController extends AppController {
 		$this->Server->recursive = 0;
 
 		$this->paginate = array(
-		        'conditions' => array('Server.org' => $this->Auth->user('org')),
+				'conditions' => array('Server.org' => $this->Auth->user('org')),
 		);
 		$this->set('servers', $this->paginate());
 	}
@@ -88,6 +89,7 @@ class ServersController extends AppController {
  *
  * @param string $id
  * @return void
+ * @throws NotFoundException
  */
 	public function edit($id = null) {
 		$this->Server->id = $id;
@@ -97,11 +99,11 @@ class ServersController extends AppController {
 		// only edit own servers verified by isAuthorized
 
 		if ($this->request->is('post') || $this->request->is('put')) {
-		    // say what fields are to be updated
-		    $fieldList=array('url', 'push', 'pull', 'organization');
-		    if ("" != $this->request->data['Server']['authkey'])
-		        $fieldList[] = 'authkey';
-		    // Save the data
+			// say what fields are to be updated
+			$fieldList = array('url', 'push', 'pull', 'organization');
+			if ("" != $this->request->data['Server']['authkey'])
+				$fieldList[] = 'authkey';
+			// Save the data
 			if ($this->Server->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The server has been saved'));
 				$this->redirect(array('action' => 'index'));
@@ -120,6 +122,8 @@ class ServersController extends AppController {
  *
  * @param string $id
  * @return void
+ * @throws MethodNotAllowedException
+ * @throws NotFoundException
  */
 	public function delete($id = null) {
 		if (!$this->request->is('post')) {
@@ -137,155 +141,151 @@ class ServersController extends AppController {
 		$this->redirect(array('action' => 'index'));
 	}
 
+	public function pull($id = null, $full=false) {
+		// TODO should we de-activate data validation for type and category / and or mapping? Maybe other instances have other configurations that are incompatible.
 
-    public function pull($id = null, $full=false) {
-        // TODO should we de-activate data validation for type and category / and or mapping? Maybe other instances have other configurations that are incompatible.
+		if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException();
+		}
+		$this->Server->id = $id;
+		if (!$this->Server->exists()) {
+			throw new NotFoundException(__('Invalid server'));
+		}
 
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->Server->id = $id;
-        if (!$this->Server->exists()) {
-            throw new NotFoundException(__('Invalid server'));
-        }
+		App::uses('HttpSocket', 'Network/Http');
+		$this->Server->read(null, $id);
 
-        App::uses('HttpSocket', 'Network/Http');
-        $this->Server->read(null, $id);
+		if (false == $this->Server->data['Server']['pull']) {
+			$this->Session->setFlash(__('Pull setting not enabled for this server.'));
+			$this->redirect(array('action' => 'index'));
+		}
 
-        if (false == $this->Server->data['Server']['pull']) {
-            $this->Session->setFlash(__('Pull setting not enabled for this server.'));
-            $this->redirect(array('action' => 'index'));
-        }
+		if ("full" == $full) {
+			// get a list of the event_ids on the server
+			$event_ids = $this->Event->getEventIdsFromServer($this->Server->data);
 
-        if ("full"==$full) {
-            // get a list of the event_ids on the server
-            $event_ids = $this->Event->getEventIdsFromServer($this->Server->data);
+			$successes = array();
+			$fails = array();
+			// download each event
+			if (null != $event_ids) {
+				App::import('Controller', 'Events');
+				$HttpSocket = new HttpSocket();
+				foreach ($event_ids as &$event_id) {
+					$event = $this->Event->downloadEventFromServer(
+							$event_id,
+							$this->Server->data);
+					if (null != $event) {
+						// we have an Event array
+						$event['Event']['private'] = true;
+						$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
+						$eventsController = new EventsController();
+						try {
+							$result = $eventsController->_add($event, $this->Auth, $fromXml = true, $this->Server->data['Server']['organization']);
+						} catch (MethodNotAllowedException $e) {
+							if ($e->getMessage() == 'Event already exists') {
+								//$successes[] = $event_id;	// commented given it's in a catch..
+								continue;
+							}
+						}
+						$successes[] = $event_id;			// ..moved, so $successes does keep administration.
+						//$result = $this->_importEvent($event);
+						// TODO error handling
+					} else {
+						// error
+						$fails[$event_id] = 'failed';
+					}
 
-            $successes = array();
-            $fails = array();
-            // download each event
-            if (null != $event_ids) {
-                App::import('Controller', 'Events');
-                $HttpSocket = new HttpSocket();
-                foreach ($event_ids as &$event_id) {
-                    $event = $this->Event->downloadEventFromServer(
-                            $event_id,
-                            $this->Server->data);
-                    if (null != $event) {
-                        // we have an Event array
-                        $event['Event']['private'] = true;
-                        $event['Event']['info'] .= "\n Imported from ".$this->Server->data['Server']['url'];
-                        $eventsController = new EventsController();
-                        try {
-                            $result = $eventsController->_add($event, $this->Auth, $fromXml=true, $this->Server->data['Server']['organization']);
-                        } catch (MethodNotAllowedException $e) {
-                            if ($e->getMessage() == 'Event already exists') {
-                                //$successes[] = $event_id;	// commented given it's in a catch..
-                                continue;
-                            }
-                        }
-                        $successes[] = $event_id;			// ..moved, so $successes does keep administration.
-                        //$result = $this->_importEvent($event);
-                        // TODO error handling
-                    } else {
-                        // error
-                        $fails[$event_id] = 'failed';
-                    }
+				}
+				if (count($fails) > 0) {
+					// there are fails, take the lowest fail
+					$lastpulledid = min(array_keys($fails));
+				} else {
+					// no fails, take the highest success
+					$lastpulledid = count($successes) > 0 ? max($successes) : 0;
+				}
+				// increment lastid based on the highest ID seen
+				$this->Server->saveField('lastpulledid', $lastpulledid);
 
-                }
-                if (sizeof($fails) > 0) {
-                    // there are fails, take the lowest fail
-                    $lastpulledid = min(array_keys($fails));
-                } else {
-                    // no fails, take the highest success
-                    $lastpulledid = count($successes) > 0 ? max($successes) : 0;
-                }
-                // increment lastid based on the highest ID seen
-                $this->Server->saveField('lastpulledid', $lastpulledid);
+			}
 
-            }
+		} else {
+			// TODO incremental pull
+			// lastpulledid
+			throw new NotFoundException('Sorry, this is not yet implemented');
 
+			// increment lastid based on the highest ID seen
+		}
 
-        } else {
-            // TODO incremental pull
-            // lastpulledid
-            throw new NotFoundException('Sorry, this is not yet implemented');
+		$this->set('successes', $successes);
+		$this->set('fails', $fails);
+	}
 
-            // increment lastid based on the highest ID seen
-        }
+	public function push($id = null, $full=false) {
+		if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException();
+		}
+		$this->Server->id = $id;
+		if (!$this->Server->exists()) {
+			throw new NotFoundException(__('Invalid server'));
+		}
 
-        $this->set('successes', $successes);
-        $this->set('fails', $fails);
-    }
+		App::uses('HttpSocket', 'Network/Http');
+		$this->Server->read(null, $id);
 
+		if (false == $this->Server->data['Server']['push']) {
+			$this->Session->setFlash(__('Push setting not enabled for this server.'));
+			$this->redirect(array('action' => 'index'));
+		}
 
-    public function push($id = null, $full=false) {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->Server->id = $id;
-        if (!$this->Server->exists()) {
-            throw new NotFoundException(__('Invalid server'));
-        }
+		if ("full" == $full) $lastpushedid = 0;
+		else $lastpushedid = $this->Server->data['Server']['lastpushedid'];
 
-        App::uses('HttpSocket', 'Network/Http');
-        $this->Server->read(null, $id);
+		$find_params = array(
+				'conditions' => array(
+						'Event.id >' => $lastpushedid,
+						'Event.private' => 0,
+						'Event.published' => 1
+						), //array of conditions
+				'recursive' => 1, //int
+				'fields' => array('Event.*'), //array of field names
+		);
+		$events = $this->Event->find('all', $find_params);
 
-        if (false == $this->Server->data['Server']['push']) {
-            $this->Session->setFlash(__('Push setting not enabled for this server.'));
-            $this->redirect(array('action' => 'index'));
-        }
+		// FIXME now all events are uploaded, even if they exist on the remote server. No merging is done
 
-        if ("full"==$full) $lastpushedid = 0;
-        else $lastpushedid = $this->Server->data['Server']['lastpushedid'];
+		$successes = array();
+		$fails = array();
+		$lowestfailedid = null;
 
-        $find_params = array(
-                'conditions' => array(
-                        'Event.id >' => $lastpushedid,
-                        'Event.private' => 0,
-                        'Event.published' =>1
-                        ), //array of conditions
-                'recursive' => 1, //int
-                'fields' => array('Event.*'), //array of field names
-        );
-        $events = $this->Event->find('all', $find_params);
+		if (!empty($events)) {   // do nothing if there are no events to push
+			$HttpSocket = new HttpSocket();
 
-// FIXME now all events are uploaded, even if they exist on the remote server. No merging is done
+			$this->loadModel('Attribute');
+			// upload each event separately and keep the results in the $successes and $fails arrays
+			foreach ($events as &$event) {
+				$result = $this->Event->uploadEventToServer(
+						$event,
+						$this->Server->data,
+						$HttpSocket);
+				if (true == $result) {
+					$successes[] = $event['Event']['id'];
+				} else {
+					$fails[$event['Event']['id']] = $result;
+				}
+			}
+			if (count($fails) > 0) {
+				// there are fails, take the lowest fail
+				$lastpushedid = min(array_keys($fails));
+			} else {
+				// no fails, take the highest success
+				$lastpushedid = max($successes);
+			}
+			// increment lastid based on the highest ID seen
+			$this->Server->saveField('lastpushedid', $lastpushedid);
+		}
 
-        $successes = array();
-        $fails = array();
-        $lowestfailedid = null;
-
-        if (!empty($events)) {   // do nothing if there are no events to push
-            $HttpSocket = new HttpSocket();
-
-            $this->loadModel('Attribute');
-            // upload each event separately and keep the results in the $successes and $fails arrays
-            foreach ($events as &$event) {
-                $result = $this->Event->uploadEventToServer(
-                        $event,
-                        $this->Server->data,
-                        $HttpSocket);
-                if (true == $result) {
-                    $successes[] = $event['Event']['id'];
-                } else {
-                    $fails[$event['Event']['id']] = $result;
-                }
-            }
-            if (sizeof($fails) > 0) {
-                // there are fails, take the lowest fail
-                $lastpushedid = min(array_keys($fails));
-            } else {
-                // no fails, take the highest success
-                $lastpushedid = max($successes);
-            }
-            // increment lastid based on the highest ID seen
-            $this->Server->saveField('lastpushedid', $lastpushedid);
-        }
-
-        $this->set('successes', $successes);
-        $this->set('fails', $fails);
-    }
-
+		$this->set('successes', $successes);
+		$this->set('fails', $fails);
+	}
 
 }

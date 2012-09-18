@@ -1,6 +1,5 @@
 <?php
 foreach ($attributes as $attribute) {
-    echo $attribute['Attribute']['value'];
-    echo "\n";
+	echo $attribute['Attribute']['value'];
+	echo "\n";
 }
-?>

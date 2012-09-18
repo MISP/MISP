@@ -1,15 +1,15 @@
 <?php
 $xmlArray = array();
 foreach ($attributes as $key => $attribute) {
-    // rearrange things to be compatible with the Xml::fromArray()
-    $attributes[$key] = $attributes[$key]['Attribute'];
+	// rearrange things to be compatible with the Xml::fromArray()
+	$attributes[$key] = $attributes[$key]['Attribute'];
 
-    // cleanup the array from things we do not want to expose
-    unset($attributes[$key]['Event']);
-    // hide the private field is we are not in sync mode
-    if ('true' != Configure::read('CyDefSIG.sync')) {
-        unset($attributes[$key]['private']);
-    }
+	// cleanup the array from things we do not want to expose
+	unset($attributes[$key]['Event']);
+	// hide the private field is we are not in sync mode
+	if ('true' != Configure::read('CyDefSIG.sync')) {
+		unset($attributes[$key]['private']);
+	}
 
 }
 
