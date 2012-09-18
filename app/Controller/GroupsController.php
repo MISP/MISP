@@ -16,7 +16,7 @@ class GroupsController extends AppController {
         ),
         'Session'
     );
-	
+
     //public $components = array('Security');
     public $paginate = array(
             'limit' => 60,
@@ -28,7 +28,7 @@ class GroupsController extends AppController {
     function beforeFilter() {
         parent::beforeFilter();
     }
-    
+
 /**
  * view method
  *
@@ -42,7 +42,7 @@ class GroupsController extends AppController {
 		}
 		$this->set('group', $this->Group->read(null, $id));
 	}
-    
+
 /**
  * admin_index method
  *
@@ -76,6 +76,7 @@ class GroupsController extends AppController {
 		if ($this->request->is('post')) {
 			$this->Group->create();
 			if ($this->Group->save($this->request->data)) {
+				$this->saveAcl($this->Group, $this->data['Group']['perm_add'], $this->data['Group']['perm_modify'], $this->data['Group']['perm_publish']);	// save to ACL as well
 				$this->Session->setFlash(__('The group has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
