@@ -466,6 +466,8 @@ class NidsExportComponent extends Component {
     }
 
     function checkNames($name) {
+    	// FIXME fix the checkNames() function and concept
+    	$ipl = array();
     	$ipl[] = $name;
     	$overruled = false;
     	foreach ($ipl as $ip) {
