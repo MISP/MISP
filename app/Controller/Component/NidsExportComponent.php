@@ -444,17 +444,17 @@ class NidsExportComponent extends Component {
     }
 
     public $whitelist = array();
-    
+
     function populateWhitelist() {
     	$whitelistCheck = array();
-    	
+
 		$this->Whitelist = ClassRegistry::init('Whitelist');
         $whitelist = $this->Whitelist->find('all', array('recursive' => 0,'fields' => 'name'));
-    	
+
     	// loop through whitelist table,
     	foreach ($whitelist as $whitelistItem) {
     		$ipl = array();
-    		$ipl = $this->nametoipl($whitelistItem['Whitelist']['name']);
+    		$ipl[] = $whitelistItem['Whitelist']['name'];
     		$whitelistCheck = array_merge($whitelistCheck,$ipl);
     		if (count($ipl) > 0 && $whitelistItem != $ipl[0]) {
 	    		$dummyArray = array();
@@ -464,14 +464,8 @@ class NidsExportComponent extends Component {
     	}
     	return $whitelistCheck;
     }
-    
-    function nametoipl($name) {
-    	if (!$ips = gethostbynamel($name)) $ips = array();
-    	return $ips;
-    }
-    
+
     function checkNames($name) {
-    	$ipl = $this->nametoipl($name);
     	$ipl[] = $name;
     	$overruled = false;
     	foreach ($ipl as $ip) {
