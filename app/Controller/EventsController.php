@@ -43,12 +43,12 @@ class EventsController extends AppController {
         $this->Auth->allow('text');
 
         $this->Auth->allow('dot');
-        
+
         // TODO Audit, activate logable in a Controller
         if (sizeof($this->uses) && $this->{$this->modelClass}->Behaviors->attached('Logable')) {
             $this->{$this->modelClass}->setUserData($this->activeUser);
         }
-    
+
         // TODO ACL, if on ent/attr level, $this->set('isAcl', $this->checkAccess());
 
         // convert uuid to id if present in the url, and overwrite id field
@@ -232,10 +232,14 @@ class EventsController extends AppController {
     public function add() {
         if ($this->request->is('post')) {
     		if (!empty($this->data)) {
-    			App::uses('File', 'Utility');
-    			$file = new File($this->data['Event']['submittedfile']['name']);
-    			$ext = $file->ext();
-    			if ($ext != 'zip' && $this->data['Event']['submittedfile']['size'] > 0 &&
+    			if (isset($this->data['Event']['submittedfile'])) {
+	    			App::uses('File', 'Utility');
+	    			$file = new File($this->data['Event']['submittedfile']['name']);
+	    			$ext = $file->ext();
+    			} else {
+    				$ext = '';
+    			}
+    			if (isset($this->data['Event']['submittedfile']) && $ext != 'zip' && $this->data['Event']['submittedfile']['size'] > 0 &&
     		is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
     				//return false;
     				$this->Session->setFlash('You may only upload GFI Sandbox zip files.');
@@ -248,7 +252,7 @@ class EventsController extends AppController {
 		                } else {
 		                	// TODO now save uploaded attributes using $this->Event->getId() ..
 		                	$this->addGfiZip($this->Event->getId());
-		                	
+
 		                    // redirect to the view of the newly created event
 		                    $this->Session->setFlash(__('The event has been saved'));
 		                    $this->redirect(array('action' => 'view', $this->Event->getId()));
@@ -429,13 +433,13 @@ class EventsController extends AppController {
         if (!$this->Event->exists()) {
             throw new NotFoundException(__('Invalid event'));
         }
-        
+
         if ('true' == Configure::read('CyDefSIG.sync')) {
             // find the uuid
             $result = $this->Event->findById($id);
             $uuid = $result['Event']['uuid'];
         }
-        
+
         if ($this->Event->delete()) {
 
 	        // delete the event from remote servers
@@ -619,9 +623,9 @@ class EventsController extends AppController {
 	        $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 	        $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 	        $body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-	
+
 	        $this->loadModel('User');
-	
+
 	        //
 	        // Build a list of the recipients that get a non-encrypted mail
 	        // But only do this if it is allowed in the bootstrap.php file.
@@ -650,7 +654,7 @@ class EventsController extends AppController {
 	            // to reset the email fields using the reset method of the Email component.
 	            $this->Email->reset();
 	        }
-	
+
 	        //
 	        // Build a list of the recipients that wish to receive encrypted mails.
 	        //
@@ -668,7 +672,7 @@ class EventsController extends AppController {
 	            $this->Email->subject = "[".Configure::read('CyDefSIG.name')."] Event ".$id." - ".$event['Event']['risk']." - TLP Amber";
 	            $this->Email->template = 'body';
 	            $this->Email->sendAs = 'text';        // both text or html
-	
+
 	            // import the key of the user into the keyring
 	            // this is not really necessary, but it enables us to find
 	            // the correct key-id even if it is not the same as the emailaddress
@@ -677,9 +681,9 @@ class EventsController extends AppController {
 	            try {
 	                $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 	                $gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
-	
+
 	                $body_enc_sig = $gpg->encrypt($body_signed, true);
-	
+
 	                $this->set('body', $body_enc_sig);
 	                $this->Email->send();
 	            } catch (Exception $e){
@@ -696,7 +700,7 @@ class EventsController extends AppController {
             $this->log($e->getMessage());
             return $e->getMessage();
         }
-        
+
         // LATER check if sending email succeeded and return appropriate result
         return true;
 
@@ -1162,7 +1166,7 @@ class EventsController extends AppController {
     		// now open the xml..
     		$xml = $root_dir.DS.'Analysis'.DS.'analysis.xml';
     		$fileData = fread(fopen($xml, "r"),$this->data['Event']['submittedfile']['size']);
-    		
+
     		// read XML
     		$this->readGfiXML($fileData,$id);
     	}
@@ -1170,14 +1174,14 @@ class EventsController extends AppController {
 
 	function readGfiXML($data,$id) {
 		$this->loadModel('Attribute');
-		
+
 		// import XML class
 		App::uses('Xml', 'Utility');
 		// now parse it
 		$parsed_xml =& Xml::build($data, array('return' => 'simplexml'));
 
 		// xpath..
-		
+
 		//Payload delivery -- malware-sample
 		$results = $parsed_xml->xpath('/analysis');
 		foreach ($results as $result) {
@@ -1188,7 +1192,7 @@ class EventsController extends AppController {
 		$root_dir = APP."files".DS.$id.DS;
 		$malware = $root_dir.DS.'sample';
     	$this->Event->Attribute->uploadAttachment($malware,$realFileName,true,$id);
-		
+
 		//Artifacts dropped -- filename|md5
 		$files = array();
 		// TODO what about stored_modified_file ??
@@ -1214,7 +1218,7 @@ class EventsController extends AppController {
 			'type' => 	'filename|md5',
     		'value' => $key.'|'.$val,
 			'to_ids' => false));
-			
+
 			// the actual files..
 			// seek $val in dirs and add..
 			$ext = substr($key,strrpos ( $key , '.'));
