@@ -15,12 +15,12 @@ echo $this->Form->input('type', array(
 		));
 if ('true' == Configure::read('CyDefSIG.sync')) {
 	echo $this->Form->input('private', array(
-		'before' => $this->Html->div('forminfo', isset($attr_descriptions['private']['formdesc']) ? $attr_descriptions['private']['formdesc'] : $attr_descriptions['private']['desc']),
+		'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),
 	));
 }
 echo $this->Form->input('to_ids', array(
 			'checked' => true,
-			'before' => $this->Html->div('forminfo', isset($attr_descriptions['signature']['formdesc']) ? $attr_descriptions['signature']['formdesc'] : $attr_descriptions['signature']['desc']),
+			'before' => $this->Html->div('forminfo', isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc']),
 			'label' => 'IDS Signature?'
 ));
 echo $this->Form->input('value', array(
@@ -51,7 +51,7 @@ $this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType"
 //
 var category_type_mapping = new Array();
 <?php
-foreach ($category_definitions as $category => $def) {
+foreach ($categoryDefinitions as $category => $def) {
 	echo "category_type_mapping['" . addslashes($category) . "'] = {";
 	$first = true;
 	foreach ($def['types'] as $type) {
@@ -81,11 +81,11 @@ function formCategoryChanged(id) {
 //
 var formInfoValues = new Array();
 <?php
-foreach ($type_definitions as $type => $def) {
+foreach ($typeDefinitions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
 }
-foreach ($category_definitions as $category => $def) {
+foreach ($categoryDefinitions as $category => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['" . addslashes($category) . "'] = \"" . addslashes($info) . "\";\n"; // as we output JS code we need to add slashes
 }

@@ -85,7 +85,7 @@ class EventsController extends AppController {
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash('No GPG key set in your profile. To receive emails, submit your public key in your profile.');
 		}
-		$this->set('event_descriptions', $this->Event->field_descriptions);
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
 
 /**
@@ -128,8 +128,8 @@ class EventsController extends AppController {
 					// for REST requests also add the encoded attachment
 					if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
 						// LATER check if this has a serious performance impact on XML conversion and memory usage
-						$encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
-						$attribute['data'] = $encoded_file;
+						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+						$attribute['data'] = $encodedFile;
 					}
 				}
 
@@ -172,8 +172,8 @@ class EventsController extends AppController {
 				// for REST requests also add the encoded attachment
 				if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
 					// LATER check if this has a serious performance impact on XML conversion and memory usage
-					$encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
-					$attribute['data'] = $encoded_file;
+					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+					$attribute['data'] = $encodedFile;
 				}
 			}
 
@@ -190,21 +190,21 @@ class EventsController extends AppController {
 
 			if (isset($relatedEventsIds)) {
 				$relatedEventsIds = array_unique($relatedEventsIds);
-				$find_params = array(
+				$findParams = array(
 						'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
 						'recursive' => 0, //int
 						'fields' => array('Event.id', 'Event.date', 'Event.uuid'), //array of field names
 						'order' => array('Event.date DESC'), //string or array defining order
 				);
-				$relatedEvents = $this->Event->find('all', $find_params);
+				$relatedEvents = $this->Event->find('all', $findParams);
 			}
 		}
 
 		$this->set('relatedAttributes', $relatedAttributes);
 
 		// passing decriptions for model fields
-		$this->set('event_descriptions', $this->Event->field_descriptions);
-		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 
 		$this->set('event', $this->Event->data);
 		$this->set('relatedEvents', $relatedEvents);
@@ -212,8 +212,8 @@ class EventsController extends AppController {
 		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
 
 		// passing type and category definitions (explanations)
-		$this->set('type_definitions', $this->Attribute->type_definitions);
-		$this->set('category_definitions', $this->Attribute->category_definitions);
+		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
 /**
@@ -243,7 +243,7 @@ class EventsController extends AppController {
 		$risks = $this->_arrayToValuesIndexArray($risks);
 		$this->set('risks',compact('risks'));
 
-		$this->set('event_descriptions', $this->Event->field_descriptions);
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
 
 /**
@@ -389,7 +389,7 @@ class EventsController extends AppController {
 		$risks = $this->_arrayToValuesIndexArray($risks);
 		$this->set('risks',compact('risks'));
 
-		$this->set('event_descriptions', $this->Event->field_descriptions);
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
 
 /**
@@ -582,25 +582,25 @@ class EventsController extends AppController {
 		$body .= $event['Event']['info'] . "\n";
 		$body .= "\n";
 		$body .= 'Attributes  :' . "\n";
-		$body_temp_other = "";
+		$bodyTempOther = "";
 
 		if (isset($event['Attribute'])) {
 			foreach ($event['Attribute'] as &$attribute) {
 				$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])) . ': ' . $attribute['value'] . "\n";
 				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
-					$body_temp_other .= $line;
+					$bodyTempOther .= $line;
 				else $body .= $line;
 			}
 		}
 		$body .= "\n";
-		$body .= $body_temp_other;  // append the 'other' attribute types to the bottom.
+		$body .= $bodyTempOther;  // append the 'other' attribute types to the bottom.
 
 		// sign the body
 		require_once 'Crypt/GPG.php';
 		try {
 			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-			$body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
 
 			$this->loadModel('User');
 
@@ -609,23 +609,23 @@ class EventsController extends AppController {
 			// But only do this if it is allowed in the bootstrap.php file.
 			//
 			if ('false' == Configure::read('GnuPG.onlyencrypted')) {
-				$alert_users = $this->User->find('all', array(
+				$alertUsers = $this->User->find('all', array(
 						'conditions' => array('User.autoalert' => 1,
 											'User.gpgkey =' => ""),
 						'recursive' => 0,
 				) );
-				$alert_emails = Array();
-				foreach ($alert_users as &$user) {
-					$alert_emails[] = $user['User']['email'];
+				$alertEmails = Array();
+				foreach ($alertUsers as &$user) {
+					$alertEmails[] = $user['User']['email'];
 				}
 				// prepare the the unencrypted email
 				$this->Email->from = Configure::read('CyDefSIG.email');
 				//$this->Email->to = "CyDefSIG <sig@cyber-defence.be>"; TODO check if it doesn't break things to not set a to , like being spammed away
-				$this->Email->bcc = $alert_emails;
+				$this->Email->bcc = $alertEmails;
 				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';		// both text or html
-				$this->set('body', $body_signed);
+				$this->set('body', $bodySigned);
 				// send it
 				$this->Email->send();
 				// If you wish to send multiple emails using a loop, you'll need
@@ -636,14 +636,14 @@ class EventsController extends AppController {
 			//
 			// Build a list of the recipients that wish to receive encrypted mails.
 			//
-			$alert_users = $this->User->find('all', array(
+			$alertUsers = $this->User->find('all', array(
 					'conditions' => array(  'User.autoalert' => 1,
 							'User.gpgkey !=' => ""),
 					'recursive' => 0,
 			)
 			);
 			// encrypt the mail for each user and send it separately
-			foreach ($alert_users as &$user) {
+			foreach ($alertUsers as &$user) {
 				// send the email
 				$this->Email->from = Configure::read('CyDefSIG.email');
 				$this->Email->to = $user['User']['email'];
@@ -654,15 +654,15 @@ class EventsController extends AppController {
 				// import the key of the user into the keyring
 				// this is not really necessary, but it enables us to find
 				// the correct key-id even if it is not the same as the emailaddress
-				$key_import_output = $gpg->importKey($user['User']['gpgkey']);
+				$keyImportOutput = $gpg->importKey($user['User']['gpgkey']);
 				// say what key should be used to encrypt
 				try {
 					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-					$gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
+					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
 
-					$body_enc_sig = $gpg->encrypt($body_signed, true);
+					$bodyEncSig = $gpg->encrypt($bodySigned, true);
 
-					$this->set('body', $body_enc_sig);
+					$this->set('body', $bodyEncSig);
 					$this->Email->send();
 				} catch (Exception $e){
 					// catch errors like expired PGP keys
@@ -726,7 +726,7 @@ class EventsController extends AppController {
 		// fetch the event
 		$event = $this->Event->read(null, $id);
 		$this->loadModel('User');
-		$org_members = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey'));
+		$orgMembers = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey'));
 
 		// The mail body, h() is NOT needed as we are sending plain-text mails.
 		$body = "";
@@ -765,31 +765,31 @@ class EventsController extends AppController {
 		$body .= $event['Event']['info'] . "\n";
 		$body .= "\n";
 		$body .= 'Attributes  :' . "\n";
-		$body_temp_other = "";
+		$bodyTempOther = "";
 		if (!empty($event['Attribute'])) {
 			foreach ($event['Attribute'] as &$attribute) {
 				$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])) . ': ' . $attribute['value'] . "\n";
 				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
-					$body_temp_other .= $line;
+					$bodyTempOther .= $line;
 				else $body .= $line;
 			}
 		}
 		$body .= "\n";
-		$body .= $body_temp_other;  // append the 'other' attribute types to the bottom.
+		$body .= $bodyTempOther;  // append the 'other' attribute types to the bottom.
 
 		// sign the body
 		require_once 'Crypt/GPG.php';
 		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-		$body_signed = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+		$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
 
 		// Add the GPG key of the user as attachment
 		// LATER sign the attached GPG key
-		if (!empty($me_user['gpgkey'])) {
+		if (!empty($meUser['gpgkey'])) {
 			// save the gpg key to a temporary file
 			$tmpfname = tempnam(TMP, "GPGkey");
 			$handle = fopen($tmpfname, "w");
-			fwrite($handle, $me_user['gpgkey']);
+			fwrite($handle, $meUser['gpgkey']);
 			fclose($handle);
 			// attach it
 			$this->Email->attachments = array(
@@ -797,23 +797,23 @@ class EventsController extends AppController {
 			);
 		}
 
-		foreach ($org_members as &$reporter) {
+		foreach ($orgMembers as &$reporter) {
 			if (!empty($reporter['User']['gpgkey'])) {
 				// import the key of the user into the keyring
 				// this isn't really necessary, but it gives it the fingerprint necessary for the next step
-				$key_import_output = $gpg->importKey($reporter['User']['gpgkey']);
+				$keyImportOutput = $gpg->importKey($reporter['User']['gpgkey']);
 				// say what key should be used to encrypt
 				try {
 					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-					$gpg->addEncryptKey($key_import_output['fingerprint']); // use the key that was given in the import
+					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
 
-					$body_enc_sig = $gpg->encrypt($body_signed, true);
+					$bodyEncSig = $gpg->encrypt($bodySigned, true);
 				} catch (Exception $e){
 					// catch errors like expired PGP keys
 					$this->log($e->getMessage());
 				}
 			} else {
-				$body_enc_sig = $body_signed;
+				$bodyEncSig = $bodySigned;
 				// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
 			}
 
@@ -824,10 +824,10 @@ class EventsController extends AppController {
 			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
 			$this->Email->template = 'body';
 			$this->Email->sendAs = 'text';		// both text or html
-			$this->set('body', $body_enc_sig);
+			$this->set('body', $bodyEncSig);
 			// Add the GPG key of the user as attachment
 			// LATER sign the attached GPG key
-			if (!empty($me_user['gpgkey'])) {
+			if (!empty($meUser['gpgkey'])) {
 				// attach the gpg key
 				$this->Email->attachments = array(
 						'gpgkey.asc' => $tmpfname
@@ -842,7 +842,7 @@ class EventsController extends AppController {
 		}
 
 		// remove the temporary gpg file
-		if (!empty($me_user['gpgkey']))
+		if (!empty($meUser['gpgkey']))
 			unlink($tmpfname);
 
 		return $result;
@@ -853,7 +853,7 @@ class EventsController extends AppController {
 
 		// generate the list of Attribute types
 		$this->loadModel('Attribute');
-		$this->set('sig_types', array_keys($this->Attribute->type_definitions));
+		$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
 	}
 
 	public function xml($key, $eventid=null) {

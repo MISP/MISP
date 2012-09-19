@@ -6,7 +6,7 @@
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
-			<th<?php echo ' title="' . $attr_descriptions['signature']['desc'] . '"';?>>
+			<th<?php echo ' title="' . $attrDescriptions['signature']['desc'] . '"';?>>
 			<?php echo $this->Paginator->sort('signature');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
@@ -16,21 +16,21 @@
 		<td class="short">
 			<?php echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id'])); ?>
 		</td>
-		<td title="<?php echo $category_definitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location ='
+		<td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location ='
 		<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 		<?php echo h($attribute['Attribute']['category']); ?>&nbsp;</td>
-		<td title="<?php echo $type_definitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location ='
+		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location ='
 		<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 <?php
-$sig_display = nl2br(h($attribute['Attribute']['value']));
+$sigDisplay = nl2br(h($attribute['Attribute']['value']));
 if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
-	echo $this->Html->link($sig_display, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']));
+	echo $this->Html->link($sigDisplay, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']));
 } elseif ('link' == $attribute['Attribute']['type']) {
-	echo $this->Html->link($sig_display, $sig_display);
+	echo $this->Html->link($sigDisplay, $sigDisplay);
 } else {
-	echo $sig_display;
+	echo $sigDisplay;
 }
 ?>&nbsp;</td>
 		<td class="short" style="text-align: center;" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">

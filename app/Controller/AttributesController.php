@@ -70,12 +70,11 @@ class AttributesController extends AppController {
  */
 	public function index() {
 		$this->Attribute->recursive = 0;
-		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
 		$this->set('attributes', $this->paginate());
 
-		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
-		$this->set('type_definitions', $this->Attribute->type_definitions);
-		$this->set('category_definitions', $this->Attribute->category_definitions);
+		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
 /**
@@ -83,7 +82,7 @@ class AttributesController extends AppController {
  *
  * @return void
  */
-	public function add($event_id = null) {
+	public function add($eventId = null) {
 		if ($this->request->is('post')) {
 			$this->loadModel('Event');
 			// only own attributes verified by isAuthorized
@@ -151,11 +150,11 @@ class AttributesController extends AppController {
 			}
 		} else {
 			// set the event_id in the form
-			$this->request->data['Attribute']['event_id'] = $event_id;
+			$this->request->data['Attribute']['event_id'] = $eventId;
 		}
 
 		// combobox for types
-		$types = array_keys($this->Attribute->type_definitions);
+		$types = array_keys($this->Attribute->typeDefinitions);
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types',compact('types'));
 		// combobos for categories
@@ -163,9 +162,9 @@ class AttributesController extends AppController {
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories',compact('categories'));
 
-		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
-		$this->set('type_definitions', $this->Attribute->type_definitions);
-		$this->set('category_definitions', $this->Attribute->category_definitions);
+		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
 	public function download($id = null) {
@@ -179,12 +178,12 @@ class AttributesController extends AppController {
 		$filename = '';
 		if ('attachment' == $this->Attribute->data['Attribute']['type']) {
 			$filename = $this->Attribute->data['Attribute']['value'];
-			$file_ext = pathinfo($filename, PATHINFO_EXTENSION);
-			$filename = substr($filename, 0, strlen($filename) - strlen($file_ext) - 1);
+			$fileExt = pathinfo($filename, PATHINFO_EXTENSION);
+			$filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
 		} elseif ('malware-sample' == $this->Attribute->data['Attribute']['type']) {
-			$filename_hash = explode('|', $this->Attribute->data['Attribute']['value']);
-			$filename = $filename_hash[0];
-			$file_ext = "zip";
+			$filenameHash = explode('|', $this->Attribute->data['Attribute']['value']);
+			$filename = $filenameHash[0];
+			$fileExt = "zip";
 		} else {
 			throw new NotFoundException(__('Attribute not an attachment or malware-sample'));
 		}
@@ -193,7 +192,7 @@ class AttributesController extends AppController {
 		$params = array(
 				'id'		=> $file->path,
 				'name'	  => $filename,
-				'extension' => $file_ext,
+				'extension' => $fileExt,
 				'download'  => true,
 				'path'	  => DS
 		);
@@ -206,7 +205,7 @@ class AttributesController extends AppController {
  * @return void
  * @throws InternalErrorException
  */
-	public function add_attachment($event_id = null) {
+	public function add_attachment($eventId = null) {
 		if ($this->request->is('post')) {
 			$this->loadModel('Event');
 			// only own attributes verified by isAuthorized
@@ -253,15 +252,15 @@ class AttributesController extends AppController {
 			// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
 			// no sanitization is required on the filename, path or type as we save
 			// create directory structure
-			$root_dir = APP . DS . "files" . DS . $this->request->data['Attribute']['event_id'];
-			$dir = new Folder($root_dir, true);
+			$rootDir = APP . DS . "files" . DS . $this->request->data['Attribute']['event_id'];
+			$dir = new Folder($rootDir, true);
 			// move the file to the correct location
-			$destpath = $root_dir . DS . $this->Attribute->id;   // id of the new attribute in the database
+			$destpath = $rootDir . DS . $this->Attribute->id;   // id of the new attribute in the database
 			$file = new File ($destpath);
 			$zipfile = new File ($destpath . '.zip');
-			$file_in_zip = new File($root_dir . DS . $filename); // FIXME do sanitization of the filename
+			$fileInZip = new File($rootDir . DS . $filename); // FIXME do sanitization of the filename
 
-			if ($file->exists() || $zipfile->exists() || $file_in_zip->exists()) {
+			if ($file->exists() || $zipfile->exists() || $fileInZip->exists()) {
 				// this should never happen as the attribute id should be unique
 				$this->Session->setFlash(__('Attachment with this name already exist in this event.', true), 'default', array(), 'error');
 				// remove the entry from the database
@@ -278,19 +277,19 @@ class AttributesController extends AppController {
 			// zip and password protect the malware files
 			if ($this->request->data['Attribute']['malware']) {
 				// TODO check if CakePHP has no easy/safe wrapper to execute commands
-				$exec_retval = '';
-				$exec_output = array();
-				rename($file->path, $file_in_zip->path); // TODO check if no workaround exists for the current filtering mechanisms
-				exec("zip -j -P infected " . $zipfile->path . ' "' . addslashes($file_in_zip->path) . '"', $exec_output, $exec_retval);
-				if ($exec_retval != 0) {   // not EXIT_SUCCESS
-					$this->Session->setFlash(__('Problem with zipping the attachment. Please report to administrator. ' . $exec_output, true), 'default', array(), 'error');
+				$execRetval = '';
+				$execOutput = array();
+				rename($file->path, $fileInZip->path); // TODO check if no workaround exists for the current filtering mechanisms
+				exec("zip -j -P infected " . $zipfile->path . ' "' . addslashes($fileInZip->path) . '"', $execOutput, $execRetval);
+				if ($execRetval != 0) {   // not EXIT_SUCCESS
+					$this->Session->setFlash(__('Problem with zipping the attachment. Please report to administrator. ' . $execOutput, true), 'default', array(), 'error');
 					// remove the entry from the database
 					$this->Attribute->delete();
-					$file_in_zip->delete();
+					$fileInZip->delete();
 					$file->delete();
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 				};
-				$file_in_zip->delete();			  // delete the original not-zipped-file
+				$fileInZip->delete();			  // delete the original not-zipped-file
 				rename($zipfile->path, $file->path); // rename the .zip to .nothing
 			}
 
@@ -300,7 +299,7 @@ class AttributesController extends AppController {
 
 		} else {
 			// set the event_id in the form
-			$this->request->data['Attribute']['event_id'] = $event_id;
+			$this->request->data['Attribute']['event_id'] = $eventId;
 		}
 
 		// combobos for categories
@@ -308,8 +307,8 @@ class AttributesController extends AppController {
 		// just get them with attachments..
 		$selectedCategories = array();
 		foreach ($categories as $category) {
-			if (isset($this->Attribute->category_definitions[$category])) {
-				$types = $this->Attribute->category_definitions[$category]['types'];
+			if (isset($this->Attribute->categoryDefinitions[$category])) {
+				$types = $this->Attribute->categoryDefinitions[$category]['types'];
 				$alreadySet = false;
 				foreach ($types as $type) {
 					if ($this->Attribute->typeIsAttachment($type) && !$alreadySet) {
@@ -324,12 +323,12 @@ class AttributesController extends AppController {
 		$categories = $this->_arrayToValuesIndexArray($selectedCategories);
 		$this->set('categories',compact('categories'));
 
-		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
-		$this->set('type_definitions', $this->Attribute->type_definitions);
-		$this->set('category_definitions', $this->Attribute->category_definitions);
+		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 
-		$this->set('zipped_definitions', $this->Attribute->zipped_definitions);
-		$this->set('upload_definitions', $this->Attribute->upload_definitions);
+		$this->set('zippedDefinitions', $this->Attribute->zippedDefinitions);
+		$this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
 	}
 
 /**
@@ -347,7 +346,7 @@ class AttributesController extends AppController {
 		// only own attributes verified by isAuthorized
 
 		$this->Attribute->read();
-		$event_id = $this->Attribute->data['Attribute']['event_id'];
+		$eventId = $this->Attribute->data['Attribute']['event_id'];
 		if ('attachment' == $this->Attribute->data['Attribute']['type'] ||
 			'malware-sample' == $this->Attribute->data['Attribute']['type'] ) {
 			$this->set('attachment', true);
@@ -366,10 +365,10 @@ class AttributesController extends AppController {
 
 				// remove the published flag from the event
 				$this->loadModel('Event');
-				$this->Event->id = $event_id;
+				$this->Event->id = $eventId;
 				$this->Event->saveField('published', 0);
 
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $event_id));
+				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 			} else {
 				$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
 			}
@@ -378,7 +377,7 @@ class AttributesController extends AppController {
 		}
 
 		// combobox for types
-		$types = $types = array_keys($this->Attribute->type_definitions);
+		$types = $types = array_keys($this->Attribute->typeDefinitions);
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types',compact('types'));
 		// combobox for categories
@@ -386,9 +385,9 @@ class AttributesController extends AppController {
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories',compact('categories'));
 
-		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
-		$this->set('type_definitions', $this->Attribute->type_definitions);
-		$this->set('category_definitions', $this->Attribute->category_definitions);
+		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
 /**
@@ -466,9 +465,9 @@ class AttributesController extends AppController {
 
 		if ($this->request->here == $fullAddress) {
 
-			$this->set('attr_descriptions', $this->Attribute->field_descriptions);
-			$this->set('type_definitions', $this->Attribute->type_definitions);
-			$this->set('category_definitions', $this->Attribute->category_definitions);
+			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+			$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions',array());
@@ -506,7 +505,7 @@ class AttributesController extends AppController {
 				// adding filtering by category and type
 				// combobox for types
 				$types = array('ALL');
-				$types = array_merge($types, array_keys($this->Attribute->type_definitions));
+				$types = array_merge($types, array_keys($this->Attribute->typeDefinitions));
 				$types = $this->_arrayToValuesIndexArray($types);
 				$this->set('types',compact('types'));
 
@@ -517,9 +516,9 @@ class AttributesController extends AppController {
 				$this->set('categories',compact('categories'));
 			}
 		} else {
-			$this->set('attr_descriptions', $this->Attribute->field_descriptions);
-			$this->set('type_definitions', $this->Attribute->type_definitions);
-			$this->set('category_definitions', $this->Attribute->category_definitions);
+			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+			$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 
 			$this->Attribute->recursive = 0;
 			// re-get pagination
@@ -538,18 +537,18 @@ class AttributesController extends AppController {
  * @return void
  */
 	public function event($id = null) {
-		$this->set('attr_descriptions', $this->Attribute->field_descriptions);
-		$this->set('type_definitions', $this->Attribute->type_definitions);
-		$this->set('category_definitions', $this->Attribute->category_definitions);
+		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 
 		// search the db
 		$conditions = array();
 		if (isset($this->params['named']['event'])) {
-			$attribute_id = $this->params['named']['event'];
+			$attributeId = $this->params['named']['event'];
 		} else {
-			$attribute_id = $id;
+			$attributeId = $id;
 		}
-		$conditions['Attribute.event_id ='] = $attribute_id;
+		$conditions['Attribute.event_id ='] = $attributeId;
 
 		$this->paginate = array(
 			'order' => array('Attribute.category_order' => 'asc', 'Attribute.type' => 'asc'),
@@ -559,10 +558,10 @@ class AttributesController extends AppController {
 		$this->set('attributes', $this->paginate());
 
 		// the parent event..
-		$event = ClassRegistry::init('Event')->findById($attribute_id);
+		$event = ClassRegistry::init('Event')->findById($attributeId);
 		$this->set('event', $event);
 		$this->loadModel('Event');
-		$this->set('event_descriptions', $this->Event->field_descriptions);
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 
 		// get related
 		$relatedAttributes = array();
@@ -588,8 +587,8 @@ class AttributesController extends AppController {
 				// for REST requests also add the encoded attachment
 				if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
 					// LATER check if this has a serious performance impact on XML conversion and memory usage
-					$encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
-					$attribute['data'] = $encoded_file;
+					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+					$attribute['data'] = $encodedFile;
 				}
 			}
 
@@ -631,8 +630,8 @@ class AttributesController extends AppController {
 				// for REST requests also add the encoded attachment
 				if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
 					// LATER check if this has a serious performance impact on XML conversion and memory usage
-					$encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
-					$attribute['data'] = $encoded_file;
+					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+					$attribute['data'] = $encodedFile;
 				}
 			}
 
@@ -648,13 +647,13 @@ class AttributesController extends AppController {
 			}
 			if (isset($relatedEventsIds)) {
 				$relatedEventsIds = array_unique($relatedEventsIds);
-				$find_params = array(
+				$findParams = array(
 						'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
 						'recursive' => 0, //int
 						'fields' => array('Event.id', 'Event.date', 'Event.uuid'), //array of field names
 						'order' => array('Event.date DESC'), //string or array defining order
 				);
-				$relatedEvents = $this->Event->find('all', $find_params);
+				$relatedEvents = $this->Event->find('all', $findParams);
 			}
 		}
 		$this->set('correlation', Configure::read('CyDefSIG.correlation'));

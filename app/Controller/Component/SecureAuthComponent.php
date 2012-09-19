@@ -22,9 +22,9 @@ class SecureAuthComponent extends AuthComponent {
 		if (empty($user)) {
 			$this->Bruteforce = ClassRegistry::init('Bruteforce');
 			// do the anti-bruteforce checks
-			$username_field = $this->authenticate['Form']['fields']['username'];
-			if (isset($this->request->data['User'][$username_field])) {
-				$username = $this->request->data['User'][$username_field];
+			$usernameField = $this->authenticate['Form']['fields']['username'];
+			if (isset($this->request->data['User'][$usernameField])) {
+				$username = $this->request->data['User'][$usernameField];
 				if (!$this->Bruteforce->isBlacklisted($_SERVER['REMOTE_ADDR'], $username)) {
 					// user - ip combination is not blacklisted
 					// check if the user credentials are valid

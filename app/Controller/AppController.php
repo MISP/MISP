@@ -101,11 +101,11 @@ class AppController extends Controller {
 /**
  * Convert an array to the same array but with the values also as index instead of an interface_exists
  */
-	public function _arrayToValuesIndexArray($old_array) {
-		$new_array = Array();
-		foreach ($old_array as $value)
-		$new_array[$value] = $value;
-		return $new_array;
+	public function _arrayToValuesIndexArray($oldArray) {
+		$newArray = Array();
+		foreach ($oldArray as $value)
+		$newArray[$value] = $value;
+		return $newArray;
 	}
 
 /**

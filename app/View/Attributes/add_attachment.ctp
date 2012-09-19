@@ -15,7 +15,7 @@ echo $this->Form->input('malware', array(
 ));
 if ('true' == Configure::read('CyDefSIG.sync')) {
 	echo $this->Form->input('private', array(
-			'before' => $this->Html->div('forminfo', isset($attr_descriptions['private']['formdesc']) ? $attr_descriptions['private']['formdesc'] : $attr_descriptions['private']['desc']),));
+			'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),));
 }
 // link an onchange event to the form elements
 $this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');
@@ -33,7 +33,7 @@ $this->Js->get('#AttributeCategory')->event('change', 'showFormInfo("#AttributeC
 <script type="text/javascript">
 var formInfoValues = new Array();
 <?php
-foreach ($category_definitions as $category => $def) {
+foreach ($categoryDefinitions as $category => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['$category'] = \"$info\";\n";
 }
@@ -41,11 +41,11 @@ foreach ($category_definitions as $category => $def) {
 
 var formZipTypeValues = new Array();
 <?php
-foreach ($category_definitions as $category => $def) {
+foreach ($categoryDefinitions as $category => $def) {
 	$types = $def['types'];
 	$alreadySet = false;
 	foreach ($types as $type) {
-		if (in_array($type, $zipped_definitions) && !$alreadySet) {
+		if (in_array($type, $zippedDefinitions) && !$alreadySet) {
 			$alreadySet = true;
 			echo "formZipTypeValues['$category'] = \"true\";\n";
 		}
@@ -58,11 +58,11 @@ foreach ($category_definitions as $category => $def) {
 
 var formAttTypeValues = new Array();
 <?php
-foreach ($category_definitions as $category => $def) {
+foreach ($categoryDefinitions as $category => $def) {
 	$types = $def['types'];
 	$alreadySet = false;
 	foreach ($types as $type) {
-		if (in_array($type, $upload_definitions) && !$alreadySet) {
+		if (in_array($type, $uploadDefinitions) && !$alreadySet) {
 			$alreadySet = true;
 			echo "formAttTypeValues['$category'] = \"true\";\n";
 		}

@@ -253,9 +253,9 @@ class UsersController extends AppController {
 		}
 
 		// News page
-		$new_newsdate = new DateTime("2012-03-27");
+		$newNewsdate = new DateTime("2012-03-27");
 		$newsdate = new DateTime($this->Auth->user('newsread'));
-		if ($new_newsdate > $newsdate) {
+		if ($newNewsdate > $newsdate) {
 			$this->redirect(array('action' => 'news'));
 		}
 
@@ -312,34 +312,34 @@ class UsersController extends AppController {
 							'group' => array('Attribute.type', 'Event.org'),
 							'order' => array('Event.org', 'num_types DESC'),
 		);
-		$types_histogram = $this->Attribute->find('all', $params);
-		$this->set('types_histogram', $types_histogram);
+		$typesHistogram = $this->Attribute->find('all', $params);
+		$this->set('typesHistogram', $typesHistogram);
 
 		// Nice graphical histogram
 		$this->loadModel('Attribute');
-		$sig_types = array_keys($this->Attribute->type_definitions);
+		$sigTypes = array_keys($this->Attribute->type_definitions);
 
-		$graph_fields = '';
-		foreach ($sig_types as &$sig_type) {
-			if ($graph_fields != "")  $graph_fields .= ", ";
-			$graph_fields .= "'" . $sig_type . "'";
+		$graphFields = '';
+		foreach ($sigTypes as &$sigType) {
+			if ($graphFields != "")  $graphFields .= ", ";
+			$graphFields .= "'" . $sigType . "'";
 		}
-		$this->set('graph_fields', $graph_fields);
+		$this->set('graphFields', $graphFields);
 
 		$replace = array('-', '|');
-		$graph_data = array();
-		$prev_row_org = "";
+		$graphData = array();
+		$prevRowOrg = "";
 		$i = -1;
-		foreach ($types_histogram as &$row) {
-			if ($prev_row_org != $row['Event']['org']) {
+		foreach ($typesHistogram as &$row) {
+			if ($prevRowOrg != $row['Event']['org']) {
 				$i++;
-				$graph_data[] = "";
-				$prev_row_org = $row['Event']['org'];
-				$graph_data[$i] .= "org: '" . $row['Event']['org'] . "'";
+				$graphData[] = "";
+				$prevRowOrg = $row['Event']['org'];
+				$graphData[$i] .= "org: '" . $row['Event']['org'] . "'";
 			}
-			$graph_data[$i] .= ', ' . str_replace($replace, "_", $row['Attribute']['type']) . ': ' . $row[0]['num_types'];
+			$graphData[$i] .= ', ' . str_replace($replace, "_", $row['Attribute']['type']) . ': ' . $row[0]['num_types'];
 		}
-		$this->set('graph_data', $graph_data);
+		$this->set('graphData', $graphData);
 	}
 
 	public function terms() {

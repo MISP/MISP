@@ -6,10 +6,10 @@
 echo $this->Form->input('id');
 echo $this->Form->input('date');
 echo $this->Form->input('risk', array(
-		'before' => $this->Html->div('forminfo', isset($event_descriptions['risk']['formdesc']) ? $event_descriptions['risk']['formdesc'] : $event_descriptions['risk']['desc'])));
+		'before' => $this->Html->div('forminfo', isset($eventDescriptions['risk']['formdesc']) ? $eventDescriptions['risk']['formdesc'] : $eventDescriptions['risk']['desc'])));
 if ('true' == Configure::read('CyDefSIG.sync')) {
 	echo $this->Form->input('private', array(
-		'before' => $this->Html->div('forminfo', isset($event_descriptions['private']['formdesc']) ? $event_descriptions['private']['formdesc'] : $event_descriptions['private']['desc']),));
+		'before' => $this->Html->div('forminfo', isset($eventDescriptions['private']['formdesc']) ? $eventDescriptions['private']['formdesc'] : $eventDescriptions['private']['desc']),));
 }
 echo $this->Form->input('info');
 ?>

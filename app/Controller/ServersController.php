@@ -162,17 +162,17 @@ class ServersController extends AppController {
 
 		if ("full" == $full) {
 			// get a list of the event_ids on the server
-			$event_ids = $this->Event->getEventIdsFromServer($this->Server->data);
+			$eventIds = $this->Event->getEventIdsFromServer($this->Server->data);
 
 			$successes = array();
 			$fails = array();
 			// download each event
-			if (null != $event_ids) {
+			if (null != $eventIds) {
 				App::import('Controller', 'Events');
 				$HttpSocket = new HttpSocket();
-				foreach ($event_ids as &$event_id) {
+				foreach ($eventIds as &$eventId) {
 					$event = $this->Event->downloadEventFromServer(
-							$event_id,
+							$eventId,
 							$this->Server->data);
 					if (null != $event) {
 						// we have an Event array
@@ -183,16 +183,16 @@ class ServersController extends AppController {
 							$result = $eventsController->_add($event, $this->Auth, $fromXml = true, $this->Server->data['Server']['organization']);
 						} catch (MethodNotAllowedException $e) {
 							if ($e->getMessage() == 'Event already exists') {
-								//$successes[] = $event_id;	// commented given it's in a catch..
+								//$successes[] = $eventId;	// commented given it's in a catch..
 								continue;
 							}
 						}
-						$successes[] = $event_id;			// ..moved, so $successes does keep administration.
+						$successes[] = $eventId;			// ..moved, so $successes does keep administration.
 						//$result = $this->_importEvent($event);
 						// TODO error handling
 					} else {
 						// error
-						$fails[$event_id] = 'failed';
+						$fails[$eventId] = 'failed';
 					}
 
 				}
@@ -240,7 +240,7 @@ class ServersController extends AppController {
 		if ("full" == $full) $lastpushedid = 0;
 		else $lastpushedid = $this->Server->data['Server']['lastpushedid'];
 
-		$find_params = array(
+		$findParams = array(
 				'conditions' => array(
 						'Event.id >' => $lastpushedid,
 						'Event.private' => 0,
@@ -249,7 +249,7 @@ class ServersController extends AppController {
 				'recursive' => 1, //int
 				'fields' => array('Event.*'), //array of field names
 		);
-		$events = $this->Event->find('all', $find_params);
+		$events = $this->Event->find('all', $findParams);
 
 		// FIXME now all events are uploaded, even if they exist on the remote server. No merging is done
 

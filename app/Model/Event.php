@@ -20,7 +20,7 @@ class Event extends AppModel {
  *
  * @var array
  */
-	public $field_descriptions = array(
+	public $fieldDescriptions = array(
 			'risk' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels:<br/>low: mass-malware<br/>medium: APT malware<br/>high: sophisticated APT malware or 0-day attack'),
 			'private' => array('desc' => 'This field tells if the event should be shared with other CyDefSIG servers'),
 			'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>')
@@ -188,12 +188,12 @@ class Event extends AppModel {
 				continue;  // sigs of type 'other' should not be matched against the others
 			}
 			$conditions = array('Attribute.value =' => $attribute['value'], 'Attribute.type =' => $attribute['type']);
-			$similar_attributes = $this->Attribute->find('all',array('conditions' => $conditions));
-			foreach ($similar_attributes as &$similar_attribute) {
-				if ($this->id == $similar_attribute['Attribute']['event_id']) {
+			$similarAttributes = $this->Attribute->find('all',array('conditions' => $conditions));
+			foreach ($similarAttributes as &$similarAttribute) {
+				if ($this->id == $similarAttribute['Attribute']['event_id']) {
 					continue; // same as this event, not needed in the list
 				}
-				$relatedEventIds[] = $similar_attribute['Attribute']['event_id'];
+				$relatedEventIds[] = $similarAttribute['Attribute']['event_id'];
 			}
 		}
 		$conditions = array("Event.id" => $relatedEventIds);
@@ -279,8 +279,8 @@ class Event extends AppModel {
 			unset($attribute['value2']);
 			// also add the encoded attachment
 			if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-				$encoded_file = $this->Attribute->base64EncodeAttachment($attribute);
-				$attribute['data'] = $encoded_file;
+				$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+				$attribute['data'] = $encodedFile;
 			}
 		}
 
@@ -302,14 +302,14 @@ class Event extends AppModel {
 				} else {
 					try {
 						// parse the XML response and keep the reason why it failed
-						$xml_array = Xml::toArray(Xml::build($response->body));
+						$xmlArray = Xml::toArray(Xml::build($response->body));
 					} catch (XmlException $e) {
 						return true;
 					}
-					if (strpos($xml_array['response']['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
+					if (strpos($xmlArray['response']['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
 						return true;
 					} else {
-						return $xml_array['response']['name'];
+						return $xmlArray['response']['name'];
 					}
 				}
 			}
@@ -356,7 +356,7 @@ class Event extends AppModel {
  * TODO move this to a component
  * @return array|NULL
  */
-	public function downloadEventFromServer($event_id, $server, $HttpSocket=null) {
+	public function downloadEventFromServer($eventId, $server, $HttpSocket=null) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
@@ -371,12 +371,12 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		$uri = $url . '/events/' . $event_id;
+		$uri = $url . '/events/' . $eventId;
 		// LATER validate HTTPS SSL certificate
 		$response = $HttpSocket->get($uri, $data = '', $request);
 		if ($response->isOk()) {
-			$xml_array = Xml::toArray(Xml::build($response->body));
-			return $xml_array['response'];
+			$xmlArray = Xml::toArray(Xml::build($response->body));
+			return $xmlArray['response'];
 		} else {
 			// TODO parse the XML response and keep the reason why it failed
 			return null;
@@ -412,14 +412,14 @@ class Event extends AppModel {
 			if ($response->isOk()) {
 				$xml = Xml::build($response->body);
 				$eventArray = Xml::toArray($xml);
-				$event_ids = array();
+				$eventIds = array();
 				foreach ($eventArray['response']['Event'] as &$event) {
 					if (1 != $event['published']) {
 						continue; // do not keep non-published events
 					}
-					$event_ids[] = $event['id'];
+					$eventIds[] = $event['id'];
 				}
-				return $event_ids;
+				return $eventIds;
 			}
 		}
 		// error, so return null

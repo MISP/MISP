@@ -26,9 +26,9 @@
 
 	Ext.onReady(function () {
 		var store = Ext.create('Ext.data.JsonStore', {
-			fields: [<?php echo $graph_fields;?>],
+			fields: [<?php echo $graphFields;?>],
 			data: [<?php
-foreach ($graph_data as $row) {
+foreach ($graphData as $row) {
 	echo '{' . $row . '},';
 }
 ?>]
@@ -50,7 +50,7 @@ foreach ($graph_data as $row) {
 				axes: [{
 					type: 'Numeric',
 					position: 'bottom',
-					fields: [<?php echo $graph_fields;?>],
+					fields: [<?php echo $graphFields;?>],
 					title: false,
 					grid: true,
 					label: {
@@ -70,7 +70,7 @@ foreach ($graph_data as $row) {
 					axis: 'bottom',
 					gutter: 80,
 					xField: 'org',
-					yField: [<?php echo $graph_fields;?>],
+					yField: [<?php echo $graphFields;?>],
 					stacked: true,
 					tips: {
 						trackMouse: true,
@@ -93,7 +93,7 @@ foreach ($graph_data as $row) {
 		<th>Amount</th>
 	</tr>
 	<?php
-	foreach ($types_histogram as $item):
+	foreach ($typesHistogram as $item):
 	?>
 		<tr>
 			<td><?php echo $item['Event']['org']; ?>&nbsp;</td>

@@ -206,8 +206,8 @@ class User extends AppModel {
 		require_once 'Crypt/GPG.php';
 		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 		try {
-			$key_import_output = $gpg->importKey($check['gpgkey']);
-			if (!empty($key_import_output['fingerprint'])) {
+			$keyImportOutput = $gpg->importKey($check['gpgkey']);
+			if (!empty($keyImportOutput['fingerprint'])) {
 				return true;
 			}
 		} catch (Exception $e) {
@@ -229,10 +229,10 @@ class User extends AppModel {
 		return preg_match('/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/', $value);
 	}
 
-	public function identicalFieldValues($field=array(), $compare_field=null) {
+	public function identicalFieldValues($field=array(), $compareField=null) {
 		foreach ($field as $key => $value) {
 			$v1 = $value;
-			$v2 = $this->data[$this->name][$compare_field];
+			$v2 = $this->data[$this->name][$compareField];
 			if ($v1 !== $v2) {
 				return false;
 			} else {
@@ -249,10 +249,10 @@ class User extends AppModel {
 		//$key = sha1(mt_rand(30, 30).time());
 		$length = 40;
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-		$char_len = strlen($characters) - 1;
+		$charLen = strlen($characters) - 1;
 		$key = '';
 		for ($p = 0; $p < $length; $p++) {
-			$key .= $characters[rand(0, $char_len)];
+			$key .= $characters[rand(0, $charLen)];
 		}
 
 		return $key;

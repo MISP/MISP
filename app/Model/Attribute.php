@@ -36,7 +36,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
  *
  * @var array
  */
-	public $field_descriptions = array(
+	public $fieldDescriptions = array(
 			'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
 			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
 	);
@@ -46,17 +46,17 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 
 	// if these then a category my have upload to be zipped
 
-	public $zipped_definitions = array(
+	public $zippedDefinitions = array(
 			'malware-sample'
 	);
 
 	// if these then a category my have upload
 
-	public $upload_definitions = array(
+	public $uploadDefinitions = array(
 			'attachment'
 	);
 
-	public $type_definitions = array(
+	public $typeDefinitions = array(
 			'md5' => array('desc' => 'A checksum in md5 format', 'formdesc' => "You are encouraged to use filename|md5 instead. <br/>A checksum in md5 format, only use this if you don't know the correct filename"),
 			'sha1' => array('desc' => 'A checksum in sha1 format', 'formdesc' => "You are encouraged to use filename|sha1 instead. <br/>A checksum in sha1 format, only use this if you don't know the correct filename"),
 			'filename' => array('desc' => 'Filename'),
@@ -89,7 +89,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 	);
 
 	// definitions of categories
-	public $category_definitions = array(
+	public $categoryDefinitions = array(
 			'Internal reference' => array(
 					'desc' => 'Reference used by the publishing party (e.g. ticket number)',
 					'types' => array('link', 'comment', 'text', 'other')
@@ -170,7 +170,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 			//'on' => 'create', // Limit validation to 'create' or 'update' operations
 
 		),
-		// this could be initialized from category_definitions but dunno how at the moment
+		// this could be initialized from categoryDefinitions but dunno how at the moment
 		'category' => array(
 			'rule' => array('inList', array(
 							'Internal reference',
@@ -289,10 +289,10 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 		// explode value of composite type in value1 and value2
 		// or copy value to value1 if not composite type
 		if (!empty($this->data['Attribute']['type'])) {
-			$composite_types = $this->getCompositeTypes();
+			$compositeTypes = $this->getCompositeTypes();
 			// explode composite types in value1 and value2
 			$pieces = explode('|', $this->data['Attribute']['value']);
-			if (in_array($this->data['Attribute']['type'], $composite_types)) {
+			if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
 				if (2 != count($pieces)) {
 					throw new InternalErrorException('Composite type, but value not explodable');
 				}
@@ -378,13 +378,13 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 
 	public function valueIsUnique ($fields) {
 		$value = $fields['value'];
-		$event_id = $this->data['Attribute']['event_id'];
+		$eventId = $this->data['Attribute']['event_id'];
 		$type = $this->data['Attribute']['type'];
-		$to_ids = $this->data['Attribute']['to_ids'];
+		$toIds = $this->data['Attribute']['to_ids'];
 		$category = $this->data['Attribute']['category'];
 
 		// check if the attribute already exists in the same event
-		$conditions = array('Attribute.event_id' => $event_id,
+		$conditions = array('Attribute.event_id' => $eventId,
 				'Attribute.type' => $type,
 				'Attribute.category' => $category,
 				'Attribute.value' => $value
@@ -406,8 +406,8 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 
 	public function validateTypeValue($fields) {
 		$category = $this->data['Attribute']['category'];
-		if (isset($this->category_definitions[$category]['types'])) {
-			return in_array($fields['type'], $this->category_definitions[$category]['types']);
+		if (isset($this->categoryDefinitions[$category]['types'])) {
+			return in_array($fields['type'], $this->categoryDefinitions[$category]['types']);
 		}
 		return false;
 	}
@@ -558,15 +558,15 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 	public function getCompositeTypes() {
 		// build the list of composite Attribute.type dynamically by checking if type contains a |
 		// default composite types
-		$composite_types = array('malware-sample');	// TODO hardcoded composite
+		$compositeTypes = array('malware-sample');	// TODO hardcoded composite
 		// dynamically generated list
-		foreach (array_keys($this->type_definitions) as $type) {
+		foreach (array_keys($this->typeDefinitions) as $type) {
 			$pieces = explode('|', $type);
 			if (2 == count($pieces)) {
-				$composite_types[] = $type;
+				$compositeTypes[] = $type;
 			}
 		}
-		return $composite_types;
+		return $compositeTypes;
 	}
 
 	public function isOwnedByOrg($attributeid, $org) {
@@ -617,17 +617,17 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 		if (empty($fields)) {
 			$fields = array('Attribute.*');
 		}
-		$similar_events = $this->find('all',array('conditions' => $conditions,
+		$similarEvents = $this->find('all',array('conditions' => $conditions,
 												'fields' => $fields,
 												'recursive' => 0,
 												'group' => array('Attribute.event_id'),
 												'order' => 'Attribute.event_id DESC', )
 		);
-		return $similar_events;
+		return $similarEvents;
 	}
 
 	public function typeIsMalware($type) {
-		if (in_array($type, $this->zipped_definitions)) {
+		if (in_array($type, $this->zippedDefinitions)) {
 			return true;
 		} else {
 			return false;
@@ -635,7 +635,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 	}
 
 	public function typeIsAttachment($type) {
-		if ((in_array($type, $this->zipped_definitions)) || (in_array($type, $this->upload_definitions))) {
+		if ((in_array($type, $this->zippedDefinitions)) || (in_array($type, $this->uploadDefinitions))) {
 			return true;
 		} else {
 			return false;
@@ -653,12 +653,12 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 	}
 
 	public function saveBase64EncodedAttachment($attribute) {
-		$root_dir = APP . DS . "files" . DS . $attribute['event_id'];
-		$dir = new Folder($root_dir, true);						// create directory structure
-		$destpath = $root_dir . DS . $attribute['id'];
+		$rootDir = APP . DS . "files" . DS . $attribute['event_id'];
+		$dir = new Folder($rootDir, true);						// create directory structure
+		$destpath = $rootDir . DS . $attribute['id'];
 		$file = new File ($destpath, true);						// create the file
-		$decoded_data = base64_decode($attribute['data']);		// decode
-		if ($file->write($decoded_data)) {						// save the data
+		$decodedData = base64_decode($attribute['data']);		// decode
+		if ($file->write($decodedData)) {						// save the data
 			return true;
 		} else {
 			// error
@@ -688,22 +688,22 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 	public function doubleAttributes() {
 		$doubleAttributes = array();
 
-		$similar_value1 = $this->find('all',array('conditions' => array(),
+		$similarValue1 = $this->find('all',array('conditions' => array(),
 												'fields' => 'value1',
 												'recursive' => 0,
 												'group' => 'Attribute.value1 HAVING count(1)>1' ));
-		$similar_value2 = $this->find('all',array('conditions' => array(),
+		$similarValue2 = $this->find('all',array('conditions' => array(),
 												'fields' => 'value2',
 												'recursive' => 0,
 												'group' => 'Attribute.value2 HAVING count(1)>1' ));
-		$similar_values = $this->find('all', array('joins' => array(array(
+		$similarValues = $this->find('all', array('joins' => array(array(
 															'table' => 'attributes',
 															'alias' => 'att2',
 															'type' => 'INNER',
 															'conditions' => array('Attribute.value2 = att2.value1'))),
 															'fields' => array('att2.value1')));
-		$doubleAttributes = array_merge($similar_value1,$similar_value2);
-		$doubleAttributes = array_merge($doubleAttributes,$similar_values);
+		$doubleAttributes = array_merge($similarValue1,$similarValue2);
+		$doubleAttributes = array_merge($doubleAttributes,$similarValues);
 
 		$double = array();
 		foreach ($doubleAttributes as $key => $doubleAttribute) {
@@ -727,14 +727,14 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 					'recursive' => 0,
 					'fields' => array('Event.date')
 				);
-				$event_date = $this->Event->find('first', $params);
+				$eventDate = $this->Event->find('first', $params);
 				$this->Correlation = ClassRegistry::init('Correlation');
 				$this->Correlation->create();
 				$this->Correlation->save(array(
 					'Correlation' => array(
 						'1_event_id' => $attribute['event_id'], '1_attribute_id' => $attribute['id'],
 						'event_id' => $relatedAttribute['Attribute']['event_id'], 'attribute_id' => $relatedAttribute['Attribute']['id'],
-						'date' => $event_date['Event']['date']))
+						'date' => $eventDate['Event']['date']))
 				);
 			}
 		}

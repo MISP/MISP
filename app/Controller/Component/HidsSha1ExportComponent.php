@@ -17,20 +17,20 @@ class HidsSha1ExportComponent extends Component {
 		foreach ($items as &$item) {
 
 			# sha-1
-			$rule_format = '%s';
+			$ruleFormat = '%s';
 
 			$attribute = &$item['Attribute'];
 
 			switch ($attribute['type']) {
 				case 'sha1':
 					if (!in_array ($attribute['value1'], $itemsDone)) {
-						$this->checksumRule($rule_format, $attribute);
+						$this->checksumRule($ruleFormat, $attribute);
 						$itemsDone[] = $attribute['value1'];
 					}
 					break;
 				case 'filename|sha1':
 					if (!in_array ($attribute['value2'], $itemsDone)) {
-						$this->partRule($rule_format, $attribute);
+						$this->partRule($ruleFormat, $attribute);
 						$itemsDone[] = $attribute['value2'];
 					}
 					break;
@@ -47,14 +47,14 @@ class HidsSha1ExportComponent extends Component {
 		return $this->rules;
 	}
 
-	public function checksumRule($rule_format, $attribute) {
-		$this->rules[] = sprintf($rule_format,
+	public function checksumRule($ruleFormat, $attribute) {
+		$this->rules[] = sprintf($ruleFormat,
 				$attribute['value1']			// md5
 				);
 	}
 
-	public function partRule($rule_format, $attribute) {
-		$this->rules[] = sprintf($rule_format,
+	public function partRule($ruleFormat, $attribute) {
+		$this->rules[] = sprintf($ruleFormat,
 				$attribute['value2']			// md5
 				);
 	}

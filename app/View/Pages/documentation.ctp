@@ -163,21 +163,21 @@ $attr = new Attribute();
 <table>
 <tr>
 	<th>Category</th>
-	<?php foreach ($attr->category_definitions as $cat => $cat_def): ?>
+	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
 	<th style="width:5%; text-align:center; white-space:normal"><?php echo $cat; ?></th>
 	<?php endforeach;?>
 </tr>
-<?php foreach ($attr->type_definitions as $type => $def): ?>
+<?php foreach ($attr->typeDefinitions as $type => $def): ?>
 <tr>
 	<td><?php echo $type; ?></td>
-	<?php foreach ($attr->category_definitions as $cat => $cat_def): ?>
-	<td style="text-align:center"><?php echo in_array($type, $cat_def['types'])? 'X' : ''; ?></td>
+	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
+	<td style="text-align:center"><?php echo in_array($type, $catDef['types'])? 'X' : ''; ?></td>
 	<?php endforeach;?>
 <?php endforeach;?>
 </tr>
 <tr>
 	<th>Category</th>
-	<?php foreach ($attr->category_definitions as $cat => $cat_def): ?>
+	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
 	<th style="width:5%; text-align:center; white-space:normal"><?php echo $cat; ?></th>
 	<?php endforeach;?>
 </tr>
@@ -188,7 +188,7 @@ $attr = new Attribute();
 	<th>Category</th>
 	<th>Description</th>
 </tr>
-<?php foreach ($attr->category_definitions as $cat => $def): ?>
+<?php foreach ($attr->categoryDefinitions as $cat => $def): ?>
 <tr>
 	<td><?php echo $cat; ?></td>
 	<td><?php echo isset($def['formdesc'])? $def['formdesc'] : $def['desc']; ?></td>
@@ -202,7 +202,7 @@ $attr = new Attribute();
 	<th>Type</th>
 	<th>Description</th>
 </tr>
-<?php foreach ($attr->type_definitions as $type => $def): ?>
+<?php foreach ($attr->typeDefinitions as $type => $def): ?>
 <tr>
 	<td><?php echo $type; ?></td>
 	<td><?php echo isset($def['formdesc'])? $def['formdesc'] : $def['desc']; ?></td>

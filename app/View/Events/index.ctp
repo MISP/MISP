@@ -10,11 +10,11 @@
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('date');?></th>
-			<th<?php echo ' title="' . $event_descriptions['risk']['desc'] . '"';?>>
+			<th<?php echo ' title="' . $eventDescriptions['risk']['desc'] . '"';?>>
 			<?php echo $this->Paginator->sort('risk');?></th>
 			<th><?php echo $this->Paginator->sort('info');?></th>
 			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
-			<th<?php echo ' title="' . $event_descriptions['private']['desc'] . '"';?>>
+			<th<?php echo ' title="' . $eventDescriptions['private']['desc'] . '"';?>>
 			<?php echo $this->Paginator->sort('private');?></th>
 			<?php endif; ?>
 			<th class="actions"><?php echo __('Actions');?></th>

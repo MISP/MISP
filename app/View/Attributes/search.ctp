@@ -19,12 +19,12 @@
 
 var formInfoValues = new Array();
 <?php
-foreach ($type_definitions as $type => $def) {
+foreach ($typeDefinitions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['$type'] = \"$info\";\n";
 }
 
-foreach ($category_definitions as $category => $def) {
+foreach ($categoryDefinitions as $category => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['$category'] = \"$info\";\n";
 }

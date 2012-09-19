@@ -41,7 +41,7 @@
 			<?php echo h($event['Event']['date']); ?>
 			&nbsp;
 		</dd>
-		<dt<?php echo ' title="' . $event_descriptions['risk']['desc'] . '"';?>>Risk</dt>
+		<dt<?php echo ' title="' . $eventDescriptions['risk']['desc'] . '"';?>>Risk</dt>
 		<dd>
 			<?php echo $event['Event']['risk']; ?>
 			&nbsp;
@@ -71,11 +71,11 @@
 <?php foreach ($relatedEvents as $relatedEvent): ?>
 <li><?php
 if ('db' == Configure::read('CyDefSIG.correlation')) {	// TODO array key
-	$link_text = $relatedEvent['date'] . ' (' . $relatedEvent['id'] . ')';
-	echo $this->Html->link($link_text, array('controller' => 'attributes', 'action' => 'event', $relatedEvent['id']));
+	$linkText = $relatedEvent['date'] . ' (' . $relatedEvent['id'] . ')';
+	echo $this->Html->link($linkText, array('controller' => 'attributes', 'action' => 'event', $relatedEvent['id']));
 } else {
-	$link_text = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-	echo $this->Html->link($link_text, array('controller' => 'attributes', 'action' => 'event', $relatedEvent['Event']['id']));
+	$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
+	echo $this->Html->link($linkText, array('controller' => 'attributes', 'action' => 'event', $relatedEvent['Event']['id']));
 }
 ?></li>
 		<?php endforeach; ?>
@@ -92,9 +92,9 @@ if ('db' == Configure::read('CyDefSIG.correlation')) {	// TODO array key
 			<th>Type</th>
 			<th>Value</th>
 			<th>Related Events</th>
-			<th <?php echo "title='" . $attr_descriptions['signature']['desc'] . "'";?>>IDS Signature</th>
+			<th <?php echo "title='" . $attrDescriptions['signature']['desc'] . "'";?>>IDS Signature</th>
 			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
-			<th <?php echo "title='" . $attr_descriptions['private']['desc'] . "'";?>>Private</th>
+			<th <?php echo "title='" . $attrDescriptions['private']['desc'] . "'";?>>Private</th>
 			<?php endif;?>
 			<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
 			<th class="actions">Actions</th>
@@ -107,7 +107,7 @@ if ('db' == Configure::read('CyDefSIG.correlation')) {	// TODO array key
 				if ($attribute['Attribute']['category'] != $category) continue;
 			?>
 			<tr>
-				<td class="short" title="<?php if ('' != $attribute['Attribute']['category']) echo $category_definitions[$attribute['Attribute']['category']]['desc'];?>"><?php
+				<td class="short" title="<?php if ('' != $attribute['Attribute']['category']) echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>"><?php
 if ($first) {
 	if ('' == $attribute['Attribute']['category']) echo '(no category)';
 	echo $attribute['Attribute']['category'];
@@ -115,25 +115,25 @@ if ($first) {
 	echo '&nbsp;';
 }
 ?></td>
-				<td class="short" title="<?php echo $type_definitions[$attribute['Attribute']['type']]['desc'];?>">
+				<td class="short" title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>">
 				<?php echo $attribute['Attribute']['type'];?></td>
 				<td><?php
-$sig_display = nl2br(h($attribute['Attribute']['value']));
+$sigDisplay = nl2br(h($attribute['Attribute']['value']));
 if ('attachment' == $attribute['Attribute']['type'] ||
 		'malware-sample' == $attribute['Attribute']['type'] ) {
-	$filename_hash = explode('|', h($attribute['Attribute']['value']));
-	echo $this->Html->link($filename_hash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']));
-	if (isset($filename_hash[1])) echo ' | ' . $filename_hash[1];
+	$filenameHash = explode('|', h($attribute['Attribute']['value']));
+	echo $this->Html->link($filenameHash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']));
+	if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 } elseif (strpos($attribute['Attribute']['type'], '|') !== false) {
-	$filename_hash = explode('|', h($attribute['Attribute']['value']));
-	echo $filename_hash[0];
-	if (isset($filename_hash[1])) echo ' | ' . $filename_hash[1];
+	$filenameHash = explode('|', h($attribute['Attribute']['value']));
+	echo $filenameHash[0];
+	if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 } elseif ('vulnerability' == $attribute['Attribute']['type']) {
-	echo $this->Html->link($sig_display, 'http://www.google.com/search?q=' . $sig_display, array('target' => '_blank'));
+	echo $this->Html->link($sigDisplay, 'http://www.google.com/search?q=' . $sigDisplay, array('target' => '_blank'));
 } elseif ('link' == $attribute['Attribute']['type']) {
-	echo $this->Html->link($sig_display, $sig_display);
+	echo $this->Html->link($sigDisplay, $sigDisplay);
 } else {
-	echo $sig_display;
+	echo $sigDisplay;
 }
 ?></td>
 				<td class="short" style="text-align: center;">
