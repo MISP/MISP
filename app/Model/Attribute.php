@@ -414,40 +414,45 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 
 	public function validateAttributeValue ($fields) {
 		$value = $fields['value'];
+		$returnValue = false;
 
 		// check data validation
 		switch($this->data['Attribute']['type']) {
 			case 'md5':
 				if (preg_match("#^[0-9a-f]{32}$#", $value)) {
-					return true;
+					$returnValue = true;
+				} else {
+					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
-				return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				break;
 			case 'sha1':
 				if (preg_match("#^[0-9a-f]{40}$#", $value)) {
-					return true;
+					$returnValue = true;
+				} else {
+					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
-				return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				break;
 			case 'filename':
 				// no newline
 				if (preg_match("#\n#", $value)) {
-					return true;
+					$returnValue = true;
 				}
 				break;
 			case 'filename|md5':
 				// no newline
 				if (preg_match("#^.+\|[0-9a-f]{32}$#", $value)) {
-					return true;
+					$returnValue = true;
+				} else {
+					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
-				return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				break;
 			case 'filename|sha1':
 				// no newline
 				if (preg_match("#^.+\|[0-9a-f]{40}$#", $value)) {
-					return true;
+					$returnValue = true;
+				} else {
+					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
-				return 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				break;
 			case 'ip-src':
 				$parts = explode("/", $value);
@@ -458,15 +463,17 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 					if (filter_var($parts[0],FILTER_VALIDATE_IP)) {
 						// ip is validated, now check if we have a valid network mask
 						if (empty($parts[1])) {
-							return true;
+							$returnValue = true;
 						} else {
 							if (is_numeric($parts[1]) && $parts[1] < 129) {
-								return true;
+								$returnValue = true;
 							}
 						}
 					}
 				}
-				return 'IP address has invalid format. Please double check the value or select "other" for a type.';
+				if (!$returnValue) {
+					$returnValue = 'IP address has invalid format. Please double check the value or select "other" for a type.';
+				}
 				break;
 			case 'ip-dst':
 				$parts = explode("/", $value);
@@ -477,82 +484,87 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 					if (filter_var($parts[0],FILTER_VALIDATE_IP)) {
 						// ip is validated, now check if we have a valid network mask
 						if (empty($parts[1])) {
-							return true;
+							$returnValue = true;
 						} else {
 							if (is_numeric($parts[1]) && $parts[1] < 129) {
-								return true;
+								$returnValue = true;
 							}
 						}
 					}
 				}
-				return 'IP address has invalid format. Please double check the value or select "other" for a type.';
+				if (!$returnValue) {
+					$returnValue = 'IP address has invalid format. Please double check the value or select "other" for a type.';
+				}
 				break;
 			case 'hostname':
 			case 'domain':
 				if (preg_match("#^[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value)) {
-					return true;
+					$returnValue = true;
+				} else {
+					$returnValue = 'Domain name has invalid format. Please double check the value or select "other" for a type.';
 				}
-				return 'Domain name has invalid format. Please double check the value or select "other" for a type.';
 				break;
 			case 'email-src':
 				// we don't use the native function to prevent issues with partial email addresses
 				if (preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value)) {
-					return true;
+					$returnValue = true;
+				} else {
+					$returnValue = 'Email address has invalid format. Please double check the value or select "other" for a type.';
 				}
-				return 'Email address has invalid format. Please double check the value or select "other" for a type.';
 				break;
 			case 'email-dst':
 				// we don't use the native function to prevent issues with partial email addresses
 				if (preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value)) {
-					return true;
+					$returnValue = true;
+				} else {
+					$returnValue = 'Email address has invalid format. Please double check the value or select "other" for a type.';
 				}
-				return 'Email address has invalid format. Please double check the value or select "other" for a type.';
 				break;
 			case 'email-subject':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
-					return true;
+					$returnValue = true;
 				}
 				break;
 			case 'email-attachment':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
-					return true;
+					$returnValue = true;
 				}
 				break;
 			case 'url':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
-					return true;
+					$returnValue = true;
 				}
 				break;
 			case 'user-agent':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
-					return true;
+					$returnValue = true;
 				}
 				break;
 			case 'regkey':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
-					return true;
+					$returnValue = true;
 				}
 				break;
 			case 'regkey|value':
 				// no newline
 				if (!preg_match("#.+\|.+#", $value)) {
-					return true;
+					$returnValue = true;
 				}
 				break;
 			case 'snort':
 				// no validation yet. TODO implement data validation on snort attribute type
 			case 'other':
-				return true;
+				$returnValue = true;
 				break;
 		}
 
 		// default action is to return false
-		return true;
+		return $returnValue;
 	}
 
 	public function getCompositeTypes() {
