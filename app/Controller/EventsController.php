@@ -1204,7 +1204,13 @@ class EventsController extends AppController {
 				if ($key == 'filename') $arrayItemKey = (string)$val;
 				if ($key == 'md5') $arrayItemValue = (string)$val;
 			}
-			$files[str_replace('C:\Users\John','%UserProfile%',$arrayItemKey)] = $arrayItemValue;
+			// replace Windows Environment Variables
+			$arrayItemKey = str_replace('C:\Users\John', '%UserProfile%', $arrayItemKey);
+			$arrayItemKey = str_replace('C:\Documents and Settings\James Cocks', '%UserProfile%', $arrayItemKey);
+			$arrayItemKey = str_replace('C:\DOCUME~1\JAMESC~1', '%UserProfile%', $arrayItemKey);
+			$arrayItemKey = str_replace('C:\Documents and Settings\All Users', '%AllUsersProfile%', $arrayItemKey);
+
+			$files[$arrayItemKey] = $arrayItemValue;
 		}
 		//$files = array_unique($files);
 
