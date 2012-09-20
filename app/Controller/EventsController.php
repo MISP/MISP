@@ -1233,7 +1233,10 @@ class EventsController extends AppController {
 				}
 			}
 			$actualFile = $root_dir.DS.'Analysis'.DS.'proc_'.$index.DS.'modified_files'.DS.$actualFileName;
-			$this->Event->Attribute->uploadAttachment($actualFile,$realFileName,false,$id);
+			$file = new File($actualFile);
+	    	if ($file->exists()) {
+				$this->Event->Attribute->uploadAttachment($actualFile,$realFileName,false,$id);
+			}
 		}
 
 		//Network activity -- ip-dst
