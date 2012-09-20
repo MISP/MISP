@@ -5,14 +5,14 @@ App::uses('AppModel', 'Model');
  *
  */
 class Server extends AppModel {
-	
+
 	var $name = 'Server';					// TODO general
- 	var $actsAs = array('Logable' => array(	// TODO Audit, logable, check: 'userModel' and 'userKey' can be removed given default
-        'userModel' => 'User', 
-        'userKey' => 'user_id', 
+ 	var $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable, check: 'userModel' and 'userKey' can be removed given default
+        'userModel' => 'User',
+        'userKey' => 'user_id',
         'change' => 'full'
     ));
-    
+
 /**
  * Display field
  *

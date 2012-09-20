@@ -11,14 +11,14 @@ App::uses('File', 'Utility');
 class Attribute extends AppModel {
 
 	var $combinedKeys = array('event_id', 'category', 'type');
-	
+
 	var $name = 'Attribute';				// TODO general
-	var $actsAs = array('Logable' => array(	// TODO Audit, logable
-        'userModel' => 'User', 
-        'userKey' => 'user_id', 
+	var $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+        'userModel' => 'User',
+        'userKey' => 'user_id',
         'change' => 'full'
     ));
-    
+
 /**
  * Display field
  *
@@ -29,14 +29,14 @@ class Attribute extends AppModel {
 	public $virtualFields = array(
 	        'value' => 'IF (Attribute.value2="", Attribute.value1, CONCAT(Attribute.value1, "|", Attribute.value2))',
 			'category_order' => 'IF (Attribute.category="Internal reference", "a",
-IF (Attribute.category="Antivirus detection", "b", 
-IF (Attribute.category="Payload delivery", "c", 
-IF (Attribute.category="Payload installation", "d", 
-IF (Attribute.category="Artifacts dropped", "e", 
-IF (Attribute.category="Persistence mechanism", "f", 
-IF (Attribute.category="Network activity", "g", 
-IF (Attribute.category="Payload type", "h", 
-IF (Attribute.category="Attribution", "i", 
+IF (Attribute.category="Antivirus detection", "b",
+IF (Attribute.category="Payload delivery", "c",
+IF (Attribute.category="Payload installation", "d",
+IF (Attribute.category="Artifacts dropped", "e",
+IF (Attribute.category="Persistence mechanism", "f",
+IF (Attribute.category="Network activity", "g",
+IF (Attribute.category="Payload type", "h",
+IF (Attribute.category="Attribution", "i",
 IF (Attribute.category="External analysis", "j", "k"))))))))))'
 	); 	// TODO hardcoded
 
@@ -318,7 +318,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
 	    	// update correlation..
 			$this->_afterSaveCorrelation($this->data['Attribute']);
         }
-		
+
         $result = true;
         // if the 'data' field is set on the $this->data then save the data to the correct file
         if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
@@ -341,7 +341,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
     	        }
 	        }
 	    }
-	    
+
         if ('db' == Configure::read('CyDefSIG.correlation')) {
 	    	// update correlation..
 	    	$this->_beforeDeleteCorrelation($this->data['Attribute']['id']);
@@ -355,7 +355,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
 	    if (!isset($this->data['Attribute']['type'])) {
 	    	return false;
 	    }
-	    
+
 	    switch($this->data['Attribute']['type']) {
 	        // lowercase these things
 	        case 'md5':
@@ -608,12 +608,12 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
 		if (in_array($type, $this->zipped_definitions)) return true;
         else return false;
 	}
-	
+
 	function typeIsAttachment($type) {
 		if ((in_array($type, $this->zipped_definitions)) || (in_array($type, $this->upload_definitions))) return true;
         else return false;
 	}
-	
+
 	function base64EncodeAttachment($attribute) {
 	    $filepath = APP."files".DS.$attribute['event_id'].DS.$attribute['id'];
 	    $file = new File($filepath);
@@ -695,7 +695,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'
         	rename($file_attach->path, $file->path);
         }
 	}
-	
+
     function _afterSaveCorrelation($attribute) {
         $this->_beforeDeleteCorrelation($attribute);
         // re-add

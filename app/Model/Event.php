@@ -7,14 +7,14 @@ App::uses('AppModel', 'Model');
  * @property Attribute $Attribute
  */
 class Event extends AppModel {
-	
+
 	var $name = 'Event';					// TODO general
-    var $actsAs = array('Logable' => array(	// TODO Audit, logable
-        'userModel' => 'User', 
-        'userKey' => 'user_id', 
+    var $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+        'userModel' => 'User',
+        'userKey' => 'user_id',
         'change' => 'full'
     ));
-	
+
 /**
  * Display field
  *
@@ -192,23 +192,23 @@ class Event extends AppModel {
     	App::uses('Folder', 'Utility');
         $file = new Folder ($filepath);
         if(is_dir($filepath)) {
-            if(!$this->destroyDir($filepath)) {	
+            if(!$this->destroyDir($filepath)) {
                 throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
             }
         }
 	}
-	
-	function destroyDir($dir) { 
-    if (!is_dir($dir) || is_link($dir)) return unlink($dir); 
-        foreach (scandir($dir) as $file) { 
-            if ($file == '.' || $file == '..') continue; 
-            if (!$this->destroyDir($dir.DS.$file)) { 
-                chmod($dir.DS.$file, 0777); 
-                if (!$this->destroyDir($dir.DS.$file)) return false; 
-            }; 
-        } 
-        return rmdir($dir); 
-    } 
+
+	function destroyDir($dir) {
+    if (!is_dir($dir) || is_link($dir)) return unlink($dir);
+        foreach (scandir($dir) as $file) {
+            if ($file == '.' || $file == '..') continue;
+            if (!$this->destroyDir($dir.DS.$file)) {
+                chmod($dir.DS.$file, 0777);
+                if (!$this->destroyDir($dir.DS.$file)) return false;
+            };
+        }
+        return rmdir($dir);
+    }
 
 	function beforeValidate() {
 	    // generate UUID if it doesn't exist

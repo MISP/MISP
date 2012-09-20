@@ -162,5 +162,8 @@ Configure::write('CyDefSIG.correlation', 'sql');        // correlation between a
  *
  */
 
-CakePlugin::load('SysLog');
 CakePlugin::load('AclExtras');
+
+CakePlugin::load('SysLog');
+CakePlugin::load('Assets'); // having Logable
+CakePlugin::load('SysLogLogable');

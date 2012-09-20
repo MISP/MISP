@@ -45,7 +45,7 @@ class EventsController extends AppController {
         $this->Auth->allow('dot');
 
         // TODO Audit, activate logable in a Controller
-        if (sizeof($this->uses) && $this->{$this->modelClass}->Behaviors->attached('Logable')) {
+        if (sizeof($this->uses) && $this->{$this->modelClass}->Behaviors->attached('SysLogLogable')) {
             $this->{$this->modelClass}->setUserData($this->activeUser);
         }
 
