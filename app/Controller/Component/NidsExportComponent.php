@@ -457,7 +457,8 @@ class NidsExportComponent extends Component {
 	}
 
 	public function checkNames($name) {
-		$ipl = $this->nametoipl($name);
+		// FIXME fix the checkNames() function and concept
+		$ipl = array();
 		$ipl[] = $name;
 		$overruled = false;
 		foreach ($ipl as $ip) {
