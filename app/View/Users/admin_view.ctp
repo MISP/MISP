@@ -41,10 +41,10 @@
 		</dd>
 		<dt><?php echo __('Gpgkey'); ?></dt>
 
-                <dd style="font-size: 10px; line-height:100%;">
-                        <code><?php echo nl2br(h($user['User']['gpgkey'])); ?></code>
-                        &nbsp;
-                </dd>
+				<dd style="font-size: 10px; line-height:100%;">
+						<code><?php echo nl2br(h($user['User']['gpgkey'])); ?></code>
+						&nbsp;
+				</dd>
 
 		<dt><?php echo __('Nids Sid'); ?></dt>
 		<dd>

@@ -5,12 +5,14 @@ App::uses('AppModel', 'Model');
  *
  */
 class Server extends AppModel {
+
 /**
  * Display field
  *
  * @var string
  */
 	public $displayField = 'url';
+
 /**
  * Validation rules
  *
@@ -25,7 +27,7 @@ class Server extends AppModel {
 				//'required' => false,
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
+			)
 		),
 		'authkey' => array(
 			'notempty' => array(
@@ -78,20 +80,18 @@ class Server extends AppModel {
 			),
 		),
 		'lastpulledid' => array(
-		        'numeric' => array(
-		                'rule' => array('numeric'),
-		                //'message' => 'Your custom message here',
-		                'allowEmpty' => true,
-		                'required' => false,
-		                //'last' => false, // Stop validation after this rule
-		                //'on' => 'create', // Limit validation to 'create' or 'update' operations
-		        ),
+			'numeric' => array(
+				'rule' => array('numeric'),
+				//'message' => 'Your custom message here',
+				'allowEmpty' => true,
+				'required' => false,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
 		),
 	);
 
-
 	public function isOwnedByOrg($serverid, $org) {
-	    return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
+		return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
 	}
-
 }

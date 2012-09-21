@@ -13,46 +13,46 @@ any page of the site.</p>
 <p>The left menu allows the user navigating to the different features/pages of the site:</p>
 <ul>
 	<li><em>New Event:</em>
-	    <p>Allow user to create a new event. See How to share a malware signatures 
-	    section for further details.</p></li>
+		<p>Allow user to create a new event. See How to share a malware signatures
+		section for further details.</p></li>
 	<li><em>List Events: </em>
-    	<p>List all events and allows users to </p>
-    	<ul>
-    	    <li>display the details of the events</li>
-    	    <li>contact the publishing party of an even by clicking <b>Contact Reporter </b>button in the Event page.</li>
-    	    <li>Modify or delete an event and attributes you have imported.</li>
-    	</ul>
-    	<p></p></li>
+		<p>List all events and allows users to </p>
+		<ul>
+			<li>display the details of the events</li>
+			<li>contact the publishing party of an even by clicking <b>Contact Reporter </b>button in the Event page.</li>
+			<li>Modify or delete an event and attributes you have imported.</li>
+		</ul>
+		<p></p></li>
 	<li><em>List Attributes:</em>
-	    <p>Lists all attributes cross events.</p></li>
+		<p>Lists all attributes cross events.</p></li>
 	<li><em>Search Attribute:</em>
-    	<p>You can search for attributes based on key words
-    	and apply a filtering based on the category and or attribute type.</p></li>
+		<p>You can search for attributes based on key words
+		and apply a filtering based on the category and or attribute type.</p></li>
 	<li><em>Export:</em>
-    	<p>Different format are supported: XML (all or per
-    	event), text (all or per attribute type), and IDS format. Note that
-    	only the attributes that have been selected to be in the part of IDS
-    	will be included in this latter.</p></li>
+		<p>Different format are supported: XML (all or per
+		event), text (all or per attribute type), and IDS format. Note that
+		only the attributes that have been selected to be in the part of IDS
+		will be included in this latter.</p></li>
 	<li><em>News:</em>
-	    <p>Provide the latest news regarding the site like last changes.</p></li>
+		<p>Provide the latest news regarding the site like last changes.</p></li>
 	<li><em>My Profile:</em>
-    	<p>Allows to setup the user profile:</p>
-    	<ul>
-    		<li>email address to which new events will be sent,</li>
-    		<li>the AuthKey used to automate the export of events/attributes from the application
-    		(see Export),</li>
-    		<li>NIDS starting SID,</li>
-    		<li>PGP public key used to encrypt the events sent by email</li>
-    	</ul>
-    	<p></p></li>
+		<p>Allows to setup the user profile:</p>
+		<ul>
+			<li>email address to which new events will be sent,</li>
+			<li>the AuthKey used to automate the export of events/attributes from the application
+			(see Export),</li>
+			<li>NIDS starting SID,</li>
+			<li>PGP public key used to encrypt the events sent by email</li>
+		</ul>
+		<p></p></li>
 	<li><em>Member List</em>
-	    <p>Provide statstics about the site.</p></li>
+		<p>Provide statstics about the site.</p></li>
 	<li><em>User Guide</em>
-	    <p>Displays this document.</p></li>
+		<p>Displays this document.</p></li>
 	<li><em>Terms & Conditions</em>
-	    <p>Defines terms of use of this platform.</p></li>
+		<p>Defines terms of use of this platform.</p></li>
 	<li><em>List Servers</em>
-	    <p>Displays a list of servers that the user synchronizes his account to.</p></li>
+		<p>Displays a list of servers that the user synchronizes his account to.</p></li>
 </ul>
 
 
@@ -81,73 +81,73 @@ events with same attributes.</p>
 <ol>
 	<li>Click on <em>New Event</em> (left menu)</li>
 	<li>Fill-in the form:
-    	<ul>
-    	<li><em>Date*:</em> date of the malware was discovered</li>
+		<ul>
+		<li><em>Date*:</em> date of the malware was discovered</li>
 	<li><em>Private*:</em> is the event sharable with other servers. <small>(only in sync-mode)</small></li>
-     	<li><em>Risk*:</em> estimated risk level related to the malware.<br/>
-	        Guideline for risk level:
-		    <ul>
-    			<li>Undefined (default)</li>
-    			<li>Low - TBD</li>
-    			<li>Med - Advanced Persistent Threat</li>
-    			<li>High - Very sophisticated APT (e.g. including 0-day)</li>
-		    </ul>
+	 	<li><em>Risk*:</em> estimated risk level related to the malware.<br/>
+			Guideline for risk level:
+			<ul>
+				<li>Undefined (default)</li>
+				<li>Low - TBD</li>
+				<li>Med - Advanced Persistent Threat</li>
+				<li>High - Very sophisticated APT (e.g. including 0-day)</li>
+			</ul>
 		</li>
-       <li><em>Info*:</em> High level information that can help to understand the malware/attack,
-            like title and high level behavior.<br/>
-            This field should remain as short as possible (recommended max 50 words).
-            The full description of the malware behavior and its artifacts must
-            be defined as an attribute (other).</li>
-        </ul>
-    </li>
-    <li style="clear:both;">Click <em>Submit</em>
-    	<img src="/img/doc/add-event-done.png" style="float:right;" />
-    	<p>Note that at this stage, the information is
-    	shared on the site but no notification is sent to the other parties
-    	yet.</p></li>
-    <li>Click <em>Add Attribute</em> or <em>Add Attachment</em>
+	   <li><em>Info*:</em> High level information that can help to understand the malware/attack,
+			like title and high level behavior.<br/>
+			This field should remain as short as possible (recommended max 50 words).
+			The full description of the malware behavior and its artifacts must
+			be defined as an attribute (other).</li>
+		</ul>
+	</li>
+	<li style="clear:both;">Click <em>Submit</em>
+		<img src="/img/doc/add-event-done.png" style="float:right;" />
+		<p>Note that at this stage, the information is
+		shared on the site but no notification is sent to the other parties
+		yet.</p></li>
+	<li>Click <em>Add Attribute</em> or <em>Add Attachment</em>
 	</li>
 	<li style="clear:both;">For Attribute:
-    	<img src="/img/doc/add-attribute.png" style="float:right;" />
-    	<ul>
-        	<li><em>Category*</em>: see Category section below</li>
-        	<li><em>Type*:</em> see Type section below</li>
-        	<li><em>Private*:</em> prevent upload of this specific Attribute to other servers. <small>(only in sync-mode)</small></li>
-        	<li><em>IDS Signature?</em>: Check this box if you want
-        	the attribute to be part of the IDS signature generated by the site.
-        	Make sure that the information in value is usable in an IDS
-        	signature, do not check if it is free text, Vulnerability.</li>
-        	<li><em>Value:</em> enter the attribute value. Note
-        	that the value format will be validated for some types like hash and
-        	IP addresses.</li>
-        	<li><em>Batch Import:</em> check this box to import
-        	data in batch. Enter an attribute value per line, each entry will be
-        	assigned the selected Category and Type.</li>
-        	<li>Click <em>Submit</em></li>
-        </ul>
-    </li>
+		<img src="/img/doc/add-attribute.png" style="float:right;" />
+		<ul>
+			<li><em>Category*</em>: see Category section below</li>
+			<li><em>Type*:</em> see Type section below</li>
+			<li><em>Private*:</em> prevent upload of this specific Attribute to other servers. <small>(only in sync-mode)</small></li>
+			<li><em>IDS Signature?</em>: Check this box if you want
+			the attribute to be part of the IDS signature generated by the site.
+			Make sure that the information in value is usable in an IDS
+			signature, do not check if it is free text, Vulnerability.</li>
+			<li><em>Value:</em> enter the attribute value. Note
+			that the value format will be validated for some types like hash and
+			IP addresses.</li>
+			<li><em>Batch Import:</em> check this box to import
+			data in batch. Enter an attribute value per line, each entry will be
+			assigned the selected Category and Type.</li>
+			<li>Click <em>Submit</em></li>
+		</ul>
+	</li>
 
-    <li style="clear:both;">For Attachment:
-        <img src="/img/doc/add-attachment.png" style="float:right;" />
-        <ul>
-        	<li><em>Category:</em> see Category section below</li>
-        	<li>Select the file to upload</li>
-        	<li><em>Malware:</em> Check this box if the file to upload is
-        	harmful. The system will then encrypt with zip before storing the
-        	file with the default password, <em>"infected"</em>. This will protect
-        	other systems against accidental infection.<br/>
-        	Note that a hash will be automatically computed
-        	and added to the event as an attribute.</li>
-        	<li>Click <em>Upload</em></li>
-        </ul>
-    <li>Redo steps 5-6 as many time as attributes you need to upload.</li>
-    <li>Click <em>Publish Event</em> once all attributes are uploaded.<br/>
-        <p>The application will then send the event with all uploaded information
-        to all users of the site.<br/>
-        In sync-mode the event will also be uploaded to other servers users have configured in their profile.</p>
-        <p>You can modify, delete or add new attributes after publishing. In that case, any
-        change will be accessible by other users via the GUI and only
-        released by email to all users once you re-Publish the event.</p>
+	<li style="clear:both;">For Attachment:
+		<img src="/img/doc/add-attachment.png" style="float:right;" />
+		<ul>
+			<li><em>Category:</em> see Category section below</li>
+			<li>Select the file to upload</li>
+			<li><em>Malware:</em> Check this box if the file to upload is
+			harmful. The system will then encrypt with zip before storing the
+			file with the default password, <em>"infected"</em>. This will protect
+			other systems against accidental infection.<br/>
+			Note that a hash will be automatically computed
+			and added to the event as an attribute.</li>
+			<li>Click <em>Upload</em></li>
+		</ul>
+	<li>Redo steps 5-6 as many time as attributes you need to upload.</li>
+	<li>Click <em>Publish Event</em> once all attributes are uploaded.<br/>
+		<p>The application will then send the event with all uploaded information
+		to all users of the site.<br/>
+		In sync-mode the event will also be uploaded to other servers users have configured in their profile.</p>
+		<p>You can modify, delete or add new attributes after publishing. In that case, any
+		change will be accessible by other users via the GUI and only
+		released by email to all users once you re-Publish the event.</p>
 </li>
 </ol>
 
@@ -162,36 +162,36 @@ $attr = new Attribute();
 <h3>Attribute Categories vs Types</h3>
 <table>
 <tr>
-    <th>Category</th>
-    <?php foreach ($attr->category_definitions as $cat => $cat_def ): ?>
-    <th style="width:5%; text-align:center; white-space:normal"><?php echo $cat; ?></th>
-    <?php endforeach;?>
+	<th>Category</th>
+	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
+	<th style="width:5%; text-align:center; white-space:normal"><?php echo $cat; ?></th>
+	<?php endforeach;?>
 </tr>
-<?php foreach ($attr->type_definitions as $type => $def): ?>
+<?php foreach ($attr->typeDefinitions as $type => $def): ?>
 <tr>
-    <td><?php echo $type; ?></td>
-    <?php foreach ($attr->category_definitions as $cat => $cat_def ): ?>
-    <td style="text-align:center"><?php echo in_array($type, $cat_def['types'])? 'X' : ''; ?></td>
-    <?php endforeach;?>
+	<td><?php echo $type; ?></td>
+	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
+	<td style="text-align:center"><?php echo in_array($type, $catDef['types'])? 'X' : ''; ?></td>
+	<?php endforeach;?>
 <?php endforeach;?>
 </tr>
 <tr>
-    <th>Category</th>
-    <?php foreach ($attr->category_definitions as $cat => $cat_def ): ?>
-    <th style="width:5%; text-align:center; white-space:normal"><?php echo $cat; ?></th>
-    <?php endforeach;?>
+	<th>Category</th>
+	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
+	<th style="width:5%; text-align:center; white-space:normal"><?php echo $cat; ?></th>
+	<?php endforeach;?>
 </tr>
 </table>
 <h3>Categories</h3>
 <table>
 <tr>
-    <th>Category</th>
-    <th>Description</th>
+	<th>Category</th>
+	<th>Description</th>
 </tr>
-<?php foreach ($attr->category_definitions as $cat => $def): ?>
+<?php foreach ($attr->categoryDefinitions as $cat => $def): ?>
 <tr>
-    <td><?php echo $cat; ?></td>
-    <td><?php echo isset($def['formdesc'])? $def['formdesc'] : $def['desc']; ?></td>
+	<td><?php echo $cat; ?></td>
+	<td><?php echo isset($def['formdesc'])? $def['formdesc'] : $def['desc']; ?></td>
 <?php endforeach;?>
 </tr>
 </table>
@@ -199,13 +199,13 @@ $attr = new Attribute();
 <h3>Types</h3>
 <table>
 <tr>
-    <th>Type</th>
-    <th>Description</th>
+	<th>Type</th>
+	<th>Description</th>
 </tr>
-<?php foreach ($attr->type_definitions as $type => $def): ?>
+<?php foreach ($attr->typeDefinitions as $type => $def): ?>
 <tr>
-    <td><?php echo $type; ?></td>
-    <td><?php echo isset($def['formdesc'])? $def['formdesc'] : $def['desc']; ?></td>
+	<td><?php echo $type; ?></td>
+	<td><?php echo isset($def['formdesc'])? $def['formdesc'] : $def['desc']; ?></td>
 <?php endforeach;?>
 </tr>
 </table>
@@ -278,37 +278,37 @@ Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
 <p>The response you're going to get is the following data:</p>
 <pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;
 &lt;response&gt;
-    &lt;Event&gt;
-        &lt;id&gt;123&lt;/id&gt;
-        &lt;date&gt;2012-04-06&lt;/date&gt;
-        &lt;risk&gt;Undefined&lt;/risk&gt;
-        &lt;info&gt;TEST&lt;/info&gt;
-        &lt;published&gt;0&lt;/published&gt;
-        &lt;uuid&gt;4f7eff11-4e98-47b7-ae96-6a7fff32448e&lt;/uuid&gt;
-        &lt;private&gt;0&lt;/private&gt;
-        &lt;Attribute&gt;
-            &lt;id&gt;9577&lt;/id&gt;
-            &lt;event_id&gt;123&lt;/event_id&gt;
-            &lt;category&gt;Artifacts dropped&lt;/category&gt;
-            &lt;type&gt;other&lt;/type&gt;
-            &lt;value&gt;test other&lt;/value&gt;
-            &lt;to_ids&gt;1&lt;/to_ids&gt;
-            &lt;uuid&gt;4f7fe870-e5a4-4b9e-a89c-a45bff32448e&lt;/uuid&gt;
-            &lt;revision&gt;1&lt;/revision&gt;
-            &lt;private&gt;0&lt;/private&gt;
-        &lt;/Attribute&gt;
-        &lt;Attribute&gt;
-            &lt;id&gt;9576&lt;/id&gt;
-            &lt;event_id&gt;123&lt;/event_id&gt;
-            &lt;category&gt;Payload delivery&lt;/category&gt;
-            &lt;type&gt;filename&lt;/type&gt;
-            &lt;value&gt;test attribute&lt;/value&gt;
-            &lt;to_ids&gt;1&lt;/to_ids&gt;
-            &lt;uuid&gt;4f7fe85b-0f78-4e40-91f3-a45aff32448e&lt;/uuid&gt;
-            &lt;revision&gt;1&lt;/revision&gt;
-            &lt;private&gt;0&lt;/private&gt;
-        &lt;/Attribute&gt;
-    &lt;/Event&gt;
+	&lt;Event&gt;
+		&lt;id&gt;123&lt;/id&gt;
+		&lt;date&gt;2012-04-06&lt;/date&gt;
+		&lt;risk&gt;Undefined&lt;/risk&gt;
+		&lt;info&gt;TEST&lt;/info&gt;
+		&lt;published&gt;0&lt;/published&gt;
+		&lt;uuid&gt;4f7eff11-4e98-47b7-ae96-6a7fff32448e&lt;/uuid&gt;
+		&lt;private&gt;0&lt;/private&gt;
+		&lt;Attribute&gt;
+			&lt;id&gt;9577&lt;/id&gt;
+			&lt;event_id&gt;123&lt;/event_id&gt;
+			&lt;category&gt;Artifacts dropped&lt;/category&gt;
+			&lt;type&gt;other&lt;/type&gt;
+			&lt;value&gt;test other&lt;/value&gt;
+			&lt;to_ids&gt;1&lt;/to_ids&gt;
+			&lt;uuid&gt;4f7fe870-e5a4-4b9e-a89c-a45bff32448e&lt;/uuid&gt;
+			&lt;revision&gt;1&lt;/revision&gt;
+			&lt;private&gt;0&lt;/private&gt;
+		&lt;/Attribute&gt;
+		&lt;Attribute&gt;
+			&lt;id&gt;9576&lt;/id&gt;
+			&lt;event_id&gt;123&lt;/event_id&gt;
+			&lt;category&gt;Payload delivery&lt;/category&gt;
+			&lt;type&gt;filename&lt;/type&gt;
+			&lt;value&gt;test attribute&lt;/value&gt;
+			&lt;to_ids&gt;1&lt;/to_ids&gt;
+			&lt;uuid&gt;4f7fe85b-0f78-4e40-91f3-a45aff32448e&lt;/uuid&gt;
+			&lt;revision&gt;1&lt;/revision&gt;
+			&lt;private&gt;0&lt;/private&gt;
+		&lt;/Attribute&gt;
+	&lt;/Event&gt;
 &lt;/response&gt;</pre>
 
 
@@ -320,12 +320,12 @@ Accept: application/xml
 Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
 <p>And the request body:</p>
 <pre>&lt;Event&gt;
-    &lt;date&gt;2012-05-06&lt;/date&gt;
-    &lt;risk&gt;Undefined&lt;/risk&gt;
-    &lt;info&gt;TEST REST&lt;/info&gt;
-    &lt;published&gt;0&lt;/published&gt;
-    &lt;private&gt;0&lt;/private&gt;
-    &lt;attribute/&gt;
+	&lt;date&gt;2012-05-06&lt;/date&gt;
+	&lt;risk&gt;Undefined&lt;/risk&gt;
+	&lt;info&gt;TEST REST&lt;/info&gt;
+	&lt;published&gt;0&lt;/published&gt;
+	&lt;private&gt;0&lt;/private&gt;
+	&lt;attribute/&gt;
 &lt;/Event&gt;</pre>
 <!-- <p>The response you're going to get is the following data:</p>
 <h2>FIXME </h2> -->
@@ -341,7 +341,7 @@ Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
 
 <div class="actions">
 	<ul>
-        <?php echo $this->element('actions_menu'); ?>
+		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
 

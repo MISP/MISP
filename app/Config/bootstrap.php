@@ -108,10 +108,10 @@ Configure::write('SecureAuth.amount', 5);              // the maximum amount of 
 Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
 
 Configure::write('CyDefSIG.correlation', 'sql');        // correlation between attributes of events.
-                                                       // possible values:
-                                                       // - default, like it was
-                                                       // - db, correlation in database
-                                                       // - sql, selection on event i.s.o. per attribute (improvement possible)
+														// possible values:
+														// - default, like it was
+														// - db, correlation in database
+														// - sql, selection on event i.s.o. per attribute (improvement possible)
 /**
  * Network activity, ip-src
  * 30 class-C network ip addresses
