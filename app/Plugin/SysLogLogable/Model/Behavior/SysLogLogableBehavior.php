@@ -64,7 +64,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 					$old = '';
 				}
 				// TODO Audit, removed 'revision' as well
-				if ($key != 'modified' && $key != 'modified' && !in_array($key, $this->settings[$Model->alias]['ignore']) && $value != $old && in_array($key, $db_fields)) {
+				if ($key != 'revision' && $key != 'modified' && !in_array($key, $this->settings[$Model->alias]['ignore']) && $value != $old && in_array($key, $db_fields)) {
 					if ($this->settings[$Model->alias]['change'] == 'full') {
 						$changed_fields[] = $key . ' (' . $old . ') => (' . $value . ')';
 					} else if ($this->settings[$Model->alias]['change'] == 'serialize') {
