@@ -303,9 +303,9 @@ class EventsController extends AppController {
 		// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
 		if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
-				// call _sendAlertEmail if published was set in the request
+				// call __sendAlertEmail if published was set in the request
 				if (!$fromXml) {
-					$this->_sendAlertEmail($this->Event->getId());
+					$this->__sendAlertEmail($this->Event->getId());
 				}
 			}
 			return true;
@@ -420,7 +420,7 @@ class EventsController extends AppController {
 
 			// delete the event from remote servers
 			if ('true' == Configure::read('CyDefSIG.sync')) {	// TODO test..(!$this->_isRest()) &&
-				$this->_deleteEventFromServers($uuid);
+				$this->__deleteEventFromServers($uuid);
 			}
 
 			$this->Session->setFlash(__('Event deleted'));
@@ -434,7 +434,7 @@ class EventsController extends AppController {
  * Uploads this specific event to all remote servers
  * TODO move this to a component
  */
-	private function _uploadEventToServers($id) {
+	private function __uploadEventToServers($id) {
 		// make sure we have all the data of the Event
 		$this->Event->id = $id;
 		$this->Event->recursive = 1;
@@ -461,7 +461,7 @@ class EventsController extends AppController {
  * Delets this specific event to all remote servers
  * TODO move this to a component(?)
  */
-	private function _deleteEventFromServers($uuid) {
+	private function __deleteEventFromServers($uuid) {
 		// get a list of the servers
 		$this->loadModel('Server');
 		$servers = $this->Server->find('all', array());
@@ -482,7 +482,7 @@ class EventsController extends AppController {
  *
  * @param unknown_type $id
  */
-	private function _publish($id) {
+	private function __publish($id) {
 		$this->Event->id = $id;
 		$this->Event->recursive = 0;
 		//$this->Event->read();
@@ -492,7 +492,7 @@ class EventsController extends AppController {
 
 		// upload the event to remote servers
 		if ('true' == Configure::read('CyDefSIG.sync'))
-			$this->_uploadEventToServers($id);
+			$this->__uploadEventToServers($id);
 	}
 
 /**
@@ -511,7 +511,7 @@ class EventsController extends AppController {
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// Performs all the actions required to publish an event
-			$this->_publish($id);
+			$this->__publish($id);
 
 			// redirect to the view event page
 			$this->Session->setFlash(__('Event published, but NO mail sent to any participants.', true));
@@ -537,16 +537,16 @@ class EventsController extends AppController {
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// send out the email
-			$emailResult = $this->_sendAlertEmail($id);
+			$emailResult = $this->__sendAlertEmail($id);
 			if (is_bool($emailResult) && $emailResult = true) {
 				// Performs all the actions required to publish an event
-				$this->_publish($id);
+				$this->__publish($id);
 
 				// redirect to the view event page
 				$this->Session->setFlash(__('Email sent to all participants.', true));
 			} elseif (!is_bool($emailResult)) {
 				// Performs all the actions required to publish an event
-				$this->_publish($id);
+				$this->__publish($id);
 
 				// redirect to the view event page
 				$this->Session->setFlash(__('Published but no email sent given GnuPG is not configured.', true));
@@ -557,7 +557,7 @@ class EventsController extends AppController {
 		}
 	}
 
-	private function _sendAlertEmail($id) {
+	private function __sendAlertEmail($id) {
 		$this->Event->recursive = 1;
 		$event = $this->Event->read(null, $id);
 
@@ -698,7 +698,7 @@ class EventsController extends AppController {
 		// User has filled in his contact form, send out the email.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$message = $this->request->data['Event']['message'];
-			if ($this->_sendContactEmail($id, $message)) {
+			if ($this->__sendContactEmail($id, $message)) {
 				// redirect to the view event page
 				$this->Session->setFlash(__('Email sent to the reporter.', true));
 			} else {
@@ -716,13 +716,13 @@ class EventsController extends AppController {
  *
  * Sends out an email to all people within the same org
  * with the request to be contacted about a specific event.
- * @todo move _sendContactEmail($id, $message) to a better place. (components?)
+ * @todo move __sendContactEmail($id, $message) to a better place. (components?)
  *
  * @param unknown_type $id The id of the event for wich you want to contact the org.
  * @param unknown_type $message The custom message that will be appended to the email.
  * @return True if success, False if error
  */
-	private function _sendContactEmail($id, $message) {
+	private function __sendContactEmail($id, $message) {
 		// fetch the event
 		$event = $this->Event->read(null, $id);
 		$this->loadModel('User');

@@ -312,7 +312,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 	public function afterSave() {
 		if ('db' == Configure::read('CyDefSIG.correlation')) {
 			// update correlation..
-			$this->_afterSaveCorrelation($this->data['Attribute']);
+			$this->__afterSaveCorrelation($this->data['Attribute']);
 		}
 
 		$result = true;
@@ -340,7 +340,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 
 		if ('db' == Configure::read('CyDefSIG.correlation')) {
 			// update correlation..
-			$this->_beforeDeleteCorrelation($this->data['Attribute']['id']);
+			$this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
 		}
 	}
 
@@ -681,13 +681,13 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 		}
 	}
 
-	public function _afterSaveCorrelation($attribute) {
-		$this->_beforeDeleteCorrelation($attribute);
+	private function __afterSaveCorrelation($attribute) {
+		$this->__beforeDeleteCorrelation($attribute);
 		// re-add
 		$this->setRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Event.date'));
 	}
 
-	public function _beforeDeleteCorrelation($attribute) {
+	private function __beforeDeleteCorrelation($attribute) {
 		$this->Correlation = ClassRegistry::init('Correlation');
 		$dummy = $this->Correlation->deleteAll(array('OR' => array(
 						'Correlation.1_attribute_id' => $attribute,

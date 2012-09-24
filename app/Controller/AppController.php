@@ -101,7 +101,7 @@ class AppController extends Controller {
 /**
  * Convert an array to the same array but with the values also as index instead of an interface_exists
  */
-	public function _arrayToValuesIndexArray($oldArray) {
+	protected function _arrayToValuesIndexArray($oldArray) {
 		$newArray = Array();
 		foreach ($oldArray as $value)
 		$newArray[$value] = $value;
@@ -111,7 +111,7 @@ class AppController extends Controller {
 /**
  * checks if the currently logged user is an administrator
  */
-	public function _isAdmin() {
+	protected function _isAdmin() {
 		$org = $this->Auth->user('org');
 		if (isset($org) && $org === 'ADMIN') {
 			return true;
@@ -123,7 +123,7 @@ class AppController extends Controller {
  * Refreshes the Auth session with new/updated data
  * @return void
  */
-	public function _refreshAuth() {
+	protected function _refreshAuth() {
 		if (isset($this->User)) {
 			$user = $this->User->read(false, $this->Auth->user('id'));
 		} else {
@@ -182,7 +182,7 @@ class AppController extends Controller {
  * Log in as admin user and
  * Then run this function by setting debug = 1 (or more) and call /events/migrate02to021
  */
-	public function _explodeValueToValues() {
+	private function __explodeValueToValues() {
 		// search for composite value1 fields and explode it to value1 and value2
 		$this->loadModel('Attribute');
 		$params = array(
@@ -215,7 +215,7 @@ class AppController extends Controller {
 		}
 
 		// search for composite value1 fields and explode it to value1 and value2
-		$this->_explodeValueToValues();
+		$this->__explodeValueToValues();
 	}
 
 	public function migrate021to022() {
