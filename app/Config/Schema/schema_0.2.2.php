@@ -1,4 +1,4 @@
-<?php 
+<?php
 class AppSchema extends CakeSchema {
 
 	public $file = 'schema_0.2.2.php';
@@ -51,12 +51,8 @@ class AppSchema extends CakeSchema {
 		'org' => array('type' => 'string', 'null' => false, 'default' => NULL, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'push' => array('type' => 'boolean', 'null' => false, 'default' => NULL),
 		'pull' => array('type' => 'boolean', 'null' => false, 'default' => NULL),
-<<<<<<< HEAD
 		'lastpulledid' => array('type' => 'integer', 'null' => false, 'default' => NULL),
 		'lastpushedid' => array('type' => 'integer', 'null' => false, 'default' => NULL),
-=======
-		'lastfetchedid' => array('type' => 'integer', 'null' => false, 'default' => NULL),
->>>>>>> develop_0.2.2-0.2.3
 		'indexes' => array('PRIMARY' => array('column' => 'id', 'unique' => 1)),
 		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'MyISAM')
 	);

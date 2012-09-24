@@ -35,8 +35,8 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <p>An automatic export of all attributes of a specific type to a plain text file.</p>
 <p>You can configure your tools to automatically download the following files:</p>
 <pre>
-<?php foreach ($sig_types as $sig_type):?>
-<?php echo Configure::read('CyDefSIG.baseurl');?>/events/text/<?php echo $me['authkey']; ?>/<?php echo $sig_type."\n";?>
+<?php foreach ($sigTypes as $sigType):?>
+<?php echo Configure::read('CyDefSIG.baseurl');?>/events/text/<?php echo $me['authkey']; ?>/<?php echo $sigType . "\n";?>
 <?php endforeach;?>
 </pre>
 <p></p>

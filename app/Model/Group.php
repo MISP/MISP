@@ -6,6 +6,7 @@ App::uses('AppModel', 'Model');
  * @property User $User
  */
 class Group extends AppModel {
+
 /**
  * Validation rules
  *
@@ -23,8 +24,6 @@ class Group extends AppModel {
 			),
 		),
 	);
-
-	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
 /**
  * hasMany associations
@@ -47,12 +46,17 @@ class Group extends AppModel {
 		)
 	);
 
-	// TODO ACL: 1: be requester to CakePHP ACL system
+/**
+ * TODO ACL: 1: be requester to CakePHP ACL system
+ *
+ * @var unknown_type
+ */
 	public $actsAs = array('Acl' => array('type' => 'requester'));
 
-	// TODO ACL: 2: hook Group into CakePHP ACL system (so link to aros)
+/**
+ * TODO ACL: 2: hook Group into CakePHP ACL system (so link to aros)
+ */
 	public function parentNode() {
-        return null;
-    }
-	
+		return null;
+	}
 }

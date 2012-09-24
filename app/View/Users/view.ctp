@@ -57,6 +57,6 @@
 		<li><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?> </li>
 		<li><?php echo $this->Html->link(__('Delete User', true), array('action' => 'delete', $user['User']['id']), null, sprintf(__('Are you sure you want to delete # %s?', true), $user['User']['id'])); ?> </li>
 		<li>&nbsp;</li>
-        <?php echo $this->element('actions_menu'); ?>
+		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>

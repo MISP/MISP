@@ -5,22 +5,22 @@ App::uses('AppModel', 'Model');
  *
  */
 class Log extends AppModel {
-	
+
 	public $validate = array(
 			'action' => array(
 			'rule' => array('inList', array(
 							'login',
 							'logout',
-			                'add',
-		                    'edit',
-		                    'delete',
-		                    'publish' // FIXME remove this once all attributes have a category. Otherwise sigs without category are not shown in the list
-		                )),
+							'add',
+							'edit',
+							'delete',
+							'publish' // FIXME remove this once all attributes have a category. Otherwise sigs without category are not shown in the list
+						)),
 			'message' => 'Options : ...'
 		)
 	);
-	
-	public $action_definitions = array(
+
+	public $actionDefinitions = array(
 		'login' => array('desc' => 'Login action', 'formdesc' => "Login action"),
 		'logout' => array('desc' => 'Logout action', 'formdesc' => "Logout action"),
 		'add' => array('desc' => 'Add action', 'formdesc' => "Add action"),

@@ -74,7 +74,7 @@ A bug in the DNS attributes has been corrected.</p>
 
 <div class="actions">
 	<ul>
-        <?php echo $this->element('actions_menu'); ?>
+		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
 

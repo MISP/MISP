@@ -7,7 +7,6 @@ App::uses('AppController', 'Controller');
  */
 class WhitelistsController extends AppController {
 
-
 /**
  * index method
  *
@@ -23,6 +22,7 @@ class WhitelistsController extends AppController {
  *
  * @param string $id
  * @return void
+ * @throws NotFoundException
  */
 	public function admin_view($id = null) {
 		$this->Whitelist->id = $id;
@@ -54,6 +54,7 @@ class WhitelistsController extends AppController {
  *
  * @param string $id
  * @return void
+ * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
 		$this->Whitelist->id = $id;
@@ -77,6 +78,8 @@ class WhitelistsController extends AppController {
  *
  * @param string $id
  * @return void
+ * @throws MethodNotAllowedException
+ * @throws NotFoundException
  */
 	public function admin_delete($id = null) {
 		if (!$this->request->is('post')) {

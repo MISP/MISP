@@ -6,12 +6,13 @@ App::uses('AppModel', 'Model');
  */
 class Server extends AppModel {
 
-	var $name = 'Server';					// TODO general
- 	var $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable, check: 'userModel' and 'userKey' can be removed given default
-        'userModel' => 'User',
-        'userKey' => 'user_id',
-        'change' => 'full'
-    ));
+	public $name = 'Server';					// TODO general
+
+	public $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable, check: 'userModel' and 'userKey' can be removed given default
+		'userModel' => 'User',
+		'userKey' => 'user_id',
+		'change' => 'full'
+	));
 
 /**
  * Display field
@@ -19,6 +20,7 @@ class Server extends AppModel {
  * @var string
  */
 	public $displayField = 'url';
+
 /**
  * Validation rules
  *
@@ -33,7 +35,7 @@ class Server extends AppModel {
 				//'required' => false,
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
+			)
 		),
 		'authkey' => array(
 			'notempty' => array(
@@ -86,20 +88,18 @@ class Server extends AppModel {
 			),
 		),
 		'lastpulledid' => array(
-		        'numeric' => array(
-		                'rule' => array('numeric'),
-		                //'message' => 'Your custom message here',
-		                'allowEmpty' => true,
-		                'required' => false,
-		                //'last' => false, // Stop validation after this rule
-		                //'on' => 'create', // Limit validation to 'create' or 'update' operations
-		        ),
+			'numeric' => array(
+				'rule' => array('numeric'),
+				//'message' => 'Your custom message here',
+				'allowEmpty' => true,
+				'required' => false,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
 		),
 	);
 
-
 	public function isOwnedByOrg($serverid, $org) {
-	    return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
+		return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
 	}
-
 }

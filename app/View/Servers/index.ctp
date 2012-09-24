@@ -1,6 +1,8 @@
 <?php
-$may_add=$isAclAdd; $button_add_status = $may_add ? 'button_on':'button_off';
-$may_modify=$isAclModify; $button_modify_status = $may_modify ? 'button_on':'button_off';
+$mayAdd = $isAclAdd;
+$buttonAddStatus = $mayAdd ? 'button_on':'button_off';
+$mayModify = $isAclModify;
+$buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 $buttonCounter = 0;
 ?>
 <div class="servers index">
@@ -28,12 +30,12 @@ $buttonCounter = 0;
 		<?php if ($isAdmin): ?>
 		<td class="short"><?php echo h($server['Server']['org']); ?>&nbsp;</td>
 		<?php endif; ?>
-        <td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
-        <td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
+		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
+		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="actions">
-			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $server['Server']['id']), $isAclModify||($server['Server']['org'] == $me['org']) ? null:array('id' => $button_modify_status.$buttonCounter++, 'class' => $button_modify_status)); ?>
-			<?php if ($may_modify || $server['Server']['org'] == $me['org']) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $server['Server']['id']), null, __('Are you sure you want to delete # %s?', $server['Server']['id']));
-			else echo $this->Html->link(__('Delete'), array('action' => 'delete', $server['Server']['id']), array('id' => $button_modify_status.$buttonCounter++,'class' => $button_modify_status)); ?>
+			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $server['Server']['id']), $isAclModify || ($server['Server']['org'] == $me['org']) ? null : array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus)); ?>
+			<?php if ($mayModify || $server['Server']['org'] == $me['org']) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $server['Server']['id']), null, __('Are you sure you want to delete # %s?', $server['Server']['id']));
+			else echo $this->Html->link(__('Delete'), array('action' => 'delete', $server['Server']['id']), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus)); ?>
 
 			<?php // if ($server['Server']['pull']) echo $this->Form->postLink(__('Pull'), array('action' => 'pull', $server['Server']['id']) ); ?>
 			<?php // if ($server['Server']['push']) echo $this->Form->postLink(__('Push'), array('action' => 'push', $server['Server']['id']) ); ?>
@@ -62,11 +64,11 @@ $buttonCounter = 0;
 </div>
 <div class="actions">
 	<ul>
-	    <li><?php echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add'), array('id' =>$button_add_status.$buttonCounter++,'class' => $button_add_status)); ?></li>
+		<li><?php echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add'), array('id' => $buttonAddStatus . $buttonCounter++, 'class' => $buttonAddStatus)); ?></li>
 		<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>
 		<li>&nbsp;</li>
-        <?php echo $this->element('actions_menu'); ?>
-    </ul>
+		<?php echo $this->element('actions_menu'); ?>
+	</ul>
 </div>
 <script type="text/javascript">
 $('#button_off').click(function() {

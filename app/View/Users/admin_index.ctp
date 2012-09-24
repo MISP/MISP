@@ -1,7 +1,7 @@
 <?php
-$button_add_status = $isAclAdd ? 'button_on':'button_off';
-$button_modify_status = $isAclModify ? 'button_on':'button_off';
-$button_publish_status = $isAclPublish ? 'button_on':'button_off';
+$buttonAddStatus = $isAclAdd ? 'button_on':'button_off';
+$buttonModifyStatus = $isAclModify ? 'button_on':'button_off';
+$buttonPublishStatus = $isAclPublish ? 'button_on':'button_off';
 $buttonCounter = 0;
 ?>
 <div class="users index">
@@ -22,29 +22,29 @@ $buttonCounter = 0;
 	<?php
 	foreach ($users as $user): ?>
 	<tr>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['id']); ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['org']); ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo $this->Html->link($user['Group']['name'], array('controller' => 'groups', 'action' => 'view', $user['Group']['id'])); ?></td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['email']); ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo $user['User']['autoalert']? 'Yes' : 'No'; ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo $user['User']['gpgkey']? 'Yes' : 'No'; ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['nids_sid']); ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['termsaccepted']); ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['newsread']); ?>&nbsp;</td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('View'), array('admin' => true, 'action' => 'view', $user['User']['id'])); ?>
-			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $user['User']['id']), $isAclModify||($user['User']['org'] == $me['org']) ? null:array('id' => $button_modify_status.$buttonCounter++, 'class' => $button_modify_status)); ?>
+			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $user['User']['id']), $isAclModify || ($user['User']['org'] == $me['org']) ? null : array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus)); ?>
 			<?php if ($isAclModify || $user['User']['org'] == $me['org']) echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $user['User']['id']), null, __('Are you sure you want to delete # %s?', $user['User']['id']));
-			else echo $this->Html->link(__('Delete'), array('admin' => true, 'action' => 'delete', $user['User']['id']), array('id' => $button_modify_status.$buttonCounter++,'class' => $button_modify_status));
+			else echo $this->Html->link(__('Delete'), array('admin' => true, 'action' => 'delete', $user['User']['id']), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus));
 			?>
 		</td>
 	</tr>
@@ -67,7 +67,7 @@ $buttonCounter = 0;
 </div>
 <div class="actions">
 	<ul>
-        <?php echo $this->element('actions_menu'); ?>
+		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
 <script type="text/javascript">

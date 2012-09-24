@@ -95,7 +95,7 @@ em {
 	background: #fff;
 	clear: both;
 	padding: 10px 20px 40px 20px;
-	overflow: auto;
+	overflow: visible;
 }
 #footer {
 	clear: both;

@@ -1,6 +1,8 @@
 <?php
 
 App::import('Lib', 'SysLog.SysLog');	// Audit, syslogd, extra
+App::import('Controller', 'EventsController');
+App::import('Controller', 'ServersController');
 
 class SysLogLogableBehavior extends LogableBehavior {
 

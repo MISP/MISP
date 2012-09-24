@@ -16,16 +16,16 @@ class LogsController extends AppController {
             )
     );
     public $helpers = array('Js' => array('Jquery'));
-    
+
     function beforeFilter() {
         parent::beforeFilter();
-        
+
         // permit reuse of CSRF tokens on the search page.
         if ('search' == $this->request->params['action']) {
             $this->Security->csrfUseOnce = false;
         }
     }
-    
+
     public function isAuthorized($user) {
         // Admins can access everything
         if (parent::isAuthorized($user)) {
@@ -34,7 +34,7 @@ class LogsController extends AppController {
         // the other pages are allowed by logged in users
         return true;
     }
-    
+
 /**
  * admin_index method
  *
@@ -58,22 +58,22 @@ class LogsController extends AppController {
 		}
 		$this->set('log', $this->Log->read(null, $id));
 	}
-	
+
 	public function search() {
 		$this->admin_search();
 	}
-	
+
 	public function admin_search() {
-		
-	    $this->set('action_definitions', $this->Log->action_definitions);
-		
+
+	    $this->set('actionDefinitions', $this->Log->actionDefinitions);
+
 	    if ($this->request->is('post')) {
 	        $email = $this->request->data['Log']['email'];
 	        $org = $this->request->data['Log']['org'];
 	    	$action = $this->request->data['Log']['action'];
 	        $title = $this->request->data['Log']['title'];
 	        $change = $this->request->data['Log']['change'];
-	        
+
 	        // search the db
 	        $conditions = array();
             if($email) {
