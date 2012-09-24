@@ -412,7 +412,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 		return false;
 	}
 
-	public function validateAttributeValue ($fields) {
+	public function validateAttributeValue($fields) {
 		$value = $fields['value'];
 		$returnValue = false;
 
@@ -564,6 +564,9 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 		}
 
 		// default action is to return false
+		if (!$returnValue) {
+			$returnValue = true;
+		}
 		return $returnValue;
 	}
 
