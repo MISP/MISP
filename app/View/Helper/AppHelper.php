@@ -31,8 +31,9 @@ App::uses('Helper', 'View');
  * @package       app.View.Helper
  */
 class AppHelper extends Helper {
-	function url($url = null, $full = false) {
-		if(is_array($url) && !isset($url['admin'])){
+
+	public function url($url = null, $full = false) {
+		if (is_array($url) && !isset($url['admin'])) {
 			$url['admin'] = false;
 		}
 		return parent::url($url, $full);
