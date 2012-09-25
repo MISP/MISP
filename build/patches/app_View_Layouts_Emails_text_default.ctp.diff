@@ -1,8 +1,11 @@
---- app/View/Layouts/Emails/text/default.ctp.orig	2012-09-20 15:29:00.464648980 +0200
-+++ app/View/Layouts/Emails/text/default.ctp	2012-09-06 13:45:12.635544956 +0200
-@@ -17,5 +17,3 @@
+--- app/View/Layouts/Emails/text/default.ctp.orig	2012-09-25 14:09:01.470702330 +0200
++++ app/View/Layouts/Emails/text/default.ctp	2012-09-25 14:09:22.918702841 +0200
+@@ -16,6 +16,4 @@
+  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
   */
  ?>
- <?php echo $content_for_layout;?>
+-<?php echo $this->fetch('content');?>
 -
 -This email was sent using the CakePHP Framework, http://cakephp.org.
++<?php echo $this->fetch('content');?>
+\ No newline at end of file
