@@ -230,7 +230,7 @@ class UsersController extends AppController {
 				$fieldsResultStr = '';
 				$c = 0;
 				foreach ($fields as $field) {
-					if ($fieldsOldValues[$c] != $fieldsNewValues[$c]) {
+					if (isset($fieldsOldValues[$c]) && $fieldsOldValues[$c] != $fieldsNewValues[$c]) {
 						if($field != 'confirm_password') $fieldsResultStr = $fieldsResultStr . ', ' . $field . ' (' . $fieldsOldValues[$c] . ') => (' . $fieldsNewValues[$c] . ')';
 					}
 					$c++;
