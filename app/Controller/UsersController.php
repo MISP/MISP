@@ -317,7 +317,7 @@ class UsersController extends AppController {
 
 		// Nice graphical histogram
 		$this->loadModel('Attribute');
-		$sigTypes = array_keys($this->Attribute->type_definitions);
+		$sigTypes = array_keys($this->Attribute->typeDefinitions);
 
 		$graphFields = '';
 		foreach ($sigTypes as &$sigType) {
