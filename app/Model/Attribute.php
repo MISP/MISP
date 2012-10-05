@@ -440,7 +440,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 				break;
 			case 'filename|md5':
 				// no newline
-				if (!preg_match("#^.+\|[0-9a-f]{32}$#", $value)) {
+				if (preg_match("#^.+\|[0-9a-f]{32}$#", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
