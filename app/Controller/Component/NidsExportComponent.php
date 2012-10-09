@@ -41,7 +41,7 @@ class NidsExportComponent extends Component {
 			}
 
 			# proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
-			$ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' %s"';
+			$ruleFormatMsg = 'msg: "' . Configure::read('CyDefSIG.name') . ' e' . $item['Event']['id'] . ' %s"';
 			$ruleFormatReference = 'reference:url,' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $item['Event']['id'];
 			$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $priority . '; ' . $ruleFormatReference . ';) ';
 
