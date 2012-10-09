@@ -451,7 +451,7 @@ class Attribute extends AppModel {
 				break;
 			case 'filename':
 				// no newline
-				if (preg_match("#\n#", $value)) {
+				if (!preg_match("#\n#", $value)) {
 					$returnValue = true;
 				}
 				break;
