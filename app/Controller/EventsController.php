@@ -698,7 +698,8 @@ class EventsController extends AppController {
 		// User has filled in his contact form, send out the email.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$message = $this->request->data['Event']['message'];
-			if ($this->__sendContactEmail($id, $message)) {
+			$all = $this->request->data['Event']['person'];
+			if ($this->__sendContactEmail($id, $message, $all)) {
 				// redirect to the view event page
 				$this->Session->setFlash(__('Email sent to the reporter.', true));
 			} else {
@@ -720,13 +721,19 @@ class EventsController extends AppController {
  *
  * @param unknown_type $id The id of the event for wich you want to contact the org.
  * @param unknown_type $message The custom message that will be appended to the email.
+ * @param unknown_type $all, true: send to org, false: send to person.
+ *
  * @return True if success, False if error
  */
-	private function __sendContactEmail($id, $message) {
+	private function __sendContactEmail($id, $message, $all) {
 		// fetch the event
 		$event = $this->Event->read(null, $id);
 		$this->loadModel('User');
-		$orgMembers = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey'));
+		if (!$all) {
+			$orgMembers = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey'));
+		} else {
+			$orgMembers = $this->User->findAllById($event['Event']['user_id'], array('email', 'gpgkey'));
+		}
 
 		// The mail body, h() is NOT needed as we are sending plain-text mails.
 		$body = "";
