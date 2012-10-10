@@ -129,3 +129,35 @@ $buttonCounter = 0;
 <?php endif; ?>
 
 </div>
+<script type="text/javascript">
+$('#button_off').click(function() {
+	return false;
+});
+$('#button_off0').click(function() {
+	return false;
+});
+$('#button_off1').click(function() {
+	return false;
+});
+$('#button_off2').click(function() {
+	return false;
+});
+$('#button_off3').click(function() {
+	return false;
+});
+$('#button_off4').click(function() {
+	return false;
+});
+$('#button_off5').click(function() {
+	return false;
+});
+$('#button_off6').click(function() {
+	return false;
+});
+$('#button_off7').click(function() {
+	return false;
+});
+$('#button_off8').click(function() {
+	return false;
+});
+</script>
