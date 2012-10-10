@@ -949,7 +949,7 @@ class EventsController extends AppController {
 		$items = $this->Attribute->find('all', $params);
 
 		$rules = $this->NidsExport->suricataRules($items, $user['User']['nids_sid']);
-		print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
+		print ("#<h1>This part might still contain bugs, use and your own risk and report any issues.</h1>\n");
 
 		print "#<pre> \n";
 		foreach ($rules as &$rule)

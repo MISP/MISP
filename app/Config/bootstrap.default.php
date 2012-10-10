@@ -110,7 +110,7 @@ Configure::write('CyDefSIG.logo', 'orgs/MIL.be.png');     // used in Events::ind
 
 Configure::write('CyDefSIG.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
 Configure::write('CyDefSIG.showowner', 'false');           // show the email of the owner that uploaded the data
-Configure::write('CyDefSIG.sync', 'true');                 // enable features related to syncing with other CyDefSIG instances
+Configure::write('CyDefSIG.sync', 'false');                 // enable features related to syncing with other CyDefSIG instances
 Configure::write('CyDefSIG.email', 'no-reply@sig.mil.be'); // email from for all the mails
 
 Configure::write('GnuPG.onlyencrypted', 'true');         // only allow encrypted email, do not allow plaintext mails
@@ -121,7 +121,7 @@ Configure::write('GnuPG.homedir', '/Users/chri/Documents/Work/Projects/201107-Cy
 Configure::write('SecureAuth.amount', 5);              // the maximum amount of failed logins
 Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
 
-Configure::write('CyDefSIG.correlation', 'db');        // correlation between attributes of events.
+Configure::write('CyDefSIG.correlation', 'sql');        // correlation between attributes of events.
 														// possible values:
 														// - default, like it was
 														// - db, correlation in database
@@ -183,11 +183,6 @@ Configure::write('CyDefSIG.correlation', 'db');        // correlation between at
  *
  */
 
-CakePlugin::load('AclExtras');
-
-CakePlugin::load('SysLog');
-CakePlugin::load('Assets'); // having Logable
-CakePlugin::load('SysLogLogable');
 
 /**
  * You can attach event listeners to the request lifecyle as Dispatcher Filter . By Default CakePHP bundles two filters:
