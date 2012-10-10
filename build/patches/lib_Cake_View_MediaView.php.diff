@@ -1,0 +1,14 @@
+81c81,83
+< 		if (is_dir($path)) {
+---
+> //		deresz: commented out for compatibility with NCIRC PHP security settings (open_basedir restriction)
+> 
+> //		if (is_dir($path)) {
+83,85c85,87
+< 		} else {
+< 			$path = APP . $path . $id;
+< 		}
+---
+> //		} else {
+> //			$path = APP . $path . $id;
+> //		}
