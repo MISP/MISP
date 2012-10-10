@@ -183,6 +183,12 @@ Configure::write('CyDefSIG.correlation', 'sql');        // correlation between a
  *
  */
 
+CakePlugin::load('AclExtras');
+
+CakePlugin::load('SysLog');
+CakePlugin::load('Assets'); // having Logable
+CakePlugin::load('SysLogLogable');
+CakePlugin::load('MagicTools'); // having OrphansProtectable
 
 /**
  * You can attach event listeners to the request lifecyle as Dispatcher Filter . By Default CakePHP bundles two filters:
