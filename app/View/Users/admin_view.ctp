@@ -83,9 +83,9 @@ $buttonCounter = 0;
 		else echo $this->Html->link(__('Delete User'), array('admin' => true, 'action' => 'delete', $user['User']['id']), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus));
 		?> </li>
 		<li><?php echo $this->Html->link(__('List Users'), array('admin' => true, 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link(__('New User'), array('admin' => true, 'action' => 'add'), array('id' => $buttonAddStatus, 'class' => $buttonAddStatus, 'disabled' => 'disabled', 'readonly' => 'readonly')); ?> </li>
+		<li><?php echo $this->Html->link(__('New User'), array('admin' => true, 'action' => 'add'), array('id' => $buttonAddStatus . $buttonCounter++, 'class' => $buttonAddStatus)); ?> </li>
 		<li><?php echo $this->Html->link(__('List Events'), array('controller' => 'events', 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link(__('New Event'), array('controller' => 'events', 'action' => 'add'), array('id' => $buttonAddStatus, 'class' => $buttonAddStatus, 'disabled' => 'disabled', 'readonly' => 'readonly')); ?> </li>
+		<li><?php echo $this->Html->link(__('New Event'), array('controller' => 'events', 'action' => 'add'), array('id' => $buttonAddStatus . $buttonCounter++, 'class' => $buttonAddStatus)); ?> </li>
 	</ul>
 </div>
 <div class="related">
