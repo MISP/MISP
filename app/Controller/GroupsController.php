@@ -138,7 +138,7 @@ class GroupsController extends AppController {
 		if (!$this->Group->exists()) {
 			throw new NotFoundException(__('Invalid group'));
 		}
-		if ($this->Group->delete()) {
+		if ($this->Group->delete(null, false)) {
 			$this->Session->setFlash(__('Group deleted'));
 			$this->redirect(array('action' => 'index'));
 		}
