@@ -5,7 +5,9 @@
 
 
 cd /var/www/cydefsig
-phpcs --standard=CakePHP app/Config/database.php >build/code_standards/result.txt
+rm build/code_standards/result.txt
+touch build/code_standards/result.txt
+#phpcs --standard=CakePHP app/Config/database.php >>build/code_standards/result.txt
 
 phpcs --standard=CakePHP app/Console/Command/PasswordShell.php >>build/code_standards/result.txt
 
