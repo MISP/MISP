@@ -87,11 +87,17 @@ class AppController extends Controller {
 					throw new ForbiddenException('Incorrect authentication key');
 				}
 			}
+		} else {
+			$this->Security->blackHoleCallback = 'blackhole';
 		}
 
 		// These variables are required for every view
 		$this->set('me', $this->Auth->user());
 		$this->set('isAdmin', $this->_isAdmin());
+	}
+
+	public function blackhole($type) {
+		// handle errors.
 	}
 
 	protected function _isRest() {
