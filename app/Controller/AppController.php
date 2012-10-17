@@ -88,6 +88,8 @@ class AppController extends Controller {
 					throw new ForbiddenException('Incorrect authentication key');
 				}
 			}
+		} else {
+			$this->Security->blackHoleCallback = 'blackhole';
 		}
 
 		// These variables are required for every view
@@ -98,6 +100,10 @@ class AppController extends Controller {
 		$this->set('isAclAdd', $this->checkAcl('add'));
 		$this->set('isAclModify', $this->checkAcl('edit'));
 		$this->set('isAclPublish', $this->checkAcl('publish'));
+	}
+
+	public function blackhole($type) {
+		// handle errors.
 	}
 
 	protected function _isRest() {
