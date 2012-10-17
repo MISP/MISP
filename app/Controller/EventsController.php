@@ -1186,9 +1186,16 @@ class EventsController extends AppController {
 				if ((string)$key == 'filename') $realFileName = (string)$val;
 			}
 		}
+		$realMalware = $realFileName;
 		$rootDir = APP . "files" . DS . $id . DS;
 		$malware = $rootDir . DS . 'sample';
 		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id);
+
+		//Network activity -- .pcap
+		$realFileName = 'analysis.pcap';
+		$rootDir = APP . "files" . DS . $id . DS;
+		$malware = $rootDir . DS . 'Analysis' . DS . 'analysis.pcap';
+		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	false, $id, 'Network activity');
 
 		//Artifacts dropped -- filename|md5
 		$files = array();
@@ -1201,11 +1208,6 @@ class EventsController extends AppController {
 				if ($key == 'filename') $arrayItemKey = (string)$val;
 				if ($key == 'md5') $arrayItemValue = (string)$val;
 			}
-			// replace Windows Environment Variables
-			$arrayItemKey = str_replace('C:\Users\John', '%UserProfile%', $arrayItemKey);
-			$arrayItemKey = str_replace('C:\Documents and Settings\James Cocks', '%UserProfile%', $arrayItemKey);
-			$arrayItemKey = str_replace('C:\DOCUME~1\JAMESC~1', '%UserProfile%', $arrayItemKey);
-			$arrayItemKey = str_replace('C:\Documents and Settings\All Users', '%AllUsersProfile%', $arrayItemKey);
 
 			$files[$arrayItemKey] = $arrayItemValue;
 		}
@@ -1213,19 +1215,25 @@ class EventsController extends AppController {
 
 		// write content..
 		foreach ($files as $key => $val) {
-			// add attribute..
-			$this->Attribute->read(null, 1);
-			$this->Attribute->save(array(
-			'event_id' => $id,
-			'category' => 'Artifacts dropped',
-			'type' => 'filename|md5',
-			'value' => $key . '|' . $val,
-			'to_ids' => false));
+			$keyName = $key;
+			// replace Windows Environment Variables
+			$keyName = str_replace('C:\Users\John', '%UserProfile%', $keyName);
+			$keyName = str_replace('C:\Documents and Settings\James Cocks', '%UserProfile%', $keyName);
+			$keyName = str_replace('C:\DOCUME~1\JAMESC~1', '%UserProfile%', $keyName);
+			$keyName = str_replace('C:\Documents and Settings\All Users', '%AllUsersProfile%', $keyName);
+
+			if (!strpos($key, $realMalware)) {
+				$itsType = 'malware-sample';
+			} else {
+				$itsType = 'filename|md5';
+			}
 
 			// the actual files..
 			// seek $val in dirs and add..
 			$ext = substr($key, strrpos($key, '.'));
 			$actualFileName = $val . $ext;
+			$actualFileNameBase = str_replace('\\', '/', $key);
+			$actualFileNameArray[] = basename($actualFileNameBase);
 			$realFileName = end(explode('\\', $key));
 			// have the filename, now look at parents parent for the process number
 			$express = "/analysis/processes/process/stored_files/stored_created_file[@md5='" . $val . "']/../..";
@@ -1236,9 +1244,10 @@ class EventsController extends AppController {
 				}
 			}
 			$actualFile = $rootDir . DS . 'Analysis' . DS . 'proc_' . $index . DS . 'modified_files' . DS . $actualFileName;
+			$extraPath = 'Analysis' . DS . 'proc_' . $index . DS . 'modified_files' . DS;
 			$file = new File($actualFile);
-			if ($file->exists()) {
-				$this->Event->Attribute->uploadAttachment($actualFile, $realFileName, false, $id);
+			if ($file->exists()) { // TODO put in array for test later
+				$this->Event->Attribute->uploadAttachment($actualFile, $realFileName, true, $id, null, $extraPath, $keyName); // TODO was false
 			}
 		}
 
@@ -1282,18 +1291,41 @@ class EventsController extends AppController {
 			// add attribute..
 			$this->Attribute->read(null, 1);
 			if ($val == '[binary_data]') {
+				$itsCategory = 'Persistence mechanism';
 				$itsType = 'regkey';
 				$itsValue = $key;
 			} else {
-				$itsType = 'regkey|value';
-				$itsValue = $key . '|' . $val;
+				if ($this->strposarray($val,$actualFileNameArray)) {
+					$itsCategory = 'Persistence mechanism';
+					$itsType = 'regkey|value';
+					$itsValue = $key . '|' . $val;
+				} else {
+					// replace Windows Environment Variables
+					$val = str_replace('C:\Users\John', '%UserProfile%', $val);
+					$val = str_replace('C:\Documents and Settings\James Cocks', '%UserProfile%', $val);
+					$val = str_replace('C:\DOCUME~1\JAMESC~1', '%UserProfile%', $val);
+					$val = str_replace('C:\Documents and Settings\All Users', '%AllUsersProfile%', $val);
+
+					$itsCategory = 'Artifacts dropped'; // Persistence mechanism
+					$itsType = 'regkey|value';
+					$itsValue = $key . '|' . $val;
+				}
 			}
 			$this->Attribute->save(array(
 				'event_id' => $id,
-				'category' => 'Persistence mechanism',
+				'category' => $itsCategory, // 'Persistence mechanism'
 				'type' => $itsType,
 				'value' => $itsValue,
 				'to_ids' => false));
 		}
+	}
+	public function strposarray($string, $array) {
+		$toReturn = false;
+		foreach ($array as $item) {
+			if (strpos($string,$item)) {
+				$toReturn = true;
+			}
+		}
+		return $toReturn;
 	}
 }

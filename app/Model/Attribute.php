@@ -703,7 +703,7 @@ class Attribute extends AppModel {
  *
  * @return void
  */
-	public function uploadAttachment($fileP, $realFileName, $malware, $eventId = null) {
+	public function uploadAttachment($fileP, $realFileName, $malware, $eventId = null, $category = null, $extraPath = '', $fullFileName = '') {
 		// Check if there were problems with the file upload
 		// only keep the last part of the filename, this should prevent directory attacks
 		$filename = basename($fileP);
@@ -713,14 +713,14 @@ class Attribute extends AppModel {
 		$this->create();
 		$this->data['Attribute']['event_id'] = $eventId;
 		if ($malware) {
-			$this->data['Attribute']['category'] = "Payload delivery";
+			$this->data['Attribute']['category'] = $category ? $category : "Payload delivery";
 			$this->data['Attribute']['type'] = "malware-sample";
-			$this->data['Attribute']['value'] = $realFileName . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
+			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $tmpfile->md5() : $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
 			$this->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 		} else {
-			$this->data['Attribute']['category'] = "Artifacts dropped";
+			$this->data['Attribute']['category'] = $category ? $category : "Artifacts dropped";
 			$this->data['Attribute']['type'] = "attachment";
-			$this->data['Attribute']['value'] = $realFileName;
+			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName : $realFileName;
 			$this->data['Attribute']['to_ids'] = 0;
 		}
 
@@ -739,7 +739,7 @@ class Attribute extends AppModel {
 		$destpath = $rootDir . DS . $this->getId();   // id of the new attribute in the database
 		$file = new File ($destpath);
 		$zipfile = new File ($destpath . '.zip');
-		$fileInZip = new File($rootDir . DS . $filename); // FIXME do sanitization of the filename
+		$fileInZip = new File($rootDir . DS . $extraPath . $filename); // FIXME do sanitization of the filename
 
 		// zip and password protect the malware files
 		if ($malware) {
