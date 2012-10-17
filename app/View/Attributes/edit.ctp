@@ -16,9 +16,15 @@ if ($attachment) {
 	echo $this->Form->input('type', array('between' => $this->Html->div('forminfo', '', array('id' => 'AttributeTypeDiv'))));
 }
 if ('true' == Configure::read('CyDefSIG.sync')) {
-	echo $this->Form->input('private', array(
-			'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),
-	));
+	if ('true' == Configure::read('CyDefSIG.private')) {
+		echo $this->Form->input('sharing', array('label' => 'Private',
+				'before' => $this->Html->div('forminfo', isset($attrDescriptions['sharing']['formdesc']) ? $attrDescriptions['sharing']['formdesc'] : $attrDescriptions['sharing']['desc']),
+		));
+	} else {
+		echo $this->Form->input('private', array(
+				'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),
+		));
+	}
 }
 echo $this->Form->input('to_ids', array(
 			'before' => $this->Html->div('forminfo', isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),
@@ -102,8 +108,8 @@ function showFormInfo(id) {
 	// LATER use nice animations
 	//$(idDiv).hide('fast');
 	// change the content
-	var value = $(id).val();    // get the selected value
-	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
+	var value = $(id).val();	// get the selected value
+	$(idDiv).html(formInfoValues[value]);	// search in a lookup table
 
 	// show it again
 	$(idDiv).fadeIn('slow');

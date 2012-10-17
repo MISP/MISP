@@ -111,6 +111,10 @@ Configure::write('CyDefSIG.logo', 'orgs/MIL.be.png');     // used in Events::ind
 Configure::write('CyDefSIG.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
 Configure::write('CyDefSIG.showowner', 'false');           // show the email of the owner that uploaded the data
 Configure::write('CyDefSIG.sync', 'false');                 // enable features related to syncing with other CyDefSIG instances
+Configure::write('CyDefSIG.private', 'true');                 // respect private to org or server.
+if ('true' == Configure::read('CyDefSIG.private')) {
+	Configure::write('CyDefSIG.sync', 'true');
+}
 Configure::write('CyDefSIG.email', 'no-reply@sig.mil.be'); // email from for all the mails
 
 Configure::write('GnuPG.onlyencrypted', 'true');         // only allow encrypted email, do not allow plaintext mails

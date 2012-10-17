@@ -5,8 +5,13 @@
 <?php
 echo $this->Form->input('date');
 if ('true' == Configure::read('CyDefSIG.sync')) {
-	echo $this->Form->input('private', array(
+	if ('true' == Configure::read('CyDefSIG.private')) {
+		echo $this->Form->input('sharing', array('label' => 'Private',
+			'before' => $this->Html->div('forminfo', isset($eventDescriptions['sharing']['formdesc']) ? $eventDescriptions['sharing']['formdesc'] : $eventDescriptions['sharing']['desc']),));
+	} else {
+		echo $this->Form->input('private', array(
 		'before' => $this->Html->div('forminfo', isset($eventDescriptions['private']['formdesc']) ? $eventDescriptions['private']['formdesc'] : $eventDescriptions['private']['desc']),));
+	}
 }
 echo $this->Form->input('risk', array(
 		'before' => $this->Html->div('forminfo', isset($eventDescriptions['risk']['formdesc']) ? $eventDescriptions['risk']['formdesc'] : $eventDescriptions['risk']['desc'])));

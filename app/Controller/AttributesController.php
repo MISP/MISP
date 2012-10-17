@@ -41,6 +41,31 @@ class AttributesController extends AppController {
 				$this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
 			}
 		}
+
+		// do not show private to other groups
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			// if not admin or own org, check private as well..
+			if (!$this->_IsAdmin()) {
+				$this->paginate = Set::merge($this->paginate,array(
+				'conditions' =>
+						array("OR" => array(
+						array('Event.org =' => $this->Auth->user('org')),
+						array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1)))),
+				)
+				);
+			}
+		}
+
+		// do not show cluster outside server
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			if ($this->_isRest()) {
+					$this->paginate = Set::merge($this->paginate,array(
+					'conditions' =>
+							array("AND" => array('Event.cluster !=' => true),array('Attribute.cluster !=' => true)),
+							//array("AND" => array(array('Event.private !=' => 2))),
+					));
+			}
+		}
 	}
 
 	public function isAuthorized($user) {
@@ -114,6 +139,9 @@ class AttributesController extends AppController {
 
 					$this->Attribute->create();
 					$this->request->data['Attribute']['value'] = $attribute;  // set the value as the content of the single line
+					if ('true' == Configure::read('CyDefSIG.private')) {
+						$this->request->data = $this->Attribute->massageData(&$this->request->data);
+					}
 					if ($this->Attribute->save($this->request->data)) {
 						$successes .= " " . ($key + 1);
 					} else {
@@ -140,6 +168,10 @@ class AttributesController extends AppController {
 				// create the attribute
 				$this->Attribute->create();
 
+				if ('true' == Configure::read('CyDefSIG.private')) {
+					$this->request->data = $this->Attribute->massageData(&$this->request->data);
+				}
+
 				if ($this->Attribute->save($this->request->data)) {
 					// inform the user and redirect
 					$this->Session->setFlash(__('The attribute has been saved'));
@@ -161,6 +193,12 @@ class AttributesController extends AppController {
 		$categories = $this->Attribute->validate['category']['rule'][1];
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories',compact('categories'));
+
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			$sharings = array('Org','Server','All');
+			$sharings = $this->_arrayToValuesIndexArray($sharings);
+			$this->set('sharings',compact('sharings'));
+		}
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -191,10 +229,10 @@ class AttributesController extends AppController {
 		$this->viewClass = 'Media';
 		$params = array(
 				'id'		=> $file->path,
-				'name'	  => $filename,
+				'name'	    => $filename,
 				'extension' => $fileExt,
 				'download'  => true,
-				'path'	  => DS
+				'path'	    => DS
 		);
 		$this->set($params);
 	}
@@ -241,6 +279,9 @@ class AttributesController extends AppController {
 			}
 			$this->request->data['Attribute']['uuid'] = String::uuid();
 			$this->request->data['Attribute']['batch_import'] = 0;
+			if ('true' == Configure::read('CyDefSIG.private')) {
+				$this->request->data = $this->Attribute->massageData(&$this->request->data);
+			}
 
 			if ($this->Attribute->save($this->request->data)) {
 				 // attribute saved correctly in the db
@@ -329,6 +370,12 @@ class AttributesController extends AppController {
 
 		$this->set('zippedDefinitions', $this->Attribute->zippedDefinitions);
 		$this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
+
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			$sharings = array('Org','Server','All');
+			$sharings = $this->_arrayToValuesIndexArray($sharings);
+			$this->set('sharings',compact('sharings'));
+		}
 	}
 
 /**
@@ -358,8 +405,12 @@ class AttributesController extends AppController {
 		}
 
 		if ($this->request->is('post') || $this->request->is('put')) {
+			if ('true' == Configure::read('CyDefSIG.private')) {
+				$this->request->data = $this->Attribute->massageData(&$this->request->data);
+			}
+
 			// say what fields are to be updated
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private');
+			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster');
 			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 
@@ -384,6 +435,12 @@ class AttributesController extends AppController {
 		$categories = $this->Attribute->validate['category']['rule'][1];
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories',compact('categories'));
+
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			$sharings = array('Org','Server','All');
+			$sharings = $this->_arrayToValuesIndexArray($sharings);
+			$this->set('sharings',compact('sharings'));
+		}
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -492,6 +549,20 @@ class AttributesController extends AppController {
 				$this->paginate = array(
 					'conditions' => $conditions
 				);
+
+				if ('true' == Configure::read('CyDefSIG.private')) {
+					if (!$this->_IsAdmin()) {
+						// merge in private conditions
+						$this->paginate = Set::merge($this->paginate,array(
+							'conditions' =>
+								array("OR" => array(
+								array('Event.org =' => $this->Auth->user('org')),
+								array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1)))),
+							)
+						);
+					}
+				}
+
 				$this->set('attributes', $this->paginate());
 
 				// and store into session

@@ -23,6 +23,8 @@ class Event extends AppModel {
  */
 	public $displayField = 'id';
 
+	public $virtualFields = array();
+
 /**
  * Description field
  *
@@ -139,6 +141,42 @@ class Event extends AppModel {
 		//),
 	);
 
+	public function __construct($id = false, $table = null, $ds = null) {
+		parent::__construct($id, $table, $ds);
+
+		if ('true' == Configure::read('CyDefSIG.private')) {
+
+			$this->virtualFields = Set::merge($this->virtualFields,array(
+				'sharing' => 'IF (Event.private=true, "Org", IF (Event.cluster=true, "Server", "All"))',
+			));
+
+			$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
+				'sharing' => array('desc' => 'This field tells how and if the event should be shared with other CyDefSIG users'),
+			));
+
+			$this->validate = Set::merge($this->validate,array(
+				'cluster' => array(
+					'boolean' => array(
+						'rule' => array('boolean'),
+						//'message' => 'Your custom message here',
+						//'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					),
+				),
+				'sharing' => array(
+					'rule' => array('inList', array('Org','Server')),
+						//'message' => 'Your custom message here',
+						'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+				),
+			));
+		}
+	}
+
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
 /**
@@ -212,10 +250,29 @@ class Event extends AppModel {
 	}
 
 	public function beforeValidate() {
+		parent::beforeValidate();
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Event']['uuid'])) {
 			$this->data['Event']['uuid'] = String::uuid();
 		}
+	}
+
+	public function massageData(&$data) {
+		switch ($data['Event']['sharing']) {
+			case 'Org':
+				$data['Event']['private'] = true;
+				$data['Event']['cluster'] = false;
+				break;
+			case 'Server':
+				$data['Event']['private'] = false;
+				$data['Event']['cluster'] = true;
+				break;
+			case 'All':
+				$data['Event']['private'] = false;
+				$data['Event']['cluster'] = false;
+				break;
+		}
+		return $data;
 	}
 
 	public function isOwnedByOrg($eventid, $org) {

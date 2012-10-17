@@ -273,6 +273,42 @@ class Attribute extends AppModel {
 		),
 	);
 
+	public function __construct($id = false, $table = null, $ds = null) {
+		parent::__construct($id, $table, $ds);
+
+		if ('true' == Configure::read('CyDefSIG.private')) {
+
+			$this->virtualFields = Set::merge($this->virtualFields,array(
+				'sharing' => 'IF (Attribute.private=true, "Org", IF (Attribute.cluster=true, "Server", "All"))',
+			));
+
+			$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
+				'sharing' => array('desc' => 'This field tells how and if the attribute should be shared with other CyDefSIG users'),
+			));
+
+			$this->validate = Set::merge($this->validate,array(
+				'cluster' => array(
+					'boolean' => array(
+						'rule' => array('boolean'),
+						//'message' => 'Your custom message here',
+						//'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					),
+				),
+				'sharing' => array(
+					'rule' => array('inList', array('Org','Server','All')),
+						//'message' => 'Your custom message here',
+						'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					),
+				));
+		}
+	}
+
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
 /**
@@ -359,6 +395,24 @@ class Attribute extends AppModel {
 			// update correlation..
 			$this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
 		}
+	}
+
+	public function massageData(&$data) {
+		switch ($data['Attribute']['sharing']) {
+			case 'Org':
+				$data['Attribute']['private'] = true;
+				$data['Attribute']['cluster'] = false;
+				break;
+			case 'Server':
+				$data['Attribute']['private'] = false;
+				$data['Attribute']['cluster'] = true;
+				break;
+			case 'All':
+				$data['Attribute']['private'] = false;
+				$data['Attribute']['cluster'] = false;
+				break;
+		}
+		return $data;
 	}
 
 	public function beforeValidate() {
@@ -761,7 +815,7 @@ class Attribute extends AppModel {
 	private function __afterSaveCorrelation($attribute) {
 		$this->__beforeDeleteCorrelation($attribute);
 		// re-add
-		$this->setRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Event.date'));
+		$this->setRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Event.date', 'Event.org'));
 	}
 
 	private function __beforeDeleteCorrelation($attribute) {
@@ -817,7 +871,7 @@ class Attribute extends AppModel {
 				$params = array(
 					'conditions' => array('Event.id' => $relatedAttribute['Attribute']['event_id']),
 					'recursive' => 0,
-					'fields' => array('Event.date')
+					'fields' => array('Event.date', 'Event.org')
 				);
 				$eventDate = $this->Event->find('first', $params);
 				$this->Correlation = ClassRegistry::init('Correlation');
@@ -826,6 +880,8 @@ class Attribute extends AppModel {
 					'Correlation' => array(
 						'1_event_id' => $attribute['event_id'], '1_attribute_id' => $attribute['id'],
 						'event_id' => $relatedAttribute['Attribute']['event_id'], 'attribute_id' => $relatedAttribute['Attribute']['id'],
+						'org' => $eventDate['Event']['org'],
+						'private' => $relatedAttribute['Attribute']['private'],
 						'date' => $eventDate['Event']['date']))
 				);
 			}

@@ -12,6 +12,15 @@ foreach ($event['Event']['Attribute'] as $key => $value) {
 	unset($event['Event']['Attribute'][$key]['category_order']);
 }
 
+// hide the share fields is we are not in private mode
+if ('true' == Configure::read('CyDefSIG.private')) {
+	unset($event['Event']['cluster']);
+	unset($event['Event']['sharing']);
+	foreach ($event['Event']['Attribute'] as $key => $value) {
+		unset($event['Event']['Attribute'][$key]['cluster']);
+		unset($event['Event']['Attribute'][$key]['sharing']);
+	}
+}
 // hide the private fields is we are not in sync mode
 if ('true' != Configure::read('CyDefSIG.sync')) {
 	unset($event['Event']['private']);

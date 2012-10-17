@@ -64,6 +64,30 @@ class EventsController extends AppController {
 				$this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
 			}
 		}
+
+		// do not show private to other groups
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			// if not admin or own org, check private as well..
+			if (!$this->_IsAdmin()) {
+				$this->paginate = Set::merge($this->paginate,array(
+				'conditions' =>
+						array("OR" => array(
+						array('Event.org =' => $this->Auth->user('org')),
+						array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1)))),
+				));
+			}
+		}
+
+		// do not show cluster outside server
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			if ($this->_isRest()) {
+					$this->paginate = Set::merge($this->paginate,array(
+					'conditions' =>
+							array(array('Event.cluster !=' => true)),
+							//array("AND" => array(array('Event.private !=' => 2))),
+					));
+			}
+		}
 	}
 
 	public function isAuthorized($user) {
@@ -110,21 +134,44 @@ class EventsController extends AppController {
 		}
 		$this->Event->read(null, $id);
 
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			if (!$this->_IsAdmin()) {
+				// check for non-private and re-read
+				if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
+					$this->Event->hasMany['Attribute']['conditions'] = array('Attribute.private !=' => 1);
+					$this->Event->read(null, $id);
+				}
+
+				// check private
+				if (($this->Event->data['Event']['private']) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
+					$this->Session->setFlash('Invalid event.');
+					$this->redirect(array('controller' => 'users', 'action' => 'terms'));
+				}
+			}
+		}
+
 		$relatedAttributes = array();
 		$this->loadModel('Attribute');
 		if ('db' == Configure::read('CyDefSIG.correlation')) {
 			$this->loadModel('Correlation');
 			$fields = array('Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date');
-			$fields2 = array('Correlation.1_attribute_id','Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date');
+			$fields2 = array('Correlation.1_attribute_id','Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date', 'Correlation.private', 'Correlation.org');
 			$relatedAttributes2 = array();
-				$relatedAttributes2 = $this->Correlation->find('all',array(
-				'fields' => $fields2,
-				'conditions' => array(
-						'OR' => array(
-								'Correlation.1_event_id' => $id
-						)
-				),
-				'recursive' => 0));
+			if ('true' == Configure::read('CyDefSIG.private')) {
+				$conditionsCorrelation =
+					array('AND' => array('Correlation.1_event_id' => $id,),
+				array("OR" => array(
+						array('Correlation.org =' => $this->Event->data['Event']['org']),
+						array("AND" => array('Correlation.org !=' => $this->Event->data['Event']['org']), array('Correlation.private !=' => 1)))));
+			} else {
+				$conditionsCorrelation =
+					array('AND' => array('Correlation.1_event_id' => $id,));
+			}
+			$relatedAttributes2 = $this->Correlation->find('all',array(
+			'fields' => $fields2,
+			'conditions' => $conditionsCorrelation,
+			'recursive' => 0));
+
 			if (empty($relatedAttributes2)) {
 				$relatedEvents = null;
 			} else {
@@ -231,6 +278,12 @@ class EventsController extends AppController {
  */
 	public function add() {
 		if ($this->request->is('post')) {
+
+			// TODO or massageData here
+			if ('true' == Configure::read('CyDefSIG.private')) {
+				$this->request->data = $this->Event->massageData(&$this->request->data);
+			}
+
 			if (!empty($this->data)) {
 				if (isset($this->data['Event']['submittedfile'])) {
 					App::uses('File', 'Utility');
@@ -244,6 +297,7 @@ class EventsController extends AppController {
 					//return false;
 					$this->Session->setFlash('You may only upload GFI Sandbox zip files.');
 				} else {
+					// TODO or massageData here
 					if ($this->_add($this->request->data, $this->Auth, $this->_isRest(),'')) {
 						if ($this->_isRest()) {
 							// REST users want to see the newly created event
@@ -268,6 +322,12 @@ class EventsController extends AppController {
 		$risks = $this->Event->validate['risk']['rule'][1];
 		$risks = $this->_arrayToValuesIndexArray($risks);
 		$this->set('risks',compact('risks'));
+
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			$sharings = array('Org','Server','All');
+			$sharings = $this->_arrayToValuesIndexArray($sharings);
+			$this->set('sharings',compact('sharings'));
+		}
 
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
@@ -322,9 +382,14 @@ class EventsController extends AppController {
 		}
 
 		$fieldList = array(
-				'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
+				'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster')
 		);
+
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			$data = $this->Event->massageData(&$data);
+		}
+
 		// this saveAssociated() function will save not only the event, but also the attributes
 		// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
 		if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
@@ -390,7 +455,7 @@ class EventsController extends AppController {
 			}
 
 			// say what fields are to be updated
-			$fieldList = array('date', 'risk', 'info', 'published', 'private');
+			$fieldList = array('date', 'risk', 'info', 'published', 'private', 'cluster');
 			// always force the org, but do not force it for admins
 			if ($this->_isAdmin()) {
 				// set the same org as existed before
@@ -399,6 +464,10 @@ class EventsController extends AppController {
 			}
 			// we probably also want to remove the published flag
 			$this->request->data['Event']['published'] = 0;
+
+			if ('true' == Configure::read('CyDefSIG.private')) {
+				$this->request->data = $this->Event->massageData(&$this->request->data);
+			}
 
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The event has been saved'));
@@ -415,7 +484,14 @@ class EventsController extends AppController {
 		$risks = $this->_arrayToValuesIndexArray($risks);
 		$this->set('risks',compact('risks'));
 
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			$sharings = array('Org', 'Server', 'All');
+			$sharings = $this->_arrayToValuesIndexArray($sharings);
+			$this->set('sharings', compact('sharings'));
+		}
+
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		$this->set('privateDefinitions', $this->Event->privateDefinitions);
 	}
 
 /**
