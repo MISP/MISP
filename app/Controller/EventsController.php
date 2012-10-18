@@ -324,7 +324,7 @@ class EventsController extends AppController {
 		$this->set('risks',compact('risks'));
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org','Server','All');
+			$sharings = array('Org', 'Server', 'Pull only', 'All');
 			$sharings = $this->_arrayToValuesIndexArray($sharings);
 			$this->set('sharings',compact('sharings'));
 		}
@@ -382,8 +382,8 @@ class EventsController extends AppController {
 		}
 
 		$fieldList = array(
-				'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster')
+				'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'pull'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'pull')
 		);
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
@@ -455,7 +455,7 @@ class EventsController extends AppController {
 			}
 
 			// say what fields are to be updated
-			$fieldList = array('date', 'risk', 'info', 'published', 'private', 'cluster');
+			$fieldList = array('date', 'risk', 'info', 'published', 'private', 'cluster', 'pull');
 			// always force the org, but do not force it for admins
 			if ($this->_isAdmin()) {
 				// set the same org as existed before
@@ -485,7 +485,7 @@ class EventsController extends AppController {
 		$this->set('risks',compact('risks'));
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org', 'Server', 'All');
+			$sharings = array('Org', 'Server', 'Pull only', 'All');
 			$sharings = $this->_arrayToValuesIndexArray($sharings);
 			$this->set('sharings', compact('sharings'));
 		}

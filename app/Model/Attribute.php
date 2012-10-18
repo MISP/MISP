@@ -279,7 +279,7 @@ class Attribute extends AppModel {
 		if ('true' == Configure::read('CyDefSIG.private')) {
 
 			$this->virtualFields = Set::merge($this->virtualFields,array(
-				'sharing' => 'IF (Attribute.private=true, "Org", IF (Attribute.cluster=true, "Server", "All"))',
+				'sharing' => 'IF (Attribute.private=true, "Org", IF (Attribute.cluster=true, "Server", IF (Attribute.pull=true, "Pull only", "All")))',
 			));
 
 			$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
@@ -297,8 +297,18 @@ class Attribute extends AppModel {
 						//'on' => 'create', // Limit validation to 'create' or 'update' operations
 					),
 				),
+				'pull' => array(
+					'boolean' => array(
+						'rule' => array('boolean'),
+						//'message' => 'Your custom message here',
+						//'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					),
+				),
 				'sharing' => array(
-					'rule' => array('inList', array('Org','Server','All')),
+					'rule' => array('inList', array('Org', 'Server', 'Pull only')),
 						//'message' => 'Your custom message here',
 						'allowEmpty' => false,
 						'required' => false,
@@ -402,14 +412,22 @@ class Attribute extends AppModel {
 			case 'Org':
 				$data['Attribute']['private'] = true;
 				$data['Attribute']['cluster'] = false;
+				$data['Attribute']['pull'] = false;
 				break;
 			case 'Server':
 				$data['Attribute']['private'] = false;
 				$data['Attribute']['cluster'] = true;
+				$data['Attribute']['pull'] = false;
+				break;
+			case 'Pull only':
+				$data['Attribute']['private'] = false;
+				$data['Attribute']['cluster'] = false;
+				$data['Attribute']['pull'] = true;
 				break;
 			case 'All':
 				$data['Attribute']['private'] = false;
 				$data['Attribute']['cluster'] = false;
+				$data['Attribute']['pull'] = false;
 				break;
 		}
 		return $data;

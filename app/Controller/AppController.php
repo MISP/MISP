@@ -366,4 +366,29 @@ class AppController extends Controller {
 			return true;
 		}
 	}
+
+	public function generatePrivate() {
+		if (!self::_isAdmin()) throw new NotFoundException();
+
+		$this->loadModel('Correlation');
+		$this->loadModel('Attribute');
+		$attributes = $this->Attribute->find('all',array('recursive' => 0));
+		foreach ($attributes as $attribute) {
+			if ($attribute['Attribute']['private']) {
+				$attribute['Attribute']['private'] = false;
+				$attribute['Attribute']['pull'] = true;
+			}
+			$this->Attribute->save($attribute);
+		}
+
+		$this->loadModel('Event');
+		$events = $this->Event->find('all',array('recursive' => 0));
+		foreach ($events as $event) {
+			if ($event['Event']['private']) {
+				$event['Event']['private'] = false;
+				$event['Event']['pull'] = true;
+			}
+			$this->Event->save($event);
+		}
+	}
 }

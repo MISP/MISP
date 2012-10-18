@@ -195,7 +195,7 @@ class AttributesController extends AppController {
 		$this->set('categories',compact('categories'));
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org','Server','All');
+			$sharings = array('Org', 'Server', 'Pull only', 'All');
 			$sharings = $this->_arrayToValuesIndexArray($sharings);
 			$this->set('sharings',compact('sharings'));
 		}
@@ -372,7 +372,7 @@ class AttributesController extends AppController {
 		$this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org','Server','All');
+			$sharings = array('Org', 'Server', 'Pull only', 'All');
 			$sharings = $this->_arrayToValuesIndexArray($sharings);
 			$this->set('sharings',compact('sharings'));
 		}
@@ -410,7 +410,7 @@ class AttributesController extends AppController {
 			}
 
 			// say what fields are to be updated
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster');
+			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster', 'pull');
 			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 
@@ -437,7 +437,7 @@ class AttributesController extends AppController {
 		$this->set('categories',compact('categories'));
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org','Server','All');
+			$sharings = array('Org', 'Server', 'Pull only', 'All');
 			$sharings = $this->_arrayToValuesIndexArray($sharings);
 			$this->set('sharings',compact('sharings'));
 		}

@@ -147,7 +147,7 @@ class Event extends AppModel {
 		if ('true' == Configure::read('CyDefSIG.private')) {
 
 			$this->virtualFields = Set::merge($this->virtualFields,array(
-				'sharing' => 'IF (Event.private=true, "Org", IF (Event.cluster=true, "Server", "All"))',
+				'sharing' => 'IF (Event.private=true, "Org", IF (Event.cluster=true, "Server", IF (Event.pull=true, "Pull only", "All")))',
 			));
 
 			$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
@@ -165,8 +165,18 @@ class Event extends AppModel {
 						//'on' => 'create', // Limit validation to 'create' or 'update' operations
 					),
 				),
+				'pull' => array(
+					'boolean' => array(
+						'rule' => array('boolean'),
+						//'message' => 'Your custom message here',
+						//'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					),
+				),
 				'sharing' => array(
-					'rule' => array('inList', array('Org','Server')),
+					'rule' => array('inList', array('Org', 'Server', 'Pull only')),
 						//'message' => 'Your custom message here',
 						'allowEmpty' => false,
 						'required' => false,
@@ -262,14 +272,22 @@ class Event extends AppModel {
 			case 'Org':
 				$data['Event']['private'] = true;
 				$data['Event']['cluster'] = false;
+				$data['Event']['pull'] = false;
 				break;
 			case 'Server':
 				$data['Event']['private'] = false;
 				$data['Event']['cluster'] = true;
+				$data['Event']['pull'] = false;
+				break;
+			case 'Pull only':
+				$data['Event']['private'] = false;
+				$data['Event']['cluster'] = false;
+				$data['Event']['pull'] = true;
 				break;
 			case 'All':
 				$data['Event']['private'] = false;
 				$data['Event']['cluster'] = false;
+				$data['Event']['pull'] = false;
 				break;
 		}
 		return $data;
@@ -342,8 +360,11 @@ class Event extends AppModel {
  * @return bool true if success, error message if failed
  */
 	public function uploadEventToServer($event, $server, $HttpSocket=null) {
-		if (true == $event['Event']['private']) { // never upload private events
+		if (('true' != Configure::read('CyDefSIG.private')) && (true == $event['Event']['private'])) { // never upload private events
 			return "Event is private and non exportable";
+		}
+		if (('true' == Configure::read('CyDefSIG.private')) && (true == $event['Event']['pull'])) {
+			return "Event is pull only and non exportable";
 		}
 
 		$url = $server['Server']['url'];
