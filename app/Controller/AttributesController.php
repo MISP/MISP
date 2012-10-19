@@ -605,8 +605,8 @@ class AttributesController extends AppController {
 				}
 			}
 
-			arsort($relatedEventsDates);
 			if (isset($relatedEventsDates)) {
+				arsort($relatedEventsDates);
 				$relatedEventsDates = array_unique($relatedEventsDates);
 				foreach ($relatedEventsDates as $key => $relatedEventsDate) {
 					$relatedEvents[] = array('id' => $key, 'date' => $relatedEventsDate);
