@@ -139,7 +139,14 @@ $sigDisplay = nl2br(h($attribute['value']));
 if ('attachment' == $attribute['type'] ||
 		'malware-sample' == $attribute['type'] ) {
 	$filenameHash = explode('|', h($attribute['value']));
-	echo $this->Html->link($filenameHash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
+	if (strrpos($filenameHash[0], '\\')) {
+		$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
+		$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
+		echo $filepath;
+		echo $this->Html->link($filename, array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
+	} else {
+		echo $this->Html->link($filenameHash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
+	}
 	if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 } elseif (strpos($attribute['type'], '|') !== false) {
 	$filenameHash = explode('|', h($attribute['value']));

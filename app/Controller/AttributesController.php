@@ -221,6 +221,7 @@ class AttributesController extends AppController {
 		} elseif ('malware-sample' == $this->Attribute->data['Attribute']['type']) {
 			$filenameHash = explode('|', $this->Attribute->data['Attribute']['value']);
 			$filename = $filenameHash[0];
+			$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 			$fileExt = "zip";
 		} else {
 			throw new NotFoundException(__('Attribute not an attachment or malware-sample'));
