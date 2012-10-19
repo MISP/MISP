@@ -176,8 +176,13 @@ class ServersController extends AppController {
 							$this->Server->data);
 					if (null != $event) {
 						// we have an Event array
-						$event['Event']['private'] = true;
-						$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
+						// check if the event already exist (using the uuid)
+						$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
+						if ($existingEventCount == 0) {
+							// add data for newly imported events
+							$event['Event']['private'] = true;
+							$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
+						}
 						$eventsController = new EventsController();
 						try {
 							$result = $eventsController->_add($event, $this->Auth, $fromXml = true, $this->Server->data['Server']['organization']);

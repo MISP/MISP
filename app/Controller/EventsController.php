@@ -266,10 +266,6 @@ class EventsController extends AppController {
 			// LATER do this with	 $this->validator()->remove('event_id');
 			unset($this->Event->Attribute->validate['event_id']);
 			unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-
-			// thing a 'pull from server' sets ServersController.php:176
-			// Event.info is appended from the publishing side, given the need to have Server.url
-			$data['Event']['private'] = true;
 		}
 
 		if (isset($data['Event']['uuid'])) {	// TODO here we should start RESTful dialog
