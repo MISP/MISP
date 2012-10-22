@@ -27,7 +27,7 @@ if ('true' == Configure::read('CyDefSIG.sync')) {
 	}
 }
 echo $this->Form->input('to_ids', array(
-			'before' => $this->Html->div('forminfo', isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),
+			'before' => $this->Html->div('forminfo', isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc']),
 			'label' => 'IDS Signature?'
 ));
 if ($attachment) {
