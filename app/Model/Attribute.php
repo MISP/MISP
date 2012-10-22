@@ -284,7 +284,7 @@ class Attribute extends AppModel {
 			));
 
 			$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
-				'sharing' => array('desc' => 'This field tells how and if the attribute should be shared with other CyDefSIG users'),
+				'sharing' => array('desc' => 'This fields indicates the intended distribution of the attribute (same as when adding an event, see Add Event)'),
 			));
 
 			$this->validate = Set::merge($this->validate,array(

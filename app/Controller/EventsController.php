@@ -324,7 +324,7 @@ class EventsController extends AppController {
 		$this->set('risks',compact('risks'));
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org', 'Server', 'Pull only', 'All');
+			$sharings = array('Org', 'Community', 'No push', 'All');
 			$sharings = $this->_arrayToValuesIndexArray($sharings);
 			$this->set('sharings',compact('sharings'));
 		}

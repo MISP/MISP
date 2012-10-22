@@ -64,7 +64,7 @@ if ($mayPublish) {
 		</dd>
 		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 		<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
-		<dt>Private</dt>
+		<dt>Distribution</dt>
 		<dd>
 			<?php echo ($event['Event']['sharing'] == 'All') ? 'upload Event and all Attributes except those marked as to keep in Org or Server.' : (($event['Event']['sharing'] == 'Server') ? 'Server, Only show Event or any Attributes to Server members.' : (($event['Event']['sharing'] == 'Pull only') ? 'Pull only, Do not show Event or any Attributes, but do Pull this Event or Attribute.': 'Org, Only show Event or any Attributes to Org members.')); ?>
 			&nbsp;

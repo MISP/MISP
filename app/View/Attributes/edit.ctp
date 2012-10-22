@@ -17,7 +17,7 @@ if ($attachment) {
 }
 if ('true' == Configure::read('CyDefSIG.sync')) {
 	if ('true' == Configure::read('CyDefSIG.private')) {
-		echo $this->Form->input('sharing', array('label' => 'Private',
+		echo $this->Form->input('sharing', array('label' => 'Distribution',
 				'before' => $this->Html->div('forminfo', isset($attrDescriptions['sharing']['formdesc']) ? $attrDescriptions['sharing']['formdesc'] : $attrDescriptions['sharing']['desc']),
 		));
 	} else {

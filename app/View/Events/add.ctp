@@ -6,7 +6,7 @@
 echo $this->Form->input('date');
 if ('true' == Configure::read('CyDefSIG.sync')) {
 	if ('true' == Configure::read('CyDefSIG.private')) {
-		echo $this->Form->input('sharing', array('label' => 'Private',
+		echo $this->Form->input('sharing', array('label' => 'Distribution',
 			'before' => $this->Html->div('forminfo', isset($eventDescriptions['sharing']['formdesc']) ? $eventDescriptions['sharing']['formdesc'] : $eventDescriptions['sharing']['desc']),));
 	} else {
 		echo $this->Form->input('private', array(

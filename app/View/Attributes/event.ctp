@@ -47,7 +47,7 @@
 			&nbsp;
 		</dd>
 		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
-		<dt>Private</dt>
+		<dt>Distribution</dt>
 		<dd>
 			<?php echo ($event['Event']['private'])? 'Yes, never upload Event or any Attributes.' : 'No, upload Event and all Attributes except those marked as Private.'; ?>
 			&nbsp;
