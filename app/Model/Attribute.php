@@ -415,12 +415,12 @@ class Attribute extends AppModel {
 				$data['Attribute']['cluster'] = false;
 				$data['Attribute']['pull'] = false;
 				break;
-			case 'Server':
+			case 'Community':
 				$data['Attribute']['private'] = false;
 				$data['Attribute']['cluster'] = true;
 				$data['Attribute']['pull'] = false;
 				break;
-			case 'Pull only':
+			case 'No push':
 				$data['Attribute']['private'] = false;
 				$data['Attribute']['cluster'] = false;
 				$data['Attribute']['pull'] = true;

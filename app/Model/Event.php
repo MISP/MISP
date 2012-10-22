@@ -275,12 +275,12 @@ class Event extends AppModel {
 				$data['Event']['cluster'] = false;
 				$data['Event']['pull'] = false;
 				break;
-			case 'Server':
+			case 'Community':
 				$data['Event']['private'] = false;
 				$data['Event']['cluster'] = true;
 				$data['Event']['pull'] = false;
 				break;
-			case 'Pull only':
+			case 'No push':
 				$data['Event']['private'] = false;
 				$data['Event']['cluster'] = false;
 				$data['Event']['pull'] = true;

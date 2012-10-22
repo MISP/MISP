@@ -373,7 +373,7 @@ class AttributesController extends AppController {
 		$this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org', 'Server', 'Pull only', 'All');
+			$sharings = array('Org', 'Community', 'No push', 'All');
 			$sharings = $this->_arrayToValuesIndexArray($sharings);
 			$this->set('sharings',compact('sharings'));
 		}
@@ -438,7 +438,7 @@ class AttributesController extends AppController {
 		$this->set('categories',compact('categories'));
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org', 'Server', 'Pull only', 'All');
+			$sharings = array('Org', 'Community', 'No push', 'All');
 			$sharings = $this->_arrayToValuesIndexArray($sharings);
 			$this->set('sharings',compact('sharings'));
 		}
