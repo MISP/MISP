@@ -66,7 +66,7 @@ if ($mayPublish) {
 		<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
 		<dt>Private</dt>
 		<dd>
-			<?php echo ($event['Event']['sharing'] == 'All') ? 'upload Event and all Attributes except those marked as to keep in Org or Server.' : (($event['Event']['sharing'] == 'Server') ? 'Server, Only show Event or any Attributes to Server members.': 'Org, Only show Event or any Attributes to Org members.'); ?>
+			<?php echo ($event['Event']['sharing'] == 'All') ? 'upload Event and all Attributes except those marked as to keep in Org or Server.' : (($event['Event']['sharing'] == 'Server') ? 'Server, Only show Event or any Attributes to Server members.' : (($event['Event']['sharing'] == 'Pull only') ? 'Pull only, Do not show Event or any Attributes, but do Pull this Event or Attribute.': 'Org, Only show Event or any Attributes to Org members.')); ?>
 			&nbsp;
 		</dd>
 		<?php else: ?>
@@ -173,7 +173,11 @@ if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$
 				</td>
 				<td class="short" style="text-align: center;"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
 				<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+				<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
+				<td class="short" style="text-align: center;"><?php echo $attribute['sharing'] == 'Org' ? 'Organization' : ($attribute['sharing'] == 'Server' ? 'Server' : ($attribute['sharing'] == 'Pull only' ? 'Pull only' : 'All'));?></td>
+				<?php else:?>
 				<td class="short" style="text-align: center;"><?php echo $attribute['private'] ? 'Private' : '&nbsp;';?></td>
+				<?php endif;?>
 				<?php endif;?>
 				<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
 				<td class="actions">
