@@ -11,6 +11,10 @@ foreach ($events as $key => $event) {
 	if ('true' != Configure::read('CyDefSIG.sync')) {
 		unset($events[$key]['private']);
 	}
+	if ('true' == Configure::read('CyDefSIG.private')) {
+		unset($events[$key]['cluster']);
+		unset($events[$key]['sharing']);
+	}
 	// hide the org field is we are not in showorg mode
 	if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
 		unset($events[$key]['org']);

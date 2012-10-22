@@ -1,4 +1,5 @@
 <?php
+
 App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
@@ -10,6 +11,16 @@ App::uses('File', 'Utility');
  */
 class Attribute extends AppModel {
 
+	public $combinedKeys = array('event_id', 'category', 'type');
+
+	public $name = 'Attribute';				// TODO general
+
+	public $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+		'userModel' => 'User',
+		'userKey' => 'user_id',
+		'change' => 'full'
+	));
+
 /**
  * Display field
  *
@@ -17,24 +28,30 @@ class Attribute extends AppModel {
  */
 	public $displayField = 'value';
 
+/**
+ * Virtual field
+ *
+ * @var array
+ */
 	public $virtualFields = array(
 			'value' => 'IF (Attribute.value2="", Attribute.value1, CONCAT(Attribute.value1, "|", Attribute.value2))',
 			'category_order' => 'IF (Attribute.category="Internal reference", "a",
-IF (Attribute.category="Antivirus detection", "b",
-IF (Attribute.category="Payload delivery", "c",
-IF (Attribute.category="Payload installation", "d",
-IF (Attribute.category="Artifacts dropped", "e",
-IF (Attribute.category="Persistence mechanism", "f",
-IF (Attribute.category="Network activity", "g",
-IF (Attribute.category="Payload type", "h",
-IF (Attribute.category="Attribution", "i",
-IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardcoded
+			IF (Attribute.category="Antivirus detection", "b",
+			IF (Attribute.category="Payload delivery", "c",
+			IF (Attribute.category="Payload installation", "d",
+			IF (Attribute.category="Artifacts dropped", "e",
+			IF (Attribute.category="Persistence mechanism", "f",
+			IF (Attribute.category="Network activity", "g",
+			IF (Attribute.category="Payload type", "h",
+			IF (Attribute.category="Attribution", "i",
+			IF (Attribute.category="External analysis", "j", "k"))))))))))'
+	); 	// TODO hardcoded
 
 /**
- * Description field
+ * Field Descriptions
  * explanations of certain fields to be used in various views
  *
- * @var array
+ * @public array
  */
 	public $fieldDescriptions = array(
 			'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
@@ -143,7 +160,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 					)
 	);
 
-	public  $order = array("Attribute.event_id" => "DESC", "Attribute.type" => "ASC");
+	public $order = array("Attribute.event_id" => "DESC", "Attribute.type" => "ASC");
 
 /**
  * Validation rules
@@ -257,6 +274,52 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 		),
 	);
 
+	public function __construct($id = false, $table = null, $ds = null) {
+		parent::__construct($id, $table, $ds);
+
+		if ('true' == Configure::read('CyDefSIG.private')) {
+
+			$this->virtualFields = Set::merge($this->virtualFields,array(
+				'sharing' => 'IF (Attribute.private=true, "Org", IF (Attribute.cluster=true, "Server", IF (Attribute.pull=true, "Pull only", "All")))',
+			));
+
+			$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
+				'sharing' => array('desc' => 'This field tells how and if the attribute should be shared with other CyDefSIG users'),
+			));
+
+			$this->validate = Set::merge($this->validate,array(
+				'cluster' => array(
+					'boolean' => array(
+						'rule' => array('boolean'),
+						//'message' => 'Your custom message here',
+						//'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					),
+				),
+				'pull' => array(
+					'boolean' => array(
+						'rule' => array('boolean'),
+						//'message' => 'Your custom message here',
+						//'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					),
+				),
+				'sharing' => array(
+					'rule' => array('inList', array('Org', 'Server', 'Pull only')),
+						//'message' => 'Your custom message here',
+						'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					),
+				));
+		}
+	}
+
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
 /**
@@ -343,6 +406,32 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 			// update correlation..
 			$this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
 		}
+	}
+
+	public function massageData(&$data) {
+		switch ($data['Attribute']['sharing']) {
+			case 'Org':
+				$data['Attribute']['private'] = true;
+				$data['Attribute']['cluster'] = false;
+				$data['Attribute']['pull'] = false;
+				break;
+			case 'Server':
+				$data['Attribute']['private'] = false;
+				$data['Attribute']['cluster'] = true;
+				$data['Attribute']['pull'] = false;
+				break;
+			case 'Pull only':
+				$data['Attribute']['private'] = false;
+				$data['Attribute']['cluster'] = false;
+				$data['Attribute']['pull'] = true;
+				break;
+			case 'All':
+				$data['Attribute']['private'] = false;
+				$data['Attribute']['cluster'] = false;
+				$data['Attribute']['pull'] = false;
+				break;
+		}
+		return $data;
 	}
 
 	public function beforeValidate() {
@@ -682,10 +771,70 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 		}
 	}
 
+/**
+ * add_attachment method
+ *
+ * @return void
+ */
+	public function uploadAttachment($fileP, $realFileName, $malware, $eventId = null, $category = null, $extraPath = '', $fullFileName = '') {
+		// Check if there were problems with the file upload
+		// only keep the last part of the filename, this should prevent directory attacks
+		$filename = basename($fileP);
+		$tmpfile = new File($fileP);
+
+		// save the file-info in the database
+		$this->create();
+		$this->data['Attribute']['event_id'] = $eventId;
+		if ($malware) {
+			$this->data['Attribute']['category'] = $category ? $category : "Payload delivery";
+			$this->data['Attribute']['type'] = "malware-sample";
+			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $tmpfile->md5() : $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
+			$this->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
+		} else {
+			$this->data['Attribute']['category'] = $category ? $category : "Artifacts dropped";
+			$this->data['Attribute']['type'] = "attachment";
+			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName : $realFileName;
+			$this->data['Attribute']['to_ids'] = 0;
+		}
+
+		if ($this->save($this->data)) {
+			 // attribute saved correctly in the db
+		} else {
+			// do some?
+		}
+
+		// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
+		// no sanitization is required on the filename, path or type as we save
+		// create directory structure
+		$rootDir = APP . DS . "files" . DS . $eventId;
+		$dir = new Folder($rootDir, true);
+		// move the file to the correct location
+		$destpath = $rootDir . DS . $this->getId();   // id of the new attribute in the database
+		$file = new File ($destpath);
+		$zipfile = new File ($destpath . '.zip');
+		$fileInZip = new File($rootDir . DS . $extraPath . $filename); // FIXME do sanitization of the filename
+
+		// zip and password protect the malware files
+		if ($malware) {
+			// TODO check if CakePHP has no easy/safe wrapper to execute commands
+			$execRetval = '';
+			$execOutput = array();
+			exec("zip -j -P infected " . $zipfile->path . ' "' . addslashes($fileInZip->path) . '"', $execOutput, $execRetval);
+			if ($execRetval != 0) {   // not EXIT_SUCCESS
+				// do some?
+			};
+			$fileInZip->delete();              // delete the original not-zipped-file
+			rename($zipfile->path, $file->path); // rename the .zip to .nothing
+		} else {
+			$fileAttach = new File($fileP);
+			rename($fileAttach->path, $file->path);
+		}
+	}
+
 	private function __afterSaveCorrelation($attribute) {
 		$this->__beforeDeleteCorrelation($attribute);
 		// re-add
-		$this->setRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Event.date'));
+		$this->setRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Event.date', 'Event.org'));
 	}
 
 	private function __beforeDeleteCorrelation($attribute) {
@@ -741,7 +890,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 				$params = array(
 					'conditions' => array('Event.id' => $relatedAttribute['Attribute']['event_id']),
 					'recursive' => 0,
-					'fields' => array('Event.date')
+					'fields' => array('Event.date', 'Event.org')
 				);
 				$eventDate = $this->Event->find('first', $params);
 				$this->Correlation = ClassRegistry::init('Correlation');
@@ -750,6 +899,8 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 					'Correlation' => array(
 						'1_event_id' => $attribute['event_id'], '1_attribute_id' => $attribute['id'],
 						'event_id' => $relatedAttribute['Attribute']['event_id'], 'attribute_id' => $relatedAttribute['Attribute']['id'],
+						'org' => $eventDate['Event']['org'],
+						'private' => $relatedAttribute['Attribute']['private'],
 						'date' => $eventDate['Event']['date']))
 				);
 			}

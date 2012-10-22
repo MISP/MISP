@@ -9,7 +9,7 @@ App::uses('Xml', 'Utility');
  */
 class ServersController extends AppController {
 
-	public $components = array('Security' ,'RequestHandler');
+	public $components = array('Acl' ,'Security' ,'RequestHandler');	// XXX ACL component
 
 	public $paginate = array(
 			'limit' => 60,
@@ -283,9 +283,15 @@ class ServersController extends AppController {
 			// increment lastid based on the highest ID seen
 			$this->Server->saveField('lastpushedid', $lastpushedid);
 		}
-
 		$this->set('successes', $successes);
 		$this->set('fails', $fails);
 	}
 
+	public function getName($id = null) {
+		$servers = $this->Server->find('first', array(
+				'conditions' => array('Server.id' => $id)
+		));
+		$name = $servers['Server']['url'];
+		return $name;
+	}
 }

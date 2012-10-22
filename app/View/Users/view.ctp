@@ -19,6 +19,11 @@
 			<?php echo h($user['User']['org']); ?>
 			&nbsp;
 		</dd>
+		<dt><?php echo __('Group'); ?></dt>
+		<dd>
+			<?php echo h($user['Group']['name']); ?>		<!-- TODO ACL, check, My Profile not edit group_id. -->
+			&nbsp;
+		</dd>
 		<dt><?php echo __('Autoalert'); ?></dt>
 		<dd>
 			<?php echo h(0 == ($user['User']['autoalert'])) ? 'no' : 'yes'; ?>
@@ -55,3 +60,36 @@
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
+
+<script type="text/javascript">
+$('#button_off').click(function() {
+	return false;
+});
+$('#button_off0').click(function() {
+	return false;
+});
+$('#button_off1').click(function() {
+	return false;
+});
+$('#button_off2').click(function() {
+	return false;
+});
+$('#button_off3').click(function() {
+	return false;
+});
+$('#button_off4').click(function() {
+	return false;
+});
+$('#button_off5').click(function() {
+	return false;
+});
+$('#button_off6').click(function() {
+	return false;
+});
+$('#button_off7').click(function() {
+	return false;
+});
+$('#button_off8').click(function() {
+	return false;
+});
+</script>

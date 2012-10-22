@@ -24,7 +24,6 @@
 
 App::uses('Controller', 'Controller');
 App::uses('Sanitize', 'Utility');
-
 /**
  * Application Controller
  *
@@ -37,6 +36,7 @@ App::uses('Sanitize', 'Utility');
 class AppController extends Controller {
 
 	public $components = array(
+			'Acl',			// TODO XXX remove
 			'Session',
 			'Auth' => array(
 				'className' => 'SecureAuth',
@@ -48,8 +48,9 @@ class AppController extends Controller {
 				'authError' => 'Did you really think you are allowed to see that?',
 				'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
 				'logoutRedirect' => array('controller' => 'users', 'action' => 'login'),
-				'authorize' => array('Controller') // Added this line
-	)
+				'authorize' => array('Controller', // Added this line
+				'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
+				)
 	);
 
 	public function isAuthorized($user) {
@@ -94,6 +95,11 @@ class AppController extends Controller {
 		// These variables are required for every view
 		$this->set('me', $this->Auth->user());
 		$this->set('isAdmin', $this->_isAdmin());
+
+		// TODO ACL: 5: from Controller to Views
+		$this->set('isAclAdd', $this->checkAcl('add'));
+		$this->set('isAclModify', $this->checkAcl('edit'));
+		$this->set('isAclPublish', $this->checkAcl('publish'));
 	}
 
 	public function blackhole($type) {
@@ -316,7 +322,7 @@ class AppController extends Controller {
 
 		$this->loadModel('Correlation');
 		$this->loadModel('Attribute');
-		$fields = array('Attribute.id', 'Attribute.event_id', 'Event.date');
+		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Event.date', 'Event.org');
 		// get all attributes..
 		$attributes = $this->Attribute->find('all',array('recursive' => 0));
 		// for all attributes..
@@ -335,6 +341,54 @@ class AppController extends Controller {
 			//		'date' => $relatedAttribute['Event']['date'])));
 			//	}
 			//}
+		}
+	}
+
+/**
+ * TODO ACL, 6b: check on Group and per Model (not used)
+ */
+	public function checkAccess() {
+		$aco = ucfirst($this->params['controller']);
+		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
+		return $this->Acl->check($user, 'controllers/' . $aco, '*');
+	}
+
+/**
+ * TODO ACL, 6: check on Group and any Model
+ */
+	public function checkAcl($action) {
+		$aco = 'Events';	// TODO ACL was 'Attributes'
+		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
+		// TODO ACL, CHECK, below if indicates some wrong: Fatal error: Call to a member function check() on a non-object in /var/www/cydefsig/app/Controller/AppController.php on line 289
+		if ($this->Acl) {
+			return $this->Acl->check($user, 'controllers/' . $aco . '/' . $action, '*');
+		} else {
+			return true;
+		}
+	}
+
+	public function generatePrivate() {
+		if (!self::_isAdmin()) throw new NotFoundException();
+
+		$this->loadModel('Correlation');
+		$this->loadModel('Attribute');
+		$attributes = $this->Attribute->find('all',array('recursive' => 0));
+		foreach ($attributes as $attribute) {
+			if ($attribute['Attribute']['private']) {
+				$attribute['Attribute']['private'] = false;
+				$attribute['Attribute']['pull'] = true;
+			}
+			$this->Attribute->save($attribute);
+		}
+
+		$this->loadModel('Event');
+		$events = $this->Event->find('all',array('recursive' => 0));
+		foreach ($events as $event) {
+			if ($event['Event']['private']) {
+				$event['Event']['private'] = false;
+				$event['Event']['pull'] = true;
+			}
+			$this->Event->save($event);
 		}
 	}
 }

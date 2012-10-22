@@ -21,6 +21,7 @@
  */
 
 App::uses('Model', 'Model');
+App::uses('LogableBehavior', 'Assets.models/behaviors');
 
 /**
  * Application model for Cake.

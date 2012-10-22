@@ -15,6 +15,7 @@ class EventsController extends AppController {
  * @var array
  */
 	public $components = array(
+			'Acl',	// XXX ACL component
 			'Security',
 			'Email',
 			'RequestHandler',
@@ -43,6 +44,13 @@ class EventsController extends AppController {
 
 		$this->Auth->allow('dot');
 
+		// TODO Audit, activate logable in a Controller
+		if (count($this->uses) && $this->{$this->modelClass}->Behaviors->attached('SysLogLogable')) {
+			$this->{$this->modelClass}->setUserData($this->activeUser);
+		}
+
+		// TODO ACL, if on ent/attr level, $this->set('isAcl', $this->checkAccess());
+
 		// convert uuid to id if present in the url, and overwrite id field
 		if (isset($this->params->query['uuid'])) {
 			$params = array(
@@ -56,6 +64,30 @@ class EventsController extends AppController {
 				$this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
 			}
 		}
+
+		// do not show private to other groups
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			// if not admin or own org, check private as well..
+			if (!$this->_IsAdmin()) {
+				$this->paginate = Set::merge($this->paginate,array(
+				'conditions' =>
+						array("OR" => array(
+						array('Event.org =' => $this->Auth->user('org')),
+						array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1)))),
+				));
+			}
+		}
+
+		// do not show cluster outside server
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			if ($this->_isRest()) {
+					$this->paginate = Set::merge($this->paginate,array(
+					'conditions' =>
+							array(array('Event.cluster !=' => true)),
+							//array("AND" => array(array('Event.private !=' => 2))),
+					));
+			}
+		}
 	}
 
 	public function isAuthorized($user) {
@@ -64,7 +96,7 @@ class EventsController extends AppController {
 			return true;
 		}
 		// Only on own events for these actions
-		if (in_array($this->action, array('edit', 'delete', 'alert', 'publish'))) {
+		if (in_array($this->action, array('alert'))) {	// TODO ACL, CHECK, remove overruling 'edit', 'delete' and 'publish'
 			$eventid = $this->request->params['pass'][0];
 			return $this->Event->isOwnedByOrg($eventid, $this->Auth->user('org'));
 		}
@@ -102,21 +134,44 @@ class EventsController extends AppController {
 		}
 		$this->Event->read(null, $id);
 
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			if (!$this->_IsAdmin()) {
+				// check for non-private and re-read
+				if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
+					$this->Event->hasMany['Attribute']['conditions'] = array('Attribute.private !=' => 1);
+					$this->Event->read(null, $id);
+				}
+
+				// check private
+				if (($this->Event->data['Event']['private']) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
+					$this->Session->setFlash('Invalid event.');
+					$this->redirect(array('controller' => 'users', 'action' => 'terms'));
+				}
+			}
+		}
+
 		$relatedAttributes = array();
 		$this->loadModel('Attribute');
 		if ('db' == Configure::read('CyDefSIG.correlation')) {
 			$this->loadModel('Correlation');
 			$fields = array('Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date');
-			$fields2 = array('Correlation.1_attribute_id','Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date');
+			$fields2 = array('Correlation.1_attribute_id','Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date', 'Correlation.private', 'Correlation.org');
 			$relatedAttributes2 = array();
-				$relatedAttributes2 = $this->Correlation->find('all',array(
-				'fields' => $fields2,
-				'conditions' => array(
-						'OR' => array(
-								'Correlation.1_event_id' => $id
-						)
-				),
-				'recursive' => 0));
+			if ('true' == Configure::read('CyDefSIG.private')) {
+				$conditionsCorrelation =
+					array('AND' => array('Correlation.1_event_id' => $id,),
+				array("OR" => array(
+						array('Correlation.org =' => $this->Event->data['Event']['org']),
+						array("AND" => array('Correlation.org !=' => $this->Event->data['Event']['org']), array('Correlation.private !=' => 1)))));
+			} else {
+				$conditionsCorrelation =
+					array('AND' => array('Correlation.1_event_id' => $id,));
+			}
+			$relatedAttributes2 = $this->Correlation->find('all',array(
+			'fields' => $fields2,
+			'conditions' => $conditionsCorrelation,
+			'recursive' => 0));
+
 			if (empty($relatedAttributes2)) {
 				$relatedEvents = null;
 			} else {
@@ -223,25 +278,56 @@ class EventsController extends AppController {
  */
 	public function add() {
 		if ($this->request->is('post')) {
-			if ($this->_add($this->request->data, $this->Auth, $this->_isRest(),'')) {
-				if ($this->_isRest()) {
-					// REST users want to see the newly created event
-					$this->view($this->Event->getId());
-					$this->render('view');
+
+			// TODO or massageData here
+			if ('true' == Configure::read('CyDefSIG.private')) {
+				$this->request->data = $this->Event->massageData(&$this->request->data);
+			}
+
+			if (!empty($this->data)) {
+				if (isset($this->data['Event']['submittedfile'])) {
+					App::uses('File', 'Utility');
+					$file = new File($this->data['Event']['submittedfile']['name']);
+					$ext = $file->ext();
 				} else {
-					// redirect to the view of the newly created event
-					$this->Session->setFlash(__('The event has been saved'));
-					$this->redirect(array('action' => 'view', $this->Event->getId()));
+					$ext = '';
 				}
-			} else {
-				$this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
-				// TODO return error if REST
+				if (isset($this->data['Event']['submittedfile']) && $ext != 'zip' && $this->data['Event']['submittedfile']['size'] > 0 &&
+			is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
+					//return false;
+					$this->Session->setFlash('You may only upload GFI Sandbox zip files.');
+				} else {
+					// TODO or massageData here
+					if ($this->_add($this->request->data, $this->Auth, $this->_isRest(),'')) {
+						if ($this->_isRest()) {
+							// REST users want to see the newly created event
+							$this->view($this->Event->getId());
+							$this->render('view');
+						} else {
+							// TODO now save uploaded attributes using $this->Event->getId() ..
+							$this->addGfiZip($this->Event->getId());
+
+							// redirect to the view of the newly created event
+							$this->Session->setFlash(__('The event has been saved'));
+							$this->redirect(array('action' => 'view', $this->Event->getId()));
+						}
+					} else {
+						$this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
+						// TODO return error if REST
+					}
+				}
 			}
 		}
 		// combobox for risks
 		$risks = $this->Event->validate['risk']['rule'][1];
 		$risks = $this->_arrayToValuesIndexArray($risks);
 		$this->set('risks',compact('risks'));
+
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			$sharings = array('Org', 'Server', 'Pull only', 'All');
+			$sharings = $this->_arrayToValuesIndexArray($sharings);
+			$this->set('sharings',compact('sharings'));
+		}
 
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
@@ -296,9 +382,14 @@ class EventsController extends AppController {
 		}
 
 		$fieldList = array(
-				'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
+				'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'pull'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'pull')
 		);
+
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			$data = $this->Event->massageData(&$data);
+		}
+
 		// this saveAssociated() function will save not only the event, but also the attributes
 		// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
 		if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
@@ -364,7 +455,7 @@ class EventsController extends AppController {
 			}
 
 			// say what fields are to be updated
-			$fieldList = array('date', 'risk', 'info', 'published', 'private');
+			$fieldList = array('date', 'risk', 'info', 'published', 'private', 'cluster', 'pull');
 			// always force the org, but do not force it for admins
 			if ($this->_isAdmin()) {
 				// set the same org as existed before
@@ -373,6 +464,10 @@ class EventsController extends AppController {
 			}
 			// we probably also want to remove the published flag
 			$this->request->data['Event']['published'] = 0;
+
+			if ('true' == Configure::read('CyDefSIG.private')) {
+				$this->request->data = $this->Event->massageData(&$this->request->data);
+			}
 
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The event has been saved'));
@@ -389,7 +484,14 @@ class EventsController extends AppController {
 		$risks = $this->_arrayToValuesIndexArray($risks);
 		$this->set('risks',compact('risks'));
 
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			$sharings = array('Org', 'Server', 'Pull only', 'All');
+			$sharings = $this->_arrayToValuesIndexArray($sharings);
+			$this->set('sharings', compact('sharings'));
+		}
+
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		$this->set('privateDefinitions', $this->Event->privateDefinitions);
 	}
 
 /**
@@ -564,13 +666,13 @@ class EventsController extends AppController {
 		// The mail body, h() is NOT needed as we are sending plain-text mails.
 		$body = "";
 		$appendlen = 20;
-		$body .= 'URL		 : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
-		$body .= 'Event	   : ' . $event['Event']['id'] . "\n";
-		$body .= 'Date		: ' . $event['Event']['date'] . "\n";
+		$body .= 'URL         : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
+		$body .= 'Event       : ' . $event['Event']['id'] . "\n";
+		$body .= 'Date        : ' . $event['Event']['date'] . "\n";
 		if ('true' == Configure::read('CyDefSIG.showorg')) {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
-		$body .= 'Risk		: ' . $event['Event']['risk'] . "\n";
+		$body .= 'Risk        : ' . $event['Event']['risk'] . "\n";
 		$relatedEvents = $this->Event->getRelatedEvents($id);
 		if (!empty($relatedEvents)) {
 			foreach ($relatedEvents as &$relatedEvent) {
@@ -586,7 +688,7 @@ class EventsController extends AppController {
 
 		if (isset($event['Attribute'])) {
 			foreach ($event['Attribute'] as &$attribute) {
-				$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])) . ': ' . $attribute['value'] . "\n";
+				$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . "\n";
 				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
 					$bodyTempOther .= $line;
 				else $body .= $line;
@@ -613,7 +715,7 @@ class EventsController extends AppController {
 						'conditions' => array('User.autoalert' => 1,
 											'User.gpgkey =' => ""),
 						'recursive' => 0,
-				) );
+				));
 				$alertEmails = Array();
 				foreach ($alertUsers as &$user) {
 					$alertEmails[] = $user['User']['email'];
@@ -624,7 +726,7 @@ class EventsController extends AppController {
 				$this->Email->bcc = $alertEmails;
 				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
-				$this->Email->sendAs = 'text';		// both text or html
+				$this->Email->sendAs = 'text';        // both text or html
 				$this->set('body', $bodySigned);
 				// send it
 				$this->Email->send();
@@ -649,7 +751,7 @@ class EventsController extends AppController {
 				$this->Email->to = $user['User']['email'];
 				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
-				$this->Email->sendAs = 'text';		// both text or html
+				$this->Email->sendAs = 'text';        // both text or html
 
 				// import the key of the user into the keyring
 				// this is not really necessary, but it enables us to find
@@ -1101,4 +1203,205 @@ class EventsController extends AppController {
 	//	debug($gv);
 	//	$gv->image();
 	//}
+
+	public function getName($id = null) {
+		$events = $this->Event->find('first', array(
+				'conditions' => array('Event.id' => $id)
+		));
+		$name = $events['Event']['info'];
+		return $name;
+	}
+
+	public function addGfiZip($id) {
+		if (!empty($this->data) && $this->data['Event']['submittedfile']['size'] > 0 &&
+		is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
+			$zipData = fread(fopen($this->data['Event']['submittedfile']['tmp_name'], "r"),
+			$this->data['Event']['submittedfile']['size']);
+
+			// write
+			$rootDir = APP . "files" . DS . $id . DS;
+			App::uses('Folder', 'Utility');
+			$dir = new Folder($rootDir, true);
+			$destpath = $rootDir;
+			$file = new File ($destpath);
+			$zipfile = new File ($destpath . DS . $this->data['Event']['submittedfile']['name']);
+			$result = $zipfile->write($zipData);
+			if (!$result) $this->Session->setFlash(__('Problem with writing the zip file. Please report to administrator.'));
+
+			// extract zip..
+			$execRetval = '';
+			exec("unzip " . $zipfile->path . ' -d "' . addslashes($rootDir) . '"', $execOutput, $execRetval);
+			$execOutput = array();
+			if ($execRetval != 0) {   // not EXIT_SUCCESS
+				// do some?
+			}
+
+			// now open the xml..
+			$xml = $rootDir . DS . 'Analysis' . DS . 'analysis.xml';
+			$fileData = fread(fopen($xml, "r"), $this->data['Event']['submittedfile']['size']);
+
+			// read XML
+			$this->readGfiXML($fileData, $id);
+		}
+	}
+
+	public function readGfiXML($data, $id) {
+		$this->loadModel('Attribute');
+
+		// import XML class
+		App::uses('Xml', 'Utility');
+		// now parse it
+		$parsedXml =& Xml::build($data, array('return' => 'simplexml'));
+
+		// xpath..
+
+		//Payload delivery -- malware-sample
+		$results = $parsedXml->xpath('/analysis');
+		foreach ($results as $result) {
+			foreach ($result[0]->attributes() as $key => $val) {
+				if ((string)$key == 'filename') $realFileName = (string)$val;
+			}
+		}
+		$realMalware = $realFileName;
+		$rootDir = APP . "files" . DS . $id . DS;
+		$malware = $rootDir . DS . 'sample';
+		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id);
+
+		//Network activity -- .pcap
+		$realFileName = 'analysis.pcap';
+		$rootDir = APP . "files" . DS . $id . DS;
+		$malware = $rootDir . DS . 'Analysis' . DS . 'analysis.pcap';
+		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	false, $id, 'Network activity');
+
+		//Artifacts dropped -- filename|md5
+		$files = array();
+		// TODO what about stored_modified_file ??
+		$results = $parsedXml->xpath('/analysis/processes/process/stored_files/stored_created_file');
+		foreach ($results as $result) {
+			$arrayItemKey = '';
+			$arrayItemValue = '';
+			foreach ($result[0]->attributes() as $key => $val) {
+				if ($key == 'filename') $arrayItemKey = (string)$val;
+				if ($key == 'md5') $arrayItemValue = (string)$val;
+			}
+
+			$files[$arrayItemKey] = $arrayItemValue;
+		}
+		//$files = array_unique($files);
+
+		// write content..
+		foreach ($files as $key => $val) {
+			$keyName = $key;
+			// replace Windows Environment Variables
+			$keyName = str_replace('C:\Users\John', '%UserProfile%', $keyName);
+			$keyName = str_replace('C:\Documents and Settings\James Cocks', '%UserProfile%', $keyName);
+			$keyName = str_replace('C:\DOCUME~1\JAMESC~1', '%UserProfile%', $keyName);
+			$keyName = str_replace('C:\Documents and Settings\All Users', '%AllUsersProfile%', $keyName);
+
+			if (!strpos($key, $realMalware)) {
+				$itsType = 'malware-sample';
+			} else {
+				$itsType = 'filename|md5';
+			}
+
+			// the actual files..
+			// seek $val in dirs and add..
+			$ext = substr($key, strrpos($key, '.'));
+			$actualFileName = $val . $ext;
+			$actualFileNameBase = str_replace('\\', '/', $key);
+			$actualFileNameArray[] = basename($actualFileNameBase);
+			$realFileName = end(explode('\\', $key));
+			// have the filename, now look at parents parent for the process number
+			$express = "/analysis/processes/process/stored_files/stored_created_file[@md5='" . $val . "']/../..";
+			$results = $parsedXml->xpath($express);
+			foreach ($results as $result) {
+				foreach ($result[0]->attributes() as $key => $val) {
+					if ((string)$key == 'index') $index = (string)$val;
+				}
+			}
+			$actualFile = $rootDir . DS . 'Analysis' . DS . 'proc_' . $index . DS . 'modified_files' . DS . $actualFileName;
+			$extraPath = 'Analysis' . DS . 'proc_' . $index . DS . 'modified_files' . DS;
+			$file = new File($actualFile);
+			if ($file->exists()) { // TODO put in array for test later
+				$this->Event->Attribute->uploadAttachment($actualFile, $realFileName, true, $id, null, $extraPath, $keyName); // TODO was false
+			}
+		}
+
+		//Network activity -- ip-dst
+		$ips = array();
+		$results = $parsedXml->xpath('/analysis/processes/process/networkpacket_section/connect_to_computer');
+		foreach ($results as $result) {
+			foreach ($result[0]->attributes() as $key => $val) {
+				if ($key == 'remote_ip') $ips[] = (string)$val;
+			}
+		}
+		// write content..
+		foreach ($ips as $ip) {
+			// add attribute..
+			$this->Attribute->read(null, 1);
+			$this->Attribute->save(array(
+			'event_id' => $id,
+			'category' => 'Network activity',
+			'type' => 'ip-dst',
+			'value' => $ip,
+			'to_ids' => false));
+		}
+
+		// Persistence mechanism -- regkey|value
+		$regs = array();
+		$results = $parsedXml->xpath('/analysis/processes/process/registry_section/set_value');
+		foreach ($results as $result) {
+			$arrayItemKey = '';
+			$arrayItemValue = '';
+			foreach ($result[0]->attributes() as $key => $val) {
+				if ($key == 'key_name') $arrayItemKey = (string)$val;
+				if ($key == 'data') $arrayItemValue = (string)$val;
+			}
+			$arrayItemKey = preg_replace('@\\\REGISTRY\\\USER\\\S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){2}-[0-9]{9}-[0-9]{4}@','HKEY_CURRENT_USER',$arrayItemKey);
+			$regs[$arrayItemKey] = str_replace('(UNICODE_0x00000000)', '', $arrayItemValue);
+		}
+		//$regs = array_unique($regs);
+
+		// write content..
+		foreach ($regs as $key => $val) {
+			// add attribute..
+			$this->Attribute->read(null, 1);
+			if ($val == '[binary_data]') {
+				$itsCategory = 'Persistence mechanism';
+				$itsType = 'regkey';
+				$itsValue = $key;
+			} else {
+				if ($this->strposarray($val,$actualFileNameArray)) {
+					$itsCategory = 'Persistence mechanism';
+					$itsType = 'regkey|value';
+					$itsValue = $key . '|' . $val;
+				} else {
+					// replace Windows Environment Variables
+					$val = str_replace('C:\Users\John', '%UserProfile%', $val);
+					$val = str_replace('C:\Documents and Settings\James Cocks', '%UserProfile%', $val);
+					$val = str_replace('C:\DOCUME~1\JAMESC~1', '%UserProfile%', $val);
+					$val = str_replace('C:\Documents and Settings\All Users', '%AllUsersProfile%', $val);
+
+					$itsCategory = 'Artifacts dropped'; // Persistence mechanism
+					$itsType = 'regkey|value';
+					$itsValue = $key . '|' . $val;
+				}
+			}
+			$this->Attribute->save(array(
+				'event_id' => $id,
+				'category' => $itsCategory, // 'Persistence mechanism'
+				'type' => $itsType,
+				'value' => $itsValue,
+				'to_ids' => false));
+		}
+	}
+	public function strposarray($string, $array) {
+		$toReturn = false;
+		foreach ($array as $item) {
+			if (strpos($string,$item)) {
+				$toReturn = true;
+			}
+		}
+		return $toReturn;
+	}
 }

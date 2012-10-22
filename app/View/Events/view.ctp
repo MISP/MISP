@@ -1,11 +1,24 @@
+<?php
+$buttonAddStatus = $isAclAdd || $event['Event']['user_id'] == $me['id'] ? 'button_on':'button_off';
+$mayModify = $isAclModify || $event['Event']['user_id'] == $me['id'];
+$buttonModifyStatus = $mayModify ? 'button_on':'button_off';
+$mayPublish = $isAclPublish || $event['Event']['user_id'] == $me['id'];
+$buttonPublishStatus = $mayPublish ? 'button_on':'button_off';
+$buttonCounter = 0;
+?>
 <div class="events view">
 <div class="actions" style="float:right;">
 <?php if ( 0 == $event['Event']['published'] && ($isAdmin || $event['Event']['org'] == $me['org'])):
 // only show button if alert has not been sent  // LATER show the ALERT button in red-ish
 ?>
 	<ul><li><?php
+if ($mayPublish) {
 	echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?');
 	echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!');
+} else {
+	echo $this->Html->link('Publish Event', array('action' => 'alert', $event['Event']['id']), array('id' => $buttonPublishStatus . $buttonCounter++, 'class' => $buttonPublishStatus));
+	echo $this->Html->link('Publish (no email)', array('action' => 'publish', $event['Event']['id']), array('id' => $buttonPublishStatus . $buttonCounter++, 'class' => $buttonPublishStatus));
+}
 	?> </li></ul>
 <?php elseif (0 == $event['Event']['published']): ?>
 	<ul><li>Not published</li></ul>
@@ -50,11 +63,19 @@
 			&nbsp;
 		</dd>
 		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+		<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
+		<dt>Private</dt>
+		<dd>
+			<?php echo ($event['Event']['sharing'] == 'All') ? 'upload Event and all Attributes except those marked as to keep in Org or Server.' : (($event['Event']['sharing'] == 'Server') ? 'Server, Only show Event or any Attributes to Server members.' : (($event['Event']['sharing'] == 'Pull only') ? 'Pull only, Do not show Event or any Attributes, but do Pull this Event or Attribute.': 'Org, Only show Event or any Attributes to Org members.')); ?>
+			&nbsp;
+		</dd>
+		<?php else: ?>
 		<dt>Private</dt>
 		<dd>
 			<?php echo ($event['Event']['private'])? 'Yes, never upload Event or any Attributes.' : 'No, upload Event and all Attributes except those marked as Private.'; ?>
 			&nbsp;
 		</dd>
+		<?php endif; ?>
 		<?php endif; ?>
 		<!-- dt>UUID</dt>
 		<dd>
@@ -97,30 +118,35 @@
 			<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
 			<th class="actions">Actions</th>
 			<?php endif;?>
-		</tr>
-		<?php
+		</tr><?php
 		foreach ($categories as $category):
 			$first = 1;
 			foreach ($event['Attribute'] as $attribute):
-				if ($attribute['category'] != $category) continue;
+				if($attribute['category'] != $category) continue;
 			?>
 			<tr>
-				<td class="short" title="<?php if ('' != $attribute['category']) echo $categoryDefinitions[$attribute['category']]['desc'];?>">
-<?php if ($first) {
+				<td class="short" title="<?php if('' != $attribute['category']) echo $categoryDefinitions[$attribute['category']]['desc'];?>"><?php
+if ($first) {
 	if ('' == $attribute['category']) echo '(no category)';
 	echo $attribute['category'];
 } else {
 	echo '&nbsp;';
 }
-?></td>
-				<td class="short" title="<?php echo $typeDefinitions[$attribute['type']]['desc'];?>">
-				<?php echo $attribute['type'];?></td>
+				?></td>
+<td class="short" title="<?php echo $typeDefinitions[$attribute['type']]['desc'];?>"><?php echo $attribute['type'];?></td>
 				<td><?php
 $sigDisplay = nl2br(h($attribute['value']));
 if ('attachment' == $attribute['type'] ||
 		'malware-sample' == $attribute['type'] ) {
 	$filenameHash = explode('|', h($attribute['value']));
-	echo $this->Html->link($filenameHash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
+	if (strrpos($filenameHash[0], '\\')) {
+		$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
+		$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
+		echo $filepath;
+		echo $this->Html->link($filename, array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
+	} else {
+		echo $this->Html->link($filenameHash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
+	}
 	if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 } elseif (strpos($attribute['type'], '|') !== false) {
 	$filenameHash = explode('|', h($attribute['value']));
@@ -133,9 +159,9 @@ if ('attachment' == $attribute['type'] ||
 } else {
 	echo $sigDisplay;
 }
-?></td>
+				?></td>
 				<td class="short" style="text-align: center;">
-<?php
+				<?php
 $first = 0;
 if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 	foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
@@ -143,17 +169,26 @@ if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$
 		echo ' ';
 	}
 }
-?>&nbsp;
+				?>&nbsp;
 				</td>
 				<td class="short" style="text-align: center;"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
 				<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+				<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
+				<td class="short" style="text-align: center;"><?php echo $attribute['sharing'] == 'Org' ? 'Organization' : ($attribute['sharing'] == 'Server' ? 'Server' : ($attribute['sharing'] == 'Pull only' ? 'Pull only' : 'All'));?></td>
+				<?php else:?>
 				<td class="short" style="text-align: center;"><?php echo $attribute['private'] ? 'Private' : '&nbsp;';?></td>
+				<?php endif;?>
 				<?php endif;?>
 				<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
 				<td class="actions">
 					<?php
-						echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']));
-						echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, __('Are you sure you want to delete this attribute?'));
+if ($isAclModify) {
+	echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']));
+	echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, __('Are you sure you want to delete this attribute?'));
+} else {
+	echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus));
+	echo $this->Html->link(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus));
+}
 					?>
 				</td>
 				<?php endif;?>
@@ -165,8 +200,8 @@ if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$
 		<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
 		<div class="actions">
 			<ul>
-				<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?> </li>
-				<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
+				<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']), array('id' => $buttonAddStatus . $buttonCounter++, 'class' => $buttonAddStatus));?> </li>
+				<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']), array('id' => $buttonAddStatus . $buttonCounter++, 'class' => $buttonAddStatus));?> </li>
 			</ul>
 		</div>
 		<?php endif; ?>
@@ -177,12 +212,143 @@ if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$
 <div class="actions">
 	<ul>
 	<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
-		<li><?php echo $this->Html->link(__('Add Attribute', true), array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link(__('Add Attachment', true), array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link(__('Edit Event', true), array('action' => 'edit', $event['Event']['id'])); ?> </li>
-		<li><?php echo $this->Form->postLink(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
+		<li><?php echo $this->Html->link(__('Add Attribute', true), array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']), array('id' => $buttonAddStatus . $buttonCounter++, 'class' => $buttonAddStatus));?> </li>
+		<li><?php echo $this->Html->link(__('Add Attachment', true), array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']), array('id' => $buttonAddStatus . $buttonCounter++,'class' => $buttonAddStatus));?> </li>
+		<li><?php echo $this->Html->link(__('Edit Event', true), array('action' => 'edit', $event['Event']['id']),	array('id' => $buttonModifyStatus . $buttonCounter++,'class' => $buttonModifyStatus)); ?> </li>
+		<li><?php
+			if ($mayModify) echo $this->Form->postLink(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id']));
+			else echo $this->Html->link(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), array('id' => $buttonModifyStatus . $buttonCounter++,'class' => $buttonModifyStatus));
+		?></li>
 		<li>&nbsp;</li>
 	<?php endif; ?>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
+
+<!--?php $javascript->link('deactivateButtons.js', false); ?-->
+<!--script type="text/javascript" src="deactivateButtons.js"></script-->
+<script type="text/javascript">
+$('#button_off').click(function() {
+	return false;
+});
+$('#button_off0').click(function() {
+	return false;
+});
+$('#button_off1').click(function() {
+	return false;
+});
+$('#button_off2').click(function() {
+	return false;
+});
+$('#button_off3').click(function() {
+	return false;
+});
+$('#button_off4').click(function() {
+	return false;
+});
+$('#button_off5').click(function() {
+	return false;
+});
+$('#button_off6').click(function() {
+	return false;
+});
+$('#button_off7').click(function() {
+	return false;
+});
+$('#button_off8').click(function() {
+	return false;
+});
+$('#button_off9').click(function() {
+	return false;
+});
+$('#button_off10').click(function() {
+	return false;
+});
+$('#button_off11').click(function() {
+	return false;
+});
+$('#button_off12').click(function() {
+	return false;
+});
+$('#button_off13').click(function() {
+	return false;
+});
+$('#button_off14').click(function() {
+	return false;
+});
+$('#button_off15').click(function() {
+	return false;
+});
+$('#button_off16').click(function() {
+	return false;
+});
+$('#button_off17').click(function() {
+	return false;
+});
+$('#button_off10').click(function() {
+	return false;
+});
+$('#button_off19').click(function() {
+	return false;
+});
+$('#button_off20').click(function() {
+	return false;
+});
+$('#button_off21').click(function() {
+	return false;
+});
+$('#button_off22').click(function() {
+	return false;
+});
+$('#button_off23').click(function() {
+	return false;
+});
+$('#button_off24').click(function() {
+	return false;
+});
+$('#button_off25').click(function() {
+	return false;
+});
+$('#button_off26').click(function() {
+	return false;
+});
+$('#button_off27').click(function() {
+	return false;
+});
+$('#button_off28').click(function() {
+	return false;
+});
+$('#button_off29').click(function() {
+	return false;
+});
+$('#button_off30').click(function() {
+	return false;
+});
+$('#button_off31').click(function() {
+	return false;
+});
+$('#button_off32').click(function() {
+	return false;
+});
+$('#button_off33').click(function() {
+	return false;
+});
+$('#button_off34').click(function() {
+	return false;
+});
+$('#button_off35').click(function() {
+	return false;
+});
+$('#button_off36').click(function() {
+	return false;
+});
+$('#button_off37').click(function() {
+	return false;
+});
+$('#button_off38').click(function() {
+	return false;
+});
+$('#button_off39').click(function() {
+	return false;
+});
+</script>

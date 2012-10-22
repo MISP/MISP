@@ -14,8 +14,13 @@ echo $this->Form->input('malware', array(
 		'after' => '<br>Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"',
 ));
 if ('true' == Configure::read('CyDefSIG.sync')) {
-	echo $this->Form->input('private', array(
+	if ('true' == Configure::read('CyDefSIG.private')) {
+		echo $this->Form->input('sharing', array('label' => 'Private',
+			'before' => $this->Html->div('forminfo', isset($attrDescriptions['sharing']['formdesc']) ? $attrDescriptions['sharing']['formdesc'] : $attrDescriptions['sharing']['desc']),));
+	} else {
+		echo $this->Form->input('private', array(
 			'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),));
+	}
 }
 // link an onchange event to the form elements
 $this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');

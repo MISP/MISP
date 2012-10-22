@@ -14,9 +14,15 @@ echo $this->Form->input('type', array(
 		'empty' => '(first choose category)'
 		));
 if ('true' == Configure::read('CyDefSIG.sync')) {
-	echo $this->Form->input('private', array(
-		'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),
-	));
+	if ('true' == Configure::read('CyDefSIG.private')) {
+		echo $this->Form->input('sharing', array('label' => 'Private',
+			'before' => $this->Html->div('forminfo', isset($attrDescriptions['sharing']['formdesc']) ? $attrDescriptions['sharing']['formdesc'] : $attrDescriptions['sharing']['desc']),
+		));
+	} else {
+		echo $this->Form->input('private', array(
+			'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),
+		));
+	}
 }
 echo $this->Form->input('to_ids', array(
 			'checked' => true,

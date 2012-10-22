@@ -1,3 +1,7 @@
+<?php
+$buttonModifyStatus = $isAclModify ? 'button_on':'button_off';
+$buttonCounter = 0;
+?>
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute');?>
 	<fieldset>
@@ -12,9 +16,15 @@ if ($attachment) {
 	echo $this->Form->input('type', array('between' => $this->Html->div('forminfo', '', array('id' => 'AttributeTypeDiv'))));
 }
 if ('true' == Configure::read('CyDefSIG.sync')) {
-	echo $this->Form->input('private', array(
-			'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),
-	));
+	if ('true' == Configure::read('CyDefSIG.private')) {
+		echo $this->Form->input('sharing', array('label' => 'Private',
+				'before' => $this->Html->div('forminfo', isset($attrDescriptions['sharing']['formdesc']) ? $attrDescriptions['sharing']['formdesc'] : $attrDescriptions['sharing']['desc']),
+		));
+	} else {
+		echo $this->Form->input('private', array(
+				'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),
+		));
+	}
 }
 echo $this->Form->input('to_ids', array(
 			'before' => $this->Html->div('forminfo', isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc']),
@@ -38,7 +48,10 @@ $this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType"
 </div>
 <div class="actions">
 	<ul>
-		<li><?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Attribute.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Attribute.id'))); ?></li>
+		<li><?php
+		$attribute = ClassRegistry::init('Attribute')->findById($this->Form->value('Attribute.id'));	// TODO ACL $attribute??
+		if ($isAclModify || $attribute['Event']['user_id'] == $me['id']) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Attribute.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Attribute.id')));
+		else echo $this->Html->link(__('Delete'), array('action' => 'delete', $this->Form->value('Attribute.id')), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus));	?></li>
 		<li>&nbsp;</li>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
@@ -95,8 +108,8 @@ function showFormInfo(id) {
 	// LATER use nice animations
 	//$(idDiv).hide('fast');
 	// change the content
-	var value = $(id).val();    // get the selected value
-	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
+	var value = $(id).val();	// get the selected value
+	$(idDiv).html(formInfoValues[value]);	// search in a lookup table
 
 	// show it again
 	$(idDiv).fadeIn('slow');
@@ -110,5 +123,13 @@ var type_value = $('#AttributeType').val();
 formCategoryChanged("#AttributeCategory");
 $('#AttributeType').val(type_value);
 
+</script>
+<?php echo $this->Js->writeBuffer(); // Write cached scripts ?>
+<!--?php $javascript->link('deactivateButtons.js', false); ?-->
+<!--script type="text/javascript" src="deactivateButtons.js"></script-->
+<script type="text/javascript">
+$('#button_off').click(function() {
+	return false;
+});
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts

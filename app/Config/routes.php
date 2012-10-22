@@ -27,8 +27,10 @@
  */
 	Router::connect('/', array('controller' => 'events', 'action' => 'index'));
 
-	// admin pagination
+	// admin Paginator
 	Router::connect('/users/admin_index/*', array('controller' => 'users', 'action' => 'index', 'admin' => true));
+	Router::connect('/groups/admin_index/*', array('controller' => 'groups', 'action' => 'index', 'admin' => true));
+	Router::connect('/logs/admin_index/*', array('controller' => 'logs', 'action' => 'index', 'admin' => true));
 
 	// Activate REST
 	Router::mapResources(array('events'));

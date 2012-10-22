@@ -9,7 +9,7 @@ class UsersController extends AppController {
 
 	public $newkey;
 
-	public $components = array('Security');
+	public $components = array('Acl','Security');	// TODO ACL, components
 
 	public $paginate = array(
 			'limit' => 60,
@@ -94,6 +94,9 @@ class UsersController extends AppController {
 			$this->request->data = $this->User->data;
 		}
 		$this->request->data['User']['org'] = $this->Auth->user('org');
+		// XXX ACL groups
+		$groups = $this->User->Group->find('list');
+		$this->set(compact('groups'));
 	}
 
 /**
@@ -171,6 +174,9 @@ class UsersController extends AppController {
 			$this->newkey = $this->User->generateAuthKey();
 			$this->set('authkey', $this->newkey);
 		}
+		// XXX ACL groups
+		$groups = $this->User->Group->find('list');
+		$this->set(compact('groups'));
 	}
 
 /**
@@ -190,9 +196,48 @@ class UsersController extends AppController {
 			foreach (array_keys($this->request->data['User']) as $field) {
 				if($field != 'password') array_push($fields, $field);
 			}
+			// TODO Audit, extraLog, fields get orig
+			$fieldsOldValues = array();
+			foreach ($fields as $field) {
+				if($field != 'confirm_password') array_push($fieldsOldValues, $this->User->field($field));
+				else array_push($fieldsOldValues, $this->User->field('password'));
+			}
+			// TODO Audit, extraLog, fields get orig END
 			if ("" != $this->request->data['User']['password'])
 				$fields[] = 'password';
 			if ($this->User->save($this->request->data, true, $fields)) {
+				// TODO Audit, extraLog, fields compare
+				// newValues to array
+				$fieldsNewValues = array();
+				foreach ($fields as $field) {
+					if ($field != 'confirm_password') {
+						$newValue = $this->data['User'][$field];
+						if (gettype($newValue) == 'array') {
+							$newValueStr = '';
+							$cP = 0;
+							foreach ($newValue as $newValuePart) {
+								if ($cP < 2) $newValueStr .= '-' . $newValuePart;
+								else  $newValueStr = $newValuePart . $newValueStr;
+								$cP++;
+							}
+							array_push($fieldsNewValues, $newValueStr);
+						}
+						else array_push($fieldsNewValues, $newValue);
+					}
+					else array_push($fieldsNewValues, $this->data['User']['password']);
+				}
+				// compare
+				$fieldsResultStr = '';
+				$c = 0;
+				foreach ($fields as $field) {
+					if (isset($fieldsOldValues[$c]) && $fieldsOldValues[$c] != $fieldsNewValues[$c]) {
+						if($field != 'confirm_password') $fieldsResultStr = $fieldsResultStr . ', ' . $field . ' (' . $fieldsOldValues[$c] . ') => (' . $fieldsNewValues[$c] . ')';
+					}
+					$c++;
+				}
+				$fieldsResultStr = substr($fieldsResultStr, 2);
+				$this->extraLog("edit", "user", $fieldsResultStr);	// TODO Audit, check: modify User
+				// TODO Audit, extraLog, fields compare END
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->_refreshAuth(); // in case we modify ourselves
 				$this->redirect(array('action' => 'index'));
@@ -206,6 +251,13 @@ class UsersController extends AppController {
 			$this->request->data = $this->User->data;
 
 		}
+		// TODO ACL CLEANUP combobox for orgs
+		$orgIds = array('ADMIN', 'NCIRC', 'Other MOD');
+		$orgIds = $this->_arrayToValuesIndexArray($orgIds);
+		$this->set('orgIds', compact('orgIds'));
+		// XXX ACL, Groups in Users
+		$groups = $this->User->Group->find('list');
+		$this->set(compact('groups'));
 	}
 
 /**
@@ -234,6 +286,7 @@ class UsersController extends AppController {
 
 	public function login() {
 		if ($this->Auth->login()) {
+			$this->extraLog("login");	// TODO Audit, extraLog, check: customLog i.s.o. extraLog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
 			$this->redirect($this->Auth->redirect());
 		} else {
 			// don't display authError before first login attempt
@@ -253,7 +306,7 @@ class UsersController extends AppController {
 		}
 
 		// News page
-		$newNewsdate = new DateTime("2012-03-27");
+		$newNewsdate = new DateTime("2012-03-27");	// TODO general, fixed odd date??
 		$newsdate = new DateTime($this->Auth->user('newsread'));
 		if ($newNewsdate > $newsdate) {
 			$this->redirect(array('action' => 'news'));
@@ -264,6 +317,7 @@ class UsersController extends AppController {
 	}
 
 	public function logout() {
+		$this->extraLog("logout");	// TODO Audit, extraLog, check: customLog i.s.o. extraLog, $this->User->customLog('logout', $this->Auth->user('id'), array());
 		$this->Session->setFlash('Good-Bye');
 		$this->redirect($this->Auth->logout());
 	}
@@ -360,4 +414,65 @@ class UsersController extends AppController {
 		$this->_refreshAuth();  // refresh auth info
 	}
 
+	public function extraLog($action = null, $description = null, $fieldsResult = null) {	// TODO move audit to AuditsController?
+		// new data
+		$userId = $this->Auth->user('id');
+		$model = 'User';
+		$modelId = $this->Auth->user('id');
+		if ($action == 'login') {
+			$description = "User (" . $this->Auth->user('id') . "): " . $this->data['User']['email'];
+		} elseif ($action == 'logout') {
+			$description = "User (" . $this->Auth->user('id') . "): " . $this->Auth->user('email');
+		} else {	// edit
+			$description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
+		}
+
+		// query
+		$this->Log = ClassRegistry::init('Log');
+		$this->Log->create();
+		$this->Log->save(array(
+			'org' => $this->Auth->user('org'),
+			'email' => $this->Auth->user('email'),
+			'action' => $action,
+			'title' => $description,
+			'change' => $fieldsResult));
+
+		// write to syslogd as well
+		App::import('Lib', 'SysLog.SysLog');
+		$syslog = new SysLog();
+		if ($fieldsResult) $syslog->write('notice', $description . ' -- ' . $action . ' -- ' . $fieldsResult);
+		else $syslog->write('notice', $description . ' -- ' . $action);
+	}
+
+/**
+ * Used for fields_before and fields for audit
+ *
+ * @param $array
+ */
+	public function arrayCopy(array $array) {
+		$result = array();
+		foreach ($array as $key => $val) {
+			if (is_array( $val)) {
+				$result[$key] = arrayCopy($val);
+			} elseif (is_object($val)) {
+				$result[$key] = clone $val;
+			} else {
+				$result[$key] = $val;
+			}
+		}
+		return $result;
+	}
+
+	public function setgroupid($fk = '2') {
+		$params = array(
+				'conditions' => array('User.group_id' => ''),
+				'recursive' => 0,
+				'fields' => array('User.id'),
+		);
+		$users = $this->User->find('all', $params);
+		foreach ($users as $user) {
+			$this->User->id = $user['User']['id'];
+			$this->User->saveField('group_id', $fk);
+		}
+	}
 }

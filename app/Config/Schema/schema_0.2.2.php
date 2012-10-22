@@ -1,5 +1,7 @@
-<?php 
+<?php
 class AppSchema extends CakeSchema {
+
+	public $file = 'schema_0.2.2.php';
 
 	public function before($event = array()) {
 		return true;

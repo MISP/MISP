@@ -8,12 +8,22 @@ App::uses('AppModel', 'Model');
  */
 class Event extends AppModel {
 
+	public $name = 'Event';					// TODO general
+
+	public $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+		'userModel' => 'User',
+		'userKey' => 'user_id',
+		'change' => 'full'
+	));
+
 /**
  * Display field
  *
  * @var string
  */
 	public $displayField = 'id';
+
+	public $virtualFields = array();
 
 /**
  * Description field
@@ -23,7 +33,8 @@ class Event extends AppModel {
 	public $fieldDescriptions = array(
 			'risk' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels:<br/>low: mass-malware<br/>medium: APT malware<br/>high: sophisticated APT malware or 0-day attack'),
 			'private' => array('desc' => 'This field tells if the event should be shared with other CyDefSIG servers'),
-			'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>')
+			'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
+			'submittedfile' => array('desc' => 'GFI sandbox: export upload', 'formdesc' => 'GFI sandbox:<br/>export upload'),
 			);
 
 /**
@@ -63,6 +74,16 @@ class Event extends AppModel {
 		'info' => array(
 			'notempty' => array(
 				'rule' => array('notempty'),
+				//'message' => 'Your custom message here',
+				//'allowEmpty' => false,
+				//'required' => false,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
+		),
+		'user_id' => array(
+			'numeric' => array(
+				'rule' => array('numeric'),
 				//'message' => 'Your custom message here',
 				//'allowEmpty' => false,
 				//'required' => false,
@@ -120,6 +141,52 @@ class Event extends AppModel {
 		//),
 	);
 
+	public function __construct($id = false, $table = null, $ds = null) {
+		parent::__construct($id, $table, $ds);
+
+		if ('true' == Configure::read('CyDefSIG.private')) {
+
+			$this->virtualFields = Set::merge($this->virtualFields,array(
+				'sharing' => 'IF (Event.private=true, "Org", IF (Event.cluster=true, "Server", IF (Event.pull=true, "Pull only", "All")))',
+			));
+
+			$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
+				'sharing' => array('desc' => 'This field tells how and if the event should be shared with other CyDefSIG users'),
+			));
+
+			$this->validate = Set::merge($this->validate,array(
+				'cluster' => array(
+					'boolean' => array(
+						'rule' => array('boolean'),
+						//'message' => 'Your custom message here',
+						//'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					),
+				),
+				'pull' => array(
+					'boolean' => array(
+						'rule' => array('boolean'),
+						//'message' => 'Your custom message here',
+						//'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					),
+				),
+				'sharing' => array(
+					'rule' => array('inList', array('Org', 'Server', 'Pull only')),
+						//'message' => 'Your custom message here',
+						'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+				),
+			));
+		}
+	}
+
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
 /**
@@ -165,11 +232,65 @@ class Event extends AppModel {
 		)
 	);
 
+	public function beforeDelete() {
+		// delete event from the disk
+		$this->read();  // first read the event from the db
+		// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
+		// only delete the file if it exists
+		$filepath = APP . "files" . DS . $this->data['Event']['id'];
+		App::uses('Folder', 'Utility');
+		$file = new Folder ($filepath);
+		if (is_dir($filepath)) {
+			if (!$this->destroyDir($filepath)) {
+				throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
+			}
+		}
+	}
+
+	public function destroyDir($dir) {
+	if (!is_dir($dir) || is_link($dir)) return unlink($dir);
+		foreach (scandir($dir) as $file) {
+			if ($file == '.' || $file == '..') continue;
+			if (!$this->destroyDir($dir . DS . $file)) {
+				chmod($dir . DS . $file, 0777);
+				if (!$this->destroyDir($dir . DS . $file)) return false;
+			};
+		}
+		return rmdir($dir);
+	}
+
 	public function beforeValidate() {
+		parent::beforeValidate();
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Event']['uuid'])) {
 			$this->data['Event']['uuid'] = String::uuid();
 		}
+	}
+
+	public function massageData(&$data) {
+		switch ($data['Event']['sharing']) {
+			case 'Org':
+				$data['Event']['private'] = true;
+				$data['Event']['cluster'] = false;
+				$data['Event']['pull'] = false;
+				break;
+			case 'Server':
+				$data['Event']['private'] = false;
+				$data['Event']['cluster'] = true;
+				$data['Event']['pull'] = false;
+				break;
+			case 'Pull only':
+				$data['Event']['private'] = false;
+				$data['Event']['cluster'] = false;
+				$data['Event']['pull'] = true;
+				break;
+			case 'All':
+				$data['Event']['private'] = false;
+				$data['Event']['cluster'] = false;
+				$data['Event']['pull'] = false;
+				break;
+		}
+		return $data;
 	}
 
 	public function isOwnedByOrg($eventid, $org) {
@@ -239,8 +360,11 @@ class Event extends AppModel {
  * @return bool true if success, error message if failed
  */
 	public function uploadEventToServer($event, $server, $HttpSocket=null) {
-		if (true == $event['Event']['private']) { // never upload private events
+		if (('true' != Configure::read('CyDefSIG.private')) && (true == $event['Event']['private'])) { // never upload private events
 			return "Event is private and non exportable";
+		}
+		if (('true' == Configure::read('CyDefSIG.private')) && (true == $event['Event']['pull'])) {
+			return "Event is pull only and non exportable";
 		}
 
 		$url = $server['Server']['url'];
