@@ -14,6 +14,7 @@ class GroupsController extends AppController {
                 'Actions' => array('actionPath' => 'controllers/Groups')
             )
         ),
+        'Security',
         'Session'
     );
 
