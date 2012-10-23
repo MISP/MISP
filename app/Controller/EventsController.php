@@ -1297,9 +1297,9 @@ class EventsController extends AppController {
 		foreach ($files as $key => $val) {
 			$keyName = $key;
 			// replace Windows Environment Variables
-			$keyName = str_replace('C:\Users\John', '%UserProfile%', $keyName);
-			$keyName = str_replace('C:\Documents and Settings\James Cocks', '%UserProfile%', $keyName);
-			$keyName = str_replace('C:\DOCUME~1\JAMESC~1', '%UserProfile%', $keyName);
+			$keyName = preg_replace('/C:.Users.(\w+)./', '%UserProfile%\\', $keyName);
+			$keyName = preg_replace('/C:.Documents and Settings.(\w+) (\w+)./', '%UserProfile%\\', $keyName);
+			$keyName = preg_replace('/C:.DOCUME~1.(\w+)./', '%UserProfile%\\', $keyName);
 			$keyName = str_replace('C:\Documents and Settings\All Users', '%AllUsersProfile%', $keyName);
 
 			if (!strpos($key, $realMalware)) {
@@ -1381,9 +1381,9 @@ class EventsController extends AppController {
 					$itsValue = $key . '|' . $val;
 				} else {
 					// replace Windows Environment Variables
-					$val = str_replace('C:\Users\John', '%UserProfile%', $val);
-					$val = str_replace('C:\Documents and Settings\James Cocks', '%UserProfile%', $val);
-					$val = str_replace('C:\DOCUME~1\JAMESC~1', '%UserProfile%', $val);
+					$val = preg_replace('/C:.Users.(\w+)./', '%UserProfile%\\', $val);
+					$val = preg_replace('/C:.Documents and Settings.(\w+) (\w+)./', '%UserProfile%\\', $val);
+					$val = preg_replace('/C:.DOCUME~1.(\w+)./', '%UserProfile%\\', $val);
 					$val = str_replace('C:\Documents and Settings\All Users', '%AllUsersProfile%', $val);
 
 					$itsCategory = 'Artifacts dropped'; // Persistence mechanism
