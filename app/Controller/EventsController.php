@@ -322,14 +322,14 @@ class EventsController extends AppController {
 		// combobox for distribution
 		$distributions = array_keys($this->Event->distributionDescriptions);
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions',compact('distributions'));
+		$this->set('distributions', $distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
 
 		// combobox for risks
 		$risks = $this->Event->validate['risk']['rule'][1];
 		$risks = $this->_arrayToValuesIndexArray($risks);
-		$this->set('risks',compact('risks'));
+		$this->set('risks',$risks);
 
 
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
@@ -486,14 +486,14 @@ class EventsController extends AppController {
 		// combobox for distribution
 		$distributions = array_keys($this->Event->distributionDescriptions);
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions',compact('distributions'));
+		$this->set('distributions',$distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
 
 		// combobox for types
 		$risks = $this->Event->validate['risk']['rule'][1];
 		$risks = $this->_arrayToValuesIndexArray($risks);
-		$this->set('risks',compact('risks'));
+		$this->set('risks',$risks);
 
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}

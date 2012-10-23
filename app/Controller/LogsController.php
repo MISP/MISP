@@ -106,7 +106,7 @@ class LogsController extends AppController {
     	    $actions = array('ALL');
     	    $actions = array_merge($actions, $this->Log->validate['action']['rule'][1]);
     	    $actions = $this->_arrayToValuesIndexArray($actions);
-    	    $this->set('actions',compact('actions'));
+    	    $this->set('actions',$actions);
 	    }
 	}
 }

@@ -188,15 +188,15 @@ class AttributesController extends AppController {
 		// combobox for types
 		$types = array_keys($this->Attribute->typeDefinitions);
 		$types = $this->_arrayToValuesIndexArray($types);
-		$this->set('types',compact('types'));
+		$this->set('types',$types);
 		// combobos for categories
 		$categories = $this->Attribute->validate['category']['rule'][1];
 		$categories = $this->_arrayToValuesIndexArray($categories);
-		$this->set('categories',compact('categories'));
+		$this->set('categories',$categories);
 		// combobox for distribution
 		$distributions = array_keys($this->Attribute->distributionDescriptions);
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions',compact('distributions'));
+		$this->set('distributions',$distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 
@@ -363,7 +363,7 @@ class AttributesController extends AppController {
 			}
 		};
 		$categories = $this->_arrayToValuesIndexArray($selectedCategories);
-		$this->set('categories',compact('categories'));
+		$this->set('categories',$categories);
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -375,7 +375,7 @@ class AttributesController extends AppController {
 		// combobox for distribution
 		$distributions = array_keys($this->Attribute->distributionDescriptions);
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions',compact('distributions'));
+		$this->set('distributions',$distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 	}
@@ -432,15 +432,15 @@ class AttributesController extends AppController {
 		// combobox for types
 		$types = $types = array_keys($this->Attribute->typeDefinitions);
 		$types = $this->_arrayToValuesIndexArray($types);
-		$this->set('types',compact('types'));
+		$this->set('types',$types);
 		// combobox for categories
 		$categories = $this->Attribute->validate['category']['rule'][1];
 		$categories = $this->_arrayToValuesIndexArray($categories);
-		$this->set('categories',compact('categories'));
+		$this->set('categories',$categories);
 		// combobox for distribution
 		$distributions = array_keys($this->Attribute->distributionDescriptions);
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions',compact('distributions'));
+		$this->set('distributions',$distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 
@@ -580,13 +580,13 @@ class AttributesController extends AppController {
 				$types = array('ALL');
 				$types = array_merge($types, array_keys($this->Attribute->typeDefinitions));
 				$types = $this->_arrayToValuesIndexArray($types);
-				$this->set('types',compact('types'));
+				$this->set('types',$types);
 
 				// combobox for categories
 				$categories = array('ALL');
 				$categories = array_merge($categories, $this->Attribute->validate['category']['rule'][1]);
 				$categories = $this->_arrayToValuesIndexArray($categories);
-				$this->set('categories',compact('categories'));
+				$this->set('categories',$categories);
 			}
 		} else {
 			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
