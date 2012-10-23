@@ -460,7 +460,9 @@ class EventsController extends AppController {
 	private function __deleteEventFromServers($uuid) {
 		// get a list of the servers
 		$this->loadModel('Server');
-		$servers = $this->Server->find('all', array());
+		$servers = $this->Server->find('all', array(
+				'conditions' => array('Server.push' => true)
+		));
 
 		// iterate over the servers and upload the event
 		if(empty($servers))
