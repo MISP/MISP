@@ -276,7 +276,7 @@ class User extends AppModel {
 				return true;
 			}
 		} catch (Exception $e) {
-			debug($e);
+			//debug($e);
 			return false;
 		}
 	}
