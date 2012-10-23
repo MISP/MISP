@@ -318,18 +318,22 @@ class EventsController extends AppController {
 				}
 			}
 		}
+
+		// combobox for distribution
+		$distributions = array_keys($this->Event->distributionDescriptions);
+		$distributions = $this->_arrayToValuesIndexArray($distributions);
+		$this->set('distributions',compact('distributions'));
+		// tooltip for distribution
+		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
+
 		// combobox for risks
 		$risks = $this->Event->validate['risk']['rule'][1];
 		$risks = $this->_arrayToValuesIndexArray($risks);
 		$this->set('risks',compact('risks'));
 
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org', 'Community', 'No push', 'All');
-			$sharings = $this->_arrayToValuesIndexArray($sharings);
-			$this->set('sharings',compact('sharings'));
-		}
 
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
 	}
 
 /**
@@ -479,19 +483,19 @@ class EventsController extends AppController {
 			$this->request->data = $this->Event->read(null, $id);
 		}
 
+		// combobox for distribution
+		$distributions = array_keys($this->Event->distributionDescriptions);
+		$distributions = $this->_arrayToValuesIndexArray($distributions);
+		$this->set('distributions',compact('distributions'));
+		// tooltip for distribution
+		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
+
 		// combobox for types
 		$risks = $this->Event->validate['risk']['rule'][1];
 		$risks = $this->_arrayToValuesIndexArray($risks);
 		$this->set('risks',compact('risks'));
 
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org', 'Community', 'No push', 'All');
-			$sharings = $this->_arrayToValuesIndexArray($sharings);
-			$this->set('sharings', compact('sharings'));
-		}
-
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
-		$this->set('privateDefinitions', $this->Event->privateDefinitions);
 	}
 
 /**

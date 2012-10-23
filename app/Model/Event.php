@@ -33,10 +33,16 @@ class Event extends AppModel {
 	public $fieldDescriptions = array(
 			'risk' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels:<br/>low: mass-malware<br/>medium: APT malware<br/>high: sophisticated APT malware or 0-day attack'),
 			'private' => array('desc' => 'This field tells if the event should be shared with other CyDefSIG servers'),
-			'sharing' => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => 'This field determines the current distribution of the event:<br/>Org - only organization memebers will see the event<br/>Community - event visible to all on this CyDefSIG instance but will not be shared past it</br>No push - to be distributed to other servers but no push (compatible with CyDefSIG v1 *private* field)<br/>All - to be distributed to other connected CyDefSIG servers'),
 			'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
 			'submittedfile' => array('desc' => 'GFI sandbox: export upload', 'formdesc' => 'GFI sandbox:<br/>export upload'),
 			);
+
+	public $distributionDescriptions = array(
+			'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "only organization memebers will see the event"),
+			'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "event visible to all on this CyDefSIG instance but will not be shared past it"),
+			'No push' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "to be distributed to other servers but no push (compatible with CyDefSIG v1 *private* field"),
+			'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "to be distributed to other connected CyDefSIG servers"),
+	);
 
 /**
  * Validation rules
@@ -147,12 +153,12 @@ class Event extends AppModel {
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
 
-			$this->virtualFields = Set::merge($this->virtualFields,array(
-				'sharing' => 'IF (Event.private=true, "Org", IF (Event.cluster=true, "Server", IF (Event.pull=true, "Pull only", "All")))',
+			$this->virtualFields = Set::merge($this->virtualFields, array(
+				'distribution' => 'IF (Event.private=true, "Org", IF (Event.cluster=true, "Community", IF (Event.pull=true, "No push", "All")))',
 			));
 
-			$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
-				'sharing' => array('desc' => 'This field tells how and if the event should be shared with other CyDefSIG users'),
+			$this->fieldDescriptions = Set::merge($this->fieldDescriptions, array(
+				'distribution' => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => 'This field determines the current distribution of the event:<br/>Org - only organization memebers will see the event<br/>Community - event visible to all on this CyDefSIG instance but will not be shared past it</br>No push - to be distributed to other servers but no push (compatible with CyDefSIG v1 *private* field)<br/>All - to be distributed to other connected CyDefSIG servers'),
 			));
 
 			$this->validate = Set::merge($this->validate,array(
@@ -176,8 +182,8 @@ class Event extends AppModel {
 						//'on' => 'create', // Limit validation to 'create' or 'update' operations
 					),
 				),
-				'sharing' => array(
-					'rule' => array('inList', array('Org', 'Server', 'Pull only')),
+				'distribution' => array(
+					'rule' => array('inList', array('Org', 'Community', 'No push', 'All')),
 						//'message' => 'Your custom message here',
 						'allowEmpty' => false,
 						'required' => false,
@@ -269,7 +275,7 @@ class Event extends AppModel {
 	}
 
 	public function massageData(&$data) {
-		switch ($data['Event']['sharing']) {
+		switch ($data['Event']['distribution']) {
 			case 'Org':
 				$data['Event']['private'] = true;
 				$data['Event']['cluster'] = false;

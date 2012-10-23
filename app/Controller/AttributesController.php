@@ -193,12 +193,12 @@ class AttributesController extends AppController {
 		$categories = $this->Attribute->validate['category']['rule'][1];
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories',compact('categories'));
-
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org', 'Community', 'No push', 'All');
-			$sharings = $this->_arrayToValuesIndexArray($sharings);
-			$this->set('sharings',compact('sharings'));
-		}
+		// combobox for distribution
+		$distributions = array_keys($this->Attribute->distributionDescriptions);
+		$distributions = $this->_arrayToValuesIndexArray($distributions);
+		$this->set('distributions',compact('distributions'));
+		// tooltip for distribution
+		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -372,11 +372,12 @@ class AttributesController extends AppController {
 		$this->set('zippedDefinitions', $this->Attribute->zippedDefinitions);
 		$this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
 
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org', 'Community', 'No push', 'All');
-			$sharings = $this->_arrayToValuesIndexArray($sharings);
-			$this->set('sharings',compact('sharings'));
-		}
+		// combobox for distribution
+		$distributions = array_keys($this->Attribute->distributionDescriptions);
+		$distributions = $this->_arrayToValuesIndexArray($distributions);
+		$this->set('distributions',compact('distributions'));
+		// tooltip for distribution
+		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 	}
 
 /**
@@ -436,12 +437,12 @@ class AttributesController extends AppController {
 		$categories = $this->Attribute->validate['category']['rule'][1];
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories',compact('categories'));
-
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			$sharings = array('Org', 'Community', 'No push', 'All');
-			$sharings = $this->_arrayToValuesIndexArray($sharings);
-			$this->set('sharings',compact('sharings'));
-		}
+		// combobox for distribution
+		$distributions = array_keys($this->Attribute->distributionDescriptions);
+		$distributions = $this->_arrayToValuesIndexArray($distributions);
+		$this->set('distributions',compact('distributions'));
+		// tooltip for distribution
+		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);

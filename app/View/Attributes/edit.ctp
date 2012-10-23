@@ -17,8 +17,8 @@ if ($attachment) {
 }
 if ('true' == Configure::read('CyDefSIG.sync')) {
 	if ('true' == Configure::read('CyDefSIG.private')) {
-		echo $this->Form->input('sharing', array('label' => 'Distribution',
-				'before' => $this->Html->div('forminfo', isset($attrDescriptions['sharing']['formdesc']) ? $attrDescriptions['sharing']['formdesc'] : $attrDescriptions['sharing']['desc']),
+		echo $this->Form->input('distribution', array('label' => 'Distribution',
+			'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))
 		));
 	} else {
 		echo $this->Form->input('private', array(
@@ -41,6 +41,7 @@ if ($attachment) {
 }
 $this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
 $this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');
+$this->Js->get('#AttributeDistribution')->event('change', 'showFormInfo("#AttributeDistribution")');
 
 ?>
 	</fieldset>
@@ -100,6 +101,10 @@ foreach ($typeDefinitions as $type => $def) {
 foreach ($categoryDefinitions as $category => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['" . addslashes($category) . "'] = \"" . addslashes($info) . "\";\n"; // as we output JS code we need to add slashes
+}
+foreach ($distributionDescriptions as $type => $def) {
+	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
 }
 ?>
 

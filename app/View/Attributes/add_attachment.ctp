@@ -15,8 +15,10 @@ echo $this->Form->input('malware', array(
 ));
 if ('true' == Configure::read('CyDefSIG.sync')) {
 	if ('true' == Configure::read('CyDefSIG.private')) {
-		echo $this->Form->input('sharing', array('label' => 'Private',
-			'before' => $this->Html->div('forminfo', isset($attrDescriptions['sharing']['formdesc']) ? $attrDescriptions['sharing']['formdesc'] : $attrDescriptions['sharing']['desc']),));
+		echo $this->Form->input('distribution', array('label' => 'Distribution',
+			'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))
+		));
+		//'before' => $this->Html->div('forminfo', isset($attrDescriptions['distribution']['formdesc']) ? $attrDescriptions['distribution']['formdesc'] : $attrDescriptions['distribution']['desc']),));
 	} else {
 		echo $this->Form->input('private', array(
 			'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),));
@@ -25,6 +27,7 @@ if ('true' == Configure::read('CyDefSIG.sync')) {
 // link an onchange event to the form elements
 $this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');
 $this->Js->get('#AttributeCategory')->event('change', 'showFormInfo("#AttributeCategory")');
+$this->Js->get('#AttributeDistribution')->event('change', 'showFormInfo("#AttributeDistribution")');
 ?>
 	</fieldset>
 <?php echo $this->Form->end(__('Upload'));?>
@@ -41,6 +44,10 @@ var formInfoValues = new Array();
 foreach ($categoryDefinitions as $category => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['$category'] = \"$info\";\n";
+}
+foreach ($distributionDescriptions as $type => $def) {
+	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
 }
 ?>
 
@@ -130,5 +137,7 @@ $(function(){
 	}
 );
 
+//hide the formInfo things
+$('#AttributeDistributionDiv').hide();
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts

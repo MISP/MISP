@@ -58,6 +58,13 @@ class Attribute extends AppModel {
 			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
 	);
 
+	public $distributionDescriptions = array(
+			'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "only organization memebers will see the event"),
+			'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "event visible to all on this CyDefSIG instance but will not be shared past it"),
+			'No push' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "to be distributed to other servers but no push (compatible with CyDefSIG v1 *private* field"),
+			'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "to be distributed to other connected CyDefSIG servers"),
+	);
+
 	// these are definition of possible types + their descriptions and maybe later other behaviors
 	// e.g. if the attribute should be correlated with others or not
 
@@ -280,11 +287,11 @@ class Attribute extends AppModel {
 		if ('true' == Configure::read('CyDefSIG.private')) {
 
 			$this->virtualFields = Set::merge($this->virtualFields,array(
-				'sharing' => 'IF (Attribute.private=true, "Org", IF (Attribute.cluster=true, "Server", IF (Attribute.pull=true, "Pull only", "All")))',
+				'distribution' => 'IF (Attribute.private=true, "Org", IF (Attribute.cluster=true, "Community", IF (Attribute.pull=true, "No push", "All")))',
 			));
 
 			$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
-				'sharing' => array('desc' => 'This fields indicates the intended distribution of the attribute (same as when adding an event, see Add Event)'),
+				'distribution' => array('desc' => 'This fields indicates the intended distribution of the attribute (same as when adding an event, see Add Event)'),
 			));
 
 			$this->validate = Set::merge($this->validate,array(
@@ -308,8 +315,8 @@ class Attribute extends AppModel {
 						//'on' => 'create', // Limit validation to 'create' or 'update' operations
 					),
 				),
-				'sharing' => array(
-					'rule' => array('inList', array('Org', 'Server', 'Pull only')),
+				'distribution' => array(
+					'rule' => array('inList', array('Org', 'Community', 'No push', 'All')),
 						//'message' => 'Your custom message here',
 						'allowEmpty' => false,
 						'required' => false,
@@ -409,7 +416,7 @@ class Attribute extends AppModel {
 	}
 
 	public function massageData(&$data) {
-		switch ($data['Attribute']['sharing']) {
+		switch ($data['Attribute']['distribution']) {
 			case 'Org':
 				$data['Attribute']['private'] = true;
 				$data['Attribute']['cluster'] = false;

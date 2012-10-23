@@ -20,8 +20,13 @@ $buttonCounter = 0;
 			<?php echo $this->Paginator->sort('risk');?></th>
 			<th><?php echo $this->Paginator->sort('info');?></th>
 			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+				<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
+			<th<?php echo ' title="' . $eventDescriptions['distribution']['desc'] . '"';?>>
+			<?php echo $this->Paginator->sort('distribution');?></th>
+						<?php else: ?>
 			<th<?php echo ' title="' . $eventDescriptions['private']['desc'] . '"';?>>
 			<?php echo $this->Paginator->sort('private');?></th>
+			<?php endif; ?>
 			<?php endif; ?>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
@@ -51,8 +56,13 @@ $buttonCounter = 0;
 		<td onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 		<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;</td>
 		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+		<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
-		<?php echo ($event['Event']['private'])? 'Private' : ''; ?>&nbsp;</td>
+		<?php echo $event['Event']['distribution'] == 'Org' ? 'Org' : ($event['Event']['distribution'] == 'Community' ? 'Community' : ($event['Event']['distribution'] == 'No push' ? 'No push' : 'All'));?></td>
+		<?php else: ?>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+		<?php echo ($event['Event']['private']) ? 'Private' : ''; ?>&nbsp;</td>
+		<?php endif; ?>
 		<?php endif; ?>
 		<td class="actions">
 			<?php
