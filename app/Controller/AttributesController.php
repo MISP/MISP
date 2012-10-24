@@ -189,9 +189,10 @@ class AttributesController extends AppController {
 		$types = array_keys($this->Attribute->typeDefinitions);
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types',$types);
-		// combobos for categories
-		$categories = $this->Attribute->validate['category']['rule'][1];
-		$categories = $this->_arrayToValuesIndexArray($categories);
+		// combobox for categories
+		$categories = array('' => array('(choose one)' => '(choose one)'), 'categories' => array());
+		array_pop($this->Attribute->validate['category']['rule'][1]); // remove that last 'empty' item
+		$categories['categories'] = array_merge($categories['categories'], $this->_arrayToValuesIndexArray($this->Attribute->validate['category']['rule'][1]));
 		$this->set('categories',$categories);
 		// combobox for distribution
 		$distributions = array_keys($this->Attribute->distributionDescriptions);
