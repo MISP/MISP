@@ -14,7 +14,7 @@ class Log extends AppModel {
 							'add',
 							'edit',
 							'delete',
-							'publish' // FIXME remove this once all attributes have a category. Otherwise sigs without category are not shown in the list
+							'publish'
 						)),
 			'message' => 'Options : ...'
 		)

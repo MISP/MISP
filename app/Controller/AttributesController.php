@@ -577,15 +577,14 @@ class AttributesController extends AppController {
 
 				// adding filtering by category and type
 				// combobox for types
-				$types = array('ALL');
-				$types = array_merge($types, array_keys($this->Attribute->typeDefinitions));
-				$types = $this->_arrayToValuesIndexArray($types);
+				$types = array('' => array('ALL' => 'ALL'), 'types' => array());
+				$types['types'] = array_merge($types['types'], $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions)));
 				$this->set('types',$types);
 
 				// combobox for categories
-				$categories = array('ALL');
-				$categories = array_merge($categories, $this->Attribute->validate['category']['rule'][1]);
-				$categories = $this->_arrayToValuesIndexArray($categories);
+				$categories = array('' => array('ALL' => 'ALL', '' => ''), 'categories' => array());
+				array_pop($this->Attribute->validate['category']['rule'][1]); // remove that last 'empty' item
+				$categories['categories'] = array_merge($categories['categories'], $this->_arrayToValuesIndexArray($this->Attribute->validate['category']['rule'][1]));
 				$this->set('categories',$categories);
 			}
 		} else {

@@ -103,9 +103,8 @@ class LogsController extends AppController {
 	        // no search keyword is given, show the search form
 
 	        // combobox for actions
-    	    $actions = array('ALL');
-    	    $actions = array_merge($actions, $this->Log->validate['action']['rule'][1]);
-    	    $actions = $this->_arrayToValuesIndexArray($actions);
+    	    $actions = array('' => array('ALL' => 'ALL'), 'actions' => array());
+    	    $actions['actions'] = array_merge($actions['actions'], $this->_arrayToValuesIndexArray($this->Log->validate['action']['rule'][1]));
     	    $this->set('actions',$actions);
 	    }
 	}
