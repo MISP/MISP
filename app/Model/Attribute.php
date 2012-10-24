@@ -59,10 +59,10 @@ class Attribute extends AppModel {
 	);
 
 	public $distributionDescriptions = array(
-			'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "only organization memebers will see the event"),
-			'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "event visible to all on this CyDefSIG instance but will not be shared past it"),
-			'No push' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "to be distributed to other servers but no push (compatible with CyDefSIG v1 *private* field"),
-			'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "to be distributed to other connected CyDefSIG servers"),
+			'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the attribute"),
+			'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Attribute visible to all on this CyDefSIG instance but will not be shared past it"),
+			'No push' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other servers but no push (compatible with CyDefSIG v1 *private* field"),
+			'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other connected CyDefSIG servers"),
 	);
 
 	// these are definition of possible types + their descriptions and maybe later other behaviors
