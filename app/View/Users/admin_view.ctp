@@ -2,11 +2,10 @@
 $buttonAddStatus = $isAclAdd ? 'button_on':'button_off';
 $mayModify = $isAclModify || ($user['User']['org'] == $me['org']);
 $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
-$buttonCounter = 0;
 ?>
 <div class="users view">
 <div class="actions" style="float:right;">
-	<ul><li><?php echo $this->Html->link(__('Edit Profile', true), array('admin' => true, 'action' => 'edit', $user['User']['id']), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus)); ?> </li></ul>
+	<ul><li><?php echo $this->Html->link(__('Edit Profile', true), array('admin' => true, 'action' => 'edit', $user['User']['id']), array('class' => $buttonModifyStatus)); ?> </li></ul>
 </div>
 <h2><?php  echo __('User');?></h2>
 	<dl>
@@ -77,15 +76,15 @@ $buttonCounter = 0;
 <div class="actions">
 	<h3><?php echo __('Actions'); ?></h3>
 	<ul>
-		<li><?php echo $this->Html->link(__('Edit User'), array('admin' => true, 'action' => 'edit', $user['User']['id']), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus)); ?> </li>
+		<li><?php echo $this->Html->link(__('Edit User'), array('admin' => true, 'action' => 'edit', $user['User']['id']), array('class' => $buttonModifyStatus)); ?> </li>
 		<li><?php
 		if ($mayModify) echo $this->Form->postLink(__('Delete User'), array('admin' => true, 'action' => 'delete', $user['User']['id']), null, __('Are you sure you want to delete # %s?', $user['User']['id']));
-		else echo $this->Html->link(__('Delete User'), array('admin' => true, 'action' => 'delete', $user['User']['id']), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus));
+		else echo $this->Html->link(__('Delete User'), array('admin' => true, 'action' => 'delete', $user['User']['id']), array('class' => $buttonModifyStatus));
 		?> </li>
 		<li><?php echo $this->Html->link(__('List Users'), array('admin' => true, 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link(__('New User'), array('admin' => true, 'action' => 'add'), array('id' => $buttonAddStatus . $buttonCounter++, 'class' => $buttonAddStatus)); ?> </li>
+		<li><?php echo $this->Html->link(__('New User'), array('admin' => true, 'action' => 'add'), array('class' => $buttonAddStatus)); ?> </li>
 		<li><?php echo $this->Html->link(__('List Events'), array('controller' => 'events', 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link(__('New Event'), array('controller' => 'events', 'action' => 'add'), array('id' => $buttonAddStatus . $buttonCounter++, 'class' => $buttonAddStatus)); ?> </li>
+		<li><?php echo $this->Html->link(__('New Event'), array('controller' => 'events', 'action' => 'add'), array('class' => $buttonAddStatus)); ?> </li>
 	</ul>
 </div>
 <div class="related">
@@ -117,10 +116,10 @@ $buttonCounter = 0;
 			<td><?php echo $event['uuid'];?></td>
 			<td class="actions">
 				<?php echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $event['id'])); ?>
-				<?php echo $this->Html->link(__('Edit'), array('controller' => 'events', 'action' => 'edit', $event['id']), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus)); ?>
+				<?php echo $this->Html->link(__('Edit'), array('controller' => 'events', 'action' => 'edit', $event['id']), array('class' => $buttonModifyStatus)); ?>
 				<?php
 				if ($mayModify) echo $this->Form->postLink(__('Delete'), array('controller' => 'events', 'action' => 'delete', $event['id']), null, __('Are you sure you want to delete # %s?', $event['id']));
-				else echo $this->Html->link(__('Delete'), array('controller' => 'events', 'action' => 'delete', $event['id']), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus));
+				else echo $this->Html->link(__('Delete'), array('controller' => 'events', 'action' => 'delete', $event['id']), array('class' => $buttonModifyStatus));
 				?>
 			</td>
 		</tr>
@@ -129,35 +128,3 @@ $buttonCounter = 0;
 <?php endif; ?>
 
 </div>
-<script type="text/javascript">
-$('#button_off').click(function() {
-	return false;
-});
-$('#button_off0').click(function() {
-	return false;
-});
-$('#button_off1').click(function() {
-	return false;
-});
-$('#button_off2').click(function() {
-	return false;
-});
-$('#button_off3').click(function() {
-	return false;
-});
-$('#button_off4').click(function() {
-	return false;
-});
-$('#button_off5').click(function() {
-	return false;
-});
-$('#button_off6').click(function() {
-	return false;
-});
-$('#button_off7').click(function() {
-	return false;
-});
-$('#button_off8').click(function() {
-	return false;
-});
-</script>

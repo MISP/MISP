@@ -4,7 +4,6 @@ $mayModify = $isAclModify || $event['Event']['user_id'] == $me['id'];
 $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 $mayPublish = $isAclPublish || $event['Event']['user_id'] == $me['id'];
 $buttonPublishStatus = $mayPublish ? 'button_on':'button_off';
-$buttonCounter = 0;
 ?>
 <div class="events view">
 <div class="actions" style="float:right;">
@@ -16,8 +15,8 @@ if ($mayPublish) {
 	echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?');
 	echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!');
 } else {
-	echo $this->Html->link('Publish Event', array('action' => 'alert', $event['Event']['id']), array('id' => $buttonPublishStatus . $buttonCounter++, 'class' => $buttonPublishStatus));
-	echo $this->Html->link('Publish (no email)', array('action' => 'publish', $event['Event']['id']), array('id' => $buttonPublishStatus . $buttonCounter++, 'class' => $buttonPublishStatus));
+	echo $this->Html->link('Publish Event', array('action' => 'alert', $event['Event']['id']), array('class' => $buttonPublishStatus));
+	echo $this->Html->link('Publish (no email)', array('action' => 'publish', $event['Event']['id']), array('class' => $buttonPublishStatus));
 }
 	?> </li></ul>
 <?php elseif (0 == $event['Event']['published']): ?>
@@ -190,8 +189,8 @@ if ($isAclModify) {
 	echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']));
 	echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, __('Are you sure you want to delete this attribute?'));
 } else {
-	echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus));
-	echo $this->Html->link(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), array('id' => $buttonModifyStatus . $buttonCounter++, 'class' => $buttonModifyStatus));
+	echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']), array('class' => $buttonModifyStatus));
+	echo $this->Html->link(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), array('class' => $buttonModifyStatus));
 }
 					?>
 				</td>
@@ -204,8 +203,8 @@ if ($isAclModify) {
 		<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
 		<div class="actions">
 			<ul>
-				<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']), array('id' => $buttonAddStatus . $buttonCounter++, 'class' => $buttonAddStatus));?> </li>
-				<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']), array('id' => $buttonAddStatus . $buttonCounter++, 'class' => $buttonAddStatus));?> </li>
+				<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']), array('class' => $buttonAddStatus));?> </li>
+				<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']), array('class' => $buttonAddStatus));?> </li>
 			</ul>
 		</div>
 		<?php endif; ?>
@@ -216,143 +215,15 @@ if ($isAclModify) {
 <div class="actions">
 	<ul>
 	<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
-		<li><?php echo $this->Html->link(__('Add Attribute', true), array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']), array('id' => $buttonAddStatus . $buttonCounter++, 'class' => $buttonAddStatus));?> </li>
-		<li><?php echo $this->Html->link(__('Add Attachment', true), array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']), array('id' => $buttonAddStatus . $buttonCounter++,'class' => $buttonAddStatus));?> </li>
-		<li><?php echo $this->Html->link(__('Edit Event', true), array('action' => 'edit', $event['Event']['id']),	array('id' => $buttonModifyStatus . $buttonCounter++,'class' => $buttonModifyStatus)); ?> </li>
+		<li><?php echo $this->Html->link(__('Add Attribute', true), array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']), array('class' => $buttonAddStatus));?> </li>
+		<li><?php echo $this->Html->link(__('Add Attachment', true), array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']), array('class' => $buttonAddStatus));?> </li>
+		<li><?php echo $this->Html->link(__('Edit Event', true), array('action' => 'edit', $event['Event']['id']),	array('class' => $buttonModifyStatus)); ?> </li>
 		<li><?php
 			if ($mayModify) echo $this->Form->postLink(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id']));
-			else echo $this->Html->link(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), array('id' => $buttonModifyStatus . $buttonCounter++,'class' => $buttonModifyStatus));
+			else echo $this->Html->link(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), array('class' => $buttonModifyStatus));
 		?></li>
 		<li>&nbsp;</li>
 	<?php endif; ?>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
-
-<!--?php $javascript->link('deactivateButtons.js', false); ?-->
-<!--script type="text/javascript" src="deactivateButtons.js"></script-->
-<script type="text/javascript">
-$('#button_off').click(function() {
-	return false;
-});
-$('#button_off0').click(function() {
-	return false;
-});
-$('#button_off1').click(function() {
-	return false;
-});
-$('#button_off2').click(function() {
-	return false;
-});
-$('#button_off3').click(function() {
-	return false;
-});
-$('#button_off4').click(function() {
-	return false;
-});
-$('#button_off5').click(function() {
-	return false;
-});
-$('#button_off6').click(function() {
-	return false;
-});
-$('#button_off7').click(function() {
-	return false;
-});
-$('#button_off8').click(function() {
-	return false;
-});
-$('#button_off9').click(function() {
-	return false;
-});
-$('#button_off10').click(function() {
-	return false;
-});
-$('#button_off11').click(function() {
-	return false;
-});
-$('#button_off12').click(function() {
-	return false;
-});
-$('#button_off13').click(function() {
-	return false;
-});
-$('#button_off14').click(function() {
-	return false;
-});
-$('#button_off15').click(function() {
-	return false;
-});
-$('#button_off16').click(function() {
-	return false;
-});
-$('#button_off17').click(function() {
-	return false;
-});
-$('#button_off10').click(function() {
-	return false;
-});
-$('#button_off19').click(function() {
-	return false;
-});
-$('#button_off20').click(function() {
-	return false;
-});
-$('#button_off21').click(function() {
-	return false;
-});
-$('#button_off22').click(function() {
-	return false;
-});
-$('#button_off23').click(function() {
-	return false;
-});
-$('#button_off24').click(function() {
-	return false;
-});
-$('#button_off25').click(function() {
-	return false;
-});
-$('#button_off26').click(function() {
-	return false;
-});
-$('#button_off27').click(function() {
-	return false;
-});
-$('#button_off28').click(function() {
-	return false;
-});
-$('#button_off29').click(function() {
-	return false;
-});
-$('#button_off30').click(function() {
-	return false;
-});
-$('#button_off31').click(function() {
-	return false;
-});
-$('#button_off32').click(function() {
-	return false;
-});
-$('#button_off33').click(function() {
-	return false;
-});
-$('#button_off34').click(function() {
-	return false;
-});
-$('#button_off35').click(function() {
-	return false;
-});
-$('#button_off36').click(function() {
-	return false;
-});
-$('#button_off37').click(function() {
-	return false;
-});
-$('#button_off38').click(function() {
-	return false;
-});
-$('#button_off39').click(function() {
-	return false;
-});
-</script>

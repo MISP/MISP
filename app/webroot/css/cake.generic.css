@@ -779,4 +779,6 @@ a.button_off:link,a.button_off:visited, a.button_off:active {
 	font-size:12px;
 	background-color:#ffffff;
 	text-decoration:none;
+	pointer-events: none;
+	cursor: default;
 }

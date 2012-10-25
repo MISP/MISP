@@ -50,8 +50,3 @@ if (!$termsaccepted) {
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
-<script type="text/javascript">
-$('#button_off').click(function() {
-	return false;
-});
-</script>
