@@ -89,7 +89,7 @@ class AppController extends Controller {
 				}
 			}
 		} else {
-			$this->Security->blackHoleCallback = 'blackhole';
+			//$this->Security->blackHoleCallback = 'blackhole'; // TODO needs more investigation
 		}
 
 		// These variables are required for every view
@@ -102,9 +102,11 @@ class AppController extends Controller {
 		$this->set('isAclPublish', $this->checkAcl('publish'));
 	}
 
-	public function blackhole($type) {
-		// handle errors.
-	}
+	//public function blackhole($type) {
+	//	// handle errors.
+	//	throw new Exception(__d('cake_dev', 'The request has been black-holed'));
+	//	//throw new BadRequestException(__d('cake_dev', 'The request has been black-holed'));
+	//}
 
 	protected function _isRest() {
 		return (isset($this->RequestHandler) && $this->RequestHandler->isXml());
