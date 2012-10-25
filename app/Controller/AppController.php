@@ -96,11 +96,11 @@ class AppController extends Controller {
 		$this->set('isAdmin', $this->_isAdmin());
 	}
 
-	public function blackhole($type) {
-		// handle errors.
-		throw new Exception(__d('cake_dev', 'The request has been black-holed'));
-		//throw new BadRequestException(__d('cake_dev', 'The request has been black-holed'));
-	}
+	//public function blackhole($type) {
+	//	// handle errors.
+	//	throw new Exception(__d('cake_dev', 'The request has been black-holed'));
+	//	//throw new BadRequestException(__d('cake_dev', 'The request has been black-holed'));
+	//}
 
 	protected function _isRest() {
 		return (isset($this->RequestHandler) && $this->RequestHandler->isXml());
