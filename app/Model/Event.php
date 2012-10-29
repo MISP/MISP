@@ -367,11 +367,11 @@ class Event extends AppModel {
  * @return bool true if success, error message if failed
  */
 	public function uploadEventToServer($event, $server, $HttpSocket=null) {
-		if (('true' != Configure::read('CyDefSIG.private')) && (true == $event['Event']['private'])) { // never upload private events
+		if (true == $event['Event']['private']) { // never upload private events
 			return "Event is private and non exportable";
 		}
-		if (('true' == Configure::read('CyDefSIG.private')) && (true == $event['Event']['pull'])) {
-			return "Event is pull only and non exportable";
+		if (('true' == Configure::read('CyDefSIG.private')) && ($event['Event']['pull'])) {
+			return "Event is No push so non exportable";
 		}
 
 		$url = $server['Server']['url'];
@@ -405,6 +405,17 @@ class Event extends AppModel {
 				unset($event['Event']['Attribute'][$key]);
 				continue; // stop processing this
 			}
+			// Distribution, correct Community to Org only in Attribute
+			if ($attribute['cluster'] && !$attribute['private']) {
+				$attribute['private'] = true;
+				$attribute['cluster'] = false;
+				$attribute['distribution'] = 'Org';
+			}
+			// Distribution, correct All to Community in Attribute
+			if (!$attribute['cluster'] && !$attribute['private'] && !$attribute['pull']) {
+				$attribute['cluster'] = true;
+				$attribute['distribution'] = 'Community';
+		}
 			// remove value1 and value2 from the output
 			unset($attribute['value1']);
 			unset($attribute['value2']);
@@ -413,6 +424,17 @@ class Event extends AppModel {
 				$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
 				$attribute['data'] = $encodedFile;
 			}
+		}
+		// Distribution, correct Community to Org only in Event
+		if ($event['Event']['cluster'] && !$event['Event']['private']) {
+			$event['Event']['private'] = true;
+			$event['Event']['cluster'] = false;
+			$event['Event']['distribution'] = 'Org';
+		}
+		// Distribution, correct All to Community in Event
+		if (!$event['Event']['cluster'] && !$event['Event']['private'] && !$event['Event']['pull']) {
+			$event['Event']['cluster'] = true;
+			$event['Event']['distribution'] = 'Community';
 		}
 
 		// display the XML to the user
@@ -541,6 +563,7 @@ class Event extends AppModel {
 			$response = $HttpSocket->get($uri, $data = '', $request);
 
 			if ($response->isOk()) {
+//debug($response->body);
 				$xml = Xml::build($response->body);
 				$eventArray = Xml::toArray($xml);
 				$eventIds = array();

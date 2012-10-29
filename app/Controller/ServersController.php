@@ -176,7 +176,36 @@ class ServersController extends AppController {
 							$this->Server->data);
 					if (null != $event) {
 						// we have an Event array
-						$event['Event']['private'] = true;
+						if ('true' == Configure::read('CyDefSIG.private')) {
+							// Distribution, no Org only in Event
+							if ($event['Event']['distribution'] == 'Org') {
+								continue;
+							}
+							// Distribution, correct Community to Org only in Event
+							if ($event['Event']['distribution'] == 'Community') {
+								$event['Event']['distribution'] = 'Org';
+							}
+							// Distribution, correct All to Community in Event
+							if ($event['Event']['distribution'] == 'All') {
+								$event['Event']['distribution'] = 'Community';
+							}
+							if (is_array($event['Event']['Attribute'])) {
+								foreach ($event['Event']['Attribute'] as &$attribute) {
+									// Distribution, correct Community to Org only in Attribute
+									if ($attribute['distribution'] == 'Community') {
+										$attribute['distribution'] = 'Org';
+									}
+									// Distribution, correct All to Community in Attribute
+									if ($attribute['distribution'] == 'All') {
+										$attribute['distribution'] = 'Community';
+									}
+								}
+							}
+							// Distribution, set reporter of the event, being the admin that initiated the pull
+							$event['Event']['user_id'] = $this->Auth->user('id');
+						} else {
+							$event['Event']['private'] = true;
+						}
 						$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
 						$eventsController = new EventsController();
 						try {

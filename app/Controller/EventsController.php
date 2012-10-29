@@ -33,7 +33,7 @@ class EventsController extends AppController {
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
-	
+
 	public function beforeFilter() {
 		parent::beforeFilter();
 
@@ -80,16 +80,16 @@ class EventsController extends AppController {
 			}
 		}
 
-		// do not show cluster outside server
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			if ($this->_isRest()) {
-					$this->paginate = Set::merge($this->paginate,array(
-					'conditions' =>
-							array(array('Event.cluster !=' => true)),
-							//array("AND" => array(array('Event.private !=' => 2))),
-					));
-			}
-		}
+//		// do not show cluster outside server
+//		if ('true' == Configure::read('CyDefSIG.private')) {
+//			if ($this->_isRest()) {
+//					$this->paginate = Set::merge($this->paginate,array(
+//					'conditions' =>
+//							array(array('Event.cluster !=' => true)),
+//							//array("AND" => array(array('Event.private !=' => 2))),
+//					));
+//			}
+//		}
 	}
 
 	public function isAuthorized($user) {
@@ -283,6 +283,10 @@ class EventsController extends AppController {
 
 			// TODO or massageData here
 			if ('true' == Configure::read('CyDefSIG.private')) {
+				if ($this->_isRest()) {
+					// Distribution, reporter for the events pushed will be the owner of the authentication key
+					$this->request->data['Event']['user_id'] = $this->Auth->user('id');
+				}
 				$this->request->data = $this->Event->massageData(&$this->request->data);
 			}
 
