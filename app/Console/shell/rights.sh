@@ -1,12 +1,17 @@
 #!/bin/sh
 
 USER=noud
+CY_HOME=/var/www/cydefsig
+CY_HOME=/var/www/cake2/cydefsig
 
-chown -R ${USER}:www-data /var/www/cydefsig
-chmod -R 750 /var/www/cydefsig
-chmod -R g+s /var/www/cydefsig
-cd /var/www/cydefsig/app/
+chown -R ${USER}:www-data ${CY_HOME}
+chmod -R 750 ${CY_HOME}
+chmod -R g+s ${CY_HOME}
+cd ${CY_HOME}/app/
 chmod -R g+w tmp
 chmod -R g+w files
+
+# GnuPG
+chmod -R ug+rwx ${CY_HOME}/.gnupg
 
 exit 0
