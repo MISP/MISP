@@ -19,7 +19,7 @@
 
 <div class="actions">
 	<ul>
-		<li><?php echo $this->Html->link(__('Delete', true), array('action' => 'delete', $this->Form->value('User.id')), null, sprintf(__('Are you sure you want to delete # %s?', true), $this->Form->value('User.id'))); ?></li>
+		<li><?php echo $this->Html->link(__('Delete', true), array('action' => 'delete', $this->Form->value('User.id')), array('class' => 'button_off')); ?></li>
 		<li>&nbsp;</li>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
