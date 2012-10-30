@@ -9,10 +9,9 @@
 	<?php
 	foreach ($whitelists as $whitelist): ?>
 	<tr>
-		<td><?php echo h($whitelist['Whitelist']['id']); ?>&nbsp;</td>
-		<td><?php echo h($whitelist['Whitelist']['name']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($whitelist['Whitelist']['id']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($whitelist['Whitelist']['name']); ?>&nbsp;</td>
 		<td class="actions">
-			<?php echo $this->Html->link(__('View'), array('admin' => true, 'action' => 'view', $whitelist['Whitelist']['id'])); ?>
 			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $whitelist['Whitelist']['id'])); ?>
 			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $whitelist['Whitelist']['id']), null, __('Are you sure you want to delete # %s?', $whitelist['Whitelist']['id'])); ?>
 		</td>
