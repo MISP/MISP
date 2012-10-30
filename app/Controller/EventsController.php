@@ -1031,7 +1031,7 @@ class EventsController extends AppController {
 		$this->loadModel('Attribute');
 
 		$params = array(
-				'conditions' => array('Attribute.to_ids' => 1), //array of conditions
+				'conditions' => array( "AND" => array ('Attribute.to_ids' => 1, "Event.published" => 1)), //array of conditions
 				'recursive' => 0, //int
 				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
 		);
