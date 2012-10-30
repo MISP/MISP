@@ -336,7 +336,8 @@ class EventsController extends AppController {
 		$risks = $this->Event->validate['risk']['rule'][1];
 		$risks = $this->_arrayToValuesIndexArray($risks);
 		$this->set('risks',$risks);
-
+		// tooltip for risk
+		$this->set('riskDescriptions', $this->Event->riskDescriptions);
 
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
@@ -500,6 +501,8 @@ class EventsController extends AppController {
 		$risks = $this->Event->validate['risk']['rule'][1];
 		$risks = $this->_arrayToValuesIndexArray($risks);
 		$this->set('risks',$risks);
+		// tooltip for risk
+		$this->set('riskDescriptions', $this->Event->riskDescriptions);
 
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}

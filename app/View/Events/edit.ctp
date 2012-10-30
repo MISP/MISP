@@ -6,7 +6,7 @@
 echo $this->Form->input('id');
 echo $this->Form->input('date');
 echo $this->Form->input('risk', array(
-		'before' => $this->Html->div('forminfo', isset($eventDescriptions['risk']['formdesc']) ? $eventDescriptions['risk']['formdesc'] : $eventDescriptions['risk']['desc'])));
+		'before' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv'))));
 if ('true' == Configure::read('CyDefSIG.sync')) {
 	if ('true' == Configure::read('CyDefSIG.private')) {
 		echo $this->Form->input('distribution', array('label' => 'Distribution',
@@ -21,6 +21,7 @@ echo $this->Form->input('info');
 
 // link an onchange event to the form elements
 $this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');
+$this->Js->get('#EventRisk')->event('change', 'showFormInfo("#EventRisk")');
 ?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit', true));?>
@@ -44,6 +45,10 @@ foreach ($distributionDescriptions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
 }
+foreach ($riskDescriptions as $type => $def) {
+	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
+}
 ?>
 
 function showFormInfo(id) {
@@ -59,5 +64,6 @@ function showFormInfo(id) {
 
 // hide the formInfo things
 $('#EventDistributionDiv').hide();
+$('#EventRiskDiv').hide();
 </script>
 <?php echo $this->Js->writeBuffer();

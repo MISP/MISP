@@ -15,7 +15,7 @@ if ('true' == Configure::read('CyDefSIG.sync')) {
 	}
 }
 echo $this->Form->input('risk', array(
-		'before' => $this->Html->div('forminfo', isset($eventDescriptions['risk']['formdesc']) ? $eventDescriptions['risk']['formdesc'] : $eventDescriptions['risk']['desc'])));
+		'before' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv'))));
 echo $this->Form->input('info');
 echo $this->Form->input('Event.submittedfile', array(
 		'label' => '<b>GFI sandbox</b>',
@@ -25,6 +25,7 @@ echo $this->Form->input('Event.submittedfile', array(
 
 // link an onchange event to the form elements
 $this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');
+$this->Js->get('#EventRisk')->event('change', 'showFormInfo("#EventRisk")');
 
 ?>
 	</fieldset>
@@ -47,6 +48,10 @@ foreach ($distributionDescriptions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
 }
+foreach ($riskDescriptions as $type => $def) {
+	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
+}
 ?>
 
 function showFormInfo(id) {
@@ -62,5 +67,6 @@ function showFormInfo(id) {
 
 // hide the formInfo things
 $('#EventDistributionDiv').hide();
+$('#EventRiskDiv').hide();
 </script>
 <?php echo $this->Js->writeBuffer();

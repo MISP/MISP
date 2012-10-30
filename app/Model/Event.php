@@ -31,17 +31,24 @@ class Event extends AppModel {
  * @var array
  */
 	public $fieldDescriptions = array(
-			'risk' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels:<br/>low: mass-malware<br/>medium: APT malware<br/>high: sophisticated APT malware or 0-day attack'),
-			'private' => array('desc' => 'This field tells if the event should be shared with other CyDefSIG servers'),
-			'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
-			'submittedfile' => array('desc' => 'GFI sandbox: export upload', 'formdesc' => 'GFI sandbox:<br/>export upload'),
-			);
+		'risk' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels:<br/>low: mass-malware<br/>medium: APT malware<br/>high: sophisticated APT malware or 0-day attack'),
+		'private' => array('desc' => 'This field tells if the event should be shared with other CyDefSIG servers'),
+		'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
+		'submittedfile' => array('desc' => 'GFI sandbox: export upload', 'formdesc' => 'GFI sandbox:<br/>export upload'),
+	);
+
+	public $riskDescriptions = array(
+		'Undefined' => array('desc' => '*undefined* no risk', 'formdesc' => 'No risk'),
+		'Low' => array('desc' => '*low* means mass-malware', 'formdesc' => 'Mass-malware'),
+		'Medium' => array('desc' => '*medium* means APT malware', 'formdesc' => 'APT malware'),
+		'High' => array('desc' => '*high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Sophisticated APT malware or 0-day attack')
+	);
 
 	public $distributionDescriptions = array(
-			'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the event"),
-			'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Event visible to all on this CyDefSIG instance but will not be shared past it"),
-			'No push' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other servers but no push (compatible with CyDefSIG v1 *private* field"),
-			'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other connected CyDefSIG servers"),
+		'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the event"),
+		'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Event visible to all on this CyDefSIG instance but will not be shared past it"),
+		'No push' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other servers but no push (compatible with CyDefSIG v1 *private* field"),
+		'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other connected CyDefSIG servers"),
 	);
 
 /**
