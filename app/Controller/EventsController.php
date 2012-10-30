@@ -665,7 +665,7 @@ class EventsController extends AppController {
 				} catch (Exception $e){
 					// catch errors like expired PGP keys
 					$this->log($e->getMessage());
-					return $e->getMessage();
+					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 				}
 				// If you wish to send multiple emails using a loop, you'll need
 				// to reset the email fields using the reset method of the Email component.
@@ -816,6 +816,7 @@ class EventsController extends AppController {
 				} catch (Exception $e){
 					// catch errors like expired PGP keys
 					$this->log($e->getMessage());
+					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 				}
 			} else {
 				$bodyEncSig = $bodySigned;
