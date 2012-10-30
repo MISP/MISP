@@ -117,7 +117,7 @@ class EventsController extends AppController {
 		$this->set('events', $this->paginate());
 
 		if (!$this->Auth->user('gpgkey')) {
-			$this->Session->setFlash('No GPG key set in your profile. To receive emails, submit your public key in your profile.');
+			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
 		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
@@ -146,7 +146,7 @@ class EventsController extends AppController {
 
 				// check private
 				if (($this->Event->data['Event']['private']) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
-					$this->Session->setFlash('Invalid event.');
+					$this->Session->setFlash(__('Invalid event.'));
 					$this->redirect(array('controller' => 'users', 'action' => 'terms'));
 				}
 			}
@@ -301,7 +301,7 @@ class EventsController extends AppController {
 				if (isset($this->data['Event']['submittedfile']) && $ext != 'zip' && $this->data['Event']['submittedfile']['size'] > 0 &&
 			is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
 					//return false;
-					$this->Session->setFlash('You may only upload GFI Sandbox zip files.');
+					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
 					// TODO or massageData here
 					if ($this->_add($this->request->data, $this->Auth, $this->_isRest(),'')) {
@@ -663,7 +663,7 @@ class EventsController extends AppController {
 				// redirect to the view event page
 				$this->Session->setFlash(__('Published but no email sent given GnuPG is not configured.', true));
 			} else {
-				$this->Session->setFlash('Sending of email failed', 'default', array(), 'error');
+				$this->Session->setFlash(__('Sending of email failed', true), 'default', array(), 'error');
 			}
 			$this->redirect(array('action' => 'view', $id));
 		}

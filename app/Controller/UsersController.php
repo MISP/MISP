@@ -318,7 +318,7 @@ class UsersController extends AppController {
 
 	public function logout() {
 		$this->extraLog("logout");	// TODO Audit, extraLog, check: customLog i.s.o. extraLog, $this->User->customLog('logout', $this->Auth->user('id'), array());
-		$this->Session->setFlash('Good-Bye');
+		$this->Session->setFlash(__('Good-Bye'));
 		$this->redirect($this->Auth->logout());
 	}
 
