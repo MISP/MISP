@@ -5,7 +5,7 @@ $buttonPublishStatus = $isAclPublish ? 'button_on':'button_off';
 ?>
 <div class="events index">
 	<h2>Events</h2>
-	<table cellpadding="0" cellspacing="0">
+	<table cellpadding="0" cellspacing="0" border="1">
 	<tr>
 			<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
@@ -57,7 +57,7 @@ $buttonPublishStatus = $isAclPublish ? 'button_on':'button_off';
 		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 		<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
-		<?php echo $event['Event']['distribution'] == 'Org' ? 'Org' : ($event['Event']['distribution'] == 'Community' ? 'Community' : ($event['Event']['distribution'] == 'No push' ? 'No push' : ''));?></td>
+		<?php echo $event['Event']['distribution'] == 'Org' ? 'Org' : ($event['Event']['distribution'] == 'Community' ? 'Community' : ($event['Event']['distribution'] == 'No push' ? 'No push' : ' '));?></td>
 		<?php else: ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 		<?php echo ($event['Event']['private']) ? 'Private' : ''; ?>&nbsp;</td>
