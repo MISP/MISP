@@ -34,8 +34,10 @@
 	</div>
 </div>
 <div class="actions">
-	<h3><?php echo __('Actions'); ?></h3>
 	<ul>
+
 		<li><?php echo $this->Html->link(__('New Whitelist'), array('admin' => true, 'action' => 'add')); ?></li>
+		<li>&nbsp;</li>
+		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
