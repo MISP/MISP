@@ -5,7 +5,7 @@ $buttonPublishStatus = $isAclPublish ? 'button_on':'button_off';
 ?>
 <div class="events index">
 	<h2>Events</h2>
-	<table cellpadding="0" cellspacing="0" border="1">
+	<table cellpadding="0" cellspacing="0">
 	<tr>
 			<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
