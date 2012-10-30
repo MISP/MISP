@@ -436,6 +436,7 @@ class AttributesController extends AppController {
 		$this->set('types',$types);
 		// combobox for categories
 		$categories = $this->Attribute->validate['category']['rule'][1];
+		array_pop(&$categories); // remove that last empty/space option
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories',$categories);
 		// combobox for distribution
