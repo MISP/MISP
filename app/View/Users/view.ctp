@@ -19,7 +19,7 @@
 			<?php echo h($user['User']['org']); ?>
 			&nbsp;
 		</dd>
-		<dt><?php echo __('Group'); ?></dt>
+		<dt><?php echo __('Role'); ?></dt>
 		<dd>
 			<?php echo h($user['Group']['name']); ?>		<!-- TODO ACL, check, My Profile not edit group_id. -->
 			&nbsp;

@@ -9,7 +9,7 @@ $buttonPublishStatus = $isAclPublish ? 'button_on':'button_off';
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
-			<th><?php echo $this->Paginator->sort('group_id');?></th>
+			<th><?php echo $this->Paginator->sort('group_id', 'Role');?></th>
 			<th><?php echo $this->Paginator->sort('email');?></th>
 			<th><?php echo $this->Paginator->sort('autoalert');?></th>
 			<th><?php echo $this->Paginator->sort('gpgkey');?></th>

@@ -2,7 +2,7 @@
 <!--div class="actions" style="float:right;">
 	<ul><li><?php echo $this->Html->link(__('Edit Profile', true), array('admin' => true, 'action' => 'edit', $group['Group']['id'])); ?> </li></ul>
 </div-->
-<h2><?php  echo __('Group');?></h2>
+<h2><?php  echo __('Role');?></h2>
 	<dl>
 		<dt><?php echo __('Id'); ?></dt>
 		<dd>
