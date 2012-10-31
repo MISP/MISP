@@ -102,7 +102,11 @@ class SysLogLogableBehavior extends LogableBehavior {
 		} elseif ($Model->displayField == $Model->primaryKey) {
 			$logData['Log']['title'] = $Model->alias . ' (' . $Model->id . ')';
 		} elseif (isset($Model->data[$Model->alias][$Model->displayField])) {
-			$logData['Log']['title'] = $Model->data[$Model->alias][$Model->displayField];
+			if (($Model->alias == "User") && ($logData['Log']['action'] != 'edit')) {
+				$logData['Log']['title'] = 'User (' . $Model->data[$Model->alias][$Model->primaryKey] . '): ' . $Model->data[$Model->alias][$Model->displayField];
+			} else {
+				$logData['Log']['title'] = $Model->data[$Model->alias][$Model->displayField];
+			}
 		} else {
 			$logData['Log']['title'] = $Model->field($Model->displayField);
 		}
@@ -173,6 +177,9 @@ class SysLogLogableBehavior extends LogableBehavior {
 		if ($this->user && $this->UserModel) {	//  $Model->data[$Model->alias][$Model->displayField]
 			switch ($Model->alias) {
 				case "User":		// TODO Audit, not used here but done in UsersController
+					if (($logData['Log']['action'] == 'edit') || ($logData['Log']['action'] == 'delete')) {
+						return; // handle in model itself
+					}
 					$title = 'User ('. $Model->data[$Model->alias]['id'].') '.  $Model->data[$Model->alias]['email'];
 					break;
 				case "Event":

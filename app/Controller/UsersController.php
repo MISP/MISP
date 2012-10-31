@@ -162,7 +162,6 @@ class UsersController extends AppController {
 		if ($this->request->is('post')) {
 			$this->User->create();
 			// set invited by
-			debug($this->request->data['User']);
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
 			if ($this->User->save($this->request->data)) {
 				$this->Session->setFlash(__('The user has been saved'));
@@ -276,10 +275,13 @@ class UsersController extends AppController {
 			throw new MethodNotAllowedException();
 		}
 		$this->User->id = $id;
+		$user = $this->User->read('email', $id);
+		$fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		if ($this->User->delete()) {
+			$this->extraLog("delete", $fieldsDescrStr, '');	// TODO Audit, check: modify User
 			$this->Session->setFlash(__('User deleted'));
 			$this->redirect(array('action' => 'index'));
 		}
@@ -426,7 +428,7 @@ class UsersController extends AppController {
 			$description = "User (" . $this->Auth->user('id') . "): " . $this->data['User']['email'];
 		} elseif ($action == 'logout') {
 			$description = "User (" . $this->Auth->user('id') . "): " . $this->Auth->user('email');
-		} else {	// edit
+		} elseif ($action == 'edit') {
 			$description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
 		}
 

@@ -219,7 +219,17 @@ class User extends AppModel {
 /**
  * TODO ACL: 1: be requester to CakePHP ACL system
  */
-	public $actsAs = array('Acl' => array('type' => 'requester', 'enabled' => false));	// TODO ACL, + 'enabled' => false
+	public $actsAs = array(
+		'Acl' => array(	// TODO ACL, + 'enabled' => false
+			'type' => 'requester',
+	 		'enabled' => false
+		),
+		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+			'userModel' => 'User',
+			'userKey' => 'user_id',
+			'change' => 'full'
+		)
+	);
 
 /**
  * TODO ACL: 2: hook User into CakePHP ACL system (so link to aros)
