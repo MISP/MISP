@@ -64,7 +64,7 @@
 			    <h1 style="float:right;"> <?php echo $this->Html->link(__('Log out', true), array('controller' => 'users', 'action' => 'logout'));?></h1>
 			</div>
 
-			<h1 style="text-align:center;"><?php echo Configure::read('CyDefSIG.footer')?></h1>
+			<h1 style="text-align:center;"> <?php if (isset($me)) echo Configure::read('CyDefSIG.footerversion'); else echo Configure::read('CyDefSIG.footer')?></h1>
 		</div>
 	</div>
 	<?php echo $this->element('sql_dump'); ?>
