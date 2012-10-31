@@ -28,7 +28,7 @@ if ($mayPublish) {
 </div>
 
 <?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
-<?php echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']),'width' => '50','hight' => '50', 'style' => 'float:right;')); ?>
+<?php echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']),'width' => '48','hight' => '48', 'style' => 'float:right;')); ?>
 <?php endif; ?>
 <h2>Event</h2>
 	<dl>

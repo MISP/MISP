@@ -36,7 +36,7 @@ $buttonPublishStatus = $isAclPublish ? 'button_on':'button_off';
 		<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 		<?php
-		echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']),'width' => '50','hight' => '50'));
+		echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']),'width' => '48','hight' => '48'));
 		?>
 		&nbsp;</td>
 		<?php endif; ?>
