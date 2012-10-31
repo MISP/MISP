@@ -551,6 +551,8 @@ class AttributesController extends AppController {
 				}
 				$this->Attribute->recursive = 0;
 				$this->paginate = array(
+					'limit' => 60,
+					'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 attributes?
 					'conditions' => $conditions
 				);
 

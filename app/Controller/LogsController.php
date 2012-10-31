@@ -8,7 +8,7 @@ App::uses('AppController', 'Controller');
 class LogsController extends AppController {
 
     public $components = array('Security', 'RequestHandler');
-//    public $components = array('Security');
+
     public $paginate = array(
             'limit' => 60,
     		'order' => array(
@@ -64,48 +64,70 @@ class LogsController extends AppController {
 	}
 
 	public function admin_search() {
+		$fullAddress = array('/admin/logs/search', '/logs/admin_search');
 
-	    $this->set('actionDefinitions', $this->Log->actionDefinitions);
+		if (in_array($this->request->here, $fullAddress)) {
 
-	    if ($this->request->is('post')) {
-	        $email = $this->request->data['Log']['email'];
-	        $org = $this->request->data['Log']['org'];
-	    	$action = $this->request->data['Log']['action'];
-	        $title = $this->request->data['Log']['title'];
-	        $change = $this->request->data['Log']['change'];
+		    $this->set('actionDefinitions', $this->Log->actionDefinitions);
 
-	        // search the db
-	        $conditions = array();
-            if($email) {
-                $conditions['Log.email LIKE'] = '%'.$email.'%';
-            }
-	        if($org) {
-                $conditions['Log.org LIKE'] = '%'.$org.'%';
-            }
-            if($action != 'ALL') {
-                $conditions['Log.action ='] = $action;
-            }
-	        if($title) {
-                $conditions['Log.title LIKE'] = '%'.$title.'%';
-            }
-            if($change) {
-                $conditions['Log.change LIKE'] = '%'.$change.'%';
-            }
-            $this->Log->recursive = 0;
-            $this->paginate = array(
-                'conditions' => $conditions
-            );
-	        $this->set('logs', $this->paginate());
+			// reset the paginate_conditions
+			$this->Session->write('paginate_conditions_log', array());
 
-	        // set the same view as the index page
-	        $this->render('index');
-	    } else {
-	        // no search keyword is given, show the search form
+		    if ($this->request->is('post') && in_array($this->request->here, $fullAddress)) {
+		        $email = $this->request->data['Log']['email'];
+		        $org = $this->request->data['Log']['org'];
+		    	$action = $this->request->data['Log']['action'];
+		        $title = $this->request->data['Log']['title'];
+		        $change = $this->request->data['Log']['change'];
 
-	        // combobox for actions
-    	    $actions = array('' => array('ALL' => 'ALL'), 'actions' => array());
-    	    $actions['actions'] = array_merge($actions['actions'], $this->_arrayToValuesIndexArray($this->Log->validate['action']['rule'][1]));
-    	    $this->set('actions',$actions);
-	    }
+		        // search the db
+		        $conditions = array();
+	            if ($email) {
+	                $conditions['Log.email LIKE'] = '%'.$email.'%';
+	            }
+		        if ($org) {
+	                $conditions['Log.org LIKE'] = '%'.$org.'%';
+	            }
+	            if ($action != 'ALL') {
+	                $conditions['Log.action ='] = $action;
+	            }
+		        if ($title) {
+	                $conditions['Log.title LIKE'] = '%'.$title.'%';
+	            }
+	            if ($change) {
+	                $conditions['Log.change LIKE'] = '%'.$change.'%';
+	            }
+	            $this->Log->recursive = 0;
+	            $this->paginate = array(
+					'limit' => 60,
+					'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 logs(?)
+	            	'conditions' => $conditions
+	            );
+		        $this->set('logs', $this->paginate());
+
+				// and store into session
+				$this->Session->write('paginate_conditions_log', $this->paginate);
+
+		        // set the same view as the index page
+		        $this->render('admin_index');
+		    } else {
+		        // no search keyword is given, show the search form
+
+		        // combobox for actions
+	    	    $actions = array('' => array('ALL' => 'ALL'), 'actions' => array());
+	    	    $actions['actions'] = array_merge($actions['actions'], $this->_arrayToValuesIndexArray($this->Log->validate['action']['rule'][1]));
+	    	    $this->set('actions',$actions);
+		    }
+		} else {
+		    $this->set('actionDefinitions', $this->Log->actionDefinitions);
+
+			$this->Log->recursive = 0;
+			// re-get pagination
+			$this->paginate = $this->Session->read('paginate_conditions_log');
+			$this->set('logs', $this->paginate());
+
+			// set the same view as the index page
+			$this->render('admin_index');
+		}
 	}
 }
