@@ -407,8 +407,8 @@ class Event extends AppModel {
 		//unset($event['Event']['org']);
 		// remove value1 and value2 from the output
 		foreach ($event['Event']['Attribute'] as $key => &$attribute) {
-			// do not keep attributes that are private
-			if ($attribute['private']) {
+			// do not keep attributes that are private, nor cluster, nor pull
+			if ($attribute['private'] || $attribute['cluster'] || $attribute['pull']) {
 				unset($event['Event']['Attribute'][$key]);
 				continue; // stop processing this
 			}
