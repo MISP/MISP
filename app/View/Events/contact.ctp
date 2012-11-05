@@ -12,7 +12,7 @@ echo $this->Form->input('person', array(
 			'type' => 'checkbox',
 			'after' => $this->Html->div('forminfo', __('By selecting this box you will contact the creator of the event only.', true)),
 ));	?>
-	<?php echo $this->Form->end(__('Submit to Org', true));?>
+	<?php echo $this->Form->end(__('Submit', true));?>
 	</fieldset>
 
 </div>
