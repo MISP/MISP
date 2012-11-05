@@ -190,16 +190,20 @@ class ServersController extends AppController {
 								$event['Event']['distribution'] = 'Community';
 							}
 							if (is_array($event['Event']['Attribute'])) {
-								foreach ($event['Event']['Attribute'] as &$attribute) {
-									// Distribution, correct Community to Org only in Attribute
-									if ($attribute['distribution'] == 'Community') {
+								foreach ($event['Event']['Attribute'] as $key => &$attribute) {
+									switch($attribute['distribution']) {
+									case 'Org':
+										unset($event['Event']['Attribute'][$key]);
+										break;
+									case 'Community':
 										$attribute['distribution'] = 'Org';
-									}
-									// Distribution, correct All to Community in Attribute
-									if ($attribute['distribution'] == 'All') {
+										break;
+									case 'All':
 										$attribute['distribution'] = 'Community';
+										break;
 									}
 								}
+								$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 							}
 							// Distribution, set reporter of the event, being the admin that initiated the pull
 							$event['Event']['user_id'] = $this->Auth->user('id');
