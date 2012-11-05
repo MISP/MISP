@@ -61,7 +61,6 @@ class Attribute extends AppModel {
 	public $distributionDescriptions = array(
 			'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the attribute"),
 			'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Attribute visible to all on this CyDefSIG instance but will not be shared past it"),
-			'No push' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other servers but no push (compatible with CyDefSIG v1 *private* field"),
 			'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other connected CyDefSIG servers"),
 	);
 
@@ -287,7 +286,7 @@ class Attribute extends AppModel {
 		if ('true' == Configure::read('CyDefSIG.private')) {
 
 			$this->virtualFields = Set::merge($this->virtualFields,array(
-				'distribution' => 'IF (Attribute.private=true, "Org", IF (Attribute.cluster=true, "Community", IF (Attribute.pull=true, "No push", "All")))',
+				'distribution' => 'IF (Attribute.private=true, "Org", IF (Attribute.cluster=true, "Community", "All"))',
 			));
 
 			$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
@@ -316,7 +315,7 @@ class Attribute extends AppModel {
 					),
 				),
 				'distribution' => array(
-					'rule' => array('inList', array('Org', 'Community', 'No push', 'All')),
+					'rule' => array('inList', array('Org', 'Community', 'All')),
 						//'message' => 'Your custom message here',
 						'allowEmpty' => false,
 						'required' => false,
@@ -426,11 +425,6 @@ class Attribute extends AppModel {
 				$data['Attribute']['private'] = false;
 				$data['Attribute']['cluster'] = true;
 				$data['Attribute']['pull'] = false;
-				break;
-			case 'No push':
-				$data['Attribute']['private'] = false;
-				$data['Attribute']['cluster'] = false;
-				$data['Attribute']['pull'] = true;
 				break;
 			case 'All':
 				$data['Attribute']['private'] = false;

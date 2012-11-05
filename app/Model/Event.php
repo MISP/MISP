@@ -47,7 +47,6 @@ class Event extends AppModel {
 	public $distributionDescriptions = array(
 		'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the event"),
 		'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Event visible to all on this CyDefSIG instance but will not be shared past it"),
-		'No push' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other servers but no push (compatible with CyDefSIG v1 *private* field"),
 		'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other connected CyDefSIG servers"),
 	);
 
@@ -161,11 +160,11 @@ class Event extends AppModel {
 		if ('true' == Configure::read('CyDefSIG.private')) {
 
 			$this->virtualFields = Set::merge($this->virtualFields, array(
-				'distribution' => 'IF (Event.private=true, "Org", IF (Event.cluster=true, "Community", IF (Event.pull=true, "No push", "All")))',
+				'distribution' => 'IF (Event.private=true, "Org", IF (Event.cluster=true, "Community", "All"))',
 			));
 
 			$this->fieldDescriptions = Set::merge($this->fieldDescriptions, array(
-				'distribution' => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => 'This field determines the current distribution of the event:<br/>Org - only organization memebers will see the event<br/>Community - event visible to all on this CyDefSIG instance but will not be shared past it</br>No push - to be distributed to other servers but no push (compatible with CyDefSIG v1 *private* field)<br/>All - to be distributed to other connected CyDefSIG servers'),
+				'distribution' => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => 'This field determines the current distribution of the event:<br/>Org - only organization memebers will see the event<br/>Community - event visible to all on this CyDefSIG instance but will not be shared past it</br>All - to be distributed to other connected CyDefSIG servers'),
 			));
 
 			$this->validate = Set::merge($this->validate,array(
@@ -190,7 +189,7 @@ class Event extends AppModel {
 					),
 				),
 				'distribution' => array(
-					'rule' => array('inList', array('Org', 'Community', 'No push', 'All')),
+					'rule' => array('inList', array('Org', 'Community', 'All')),
 						//'message' => 'Your custom message here',
 						'allowEmpty' => false,
 						'required' => false,
@@ -293,11 +292,6 @@ class Event extends AppModel {
 				$data['Event']['cluster'] = true;
 				$data['Event']['pull'] = false;
 				break;
-			case 'No push':
-				$data['Event']['private'] = false;
-				$data['Event']['cluster'] = false;
-				$data['Event']['pull'] = true;
-				break;
 			case 'All':
 				$data['Event']['private'] = false;
 				$data['Event']['cluster'] = false;
@@ -376,9 +370,6 @@ class Event extends AppModel {
 	public function uploadEventToServer($event, $server, $HttpSocket=null) {
 		if (true == $event['Event']['private']) { // never upload private events
 			return "Event is private and non exportable";
-		}
-		if (('true' == Configure::read('CyDefSIG.private')) && ($event['Event']['pull'])) {
-			return "Event is No push so non exportable";
 		}
 
 		$url = $server['Server']['url'];
