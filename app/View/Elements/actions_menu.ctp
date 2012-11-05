@@ -12,6 +12,7 @@
 		<li><?php echo $this->Html->link(__('Members List', true), array('controller' => 'users', 'action' => 'memberslist')); ?> </li>
 		<li><?php echo $this->Html->link(__('User Guide', true), array('controller' => 'pages', 'action' => 'display', 'documentation')); ?> </li>
 		<li><?php echo $this->Html->link(__('Terms & Conditions', true), array('controller' => 'users', 'action' => 'terms')); ?> </li>
+		<li><?php echo $this->Html->link(__('Log out', true), array('controller' => 'users', 'action' => 'logout')); ?> </li>
 
 		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 		<li>&nbsp;</li>
