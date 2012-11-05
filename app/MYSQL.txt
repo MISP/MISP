@@ -30,6 +30,7 @@ CREATE TABLE `attributes` (
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `revision` int(10) NOT NULL DEFAULT '0',
   `private` tinyint(1) NOT NULL,
+  `cluster` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
   KEY `value1_key` (`value1`(5)),
@@ -51,6 +52,25 @@ CREATE TABLE `bruteforces` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `correlations`
+--
+
+DROP TABLE IF EXISTS `correlations`;
+CREATE TABLE `correlations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `1_event_id` int(11) NOT NULL,
+  `1_attribute_id` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `attribute_id` int(11) NOT NULL,
+  `org` varchar(255) COLLATE utf8_bin NOT NULL,
+  `private` tinyint(1) NOT NULL,
+  `date` date NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=118 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `events`
 --
 
@@ -65,6 +85,7 @@ CREATE TABLE `events` (
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `revision` int(10) NOT NULL DEFAULT '0',
   `private` tinyint(1) NOT NULL,
+  `cluster` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
@@ -83,8 +104,6 @@ CREATE TABLE `servers` (
   `pull` tinyint(1) NOT NULL,
   `lastpushedid` int(11) NOT NULL,
   `lastpulledid` int(11) NOT NULL,
-  `organization` varchar(10) COLLATE utf8_bin NOT NULL,
-  `logo` varchar(20) COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
