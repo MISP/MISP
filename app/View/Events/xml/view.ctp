@@ -17,7 +17,6 @@ if ('true' == Configure::read('CyDefSIG.private')) {
 	unset($event['Event']['cluster']);
 	unset($event['Event']['sharing']);
 	foreach ($event['Event']['Attribute'] as $key => $value) {
-		unset($event['Event']['Attribute'][$key]['cluster']);
 		unset($event['Event']['Attribute'][$key]['sharing']);
 	}
 }

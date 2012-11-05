@@ -190,18 +190,26 @@ class ServersController extends AppController {
 								$event['Event']['distribution'] = 'Community';
 							}
 							if (is_array($event['Event']['Attribute'])) {
-								foreach ($event['Event']['Attribute'] as $key => &$attribute) {
-									switch($attribute['distribution']) {
+
+								$toRemove = array();
+								$size = sizeof($event['Event']['Attribute']);
+								for ($i = 0; $i < $size; $i++) {
+									switch($event['Event']['Attribute'][$i]['distribution']) {
 									case 'Org':
-										unset($event['Event']['Attribute'][$key]);
+										$toRemove[] = $i;
 										break;
 									case 'Community':
-										$attribute['distribution'] = 'Org';
+										$event['Event']['Attribute'][$i]['private'] = true;
+										$event['Event']['Attribute'][$i]['distribution'] = 'Org';
 										break;
 									case 'All':
-										$attribute['distribution'] = 'Community';
+										$event['Event']['Attribute'][$i]['cluster'] = true;
+										$event['Event']['Attribute'][$i]['distribution'] = 'Community';
 										break;
 									}
+								}
+								foreach ($toRemove as $thisRemove) {
+									unset($event['Event']['Attribute'][$thisRemove]);
 								}
 								$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 							}
