@@ -1,8 +1,8 @@
 <?php
-$buttonAddStatus = $isAclAdd || $event['Event']['user_id'] == $me['id'] ? 'button_on':'button_off';
-$mayModify = $isAclModify || $event['Event']['user_id'] == $me['id'];
+$buttonAddStatus = $isAclAdd ? 'button_on':'button_off';
+$mayModify = $isAclModify;
 $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
-$mayPublish = $isAclPublish || $event['Event']['user_id'] == $me['id'];
+$mayPublish = $isAclPublish;
 $buttonPublishStatus = $mayPublish ? 'button_on':'button_off';
 ?>
 <div class="events view">

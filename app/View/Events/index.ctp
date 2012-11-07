@@ -66,14 +66,14 @@ $buttonPublishStatus = $isAclPublish ? 'button_on':'button_off';
 		<td class="actions">
 			<?php
 			if (0 == $event['Event']['published'] && ($isAdmin || $event['Event']['org'] == $me['org']))
-				if ($isAclPublish || $event['Event']['user_id'] == $me['id']) echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), array('action' => 'alert', $event['Event']['id']), 'Are you sure this event is complete and everyone should be informed?');
+				if ($isAclPublish) echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), array('action' => 'alert', $event['Event']['id']), 'Are you sure this event is complete and everyone should be informed?');
 				else echo $this->Html->link('Publish Event', array('class' => $buttonPublishStatus, 'action' => 'alert', $event['Event']['id']), array('class' => $buttonPublishStatus, 'action' => 'alert', $event['Event']['id']));
 			elseif (0 == $event['Event']['published']) echo 'Not published';
 			?>
 <?php
 if ($isAdmin || $event['Event']['org'] == $me['org']) {
-	echo $this->Html->link(__('Edit', true), array('action' => 'edit', $event['Event']['id']), $isAclModify || ($event['Event']['user_id'] == $me['id']) ? null : array('class' => $buttonModifyStatus));
-	if ($isAclModify || $event['Event']['user_id'] == $me['id']) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id']));
+	echo $this->Html->link(__('Edit', true), array('action' => 'edit', $event['Event']['id']), $isAclModify ? null : array('class' => $buttonModifyStatus));
+	if ($isAclModify) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id']));
 	else echo $this->Html->link(__('Delete'), array('action' => 'delete', $event['Event']['id']), array('class' => $buttonModifyStatus));
 }
 ?>
