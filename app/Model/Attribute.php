@@ -304,16 +304,6 @@ class Attribute extends AppModel {
 						//'on' => 'create', // Limit validation to 'create' or 'update' operations
 					),
 				),
-				'pull' => array(
-					'boolean' => array(
-						'rule' => array('boolean'),
-						//'message' => 'Your custom message here',
-						//'allowEmpty' => false,
-						'required' => false,
-						//'last' => false, // Stop validation after this rule
-						//'on' => 'create', // Limit validation to 'create' or 'update' operations
-					),
-				),
 				'distribution' => array(
 					'rule' => array('inList', array('Org', 'Community', 'All')),
 						//'message' => 'Your custom message here',
@@ -419,17 +409,14 @@ class Attribute extends AppModel {
 			case 'Org':
 				$data['Attribute']['private'] = true;
 				$data['Attribute']['cluster'] = false;
-				$data['Attribute']['pull'] = false;
 				break;
 			case 'Community':
 				$data['Attribute']['private'] = false;
 				$data['Attribute']['cluster'] = true;
-				$data['Attribute']['pull'] = false;
 				break;
 			case 'All':
 				$data['Attribute']['private'] = false;
 				$data['Attribute']['cluster'] = false;
-				$data['Attribute']['pull'] = false;
 				break;
 		}
 		return $data;

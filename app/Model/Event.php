@@ -178,16 +178,6 @@ class Event extends AppModel {
 						//'on' => 'create', // Limit validation to 'create' or 'update' operations
 					),
 				),
-				'pull' => array(
-					'boolean' => array(
-						'rule' => array('boolean'),
-						//'message' => 'Your custom message here',
-						//'allowEmpty' => false,
-						'required' => false,
-						//'last' => false, // Stop validation after this rule
-						//'on' => 'create', // Limit validation to 'create' or 'update' operations
-					),
-				),
 				'distribution' => array(
 					'rule' => array('inList', array('Org', 'Community', 'All')),
 						//'message' => 'Your custom message here',
@@ -285,17 +275,14 @@ class Event extends AppModel {
 			case 'Org':
 				$data['Event']['private'] = true;
 				$data['Event']['cluster'] = false;
-				$data['Event']['pull'] = false;
 				break;
 			case 'Community':
 				$data['Event']['private'] = false;
 				$data['Event']['cluster'] = true;
-				$data['Event']['pull'] = false;
 				break;
 			case 'All':
 				$data['Event']['private'] = false;
 				$data['Event']['cluster'] = false;
-				$data['Event']['pull'] = false;
 				break;
 		}
 		return $data;
@@ -398,8 +385,8 @@ class Event extends AppModel {
 		//unset($event['Event']['org']);
 		// remove value1 and value2 from the output
 		foreach ($event['Event']['Attribute'] as $key => &$attribute) {
-			// do not keep attributes that are private, nor cluster, nor pull
-			if ($attribute['private'] || $attribute['cluster'] || $attribute['pull']) {
+			// do not keep attributes that are private, nor cluster
+			if ($attribute['private'] || $attribute['cluster']) {
 				unset($event['Event']['Attribute'][$key]);
 				continue; // stop processing this
 			}
@@ -410,7 +397,7 @@ class Event extends AppModel {
 				$attribute['distribution'] = 'Org';
 			}
 			// Distribution, correct All to Community in Attribute
-			if (!$attribute['cluster'] && !$attribute['private'] && !$attribute['pull']) {
+			if (!$attribute['cluster'] && !$attribute['private']) {
 				$attribute['cluster'] = true;
 				$attribute['distribution'] = 'Community';
 		}
@@ -430,7 +417,7 @@ class Event extends AppModel {
 			$event['Event']['distribution'] = 'Org';
 		}
 		// Distribution, correct All to Community in Event
-		if (!$event['Event']['cluster'] && !$event['Event']['private'] && !$event['Event']['pull']) {
+		if (!$event['Event']['cluster'] && !$event['Event']['private']) {
 			$event['Event']['cluster'] = true;
 			$event['Event']['distribution'] = 'Community';
 		}

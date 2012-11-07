@@ -413,7 +413,7 @@ class AttributesController extends AppController {
 			}
 
 			// say what fields are to be updated
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster', 'pull');
+			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster');
 			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 
