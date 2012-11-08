@@ -300,9 +300,7 @@ class EventsController extends AppController {
 		if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// call __sendAlertEmail if published was set in the request
-				if (!$fromXml) {
-					$this->__sendAlertEmail($this->Event->getId());
-				}
+				$this->__sendAlertEmail($this->Event->getId());
 			}
 			return true;
 		} else {
