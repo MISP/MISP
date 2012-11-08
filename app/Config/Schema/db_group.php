@@ -1,8 +1,8 @@
-<?php 
+<?php
 class DbGroupSchema extends CakeSchema {
-	
+
 	public $name = 'DbGroup';
-	
+
 	public function before($event = array()) {
 		return true;
 	}
@@ -37,6 +37,7 @@ class DbGroupSchema extends CakeSchema {
 		'modified' => array('type' => 'datetime', 'null' => true, 'default' => NULL),
 		'perm_add' => array('type' => 'boolean', 'null' => true, 'default' => NULL),
 		'perm_modify' => array('type' => 'boolean', 'null' => true, 'default' => NULL),
+		'perm_modify_org' => array('type' => 'boolean', 'null' => true, 'default' => NULL),
 		'perm_publish' => array('type' => 'boolean', 'null' => true, 'default' => NULL),
 		'perm_full' => array('type' => 'boolean', 'null' => true, 'default' => NULL),
 		'indexes' => array('PRIMARY' => array('column' => 'id', 'unique' => 1)),

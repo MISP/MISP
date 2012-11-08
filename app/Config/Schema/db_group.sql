@@ -6,6 +6,7 @@ CREATE TABLE groups (
     name VARCHAR(100) NOT NULL,
     perm_add boolean,
     perm_modify boolean,
+    perm_modify_org boolean,
     perm_publish boolean,
     perm_full boolean,
     created DATETIME,
