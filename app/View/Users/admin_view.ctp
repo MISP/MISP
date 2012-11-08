@@ -1,6 +1,6 @@
 <?php
 $buttonAddStatus = $isAclAdd ? 'button_on':'button_off';
-$mayModify = $isAclModify || ($user['User']['org'] == $me['org']);
+$mayModify = ($isAclModify || ($isAclModifyOrg && ($user['User']['org'] == $me['org'])));
 $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 ?>
 <div class="users view">

@@ -1,6 +1,6 @@
 <?php
 $buttonAddStatus = $isAclAdd ? 'button_on':'button_off';
-$buttonModifyStatus = $isAclModify ? 'button_on':'button_off';
+$buttonModifyStatus = ($isAclModify || $isAclModifyOrg) ? 'button_on':'button_off';
 $buttonPublishStatus = $isAclPublish ? 'button_on':'button_off';
 ?>
 <div class="users index">
@@ -41,8 +41,8 @@ $buttonPublishStatus = $isAclPublish ? 'button_on':'button_off';
 		<?php echo h($user['User']['newsread']); ?>&nbsp;</td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('View'), array('admin' => true, 'action' => 'view', $user['User']['id'])); ?>
-			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $user['User']['id']), $isAclModify || ($user['User']['org'] == $me['org']) ? null : array('class' => $buttonModifyStatus)); ?>
-			<?php if ($isAclModify || $user['User']['org'] == $me['org']) echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $user['User']['id']), null, __('Are you sure you want to delete # %s?', $user['User']['id']));
+			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $user['User']['id']), $isAclModify || ($isAclModifyOrg && ($user['User']['org'] == $me['org'])) ? null : array('class' => $buttonModifyStatus)); ?>
+			<?php if ($isAclModify || ($isAclModifyOrg && $user['User']['org'] == $me['org'])) echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $user['User']['id']), null, __('Are you sure you want to delete # %s?', $user['User']['id']));
 			else echo $this->Html->link(__('Delete'), array('admin' => true, 'action' => 'delete', $user['User']['id']), array('class' => $buttonModifyStatus));
 			?>
 		</td>

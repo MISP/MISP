@@ -99,6 +99,7 @@ class AppController extends Controller {
 		// TODO ACL: 5: from Controller to Views
 		$this->set('isAclAdd', $this->checkAcl('add'));
 		$this->set('isAclModify', $this->checkAcl('edit'));
+		$this->set('isAclModifyOrg', $this->checkGroup());
 		$this->set('isAclPublish', $this->checkAcl('publish'));
 	}
 
@@ -353,6 +354,22 @@ class AppController extends Controller {
 		$aco = ucfirst($this->params['controller']);
 		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
 		return $this->Acl->check($user, 'controllers/' . $aco, '*');
+	}
+
+/**
+ * TODO ACL, EXTRA: mixed in Org!!
+ */
+	public function checkGroup() {
+		$aco = 'Events';	// TODO ACL was 'Attributes'
+		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
+	//	debug($user['User']['group_id']);
+		$group = ClassRegistry::init('Group')->findById($user['User']['group_id']);
+	//	debug($group['Group']['perm_modify_org']);
+		if ($group['Group']['perm_modify_org']) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 /**

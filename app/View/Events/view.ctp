@@ -1,6 +1,6 @@
 <?php
 $buttonAddStatus = $isAclAdd ? 'button_on':'button_off';
-$mayModify = $isAclModify;
+$mayModify = ($isAclModify || $isAclModifyOrg);
 $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 $mayPublish = $isAclPublish;
 $buttonPublishStatus = $mayPublish ? 'button_on':'button_off';

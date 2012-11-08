@@ -1,7 +1,7 @@
 <?php
 $mayAdd = $isAclAdd;
 $buttonAddStatus = $mayAdd ? 'button_on':'button_off';
-$mayModify = $isAclModify;
+$mayModify = ($isAclModify || $isAclModifyOrg);
 $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 ?>
 <div class="servers index">
@@ -32,7 +32,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="actions">
-			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $server['Server']['id']), $isAclModify || ($server['Server']['org'] == $me['org']) ? null : array('class' => $buttonModifyStatus)); ?>
+			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $server['Server']['id']), $isAclModify || ($isAclModifyOrg && $server['Server']['org'] == $me['org']) ? null : array('class' => $buttonModifyStatus)); ?>
 			<?php if ($mayModify || $server['Server']['org'] == $me['org']) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $server['Server']['id']), null, __('Are you sure you want to delete # %s?', $server['Server']['id']));
 			else echo $this->Html->link(__('Delete'), array('action' => 'delete', $server['Server']['id']), array('class' => $buttonModifyStatus)); ?>
 
