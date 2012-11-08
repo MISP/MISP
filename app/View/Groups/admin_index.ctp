@@ -4,10 +4,7 @@
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
-			<th><?php echo $this->Paginator->sort('perm_add', 'Add');?></th>
-			<th><?php echo $this->Paginator->sort('perm_modify', 'Modify');?></th>
-			<th><?php echo $this->Paginator->sort('perm_publish', 'Publish');?></th>
-			<th><?php echo $this->Paginator->sort('perm_full', 'Full');?></th>
+			<th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
@@ -15,10 +12,7 @@
 	<tr>
 		<td class="short"><?php echo h($group['Group']['id']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($group['Group']['name']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($group['Group']['perm_add']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($group['Group']['perm_modify']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($group['Group']['perm_publish']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($group['Group']['perm_full']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($options[$group['Group']['permission']]); ?>&nbsp;</td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $group['Group']['id'])); ?>
 			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $group['Group']['id']), null, __('Are you sure you want to delete # %s?', $group['Group']['id'])); ?>

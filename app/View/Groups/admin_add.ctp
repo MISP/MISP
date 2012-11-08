@@ -1,18 +1,10 @@
 <div class="groups form">
 <?php echo $this->Form->create('Group');?>
 	<fieldset>
-		<legend><?php echo __('Admin Add Role'); ?></legend>
+		<legend><?php echo __('Add Role'); ?></legend>
 	<?php
 		echo $this->Form->input('name');?>
-	<fieldset>
-		<legend><?php echo __('Permission'); ?></legend>
-		<?php
-		echo $this->Form->input('perm_add', array('label' => 'add'));
-		echo $this->Form->input('perm_modify', array('label' => 'modify'));
-		echo $this->Form->input('perm_publish', array('label' => 'publish'));
-		echo $this->Form->input('perm_full', array('label' => 'full'));
-	?>
-	</fieldset>
+		<?php echo $this->Form->radio('permission', $options, array('value' => '3'));?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit'));?>
 </div>

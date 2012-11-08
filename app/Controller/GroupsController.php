@@ -7,6 +7,8 @@ App::uses('AppController', 'Controller');
  */
 class GroupsController extends AppController {
 
+	public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage & Publish Organization Events');
+
 	public $components = array(
         'Acl',
         'Auth' => array(
@@ -39,7 +41,7 @@ class GroupsController extends AppController {
 	public function view($id = null) {
 		$this->Group->id = $id;
 		if (!$this->Group->exists()) {
-			throw new NotFoundException(__('Invalid group'));
+			throw new NotFoundException(__('Invalid role'));
 		}
 		$this->set('group', $this->Group->read(null, $id));
 	}
@@ -52,6 +54,7 @@ class GroupsController extends AppController {
 	public function admin_index() {
 		$this->Group->recursive = 0;
 		$this->set('groups', $this->paginate());
+		$this->set('options', $this->options);
 	}
 
 /**
@@ -63,7 +66,7 @@ class GroupsController extends AppController {
 	public function admin_view($id = null) {
 		$this->Group->id = $id;
 		if (!$this->Group->exists()) {
-			throw new NotFoundException(__('Invalid group'));
+			throw new NotFoundException(__('Invalid role'));
 		}
 		$this->set('group', $this->Group->read(null, $id));
 	}
@@ -76,18 +79,16 @@ class GroupsController extends AppController {
 	public function admin_add() {
 		if ($this->request->is('post')) {
 			$this->Group->create();
+			$this->request->data = $this->Group->massageData(&$this->request->data);
 			if ($this->Group->save($this->request->data)) {
 				$this->saveAcl($this->Group, $this->data['Group']['perm_add'], $this->data['Group']['perm_modify'], $this->data['Group']['perm_publish']);	// save to ACL as well
-				$this->Session->setFlash(__('The group has been saved'));
+				$this->Session->setFlash(__('The role has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
-				$this->Session->setFlash(__('The group could not be saved. Please, try again.'));
+				$this->Session->setFlash(__('The role could not be saved. Please, try again.'));
 			}
-		} else {
-			// generate auth key for a new user
-			//$newkey = $this->Group->generateAuthKey();	// TODO generateAuthKey?
-			//$this->set('authkey', $newkey);
 		}
+		$this->set('options', $this->options);
 	}
 
 /**
@@ -99,30 +100,24 @@ class GroupsController extends AppController {
 	public function admin_edit($id = null) {
 		$this->Group->id = $id;
 		if (!$this->Group->exists()) {
-			throw new NotFoundException(__('Invalid group'));
+			throw new NotFoundException(__('Invalid role'));
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$fields = array();
-			foreach (array_keys($this->request->data['Group']) as $field) {
-				if($field != 'password') array_push($fields, $field);
-			}
-			if ("" != $this->request->data['Group']['password'])
-				$fields[] = 'password';
+			$this->request->data = $this->Group->massageData(&$this->request->data);
 			if ($this->Group->save($this->request->data, true, $fields)) {
 				$this->saveAcl($this->Group, $this->data['Group']['perm_add'], $this->data['Group']['perm_modify'], $this->data['Group']['perm_publish']);	// save to ACL as well
-				$this->Session->setFlash(__('The group has been saved'));
-				$this->_refreshAuth(); // in case we modify ourselves
+				$this->Session->setFlash(__('The role has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
-				$this->Session->setFlash(__('The group could not be saved. Please, try again.'));
+				$this->Session->setFlash(__('The role could not be saved. Please, try again.'));
 			}
 		} else {
 			$this->Group->recursive=0;
 			$this->Group->read(null, $id);
-			//$this->Group->set('password', '');	// TODO set password?
 			$this->request->data = $this->Group->data;
-
 		}
+		$this->set('options', $this->options);
 	}
 
 /**
@@ -140,10 +135,10 @@ class GroupsController extends AppController {
 			throw new NotFoundException(__('Invalid group'));
 		}
 		if ($this->Group->delete(null, false)) {
-			$this->Session->setFlash(__('Group deleted'));
+			$this->Session->setFlash(__('Role deleted'));
 			$this->redirect(array('action' => 'index'));
 		}
-		$this->Session->setFlash(__('Group was not deleted'));
+		$this->Session->setFlash(__('Role was not deleted'));
 		$this->redirect(array('action' => 'index'));
 	}
 

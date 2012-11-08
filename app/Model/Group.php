@@ -59,4 +59,39 @@ class Group extends AppModel {
 	public function parentNode() {
 		return null;
 	}
+
+/**
+ * Virtual field
+ *
+ * @var array
+ */
+	public $virtualFields = array(
+		'permission' => "IF (Group.perm_add && Group.perm_modify && Group.perm_publish, '3', IF (Group.perm_add && Group.perm_modify, '2', IF (Group.perm_add, '1', '0')))",
+	);
+
+	public function massageData(&$data) {
+		switch ($data['Group']['permission']) {
+			case '0':
+				$data['Group']['perm_add'] = false;
+				$data['Group']['perm_modify'] = false;
+				$data['Group']['perm_publish'] = false;
+				break;
+			case '1':
+				$data['Group']['perm_add'] = true;
+				$data['Group']['perm_modify'] = false;
+				$data['Group']['perm_publish'] = false;
+				break;
+			case '2':
+				$data['Group']['perm_add'] = true;
+				$data['Group']['perm_modify'] = true;
+				$data['Group']['perm_publish'] = false;
+				break;
+			case '3':
+				$data['Group']['perm_add'] = true;
+				$data['Group']['perm_modify'] = true;
+				$data['Group']['perm_publish'] = true;
+				break;
+		}
+		return $data;
+	}
 }
