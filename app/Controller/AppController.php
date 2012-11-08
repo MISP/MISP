@@ -362,7 +362,7 @@ class AppController extends Controller {
 	public function checkGroup() {
 		$modifyGroup = false;
 		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
-		if (isset($user)) {
+		if (isset($user['User'])) {
 			$group = ClassRegistry::init('Group')->findById($user['User']['group_id']);
 			if ($group['Group']['perm_modify_org']) {
 				$modifyGroup = true;
