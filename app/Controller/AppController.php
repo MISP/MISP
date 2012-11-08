@@ -22,6 +22,7 @@
 
 // TODO GPG encryption has issues when keys are expired
 
+App::uses('User', 'Model');
 App::uses('Controller', 'Controller');
 App::uses('Sanitize', 'Utility');
 /**
@@ -361,9 +362,13 @@ class AppController extends Controller {
  */
 	public function checkGroup() {
 		$aco = 'Events';	// TODO ACL was 'Attributes'
-		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
+		$this->loadModel('User');
+		$user = $this->User->findById($this->Auth->user('id'));
+		//$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
 	//	debug($user['User']['group_id']);
-		$group = ClassRegistry::init('Group')->findById($user['User']['group_id']);
+		$this->loadModel('Group');
+		$group = $this->Group->findById($user['User']['group_id']);
+		//$group = ClassRegistry::init('Group')->findById($user['User']['group_id']);
 	//	debug($group['Group']['perm_modify_org']);
 		if ($group['Group']['perm_modify_org']) {
 			return true;
