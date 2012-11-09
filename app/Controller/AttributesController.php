@@ -429,6 +429,8 @@ class AttributesController extends AppController {
 		} else {
 			$this->request->data = $this->Attribute->read(null, $id);
 		}
+		// needed for RBAC
+		$this->set('attribute', $this->request->data);
 
 		// combobox for types
 		$types = $types = array_keys($this->Attribute->typeDefinitions);
