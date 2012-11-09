@@ -1,5 +1,5 @@
 <?php
-$buttonModifyStatus = ($isAclModify || $isAclModifyOrg) ? 'button_on':'button_off';
+$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org']));
 ?>
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute');?>
@@ -50,8 +50,7 @@ $this->Js->get('#AttributeDistribution')->event('change', 'showFormInfo("#Attrib
 	<ul>
 		<li><?php
 		$attribute = ClassRegistry::init('Attribute')->findById($this->Form->value('Attribute.id'));	// TODO ACL $attribute??
-		if ($isAclModify || ($isAclModifyOrg && $attribute['Event']['user_id'] == $me['id'])) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Attribute.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Attribute.id')));
-		else echo $this->Html->link(__('Delete'), array('action' => 'delete', $this->Form->value('Attribute.id')), array('class' => $buttonModifyStatus));	?></li>
+		if ($mayModify) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Attribute.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Attribute.id'))); ?></li>
 		<li>&nbsp;</li>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>

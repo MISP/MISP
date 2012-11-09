@@ -1,22 +1,16 @@
 <?php
-$buttonAddStatus = $isAclAdd ? 'button_on':'button_off';
-$mayModify = ($isAclModify || $isAclModifyOrg);
-$buttonModifyStatus = $mayModify ? 'button_on':'button_off';
-$mayPublish = $isAclPublish;
-$buttonPublishStatus = $mayPublish ? 'button_on':'button_off';
+$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org']));
+$mayPublish = ($isAclPublish && $event['Event']['org'] == $me['org']);
 ?>
 <div class="events view">
 <div class="actions" style="float:right;">
-<?php if ( 0 == $event['Event']['published'] && ($isAdmin || $event['Event']['org'] == $me['org'])):
+<?php if ( 0 == $event['Event']['published'] && ($isAdmin || $mayPublish)):
 // only show button if alert has not been sent  // LATER show the ALERT button in red-ish
 ?>
 	<ul><li><?php
 if ($mayPublish) {
 	echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?');
 	echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!');
-} else {
-	echo $this->Html->link('Publish Event', array('action' => 'alert', $event['Event']['id']), array('class' => $buttonPublishStatus));
-	echo $this->Html->link('Publish (no email)', array('action' => 'publish', $event['Event']['id']), array('class' => $buttonPublishStatus));
 }
 	?> </li></ul>
 <?php elseif (0 == $event['Event']['published']): ?>
@@ -118,7 +112,7 @@ if ($mayPublish) {
 			<th <?php echo "title='" . $attrDescriptions['private']['desc'] . "'";?>>Private</th>
 			<?php endif;?>
 			<?php endif;?>
-			<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
+			<?php if ($isAdmin || $mayModify): ?>
 			<th class="actions">Actions</th>
 			<?php endif;?>
 		</tr><?php
@@ -182,16 +176,11 @@ if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$
 				<td class="short" style="text-align: center;"><?php echo $attribute['private'] ? 'Private' : '&nbsp;';?></td>
 				<?php endif;?>
 				<?php endif;?>
-				<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
+				<?php if ($isAdmin || $mayModify): ?>
 				<td class="actions">
 					<?php
-if ($isAclModify) {
-	echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']));
-	echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, __('Are you sure you want to delete this attribute?'));
-} else {
-	echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']), array('class' => $buttonModifyStatus));
-	echo $this->Html->link(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), array('class' => $buttonModifyStatus));
-}
+					echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']));
+					echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, __('Are you sure you want to delete this attribute?'));
 					?>
 				</td>
 				<?php endif;?>
@@ -200,11 +189,11 @@ if ($isAclModify) {
 		<?php endforeach; ?>
 		</table>
 		<?php endif; ?>
-		<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
+		<?php if ($isAdmin || $mayModify): ?>
 		<div class="actions">
 			<ul>
-				<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']), array('class' => $buttonAddStatus));?> </li>
-				<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']), array('class' => $buttonAddStatus));?> </li>
+				<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?> </li>
+				<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
 			</ul>
 		</div>
 		<?php endif; ?>
@@ -214,14 +203,11 @@ if ($isAclModify) {
 
 <div class="actions">
 	<ul>
-	<?php if ($isAdmin || $event['Event']['org'] == $me['org']): ?>
-		<li><?php echo $this->Html->link(__('Add Attribute', true), array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']), array('class' => $buttonAddStatus));?> </li>
-		<li><?php echo $this->Html->link(__('Add Attachment', true), array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']), array('class' => $buttonAddStatus));?> </li>
-		<li><?php echo $this->Html->link(__('Edit Event', true), array('action' => 'edit', $event['Event']['id']),	array('class' => $buttonModifyStatus)); ?> </li>
-		<li><?php
-			if ($mayModify) echo $this->Form->postLink(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id']));
-			else echo $this->Html->link(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), array('class' => $buttonModifyStatus));
-		?></li>
+	<?php if ($isAdmin || $mayModify): ?>
+		<li><?php echo $this->Html->link(__('Add Attribute', true), array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?> </li>
+		<li><?php echo $this->Html->link(__('Add Attachment', true), array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
+		<li><?php echo $this->Html->link(__('Edit Event', true), array('action' => 'edit', $event['Event']['id'])); ?> </li>
+		<li><?php echo $this->Form->postLink(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
 		<li>&nbsp;</li>
 	<?php endif; ?>
 		<?php echo $this->element('actions_menu'); ?>

@@ -1,8 +1,3 @@
-<?php
-$buttonAddStatus = $isAclAdd ? 'button_on':'button_off';
-$buttonModifyStatus = ($isAclModify || $isAclModifyOrg) ? 'button_on':'button_off';
-$buttonPublishStatus = $isAclPublish ? 'button_on':'button_off';
-?>
 <div class="events index">
 	<h2>Events</h2>
 	<table cellpadding="0" cellspacing="0">
@@ -65,16 +60,14 @@ $buttonPublishStatus = $isAclPublish ? 'button_on':'button_off';
 		<?php endif; ?>
 		<td class="actions">
 			<?php
-			if (0 == $event['Event']['published'] && ($isAdmin || $event['Event']['org'] == $me['org']))
-				if ($isAclPublish) echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), array('action' => 'alert', $event['Event']['id']), 'Are you sure this event is complete and everyone should be informed?');
-				else echo $this->Html->link('Publish Event', array('class' => $buttonPublishStatus, 'action' => 'alert', $event['Event']['id']), array('class' => $buttonPublishStatus, 'action' => 'alert', $event['Event']['id']));
+			if (0 == $event['Event']['published'] && ($isAdmin || ($isAclPublish && $event['Event']['org'] == $me['org'])))
+				echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), array('action' => 'alert', $event['Event']['id']), 'Are you sure this event is complete and everyone should be informed?');
 			elseif (0 == $event['Event']['published']) echo 'Not published';
 			?>
 <?php
-if ($isAdmin || $event['Event']['org'] == $me['org']) {
-	echo $this->Html->link(__('Edit', true), array('action' => 'edit', $event['Event']['id']), $isAclModify ? null : array('class' => $buttonModifyStatus));
-	if ($isAclModify || ($isAclModifyOrg && $event['Event']['org'] == $me['org'])) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id']));
-	else echo $this->Html->link(__('Delete'), array('action' => 'delete', $event['Event']['id']), array('class' => $buttonModifyStatus));
+if ($isAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org'])) {
+	echo $this->Html->link(__('Edit', true), array('action' => 'edit', $event['Event']['id']), null);
+	echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id']));
 }
 ?>
 			<?php echo $this->Html->link(__('View', true), array('controller' => 'events', 'action' => 'view', $event['Event']['id'])); ?>

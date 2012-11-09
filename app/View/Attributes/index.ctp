@@ -1,6 +1,3 @@
-<?php
-$buttonModifyStatus = ($isAclModify || $isAclModifyOrg) ? 'button_on':'button_off';
-?>
 <div class="attributes index">
 	<h2><?php echo __('Attributes');?></h2>
 	<table cellpadding="0" cellspacing="0">
@@ -39,10 +36,9 @@ if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attr
 		<td class="short" style="text-align: center;" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 		<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td class="actions"><?php
-if ($isAdmin || $attribute['Event']['org'] == $me['org']) {
-	echo $this->Html->link(__('Edit'), array('action' => 'edit', $attribute['Attribute']['id']), $isAclModify || ($isAclModifyOrg && ($attribute['Event']['user_id'] == $me['id'])) ? null : array('class' => $buttonModifyStatus));
-	if ($isAclModify || ($isAclModifyOrg && ($attribute['Event']['user_id'] == $me['id']))) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $attribute['Attribute']['id']), null, __('Are you sure you want to delete this attribute?'));
-	else echo $this->Html->link(__('Delete'), array('action' => 'delete', $attribute['Attribute']['id']), array('class' => $buttonModifyStatus));
+if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org'] == $me['org'])) {
+	echo $this->Html->link(__('Edit'), array('action' => 'edit', $attribute['Attribute']['id']), null);
+	echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $attribute['Attribute']['id']), null, __('Are you sure you want to delete this attribute?'));
 }
 echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']));
 ?>
