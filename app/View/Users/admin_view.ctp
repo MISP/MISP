@@ -115,12 +115,12 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 			<td><?php echo $event['published'];?></td>
 			<td><?php echo $event['uuid'];?></td>
 			<td class="actions">
-				<?php echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $event['id'])); ?>
 				<?php echo $this->Html->link(__('Edit'), array('controller' => 'events', 'action' => 'edit', $event['id']), array('class' => $buttonModifyStatus)); ?>
 				<?php
 				if ($mayModify) echo $this->Form->postLink(__('Delete'), array('controller' => 'events', 'action' => 'delete', $event['id']), null, __('Are you sure you want to delete # %s?', $event['id']));
 				else echo $this->Html->link(__('Delete'), array('controller' => 'events', 'action' => 'delete', $event['id']), array('class' => $buttonModifyStatus));
 				?>
+				<?php echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $event['id'])); ?>
 			</td>
 		</tr>
 	<?php endforeach; ?>
