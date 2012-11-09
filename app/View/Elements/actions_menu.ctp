@@ -1,5 +1,4 @@
-<?php $buttonAddStatus = $isAclAdd ? 'button_on':'button_off'; ?>
-        <li><?php echo $this->Html->link(__('New Event', true), array('controller' => 'events', 'action' => 'add'), array('id' => $buttonAddStatus,'class' => $buttonAddStatus)); ?></li>
+        <li><?php if ($isAclAdd) echo $this->Html->link(__('New Event', true), array('controller' => 'events', 'action' => 'add')); ?></li>
 		<li><?php echo $this->Html->link(__('List Events', true), array('controller' => 'events', 'action' => 'index')); ?></li>
 		<li><?php echo $this->Html->link(__('List Attributes', true), array('controller' => 'attributes', 'action' => 'index')); ?> </li>
 		<li><?php echo $this->Html->link(__('Search Attributes', true), array('controller' => 'attributes', 'action' => 'search')); ?> </li>
