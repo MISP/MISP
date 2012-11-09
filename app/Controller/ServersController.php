@@ -189,8 +189,7 @@ class ServersController extends AppController {
 							if ($event['Event']['distribution'] == 'All') {
 								$event['Event']['distribution'] = 'Community';
 							}
-							if (is_array($event['Event']['Attribute'])) {
-
+							if (is_array($event['Event']['Attribute']) && !isset($event['Event']['Attribute']['id'])) {
 								$toRemove = array();
 								$size = sizeof($event['Event']['Attribute']);
 								for ($i = 0; $i < $size; $i++) {
@@ -212,6 +211,20 @@ class ServersController extends AppController {
 									unset($event['Event']['Attribute'][$thisRemove]);
 								}
 								$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
+							} elseif (is_array($event['Event']['Attribute']) && isset($event['Event']['Attribute']['id'])) {
+								switch($event['Event']['Attribute']['distribution']) {
+								case 'Org':
+									unset($event['Event']['Attribute']);
+									break;
+								case 'Community':
+									$event['Event']['Attribute']['private'] = true;
+									$event['Event']['Attribute']['distribution'] = 'Org';
+									break;
+								case 'All':
+									$event['Event']['Attribute']['cluster'] = true;
+									$event['Event']['Attribute']['distribution'] = 'Community';
+									break;
+								}
 							}
 							// Distribution, set reporter of the event, being the admin that initiated the pull
 							$event['Event']['user_id'] = $this->Auth->user('id');
