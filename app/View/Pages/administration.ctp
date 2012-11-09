@@ -124,8 +124,5 @@ Another way to browse the logs is to search it by filtering the results accordin
 	</ul>
 </div>
 
-<script type="text/javascript" src="/js/jquery-toc.js">
-</script>
-
 
 

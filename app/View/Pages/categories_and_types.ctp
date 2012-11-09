@@ -73,8 +73,4 @@ $attr = new Attribute();
 	</ul>
 </div>
 
-<script type="text/javascript" src="/js/jquery-toc.js">
-</script>
-
-
 

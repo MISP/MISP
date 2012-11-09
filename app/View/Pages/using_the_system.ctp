@@ -161,8 +161,3 @@ The following types of export are possible:<br><br>
 	</ul>
 </div>
 
-<script type="text/javascript" src="/js/jquery-toc.js">
-</script>
-
-
-
