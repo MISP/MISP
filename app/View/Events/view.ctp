@@ -8,7 +8,7 @@ $mayPublish = ($isAclPublish && $event['Event']['org'] == $me['org']);
 // only show button if alert has not been sent  // LATER show the ALERT button in red-ish
 ?>
 	<ul><li><?php
-if ($mayPublish) {
+if ($isAdmin || $mayPublish) {
 	echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?');
 	echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!');
 }
