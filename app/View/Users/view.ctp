@@ -54,8 +54,10 @@
 </div>
 <div class="actions">
 	<ul>
-		<li><?php if ($isAclModify) echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?> </li>
+		<?php if ($isAclModify): ?>
+		<li><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
 		<li>&nbsp;</li>
+		<?php endif; ?>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>

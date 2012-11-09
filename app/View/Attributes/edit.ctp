@@ -48,10 +48,12 @@ $this->Js->get('#AttributeDistribution')->event('change', 'showFormInfo("#Attrib
 </div>
 <div class="actions">
 	<ul>
-		<li><?php
+		<?php if ($mayModify):
 		$attribute = ClassRegistry::init('Attribute')->findById($this->Form->value('Attribute.id'));	// TODO ACL $attribute??
-		if ($mayModify) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Attribute.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Attribute.id'))); ?></li>
+		?>
+		<li><?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Attribute.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Attribute.id'))); ?></li>
 		<li>&nbsp;</li>
+		<?php endif; ?>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
