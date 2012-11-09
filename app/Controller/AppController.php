@@ -87,12 +87,20 @@ class AppController extends Controller {
 					throw new ForbiddenException('Incorrect authentication key');
 				}
 			}
+		} else {
+			//$this->Security->blackHoleCallback = 'blackhole'; // TODO needs more investigation
 		}
 
 		// These variables are required for every view
 		$this->set('me', $this->Auth->user());
 		$this->set('isAdmin', $this->_isAdmin());
 	}
+
+	//public function blackhole($type) {
+	//	// handle errors.
+	//	throw new Exception(__d('cake_dev', 'The request has been black-holed'));
+	//	//throw new BadRequestException(__d('cake_dev', 'The request has been black-holed'));
+	//}
 
 	protected function _isRest() {
 		return (isset($this->RequestHandler) && $this->RequestHandler->isXml());
