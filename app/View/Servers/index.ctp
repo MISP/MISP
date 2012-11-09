@@ -1,9 +1,3 @@
-<?php
-$mayAdd = $isAclAdd;
-$buttonAddStatus = $mayAdd ? 'button_on':'button_off';
-$mayModify = ($isAclModify || $isAclModifyOrg);
-$buttonModifyStatus = $mayModify ? 'button_on':'button_off';
-?>
 <div class="servers index">
 	<h2><?php echo __('Servers');?></h2>
 	<table cellpadding="0" cellspacing="0">
@@ -32,9 +26,10 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="actions">
-			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $server['Server']['id']), $isAclModify || ($isAclModifyOrg && $server['Server']['org'] == $me['org']) ? null : array('class' => $buttonModifyStatus)); ?>
-			<?php if ($mayModify || $server['Server']['org'] == $me['org']) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $server['Server']['id']), null, __('Are you sure you want to delete # %s?', $server['Server']['id']));
-			else echo $this->Html->link(__('Delete'), array('action' => 'delete', $server['Server']['id']), array('class' => $buttonModifyStatus)); ?>
+			<?php
+			$mayModify = $isAclModifyOrg && ($server['Server']['org'] == $me['org']);
+			if ($mayModify) echo $this->Html->link(__('Edit'), array('action' => 'edit', $server['Server']['id']), null);
+			if ($mayModify) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $server['Server']['id']), null, __('Are you sure you want to delete # %s?', $server['Server']['id'])); ?>
 
 			<?php // if ($server['Server']['pull']) echo $this->Form->postLink(__('Pull'), array('action' => 'pull', $server['Server']['id']) ); ?>
 			<?php // if ($server['Server']['push']) echo $this->Form->postLink(__('Push'), array('action' => 'push', $server['Server']['id']) ); ?>
@@ -63,7 +58,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 </div>
 <div class="actions">
 	<ul>
-		<li><?php echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add'), array('class' => $buttonAddStatus)); ?></li>
+		<li><?php if ($isAclModifyOrg) echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
 		<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>
 		<li>&nbsp;</li>
 		<?php echo $this->element('actions_menu'); ?>
