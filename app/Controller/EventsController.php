@@ -164,7 +164,7 @@ class EventsController extends AppController {
 					array('AND' => array('Correlation.1_event_id' => $id,),
 				array("OR" => array(
 						array('Correlation.org =' => $this->Event->data['Event']['org']),
-						array("AND" => array('Correlation.org !=' => $this->Event->data['Event']['org']), array('Correlation.private !=' => 1)))));
+						array("AND" => array('Correlation.org !=' => $this->Event->data['Event']['org']), array('Correlation.private !=' => 1), array('Correlation.cluster !=' => 0)))));
 			} else {
 				$conditionsCorrelation =
 					array('AND' => array('Correlation.1_event_id' => $id,));

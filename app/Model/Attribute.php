@@ -889,6 +889,7 @@ class Attribute extends AppModel {
 						'event_id' => $relatedAttribute['Attribute']['event_id'], 'attribute_id' => $relatedAttribute['Attribute']['id'],
 						'org' => $eventDate['Event']['org'],
 						'private' => $relatedAttribute['Attribute']['private'],
+						'cluster' => $relatedAttribute['Attribute']['cluster'],
 						'date' => $eventDate['Event']['date']))
 				);
 			}
