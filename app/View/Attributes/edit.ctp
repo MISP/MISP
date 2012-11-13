@@ -1,5 +1,5 @@
 <?php
-$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org']));
+$mayModify = (($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org'] == $me['org']));
 ?>
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute');?>
