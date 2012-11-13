@@ -820,9 +820,12 @@ class Attribute extends AppModel {
 	}
 
 	private function __afterSaveCorrelation($attribute) {
-		$this->__beforeDeleteCorrelation($attribute);
+		$this->Correlation = ClassRegistry::init('Correlation');
+		$dummy = $this->Correlation->deleteAll(array('OR' => array('Correlation.1_attribute_id' => $attribute)));
 		// re-add
-		$this->setRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Event.date', 'Event.org'));
+		$this->setRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Attribute.cluster', 'Event.date', 'Event.org'));
+		// update where refered..
+		$this->updateRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Attribute.cluster', 'Event.date', 'Event.org'));
 	}
 
 	private function __beforeDeleteCorrelation($attribute) {
@@ -869,6 +872,30 @@ class Attribute extends AppModel {
 		return $double;
 	}
 
+	public function updateRelatedAttributes($attribute, $fields=array()) {
+		$this->Correlation = ClassRegistry::init('Correlation');
+		// update related
+		$attributes = $this->Correlation->find('all', array('recursive' => 0, 'conditions' => array('attribute_id' => $attribute['id'])));
+		foreach ($attributes as $attributeFound) {
+			$this->Correlation->read(null, $attributeFound['Correlation']['id']);
+			$this->Correlation->set(array(
+			    'private' => $attribute['private'],
+			    'cluster' => $attribute['cluster']
+			));
+			$this->Correlation->save();
+		}
+		// update relating
+		$attributes = $this->Correlation->find('all', array('recursive' => 0, 'conditions' => array('1_attribute_id' => $attribute['id'])));
+		foreach ($attributes as $attributeFound) {
+			$this->Correlation->read(null, $attributeFound['Correlation']['id']);
+			$this->Correlation->set(array(
+			    '1_private' => $attribute['private'],
+			));
+			$this->Correlation->save();
+		}
+		// TODO what if value1/2 changes??
+	}
+
 	public function setRelatedAttributes($attribute, $fields=array()) {
 		$this->Event = ClassRegistry::init('Event');
 		$relatedAttributes = $this->getRelatedAttributes($attribute, $fields);
@@ -885,7 +912,7 @@ class Attribute extends AppModel {
 				$this->Correlation->create();
 				$this->Correlation->save(array(
 					'Correlation' => array(
-						'1_event_id' => $attribute['event_id'], '1_attribute_id' => $attribute['id'],
+						'1_event_id' => $attribute['event_id'], '1_attribute_id' => $attribute['id'], '1_private' => $attribute['private'],
 						'event_id' => $relatedAttribute['Attribute']['event_id'], 'attribute_id' => $relatedAttribute['Attribute']['id'],
 						'org' => $eventDate['Event']['org'],
 						'private' => $relatedAttribute['Attribute']['private'],

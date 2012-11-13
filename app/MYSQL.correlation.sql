@@ -3,6 +3,7 @@ CREATE TABLE `correlations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `1_event_id` int(11) NOT NULL,
   `1_attribute_id` int(11) NOT NULL,
+  `1_private` tinyint(1) NOT NULL,
   `event_id` int(11) NOT NULL,
   `attribute_id` int(11) NOT NULL,
   `org` varchar(255) COLLATE utf8_bin NOT NULL,
@@ -14,3 +15,6 @@ CREATE TABLE `correlations` (
 
 -- ALTER TABLE `correlations` ADD private tinyint(1) NOT NULL;
 -- ALTER TABLE `correlations` ADD org varchar(255) COLLATE utf8_bin NOT NULL;
+
+-- ALTER TABLE `correlations` ADD cluster tinyint(1) NOT NULL;
+ALTER TABLE `correlations` ADD 1_private tinyint(1) NOT NULL;

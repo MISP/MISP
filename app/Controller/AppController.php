@@ -324,8 +324,9 @@ class AppController extends Controller {
 		if (!self::_isAdmin()) throw new NotFoundException();
 
 		$this->loadModel('Correlation');
+		$this->Correlation->deleteAll(array('id !=' => ''), false);
 		$this->loadModel('Attribute');
-		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Event.date', 'Event.org');
+		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Attribute.cluster', 'Event.date', 'Event.org');
 		// get all attributes..
 		$attributes = $this->Attribute->find('all',array('recursive' => 0));
 		// for all attributes..

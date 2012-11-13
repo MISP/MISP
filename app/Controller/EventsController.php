@@ -159,12 +159,12 @@ class EventsController extends AppController {
 			$fields = array('Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date');
 			$fields2 = array('Correlation.1_attribute_id','Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date', 'Correlation.private', 'Correlation.org');
 			$relatedAttributes2 = array();
-			if ('true' == Configure::read('CyDefSIG.private')) {
+			if (('true' == Configure::read('CyDefSIG.private')) && ('ADMIN' != $this->Auth->user('org'))) {
 				$conditionsCorrelation =
 					array('AND' => array('Correlation.1_event_id' => $id,),
 				array("OR" => array(
-						array('Correlation.org =' => $this->Event->data['Event']['org']),
-						array("AND" => array('Correlation.org !=' => $this->Event->data['Event']['org']), array('Correlation.private !=' => 1), array('Correlation.cluster !=' => 0)))));
+						array('Correlation.org =' => $this->Auth->user('org')),
+						array("AND" => array('Correlation.org !=' => $this->Auth->user('org'), array('Correlation.1_private !=' => 1), array('Correlation.private !=' => 1))//, array('Correlation.cluster !=' => 0)))));
 			} else {
 				$conditionsCorrelation =
 					array('AND' => array('Correlation.1_event_id' => $id,));
@@ -180,7 +180,7 @@ class EventsController extends AppController {
 				foreach ($relatedAttributes2 as $relatedAttribute2) {
 					$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = array('Attribute' => $relatedAttribute2['Correlation']);
 				}
-
+				
 				foreach ($this->Event->data['Attribute'] as &$attribute) {
 					// for REST requests also add the encoded attachment
 					if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
