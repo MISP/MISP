@@ -78,9 +78,11 @@ There is an alternate way of publishing an event without alerting any other user
 The MISP interface allows the user to have an overview over or to search for events and attributes of events that are already stored in the system in various ways.<br><br>
 <h3>To list all events:</h3>
 On the left menu bar, the option "List events" will generate a list of the last 60 events. While the attributes themselves aren't shown in this view, the following pieces of information can be seen:<br><br>
-<img src="/img/doc/list_events2.png" title = "This is the list of events in the system. Use the buttons to the right to alter or view any of the events."/>
+<img src="/img/doc/list_events2.png" title = "This is the list of events in the system. Use the buttons to the right to alter or view any of the events."/><br><br>
     <ul>
+    	<li><em>Org:</em> The organisation that uploaded the event.</li><br>
 		<li><em>ID:</em> The event's ID number, assigned by the system when the event was first entered (or in the case of an event that was synchronized, when it was first copied over - more on synchronisation in chapter xy)</li><br>
+		<li><em>#:</em> The number of attributes that the event has.</li><br>
 		<li><em>Email:</em> The e-mail address of the event's reporter.</li><br>
 		<li><em>Date:</em> The date of the attack.</li><br>
 		<li><em>Risk:</em> The risk level of the attack, the following levels are possible:</li><br>
