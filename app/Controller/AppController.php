@@ -64,7 +64,6 @@ class AppController extends Controller {
 	}
 
 	public function beforeFilter() {
-
 		// user must accept terms
 		if (!$this->Auth->user('termsaccepted') && ($this->request->here != '/users/terms') && ($this->request->here != '/users/logout') && ($this->request->here != '/users/login')) {
 			$this->redirect(array('controller' => 'users', 'action' => 'terms'));
@@ -431,7 +430,9 @@ class AppController extends Controller {
 		}
 	}
 
-	// CakePHP returns false if filesize is 0 at lib/cake/Utility/File.php:384
+/**
+ * CakePHP returns false if filesize is 0 at lib/cake/Utility/File.php:384
+ */
 	public function checkEmpty($fileP = '/var/www/cydefsig/app/files/test') {
 		// Check if there were problems with the file upload
 		// only keep the last part of the filename, this should prevent directory attacks

@@ -775,7 +775,7 @@ class Attribute extends AppModel {
 		$this->create();
 		$this->data['Attribute']['event_id'] = $eventId;
 		if ($malware) {
-			$md5 = !$tmpfile->size() ? md5_file($fileP) : $tmpfile->md5() ;
+			$md5 = !$tmpfile->size() ? md5_file($fileP) : $tmpfile->md5();
 			$this->data['Attribute']['category'] = $category ? $category : "Payload delivery";
 			$this->data['Attribute']['type'] = "malware-sample";
 			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $md5 : $filename . '|' . $md5; // TODO gives problems with bigger files

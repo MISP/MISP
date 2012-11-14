@@ -8,23 +8,23 @@ App::uses('AppController', 'Controller');
 class WhitelistsController extends AppController {
 
 	public $components = array(
-        'Acl',
-        'Auth' => array(
-            'authorize' => array(
-                'Actions' => array('actionPath' => 'controllers/Whitelists')
-            )
-        ),
-        'Security',
-        'Session'
-    );
+		'Acl',
+		'Auth' => array(
+			'authorize' => array(
+				'Actions' => array('actionPath' => 'controllers/Whitelists')
+			)
+		),
+		'Security',
+		'Session'
+	);
 
-    //public $components = array('Security');
-    public $paginate = array(
-            'limit' => 60,
-            'order' => array(
-                    'Whitelist.name' => 'ASC'
-            )
-    );
+	//public $components = array('Security');
+	public $paginate = array(
+			'limit' => 60,
+			'order' => array(
+					'Whitelist.name' => 'ASC'
+			)
+	);
 
 /**
  * index method

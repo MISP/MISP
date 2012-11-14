@@ -18,9 +18,6 @@ if ('true' == Configure::read('CyDefSIG.sync')) {
 		echo $this->Form->input('distribution', array('label' => 'Distribution', 'selected' => 'All',
 			'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))
 		));
-//		echo $this->Form->input('sharing', array('label' => 'Distribution',
-//			'before' => $this->Html->div('forminfo', isset($attrDescriptions['sharing']['formdesc']) ? $attrDescriptions['sharing']['formdesc'] : $attrDescriptions['sharing']['desc']),
-//		));
 	} else {
 		echo $this->Form->input('private', array(
 			'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),

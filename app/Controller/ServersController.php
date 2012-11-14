@@ -191,20 +191,20 @@ class ServersController extends AppController {
 							}
 							if (is_array($event['Event']['Attribute']) && !isset($event['Event']['Attribute']['id'])) {
 								$toRemove = array();
-								$size = sizeof($event['Event']['Attribute']);
+								$size = count($event['Event']['Attribute']);
 								for ($i = 0; $i < $size; $i++) {
 									switch($event['Event']['Attribute'][$i]['distribution']) {
-									case 'Org':
-										$toRemove[] = $i;
-										break;
-									case 'Community':
-										$event['Event']['Attribute'][$i]['private'] = true;
-										$event['Event']['Attribute'][$i]['distribution'] = 'Org';
-										break;
-									case 'All':
-										$event['Event']['Attribute'][$i]['cluster'] = true;
-										$event['Event']['Attribute'][$i]['distribution'] = 'Community';
-										break;
+										case 'Org':
+											$toRemove[] = $i;
+											break;
+										case 'Community':
+											$event['Event']['Attribute'][$i]['private'] = true;
+											$event['Event']['Attribute'][$i]['distribution'] = 'Org';
+											break;
+										case 'All':
+											$event['Event']['Attribute'][$i]['cluster'] = true;
+											$event['Event']['Attribute'][$i]['distribution'] = 'Community';
+											break;
 									}
 								}
 								foreach ($toRemove as $thisRemove) {
@@ -213,17 +213,17 @@ class ServersController extends AppController {
 								$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 							} elseif (is_array($event['Event']['Attribute']) && isset($event['Event']['Attribute']['id'])) {
 								switch($event['Event']['Attribute']['distribution']) {
-								case 'Org':
-									unset($event['Event']['Attribute']);
-									break;
-								case 'Community':
-									$event['Event']['Attribute']['private'] = true;
-									$event['Event']['Attribute']['distribution'] = 'Org';
-									break;
-								case 'All':
-									$event['Event']['Attribute']['cluster'] = true;
-									$event['Event']['Attribute']['distribution'] = 'Community';
-									break;
+									case 'Org':
+										unset($event['Event']['Attribute']);
+										break;
+									case 'Community':
+										$event['Event']['Attribute']['private'] = true;
+										$event['Event']['Attribute']['distribution'] = 'Org';
+										break;
+									case 'All':
+										$event['Event']['Attribute']['cluster'] = true;
+										$event['Event']['Attribute']['distribution'] = 'Community';
+										break;
 								}
 							}
 							// Distribution, set reporter of the event, being the admin that initiated the pull

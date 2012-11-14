@@ -400,7 +400,7 @@ class Event extends AppModel {
 			if (!$attribute['cluster'] && !$attribute['private']) {
 				$attribute['cluster'] = true;
 				$attribute['distribution'] = 'Community';
-		}
+			}
 			// remove value1 and value2 from the output
 			unset($attribute['value1']);
 			unset($attribute['value2']);
@@ -548,7 +548,7 @@ class Event extends AppModel {
 			$response = $HttpSocket->get($uri, $data = '', $request);
 
 			if ($response->isOk()) {
-//debug($response->body);
+				//debug($response->body);
 				$xml = Xml::build($response->body);
 				$eventArray = Xml::toArray($xml);
 				$eventIds = array();

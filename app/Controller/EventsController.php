@@ -80,16 +80,16 @@ class EventsController extends AppController {
 			}
 		}
 
-//		// do not show cluster outside server
-//		if ('true' == Configure::read('CyDefSIG.private')) {
-//			if ($this->_isRest()) {
-//					$this->paginate = Set::merge($this->paginate,array(
-//					'conditions' =>
-//							array(array('Event.cluster !=' => true)),
-//							//array("AND" => array(array('Event.private !=' => 2))),
-//					));
-//			}
-//		}
+		//// do not show cluster outside server
+		//if ('true' == Configure::read('CyDefSIG.private')) {
+		//	if ($this->_isRest()) {
+		//			$this->paginate = Set::merge($this->paginate,array(
+		//			'conditions' =>
+		//					array(array('Event.cluster !=' => true)),
+		//					//array("AND" => array(array('Event.private !=' => 2))),
+		//			));
+		//	}
+		//}
 	}
 
 	public function isAuthorized($user) {
