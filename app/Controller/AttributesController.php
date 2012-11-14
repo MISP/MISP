@@ -742,4 +742,9 @@ class AttributesController extends AppController {
 		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
 	}
 
+	public function checkComposites() {
+		if (!self::_isAdmin()) throw new NotFoundException();
+
+		$this->set('fails', $this->Attribute->checkComposites());
+	}
 }

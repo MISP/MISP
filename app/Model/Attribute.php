@@ -329,7 +329,8 @@ class Attribute extends AppModel {
 			'foreignKey' => 'event_id',
 			'conditions' => '',
 			'fields' => '',
-			'order' => ''
+			'order' => '',
+			'counterCache' => true
 		)
 	);
 
@@ -774,9 +775,10 @@ class Attribute extends AppModel {
 		$this->create();
 		$this->data['Attribute']['event_id'] = $eventId;
 		if ($malware) {
+			$md5 = !$tmpfile->size() ? md5_file($fileP) : $tmpfile->md5() ;
 			$this->data['Attribute']['category'] = $category ? $category : "Payload delivery";
 			$this->data['Attribute']['type'] = "malware-sample";
-			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $tmpfile->md5() : $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
+			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $md5 : $filename . '|' . $md5; // TODO gives problems with bigger files
 			$this->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 		} else {
 			$this->data['Attribute']['category'] = $category ? $category : "Artifacts dropped";
@@ -879,8 +881,8 @@ class Attribute extends AppModel {
 		foreach ($attributes as $attributeFound) {
 			$this->Correlation->read(null, $attributeFound['Correlation']['id']);
 			$this->Correlation->set(array(
-			    'private' => $attribute['private'],
-			    'cluster' => $attribute['cluster']
+			    'private' => isset($attribute['private']) ? $attribute['private'] : false,
+			    'cluster' => isset($attribute['cluster']) ? $attribute['cluster'] : false,
 			));
 			$this->Correlation->save();
 		}
@@ -889,7 +891,7 @@ class Attribute extends AppModel {
 		foreach ($attributes as $attributeFound) {
 			$this->Correlation->read(null, $attributeFound['Correlation']['id']);
 			$this->Correlation->set(array(
-			    '1_private' => $attribute['private'],
+			    '1_private' => isset($attribute['private']) ? $attribute['private'] : false,
 			));
 			$this->Correlation->save();
 		}
@@ -914,7 +916,7 @@ class Attribute extends AppModel {
 				$this->Correlation->create();
 				$this->Correlation->save(array(
 					'Correlation' => array(
-						'1_event_id' => $attribute['event_id'], '1_attribute_id' => $attribute['id'], '1_private' => $attribute['private'],
+						'1_event_id' => $attribute['event_id'], '1_attribute_id' => $attribute['id'], '1_private' => isset($attribute['private']) ? $attribute['private'] : false,
 						'event_id' => $relatedAttribute['Attribute']['event_id'], 'attribute_id' => $relatedAttribute['Attribute']['id'],
 						'org' => $eventDate['Event']['org'],
 						'private' => $relatedAttribute['Attribute']['private'],
@@ -936,8 +938,8 @@ class Attribute extends AppModel {
 						'1_event_id' => $relatedAttribute['Attribute']['event_id'], '1_attribute_id' => $relatedAttribute['Attribute']['id'], '1_private' => $relatedAttribute['Attribute']['private'],
 						'event_id' => $attribute['event_id'], 'attribute_id' => $attribute['id'],
 						'org' => $eventDate['Event']['org'],
-						'private' => $attribute['private'],
-						'cluster' => $attribute['cluster'],
+						'private' => isset($attribute['private']) ? $attribute['private'] : false,
+						'cluster' => isset($attribute['cluster']) ? $attribute['cluster'] : false,
 						'date' => $eventDate['Event']['date']))
 				);
 			}
@@ -982,4 +984,16 @@ class Attribute extends AppModel {
 		}
 	}
 
+	public function checkComposites() {
+		$compositeTypes = $this->getCompositeTypes();
+		$fails = array();
+		$attributes = $this->find('all',array('recursive' => 0));
+
+		foreach ($attributes as $attribute) {
+			if ((in_array($attribute['Attribute']['type'], $compositeTypes)) && (!strlen($attribute['Attribute']['value1']) || !strlen($attribute['Attribute']['value2']))) {
+				$fails[] = $attribute['Attribute']['event_id'] . ':' . $attribute['Attribute']['id'];
+			}
+		}
+		return $fails;
+	}
 }

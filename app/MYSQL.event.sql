@@ -1,0 +1,1 @@
+alter table events add column attribute_count int(11) UNSIGNED DEFAULT NULL;

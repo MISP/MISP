@@ -420,6 +420,17 @@ class AppController extends Controller {
 		}
 	}
 
+	public function generateCount() {
+		if (!self::_isAdmin()) throw new NotFoundException();
+
+		$this->loadModel('Attribute');
+		$attributes = $this->Attribute->find('all', array('recursive' => 0));
+		// for all attributes..
+		foreach ($attributes as $attribute) {
+			$this->Attribute->save($attribute);
+		}
+	}
+
 	// CakePHP returns false if filesize is 0 at lib/cake/Utility/File.php:384
 	public function checkEmpty($fileP = '/var/www/cydefsig/app/files/test') {
 		// Check if there were problems with the file upload
