@@ -50,12 +50,11 @@ phpcs --standard=CakePHP app/View/Emails/text/new_event.ctp >>build/code_standar
 phpcs --standard=CakePHP app/View/Errors/error403.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Helper/AppHelper.php >>build/code_standards/result.txt	# !!!
 phpcs --standard=CakePHP app/View/Layouts/text/default.ctp >>build/code_standards/result.txt
-phpcs --standard=CakePHP app/View/Pages/documentation.ctp >>build/code_standards/result.txt
 
 phpcs --standard=CakePHP app/View/Events/add.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Events/contact.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Events/edit.ctp >>build/code_standards/result.txt
-phpcs --standard=CakePHP app/View/Events/event.ctp >>build/code_standards/result.txt
+#phpcs --standard=CakePHP app/View/Events/event.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Events/export.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Events/hids.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Events/index.ctp >>build/code_standards/result.txt
@@ -63,12 +62,13 @@ phpcs --standard=CakePHP app/View/Events/nids.ctp >>build/code_standards/result.
 phpcs --standard=CakePHP app/View/Events/text.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Events/view.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Events/xml.ctp >>build/code_standards/result.txt
-phpcs --standard=CakePHP app/View/Events/xml/add.ctp >>build/code_standards/result.txt
-phpcs --standard=CakePHP app/View/Events/xml/edit.ctp >>build/code_standards/result.txt
+#CHECK  phpcs --standard=CakePHP app/View/Events/xml/add.ctp >>build/code_standards/result.txt
+#CHECK  phpcs --standard=CakePHP app/View/Events/xml/edit.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Events/xml/index.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Events/xml/view.ctp >>build/code_standards/result.txt
 
-phpcs --standard=CakePHP app/View/Pages/documentation.ctp >>build/code_standards/result.txt
+#phpcs --standard=CakePHP app/View/Pages/documentation.ctp >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/View/Pages/ >>build/code_standards/result.txt
 
 phpcs --standard=CakePHP app/View/Servers/add.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Servers/edit.ctp >>build/code_standards/result.txt
