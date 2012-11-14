@@ -900,7 +900,9 @@ class Attribute extends AppModel {
 		$this->Event = ClassRegistry::init('Event');
 		$relatedAttributes = $this->getRelatedAttributes($attribute, $fields);
 		if ($relatedAttributes) {
+			$this->Correlation = ClassRegistry::init('Correlation');
 			foreach ($relatedAttributes as $relatedAttribute) {
+
 				// and store into table
 				$params = array(
 					'conditions' => array('Event.id' => $relatedAttribute['Attribute']['event_id']),
@@ -908,7 +910,7 @@ class Attribute extends AppModel {
 					'fields' => array('Event.date', 'Event.org')
 				);
 				$eventDate = $this->Event->find('first', $params);
-				$this->Correlation = ClassRegistry::init('Correlation');
+
 				$this->Correlation->create();
 				$this->Correlation->save(array(
 					'Correlation' => array(
@@ -917,6 +919,25 @@ class Attribute extends AppModel {
 						'org' => $eventDate['Event']['org'],
 						'private' => $relatedAttribute['Attribute']['private'],
 						'cluster' => $relatedAttribute['Attribute']['cluster'],
+						'date' => $eventDate['Event']['date']))
+				);
+
+				// and vise versa
+				$params = array(
+					'conditions' => array('Event.id' => $attribute['event_id']),
+					'recursive' => 0,
+					'fields' => array('Event.date', 'Event.org')
+				);
+				$eventDate = $this->Event->find('first', $params);
+
+				$this->Correlation->create();
+				$this->Correlation->save(array(
+					'Correlation' => array(
+						'1_event_id' => $relatedAttribute['Attribute']['event_id'], '1_attribute_id' => $relatedAttribute['Attribute']['id'], '1_private' => $relatedAttribute['Attribute']['private'],
+						'event_id' => $attribute['event_id'], 'attribute_id' => $attribute['id'],
+						'org' => $eventDate['Event']['org'],
+						'private' => $attribute['private'],
+						'cluster' => $attribute['cluster'],
 						'date' => $eventDate['Event']['date']))
 				);
 			}
