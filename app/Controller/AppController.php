@@ -61,6 +61,12 @@ class AppController extends Controller {
 	}
 
 	public function beforeFilter() {
+
+		// user must accept terms
+		if (!$this->Auth->user('termsaccepted') && ($this->request->here != '/users/terms') && ($this->request->here != '/users/logout') && ($this->request->here != '/users/login')) {
+			$this->redirect(array('controller' => 'users', 'action' => 'terms'));
+		}
+
 		// REST things
 		if ($this->_isRest()) {
 			// disable CSRF for REST access
