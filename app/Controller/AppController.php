@@ -24,6 +24,9 @@
 
 App::uses('Controller', 'Controller');
 App::uses('Sanitize', 'Utility');
+
+App::uses('File', 'Utility');
+
 /**
  * Application Controller
  *
@@ -415,5 +418,21 @@ class AppController extends Controller {
 			}
 			$this->Event->save($event);
 		}
+	}
+
+	// CakePHP returns false if filesize is 0 at lib/cake/Utility/File.php:384
+	public function checkEmpty($fileP = '/var/www/cydefsig/app/files/test') {
+		// Check if there were problems with the file upload
+		// only keep the last part of the filename, this should prevent directory attacks
+		$filename = basename($fileP);
+		$tmpfile = new File($fileP);
+
+		debug($fileP);
+		debug($tmpfile);
+		debug($tmpfile->size());
+		debug($tmpfile->md5());
+		debug(md5_file($fileP));
+		$md5 = !$tmpfile->size() ? md5_file($fileP) : $tmpfile->md5();
+		debug($md5);
 	}
 }
