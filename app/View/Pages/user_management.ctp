@@ -1,5 +1,5 @@
 <div class="index">
-<p><b>Table of contents</b><br>
+<b>Table of contents</b><br>
 1. <?php echo $this->Html->link(__('General Layout', true), array('controller' => 'pages', 'action' => 'display', 'documentation')); ?><br>
 2. <?php echo $this->Html->link(__('User Management and Global Actions', true), array('controller' => 'pages', 'action' => 'display', 'user_management')); ?><br>
 <ul>
@@ -25,7 +25,8 @@
 			<p><img src="/img/doc/bottom_bar.png" title = "Click on PGP/GPG key to download the key."/></p><br></li>
 			<li><em>Turning Auto-alerts on:</em> Turning auto-alerts on will allow the system to send you e-mail notifications about any new public events entered into the system by other users and private events added by members of your organisation. To turn this on, navigate to the Edit profile view (My profile on the left navigation menu -> Edit profile in the top right corner). Tick the auto-alert checkbox and click submit to enable this feature.<br>
 			<p><img src="/img/doc/" title = "Tick this checkbox to enable auto-alerts."/></p><br></li>
-			<li><em>Reviewing the Terms & Conditions:</em> To review the Terms & Conditions or to use the User Guide, use the appropriate button on the left navigation menu. </li>
+			<li><em>Reviewing the Terms & Conditions:</em> To review the Terms & Conditions or to use the User Guide, use the appropriate button on the left navigation menu. </li><br>
+			<li><em>Making sure that compatibility mode is turned off (IE9&IE10):</em>Compatibility mode can cause some elements to appear differently than intended or not appear at all. Make sure you have this option turned off.</li>
 		</ul>
 	<br><hr/><br>
 

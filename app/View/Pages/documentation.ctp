@@ -1,7 +1,5 @@
 <div class="index">
-
-
-<p><b>Table of contents</b><br>
+<b>Table of contents</b><br>
 1. <?php echo $this->Html->link(__('General Layout', true), array('controller' => 'pages', 'action' => 'display', 'documentation')); ?><br>
 2. <?php echo $this->Html->link(__('User Management and Global actions', true), array('controller' => 'pages', 'action' => 'display', 'user_management')); ?><br>
 3. <?php echo $this->Html->link(__('Using the system', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system')); ?><br>
@@ -32,7 +30,7 @@
 		<li><em>Log out:</em> Logs the current user out.</li></ul></br>
     <i><u>Sync Actions</i></u><br><br>
 	<ul>
-        <li><em>List Servers:</em> Create new server connections of your MISP server, or view and modify the current ones.</li></ul></br>
+        <li><em>List Servers:</em> Connect your MISP server to other servers, or view and modify the currently established connections.</li></ul></br>
     <i><u>Administration</i></u><br><br>
 	<ul>
         <li><em>Whitelist:</em> View and manage the list of whitelisted addresses.</li>
