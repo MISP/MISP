@@ -27,7 +27,7 @@
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="actions">
 			<?php
-			$mayModify = $isAclModifyOrg && ($server['Server']['org'] == $me['org']);
+			$mayModify = $isAclModifyOrg && ($isAdmin || $server['Server']['org'] == $me['org']);
 			if ($mayModify) echo $this->Html->link(__('Edit'), array('action' => 'edit', $server['Server']['id']), null);
 			if ($mayModify) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $server['Server']['id']), null, __('Are you sure you want to delete # %s?', $server['Server']['id'])); ?>
 
