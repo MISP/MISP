@@ -14,6 +14,12 @@ cd ${PRJCT}
 ./Console/cake acl create aco root controllers
 ./Console/cake AclExtras.AclExtras aco_sync
 
+# create Correlation table
+./Console/cake schema create DbCorrelation
+
+# create Whitelist table
+./Console/cake schema create DbWhitelist
+
 # update Schema, add Users.group_id
 ./Console/cake schema update -s 0.2.2.1
 
