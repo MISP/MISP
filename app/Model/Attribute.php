@@ -823,6 +823,7 @@ class Attribute extends AppModel {
 
 	private function __afterSaveCorrelation($attribute) {
 		$this->Correlation = ClassRegistry::init('Correlation');
+		$dummy = $this->Correlation->deleteAll(array('OR' => array('Correlation.attribute_id' => $attribute)));
 		$dummy = $this->Correlation->deleteAll(array('OR' => array('Correlation.1_attribute_id' => $attribute)));
 		// re-add
 		$this->setRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Attribute.cluster', 'Event.date', 'Event.org'));
@@ -898,7 +899,7 @@ class Attribute extends AppModel {
 		// TODO what if value1/2 changes??
 	}
 
-	public function setRelatedAttributes($attribute, $fields=array()) {
+	public function setInitialRelatedAttributes($attribute, $fields=array()) {
 		$this->Event = ClassRegistry::init('Event');
 		$relatedAttributes = $this->getRelatedAttributes($attribute, $fields);
 		if ($relatedAttributes) {
@@ -923,6 +924,17 @@ class Attribute extends AppModel {
 						'cluster' => $relatedAttribute['Attribute']['cluster'],
 						'date' => $eventDate['Event']['date']))
 				);
+			}
+		}
+	}
+
+	public function setRelatedAttributes($attribute, $fields=array()) {
+		$this->setInitialRelatedAttributes($attribute, $fields);
+		$this->Event = ClassRegistry::init('Event');
+		$relatedAttributes = $this->getRelatedAttributes($attribute, $fields);
+		if ($relatedAttributes) {
+			$this->Correlation = ClassRegistry::init('Correlation');
+			foreach ($relatedAttributes as $relatedAttribute) {
 
 				// and vise versa
 				$params = array(

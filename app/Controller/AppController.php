@@ -329,6 +329,16 @@ class AppController extends Controller {
 		}
 	}
 
+	public function migratemisp11to2() {
+		if (!self::_isAdmin()) {
+			throw new NotFoundException();
+		}
+
+		$this->generatePrivate();
+		$this->generateCorrelation(); // 	TODO
+		$this->generateCount();
+	}
+
 	public function generateCorrelation() {
 		if (!self::_isAdmin()) throw new NotFoundException();
 
@@ -340,7 +350,7 @@ class AppController extends Controller {
 		$attributes = $this->Attribute->find('all',array('recursive' => 0));
 		// for all attributes..
 		foreach ($attributes as $attribute) {
-			$this->Attribute->setRelatedAttributes($attribute['Attribute'], $fields = array());
+			$this->Attribute->setInitialRelatedAttributes($attribute['Attribute'], $fields = array());
 
 			//// i want to keep this in repo for a moment
 			//$relatedAttributes = $this->Attribute->getRelatedAttributes($attribute['Attribute'], $fields);
