@@ -92,4 +92,27 @@ class Whitelist extends AppModel {
 		return true;
 	}
 
+	/**
+	 * get the Whitelist as an array
+	 *
+	 * @return array whitelistCheck names
+	 */
+	public function populateWhitelist() {
+		$whitelistCheck = array();
+
+		$whitelist = $this->find('all', array('recursive' => 0,'fields' => 'name'));
+
+		// loop through whitelist table,
+		foreach ($whitelist as $whitelistItem) {
+			$ipl = array();
+			$ipl[] = $whitelistItem['Whitelist']['name'];
+			$whitelistCheck = array_merge($whitelistCheck,$ipl);
+			if (count($ipl) > 0 && $whitelistItem != $ipl[0]) {
+				$dummyArray = array();
+				$dummyArray[] = $whitelistItem['Whitelist']['name'];
+				$whitelistCheck = array_merge($whitelistCheck,$dummyArray);
+			}
+		}
+		return $whitelistCheck;
+	}
 }

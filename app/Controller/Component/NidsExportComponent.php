@@ -18,7 +18,8 @@ class NidsExportComponent extends Component {
 	}
 
 	public function suricataRules($items, $startSid) {
-		$this->whitelist = $this->populateWhitelist();
+		$this->Whitelist = ClassRegistry::init('Whitelist');
+		$this->whitelist = $this->Whitelist->populateWhitelist();
 
 		$this->explain();
 
@@ -205,7 +206,7 @@ class NidsExportComponent extends Component {
 	}
 
 	public function hostnameRule($ruleFormat, $attribute, &$sid) {
-		$overruled = $this->checkNames($attribute['value']);
+		$overruled = in_array($attribute['value'], $this->whitelist);
 		$content = 'content:"' . $this->dnsNameToRawFormat($attribute['value'], 'hostname') . '"; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -257,7 +258,7 @@ class NidsExportComponent extends Component {
 	}
 
 	public function domainRule($ruleFormat, $attribute, &$sid) {
-		$overruled = $this->checkNames($attribute['value']);
+		$overruled = in_array($attribute['value'], $this->whitelist);
 		$content = 'content:"' . $this->dnsNameToRawFormat($attribute['value']) . '"; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -432,39 +433,5 @@ class NidsExportComponent extends Component {
 		$rawName .= '(0)';
 		// and append |00| to terminate the name
 		return $rawName;
-	}
-
-	public $whitelist = array();
-
-	public function populateWhitelist() {
-		$whitelistCheck = array();
-
-		$this->Whitelist = ClassRegistry::init('Whitelist');
-		$whitelist = $this->Whitelist->find('all', array('recursive' => 0,'fields' => 'name'));
-
-		// loop through whitelist table,
-		foreach ($whitelist as $whitelistItem) {
-			$ipl = array();
-			$ipl[] = $whitelistItem['Whitelist']['name'];
-			$whitelistCheck = array_merge($whitelistCheck,$ipl);
-			if (count($ipl) > 0 && $whitelistItem != $ipl[0]) {
-				$dummyArray = array();
-				$dummyArray[] = $whitelistItem['Whitelist']['name'];
-				$whitelistCheck = array_merge($whitelistCheck,$dummyArray);
-			}
-		}
-		return $whitelistCheck;
-	}
-
-	public function checkNames($name) {
-		// FIXME fix the checkNames() function and concept
-		$ipl = array();
-		$ipl[] = $name;
-		$overruled = false;
-		foreach ($ipl as $ip) {
-			$overruled = in_array($ip, $this->whitelist);
-			if ($overruled) break;
-		}
-		return $overruled;
 	}
 }
