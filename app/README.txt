@@ -98,7 +98,7 @@ To be sure, dump your database before updating.
 
 CyDefSIG from 0.2.2 to 0.2.3 needs a database migration and population.
 This is done executing /var/www/cydefsig/app/Console/shell/migrate-0.2.2-0.2.3.sh
-and answer (y)es to all the questions asked.
+and answer (y)es to all the questions asked and afterward run http://<host>:<port>/events/migratemisp11to2.
 
 
 
