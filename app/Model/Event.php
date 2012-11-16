@@ -352,7 +352,7 @@ class Event extends AppModel {
  * Uploads the event and the associated Attributes to another Server
  * TODO move this to a component
  *
- * @return bool true if success, error message if failed
+ * @return bool true if success, false or error message if failed
  */
 	public function uploadEventToServer($event, $server, $HttpSocket=null) {
 		if (true == $event['Event']['private']) { // never upload private events
@@ -450,6 +450,8 @@ class Event extends AppModel {
 						return $xmlArray['response']['name'];
 					}
 				}
+			} else { // response is not okay
+				return false;
 			}
 		}
 	}

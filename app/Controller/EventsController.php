@@ -549,6 +549,8 @@ class EventsController extends AppController {
 /**
  * Uploads this specific event to all remote servers
  * TODO move this to a component
+ *
+ * @return bool true if success, false if, partly, failed
  */
 	private function __uploadEventToServers($id) {
 		// make sure we have all the data of the Event
@@ -566,10 +568,22 @@ class EventsController extends AppController {
 		if(empty($servers))
 			return;
 
+		$uploaded = true;
+		$failedServers = array();
 		App::uses('HttpSocket', 'Network/Http');
 		$HttpSocket = new HttpSocket();
 		foreach ($servers as &$server) {
-			$this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
+			$thisUploaded = $this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
+			if (!$thisUploaded) {
+				$uploaded = !$uploaded ? $uploaded : $thisUploaded;
+				$failedServers[] = $server['Server']['url'];
+			}
+		}
+
+		if (!$uploaded) {
+			return $failedServers;
+		} else {
+			return true;
 		}
 	}
 
@@ -606,9 +620,16 @@ class EventsController extends AppController {
 		// update the DB to set the published flag
 		$this->Event->saveField('published', 1);
 
+		$uploaded = false;
+
 		// upload the event to remote servers
-		if ('true' == Configure::read('CyDefSIG.sync'))
-			$this->__uploadEventToServers($id);
+		if ('true' == Configure::read('CyDefSIG.sync')) {
+			$uploaded = $this->__uploadEventToServers($id);
+			if ((is_bool($uploaded) && !$uploaded) || (is_array($uploaded))) { // TODO remove bool
+				$this->Event->saveField('published', 0);
+			}
+		}
+		return $uploaded;
 	}
 
 /**
@@ -627,10 +648,15 @@ class EventsController extends AppController {
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// Performs all the actions required to publish an event
-			$this->__publish($id);
-
-			// redirect to the view event page
-			$this->Session->setFlash(__('Event published, but NO mail sent to any participants.', true));
+			$result = $this->__publish($id);
+			if (!is_array($result)) {
+				// redirect to the view event page
+				$this->Session->setFlash(__('Event published, but NO mail sent to any participants.', true));
+			} else {
+				$lastResult = array_pop($result);
+				$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
+				$this->Session->setFlash(__(sprintf('Event not published to %s, re-try later.', $resultString), true));
+			}
 			$this->redirect(array('action' => 'view', $id));
 		}
 	}
@@ -656,16 +682,28 @@ class EventsController extends AppController {
 			$emailResult = $this->__sendAlertEmail($id);
 			if (is_bool($emailResult) && $emailResult = true) {
 				// Performs all the actions required to publish an event
-				$this->__publish($id);
+				$result = $this->__publish($id);
+				if (!is_array($result)) {
 
-				// redirect to the view event page
-				$this->Session->setFlash(__('Email sent to all participants.', true));
+					// redirect to the view event page
+					$this->Session->setFlash(__('Email sent to all participants.', true));
+				} else {
+					$lastResult = array_pop($result);
+					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
+					$this->Session->setFlash(__(sprintf('Not published given no connection to %s but email sent to all participants.', $resultString), true));
+				}
 			} elseif (!is_bool($emailResult)) {
 				// Performs all the actions required to publish an event
-				$this->__publish($id);
+				$result = $this->__publish($id);
+				if (!is_array($result)) {
 
-				// redirect to the view event page
-				$this->Session->setFlash(__('Published but no email sent given GnuPG is not configured.', true));
+					// redirect to the view event page
+					$this->Session->setFlash(__('Published but no email sent given GnuPG is not configured.', true));
+				} else {
+					$lastResult = array_pop($result);
+					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
+					$this->Session->setFlash(__(sprintf('Not published given no connection to %s but no email sent given GnuPG is not configured.', $resultString), true));
+									}
 			} else {
 				$this->Session->setFlash(__('Sending of email failed', true), 'default', array(), 'error');
 			}
