@@ -10,7 +10,7 @@ class DbWhitelistSchema extends CakeSchema {
 	public function after($event = array()) {
 	}
 
-	public $whitelists = array(
+	public $whitelist = array(
 		'id' => array('type' => 'integer', 'null' => false, 'default' => NULL, 'key' => 'primary'),
 		'name' => array('type' => 'text', 'null' => false, 'default' => NULL, 'key' => 'index', 'collate' => 'utf8_unicode_ci', 'charset' => 'utf8'),
 		'indexes' => array('PRIMARY' => array('column' => 'id', 'unique' => 1)),
