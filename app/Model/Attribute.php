@@ -58,10 +58,17 @@ class Attribute extends AppModel {
 			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
 	);
 
+//	public $distributionDescriptions = array(
+//			'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the attribute"),
+//			'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Attribute visible to all on this CyDefSIG instance but will not be shared past it"),
+//			'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other connected CyDefSIG servers"),
+//	);
 	public $distributionDescriptions = array(
-			'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the attribute"),
-			'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Attribute visible to all on this CyDefSIG instance but will not be shared past it"),
-			'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other connected CyDefSIG servers"),
+		'Your organization only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the attribute"),
+		'This server-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Every organisation on the server can see  this attribute"),
+		'This Community-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Attribute visible to all on this and _allied_ CyDefSIG instances but will not be shared past it"),
+		'Connected communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Attribute visible to CyDefSIG instances with more then two servers but will not be shared past it"),
+		'All communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to every connected CyDefSIG server"),
 	);
 
 	// these are definition of possible types + their descriptions and maybe later other behaviors
@@ -286,7 +293,8 @@ class Attribute extends AppModel {
 		if ('true' == Configure::read('CyDefSIG.private')) {
 
 			$this->virtualFields = Set::merge($this->virtualFields,array(
-				'distribution' => 'IF (Attribute.private=true, "Org", IF (Attribute.cluster=true, "Community", "All"))',
+				//'distribution' => 'IF (Attribute.private=true, "Your organization only", IF (Attribute.cluster=true, "This Community-only", "All communities"))',
+				'distribution' => 'IF (Attribute.private=true AND Attribute.cluster=false, "Your organization only", IF (Attribute.private=true AND Attribute.cluster=true, "This server-only", IF (Attribute.private=false AND Attribute.cluster=true, "This Community-only", IF (Attribute.communitie=true, "Connected communities" , "All communities"))))',
 			));
 
 			$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
@@ -304,8 +312,18 @@ class Attribute extends AppModel {
 						//'on' => 'create', // Limit validation to 'create' or 'update' operations
 					),
 				),
+				'communitie' => array(
+					'boolean' => array(
+						'rule' => array('boolean'),
+						//'message' => 'Your custom message here',
+						//'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					),
+				),
 				'distribution' => array(
-					'rule' => array('inList', array('Org', 'Community', 'All')),
+					'rule' => array('inList', array("Your organization only", "This server-only", "This Community-only", "Connected communities", "All communities")),
 						//'message' => 'Your custom message here',
 						'allowEmpty' => false,
 						'required' => false,
@@ -405,19 +423,49 @@ class Attribute extends AppModel {
 		}
 	}
 
+//	public function massageData(&$data) {
+//		switch ($data['Attribute']['distribution']) {
+//			case 'Your organization only':
+//				$data['Attribute']['private'] = true;
+//				$data['Attribute']['cluster'] = false;
+//				break;
+//			case 'This Community-only':
+//				$data['Attribute']['private'] = false;
+//				$data['Attribute']['cluster'] = true;
+//				break;
+//			case 'All communities':
+//				$data['Attribute']['private'] = false;
+//				$data['Attribute']['cluster'] = false;
+//				break;
+//		}
+//		return $data;
+//	}
 	public function massageData(&$data) {
 		switch ($data['Attribute']['distribution']) {
-			case 'Org':
+			case 'Your organization only':
 				$data['Attribute']['private'] = true;
 				$data['Attribute']['cluster'] = false;
+				$data['Attribute']['communitie'] = false;
 				break;
-			case 'Community':
+			case 'This server-only': // TODO
+				$data['Attribute']['private'] = true;
+				$data['Attribute']['cluster'] = true;
+				$data['Attribute']['communitie'] = false;
+				break;
+			case 'This Community-only':
 				$data['Attribute']['private'] = false;
 				$data['Attribute']['cluster'] = true;
+				$data['Attribute']['communitie'] = false;
 				break;
-			case 'All':
+			case 'Connected communities': // TODO
 				$data['Attribute']['private'] = false;
 				$data['Attribute']['cluster'] = false;
+				$data['Attribute']['communitie'] = true;
+				break;
+			case 'All communities':
+				$data['Attribute']['private'] = false;
+				$data['Attribute']['cluster'] = false;
+				$data['Attribute']['communitie'] = false;
 				break;
 		}
 		return $data;

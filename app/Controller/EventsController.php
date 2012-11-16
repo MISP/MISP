@@ -395,8 +395,8 @@ class EventsController extends AppController {
 		}
 
 		$fieldList = array(
-				'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster')
+				'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie')
 		);
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
@@ -444,8 +444,8 @@ class EventsController extends AppController {
 				unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 
 				$fieldList = array(
-					'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private'),
-					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
+					'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private', 'communitie'),
+					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie')
 				);
 				// this saveAssociated() function will save not only the event, but also the attributes
 				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
@@ -468,7 +468,7 @@ class EventsController extends AppController {
 			}
 
 			// say what fields are to be updated
-			$fieldList = array('date', 'risk', 'info', 'published', 'private', 'cluster');
+			$fieldList = array('date', 'risk', 'info', 'published', 'private', 'cluster', 'communitie');
 			// always force the org, but do not force it for admins
 			if ($this->_isAdmin()) {
 				// set the same org as existed before

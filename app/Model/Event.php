@@ -44,10 +44,17 @@ class Event extends AppModel {
 		'High' => array('desc' => '*high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Sophisticated APT malware or 0-day attack')
 	);
 
+//	public $distributionDescriptions = array(
+//		'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the event"),
+//		'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Event visible to all on this CyDefSIG instance but will not be shared past it"),
+//		'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other connected CyDefSIG servers"),
+//	);
 	public $distributionDescriptions = array(
-		'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the event"),
-		'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Event visible to all on this CyDefSIG instance but will not be shared past it"),
-		'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other connected CyDefSIG servers"),
+		'Your organization only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the event"),
+		'This server-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Every organisation on the server can see  this event"),
+		'This Community-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Event visible to all on this and _allied_ CyDefSIG instances but will not be shared past it"), // former Community
+		'Connected communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Event visible to CyDefSIG instances with more then two servers but will not be shared past it"),
+		'All communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to every connected CyDefSIG server"),
 	);
 
 /**
@@ -160,7 +167,7 @@ class Event extends AppModel {
 		if ('true' == Configure::read('CyDefSIG.private')) {
 
 			$this->virtualFields = Set::merge($this->virtualFields, array(
-				'distribution' => 'IF (Event.private=true, "Org", IF (Event.cluster=true, "Community", "All"))',
+				'distribution' => 'IF (Event.private=true AND Event.cluster=false, "Your organization only", IF (Event.private=true AND Event.cluster=true, "This server-only", IF (Event.private=false AND Event.cluster=true, "This Community-only", IF (Event.communitie=true, "Connected communities" , "All communities"))))',
 			));
 
 			$this->fieldDescriptions = Set::merge($this->fieldDescriptions, array(
@@ -178,8 +185,18 @@ class Event extends AppModel {
 						//'on' => 'create', // Limit validation to 'create' or 'update' operations
 					),
 				),
+				'communitie' => array(
+					'boolean' => array(
+						'rule' => array('boolean'),
+						//'message' => 'Your custom message here',
+						//'allowEmpty' => false,
+						'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					),
+				),
 				'distribution' => array(
-					'rule' => array('inList', array('Org', 'Community', 'All')),
+					'rule' => array('inList', array("Your organization only", "This server-only", "This Community-only", "Connected communities", "All communities")),
 						//'message' => 'Your custom message here',
 						'allowEmpty' => false,
 						'required' => false,
@@ -272,17 +289,30 @@ class Event extends AppModel {
 
 	public function massageData(&$data) {
 		switch ($data['Event']['distribution']) {
-			case 'Org':
+			case 'Your organization only':
 				$data['Event']['private'] = true;
 				$data['Event']['cluster'] = false;
+				$data['Event']['communitie'] = false;
 				break;
-			case 'Community':
+			case 'This server-only': // TODO
+				$data['Event']['private'] = true;
+				$data['Event']['cluster'] = true;
+				$data['Event']['communitie'] = false;
+				break;
+			case 'This Community-only':
 				$data['Event']['private'] = false;
 				$data['Event']['cluster'] = true;
+				$data['Event']['communitie'] = false;
 				break;
-			case 'All':
+			case 'Connected communities': // TODO
 				$data['Event']['private'] = false;
 				$data['Event']['cluster'] = false;
+				$data['Event']['communitie'] = true;
+				break;
+			case 'All communities':
+				$data['Event']['private'] = false;
+				$data['Event']['cluster'] = false;
+				$data['Event']['communitie'] = false;
 				break;
 		}
 		return $data;
@@ -386,7 +416,7 @@ class Event extends AppModel {
 		// remove value1 and value2 from the output
 		foreach ($event['Event']['Attribute'] as $key => &$attribute) {
 			// do not keep attributes that are private, nor cluster
-			if ($attribute['private'] || $attribute['cluster']) {
+			if (($attribute['private'] && !$attribute['cluster'] && !$attribute['communitie']) || ($attribute['private'] && $attribute['cluster'] && !$attribute['communitie'])) {
 				unset($event['Event']['Attribute'][$key]);
 				continue; // stop processing this
 			}
@@ -394,12 +424,13 @@ class Event extends AppModel {
 			if ($attribute['cluster'] && !$attribute['private']) {
 				$attribute['private'] = true;
 				$attribute['cluster'] = false;
-				$attribute['distribution'] = 'Org';
+				//$attribute['communitie'] = false;
+				$attribute['distribution'] = 'Your organization only';
 			}
 			// Distribution, correct All to Community in Attribute
-			if (!$attribute['cluster'] && !$attribute['private']) {
+			if (!$attribute['cluster'] && !$attribute['private'] && $attribute['communitie']) {
 				$attribute['cluster'] = true;
-				$attribute['distribution'] = 'Community';
+				$attribute['distribution'] = 'This Community-only';
 			}
 			// remove value1 and value2 from the output
 			unset($attribute['value1']);
@@ -414,12 +445,12 @@ class Event extends AppModel {
 		if ($event['Event']['cluster'] && !$event['Event']['private']) {
 			$event['Event']['private'] = true;
 			$event['Event']['cluster'] = false;
-			$event['Event']['distribution'] = 'Org';
+			$event['Event']['distribution'] = 'Your organization only';
 		}
 		// Distribution, correct All to Community in Event
-		if (!$event['Event']['cluster'] && !$event['Event']['private']) {
+		if (!$event['Event']['cluster'] && !$event['Event']['private'] && $event['Event']['communitie']) {
 			$event['Event']['cluster'] = true;
-			$event['Event']['distribution'] = 'Community';
+			$event['Event']['distribution'] = 'This Community-only';
 		}
 
 		// display the XML to the user

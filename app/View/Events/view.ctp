@@ -171,7 +171,7 @@ if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$
 				<td class="short" style="text-align: center;"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
 				<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 				<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
-				<td class="short" style="text-align: center;"><?php echo $attribute['distribution'] == 'Org' ? 'Org' : ($attribute['distribution'] == 'Community' ? 'Community' : '&nbsp;');?></td>
+				<td class="short" style="text-align: center;"><?php echo $attribute['distribution'] != 'All communities' ? $attribute['distribution'] : '&nbsp;';?></td>
 				<?php else:?>
 				<td class="short" style="text-align: center;"><?php echo $attribute['private'] ? 'Private' : '&nbsp;';?></td>
 				<?php endif;?>
@@ -180,7 +180,6 @@ if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$
 				<td class="actions">
 					<?php
 					echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']));
-					echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, __('Are you sure you want to delete this attribute?'));
 					?>
 				</td>
 				<?php endif;?>

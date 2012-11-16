@@ -177,33 +177,35 @@ class ServersController extends AppController {
 					if (null != $event) {
 						// we have an Event array
 						if ('true' == Configure::read('CyDefSIG.private')) {
-							// Distribution, no Org only in Event
-							if ($event['Event']['distribution'] == 'Org') {
-								continue;
-							}
-							// Distribution, correct Community to Org only in Event
-							if ($event['Event']['distribution'] == 'Community') {
-								$event['Event']['distribution'] = 'Org';
-							}
-							// Distribution, correct All to Community in Event
-							if ($event['Event']['distribution'] == 'All') {
-								$event['Event']['distribution'] = 'Community';
+							// Distribution
+							switch($event['Event']['distribution']) {
+								case 'Your organization only': // Distribution, no Org only in Event
+								case 'This server-only':
+									continue;
+									break;
+								case 'This Community-only': // Distribution, correct Community to Org only in Event
+									$event['Event']['distribution'] = 'Your organization only';
+									break;
+								case 'Connected communities': // Distribution, correct All to Community in Event
+									$event['Event']['distribution'] = 'This Community-only';
+									break;
 							}
 							if (is_array($event['Event']['Attribute']) && !isset($event['Event']['Attribute']['id'])) {
 								$toRemove = array();
 								$size = count($event['Event']['Attribute']);
 								for ($i = 0; $i < $size; $i++) {
 									switch($event['Event']['Attribute'][$i]['distribution']) {
-										case 'Org':
+										case 'Your organization only':
+										case 'This server-only':
 											$toRemove[] = $i;
 											break;
-										case 'Community':
+										case 'This Community-only':
 											$event['Event']['Attribute'][$i]['private'] = true;
-											$event['Event']['Attribute'][$i]['distribution'] = 'Org';
+											$event['Event']['Attribute'][$i]['distribution'] = 'Your organization only';
 											break;
-										case 'All':
+										case 'Connected communities':
 											$event['Event']['Attribute'][$i]['cluster'] = true;
-											$event['Event']['Attribute'][$i]['distribution'] = 'Community';
+											$event['Event']['Attribute'][$i]['distribution'] = 'This Community-only';
 											break;
 									}
 								}
@@ -213,16 +215,17 @@ class ServersController extends AppController {
 								$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 							} elseif (is_array($event['Event']['Attribute']) && isset($event['Event']['Attribute']['id'])) {
 								switch($event['Event']['Attribute']['distribution']) {
-									case 'Org':
+									case 'Your organization only':
+									case 'This server-only':
 										unset($event['Event']['Attribute']);
 										break;
-									case 'Community':
+									case 'This Community-only':
 										$event['Event']['Attribute']['private'] = true;
-										$event['Event']['Attribute']['distribution'] = 'Org';
+										$event['Event']['Attribute']['distribution'] = 'Your organization only';
 										break;
-									case 'All':
+									case 'Connected communities':
 										$event['Event']['Attribute']['cluster'] = true;
-										$event['Event']['Attribute']['distribution'] = 'Community';
+										$event['Event']['Attribute']['distribution'] = 'This Community-only';
 										break;
 								}
 							}
