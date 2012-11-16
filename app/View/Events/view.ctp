@@ -59,7 +59,7 @@ if ($isAdmin || $mayPublish) {
 		<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
 		<dt>Distribution</dt>
 		<dd>
-			<?php echo ($event['Event']['distribution'] == 'All') ? 'All, to be distributed to other connected CyDefSIG servers.' : (($event['Event']['distribution'] == 'Community') ? 'Community, event visible to all on this CyDefSIG instance but will not be shared past it.' : 'Org, only organization memebers will see the event.'); ?>
+			<?php echo $event['Event']['distribution'] . ', ' .  lcfirst($distributionDescriptions[$event['Event']['distribution']]['formdesc']) . '.'; ?>
 			&nbsp;
 		</dd>
 		<?php else: ?>

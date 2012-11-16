@@ -272,6 +272,8 @@ class EventsController extends AppController {
 		// passing type and category definitions (explanations)
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+
+		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
 	}
 
 /**
