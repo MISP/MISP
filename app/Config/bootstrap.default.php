@@ -151,6 +151,7 @@ Configure::write('CyDefSIG.correlation', 'sql');        // correlation between a
  * paginated   16759   8447   6615
  *             17734   8639   8846
  */
+Configure::write('CyDefSIG.dns', 'false');				// there is a nameserver available to do resolution.
 
 /**
  * The settings below can be used to set additional paths to models, views and controllers.

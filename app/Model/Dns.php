@@ -9,16 +9,15 @@ class Dns extends AppModel {
 
 	public $useTable = false;
 
-	/*
-	 * Checks for a valid internet name
-	 * Returns true if Name is an existing Domain Host Name, false otherwise
-	 * TODO should be renamed
-	 *
-	 * @param unknown_type $nametotest The Domain Host Name to check for existence.
-	 * @return boolean
-	 */
-
-	public function testipaddress ($nametotest) {
+/**
+ * Checks for a valid internet name
+ * Returns true if Name is an existing Domain Host Name, false otherwise
+ * TODO should be renamed
+ *
+ * @param unknown_type $nametotest The Domain Host Name to check for existence.
+ * @return boolean
+ */
+	public function testipaddress($nametotest) {
 		if (intval($nametotest) > 0) {
 			return true;
 		} else {
@@ -32,4 +31,20 @@ class Dns extends AppModel {
 		}
 	}
 
+/**
+ * Name to IP list,
+ * get all ip numbers given a certain domain or host $name.
+ *
+ * @param $name being a hostname
+ *
+ * @return array of ip numbers
+ */
+    function nametoipl($name = '') {
+    	if ('true' == Configure::read('CyDefSIG.dns')) {
+	    	if (!$ips = gethostbynamel($name)) $ips = array();
+    	} else {
+    		$ips = array();
+    	}
+    	return $ips;
+    }
 }
