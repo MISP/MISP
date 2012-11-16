@@ -171,7 +171,7 @@ if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$
 				<td class="short" style="text-align: center;"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
 				<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 				<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
-				<td class="short" style="text-align: center;"><?php echo $attribute['distribution'] == 'Org' ? 'Org' : ($attribute['distribution'] == 'Community' ? 'Community' : ' ');?></td>
+				<td class="short" style="text-align: center;"><?php echo $attribute['distribution'] == 'Org' ? 'Org' : ($attribute['distribution'] == 'Community' ? 'Community' : '&nbsp;');?></td>
 				<?php else:?>
 				<td class="short" style="text-align: center;"><?php echo $attribute['private'] ? 'Private' : '&nbsp;';?></td>
 				<?php endif;?>
