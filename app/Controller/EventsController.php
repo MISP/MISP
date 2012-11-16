@@ -341,7 +341,6 @@ class EventsController extends AppController {
 		$this->set('riskDescriptions', $this->Event->riskDescriptions);
 
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
-		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
 	}
 
 /**
