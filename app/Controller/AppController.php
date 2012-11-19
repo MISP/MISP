@@ -65,8 +65,7 @@ class AppController extends Controller {
 
 	public function beforeFilter() {
 		// user must accept terms
-		$id = $this->Auth->user('id');
-		if (is_numeric($id) && !$this->Auth->user('termsaccepted') && ($this->request->here != '/users/terms') && ($this->request->here != '/users/logout') && ($this->request->here != '/users/login')) {
+		if (($this->Auth->user() != null) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
 			$this->redirect(array('controller' => 'users', 'action' => 'terms'));
 		}
 
