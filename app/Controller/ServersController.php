@@ -181,7 +181,7 @@ class ServersController extends AppController {
 							switch($event['Event']['distribution']) {
 								case 'Your organization only': // Distribution, no Org only in Event
 								case 'This server-only':
-									continue;
+									continue 2; // to the next iteration of the outer loop
 									break;
 								case 'This Community-only': // Distribution, correct Community to Org only in Event
 									$event['Event']['distribution'] = 'Your organization only';
