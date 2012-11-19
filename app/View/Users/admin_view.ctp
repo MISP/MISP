@@ -74,17 +74,12 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 	</dl>
 </div>
 <div class="actions">
-	<h3><?php echo __('Actions'); ?></h3>
 	<ul>
-		<li><?php echo $this->Html->link(__('Edit User'), array('admin' => true, 'action' => 'edit', $user['User']['id']), array('class' => $buttonModifyStatus)); ?> </li>
-		<li><?php
-		if ($mayModify) echo $this->Form->postLink(__('Delete User'), array('admin' => true, 'action' => 'delete', $user['User']['id']), null, __('Are you sure you want to delete # %s?', $user['User']['id']));
-		else echo $this->Html->link(__('Delete User'), array('admin' => true, 'action' => 'delete', $user['User']['id']), array('class' => $buttonModifyStatus));
-		?> </li>
-		<li><?php echo $this->Html->link(__('List Users'), array('admin' => true, 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link(__('New User'), array('admin' => true, 'action' => 'add'), array('class' => $buttonAddStatus)); ?> </li>
-		<li><?php echo $this->Html->link(__('List Events'), array('controller' => 'events', 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link(__('New Event'), array('controller' => 'events', 'action' => 'add'), array('class' => $buttonAddStatus)); ?> </li>
+		<?php if ($isAclModify): ?>
+		<li><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
+		<li>&nbsp;</li>
+		<?php endif; ?>
+		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
 <div class="related">
@@ -106,14 +101,14 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		$i = 0;
 		foreach ($user['Event'] as $event): ?>
 		<tr>
-			<td><?php echo $event['id'];?></td>
-			<td><?php echo $event['org'];?></td>
-			<td><?php echo $event['date'];?></td>
-			<td><?php echo $event['risk'];?></td>
-			<td><?php echo $event['info'];?></td>
-			<td><?php echo $event['user_id'];?></td>
-			<td><?php echo $event['published'];?></td>
-			<td><?php echo $event['uuid'];?></td>
+			<td><?php echo h($event['id']);?></td>
+			<td><?php echo h($event['org']);?></td>
+			<td><?php echo h($event['date']);?></td>
+			<td><?php echo h($event['risk']);?></td>
+			<td><?php echo h($event['info']);?></td>
+			<td><?php echo h($event['user_id']);?></td>
+			<td><?php echo h($event['published']);?></td>
+			<td><?php echo h($event['uuid']);?></td>
 			<td class="actions">
 				<?php echo $this->Html->link(__('Edit'), array('controller' => 'events', 'action' => 'edit', $event['id']), array('class' => $buttonModifyStatus)); ?>
 				<?php
