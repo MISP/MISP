@@ -704,7 +704,7 @@ class EventsController extends AppController {
 					$lastResult = array_pop($result);
 					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
 					$this->Session->setFlash(__(sprintf('Not published given no connection to %s but no email sent given GnuPG is not configured.', $resultString), true));
-									}
+				}
 			} else {
 				$this->Session->setFlash(__('Sending of email failed', true), 'default', array(), 'error');
 			}

@@ -59,7 +59,7 @@ if ($isAdmin || $mayPublish) {
 		<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
 		<dt>Distribution</dt>
 		<dd>
-			<?php echo $event['Event']['distribution'] . ', ' .  strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']),0,1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'],1) . '.'; ?>
+			<?php echo $event['Event']['distribution'] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'; ?>
 			&nbsp;
 		</dd>
 		<?php else: ?>

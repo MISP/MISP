@@ -39,12 +39,12 @@ class Dns extends AppModel {
  *
  * @return array of ip numbers
  */
-    function nametoipl($name = '') {
-    	if ('true' == Configure::read('CyDefSIG.dns')) {
-	    	if (!$ips = gethostbynamel($name)) $ips = array();
-    	} else {
-    		$ips = array();
-    	}
-    	return $ips;
-    }
+	public function nametoipl($name = '') {
+		if ('true' == Configure::read('CyDefSIG.dns')) {
+			if (!$ips = gethostbynamel($name)) $ips = array();
+		} else {
+			$ips = array();
+		}
+		return $ips;
+	}
 }

@@ -44,11 +44,6 @@ class Event extends AppModel {
 		'High' => array('desc' => '*high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Sophisticated APT malware or 0-day attack')
 	);
 
-//	public $distributionDescriptions = array(
-//		'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the event"),
-//		'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Event visible to all on this CyDefSIG instance but will not be shared past it"),
-//		'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other connected CyDefSIG servers"),
-//	);
 	public $distributionDescriptions = array(
 		'Your organization only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the event"),
 		'This server-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Every organisation on the server can see  this event"),

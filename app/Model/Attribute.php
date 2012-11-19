@@ -58,11 +58,6 @@ class Attribute extends AppModel {
 			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
 	);
 
-//	public $distributionDescriptions = array(
-//			'Org' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the attribute"),
-//			'Community' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Attribute visible to all on this CyDefSIG instance but will not be shared past it"),
-//			'All' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to other connected CyDefSIG servers"),
-//	);
 	public $distributionDescriptions = array(
 		'Your organization only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the attribute"),
 		'This server-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Every organisation on the server can see  this attribute"),
@@ -423,23 +418,6 @@ class Attribute extends AppModel {
 		}
 	}
 
-//	public function massageData(&$data) {
-//		switch ($data['Attribute']['distribution']) {
-//			case 'Your organization only':
-//				$data['Attribute']['private'] = true;
-//				$data['Attribute']['cluster'] = false;
-//				break;
-//			case 'This Community-only':
-//				$data['Attribute']['private'] = false;
-//				$data['Attribute']['cluster'] = true;
-//				break;
-//			case 'All communities':
-//				$data['Attribute']['private'] = false;
-//				$data['Attribute']['cluster'] = false;
-//				break;
-//		}
-//		return $data;
-//	}
 	public function massageData(&$data) {
 		switch ($data['Attribute']['distribution']) {
 			case 'Your organization only':

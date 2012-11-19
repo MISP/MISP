@@ -11,22 +11,22 @@ touch build/code_standards/result.txt
 
 phpcs --standard=CakePHP app/Console/Command/PasswordShell.php >>build/code_standards/result.txt
 
-#phpcs --standard=CakePHP app/Model/AppModel.php >build/code_standards/appmodel.txt
-#phpcs --standard=CakePHP app/Model/Attribute.php >build/code_standards/attribute.txt
-#phpcs --standard=CakePHP app/Model/Bruteforce.php >build/code_standards/bruteforce.txt
-#phpcs --standard=CakePHP app/Model/Correlation.php >build/code_standards/correlation.txt
-#phpcs --standard=CakePHP app/Model/Dns.php >build/code_standards/dns.txt
-#phpcs --standard=CakePHP app/Model/Event.php >build/code_standards/event.txt
-#phpcs --standard=CakePHP app/Model/Server.php >build/code_standards/server.txt
-#phpcs --standard=CakePHP app/Model/User.php >build/code_standards/user.txt
-#phpcs --standard=CakePHP app/Model/Whitelist.php >build/code_standards/whitelist.txt
-phpcs --standard=CakePHP app/Model/ >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/Model/AppModel.php >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/Model/Attribute.php >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/Model/Bruteforce.php >>build/code_standards/result.txt
+##phpcs --standard=CakePHP app/Model/Correlation.php >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/Model/Dns.php >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/Model/Event.php >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/Model/Group.php >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/Model/Log.php >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/Model/Server.php >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/Model/User.php >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/Model/Whitelist.php >>build/code_standards/result.txt
 
 phpcs --standard=CakePHP app/Controller/Component/HidsSha1ExportComponent.php >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/Controller/Component/HidsMd5ExportComponent.php >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/Controller/Component/NidsExportComponent.php >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/Controller/Component/SecureAuthComponent.php >>build/code_standards/result.txt
-#phpcs --standard=CakePHP app/Controller/Component/ >build/code_standards/component.txt
 
 phpcs --standard=CakePHP app/Controller/AppController.php >>build/code_standards/result.txt	# !!!
 phpcs --standard=CakePHP app/Controller/AttributesController.php >>build/code_standards/result.txt
@@ -67,8 +67,11 @@ phpcs --standard=CakePHP app/View/Events/xml.ctp >>build/code_standards/result.t
 phpcs --standard=CakePHP app/View/Events/xml/index.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Events/xml/view.ctp >>build/code_standards/result.txt
 
-#phpcs --standard=CakePHP app/View/Pages/documentation.ctp >>build/code_standards/result.txt
-phpcs --standard=CakePHP app/View/Pages/ >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/View/Pages/administration.ctp >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/View/Pages/categories_and_types.ctp >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/View/Pages/documentation.ctp >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/View/Pages/user_management.ctp >>build/code_standards/result.txt
+phpcs --standard=CakePHP app/View/Pages/using_the_system.ctp >>build/code_standards/result.txt
 
 phpcs --standard=CakePHP app/View/Servers/add.ctp >>build/code_standards/result.txt
 phpcs --standard=CakePHP app/View/Servers/edit.ctp >>build/code_standards/result.txt
