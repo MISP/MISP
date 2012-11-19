@@ -364,7 +364,7 @@ class Event extends AppModel {
  */
 	public function cleanupEventArrayFromXML(&$data) {
 		// Workaround for different structure in XML/array than what CakePHP expects
-		if (is_array($data['Event']['Attribute'])) {
+		if (isset($data['Event']['Attribute']) && is_array($data['Event']['Attribute'])) {
 			if (is_numeric(implode(array_keys($data['Event']['Attribute']), ''))) {
 				// normal array of multiple Attributes
 				$data['Attribute'] = $data['Event']['Attribute'];

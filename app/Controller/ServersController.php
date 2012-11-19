@@ -190,9 +190,17 @@ class ServersController extends AppController {
 									$event['Event']['distribution'] = 'This Community-only';
 									break;
 							}
-							if (is_array($event['Event']['Attribute']) && !isset($event['Event']['Attribute']['id'])) {
+
+							// correct $event if just one Attribute
+							if (is_array($event['Event']['Attribute']) && isset($event['Event']['Attribute']['id'])) {
+								$tmp = $event['Event']['Attribute'];
+								unset($event['Event']['Attribute']);
+								$event['Event']['Attribute'][0] = $tmp;
+							}
+
+							if (is_array($event['Event']['Attribute'])) {
 								$toRemove = array();
-								$size = count($event['Event']['Attribute']);
+								$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
 								for ($i = 0; $i < $size; $i++) {
 									switch($event['Event']['Attribute'][$i]['distribution']) {
 										case 'Your organization only':
@@ -215,23 +223,8 @@ class ServersController extends AppController {
 									unset($event['Event']['Attribute'][$thisRemove]);
 								}
 								$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
-							} elseif (is_array($event['Event']['Attribute']) && isset($event['Event']['Attribute']['id'])) {
-								switch($event['Event']['Attribute']['distribution']) {
-									case 'Your organization only':
-									case 'This server-only':
-										unset($event['Event']['Attribute']);
-										break;
-									case 'This Community-only':
-										$event['Event']['Attribute']['private'] = true;
-										$event['Event']['Attribute']['cluster'] = false;
-										$event['Event']['Attribute']['communitie'] = false;
-										$event['Event']['Attribute']['distribution'] = 'Your organization only';
-										break;
-									case 'Connected communities':
-										$event['Event']['Attribute']['cluster'] = true;
-										$event['Event']['Attribute']['distribution'] = 'This Community-only';
-										break;
-								}
+							} else {
+								unset($event['Event']['Attribute']);
 							}
 							// Distribution, set reporter of the event, being the admin that initiated the pull
 							$event['Event']['user_id'] = $this->Auth->user('id');
