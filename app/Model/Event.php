@@ -584,6 +584,14 @@ class Event extends AppModel {
 				//debug($response->body);
 				$xml = Xml::build($response->body);
 				$eventArray = Xml::toArray($xml);
+
+				// correct $eventArray if just one event
+				if (is_array($eventArray['response']['Event']) && isset($eventArray['response']['Event']['id'])) {
+					$tmp = $eventArray['response']['Event'];
+					unset($eventArray['response']['Event']);
+					$eventArray['response']['Event'][0] = $tmp;
+				}
+
 				$eventIds = array();
 				foreach ($eventArray['response']['Event'] as &$event) {
 					if (1 != $event['published']) {
