@@ -201,6 +201,8 @@ class ServersController extends AppController {
 											break;
 										case 'This Community-only':
 											$event['Event']['Attribute'][$i]['private'] = true;
+											$event['Event']['Attribute'][$i]['cluster'] = false;
+											$event['Event']['Attribute'][$i]['communitie'] = false;
 											$event['Event']['Attribute'][$i]['distribution'] = 'Your organization only';
 											break;
 										case 'Connected communities':
@@ -221,6 +223,8 @@ class ServersController extends AppController {
 										break;
 									case 'This Community-only':
 										$event['Event']['Attribute']['private'] = true;
+										$event['Event']['Attribute']['cluster'] = false;
+										$event['Event']['Attribute']['communitie'] = false;
 										$event['Event']['Attribute']['distribution'] = 'Your organization only';
 										break;
 									case 'Connected communities':
