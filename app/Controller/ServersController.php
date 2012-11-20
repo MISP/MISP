@@ -250,6 +250,7 @@ class ServersController extends AppController {
 							}
 						}
 						$eventsController = new EventsController();
+						$eventsController->constructClasses();
 						try {
 							$result = $eventsController->_add($event, $this->Auth, $fromXml = true, $this->Server->data['Server']['organization']);
 						} catch (MethodNotAllowedException $e) {
