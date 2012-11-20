@@ -92,11 +92,11 @@ class Whitelist extends AppModel {
 		return true;
 	}
 
-	/**
-	 * get the Whitelist as an array
-	 *
-	 * @return array whitelistCheck names
-	 */
+/**
+ * get the Whitelist as an array
+ *
+ * @return array whitelistCheck names
+ */
 	public function populateWhitelist() {
 		$whitelistCheck = array();
 
