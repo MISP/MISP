@@ -234,18 +234,21 @@ class ServersController extends AppController {
 							}
 							// Distribution, set reporter of the event, being the admin that initiated the pull
 							$event['Event']['user_id'] = $this->Auth->user('id');
+							// check if the event already exist (using the uuid)
+							$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
+							if ($existingEventCount == 0) {
+								// add data for newly imported events
+								$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
+							}
 						} else {
-							$event['Event']['private'] = true;
+							// check if the event already exist (using the uuid)
+							$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
+							if ($existingEventCount == 0) {
+								// add data for newly imported events
+								$event['Event']['private'] = true;
+								$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
+							}
 						}
-
-						// check if the event already exist (using the uuid)
-						$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
-						if ($existingEventCount == 0) {
-							// add data for newly imported events
-							$event['Event']['private'] = true;
-							$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
-						}
-
 						$eventsController = new EventsController();
 						try {
 							$result = $eventsController->_add($event, $this->Auth, $fromXml = true, $this->Server->data['Server']['organization']);
