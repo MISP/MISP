@@ -365,10 +365,6 @@ class EventsController extends AppController {
 			// LATER do this with	 $this->validator()->remove('event_id');
 			unset($this->Event->Attribute->validate['event_id']);
 			unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-
-			// thing a 'pull from server' sets ServersController.php:176
-			// Event.info is appended from the publishing side, given the need to have Server.url
-			$data['Event']['private'] = true;
 		}
 
 		if (isset($data['Event']['uuid'])) {	// TODO here we should start RESTful dialog
@@ -408,9 +404,7 @@ class EventsController extends AppController {
 		if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// call __sendAlertEmail if published was set in the request
-				if (!$fromXml) {
-					$this->__sendAlertEmail($this->Event->getId());
-				}
+				$this->__sendAlertEmail($this->Event->getId());
 			}
 			return true;
 		} else {
@@ -595,7 +589,9 @@ class EventsController extends AppController {
 	private function __deleteEventFromServers($uuid) {
 		// get a list of the servers
 		$this->loadModel('Server');
-		$servers = $this->Server->find('all', array());
+		$servers = $this->Server->find('all', array(
+				'conditions' => array('Server.push' => true)
+		));
 
 		// iterate over the servers and upload the event
 		if(empty($servers))
@@ -822,7 +818,7 @@ class EventsController extends AppController {
 				} catch (Exception $e){
 					// catch errors like expired PGP keys
 					$this->log($e->getMessage());
-					return $e->getMessage();
+					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 				}
 				// If you wish to send multiple emails using a loop, you'll need
 				// to reset the email fields using the reset method of the Email component.
@@ -973,6 +969,7 @@ class EventsController extends AppController {
 				} catch (Exception $e){
 					// catch errors like expired PGP keys
 					$this->log($e->getMessage());
+					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 				}
 			} else {
 				$bodyEncSig = $bodySigned;

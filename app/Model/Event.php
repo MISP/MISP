@@ -588,11 +588,19 @@ class Event extends AppModel {
 				}
 
 				$eventIds = array();
-				foreach ($eventArray['response']['Event'] as &$event) {
-					if (1 != $event['published']) {
-						continue; // do not keep non-published events
+				// different actions if it's only 1 event or more
+				// only one event.
+				if (isset($eventArray['response']['Event']['id'])) {
+					$eventIds[] = $eventArray['response']['Event']['id'];
+				}
+				else {
+					// multiple events, iterate over the array
+					foreach ($eventArray['response']['Event'] as &$event) {
+					    if (1 != $event['published']) {
+					        continue; // do not keep non-published events
+					    }
+					    $eventIds[] = $event['id'];
 					}
-					$eventIds[] = $event['id'];
 				}
 				return $eventIds;
 			}
