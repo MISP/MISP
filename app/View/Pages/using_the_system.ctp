@@ -11,7 +11,8 @@
 	<li>e. <a href="#export">Exporting data</a></li>
 </ul>
 4. <?php echo $this->Html->link(__('Administration', true), array('controller' => 'pages', 'action' => 'display', 'administration')); ?><br>
-5. <?php echo $this->Html->link(__('Categories and Types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?></p>
+5. <?php echo $this->Html->link(__('Categories and Types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>
+<p></p>
 <hr/><br>
 <h2>Using the system:</h2>
 <a name ="create"></a><h3>Creating an event:</h3>
@@ -35,7 +36,7 @@ The process of entering an event can be split into 3 phases, the creation of the
 		</ul>
 		<li><em>GFI Sandbox:</em> It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event's creation, it is important to manually look over all the data that is being entered. </li><br>
 	</ul>
-<br><hr/></br>
+<br><hr><br>
 <a name ="create_attribute"></a><h3>Add attributes to the event:</h3>
 The second step of creating an event is to populate it with attributes and attachments. In addition to being able to import the attributes and attachments from GFI, it is also possible to manually add attributes and attachments to an event, by using the two appropriate buttons on the event's page. Let's look at adding attributes first.<br>
 When clicking on the add attribute button, you will have to fill out a form with all the data about the attribute. The following fields need to be filled out:<br>
@@ -116,7 +117,7 @@ On the left menu bar, the option "List events" will generate a list of the last 
         <li><em>Type:</em> The type of the value contained in the attribute (for example a source IP address). For more information on types, go to section xy</li><br>
         <li><em>Value:</em> The actual value of the attribute, describing an aspect, defined by the category and type fields of the malware (for example 11.11.11.11).</li><br>
         <li><em>Signature:</em> Shows whether the attribute has been flagged for NIDS signature generation or not.</li><br>
-        <li><em>Actions:</em> A set of buttons that allow you to view the event that the attribute is tied to, to edit the attribute (using the same view as what is used to set up attributes, but filled out with the attribute's current data) and a delete button. </li><br>
+        <li><em>Actions:</em> A set of buttons that allow you to view the event that the attribute is tied to, to edit the attribute (using the same view as what is used to set up attributes, but filled out with the attribute's current data) and a delete button.</li><br>
     </ul>
 <br><hr/><br>
 <h3>Searching for attributes:</h3>
@@ -142,18 +143,18 @@ By default, the message will be sent to every member of the organisation that po
 It is possible to quickly and conveniently export the data contained within the system using the export features located in the main menu on the left. There are various sets of data that can be exported, by using the authentication key provided by the system (also shown on the export page). If for whatever reason you would need to invalidate your current key and get a new one instead (for example due to the old one becoming compromise) just hit the reset link next to the authentication key in the export view or in your "my profile" view.<br><br>
 The following types of export are possible:<br><br>
     <h3>XML export:</h3>
-		Exports all attributes and the event data of every single event in the database in the XML format. The usage is:<br><br><i>&lt;server>/events/xml/&lt;authentication_key></i><br><br>
+		Exports all attributes and the event data of every single event in the database in the XML format. The usage is:<br><br><i>&lt;server&gt;/events/xml/&lt;authentication_key&gt;</i><br><br>
 		In order to export the data about a single event and its attributes, use the following syntax:<br><br>
-		<i>&lt;server>/events/xml/&lt;authentication_key>/&lt;EventID></i><br><br>
+		<i>&lt;server&gt;/events/xml/&lt;authentication_key&gt;/&lt;EventID&gt;</i><br><br>
     <h3>NIDS export:</h3>
-		This allows the user to export all network related attributes under the Snort format. The attributes have to belong to a published event and they have to have IDS signature generation enabled. The types that will be used when creating the export are: email-dst, ip-src, ip-dst, snort, url, domain. The usage is as follows:<br><br><i>&lt;server>/events/nids/&lt;authentication_key></i><br><br>
+		This allows the user to export all network related attributes under the Snort format. The attributes have to belong to a published event and they have to have IDS signature generation enabled. The types that will be used when creating the export are: email-dst, ip-src, ip-dst, snort, url, domain. The usage is as follows:<br><br><i>&lt;server&gt;/events/nids/&lt;authentication_key&gt;</i><br><br>
     <h3>Hash database export:</h3>
 		There are two hash formats (sha1 and md5) in which all filenames stored in the system can be exported. Events need to be published and the IDS Signature field needs to be turned on for this export. The usage is as follows:<br><br>
-		For MD5: <i>&lt;server>events/hids_md5/&lt;authentication_key></i><br><br>
-		For SHA1: <i>&lt;server>events/hids_sha1/&lt;authentication_key></i><br><br>
+		For MD5: <i>&lt;server&gt;events/hids_md5/&lt;authentication_key&gt;</i><br><br>
+		For SHA1: <i>&lt;server&gt;events/hids_sha1/&lt;authentication_key&gt;</i><br><br>
     <h3>Text export:</h3>
         It is also possible to export a list of all attributes that match a specific type into a plain text file. The format to do this is:<br><br>
-		<i>&lt;server>/events/text/&lt;authentication_key>/&lt;type></i><br><br>
+		<i>&lt;server&gt;/events/text/&lt;authentication_key&gt;/&lt;type&gt;</i><br><br>
 		Type could be any valid type (as according to section 10), for example md5, ip-src or comment.
 
 </div>
