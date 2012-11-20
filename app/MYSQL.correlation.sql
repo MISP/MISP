@@ -18,3 +18,6 @@ CREATE TABLE `correlations` (
 
 -- ALTER TABLE `correlations` ADD cluster tinyint(1) NOT NULL;
 ALTER TABLE `correlations` ADD 1_private tinyint(1) NOT NULL;
+
+ALTER TABLE `attributes` ADD `cluster` tinyint(1) NOT NULL;
+ALTER TABLE `events` ADD `cluster` tinyint(1) NOT NULL;
