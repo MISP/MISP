@@ -177,6 +177,9 @@ class ServersController extends AppController {
 					if (null != $event) {
 						// we have an Event array
 						if ('true' == Configure::read('CyDefSIG.private')) {
+							if (!isset($event['Event']['distribution'])) { // version 1
+								$event['Event']['distribution'] = 'This Community-only';
+							}
 							// Distribution
 							switch($event['Event']['distribution']) {
 								case 'Your organization only': // Distribution, no Org only in Event
@@ -202,6 +205,9 @@ class ServersController extends AppController {
 								$toRemove = array();
 								$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
 								for ($i = 0; $i < $size; $i++) {
+									if (!isset($event['Event']['Attribute'][$i]['distribution'])) { // version 1
+										$event['Event']['Attribute'][$i]['distribution'] = 'This Community-only';
+									}
 									switch($event['Event']['Attribute'][$i]['distribution']) {
 										case 'Your organization only':
 										case 'This server-only':
