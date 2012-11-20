@@ -40,20 +40,20 @@
 			<li><em>Setting up the GPG Key:</em> In order for the system to be able to encrypt the messages that you send through it, it needs to know your GPG key. You can acquire this by clicking on the PGP/GPG key link at the bottom left of the screen. Copy the entirety of the key and navigate to the Edit profile view (My Profile on the left -> Edit profile in the top right corner). Paste the key into the Gpgkey field and click submit.</li><br>
 			<li><em>Requesting a new authentication key:</em> It is possible to make the system generate a new authentication key for you (for example if your previous one gets compromised. This can be accessed by clicking on the My Profile button and then clicking the reset key next to the currently active authentication code. The old code will become invalid when the new key is generated. <br>
 			<br><p><img src="/img/doc/reset.png" title = "Clicking on reset will generate a new key for you and invalidate the old one, blocking it from being used."/></p></li>
-		</ul>	
+		</ul>
 	<br><hr/><br>
 
 	<a name ="uptodate"></a><h3>Staying up to date:</h3>
 		MISP also provides its users with some information about itself and its users through the links provided in the Global Actions menu.<br><br>
         <ul>
 			<li><em>News:</em> To read about the news regarding the system itself, click on News on the left menu. This will bring up a list of news items concerning updates and changes to MISP itself.</li><br>
-			<li><em>Member statistics:</em> By using the Members List menu button on the left, you can get a quick overview over how many users each organisation has registered on your server, and a histogram, depicting the distribution of attribute types created by each organisation.</li><br>			
+			<li><em>Member statistics:</em> By using the Members List menu button on the left, you can get a quick overview over how many users each organisation has registered on your server, and a histogram, depicting the distribution of attribute types created by each organisation.</li><br>
 			<li><em>User Guide:</em> The user guide is also accessible via the Global Actions menu. You can find out more about how to use the system by reading this.</li><br>
 			<li><em>Terms & Conditions:</em> It is possible to review the terms & conditions that were shown during the first run of the system by clicking on the terms & conditions link in the Global Actions menu. </li><br>
 		</ul>
 
 
-	
+
 </div>
 <div class="actions">
 	<ul>

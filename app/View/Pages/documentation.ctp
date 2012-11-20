@@ -19,7 +19,7 @@
         <li><em>List Attributes:</em> You can browse all the currently stored attributes of events here.</li>
         <li><em>Search Attributes:</em> Search for and filter a list of attributes.</li>
         <li><em>Export:</em> Export various types of data from the system for NIDSs or other uses.</li></ul><br>
-		
+
     <i><u>Global Actions</i></u><br><br>
     <ul>
 		<li><em>News:</em> Read about the latest news regarding the MISP system</li>
@@ -48,11 +48,11 @@
 <h3>The bottom bar</h3>
     Contains a link to download the gpg key used for encrypting the e-mails sent through the system and the current version number - if you are logged in.<br><br>
 	<p><img src="/img/doc/bottom_bar.png" style="float:left;" title = "Download your PGP/GPG key using the link on the bottom bar or log out."/></p><br>
-	
-	
-	
-	
-    
+
+
+
+
+
 
 </div>
 <div class="actions">

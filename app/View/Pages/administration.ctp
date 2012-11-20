@@ -26,7 +26,7 @@ In order to share data with a remote server via pushes and pulls, you need to cr
     <li><em>Organization:</em> The organisation that runs the remote server.</li><br>
     <li><em>Authkey:</em> The authentication key that you have received on the remote server.</li><br>
     <li><em>Push:</em> This check-box controls whether your server is allowed to push to the remote server.</li><br>
-    <li><em>Pull:</em> This check-box controls whether your server can request to pull all data from the request server.</li><br> 
+    <li><em>Pull:</em> This check-box controls whether your server can request to pull all data from the request server.</li><br>
 </ul>
 <h3>Browsing the currently set up server connections and interacting with them:</h3>
 If you ever need to change the data about the linked servers or remove any connections, you have the following options to view and manipulate the server connections, when clicking on List Servers: (you will be able to see a list of all servers that your server connects to, including the base address, the organisation running the server the last pushed and pulled event IDs and the control buttons.)<br><br>
@@ -45,13 +45,13 @@ The whitelist view, accessible through the administration menu on the left, allo
 <h3>Managing the list:</h3>
     When viewing the list of whitelisted addresses, the following pieces of information are shown: The ID of the whitelist entry (assigned automatically when a new address is added), the address itself that is being whitelisted and a set of controls allowing you to delete the entry or edit the address.<br><br>
 <img src="/img/doc/whitelist.png" title = "You can edit or delete currently white-listed addresses using the action buttons on this list."/><br><br>
-<br><hr/><br> 
+<br><hr/><br>
 <h2><a name ="user"></a>Managing the users:</h2>
 As an admin, you can set up new accounts for users, edit the profiles of users, delete them, or just have a look at all the viewers' profiles.<br><br>
 <img src="/img/doc/add_user.png" style="float:right;" title = "Fill this form out to add a new user. Keep in mind that the drop-down menu titled Group controls the privileges the user will have."/>
 <h3>Adding a new user:</h3>
 To add a new user, click on the New User button in the administration menu to the left and fill out the following fields in the view that is loaded:<br><br>
-<ul>       
+<ul>
 	<li><em>Email:</em> The user's e-mail address, this will be used as his/her login name and as an address to send all the automatic e-mails and e-mails sent by contacting the user as the reporter of an event.</li></br>
     <li><em>Password:</em> A temporary password for the user that he/she should change after the first login. Make sure that it is at least 6 characters long, includes a digit or a special character and contains at least one upper-case and at least one lower-case character.</li></br>
     <li><em>Confirm Password:</em> This should be an exact copy of the Password field.</li></br>
@@ -76,7 +76,7 @@ To list all current users of the system, just click on List Users under the admi
     <li><em>Newsread:</em> The last point in time when the user has looked at the news section of the system.</li></br>
     <li><em>Action Buttons:</em> Here you can view a detailed view of a user, edit the basic details of a user (same view as the one used for creating a new user, but all the fields come filled out by default) or remove a user completely. </li></br>
 </ul>
-<br><hr/><br> 
+<br><hr/><br>
 <h2><a name ="roles"></a>Managing the roles</h2>
 Privileges are assigned to users by assigning them to role-groups, which use one of four options to determine what the users belonging to them are able to do on the site. The four options are: Read Only, Manage My Own Events, Manage Organisation Events, Manage & Publish Organisation Events. <br><br>
 <em>Read Only:</em> This allows the user to browse events that his organisation has access to, but doesn't allow any changes to be made to the database. <br><br>
@@ -88,7 +88,7 @@ When creating a new group, you will have to enter a name for the group to be cre
 <h3>Listing groups:</h3>
 By clicking on the List Groups button, you can view a list of all the currently registered groups and a list of the permission flags turned on for each. In addition, you can find buttons that allow you to edit and delete the groups. Keep in mind that you will need to first remove every member from a group before you can delete it.<br><br>
 <img src="/img/doc/list_groups.png" title = "You can View, Edit or Delete groups using the action buttons to the right in each row. Keep in mind that a group has to be devoid of members before it can be deleted."/><br><br>
-<br><hr/><br> 
+<br><hr/><br>
 <h2><a name ="logs"></a>Using the logs of MISP</h2>
 Admins are able to browse or search the logs that MISP automatically appends each time any action is taken that alters the data contained within the system (or if a user logs in and out).<br><br>
 <h3>Browsing the logs:</h3>

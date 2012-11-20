@@ -65,7 +65,7 @@ $attr = new Attribute();
 </tr>
 </table>
 
-	
+
 </div>
 <div class="actions">
 	<ul>

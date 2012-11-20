@@ -34,7 +34,7 @@ The process of entering an event can be split into 3 phases, the creation of the
 			<li><i>Info:</i> The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event's creation.</li><br></ul>
 		</ul>
 		<li><em>GFI Sandbox:</em> It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event's creation, it is important to manually look over all the data that is being entered. </li><br>
-	</ul>	
+	</ul>
 <br><hr/></br>
 <a name ="create_attribute"></a><h3>Add attributes to the event:</h3>
 The second step of creating an event is to populate it with attributes and attachments. In addition to being able to import the attributes and attachments from GFI, it is also possible to manually add attributes and attachments to an event, by using the two appropriate buttons on the event's page. Let's look at adding attributes first.<br>
@@ -52,7 +52,7 @@ When clicking on the add attribute button, you will have to fill out a form with
        <li><em>IDS Signature:</em> This option allows the attribute to be used as an IDS signature when exporting the NIDS data, unless it is being overruled by the white-list. For more information about the whitelist, head over to the <?php echo $this->Html->link(__('administration', true), array('controller' => 'pages', 'action' => 'display', 'administration')); ?> section and scroll down to the whitelist sub-section.</li><br>
        <li><em>Value:</em> The actual value of the attribute, enter data about the value based on what is valid for the chosen attribute type. For example, for an attribute of type ip-src (source IP address), 11.11.11.11 would be a valid value. For more information on types and values, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>.</li><br>
        <li><em>Batch import:</em> If there are several attributes of the same type to enter (such as a list of IP addresses, it is possible to enter them all into the same value-field, separated by a line break between each line. This will allow the system to create separate lines for the each attribute. </li><br>
-</ul>		
+</ul>
 <br><hr/><br>
 <h3>Add attachments to the event:</h3>
 You can also upload attachments, such as the malware itself, report files from external analysis or simply artifacts dropped by the malware. Clicking on the add attachment button brings up a form that allows you to quickly attach a file to the event. The following fields need to be filled out:<br><br>
@@ -105,7 +105,7 @@ On the left menu bar, the option "List events" will generate a list of the last 
 		<li><em>List of related events:</em> Events can be related by having one or more attributes that are exact matches. For example, if two events both contain a source IP attribute of 11.11.11.11 then they are related. The list of events that are related the currently shown one, are listed under "Related Events", as links (titled the related event's date and ID number) to the events themselves.</li><br>
         <li><em>Attributes:</em> A list of all attributes attached to the event, including its category, type, value, whether the attribute in itself is related to another event, whether the flag signalling that the attribute can be turned into an IDS signature is on, and a field showing the current privacy setting of the attribute.Attributes can also be modified or deleted via the 3 buttons at the end of each line.<br><br>
 		Using the modify button will bring up the attribute creation view, with all data filled out with the attribute's currently stored data.</li><br>
-	</ul>	
+	</ul>
 <br><hr/><br>
 <h3>Listing all attributes:</h3>
 	Apart from having a list of all the events, it is also possible to get a list of all the stored attributes in the system by clicking on the list attributes button. The produced list of attributes will include the followings fields:<br><br>
@@ -131,13 +131,13 @@ Every event and attribute can easily be edited. First of all it is important to 
 Once it is found, the edit button (whether it be under actions when events/attributes get listed or simply on the event view) will bring up the same screen as what is used to create the entry of the same type (for an event it would be the event screen as <a href="#create">seen here</a>, for an attribute the attribute screen as <a href="#create_attribute">described here</a>).<br><br>
 Keep in mind that editing any event (either directly or indirectly through an attribute) will unpublish it, meaning that you'll have to publish it (through the event view) again once you are done.<br><br>
 <br><img src="/img/doc/edit_event.png" title = "Just alter any of the fields and click submit to change the event."/><br>
- <br><hr/><br>   
+ <br><hr/><br>
 <a name ="contact"></a><h2>Contacting the publisher:</h2>
 To get in touch with the reporter of a previously registered event, just find the event for which you would like to contact the reporter by either finding it on the list of events, by finding it through one of its attributes or by finding it through a related event.<br><br>
 Once the event is found and the event view opened, click the button titled "Contact Reporter". This will bring up a view where you can enter your message that is to be e-mailed to the reporting organisation or the reporter himself. Along with your message, the detailed information about the event in question will be included in the e-mail.<br><br>
 <br><img src="/img/doc/contact_reporter.png" title = "Enter your message to the reporter and choose whether his/her entire organisation should get the message or not by ticking the check-box."/><br><br>
 By default, the message will be sent to every member of the organisation that posted the event in the first place, but if you tick the check-box below the message field before sending the mail, only the person that reported the event will get e-mailed. <br>
-<br><hr/><br> 
+<br><hr/><br>
 <a name ="export"></a><h2>Exporting data:</h2>
 It is possible to quickly and conveniently export the data contained within the system using the export features located in the main menu on the left. There are various sets of data that can be exported, by using the authentication key provided by the system (also shown on the export page). If for whatever reason you would need to invalidate your current key and get a new one instead (for example due to the old one becoming compromise) just hit the reset link next to the authentication key in the export view or in your "my profile" view.<br><br>
 The following types of export are possible:<br><br>
