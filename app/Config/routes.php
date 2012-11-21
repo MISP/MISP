@@ -37,6 +37,8 @@
 	Router::connect('/logs/admin_index/*', array('controller' => 'logs', 'action' => 'index', 'admin' => true));
 	Router::connect('/logs/admin_search/*', array('controller' => 'logs', 'action' => 'search', 'admin' => true));
 
+	Router::connect('/admin/users/terms', array('controller' => 'logs', 'action' => 'terms'));
+
 	// Activate REST
 	Router::mapResources(array('events'));
 	Router::parseExtensions('xml');
