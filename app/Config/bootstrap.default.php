@@ -135,11 +135,11 @@ Configure::write('GnuPG.homedir', '/Users/chri/Documents/Work/Projects/201107-Cy
 Configure::write('SecureAuth.amount', 5);              // the maximum amount of failed logins
 Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
 
-Configure::write('CyDefSIG.correlation', 'sql');        // correlation between attributes of events.
+Configure::write('CyDefSIG.correlation', 'db');        // correlation between attributes of events.
 														// possible values:
-														// - default, like it was
+														// - default, like it was (this is depreciated, use 'db' instead)
 														// - db, correlation in database
-														// - sql, selection on event i.s.o. per attribute (improvement possible)
+														// - sql, selection on event i.s.o. per attribute (improvement possible) (this is depreciated, use 'db' instead)
 /**
  * Network activity, ip-src
  * 30 class-C network ip addresses
