@@ -58,10 +58,6 @@ cd /var/www/cydefsig/app/
 chmod -R g+w tmp
 chmod -R g+w files
 
-# If installed Crypt_GPG and created it's homedir:
-chown -R www-data:www-data /var/www/cydefsig/.gnupg
-chmod -R u+rwx,go-rwxs /var/www/cydefsig/.gnupg
-
 # Import the empty MySQL database in /var/www/cydefsig/app/MYSQL.txt using phpmyadmin or mysql>.
 
 # Now configure your apache server with the DocumentRoot /var/www/cydefsig/app/webroot/
@@ -82,6 +78,12 @@ sudo -u www-data gpg --homedir /var/www/cydefsig/.gnupg --gen-key
 # And export the public key to the webroot
 sudo -u www-data gpg --homedir .gnupg --export --armor no-reply > app/webroot/gpg.asc
 
+# Create the Role Based Access Control (RBAC) tables and content:
+cd /var/www/cydefsig/app
+./Console/cake schema create DbAcl
+./Console/cake acl create aco root controllers
+./Console/cake AclExtras.AclExtras aco_sync
+./Console/cake populate0_2_3
 
 
 Now log in using the webinterface:
