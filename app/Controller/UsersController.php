@@ -93,7 +93,6 @@ class UsersController extends AppController {
 			$this->User->set('password', '');
 			$this->request->data = $this->User->data;
 		}
-		$this->request->data['User']['org'] = $this->Auth->user('org');
 		// XXX ACL groups
 		$groups = $this->User->Group->find('list');
 		$this->set(compact('groups'));
