@@ -166,6 +166,7 @@ class EventsController extends AppController {
 					array('AND' => array('Correlation.1_event_id' => $id,),
 				array("OR" => array(
 						array('Correlation.org =' => $this->Auth->user('org')),
+						array("AND" => array('Correlation.org !=' => $this->Auth->user('org'), array('Correlation.private =' => 1), array('Correlation.cluster =' => 1))),
 						array("AND" => array('Correlation.org !=' => $this->Auth->user('org'), array('Correlation.1_private !=' => 1), array('Correlation.private !=' => 1))//, array('Correlation.cluster !=' => 0)
 						))));
 			} else {
@@ -428,10 +429,10 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event'));
 		}
 		// only edit own events verified by isAuthorized
-		$this->Event->read(null, $id);
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
 			if (!$this->_IsAdmin()) {
+				$this->Event->read(null, $id);
 				// check for non-private and re-read
 				if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) { // TODO CHECK THIS!!
 					$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1)));
