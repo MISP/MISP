@@ -39,6 +39,7 @@
 
 	//Router::connect('/admin/users/terms', array('controller' => 'users', 'action' => 'terms'));
 	Router::connect('/admin/users/login', array('controller' => 'users', 'action' => 'login'));
+	Router::connect('/admin/users/routeafterlogin', array('controller' => 'users', 'action' => 'routeafterlogin'));
 
 	// Activate REST
 	Router::mapResources(array('events'));
