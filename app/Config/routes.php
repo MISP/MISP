@@ -37,7 +37,7 @@
 	Router::connect('/logs/admin_index/*', array('controller' => 'logs', 'action' => 'index', 'admin' => true));
 	Router::connect('/logs/admin_search/*', array('controller' => 'logs', 'action' => 'search', 'admin' => true));
 
-	Router::connect('/admin/users/terms', array('controller' => 'users', 'action' => 'terms'));
+	//Router::connect('/admin/users/terms', array('controller' => 'users', 'action' => 'terms'));
 	Router::connect('/admin/users/login', array('controller' => 'users', 'action' => 'login'));
 
 	// Activate REST
