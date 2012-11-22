@@ -395,6 +395,21 @@ class AttributesController extends AppController {
 		}
 		// only own attributes verified by isAuthorized
 
+		if ('true' == Configure::read('CyDefSIG.private')) {
+			if (!$this->_IsAdmin()) {
+				$this->Attribute->read(null, $id);
+				// check for non-private and re-read
+				if ($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) { // TODO CHECK THIS!!
+					$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1)));
+					$this->Attribute->read(null, $id);
+				}
+				if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkGroup() || !$this->checkAcl('publish')))) {
+					$this->Session->setFlash(__('Invalid attribute.'));
+					$this->redirect(array('controller' => 'users', 'action' => 'terms'));
+				}
+			}
+		}
+
 		$this->Attribute->read();
 		$eventId = $this->Attribute->data['Attribute']['event_id'];
 		if ('attachment' == $this->Attribute->data['Attribute']['type'] ||
