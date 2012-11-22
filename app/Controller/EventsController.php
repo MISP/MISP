@@ -22,7 +22,7 @@ class EventsController extends AppController {
 			'HidsMd5Export',
 			'HidsSha1Export',
 			'NidsExport'
-			);
+	);
 
 	public $paginate = array(
 			'limit' => 60,
@@ -74,9 +74,11 @@ class EventsController extends AppController {
 				$this->paginate = Set::merge($this->paginate,array(
 				'conditions' =>
 						array("OR" => array(
-						array('Event.org =' => $this->Auth->user('org')),
-						array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1)))),
-				));
+							array('Event.org =' => $this->Auth->user('org')),
+							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1)),
+							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private =' => 1), array('Event.cluster =' => 1)))),
+							)
+						);
 			}
 		}
 
@@ -140,12 +142,12 @@ class EventsController extends AppController {
 			if (!$this->_IsAdmin()) {
 				// check for non-private and re-read
 				if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
-					$this->Event->hasMany['Attribute']['conditions'] = array('Attribute.private !=' => 1);
+					$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1)));
 					$this->Event->read(null, $id);
 				}
 
 				// check private
-				if (($this->Event->data['Event']['private']) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
+				if (($this->Event->data['Event']['private'] && !$this->Event->data['Event']['cluster']) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
 					$this->Session->setFlash(__('Invalid event.'));
 					$this->redirect(array('controller' => 'users', 'action' => 'terms'));
 				}
@@ -818,6 +820,7 @@ class EventsController extends AppController {
 				} catch (Exception $e){
 					// catch errors like expired PGP keys
 					$this->log($e->getMessage());
+//					return $e->getMessage(); // TODO Email
 					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 				}
 				// If you wish to send multiple emails using a loop, you'll need
@@ -969,6 +972,7 @@ class EventsController extends AppController {
 				} catch (Exception $e){
 					// catch errors like expired PGP keys
 					$this->log($e->getMessage());
+//					return $e->getMessage(); // TODO Email
 					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 				}
 			} else {
