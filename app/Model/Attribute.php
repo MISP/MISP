@@ -353,7 +353,7 @@ class Attribute extends AppModel {
  * @throws InternalErrorException
  * @return bool always true
  */
-	public function beforeSave() {
+	public function beforeSave($options = array()) {
 		// increment the revision number
 		if (empty($this->data['Attribute']['revision'])) {
 			$this->data['Attribute']['revision'] = 0;
@@ -383,7 +383,7 @@ class Attribute extends AppModel {
 		return true;
 	}
 
-	public function afterSave() {
+	public function afterSave($created) {
 		if ('db' == Configure::read('CyDefSIG.correlation')) {
 			// update correlation..
 			$this->__afterSaveCorrelation($this->data['Attribute']);
@@ -397,7 +397,7 @@ class Attribute extends AppModel {
 		return $result;
 	}
 
-	public function beforeDelete() {
+	public function beforeDelete($cascade = true) {
 		// delete attachments from the disk
 		$this->read();  // first read the attribute from the db
 		if ($this->typeIsAttachment($this->data['Attribute']['type'])) {
@@ -449,7 +449,7 @@ class Attribute extends AppModel {
 		return $data;
 	}
 
-	public function beforeValidate() {
+	public function beforeValidate($options = array()) {
 		// remove leading and trailing blanks
 		$this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
 

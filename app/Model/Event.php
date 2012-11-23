@@ -247,7 +247,7 @@ class Event extends AppModel {
 		)
 	);
 
-	public function beforeDelete() {
+	public function beforeDelete($cascade = true) {
 		// delete event from the disk
 		$this->read();  // first read the event from the db
 		// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
@@ -274,7 +274,7 @@ class Event extends AppModel {
 		return rmdir($dir);
 	}
 
-	public function beforeValidate() {
+	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Event']['uuid'])) {
