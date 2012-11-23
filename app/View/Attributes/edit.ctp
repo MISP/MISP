@@ -123,6 +123,7 @@ function showFormInfo(id) {
 //hide the formInfo things
 $('#AttributeTypeDiv').hide();
 $('#AttributeCategoryDiv').hide();
+$('#AttributeDistributionDiv').hide();
 // fix the select box based on what was selected
 var type_value = $('#AttributeType').val();
 formCategoryChanged("#AttributeCategory");
