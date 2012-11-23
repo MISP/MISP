@@ -176,7 +176,7 @@ class EventsController extends AppController {
 			$relatedAttributes2 = $this->Correlation->find('all',array(
 			'fields' => $fields2,
 			'conditions' => $conditionsCorrelation,
-			'recursive' => 0));
+			'recursive' => 0, 'order' => array('Correlation.event_id DESC')));
 
 			if (empty($relatedAttributes2)) {
 				$relatedEvents = null;
@@ -434,10 +434,6 @@ class EventsController extends AppController {
 			if (!$this->_IsAdmin()) {
 				$this->Event->read(null, $id);
 				// check for non-private and re-read
-				if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) { // TODO CHECK THIS!!
-					$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1)));
-					$this->Event->read(null, $id);
-				}
 				if (($this->Event->data['Event']['org'] != $this->Auth->user('org')) || (($this->Event->data['Event']['org'] == $this->Auth->user('org')) && ($this->Event->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkGroup() || !$this->checkAcl('publish')))) {
 					$this->Session->setFlash(__('Invalid event.'));
 					$this->redirect(array('controller' => 'users', 'action' => 'terms'));

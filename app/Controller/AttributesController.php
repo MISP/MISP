@@ -49,8 +49,9 @@ class AttributesController extends AppController {
 				$this->paginate = Set::merge($this->paginate,array(
 				'conditions' =>
 						array("OR" => array(
-						array('Event.org =' => $this->Auth->user('org')),
-						array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1)))),
+							array('Event.org =' => $this->Auth->user('org')),
+							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1)),
+							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private =' => 1), array('Event.cluster =' => 1), array('Attribute.private =' => 1), array('Attribute.cluster =' => 1)))),
 				)
 				);
 			}
@@ -399,10 +400,6 @@ class AttributesController extends AppController {
 			if (!$this->_IsAdmin()) {
 				$this->Attribute->read(null, $id);
 				// check for non-private and re-read
-				if ($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) { // TODO CHECK THIS!!
-					$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1)));
-					$this->Attribute->read(null, $id);
-				}
 				if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkGroup() || !$this->checkAcl('publish')))) {
 					$this->Session->setFlash(__('Invalid attribute.'));
 					$this->redirect(array('controller' => 'users', 'action' => 'terms'));
