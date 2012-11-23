@@ -125,6 +125,19 @@ class EventsController extends AppController {
 	}
 
 /**
+ * Compare Related Events, first sort on date then on id
+ *
+ * @param unknown_type $a
+ * @param unknown_type $b
+ */
+	public function compareRelatedEvents($a, $b) {
+		$retval = strnatcmp($b['Event']['date'], $a['Event']['date']);
+		if (!$retval)
+			return strnatcmp($b['Event']['id'], $a['Event']['id']);
+		return $retval;
+	}
+
+/**
  * view method
  *
  * @param int $id
@@ -207,13 +220,12 @@ class EventsController extends AppController {
 					}
 				}
 
-				arsort($relatedEventsDates);
 				if (isset($relatedEventsDates)) {
-					$relatedEventsDates = array_unique($relatedEventsDates);
 					foreach ($relatedEventsDates as $key => $relatedEventsDate) {
 						$relatedEvents[] = array('Event' => array('id' => $key, 'date' => $relatedEventsDate));
 					}
 				}
+				usort($relatedEvents, array(&$this, 'compareRelatedEvents'));
 			}
 		} else {
 			$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
