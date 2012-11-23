@@ -155,7 +155,7 @@ class EventsController extends AppController {
 			if (!$this->_IsAdmin()) {
 				// check for non-private and re-read
 				if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
-					$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1)));
+					$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1))); // TODO seems very dangerous for the correlation construction in afterSave!!!
 					$this->Event->read(null, $id);
 				}
 
@@ -176,12 +176,10 @@ class EventsController extends AppController {
 			$relatedAttributes2 = array();
 			if (('true' == Configure::read('CyDefSIG.private')) && ('ADMIN' != $this->Auth->user('org'))) {
 				$conditionsCorrelation =
-					array('AND' => array('Correlation.1_event_id' => $id,),
-				array("OR" => array(
-						array('Correlation.org =' => $this->Auth->user('org')),
-						array("AND" => array('Correlation.org !=' => $this->Auth->user('org'), array('Correlation.private =' => 1), array('Correlation.cluster =' => 1))),
-						array("AND" => array('Correlation.org !=' => $this->Auth->user('org'), array('Correlation.1_private !=' => 1), array('Correlation.private !=' => 1))//, array('Correlation.cluster !=' => 0)
-						))));
+				array('AND' => array('Correlation.1_event_id' => $id),
+				array("OR" => array('Correlation.org =' => $this->Auth->user('org'), 'Correlation.private !=' => 1,
+							'AND' => array('Correlation.private =' => 1,'Correlation.cluster =' => 1)),
+						));
 			} else {
 				$conditionsCorrelation =
 					array('AND' => array('Correlation.1_event_id' => $id,));
