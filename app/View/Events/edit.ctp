@@ -29,7 +29,7 @@ $this->Js->get('#EventRisk')->event('change', 'showFormInfo("#EventRisk")');
 <div class="actions">
 	<ul>
 
-		<li><?php echo $this->Html->link(__('Delete', true), array('action' => 'delete', $this->Form->value('Event.id')), null, sprintf(__('Are you sure you want to delete # %s?', true), $this->Form->value('Event.id'))); ?></li>
+		<li><?php echo $this->Html->link(__('Delete', true), array('action' => 'delete', $this->Form->value('Event.id')), null, __(sprintf('Are you sure you want to delete # %s?', $this->Form->value('Event.id')), true)); ?></li>
 		<li>&nbsp;</li>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
