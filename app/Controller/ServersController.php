@@ -314,7 +314,7 @@ class ServersController extends AppController {
 
 		$findParams = array(
 				'conditions' => array(
-						'Event.id >' => $lastpushedid,
+						'Event.id >' => $lastpushedid, // TODO think about this one!!
 						'Event.private' => 0,
 						'Event.published' => 1
 						), //array of conditions
