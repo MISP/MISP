@@ -21,3 +21,5 @@ ALTER TABLE `correlations` ADD 1_private tinyint(1) NOT NULL;
 
 ALTER TABLE `attributes` ADD `cluster` tinyint(1) NOT NULL;
 ALTER TABLE `events` ADD `cluster` tinyint(1) NOT NULL;
+
+ALTER TABLE `correlations` ADD 1_org varchar(255) COLLATE utf8_bin NOT NULL;
