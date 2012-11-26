@@ -104,6 +104,35 @@ class Server extends AppModel {
 		),
 	);
 
+/**
+ * Trim Array Elements (this should probably be in a behavior)
+ *
+ * @param $array
+ */
+	protected function _trimArray(&$array = array()) {
+		// process some..
+		foreach ($array as &$field) {
+			// remove leading and trailing blanks
+			if (is_string($field)) {
+				$field = trim($field);
+			}
+		}
+		return $array;
+	}
+
+/**
+ *
+ * @param $options
+ */
+	public function beforeValidate($options = array()) {
+		parent::beforeValidate();
+
+		// process some..
+		$this->_trimArray($this->data['Server']);
+
+		return true;
+	}
+
 	public function isOwnedByOrg($serverid, $org) {
 		return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
 	}
