@@ -2,7 +2,9 @@
 
 USER=noud
 CY_HOME=/var/www/cydefsig
-CY_HOME=/var/www/cake2/cydefsig
+#CY_HOME=/var/www/test/nato/cydefsig
+#CY_HOME=/var/www/test/bel_mod/cydefsig
+#CY_HOME=/var/www/test/cert_eu/cydefsig
 
 chown -R ${USER}:www-data ${CY_HOME}
 chmod -R 750 ${CY_HOME}
