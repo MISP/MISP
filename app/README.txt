@@ -47,6 +47,10 @@ cd /var/www/cydefsig/app/
 chmod -R g+w tmp
 chmod -R g+w files
 
+# If installed Crypt_GPG and created it's homedir:
+chown -R www-data:www-data /var/www/cydefsig/.gnupg
+chmod -R u+rwx,go-rwxs /var/www/cydefsig/.gnupg
+
 # Import the empty MySQL database in /var/www/cydefsig/app/MYSQL.txt using phpmyadmin or mysql>.
 
 # Now configure your apache server with the DocumentRoot /var/www/cydefsig/app/webroot/

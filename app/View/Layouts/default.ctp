@@ -35,7 +35,7 @@
 		echo $this->fetch('css');
 		echo $this->fetch('script');
 
-		echo $this->Html->script('jquery-1.7.2.min'); // Include jQuery library
+		echo $this->Html->script('jquery-1.8.2.min'); // Include jQuery library
 	?>
 </head>
 <body>
