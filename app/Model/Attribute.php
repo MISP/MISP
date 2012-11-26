@@ -19,7 +19,8 @@ class Attribute extends AppModel {
 		'userModel' => 'User',
 		'userKey' => 'user_id',
 		'change' => 'full'
-	));
+	),// 'Trim' => array('fields' => array('value'))
+	);
 
 /**
  * Display field
@@ -450,7 +451,10 @@ class Attribute extends AppModel {
 	}
 
 	public function beforeValidate($options = array()) {
+		parent::beforeValidate();
+
 		// remove leading and trailing blanks
+		//$this->trimStringFields(); // TODO
 		$this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
 
 		if (!isset($this->data['Attribute']['type'])) {
@@ -940,10 +944,19 @@ class Attribute extends AppModel {
 				);
 				$eventDate = $this->Event->find('first', $params);
 
+				//// not needed seek original Org
+				//$params = array(
+				//	'conditions' => array('Event.id' => $attribute['event_id']),
+				//	'recursive' => 0,
+				//	'fields' => array('Event.org')
+				//);
+				//$eventOrg = $this->Event->find('first', $params);
+
 				$this->Correlation->create();
 				$this->Correlation->save(array(
 					'Correlation' => array(
 						'1_event_id' => $attribute['event_id'], '1_attribute_id' => $attribute['id'], '1_private' => isset($attribute['private']) ? $attribute['private'] : false,
+						//'1_org' => $eventOrg['Event']['org'], // TODO newest
 						'event_id' => $relatedAttribute['Attribute']['event_id'], 'attribute_id' => $relatedAttribute['Attribute']['id'],
 						'org' => $eventDate['Event']['org'],
 						'private' => $relatedAttribute['Attribute']['private'],
@@ -974,6 +987,7 @@ class Attribute extends AppModel {
 				$this->Correlation->save(array(
 					'Correlation' => array(
 						'1_event_id' => $relatedAttribute['Attribute']['event_id'], '1_attribute_id' => $relatedAttribute['Attribute']['id'], '1_private' => $relatedAttribute['Attribute']['private'],
+						//'1_org' => $relatedAttribute['Event']['org'], // TODO newest
 						'event_id' => $attribute['event_id'], 'attribute_id' => $attribute['id'],
 						'org' => $eventDate['Event']['org'],
 						'private' => isset($attribute['private']) ? $attribute['private'] : false,

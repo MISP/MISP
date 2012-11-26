@@ -12,7 +12,7 @@ class Server extends AppModel {
 		'userModel' => 'User',
 		'userKey' => 'user_id',
 		'change' => 'full'
-	));
+	), 'Trim');
 
 /**
  * Display field
@@ -105,22 +105,6 @@ class Server extends AppModel {
 	);
 
 /**
- * Trim Array Elements (this should probably be in a behavior)
- *
- * @param $array
- */
-	protected function _trimArray(&$array = array()) {
-		// process some..
-		foreach ($array as &$field) {
-			// remove leading and trailing blanks
-			if (is_string($field)) {
-				$field = trim($field);
-			}
-		}
-		return $array;
-	}
-
-/**
  *
  * @param $options
  */
@@ -128,7 +112,7 @@ class Server extends AppModel {
 		parent::beforeValidate();
 
 		// process some..
-		$this->_trimArray($this->data['Server']);
+		$this->trimStringFields();
 
 		return true;
 	}
