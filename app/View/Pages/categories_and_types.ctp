@@ -5,7 +5,7 @@
 3. <?php echo $this->Html->link(__('Using the system', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system')); ?><br />
 4. <?php echo $this->Html->link(__('Administration', true), array('controller' => 'pages', 'action' => 'display', 'administration')); ?><br />
 5. <?php echo $this->Html->link(__('Categories and Types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>
-<br /><br /><hr/><br />
+<br /><br /><hr /><br />
 <?php
 // Load the Attribute model to extract the documentation from the defintions
 App::import('Model', 'Attribute');
