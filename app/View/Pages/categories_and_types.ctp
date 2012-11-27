@@ -5,8 +5,7 @@
 3. <?php echo $this->Html->link(__('Using the system', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system')); ?><br />
 4. <?php echo $this->Html->link(__('Administration', true), array('controller' => 'pages', 'action' => 'display', 'administration')); ?><br />
 5. <?php echo $this->Html->link(__('Categories and Types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>
-<p>&nbsp;</p>
-<hr /><br />
+<br /><br /><hr/><br />
 <?php
 // Load the Attribute model to extract the documentation from the defintions
 App::import('Model', 'Attribute');
@@ -14,7 +13,7 @@ $attr = new Attribute();
 ?>
 <h2>Attribute Categories and Types</h2>
 <h3>Attribute Categories vs Types</h3>
-<table summary="">
+<table summary = "">
 <tr>
 	<th>Category</th>
 	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
@@ -37,7 +36,7 @@ $attr = new Attribute();
 </tr>
 </table>
 <h3>Categories</h3>
-<table summary="">
+<table summary = "">
 <tr>
 	<th>Category</th>
 	<th>Description</th>
@@ -50,7 +49,7 @@ $attr = new Attribute();
 </tr>
 </table>
 <h3>Types</h3>
-<table summary="">
+<table summary = "">
 <tr>
 	<th>Type</th>
 	<th>Description</th>
