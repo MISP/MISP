@@ -14,52 +14,82 @@ $attr = new Attribute();
 <h2>Attribute Categories and Types</h2>
 <h3>Attribute Categories vs Types</h3>
 <table summary = "">
+	<tr>
+		<th>
+			Category
+		</th>
+		<?php foreach ($attr->categoryDefinitions as $cat => $catDef):	?>
+		<th style="width:5%; text-align:center; white-space:normal">
+			<?php echo $cat; ?>
+		</th>
+	<?php
+endforeach;
+	?>
+	</tr>
+	<?php foreach ($attr->typeDefinitions as $type => $def): ?>
+	<tr>
+		<td>
+			<?php echo $type; ?>
+		</td>
+	<?php
+	foreach ($attr->categoryDefinitions as $cat => $catDef):
+		?>
+		<td style="text-align:center">
+			<?php echo in_array($type, $catDef['types'])? 'X' : ''; ?>
+		</td>
+		<?php
+	endforeach;
+		?>
+		<?php
+endforeach;
+		?>
+	</tr>
 <tr>
 	<th>Category</th>
 	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
 	<th style="width:5%; text-align:center; white-space:normal"><?php echo $cat; ?></th>
-	<?php endforeach;?>
-</tr>
-<?php foreach ($attr->typeDefinitions as $type => $def): ?>
-<tr>
-	<td><?php echo $type; ?></td>
-	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
-	<td style="text-align:center"><?php echo in_array($type, $catDef['types'])? 'X' : ''; ?></td>
-	<?php endforeach;?>
-<?php endforeach;?>
-</tr>
-<tr>
-	<th>Category</th>
-	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
-	<th style="width:5%; text-align:center; white-space:normal"><?php echo $cat; ?></th>
-	<?php endforeach;?>
+	<?php
+endforeach;
+	?>
 </tr>
 </table>
 <h3>Categories</h3>
 <table summary = "">
-<tr>
-	<th>Category</th>
-	<th>Description</th>
-</tr>
-<?php foreach ($attr->categoryDefinitions as $cat => $def): ?>
-<tr>
-	<td><?php echo $cat; ?></td>
-	<td><?php echo isset($def['formdesc'])? $def['formdesc'] : $def['desc']; ?></td>
-<?php endforeach;?>
-</tr>
+	<tr>
+		<th>Category</th>
+		<th>Description</th>
+	</tr>
+	<?php foreach ($attr->categoryDefinitions as $cat => $def): ?>
+	<tr>
+		<td>
+			<?php echo $cat; ?>
+		</td>
+		<td>
+			<?php echo isset($def['formdesc'])? $def['formdesc'] : $def['desc']; ?>
+	</td>
+	</tr>
+	<?php
+endforeach;
+	?>
 </table>
 <h3>Types</h3>
 <table summary = "">
-<tr>
-	<th>Type</th>
-	<th>Description</th>
-</tr>
-<?php foreach ($attr->typeDefinitions as $type => $def): ?>
-<tr>
-	<td><?php echo $type; ?></td>
-	<td><?php echo isset($def['formdesc'])? $def['formdesc'] : $def['desc']; ?></td>
-<?php endforeach;?>
-</tr>
+	<tr>
+		<th>Type</th>
+		<th>Description</th>
+	</tr>
+	<?php foreach ($attr->typeDefinitions as $type => $def): ?>
+	<tr>
+		<td>
+			<?php echo $type; ?>
+		</td>
+		<td>
+			<?php echo isset($def['formdesc'])? $def['formdesc'] : $def['desc']; ?>
+		</td>
+		<?php
+endforeach;
+		?>
+	</tr>
 </table>
 
 
