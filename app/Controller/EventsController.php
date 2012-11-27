@@ -272,22 +272,27 @@ class EventsController extends AppController {
 			// check if the uuid already exists
 			$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 			if ($existingEventCount > 0) {
-				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
-				$data['Event']['id'] = $existingEvent['Event']['id'];
-				$data['Event']['org'] = $existingEvent['Event']['org'];
-				// attributes..
-				$c = 0;
-				if (isset($data['Attribute'])) {
-					foreach ($data['Attribute'] as $attribute) {
-						// ..do some
-						$existingAttributeCount = $this->Event->Attribute->find('count', array('conditions' => array('Attribute.uuid' => $attribute['uuid'])));
-						if ($existingAttributeCount > 0) {
-							$existingAttribute = $this->Event->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $attribute['uuid'])));
-							$data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
-						}
-						$c++;
-					}
-				}
+				$message = 'Error - inserting/updating existing event not possible using REST';
+				$this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
+				$this->render('edit');
+				return false;
+				// Removed this code because it created bugs
+// 				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
+// 				$data['Event']['id'] = $existingEvent['Event']['id'];
+// 				$data['Event']['org'] = $existingEvent['Event']['org'];
+// 				// attributes..
+// 				$c = 0;
+// 				if (isset($data['Attribute'])) {
+// 					foreach ($data['Attribute'] as $attribute) {
+// 						// ..do some
+// 						$existingAttributeCount = $this->Event->Attribute->find('count', array('conditions' => array('Attribute.uuid' => $attribute['uuid'])));
+// 						if ($existingAttributeCount > 0) {
+// 							$existingAttribute = $this->Event->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $attribute['uuid'])));
+// 							$data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
+// 						}
+// 						$c++;
+// 					}
+// 				}
 			}
 		}
 
@@ -325,36 +330,43 @@ class EventsController extends AppController {
 
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
-				// Workaround for different structure in XML/array than what CakePHP expects
-				$this->Event->cleanupEventArrayFromXML($this->request->data);
+				// disable edit for REST
+				$message = 'Error - updating existing event not possible using REST';
+				$this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
+				$this->render('edit');
+				return false;
 
-				// the event_id field is not set (normal) so make sure no validation errors are thrown
-				// LATER do this with	 $this->validator()->remove('event_id');
-				unset($this->Event->Attribute->validate['event_id']);
-				unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 
-				$fieldList = array(
-					'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private'),
-					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
-				);
-				// this saveAssociated() function will save not only the event, but also the attributes
-				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-				if ($this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList))) {
-					$message = 'Saved';
+// 				// Workaround for different structure in XML/array than what CakePHP expects
+// 				$this->Event->cleanupEventArrayFromXML($this->request->data);
 
-					$this->set('event', $this->Event);
+// 				// the event_id field is not set (normal) so make sure no validation errors are thrown
+// 				// LATER do this with	 $this->validator()->remove('event_id');
+// 				unset($this->Event->Attribute->validate['event_id']);
+// 				unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 
-					// REST users want to see the newly created event
-					$this->view($this->Event->getId());
-					$this->render('view');
-					return true;
-				} else {
-					$message = 'Error';
-					$this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
-					$this->render('edit');
-					//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
-					return false;
-				}
+// 				$fieldList = array(
+// 					'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private'),
+// 					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
+// 				);
+// 				// this saveAssociated() function will save not only the event, but also the attributes
+// 				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
+// 				if ($this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList))) {
+// 					$message = 'Saved';
+
+// 					$this->set('event', $this->Event);
+
+// 					// REST users want to see the newly created event
+// 					$this->view($this->Event->getId());
+// 					$this->render('view');
+// 					return true;
+// 				} else {
+// 					$message = 'Error';
+// 					$this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
+// 					$this->render('edit');
+// 					//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
+// 					return false;
+// 				}
 			}
 
 			// say what fields are to be updated
