@@ -842,7 +842,6 @@ class EventsController extends AppController {
 				} catch (Exception $e){
 					// catch errors like expired PGP keys
 					$this->log($e->getMessage());
-//					return $e->getMessage(); // TODO Email
 					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 				}
 				// If you wish to send multiple emails using a loop, you'll need
@@ -994,7 +993,6 @@ class EventsController extends AppController {
 				} catch (Exception $e){
 					// catch errors like expired PGP keys
 					$this->log($e->getMessage());
-//					return $e->getMessage(); // TODO Email
 					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 				}
 			} else {

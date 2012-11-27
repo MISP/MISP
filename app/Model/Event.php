@@ -46,7 +46,7 @@ class Event extends AppModel {
 
 	public $distributionDescriptions = array(
 		'Your organization only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the event"),
-		'This server-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Every organisation on the server can see  this event"),
+		'This server-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Every organisation on the server can see this event"),
 		'This Community-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Event visible to all on this and _allied_ CyDefSIG instances but will not be shared past it"), // former Community
 		'Connected communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Event visible to CyDefSIG instances with more then two servers but will not be shared past it"),
 		'All communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to every connected CyDefSIG server"),
@@ -592,14 +592,13 @@ class Event extends AppModel {
 				// only one event.
 				if (isset($eventArray['response']['Event']['id'])) {
 					$eventIds[] = $eventArray['response']['Event']['id'];
-				}
-				else {
+				} else {
 					// multiple events, iterate over the array
 					foreach ($eventArray['response']['Event'] as &$event) {
-					    if (1 != $event['published']) {
-					        continue; // do not keep non-published events
-					    }
-					    $eventIds[] = $event['id'];
+						if (1 != $event['published']) {
+							continue; // do not keep non-published events
+						}
+						$eventIds[] = $event['id'];
 					}
 				}
 				return $eventIds;
