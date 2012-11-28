@@ -328,7 +328,7 @@ class AppController extends Controller {
 		}
 	}
 
-	public function migratemisp11to2() {
+	public function migratemisp11to2($yourOrg = 'NCIRC') {
 		if (!self::_isAdmin()) {
 			throw new NotFoundException();
 		}
@@ -336,6 +336,7 @@ class AppController extends Controller {
 		$this->generatePrivate();
 		$this->generateCorrelation(); // 	TODO
 		$this->generateCount();
+		$this->generateHop($yourOrg);
 	}
 
 	public function generateCorrelation() {
