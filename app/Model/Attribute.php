@@ -940,27 +940,33 @@ class Attribute extends AppModel {
 				$params = array(
 					'conditions' => array('Event.id' => $relatedAttribute['Attribute']['event_id']),
 					'recursive' => 0,
-					'fields' => array('Event.date', 'Event.org')
+					'fields' => array('Event.date', 'Event.org', 'Event.private', 'Event.cluster')
 				);
 				$eventDate = $this->Event->find('first', $params);
 
-				//// not needed seek original Org
-				//$params = array(
-				//	'conditions' => array('Event.id' => $attribute['event_id']),
-				//	'recursive' => 0,
-				//	'fields' => array('Event.org')
-				//);
-				//$eventOrg = $this->Event->find('first', $params);
+				// event preveal over atribute
+				$isPrivate = $eventDate['Event']['private'] ? $eventDate['Event']['private'] : $relatedAttribute['Attribute']['private'];
+				$isCluster = $eventDate['Event']['cluster'] ? $eventDate['Event']['cluster'] : $relatedAttribute['Attribute']['cluster'];
+
+				// needed seek original Org
+				$params = array(
+					'conditions' => array('Event.id' => $attribute['event_id']),
+					'recursive' => 0,
+					'fields' => array('Event.org', 'Event.private', 'Event.cluster')
+				);
+				$eventOrg = $this->Event->find('first', $params);
+				$origPrivate = isset($attribute['private']) ? $attribute['private'] : false;
+				$origPrivate = $eventOrg['Event']['private'] ? $eventOrg['Event']['private'] : $origPrivate;
 
 				$this->Correlation->create();
 				$this->Correlation->save(array(
 					'Correlation' => array(
-						'1_event_id' => $attribute['event_id'], '1_attribute_id' => $attribute['id'], '1_private' => isset($attribute['private']) ? $attribute['private'] : false,
+						'1_event_id' => $attribute['event_id'], '1_attribute_id' => $attribute['id'], '1_private' => $origPrivate,
 						//'1_org' => $eventOrg['Event']['org'], // TODO newest
 						'event_id' => $relatedAttribute['Attribute']['event_id'], 'attribute_id' => $relatedAttribute['Attribute']['id'],
 						'org' => $eventDate['Event']['org'],
-						'private' => $relatedAttribute['Attribute']['private'],
-						'cluster' => $relatedAttribute['Attribute']['cluster'],
+						'private' => $isPrivate,
+						'cluster' => $isCluster,
 						'date' => $eventDate['Event']['date']))
 				);
 			}
@@ -979,19 +985,34 @@ class Attribute extends AppModel {
 				$params = array(
 					'conditions' => array('Event.id' => $attribute['event_id']),
 					'recursive' => 0,
-					'fields' => array('Event.date', 'Event.org')
+					'fields' => array('Event.date', 'Event.org', 'Event.private', 'Event.cluster')
 				);
 				$eventDate = $this->Event->find('first', $params);
+				// event preveal over atribute
+				$origPrivate = isset($attribute['private']) ? $attribute['private'] : false;
+				$origPrivate = $eventDate['Event']['private'] ? $eventDate['Event']['private'] : $origPrivate;
+				$origCluster = isset($attribute['cluster']) ? $attribute['cluster'] : false;
+				$origCluster = $eventDate['Event']['cluster'] ? $eventDate['Event']['cluster'] : $origCluster;
+
+				// event preveal over atribute
+				$params = array(
+					'conditions' => array('Event.id' => $relatedAttribute['Attribute']['event_id']),
+					'recursive' => 0,
+					'fields' => array('Event.date', 'Event.org', 'Event.private', 'Event.cluster')
+				);
+				$isEvent = $this->Event->find('first', $params);
+				$isPrivate = $isEvent['Event']['private'] ? $isEvent['Event']['private'] : $relatedAttribute['Attribute']['private'];
+				$isCluster = $isEvent['Event']['cluster'] ? $isEvent['Event']['cluster'] : $relatedAttribute['Attribute']['cluster'];
 
 				$this->Correlation->create();
 				$this->Correlation->save(array(
 					'Correlation' => array(
-						'1_event_id' => $relatedAttribute['Attribute']['event_id'], '1_attribute_id' => $relatedAttribute['Attribute']['id'], '1_private' => $relatedAttribute['Attribute']['private'],
+						'1_event_id' => $relatedAttribute['Attribute']['event_id'], '1_attribute_id' => $relatedAttribute['Attribute']['id'], '1_private' => $isPrivate,
 						//'1_org' => $relatedAttribute['Event']['org'], // TODO newest
 						'event_id' => $attribute['event_id'], 'attribute_id' => $attribute['id'],
 						'org' => $eventDate['Event']['org'],
-						'private' => isset($attribute['private']) ? $attribute['private'] : false,
-						'cluster' => isset($attribute['cluster']) ? $attribute['cluster'] : false,
+						'private' => $origPrivate,
+						'cluster' => $origCluster,
 						'date' => $eventDate['Event']['date']))
 				);
 			}
