@@ -180,6 +180,9 @@ class ServersController extends AppController {
 							if (!isset($event['Event']['distribution'])) { // version 1
 								$event['Event']['distribution'] = 'This Community-only';
 							}
+							// up the hop count
+							$event['Event']['hop_count']++;
+
 							// Distribution
 							switch($event['Event']['distribution']) {
 								case 'Your organization only': // Distribution, no Org only in Event

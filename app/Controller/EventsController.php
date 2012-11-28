@@ -380,6 +380,10 @@ class EventsController extends AppController {
 			unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 		}
 
+		// upstream: false = distribution
+		// true = reverse distribution, back to origin
+		$upstream = false;
+
 		if (isset($data['Event']['uuid'])) {	// TODO here we should start RESTful dialog
 			// check if the uuid already exists
 			$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
@@ -387,6 +391,10 @@ class EventsController extends AppController {
 				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 				$data['Event']['id'] = $existingEvent['Event']['id'];
 				$data['Event']['org'] = $existingEvent['Event']['org'];
+				/// hop
+				if ($existingEvent['Event']['hop_count'] < $data['Event']['hop_count']) { // up-stream..
+					$upstream = true;
+				}
 				// attributes..
 				$c = 0;
 				if (isset($data['Attribute'])) {
@@ -403,10 +411,17 @@ class EventsController extends AppController {
 			}
 		}
 
-		$fieldList = array(
-				'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie')
-		);
+		if ($upstream) {
+			$fieldList = array(
+					'Event' => array('date', 'risk', 'info', 'published', 'uuid'),
+					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision')
+			);
+		} else {
+			$fieldList = array(
+					'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'hop_count'),
+					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie')
+			);
+		}
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
 			$data = $this->Event->massageData(&$data);

@@ -67,6 +67,7 @@ class AppSchema extends CakeSchema {
 		'cluster' => array('type' => 'boolean', 'null' => false, 'default' => NULL),
 		'communitie' => array('type' => 'boolean', 'null' => false, 'default' => NULL),
 		'attribute_count' => array('type' => 'integer', 'null' => false, 'default' => NULL, 'length' => 11),
+		'hop_count' => array('type' => 'integer', 'null' => false, 'default' => '0', 'length' => 11),
 		//'alerted' => array('type' => 'boolean', 'null' => false, 'default' => '0'),
 		'indexes' => array('PRIMARY' => array('column' => 'id', 'unique' => 1), 'uuid' => array('column' => 'uuid', 'unique' => 0), 'info' => array('column' => 'info', 'unique' => 0)),
 		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'MyISAM')
