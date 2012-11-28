@@ -569,9 +569,9 @@ class EventsController extends AppController {
 		if ($this->Event->delete()) {
 
 			// delete the event from remote servers
-			if ('true' == Configure::read('CyDefSIG.sync')) {	// TODO test..(!$this->_isRest()) &&
-				$this->__deleteEventFromServers($uuid);
-			}
+			//if ('true' == Configure::read('CyDefSIG.sync')) {	// TODO test..(!$this->_isRest()) &&
+			//	$this->__deleteEventFromServers($uuid);
+			//}
 
 			$this->Session->setFlash(__('Event deleted'));
 			$this->redirect(array('action' => 'index'));
