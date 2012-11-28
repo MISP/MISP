@@ -441,6 +441,25 @@ class AppController extends Controller {
 	}
 
 /**
+ * generate Hop count
+ * 0: orig
+ * +1: one step downstream
+ *
+ * @param unknown_type $yourOrg being f.i. 'NCIRC' or 'MIL.be'
+ */
+	public function generateHop($yourOrg = 'NCIRC') {
+		if (!self::_isAdmin()) throw new NotFoundException();
+
+		$this->loadModel('Event');
+		$events = $this->Event->find('all', array('recursive' => 0));
+		// for all attributes..
+		foreach ($events as $event) {
+			$event['Event']['hop_count'] = $event['Event']['org'] == $yourOrg ? '0' : '1';
+			$this->Event->save($event);
+		}
+	}
+
+/**
  * CakePHP returns false if filesize is 0 at lib/cake/Utility/File.php:384
  */
 	public function checkEmpty($fileP = '/var/www/cydefsig/app/files/test') {
