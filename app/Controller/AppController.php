@@ -413,8 +413,9 @@ class AppController extends Controller {
 		$attributes = $this->Attribute->find('all',array('recursive' => 0));
 		foreach ($attributes as $attribute) {
 			if ($attribute['Attribute']['private']) {
-				$attribute['Attribute']['private'] = false;
-				$attribute['Attribute']['pull'] = true;
+				$attribute['Attribute']['private'] = true;
+				$attribute['Attribute']['cluster'] = false;
+				$attribute['Attribute']['communitie'] = false;
 			}
 			$this->Attribute->save($attribute);
 		}
@@ -423,8 +424,9 @@ class AppController extends Controller {
 		$events = $this->Event->find('all',array('recursive' => 0));
 		foreach ($events as $event) {
 			if ($event['Event']['private']) {
-				$event['Event']['private'] = false;
-				$event['Event']['pull'] = true;
+				$attribute['Event']['private'] = true;
+				$attribute['Event']['cluster'] = false;
+				$attribute['Event']['communitie'] = false;
 			}
 			$this->Event->save($event);
 		}
