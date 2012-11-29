@@ -304,8 +304,8 @@ class EventsController extends AppController {
 		// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
 		if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
-				// call __sendAlertEmail if published was set in the request
-				$this->__sendAlertEmail($this->Event->getId());
+				// do the necessary actions to publish the event (email, upload,...)
+				$this->__publish($this->Event->getId());
 			}
 			return true;
 		} else {
