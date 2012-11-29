@@ -193,7 +193,11 @@ class EventsController extends AppController {
 				$relatedEvents = null;
 			} else {
 				foreach ($relatedAttributes2 as $relatedAttribute2) {
-					$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = array('Attribute' => $relatedAttribute2['Correlation']);
+					$helpArray = array();
+					if (!isset($helpArray[$relatedAttribute2['Correlation']['1_attribute_id']]) || !in_array($relatedAttribute2['Correlation']['event_id'], $helpArray[$relatedAttribute2['Correlation']['1_attribute_id']])) {
+						$helpArray[$relatedAttribute2['Correlation']['1_attribute_id']][] = $relatedAttribute2['Correlation']['event_id'];
+						$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = array('Attribute' => $relatedAttribute2['Correlation']);
+					}
 				}
 
 				foreach ($this->Event->data['Attribute'] as &$attribute) {
