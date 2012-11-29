@@ -378,15 +378,16 @@ class UsersController extends AppController {
 		// Nice graphical histogram
 		$this->loadModel('Attribute');
 		$sigTypes = array_keys($this->Attribute->typeDefinitions);
-
+		$replace = array('-', '|');
 		$graphFields = '';
 		foreach ($sigTypes as &$sigType) {
 			if ($graphFields != "")  $graphFields .= ", ";
 			$graphFields .= "'" . $sigType . "'";
 		}
+		$graphFields = str_replace($replace, "_", $graphFields);
 		$this->set('graphFields', $graphFields);
 
-		$replace = array('-', '|');
+
 		$graphData = array();
 		$prevRowOrg = "";
 		$i = -1;
