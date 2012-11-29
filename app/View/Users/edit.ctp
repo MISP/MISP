@@ -19,8 +19,6 @@
 
 <div class="actions">
 	<ul>
-		<li><?php echo $this->Html->link(__('Delete User', true), array('action' => 'delete', $this->Form->value('User.id'))); ?></li>
-		<li>&nbsp;</li>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
