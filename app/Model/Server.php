@@ -104,19 +104,6 @@ class Server extends AppModel {
 		),
 	);
 
-/**
- *
- * @param $options
- */
-	public function beforeValidate($options = array()) {
-		parent::beforeValidate();
-
-		// process some..
-		$this->trimStringFields();
-
-		return true;
-	}
-
 	public function isOwnedByOrg($serverid, $org) {
 		return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
 	}

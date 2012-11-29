@@ -228,7 +228,7 @@ class User extends AppModel {
 			'userModel' => 'User',
 			'userKey' => 'user_id',
 			'change' => 'full'
-		)
+		), 'Trim'
 	);
 
 /**

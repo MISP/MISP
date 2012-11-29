@@ -14,7 +14,7 @@ class Event extends AppModel {
 		'userModel' => 'User',
 		'userKey' => 'user_id',
 		'change' => 'full'
-	));
+	), 'Trim');
 
 /**
  * Display field

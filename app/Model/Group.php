@@ -51,7 +51,7 @@ class Group extends AppModel {
  *
  * @var unknown_type
  */
-	public $actsAs = array('Acl' => array('type' => 'requester'), 'MagicTools.OrphansProtectable');
+	public $actsAs = array('Acl' => array('type' => 'requester'), 'MagicTools.OrphansProtectable', 'Trim');
 
 /**
  * TODO ACL: 2: hook Group into CakePHP ACL system (so link to aros)

@@ -20,6 +20,8 @@ class Whitelist extends AppModel {
  */
 	public $displayField = 'name';
 
+	public $actsAs = array('Trim');
+
 /**
  * Validation rules
  *

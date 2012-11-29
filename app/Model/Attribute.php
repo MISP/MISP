@@ -19,7 +19,7 @@ class Attribute extends AppModel {
 		'userModel' => 'User',
 		'userKey' => 'user_id',
 		'change' => 'full'
-	),// 'Trim' => array('fields' => array('value'))
+	), 'Trim' // => array('fields' => array('value'))
 	);
 
 /**
