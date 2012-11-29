@@ -406,9 +406,14 @@ class AppController extends Controller {
 	}
 
 	public function generatePrivate() {
+		$this->generatePrivateForAttributes();
+		$this->generatePrivateForEvents();
+
+	}
+
+	public function generatePrivateForAttributes() {
 		if (!self::_isAdmin()) throw new NotFoundException();
 
-		$this->loadModel('Correlation');
 		$this->loadModel('Attribute');
 		$attributes = $this->Attribute->find('all',array('recursive' => 0));
 		foreach ($attributes as $attribute) {
@@ -419,6 +424,10 @@ class AppController extends Controller {
 			}
 			$this->Attribute->save($attribute);
 		}
+	}
+
+	public function generatePrivateForEvents() {
+		if (!self::_isAdmin()) throw new NotFoundException();
 
 		$this->loadModel('Event');
 		$events = $this->Event->find('all',array('recursive' => 0));
