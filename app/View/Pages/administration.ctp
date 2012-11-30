@@ -5,7 +5,7 @@
 3. <?php echo $this->Html->link(__('Using the system', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system')); ?><br />
 4. <?php echo $this->Html->link(__('Administration', true), array('controller' => 'pages', 'action' => 'display', 'administration')); ?><br />
 <ul>
-	<li>a. <a href="#connect">Connecting to other servers</a></li>
+	<li>a. <a href="#regex">Regex</a></li>
 	<li>b. <a href="#whitelist">Whitelists</a></li>
 	<li>c. <a href="#user">User Management</a></li>
 	<li>d. <a href="#roles">Role Management</a></li>
@@ -13,27 +13,13 @@
 </ul>
 5. <?php echo $this->Html->link(__('Categories and Types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>
 <br /><br /><hr /><br />
-<h2><a name ="connect"></a>Connecting to other servers:</h2>
-Apart from being a self contained repository of attacks/malware, one of the main features of MISP is its ability to connect to other instances of the server and share (parts of) its information. The following options allow administrators to set up and maintain such connections.<br /><br />
-<h3><a name ="new_server"></a>Setting up a connection to another server:</h3>
-In order to share data with a remote server via pushes and pulls, you need to create an account on the remote server, note down the authentication key and use that to add the server on the home server. When clicking on List Servers and then on New Server, a form comes up that needs to be filled out in order for your server to connect to it. The following fields need to be filled out:<br /><br />
-<p><img src="/img/doc/add_server.png" alt ="Add server" title = "Make sure that you enter the authentication key that you have been assigned on the remote server instead of the one you got from this server."/></p><br />
-<ul>
-	<li><em>Base URL:</em> The URL of the remote server.<br /><br /></li>
-	<li><em>Organization:</em> The organisation that runs the remote server.<br /><br /></li>
-	<li><em>Authkey:</em> The authentication key that you have received on the remote server.<br /><br /></li>
-	<li><em>Push:</em> This check-box controls whether your server is allowed to push to the remote server.<br /><br /></li>
-	<li><em>Pull:</em> This check-box controls whether your server can request to pull all data from the request server.<br /><br /></li>
-</ul>
-<h3>Browsing the currently set up server connections and interacting with them:</h3>
-If you ever need to change the data about the linked servers or remove any connections, you have the following options to view and manipulate the server connections, when clicking on List Servers: (you will be able to see a list of all servers that your server connects to, including the base address, the organisation running the server the last pushed and pulled event IDs and the control buttons.)<br /><br />
-<p><img src="/img/doc/list_servers.png" alt = "" title = "Apart from editing / deleting the link to the remote server, you can issue a push all or pull all command from here."/></p><br />
-<ul>
-	<li><em>Editing the server data:</em> By clicking edit a view, <a href=#new_server>that is identical to the new server view</a>, is loaded, with all the current information on the server pre-entered.<br /><br /></li>
-	<li><em>Deleting the server:</em> Clicking the delete button will delete the link to your server.<br /><br /></li>
-	<li><em>Push all:</em> By clicking this button, all events that are eligible to be pushed on your server will start to be pushed to the remote server.<br /><br /></li>
-	<li><em>Pull all:</em> By clicking this button, all events that are set to be pull-able or full access on the remote server will be copied to your server. <br /><br /></li>
-</ul>
+<h2><a name ="regex"></a>Regex</h2>
+The system allows administrators to set up rules for regular expressions that will automatically altered newly entered or imported events (from GFI Sandbox).<br /><br />
+<h3>The purpose of Regex entries</h3>
+They can be used for several things, such as unifying the capitalisation of file paths for more accurate event correlation or to automatically censor the usernames and standardise the file paths (changing C:\Users\UserName\Appdata\Roaming\file.exe to %APPDATA%\\).<br /><br />
+<h3>Adding and modifying entries</h3>
+Administrators can add, edit or delete Regex rules, which are made up of a pattern that the system searches for and a replacement for the detected pattern.<br /><br />
+<p><img src="/img/doc/regex.png" alt = "" title = "Add, edit or remove Regex entries that will affect all newly created attributes here."/></p><br />
 <br /><hr /><br />
 <h2><a name ="whitelist"></a>Managing the whitelist</h2>
 The whitelist view, accessible through the administration menu on the left, allows administrators to create and maintain a list of addresses that are whitelisted from ever being added to the NIDS signatures. Addresses listed here will be commented out when exporting the NIDS list.<br /><br />

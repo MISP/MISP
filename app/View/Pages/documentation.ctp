@@ -8,9 +8,8 @@
 <br /><hr /><br />
 <h2>General Layout</h2><br />
 	<h3>The top bar</h3>
-	The top bar's only interactive part is a link to the MISP system itself - this will redirect the user to the default view of the site, which is the List Events view.
-
-	The left menu
+	The top bar's only interactive part is a link to the MISP system itself - this will redirect the user to the default view of the site, which is the List Events view.<br /><br />
+	<h3>The left menu</h3>
 	This menu contains all of the main functions of the site as a series of buttons.<br /><br />
 	<p><img src="/img/doc/menu_image.png" alt = "" style="float:right;" title = "This is the main menu that will be accessible from all of the views. In some instances, some additional buttons that will appear on top of these when a view provides it."/></p>
 	<ul>
@@ -19,7 +18,6 @@
 		<li><em>List Attributes:</em> You can browse all the currently stored attributes of events here.</li>
 		<li><em>Search Attributes:</em> Search for and filter a list of attributes.</li>
 		<li><em>Export:</em> Export various types of data from the system for NIDSs or other uses.<br /><br /></li></ul>
-
 	<i><u>Global Actions</u></i><br /><br />
 	<ul>
 		<li><em>News:</em> Read about the latest news regarding the MISP system</li>
@@ -33,6 +31,7 @@
 		<li><em>List Servers:</em> Connect your MISP server to other servers, or view and modify the currently established connections.<br /><br /></li></ul>
 	<i><u>Administration</u></i><br /><br />
 	<ul>
+		<li><em>Regex:</em> Create, modify or delete Regex entries, which will be used for altering newly entered attributes.</li>
 		<li><em>Whitelist:</em> View and manage the list of whitelisted addresses.</li>
 		<li><em>New User:</em> Create an account for a new user.</li>
 		<li><em>List Users:</em> View, modify or delete the currently registered users.</li>
