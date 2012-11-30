@@ -1385,7 +1385,6 @@ class EventsController extends AppController {
 		// write content..
 		foreach ($files as $key => $val) {
 			$keyName = $key;
-			$this->replaceWindowsSpecific(&$keyName);
 
 			if (!strpos($key, $realMalware)) {
 				$itsType = 'malware-sample';
@@ -1446,7 +1445,6 @@ class EventsController extends AppController {
 				if ($key == 'key_name') $arrayItemKey = (string)$val;
 				if ($key == 'data') $arrayItemValue = (string)$val;
 			}
-			$this->replaceWindowsSpecific(&$arrayItemKey);
 			$regs[$arrayItemKey] = str_replace('(UNICODE_0x00000000)', '', $arrayItemValue);
 		}
 		//$regs = array_unique($regs);
@@ -1465,8 +1463,6 @@ class EventsController extends AppController {
 					$itsType = 'regkey|value';
 					$itsValue = $key . '|' . $val;
 				} else {
-					$this->replaceWindowsSpecific(&$val);
-
 					$itsCategory = 'Artifacts dropped'; // Persistence mechanism
 					$itsType = 'regkey|value';
 					$itsValue = $key . '|' . $val;
@@ -1479,37 +1475,6 @@ class EventsController extends AppController {
 				'value' => $itsValue,
 				'to_ids' => false));
 		}
-	}
-
-/**
- * Replace Windows specific info in a $string with environment variables en registry keys
- *
- * @var string
- *
- * @return string
- */
-	public function replaceWindowsSpecific($string) {
-		$string = preg_replace('/C:.Users.(\w+).AppData.Local.Temp./', '%TEMP%\\', $string);
-		$string = preg_replace('/C:.Users.(\w+).AppData.Local./', ' %LOCALAPPDATA%\\', $string);
-		$string = preg_replace('/C:.Users.(\w+).AppData.Roaming./', ' %APPDATA%\\', $string);
-
-		$string = preg_replace('/C:.Users.(\w+)./', '%UserProfile%\\', $string);
-		$string = preg_replace('/C:.Documents and Settings.(\w+) (\w+)./', '%UserProfile%\\', $string);
-		$string = preg_replace('/C:.DOCUME~1.(\w+)./', '%UserProfile%\\', $string);
-
-		$string = str_replace('C:\Documents and Settings\All Users', '%AllUsersProfile%', $string);
-
-		// HKEY_CURRENT_USER
-		$string = preg_replace('@\\\REGISTRY\\\USER\\\S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{9}){1}(-[0-9]{10}){1}-[0-9]{9}-[0-9]{4}@','HKCU', $string);
-		$string = preg_replace('@\\\REGISTRY\\\USER\\\S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){2}-[0-9]{9}-[0-9]{4}@','HKCU', $string);
-		$string = preg_replace('@\\\REGISTRY\\\USER\\\S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){3}-[0-9]{4}@','HKCU', $string);
-		// HKEY_LOCAL_MACHINE
-		$string = preg_replace('@\\\REGISTRY\\\MACHINE\\\@','HKLM\\', $string);
-		$string = preg_replace('@\\\Registry\\\Machine\\\@','HKLM\\', $string);
-
-		// TODO registry \REGISTRY\A\{52A5DC92-9452-11E1-804B-000C29C043FE}\DefaultObjectStore\LruList\0000000000001DFF
-
-		return $string;
 	}
 
 	public function strposarray($string, $array) {
