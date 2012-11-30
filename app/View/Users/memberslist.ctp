@@ -35,7 +35,7 @@ foreach ($graphData as $row) {
 		});
 		var panel1 = Ext.create('widget.panel', {
 			width: 800,
-			height: 800,
+			height: 900,
 			//title: 'Attributes by Organisation',
 			renderTo: 'graph',
 			layout: 'fit',
