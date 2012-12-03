@@ -682,7 +682,7 @@ class AttributesController extends AppController {
 				'recursive' => 0));
 			foreach ($relatedAttributes2 as $relatedAttribute2) {
 				$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = $relatedAttribute2;
-			}1
+			}
 
 			foreach ($event['Attribute'] as &$attribute) {
 				// for REST requests also add the encoded attachment
