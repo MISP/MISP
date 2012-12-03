@@ -9,7 +9,8 @@
 	<li>c. <a href="#update_events">Updating and modifying events</a></li>
 	<li>d. <a href="#contact">Contacting the publisher</a></li>
 	<li>e. <a href="#export">Exporting data</a></li>
-	<li>f. <a href="#rest">Rest API</a></li>
+	<li>f. <a href="#connect">Connecting to other servers</a></li>
+	<li>g. <a href="#rest">Rest API</a></li>
 </ul>
 4. <?php echo $this->Html->link(__('Administration', true), array('controller' => 'pages', 'action' => 'display', 'administration')); ?><br />
 5. <?php echo $this->Html->link(__('Categories and Types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?><br />
@@ -22,26 +23,27 @@ The process of entering an event can be split into 3 phases, the creation of the
 	<ul>
 		<li><em>Date:</em> The date when the incident has happened.<br /><br /></li>
 		<li><em>Distribution:</em> This setting controls, who will be able to see this event once it becomes published. Apart from being able to set which users on your server are allowed to see the event, this also controls whether the event will be synchronised to other servers or not. The following options are available:<br /><br /></li>
-		<li><ul>
+		<ul>
 			<li><i>Your organisation only:</i> This setting will only allow members of your organisation on your server to see it.<br /><br /></li>
 			<li><i>This server only:</i> This setting will only allow members of any organisation on your server to see it.<br /><br /></li>
 			<li><i>This community only:</i> Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on your MISP server and organisations running MISP servers that synchronise with your server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of your community.<br /><br /></li>
 			<li><i>Connected communities:</i> Users that are part of your MISP community will be able to see the event. This includes all organisations on your own MISP server, all organisations on MISP servers synchronising with your server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from your own). Any other organisations connected to linked servers that are 2 hops away from your own will be restricted from seeing the event. Use this option if your server isn't the central MISP hub of the community but is connected to it.<br /><br /></li>
 			<li><i>All:</i> This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next.<br /><br /></li>
-		</ul></li>
+		</ul>
 		<li><em>Risk:</em> This field indicates the risk level of the event. Incidents can be categorised into three different threat categories (low, medium, high). This field can alternatively be left as undefined. The 3 options are:<br /><br /></li>
-		<li><ul>
+		<ul>
 			<li><i>Low:</i> General mass malware.<br /><br /></li>
 			<li><i>Medium:</i> Advanced Persistent Threats (APT)<br /><br /></li>
 			<li><i>High:</i> Sophisticated APTs and 0day attacks.<br /><br /></li>
-			<li><i>Info:</i> The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event's creation.<br /><br /></li>
-		</ul></li>
+		</ul>
+		<li><em>Info:</em> The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event's creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server's administrator(s). <br /><br /></li>
 		<li><em>GFI Sandbox:</em> It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event's creation, it is important to manually look over all the data that is being entered. <br /><br /></li>
 	</ul>
 <br /><hr /><br />
 <a name ="create_attribute"></a><h3>Add attributes to the event:</h3>
 The second step of creating an event is to populate it with attributes and attachments. In addition to being able to import the attributes and attachments from GFI, it is also possible to manually add attributes and attachments to an event, by using the two appropriate buttons on the event's page. Let's look at adding attributes first.<br />
-When clicking on the add attribute button, you will have to fill out a form with all the data about the attribute. The following fields need to be filled out:<br />
+When clicking on the add attribute button, you will have to fill out a form with all the data about the attribute.<br /><br />
+Keep in mind that the system searches for regular expressions in the value field of all attributes when entered, replacing detected strings within it as set up by the server's administrator (for example to enforce standardised capitalisation in paths for event correlation or to bring exact paths to a standardised format). The following fields need to be filled out:<br />
 <p><img src="/img/doc/add_attribute.png" alt = "Add attribute" style="float:right;" title = "This form allows you to add attributes."/></p><br />
 <ul>
 	<li><em>Category:</em> This drop-down menu explains the category of the attribute, meaning what aspect of the malware this attribute is describing. This could mean the persistence mechanisms of the malware or network activity, etc. For a list of valid categories, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?><br /><br /></li>
@@ -162,6 +164,28 @@ The following types of export are possible:<br /><br />
 		It is also possible to export a list of all attributes that match a specific type into a plain text file. The format to do this is:<br /><br />
 		<i>&lt;server&gt;/events/text/&lt;authentication_key&gt;/&lt;type&gt;</i><br /><br />
 		Type could be any valid type (as according to section 10), for example md5, ip-src or comment.<br />
+<br /><hr /><br />
+<h2><a name ="connect"></a>Connecting to other servers:</h2>
+Apart from being a self contained repository of attacks/malware, one of the main features of MISP is its ability to connect to other instances of the server and share (parts of) its information. The following options allow you to set up and maintain such connections.<br /><br />
+<h3><a name ="new_server"></a>Setting up a connection to another server:</h3>
+In order to share data with a remote server via pushes and pulls, you need to create an account on the remote server, note down the authentication key and use that to add the server on the home server. When clicking on List Servers and then on New Server, a form comes up that needs to be filled out in order for your server to connect to it. The following fields need to be filled out:<br /><br />
+<p><img src="/img/doc/add_server.png" alt ="Add server" title = "Make sure that you enter the authentication key that you have been assigned on the remote server instead of the one you got from this server."/></p><br />
+<ul>
+	<li><em>Base URL:</em> The URL of the remote server.<br /><br /></li>
+	<li><em>Organization:</em> The organisation that runs the remote server.<br /><br /></li>
+	<li><em>Authkey:</em> The authentication key that you have received on the remote server.<br /><br /></li>
+	<li><em>Push:</em> This check-box controls whether your server is allowed to push to the remote server.<br /><br /></li>
+	<li><em>Pull:</em> This check-box controls whether your server can request to pull all data from the request server.<br /><br /></li>
+</ul>
+<h3>Browsing the currently set up server connections and interacting with them:</h3>
+If you ever need to change the data about the linked servers or remove any connections, you have the following options to view and manipulate the server connections, when clicking on List Servers: (you will be able to see a list of all servers that your server connects to, including the base address, the organisation running the server the last pushed and pulled event IDs and the control buttons.).<br /><br />
+<p><img src="/img/doc/list_servers.png" alt = "" title = "Apart from editing / deleting the link to the remote server, you can issue a push all or pull all command from here."/></p><br />
+<ul>
+	<li><em>Editing the server data:</em> By clicking edit a view, <a href=#new_server>that is identical to the new server view</a>, is loaded, with all the current information on the server pre-entered.<br /><br /></li>
+	<li><em>Deleting the server:</em> Clicking the delete button will delete the link to your server.<br /><br /></li>
+	<li><em>Push all:</em> By clicking this button, all events that are eligible to be pushed on your server will start to be pushed to the remote server.<br /><br /></li>
+	<li><em>Pull all:</em> By clicking this button, all events that are set to be pull-able or full access on the remote server will be copied to your server. <br /><br /></li>
+</ul>
 <br /><hr /><br />
 <a name ="rest"></a><h2>Rest API:</h2>
 The platform is also <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTfull</a>, so this means you can use structured format (XML) to access Events data.<br /><br />
