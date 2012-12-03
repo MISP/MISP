@@ -334,7 +334,12 @@ class EventsController extends AppController {
 							$this->addGfiZip($this->Event->getId());
 
 							// redirect to the view of the newly created event
-							$this->Session->setFlash(__('The event has been saved'));
+							if (!CakeSession::read('Message.flash')) {
+								$this->Session->setFlash(__('The event has been saved'));
+							} else {
+								$existingFlash = CakeSession::read('Message.flash');
+								$this->Session->setFlash(__('The event has been saved. ' . $existingFlash['message']));
+							}
 							$this->redirect(array('action' => 'view', $this->Event->getId()));
 						}
 					} else {

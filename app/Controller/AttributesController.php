@@ -153,7 +153,12 @@ class AttributesController extends AppController {
 				// we added all the attributes,
 				if ($fails) {
 					// list the ones that failed
-					$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. Please, try again.', true), 'default', array(), 'error');
+					if (!CakeSession::read('Message.flash')) {
+						$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. Please, try again.', true), 'default', array(), 'error');
+					} else {
+						$existingFlash = CakeSession::read('Message.flash');
+						$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. ' . $existingFlash['message'], true), 'default', array(), 'error');
+					}
 				}
 				if ($successes) {
 					// list the ones that succeeded
@@ -178,7 +183,9 @@ class AttributesController extends AppController {
 					$this->Session->setFlash(__('The attribute has been saved'));
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 				} else {
-					$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
+					if (!CakeSession::read('Message.flash')) {
+						$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
+					}
 				}
 			}
 		} else {
@@ -436,7 +443,11 @@ class AttributesController extends AppController {
 
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 			} else {
-				$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
+				if (!CakeSession::read('Message.flash')) {
+					$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
+				} else {
+					$this->request->data = $this->Attribute->read(null, $id);
+				}
 			}
 		} else {
 			$this->request->data = $this->Attribute->read(null, $id);
@@ -517,7 +528,7 @@ class AttributesController extends AppController {
 
 		// make sure we have all the data of the Attribute
 		$this->Attribute->id = $id;
-		$this->Attribute->recursive = 1;
+		$this->Attribute->recursive = 1; // TODO ERROR, was 1 so this could even whipe out things!!(?)
 		$this->Attribute->read();
 
 		// get a list of the servers
@@ -671,7 +682,7 @@ class AttributesController extends AppController {
 				'recursive' => 0));
 			foreach ($relatedAttributes2 as $relatedAttribute2) {
 				$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = $relatedAttribute2;
-			}
+			}1
 
 			foreach ($event['Attribute'] as &$attribute) {
 				// for REST requests also add the encoded attachment
