@@ -1,5 +1,5 @@
 <div class="logs index">
-	<h2><?php echo __('Regex');?></h2>
+	<h2><?php echo __('Import Whitelist');?></h2>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
@@ -37,6 +37,7 @@
 </div>
 <div class="actions">
 	<ul>
+		<li><?php echo $this->Html->link(__('Perform on existing data'), array('admin' => true, 'action' => 'clean')); ?></li>
 		<li><?php echo $this->Html->link(__('New Regex'), array('admin' => true, 'action' => 'add')); ?></li>
 		<li>&nbsp;</li>
         <?php echo $this->element('actions_menu'); ?>

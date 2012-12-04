@@ -13,6 +13,8 @@ class Regex extends AppModel {
  */
 	public $useTable = 'regex';
 
+	public $actsAs = array('Regex' => array('fields' => array('info', 'value')));
+
 	public function getAll() {
 		return $this->find('all');
 	}

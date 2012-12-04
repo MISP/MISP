@@ -109,4 +109,65 @@ class RegexController extends AppController {
 		$this->Session->setFlash(__('Regex was not deleted'));
 		$this->redirect(array('action' => 'index'));
 	}
+
+/**
+ *
+ */
+	public function admin_clean() {
+		// Attributes.value
+		$deletableAttributes = array();
+		$this->loadModel('Attribute');
+		$attributes = $this->Attribute->find('all', array('recursive' => 0));
+		foreach ($attributes as $attribute) {
+			$result = $this->replaceSpecific(&$attribute['Attribute']['value']);
+			if (!$result) {
+				$deletableAttributes[] = $attribute['Attribute']['id'];
+			} else {
+				$this->Attribute->save($attribute);
+			}
+		}
+		if (count($deletableAttributes)) {
+			foreach ($deletableAttributes as $event) {
+				$this->Attribute->delete($event);
+			}
+		}
+
+		// Event.info
+		$deletableEvents = array();
+		$this->loadModel('Event');
+		$events = $this->Event->find('all', array('recursive' => 0));
+		foreach ($events as $event) {
+			$result = $this->replaceSpecific(&$event['Event']['info']);
+			if (!$result) {
+				$deletableEvents[] = $event['Event']['id'];
+			} else {
+				$this->Event->save($event);
+			}
+		}
+		if (count($deletableEvents)) {
+			foreach ($deletableEvents as $event) {
+				$this->Event->delete($event);
+			}
+		}
+
+		$this->redirect(array('action' => 'index'));
+	}
+
+	public function replaceSpecific($origString) {
+		$returnValue = true;
+		$regex = new Regex();
+		$allRegex = $regex->getAll();
+		foreach($allRegex as $regex) {
+			if (strlen($regex['Regex']['replacement'])) {
+				$origString = preg_replace($regex['Regex']['regex'], $regex['Regex']['replacement'], $origString);
+			}
+			if (!strlen($regex['Regex']['replacement']) && preg_match($regex['Regex']['regex'], $origString)) {
+				App::uses('SessionComponent', 'Controller/Component');
+				SessionComponent::setFlash('Blacklisted value!');
+            	$returnValue = false;
+			}
+		}
+		return $returnValue;
+	}
+
 }

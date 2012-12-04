@@ -47,7 +47,7 @@ class RegexBehavior extends ModelBehavior {
 		$returnValue = true;
 		foreach ($Model->data[$Model->name] as $key => &$field) {
 			if (in_array($key, $this->settings[$Model->alias]['fields']) && is_string($field)) {
-				$returnValue = $this->replaceWindowsSpecific($field);
+				$returnValue = $this->replaceWindowsSpecific($Model, &$field);
 //				if (!$returnValue) {
 //					$Model->blacklistErrors[] = array($key, $field);
 //				}
@@ -63,7 +63,7 @@ class RegexBehavior extends ModelBehavior {
  *
  * @return string
  */
-	public function replaceWindowsSpecific(&$string) {
+	public function replaceWindowsSpecific(Model $Model, $string) {
 		$returnValue = true;
 		$regex = new Regex();
 		$allRegex = $regex->getAll();
