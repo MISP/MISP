@@ -1,3 +1,34 @@
+<script src="/js/jquery-1.8.2.min.js"></script>
+<script>
+function getTitle(incInt, incIntb){
+	id = incInt;
+	type = null;
+	if (incIntb==0){
+		type = "R";
+	}else{
+		type = "A";
+	}
+	findElementString = type+id;
+	if (document.getElementById(findElementString).title == "Loading event info..."){
+    	$.ajax({
+			type: 'GET',
+	   		url: "http://127.0.0.1:3333/events/"+id+".xml",
+	   		dataType: 'xml',
+	   		headers: {
+				"Accept": "application/xml",
+				"Authorization": "3En1eZ73qF7YuEXvLpKS6V4MOE2rMzdBk8Isjk8J"
+			},
+    		async:false,
+    		success:function(result){
+       	   		var returnData = $(result).find("info").text();
+   	    		document.getElementById(findElementString).title=returnData;
+    		},
+    	});
+	};
+};
+
+</script>
+<script src ="/js/getTitleDummy.js"></script>
 <?php
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['org'] == $me['org']);
@@ -81,20 +112,24 @@ if ($isAdmin || $mayPublish) {
 			&nbsp;
 		</dd>
 	</dl>
-	<?php if (!empty($relatedEvents)):?>
+	<?php
+	$passAlong = array(0, 0);
+	if (!empty($relatedEvents)):?>
 	<div class="related">
 		<h3>Related Events</h3>
 		<ul>
 		<?php foreach ($relatedEvents as $relatedEvent): ?>
 		<li><?php
 		$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
+		$currentID = $relatedEvent['Event']['id'];
+		$passAlong[0] = $relatedEvent['Event']['id'];
+		echo "<div id = \"R".$currentID."\" onMouseOver=getTitle(".$passAlong[0].",".$passAlong[1].") title = \"Loading event info...\">";
 		echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
-		?></li>
+		?></div></li>
 		<?php endforeach; ?>
 		</ul>
 	</div>
 	<?php endif; ?>
-
 	<div class="related">
 		<h3>Attributes</h3>
 		<?php if (!empty($event['Attribute'])):?>
@@ -159,10 +194,13 @@ if ('attachment' == $attribute['type'] ||
 				?></td>
 				<td class="short" style="text-align: center;">
 				<?php
-$first = 0;
+$passAlong = array(0, 1);
 if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 	foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
+		$passAlong[0] = $relatedAttribute['Attribute']['event_id'];
+		echo "<span id = \"A".$passAlong[0]."\" onMouseOver=getTitle(".$passAlong[0].",".$passAlong[1].") title = \"Loading event info...\">";
 		echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
+		echo "</span>";
 		echo ' ';
 	}
 }
