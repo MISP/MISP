@@ -387,7 +387,6 @@ class UsersController extends AppController {
 		$graphFields = str_replace($replace, "_", $graphFields);
 		$this->set('graphFields', $graphFields);
 
-
 		$graphData = array();
 		$prevRowOrg = "";
 		$i = -1;

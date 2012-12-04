@@ -408,7 +408,6 @@ class AppController extends Controller {
 	public function generatePrivate() {
 		$this->generatePrivateForAttributes();
 		$this->generatePrivateForEvents();
-
 	}
 
 	public function generatePrivateForAttributes() {
@@ -456,6 +455,8 @@ class AppController extends Controller {
  * generate Hop count
  * 0: orig
  * +1: one step downstream
+ *
+ * @throws NotFoundException
  *
  * @param unknown_type $yourOrg being f.i. 'NCIRC' or 'MIL.be'
  */
