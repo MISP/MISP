@@ -1,5 +1,5 @@
 <div class="whitelists index">
-	<h2><?php echo __('Whitelists');?></h2>
+	<h2><?php echo __('Signature Whitelist');?></h2>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>

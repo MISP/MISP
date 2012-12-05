@@ -5,24 +5,25 @@
 3. <?php echo $this->Html->link(__('Using the system', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system')); ?><br />
 4. <?php echo $this->Html->link(__('Administration', true), array('controller' => 'pages', 'action' => 'display', 'administration')); ?><br />
 <ul>
-	<li>a. <a href="#regex">Regex</a></li>
-	<li>b. <a href="#whitelist">Whitelists</a></li>
+	<li>a. <a href="#regex">Import Whitelist</a></li>
+	<li>b. <a href="#whitelist">Signature Whitelist</a></li>
 	<li>c. <a href="#user">User Management</a></li>
 	<li>d. <a href="#roles">Role Management</a></li>
 	<li>e. <a href="#logs">Logging</a></li>
 </ul>
 5. <?php echo $this->Html->link(__('Categories and Types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>
 <br /><br /><hr /><br />
-<h2><a name ="regex"></a>Regex</h2>
+<h2><a name ="regex"></a>Import Whitelist</h2>
 The system allows administrators to set up rules for regular expressions that will automatically altered newly entered or imported events (from GFI Sandbox).<br /><br />
-<h3>The purpose of Regex entries</h3>
-They can be used for several things, such as unifying the capitalisation of file paths for more accurate event correlation or to automatically censor the usernames and standardise the file paths (changing C:\Users\UserName\Appdata\Roaming\file.exe to %APPDATA%\\).<br /><br />
+<h3>The purpose of Import Whitelist entries</h3>
+They can be used for several things, such as unifying the capitalisation of file paths for more accurate event correlation or to automatically censor the usernames and standardise the file paths (changing C:\Users\UserName\Appdata\Roaming\file.exe to %APPDATA%\Roaming\file.exe).<br />
+The second use is blocking, if just the regex is given and no replacement, any event or attribute containing info or value conform the regex will not be added.<br /><br />
 <h3>Adding and modifying entries</h3>
-Administrators can add, edit or delete Regex rules, which are made up of a pattern that the system searches for and a replacement for the detected pattern.<br /><br />
+Administrators can add, edit or delete Import Whitelist rules, which are made up of a regex pattern that the system searches for and a replacement for the detected pattern.<br /><br />
 <p><img src="/img/doc/regex.png" alt = "" title = "Add, edit or remove Regex entries that will affect all newly created attributes here."/></p><br />
 <br /><hr /><br />
-<h2><a name ="whitelist"></a>Managing the whitelist</h2>
-The whitelist view, accessible through the administration menu on the left, allows administrators to create and maintain a list of addresses that are whitelisted from ever being added to the NIDS signatures. Addresses listed here will be commented out when exporting the NIDS list.<br /><br />
+<h2><a name ="whitelist"></a>Managing the Signature whitelist</h2>
+The signature whitelist view, accessible through the administration menu on the left, allows administrators to create and maintain a list of addresses that are whitelisted from ever being added to the NIDS signatures. Addresses listed here will be commented out when exporting the NIDS list.<br /><br />
 <h3>Whitelisting an address:</h3>
 	While in the whitelist view, click on New Whitelist on the left to bring up the add whitelist view to add a new address. <br /><br />
 <h3>Managing the list:</h3>

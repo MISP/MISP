@@ -1,7 +1,7 @@
 <div class="whitelists form">
 <?php echo $this->Form->create('Whitelist');?>
 	<fieldset>
-		<legend><?php echo __('Edit Whitelist'); ?></legend>
+		<legend><?php echo __('Edit Signature Whitelist'); ?></legend>
 	<?php
 		echo $this->Form->input('id');
 		echo $this->Form->input('name');
