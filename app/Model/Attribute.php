@@ -732,7 +732,7 @@ class Attribute extends AppModel {
 			);
 		} else {
 			// value2 also set, so search for both
-			$conditions['OR'] = array(
+			$conditions['AND'] = array( // TODO was OR
 					'Attribute.value1' => array($attribute['value1'],$attribute['value2']),
 					'Attribute.value2' => array($attribute['value1'],$attribute['value2']),
 			);
