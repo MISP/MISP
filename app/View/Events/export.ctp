@@ -14,7 +14,7 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/xml/<?php echo $me['authkey']; ?></pre>
 <p>If you only want to fetch a specific event append the eventid number:</p>
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/xml/<?php echo $me['authkey']; ?>/1</pre>
-<p>Also check out the <?php echo $this->Html->link(__('User Guide', true), array('controller' => 'pages', 'action' => 'display', 'documentation')); ?> to read about the REST API.</p>
+<p>Also check out the <?php echo $this->Html->link(__('User Guide', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system', '#' => 'rest')); ?> to read about the REST API.</p>
 <p></p>
 
 <h3>NIDS signatures export</h3>
