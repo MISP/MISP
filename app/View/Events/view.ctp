@@ -1,4 +1,3 @@
-<script src="/js/jquery-1.8.2.min.js"></script>
 <script>
 function getTitle(incInt, incIntb){
 	id = incInt;
@@ -26,9 +25,7 @@ function getTitle(incInt, incIntb){
     	});
 	};
 };
-
 </script>
-<script src ="/js/getTitleDummy.js"></script>
 <?php
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['org'] == $me['org']);
