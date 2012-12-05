@@ -1,5 +1,5 @@
                                                                      
-TODOs v0.2.2 to v0.2.3
+TODOs v0.2.3 to v2.0.0
 -----
 
 DB Update
@@ -9,10 +9,6 @@ Auth
 - Prevent bruteforce auth attempts
 
 Acl
-- inactive buttons
-	- must be non-clickable.
-	- JavaScript include.
-	- DOM read and disable button_offXX.
 - clean-up to first cut.
 	- saveAcl, from GroupsController to AppController and inherit to *Controllers.
 
