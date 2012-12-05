@@ -120,7 +120,7 @@ if ($isAdmin || $mayPublish) {
 		$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
 		$currentID = $relatedEvent['Event']['id'];
 		$passAlong[0] = $relatedEvent['Event']['id'];
-		echo "<div id = \"R".$currentID."\" onMouseOver=getTitle(".$passAlong[0].",".$passAlong[1].") title = \"Loading event info...\">";
+		echo "<div id = \"R" . $currentID . "\" onMouseOver=getTitle(" . $passAlong[0] . "," . $passAlong[1] . ") title = \"Loading event info...\">";
 		echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
 		?></div></li>
 		<?php endforeach; ?>
@@ -196,7 +196,7 @@ $passAlong = array(0, 1);
 if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 	foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
 		$passAlong[0] = $relatedAttribute['Attribute']['event_id'];
-		echo "<span id = \"A".$passAlong[0]."\" onMouseOver=getTitle(".$passAlong[0].",".$passAlong[1].") title = \"Loading event info...\">";
+		echo "<span id = \"A" . $passAlong[0] . "\" onMouseOver=getTitle(" . $passAlong[0] . "," . $passAlong[1] . ") title = \"Loading event info...\">";
 		echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
 		echo "</span>";
 		echo ' ';
