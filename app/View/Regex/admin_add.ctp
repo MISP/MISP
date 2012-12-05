@@ -12,7 +12,6 @@
 <div class="actions">
 	<h3><?php echo __('Actions'); ?></h3>
 	<ul>
-
-		<li><?php echo $this->Html->link(__('List Regexs'), array('admin' => true, 'action' => 'index'));?></li>
+		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>

@@ -12,9 +12,6 @@
 </div>
 <div class="actions">
 	<ul>
-
-		<li><?php echo $this->Form->postLink(__('Delete Regex'), array('admin' => true, 'action' => 'delete', $this->Form->value('Whitelist.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Whitelist.id'))); ?></li>
-		<li>&nbsp;</li>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
