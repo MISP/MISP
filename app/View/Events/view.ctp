@@ -12,11 +12,11 @@ function getTitle(incInt, incIntb){
 	if (document.getElementById(findElementString).title == "Loading event info..."){
     	$.ajax({
 			type: 'GET',
-	   		url: "http://127.0.0.1:3333/events/"+id+".xml",
+	   		url: "http://127.0.0.1/events/"+id+".xml",
 	   		dataType: 'xml',
 	   		headers: {
 				"Accept": "application/xml",
-				"Authorization": "3En1eZ73qF7YuEXvLpKS6V4MOE2rMzdBk8Isjk8J"
+				"Authorization": "<?php echo $authkey ?>"
 			},
     		async:false,
     		success:function(result){

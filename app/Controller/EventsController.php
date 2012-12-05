@@ -275,6 +275,9 @@ class EventsController extends AppController {
 			}
 		}
 
+		// params for the jQuery RESTfull interface
+		$this->set('authkey', $this->Auth->user('authkey'));
+
 		$this->set('relatedAttributes', $relatedAttributes);
 
 		// passing decriptions for model fields
