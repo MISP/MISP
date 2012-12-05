@@ -153,6 +153,7 @@ if ($isAdmin || $mayPublish) {
 		</tr><?php
 		$passAlong = array(0, 1, 0);
 		foreach ($categories as $category):
+			$first = 1;
 			foreach ($event['Attribute'] as $attribute):
 				if($attribute['category'] != $category) continue;
 			?>
@@ -194,6 +195,7 @@ if ('attachment' == $attribute['type'] ||
 				?></td>
 				<td class="short" style="text-align: center;">
 				<?php
+$first = 0;
 if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 	foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
 		$passAlong[0] = $relatedAttribute['Attribute']['event_id'];
