@@ -191,6 +191,7 @@ if ('attachment' == $attribute['type'] ||
 				?></td>
 				<td class="short" style="text-align: center;">
 				<?php
+$first = 0;
 $passAlong = array(0, 1);
 if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 	foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
