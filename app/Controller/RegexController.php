@@ -158,7 +158,7 @@ class RegexController extends AppController {
 		$regex = new Regex();
 		$allRegex = $regex->getAll();
 		foreach($allRegex as $regex) {
-			if (strlen($regex['Regex']['replacement'])) {
+			if (strlen($regex['Regex']['replacement']) && strlen($regex['Regex']['regex'])) {
 				$origString = preg_replace($regex['Regex']['regex'], $regex['Regex']['replacement'], $origString);
 			}
 			if (!strlen($regex['Regex']['replacement']) && preg_match($regex['Regex']['regex'], $origString)) {
