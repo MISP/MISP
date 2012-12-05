@@ -17,6 +17,9 @@ cd ${PRJCT}
 # create Correlation table
 ./Console/cake schema create DbCorrelation
 
+# create Regex table
+./Console/cake schema create DbRegex
+
 # create Whitelist table
 ./Console/cake schema create DbWhitelist
 
