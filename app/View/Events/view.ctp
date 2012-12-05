@@ -1,5 +1,5 @@
 <script>
-function getTitle(incInt, incIntb){
+function getTitle(incInt, incIntb, incIntc){
 	id = incInt;
 	type = null;
 	if (incIntb==0){
@@ -8,6 +8,9 @@ function getTitle(incInt, incIntb){
 		type = "A";
 	}
 	findElementString = type+id;
+	if (type == "A"){
+		findElementString += "X"+incIntc;
+	}
 	if (document.getElementById(findElementString).title == "Loading event info..."){
     	$.ajax({
 			type: 'GET',
@@ -20,7 +23,7 @@ function getTitle(incInt, incIntb){
     		async:false,
     		success:function(result){
        	   		var returnData = $(result).find("info").text();
-   	    		document.getElementById(findElementString).title=returnData;
+       	   	document.getElementById(findElementString).title=returnData;
     		},
     	});
 	};
@@ -120,7 +123,7 @@ if ($isAdmin || $mayPublish) {
 		$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
 		$currentID = $relatedEvent['Event']['id'];
 		$passAlong[0] = $relatedEvent['Event']['id'];
-		echo "<div id = \"R" . $currentID . "\" onMouseOver=getTitle(" . $passAlong[0] . "," . $passAlong[1] . ") title = \"Loading event info...\">";
+		echo "<div id = \"R" . $currentID . "\" onMouseOver=getTitle(" . $passAlong[0] . ",".$passAlong[1] . ") title = \"Loading event info...\">";
 		echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
 		?></div></li>
 		<?php endforeach; ?>
@@ -148,8 +151,8 @@ if ($isAdmin || $mayPublish) {
 			<th class="actions">Actions</th>
 			<?php endif;?>
 		</tr><?php
+		$passAlong = array(0, 1, 0);
 		foreach ($categories as $category):
-			$first = 1;
 			foreach ($event['Attribute'] as $attribute):
 				if($attribute['category'] != $category) continue;
 			?>
@@ -191,15 +194,14 @@ if ('attachment' == $attribute['type'] ||
 				?></td>
 				<td class="short" style="text-align: center;">
 				<?php
-$first = 0;
-$passAlong = array(0, 1);
 if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 	foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
 		$passAlong[0] = $relatedAttribute['Attribute']['event_id'];
-		echo "<span id = \"A" . $passAlong[0] . "\" onMouseOver=getTitle(" . $passAlong[0] . "," . $passAlong[1] . ") title = \"Loading event info...\">";
+		echo "<span id = \"A" . $passAlong[0] . "X" . $passAlong[2] . "\" onMouseOver=getTitle(".$passAlong[0] . "," . $passAlong[1] . "," . $passAlong[2] . ") title = \"Loading event info...\">";
 		echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
 		echo "</span>";
 		echo ' ';
+		$passAlong[2]++;
 	}
 }
 				?>&nbsp;
@@ -236,7 +238,6 @@ if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$
 	</div>
 
 </div>
-
 <div class="actions">
 	<ul>
 	<?php if ($isAdmin || $mayModify): ?>
