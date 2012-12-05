@@ -277,6 +277,7 @@ class EventsController extends AppController {
 
 		// params for the jQuery RESTfull interface
 		$this->set('authkey', $this->Auth->user('authkey'));
+		$this->set('baseurl', Configure::read('CyDefSIG.baseurl'));
 
 		$this->set('relatedAttributes', $relatedAttributes);
 

@@ -12,7 +12,7 @@ function getTitle(incInt, incIntb){
 	if (document.getElementById(findElementString).title == "Loading event info..."){
     	$.ajax({
 			type: 'GET',
-	   		url: "http://127.0.0.1/events/"+id+".xml",
+	   		url: "<?php echo $baseurl ?>/events/"+id+".xml",
 	   		dataType: 'xml',
 	   		headers: {
 				"Accept": "application/xml",
