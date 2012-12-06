@@ -14,12 +14,8 @@ function getTitle(incInt, incIntb, incIntc){
 	if (document.getElementById(findElementString).title == "Loading event info..."){
 		$.ajax({
 			type: 'GET',
-			url: "<?php echo $baseurl ?>/events/"+id+".xml",
+			url: "/events/"+id+".xml",
 			dataType: 'xml',
-			headers: {
-				"Accept": "application/xml",
-				"Authorization": "<?php echo $authkey ?>"
-			},
 			async:false,
 			success:function(result){
 				var returnData = $(result).find("info").text();
@@ -27,7 +23,7 @@ function getTitle(incInt, incIntb, incIntc){
 			},
 		});
 	};
-};
+}
 </script>
 <?php
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org']));
