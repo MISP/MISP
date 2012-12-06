@@ -98,8 +98,9 @@ CyDefSIG from 0.2.2 to 0.2.3 needs a database migration and population.
 This is done executing /var/www/cydefsig/app/Console/shell/migrate-0.2.2-0.2.3.sh
 and answer (y)es to all the questions asked
 and afterward run http://<host>:<port>/events/migratemisp11to2/<your org>
-f.i. http://localhost:22222/events/migratemisp11to2/NCIRC
+with <your org> being MIL.BE or NCIRC where appropriate.
 
+Import the regex data in /var/www/cydefsig/app/MYSQL.regex.sql using phpmyadmin or mysql>.
 
 
 Recommended patches
