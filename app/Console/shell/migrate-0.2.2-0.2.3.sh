@@ -5,7 +5,7 @@
 # DataBase migrate, Audit and Access Control granulation
 
 # step into project and ..
-PRJCT=/var/www/cydefsig/app
+PRJCT=../../app
 cd ${PRJCT}
 
 # create ACL tables
