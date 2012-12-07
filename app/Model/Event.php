@@ -232,13 +232,21 @@ class Event extends AppModel {
 		return $data;
 	}
 
+	public function uploadEventToServer($event, $server, $HttpSocket=null) {
+		$newLocation = $this->RESTfullEventToServer($event, $server, null, $HttpSocket);
+		if (is_string($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+			$this->RESTfullEventToServer($event, $server, $newLocation, $HttpSocket);
+		}
+		return true;
+	}
+
 /**
  * Uploads the event and the associated Attributes to another Server
  * TODO move this to a component
  *
  * @return bool true if success, error message if failed
  */
-	public function uploadEventToServer($event, $server, $HttpSocket=null) {
+	public function RESTfullEventToServer($event, $server, $urlPath, $HttpSocket=null) {
 		if (true == $event['Event']['private']) { // never upload private events
 			return "Event is private and non exportable";
 		}
@@ -257,7 +265,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		$uri = $url . '/events';
+		$uri = isset($urlPath) ? $urlPath : $url . '/events';
 
 		// LATER try to do this using a separate EventsController and renderAs() function
 		$xmlArray = array();
@@ -296,22 +304,27 @@ class Event extends AppModel {
 			// TODO NETWORK for now do not know how to catch the following..
 			// TODO NETWORK No route to host
 			$response = $HttpSocket->post($uri, $data, $request);
-			if ($response->code == '200') {	// 200 (OK) + entity-action-result
-				if ($response->isOk()) {
-					return true;
-				} else {
-					try {
-						// parse the XML response and keep the reason why it failed
-						$xmlArray = Xml::toArray(Xml::build($response->body));
-					} catch (XmlException $e) {
-						return true;
-					}
-					if (strpos($xmlArray['response']['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
+			switch ($response->code) {
+				case '200':	// 200 (OK) + entity-action-result
+					if ($response->isOk()) {
 						return true;
 					} else {
-						return $xmlArray['response']['name'];
+						try {
+							// parse the XML response and keep the reason why it failed
+							$xmlArray = Xml::toArray(Xml::build($response->body));
+						} catch (XmlException $e) {
+							return true;
+						}
+						if (strpos($xmlArray['response']['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
+							return true;
+						} else {
+							return $xmlArray['response']['name'];
+						}
 					}
-				}
+					break;
+				case '302': // Found
+					return $response->headers['Location'];
+					break;
 			}
 		}
 	}
