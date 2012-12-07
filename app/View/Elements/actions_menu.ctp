@@ -13,7 +13,7 @@
 		<li><?php echo $this->Html->link(__('Terms & Conditions', true), array('controller' => 'users', 'action' => 'terms')); ?> </li>
 		<li><?php echo $this->Html->link(__('Log out', true), array('controller' => 'users', 'action' => 'logout')); ?> </li>
 
-		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+		<?php if (('true' == Configure::read('CyDefSIG.sync')) && ($isAclSync || $isAdmin)): ?>
 		<li>&nbsp;</li>
 		<h3><?php echo __('Sync Actions'); ?></h3>
 		<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>

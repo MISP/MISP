@@ -5,6 +5,7 @@
 	<?php
 		echo $this->Form->input('name');?>
 		<?php echo $this->Form->radio('permission', $options, array('value' => '3'));?>
+		<?php echo $this->Form->input('perm_sync', array('type' => 'checkbox', 'checked' => false, 'label' => 'Sync Actions'));?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit'));?>
 </div>
