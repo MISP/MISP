@@ -207,7 +207,7 @@ if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$
 				<td class="short" style="text-align: center;"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
 				<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 				<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
-				<td class="short" style="text-align: center;"><?php echo $attribute['distribution'] != 'All communities' ? $attribute['distribution'] : '&nbsp;';?></td>
+				<td class="short" style="text-align: center;"><?php echo $attribute['distribution'] != 'All communities' ? $attribute['distribution'] : 'All';?></td>
 				<?php else:?>
 				<td class="short" style="text-align: center;"><?php echo $attribute['private'] ? 'Private' : '&nbsp;';?></td>
 				<?php endif;?>
