@@ -6,7 +6,7 @@
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
-			<th><?php echo $this->Paginator->sort('attribute_count', '#');?></th>
+			<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
 			<?php if ('true' == Configure::read('CyDefSIG.showowner') || $isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 			<?php endif; ?>
