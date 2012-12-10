@@ -31,7 +31,7 @@
 	Router::connect('/users/admin_index/*', array('controller' => 'users', 'action' => 'index', 'admin' => true));
 
 	// Activate REST
-	Router::mapResources(array('events'));
+	Router::mapResources(array('events', 'attributes'));
 	Router::parseExtensions('xml');
 
 /**

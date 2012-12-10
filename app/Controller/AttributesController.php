@@ -49,7 +49,7 @@ class AttributesController extends AppController {
 			return true;
 		}
 		// Only on own attributes for these actions
-		if (in_array($this->action, array('edit', 'delete'))) {
+		if (in_array($this->action, array('edit', 'delete', 'view'))) {
 			$attributeid = $this->request->params['pass'][0];
 			return $this->Attribute->isOwnedByOrg($attributeid, $this->Auth->user('org'));
 		}
@@ -77,6 +77,16 @@ class AttributesController extends AppController {
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
+	public function view($id = null) {
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) {
+			throw new NotFoundException(__('Invalid attribute'));
+		}
+		$this->Attribute->read(null, $id);
+
+		$this->set('attribute', $this->Attribute->data);
+	}
+
 /**
  * add method
  *
@@ -101,7 +111,7 @@ class AttributesController extends AppController {
 			//
 			// multiple attributes in batch import
 			//
-			if ($this->request->data['Attribute']['batch_import'] == 1) {
+			if ((isset($this->request->data['Attribute']['batch_import']) && $this->request->data['Attribute']['batch_import'] == 1)) {
 				// make array from value field
 				$attributes = explode("\n", $this->request->data['Attribute']['value']);
 
@@ -141,9 +151,15 @@ class AttributesController extends AppController {
 				$this->Attribute->create();
 
 				if ($this->Attribute->save($this->request->data)) {
-					// inform the user and redirect
-					$this->Session->setFlash(__('The attribute has been saved'));
-					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
+					if ($this->_isRest()) {
+						// REST users want to see the newly created event
+						$this->view($this->Attribute->getId());
+						$this->render('view');
+					} else {
+						// inform the user and redirect
+						$this->Session->setFlash(__('The attribute has been saved'));
+						$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
+					}
 				} else {
 					$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
 				}
