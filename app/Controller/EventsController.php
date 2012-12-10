@@ -223,6 +223,7 @@ class EventsController extends AppController {
  */
 	public function add() {
 		if ($this->request->is('post')) {
+			$savedId = $this->request->data['Event']['id'];
 			if ($this->_add($this->request->data, $this->Auth, $this->_isRest(),'')) {
 				if ($this->_isRest()) {
 					// REST users want to see the newly created event
@@ -234,8 +235,13 @@ class EventsController extends AppController {
 					$this->redirect(array('action' => 'view', $this->Event->getId()));
 				}
 			} else {
-				$this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
-				// TODO return error if REST
+				if ($this->_isRest()) { // TODO return error if REST
+					// REST users want to see the newly created event
+					$this->view($savedId);
+					$this->render('view');
+				} else {
+					$this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
+				}
 			}
 		}
 		// combobox for risks
@@ -272,15 +278,10 @@ class EventsController extends AppController {
 			// check if the uuid already exists
 			$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 			if ($existingEventCount > 0) {
-				$message = 'Error - inserting/updating existing event not possible using REST';
-
 				// TODO RESTfull, set responce location header..so client can find right URL to edit
 				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 				$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $existingEvent['Event']['id']);
 				$this->response->send();
-
-				$this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
-				$this->render('edit');
 				return false;
 			}
 		}
