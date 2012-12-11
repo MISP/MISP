@@ -19,7 +19,7 @@
 		<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>
         <?php endif; ?>
 
-		<?php if($isAdmin): ?>
+		<?php if($isAdmin || $isAclAdmin): ?>
 		<li>&nbsp;</li>
 		<h3><?php echo __('Administration'); ?></h3>
 		<li><?php echo $this->Html->link(__('Import Whitelist', true), array('controller' => 'regex', 'action' => 'index', 'admin' => true)); ?> </li>
@@ -30,6 +30,8 @@
 		<li><?php echo $this->Html->link(__('New Role', true), array('controller' => 'groups', 'action' => 'add', 'admin' => true)); ?> </li>
 		<li><?php echo $this->Html->link(__('List Roles', true), array('controller' => 'groups', 'action' => 'index', 'admin' => true)); ?> </li>
 		<li>&nbsp;</li>
+		<?php endif; ?>
+		<?php if($isAdmin || $isAclAudit): ?>
 		<h3><?php echo __('Audit'); ?></h3>
 		<li><?php echo $this->Html->link(__('List Logs', true), array('controller' => 'logs', 'action' => 'index', 'admin' => true)); ?> </li>
 		<li><?php echo $this->Html->link(__('Search Logs', true), array('controller' => 'logs', 'action' => 'admin_search', 'admin' => true)); ?> </li>

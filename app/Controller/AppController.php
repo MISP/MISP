@@ -109,7 +109,9 @@ class AppController extends Controller {
 		$this->set('isAclModify', $this->checkAcl('edit'));
 		$this->set('isAclModifyOrg', $this->checkGroup());
 		$this->set('isAclPublish', $this->checkAcl('publish'));
-		$this->set('isAclSync', $this->checkSync());
+		$this->set('isAclSync', $this->checkAction('perm_sync'));
+		$this->set('isAclAdmin', $this->checkAction('perm_admin'));
+		$this->set('isAclAudit', $this->checkAction('perm_audit'));
 	}
 
 	//public function blackhole($type) {
@@ -395,12 +397,12 @@ class AppController extends Controller {
 /**
  * TODO ACL, EXTRA: mixed in Sync!!
  */
-	public function checkSync() {
+	public function checkAction($action = 'perm_sync') {
 		$maySync = false;
 		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
 		if (isset($user['User'])) {
 			$group = ClassRegistry::init('Group')->findById($user['User']['group_id']);
-			if ($group['Group']['perm_sync']) {
+			if ($group['Group'][$action]) {
 				$maySync = true;
 			}
 		}

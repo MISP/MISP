@@ -1,4 +1,4 @@
-<div class="groups index">
+<div class="roles index">
 	<h2><?php echo __('Roles');?></h2>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
@@ -6,6 +6,8 @@
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
 			<th><?php echo $this->Paginator->sort('perm_sync', 'Sync Actions');?></th>
+			<th><?php echo $this->Paginator->sort('perm_admin', 'Administration Actions');?></th>
+			<th><?php echo $this->Paginator->sort('perm_audit', 'Audit Actions');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
@@ -15,6 +17,8 @@
 		<td class="short"><?php echo h($group['Group']['name']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($options[$group['Group']['permission']]); ?>&nbsp;</td>
 		<td class="short"><?php echo h($group['Group']['perm_sync']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($group['Group']['perm_admin']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($group['Group']['perm_audit']); ?>&nbsp;</td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $group['Group']['id'])); ?>
 			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $group['Group']['id']), null, __('Are you sure you want to delete # %s?', $group['Group']['id'])); ?>
