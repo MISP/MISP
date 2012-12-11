@@ -144,12 +144,29 @@ class AttributesController extends AppController {
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 
 			} else {
+				if (isset($this->request->data['Attribute']['uuid'])) {	// TODO here we should start RESTful dialog
+					// check if the uuid already exists
+					$existingAttributeCount = $this->Attribute->find('count', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
+					if ($existingAttributeCount > 0) {
+						// TODO RESTfull, set responce location header..so client can find right URL to edit
+						$existingAttribute = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
+						$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/attributes/' . $existingAttribute['Attribute']['id']);
+						$this->response->send();
+						$this->view($this->Attribute->getId());
+						$this->render('view');
+						return false;
+					}
+				}
+
 				//
 				// single attribute
 				//
 				// create the attribute
 				$this->Attribute->create();
 
+				unset($this->request->data['Event']);
+				$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
+				$this->request->data['Attribute']['event_id'] = $eventId;
 				if ($this->Attribute->save($this->request->data)) {
 					if ($this->_isRest()) {
 						// REST users want to see the newly created event
@@ -376,6 +393,9 @@ class AttributesController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// say what fields are to be updated
 			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private');
+			unset($this->request->data['Event']);
+			$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
+			$this->request->data['Attribute']['event_id'] = $eventId;
 			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 

@@ -274,7 +274,7 @@ class EventsController extends AppController {
 			unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 		}
 
-		if (isset($data['Event']['uuid'])) {	// TODO here we should start RESTful dialog
+		if (isset($data['Event']['uuid'])) {	// TODO here we start RESTful dialog
 			// check if the uuid already exists
 			$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 			if ($existingEventCount > 0) {
@@ -292,7 +292,9 @@ class EventsController extends AppController {
 		);
 		// this saveAssociated() function will save not only the event, but also the attributes
 		// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-		if ($this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList))) {
+		unset($data['Attribute']);
+		$this->Event->unbindModel(array('hasMany' => array('Attribute')));
+		if ($this->Event->save($data, array('validate' => true, 'fieldList' => $fieldList))) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
 				$this->__publish($this->Event->getId());
@@ -358,7 +360,10 @@ class EventsController extends AppController {
  				);
  				// this saveAssociated() function will save not only the event, but also the attributes
  				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
- 				if ($this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList))) {
+ 				// the following 2 lines can be out-commented if we opt to save associated (Event.php:263-264)
+				unset($this->request->data['Attribute']);
+				$this->Event->unbindModel(array('hasMany' => array('Attribute')));
+ 				if ($this->Event->save($this->request->data, array('validate' => true, 'fieldList' => $fieldList))) {
 
  					// TODO RESTfull: we now need to compare attributes, to see if we need to do a RESTfull attribute delete
 

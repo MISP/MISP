@@ -235,20 +235,35 @@ class Event extends AppModel {
 	}
 
 	public function uploadEventToServer($event, $server, $HttpSocket=null) {
-		$newLocation = $this->RESTfullEventToServer($event, $server, null, $HttpSocket);
-		if (is_string($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-			$newTextBody = $this->RESTfullEventToServer($event, $server, $newLocation, $HttpSocket);
-
-			// now if save() i.s.o. saveAssociates()
-			// do the add attributes here
+		$newLocation = $newTextBody = '';
+		$result = $this->RESTfullEventToServer($event, $server, null, $HttpSocket, &$newLocation, &$newTextBody);
+		if (strlen($newLocation) || $result) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+				$result = $this->RESTfullEventToServer($event, $server, $newLocation, $HttpSocket, &$newLocation, &$newTextBody);
+			}
+			$xml = Xml::build($newTextBody);
+			// get the remote event_id
+			foreach ($xml as $xmlEvent) {
+				foreach ($xmlEvent as $key => $value) {
+					if ($key == 'id') {
+						$remoteId = (int)$value;
+						break;
+					}
+				}
+			}
 
 			// get the new attribute uuids in an array
 			$newerUuids = array();
 			foreach ($event['Attribute'] as $attribute) {
 					$newerUuids[$attribute['id']] = $attribute['uuid'];
+					$attribute['event_id'] = $remoteId;
+					// do the add attributes here i.s.o. saveAssociates() or save()
+					// and unset Attributes and hasMany for this
+					// following 2 lines can be out-commented if. (EventsController.php:364-365)
+					$anAttr = ClassRegistry::init('Attribute');
+					$anAttr->uploadAttributeToServer($attribute, $server, $HttpSocket);
 			}
 			// get the already existing attributes and delete the ones that are not there
-			$xml = Xml::build($newTextBody);
 			foreach ($xml->Event->Attribute as $attribute) {
 				foreach ($attribute as $key => $value) {
 					if ($key == 'uuid') {
@@ -269,7 +284,7 @@ class Event extends AppModel {
  *
  * @return bool true if success, error message if failed
  */
-	public function RESTfullEventToServer($event, $server, $urlPath, $HttpSocket=null) {
+	public function RESTfullEventToServer($event, $server, $urlPath, $HttpSocket=null, $newLocation, $newTextBody) {
 		if (true == $event['Event']['private']) { // never upload private events
 			return "Event is private and non exportable";
 		}
@@ -330,7 +345,9 @@ class Event extends AppModel {
 			switch ($response->code) {
 				case '200':	// 200 (OK) + entity-action-result
 					if ($response->isOk()) {
-						return isset($urlPath) ? $response->body() : true;
+						$newTextBody = $response->body();
+						return true;
+						//return isset($urlPath) ? $response->body() : true;
 					} else {
 						try {
 							// parse the XML response and keep the reason why it failed
@@ -347,7 +364,10 @@ class Event extends AppModel {
 					break;
 				case '302': // Found
 				case '404': // Not Found
-					return isset($urlPath) ? $response->body() : $response->headers['Location'];
+					$newLocation = $response->headers['Location'];
+					$newTextBody = $response->body();
+					return true;
+					//return isset($urlPath) ? $response->body() : $response->headers['Location'];
 					break;
 			}
 		}
