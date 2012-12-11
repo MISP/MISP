@@ -456,6 +456,11 @@ class AttributesController extends AppController {
 		$result = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $uuid)));
 		$id = $result['Attribute']['id'];
 
+		// TODO private and delete .. bring up ..
+		//if (true == $result['Attribute']['private']) { // never upload private attributes
+		//	return "Attribute is private and non exportable";
+		//}
+
 		// make sure we have all the data of the Attribute
 		$this->Attribute->id = $id;
 		$this->Attribute->recursive = 1;
@@ -472,7 +477,7 @@ class AttributesController extends AppController {
 		App::uses('HttpSocket', 'Network/Http');
 		$HttpSocket = new HttpSocket();
 		foreach ($servers as &$server) {
-			$this->Attribute->deleteAttributeFromServer($this->Attribute->data, $server, $HttpSocket);
+			$this->Attribute->deleteAttributeFromServer($this->Attribute->data['Attribute']['uuid'], $server, $HttpSocket);
 		}
 	}
 

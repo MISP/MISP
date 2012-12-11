@@ -1,5 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
+
+App::import('Controller', 'Attributes');
 /**
  * Event Model
  *
@@ -235,7 +237,28 @@ class Event extends AppModel {
 	public function uploadEventToServer($event, $server, $HttpSocket=null) {
 		$newLocation = $this->RESTfullEventToServer($event, $server, null, $HttpSocket);
 		if (is_string($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-			$this->RESTfullEventToServer($event, $server, $newLocation, $HttpSocket);
+			$newTextBody = $this->RESTfullEventToServer($event, $server, $newLocation, $HttpSocket);
+
+			// now if save() i.s.o. saveAssociates()
+			// do the add attributes here
+
+			// get the new attribute uuids in an array
+			$newerUuids = array();
+			foreach ($event['Attribute'] as $attribute) {
+					$newerUuids[$attribute['id']] = $attribute['uuid'];
+			}
+			// get the already existing attributes and delete the ones that are not there
+			$xml = Xml::build($newTextBody);
+			foreach ($xml->Event->Attribute as $attribute) {
+				foreach ($attribute as $key => $value) {
+					if ($key == 'uuid') {
+						if (!in_array((string)$value, $newerUuids)) {
+							$anAttr = ClassRegistry::init('Attribute');
+							$anAttr->deleteAttributeFromServer((string)$value, $server, $HttpSocket);
+						}
+					}
+				}
+			}
 		}
 		return true;
 	}
@@ -307,7 +330,7 @@ class Event extends AppModel {
 			switch ($response->code) {
 				case '200':	// 200 (OK) + entity-action-result
 					if ($response->isOk()) {
-						return true;
+						return isset($urlPath) ? $response->body() : true;
 					} else {
 						try {
 							// parse the XML response and keep the reason why it failed
@@ -323,7 +346,8 @@ class Event extends AppModel {
 					}
 					break;
 				case '302': // Found
-					return $response->headers['Location'];
+				case '404': // Not Found
+					return isset($urlPath) ? $response->body() : $response->headers['Location'];
 					break;
 			}
 		}

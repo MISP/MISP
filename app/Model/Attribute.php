@@ -762,12 +762,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
  *
  * @return bool true if success, error message if failed
  */
-	public function deleteAttributeFromServer($attribute, $server, $HttpSocket=null) {
-		// TODO private and delete
-		if (true == $attribute['Attribute']['private']) { // never upload private attributes
-			return "Attribute is private and non exportable";
-		}
-
+	public function deleteAttributeFromServer($uuid, $server, $HttpSocket = null) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
@@ -782,7 +777,7 @@ IF (Attribute.category="External analysis", "j", "k"))))))))))'); 	// TODO hardc
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		$uri = $url . '/attributes/0?uuid=' . $attribute['Attribute']['uuid'];
+		$uri = $url . '/attributes/0?uuid=' . $uuid;
 
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
