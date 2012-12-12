@@ -1020,15 +1020,23 @@ class Attribute extends AppModel {
 		}
 	}
 
+	public function uploadAttributeToServer($attribute, $server, $HttpSocket=null) {
+		$newLocation = $this->RESTfullAttributeToServer($attribute, $server, null, $HttpSocket);
+		if (is_string($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+			$newTextBody = $this->RESTfullAttributeToServer($attribute, $server, $newLocation, $HttpSocket);
+		}
+		return true;
+	}
+
 /**
- * Deletes the attribute from another Server
+ * Uploads the attribute to another Server
  * TODO move this to a component
  *
  * @return bool true if success, error message if failed
  */
-	public function deleteAttributeFromServer($attribute, $server, $HttpSocket=null) {
-		// TODO private and delete
-		if (true == $attribute['Attribute']['private']) { // never upload private attributes
+	public function RESTfullAttributeToServer($attribute, $server, $urlPath, $HttpSocket=null) {
+		// do not keep attributes that are private
+		if (true == $attribute['private']) { // never upload private events
 			return "Attribute is private and non exportable";
 		}
 
@@ -1046,7 +1054,82 @@ class Attribute extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		$uri = $url . '/attributes/0?uuid=' . $attribute['Attribute']['uuid'];
+		$uri = isset($urlPath) ? $urlPath : $url . '/attributes';
+
+		// LATER try to do this using a separate EventsController and renderAs() function
+		$xmlArray = array();
+
+		// cleanup the array from things we do not want to expose
+		//unset($event['Event']['org']);
+		// remove value1 and value2 from the output
+		unset($attribute['value1']);
+		unset($attribute['value2']);
+		// also add the encoded attachment
+		if ($this->typeIsAttachment($attribute['type'])) {
+			$encodedFile = $this->base64EncodeAttachment($attribute);
+			$attribute['data'] = $encodedFile;
+		}
+
+		// display the XML to the user
+		$xmlArray['Attribute'] = $attribute;
+		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
+		$attributesXml = $xmlObject->asXML();
+		// do a REST POST request with the server
+		$data = $attributesXml;
+		// LATER validate HTTPS SSL certificate
+		$this->Dns = ClassRegistry::init('Dns');
+		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+			// TODO NETWORK for now do not know how to catch the following..
+			// TODO NETWORK No route to host
+			$response = $HttpSocket->post($uri, $data, $request);
+			switch ($response->code) {
+				case '200':	// 200 (OK) + entity-action-result
+					if ($response->isOk()) {
+						return isset($urlPath) ? $response->body() : true;
+					} else {
+						try {
+							// parse the XML response and keep the reason why it failed
+							$xmlArray = Xml::toArray(Xml::build($response->body));
+						} catch (XmlException $e) {
+							return true;
+						}
+						if (strpos($xmlArray['response']['name'], "Attribute already exists")) {	// strpos, so i can piggyback some value if needed.
+							return true;
+						} else {
+							return $xmlArray['response']['name'];
+						}
+					}
+					break;
+				case '302': // Found
+				case '404': // Not Found
+					return isset($urlPath) ? $response->body() : $response->headers['Location'];
+					break;
+			}
+		}
+	}
+
+/**
+ * Deletes the attribute from another Server
+ * TODO move this to a component
+ *
+ * @return bool true if success, error message if failed
+ */
+	public function deleteAttributeFromServer($uuid, $server, $HttpSocket = null) {
+		$url = $server['Server']['url'];
+		$authkey = $server['Server']['authkey'];
+		if (null == $HttpSocket) {
+			App::uses('HttpSocket', 'Network/Http');
+			$HttpSocket = new HttpSocket();
+		}
+		$request = array(
+				'header' => array(
+						'Authorization' => $authkey,
+						'Accept' => 'application/xml',
+						'Content-Type' => 'application/xml',
+						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+				)
+		);
+		$uri = $url . '/attributes/0?uuid=' . $uuid;
 
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');

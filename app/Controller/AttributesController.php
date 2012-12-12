@@ -103,6 +103,16 @@ class AttributesController extends AppController {
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
+	public function view($id = null) {
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) {
+			throw new NotFoundException(__('Invalid attribute'));
+		}
+		$this->Attribute->read(null, $id);
+
+		$this->set('attribute', $this->Attribute->data);
+	}
+
 /**
  * add method
  *
@@ -127,7 +137,7 @@ class AttributesController extends AppController {
 			//
 			// multiple attributes in batch import
 			//
-			if ($this->request->data['Attribute']['batch_import'] == 1) {
+			if ((isset($this->request->data['Attribute']['batch_import']) && $this->request->data['Attribute']['batch_import'] == 1)) {
 				// make array from value field
 				$attributes = explode("\n", $this->request->data['Attribute']['value']);
 
@@ -168,6 +178,20 @@ class AttributesController extends AppController {
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 
 			} else {
+				if (isset($this->request->data['Attribute']['uuid'])) {	// TODO here we should start RESTful dialog
+					// check if the uuid already exists
+					$existingAttributeCount = $this->Attribute->find('count', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
+					if ($existingAttributeCount > 0) {
+						// TODO RESTfull, set responce location header..so client can find right URL to edit
+						$existingAttribute = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
+						$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/attributes/' . $existingAttribute['Attribute']['id']);
+						$this->response->send();
+						$this->view($this->Attribute->getId());
+						$this->render('view');
+						return false;
+					}
+				}
+
 				//
 				// single attribute
 				//
@@ -178,10 +202,19 @@ class AttributesController extends AppController {
 					$this->request->data = $this->Attribute->massageData(&$this->request->data);
 				}
 
+				unset($this->request->data['Event']);
+				$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
+				$this->request->data['Attribute']['event_id'] = $eventId;
 				if ($this->Attribute->save($this->request->data)) {
-					// inform the user and redirect
-					$this->Session->setFlash(__('The attribute has been saved'));
-					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
+					if ($this->_isRest()) {
+						// REST users want to see the newly created event
+						$this->view($this->Attribute->getId());
+						$this->render('view');
+					} else {
+						// inform the user and redirect
+						$this->Session->setFlash(__('The attribute has been saved'));
+						$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
+					}
 				} else {
 					if (!CakeSession::read('Message.flash')) {
 						$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
@@ -433,6 +466,9 @@ class AttributesController extends AppController {
 
 			// say what fields are to be updated
 			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster');
+			unset($this->request->data['Event']);
+			$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
+			$this->request->data['Attribute']['event_id'] = $eventId;
 			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 
@@ -526,6 +562,11 @@ class AttributesController extends AppController {
 		$result = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $uuid)));
 		$id = $result['Attribute']['id'];
 
+		// TODO private and delete .. bring up ..
+		//if (true == $result['Attribute']['private']) { // never upload private attributes
+		//	return "Attribute is private and non exportable";
+		//}
+
 		// make sure we have all the data of the Attribute
 		$this->Attribute->id = $id;
 		$this->Attribute->recursive = 1; // TODO ERROR, was 1 so this could even whipe out things!!(?)
@@ -542,7 +583,7 @@ class AttributesController extends AppController {
 		App::uses('HttpSocket', 'Network/Http');
 		$HttpSocket = new HttpSocket();
 		foreach ($servers as &$server) {
-			$this->Attribute->deleteAttributeFromServer($this->Attribute->data, $server, $HttpSocket);
+			$this->Attribute->deleteAttributeFromServer($this->Attribute->data['Attribute']['uuid'], $server, $HttpSocket);
 		}
 	}
 

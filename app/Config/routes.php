@@ -41,7 +41,7 @@
 	Router::connect('/admin/users/routeafterlogin', array('controller' => 'users', 'action' => 'routeafterlogin'));
 
 	// Activate REST
-	Router::mapResources(array('events'));
+	Router::mapResources(array('events', 'attributes'));
 	Router::parseExtensions('xml');
 
 /**

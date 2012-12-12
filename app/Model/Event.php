@@ -1,5 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
+
+App::import('Controller', 'Attributes');
 /**
  * Event Model
  *
@@ -373,13 +375,57 @@ class Event extends AppModel {
 		return $data;
 	}
 
+	public function uploadEventToServer($event, $server, $HttpSocket=null) {
+		$newLocation = $newTextBody = '';
+		$result = $this->RESTfullEventToServer($event, $server, null, $HttpSocket, &$newLocation, &$newTextBody);
+		if (strlen($newLocation) || $result) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+				$result = $this->RESTfullEventToServer($event, $server, $newLocation, $HttpSocket, &$newLocation, &$newTextBody);
+			}
+			$xml = Xml::build($newTextBody);
+			// get the remote event_id
+			foreach ($xml as $xmlEvent) {
+				foreach ($xmlEvent as $key => $value) {
+					if ($key == 'id') {
+						$remoteId = (int)$value;
+						break;
+					}
+				}
+			}
+
+			// get the new attribute uuids in an array
+			$newerUuids = array();
+			foreach ($event['Attribute'] as $attribute) {
+					$newerUuids[$attribute['id']] = $attribute['uuid'];
+					$attribute['event_id'] = $remoteId;
+					// do the add attributes here i.s.o. saveAssociates() or save()
+					// and unset Attributes and hasMany for this
+					// following 2 lines can be out-commented if. (EventsController.php:364-365)
+					$anAttr = ClassRegistry::init('Attribute');
+					$anAttr->uploadAttributeToServer($attribute, $server, $HttpSocket);
+			}
+			// get the already existing attributes and delete the ones that are not there
+			foreach ($xml->Event->Attribute as $attribute) {
+				foreach ($attribute as $key => $value) {
+					if ($key == 'uuid') {
+						if (!in_array((string)$value, $newerUuids)) {
+							$anAttr = ClassRegistry::init('Attribute');
+							$anAttr->deleteAttributeFromServer((string)$value, $server, $HttpSocket);
+						}
+					}
+				}
+			}
+		}
+		return true;
+	}
+
 /**
  * Uploads the event and the associated Attributes to another Server
  * TODO move this to a component
  *
  * @return bool true if success, false or error message if failed
  */
-	public function uploadEventToServer($event, $server, $HttpSocket=null) {
+	public function RESTfullEventToServer($event, $server, $urlPath, $HttpSocket=null, $newLocation, $newTextBody) {
 		if (true == $event['Event']['private']) { // never upload private events
 			return "Event is private and non exportable";
 		}
@@ -398,7 +444,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		$uri = $url . '/events';
+		$uri = isset($urlPath) ? $urlPath : $url . '/events';
 
 		// LATER try to do this using a separate EventsController and renderAs() function
 		$xmlArray = array();
@@ -462,24 +508,33 @@ class Event extends AppModel {
 			// TODO NETWORK for now do not know how to catch the following..
 			// TODO NETWORK No route to host
 			$response = $HttpSocket->post($uri, $data, $request);
-			if ($response->code == '200') {	// 200 (OK) + entity-action-result
-				if ($response->isOk()) {
-					return true;
-				} else {
-					try {
-						// parse the XML response and keep the reason why it failed
-						$xmlArray = Xml::toArray(Xml::build($response->body));
-					} catch (XmlException $e) {
+			switch ($response->code) {
+				case '200':	// 200 (OK) + entity-action-result
+					if ($response->isOk()) {
+						$newTextBody = $response->body();
 						return true;
-					}
-					if (strpos($xmlArray['response']['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
-						return true;
+						//return isset($urlPath) ? $response->body() : true;
 					} else {
-						return $xmlArray['response']['name'];
+						try {
+							// parse the XML response and keep the reason why it failed
+							$xmlArray = Xml::toArray(Xml::build($response->body));
+						} catch (XmlException $e) {
+							return true;
+						}
+						if (strpos($xmlArray['response']['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
+							return true;
+						} else {
+							return $xmlArray['response']['name'];
+						}
 					}
-				}
-			} else { // response is not okay
-				return false;
+					break;
+				case '302': // Found
+				case '404': // Not Found
+					$newLocation = $response->headers['Location'];
+					$newTextBody = $response->body();
+					return true;
+					//return isset($urlPath) ? $response->body() : $response->headers['Location'];
+					break;
 			}
 		}
 	}
