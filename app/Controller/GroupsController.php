@@ -43,7 +43,7 @@ class GroupsController extends AppController {
 		if (!$this->Group->exists()) {
 			throw new NotFoundException(__('Invalid role'));
 		}
-		$this->set('group', $this->Group->read(null, $id));
+		$this->set('group', Sanitize::clean($this->Group->read(null, $id)));
 	}
 
 /**
@@ -53,7 +53,7 @@ class GroupsController extends AppController {
  */
 	public function admin_index() {
 		$this->Group->recursive = 0;
-		$this->set('groups', $this->paginate());
+		$this->set('groups', Sanitize::clean($this->paginate()));
 		$this->set('options', $this->options);
 	}
 
@@ -68,7 +68,7 @@ class GroupsController extends AppController {
 		if (!$this->Group->exists()) {
 			throw new NotFoundException(__('Invalid role'));
 		}
-		$this->set('group', $this->Group->read(null, $id));
+		$this->set('group', Sanitize::clean($this->Group->read(null, $id)));
 	}
 
 /**
@@ -115,7 +115,7 @@ class GroupsController extends AppController {
 		} else {
 			$this->Group->recursive=0;
 			$this->Group->read(null, $id);
-			$this->request->data = $this->Group->data;
+			$this->request->data = Sanitize::clean($this->Group->data);
 		}
 		$this->set('options', $this->options);
 	}

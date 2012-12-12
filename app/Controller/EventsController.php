@@ -116,7 +116,7 @@ class EventsController extends AppController {
 	public function index() {
 		// list the events
 		$this->Event->recursive = 0;
-		$this->set('events', $this->paginate());
+		$this->set('events', Sanitize::clean($this->paginate()));
 
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
@@ -285,7 +285,7 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 
-		$this->set('event', $this->Event->data);
+		$this->set('event', Sanitize::clean($this->Event->data));
 		$this->set('relatedEvents', $relatedEvents);
 
 		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
@@ -498,7 +498,7 @@ class EventsController extends AppController {
 				if ($this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList))) {
 					$message = 'Saved';
 
-					$this->set('event', $this->Event);
+					$this->set('event', Sanitize::clean($this->Event));
 
 					// REST users want to see the newly created event
 					$this->view($this->Event->getId());
@@ -519,7 +519,7 @@ class EventsController extends AppController {
 			if ($this->_isAdmin()) {
 				// set the same org as existed before
 				$this->Event->read();
-				$this->request->data['Event']['org'] = $this->Event->data['Event']['org'];
+				$this->request->data['Event']['org'] = Sanitize::clean($this->Event->data['Event']['org']);
 			}
 			// we probably also want to remove the published flag
 			$this->request->data['Event']['published'] = 0;
@@ -535,13 +535,13 @@ class EventsController extends AppController {
 				$this->Session->setFlash(__('The event could not be saved. Please, try again.'));
 			}
 		} else {
-			$this->request->data = $this->Event->read(null, $id);
+			$this->request->data = Sanitize::clean($this->Event->read(null, $id));
 		}
 
 		// combobox for distribution
 		$distributions = array_keys($this->Event->distributionDescriptions);
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions',$distributions);
+		$this->set('distributions', $distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
 
@@ -824,11 +824,11 @@ class EventsController extends AppController {
 				// prepare the the unencrypted email
 				$this->Email->from = Configure::read('CyDefSIG.email');
 				//$this->Email->to = "CyDefSIG <sig@cyber-defence.be>"; TODO check if it doesn't break things to not set a to , like being spammed away
-				$this->Email->bcc = $alertEmails;
+				$this->Email->bcc = Sanitize::clean($alertEmails);
 				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';        // both text or html
-				$this->set('body', $bodySigned);
+				$this->set('body', Sanitize::clean($bodySigned));
 				// send it
 				$this->Email->send();
 				// If you wish to send multiple emails using a loop, you'll need
@@ -849,7 +849,7 @@ class EventsController extends AppController {
 			foreach ($alertUsers as &$user) {
 				// send the email
 				$this->Email->from = Configure::read('CyDefSIG.email');
-				$this->Email->to = $user['User']['email'];
+				$this->Email->to = Sanitize::clean($user['User']['email']);
 				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';        // both text or html
@@ -865,7 +865,7 @@ class EventsController extends AppController {
 
 					$bodyEncSig = $gpg->encrypt($bodySigned, true);
 
-					$this->set('body', $bodyEncSig);
+					$this->set('body', Sanitize::clean($bodyEncSig));
 					$this->Email->send();
 				} catch (Exception $e){
 					// catch errors like expired PGP keys
@@ -912,7 +912,7 @@ class EventsController extends AppController {
 		}
 		// User didn't see the contact form yet. Present it to him.
 		if (empty($this->data)) {
-			$this->data = $this->Event->read(null, $id);
+			$this->data = Sanitize::clean($this->Event->read(null, $id));
 		}
 	}
 
@@ -1030,12 +1030,12 @@ class EventsController extends AppController {
 
 			// prepare the email
 			$this->Email->from = Configure::read('CyDefSIG.email');
-			$this->Email->to = $reporter['User']['email'];
+			$this->Email->to = Sanitize::clean($reporter['User']['email']);
 			$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Need info about event " . $id . " - TLP Amber";
 			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
 			$this->Email->template = 'body';
 			$this->Email->sendAs = 'text';		// both text or html
-			$this->set('body', $bodyEncSig);
+			$this->set('body', Sanitize::clean($bodyEncSig));
 			// Add the GPG key of the user as attachment
 			// LATER sign the attached GPG key
 			if (!empty($meUser['gpgkey'])) {
@@ -1099,7 +1099,7 @@ class EventsController extends AppController {
 		);
 		$results = $this->Event->find('all', $params);
 
-		$this->set('results', $results);
+		$this->set('results', Sanitize::clean($results));
 	}
 
 	public function nids($key) {
@@ -1134,7 +1134,7 @@ class EventsController extends AppController {
 			print $rule . "\n";
 		print "#</pre>\n";
 
-		$this->set('rules', $rules);
+		$this->set('rules', Sanitize::clean($rules));
 	}
 
 	public function hids_md5($key) {
@@ -1170,7 +1170,7 @@ class EventsController extends AppController {
 				print $rule . "\n";
 			print "#</pre>\n";
 
-			$this->set('rules', $rules);
+			$this->set('rules', Sanitize::clean($rules));
 		} else {
 			print "Not any MD5 found to export\n";
 		}
@@ -1211,7 +1211,7 @@ class EventsController extends AppController {
 			}
 			print "#</pre>\n";
 
-			$this->set('rules', $rules);
+			$this->set('rules', Sanitize::clean($rules));
 		} else {
 			print "Not any SHA-1 found to export\n";
 		}
@@ -1241,7 +1241,7 @@ class EventsController extends AppController {
 		);
 		$attributes = $this->Attribute->find('all', $params);
 
-		$this->set('attributes', $attributes);
+		$this->set('attributes', Sanitize::clean($attributes));
 	}
 
 	//public function dot($key) {

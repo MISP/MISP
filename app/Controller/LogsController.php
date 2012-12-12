@@ -42,7 +42,7 @@ class LogsController extends AppController {
  */
 	public function admin_index() {
 		$this->Log->recursive = 0;
-		$this->set('logs', $this->paginate());
+		$this->set('logs', Sanitize::clean($this->paginate()));
 	}
 
 /**
@@ -56,7 +56,7 @@ class LogsController extends AppController {
 		if (!$this->Log->exists()) {
 			throw new NotFoundException(__('Invalid log'));
 		}
-		$this->set('log', $this->Log->read(null, $id));
+		$this->set('log', Sanitize::clean($this->Log->read(null, $id)));
 	}
 
 	public function search() {
@@ -103,7 +103,7 @@ class LogsController extends AppController {
 					'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 logs(?)
 	            	'conditions' => $conditions
 	            );
-		        $this->set('logs', $this->paginate());
+		        $this->set('logs', Sanitize::clean($this->paginate()));
 
 				// and store into session
 				$this->Session->write('paginate_conditions_log', $this->paginate);
@@ -116,7 +116,7 @@ class LogsController extends AppController {
 		        // combobox for actions
 	    	    $actions = array('' => array('ALL' => 'ALL'), 'actions' => array());
 	    	    $actions['actions'] = array_merge($actions['actions'], $this->_arrayToValuesIndexArray($this->Log->validate['action']['rule'][1]));
-	    	    $this->set('actions',$actions);
+	    	    $this->set('actions', $actions);
 		    }
 		} else {
 		    $this->set('actionDefinitions', $this->Log->actionDefinitions);
@@ -124,7 +124,7 @@ class LogsController extends AppController {
 			$this->Log->recursive = 0;
 			// re-get pagination
 			$this->paginate = $this->Session->read('paginate_conditions_log');
-			$this->set('logs', $this->paginate());
+			$this->set('logs', Sanitize::clean($this->paginate()));
 
 			// set the same view as the index page
 			$this->render('admin_index');

@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+
 /**
  * Users Controller
  *
@@ -57,7 +58,7 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		// Only own profile verified by isAuthorized
-		$this->set('user', $this->User->read(null, $id));
+		$this->set('user', Sanitize::clean($this->User->read(null, $id)));
 	}
 
 /**
@@ -91,10 +92,10 @@ class UsersController extends AppController {
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
 			$this->User->set('password', '');
-			$this->request->data = $this->User->data;
+			$this->request->data = Sanitize::clean($this->User->data);
 		}
 		// XXX ACL groups
-		$groups = $this->User->Group->find('list');
+		$groups = Sanitize::clean($this->User->Group->find('list'));
 		$this->set(compact('groups'));
 	}
 
@@ -134,7 +135,7 @@ class UsersController extends AppController {
  */
 	public function admin_index() {
 		$this->User->recursive = 0;
-		$this->set('users', $this->paginate());
+		$this->set('users', Sanitize::clean($this->paginate()));
 	}
 
 /**
@@ -149,7 +150,7 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		$this->set('user', $this->User->read(null, $id));
+		$this->set('user', Sanitize::clean($this->User->read(null, $id)));
 	}
 
 /**
@@ -176,7 +177,7 @@ class UsersController extends AppController {
 			$this->set('authkey', $this->newkey);
 		}
 		// XXX ACL groups
-		$groups = $this->User->Group->find('list');
+		$groups = Sanitize::clean($this->User->Group->find('list'));
 		$this->set(compact('groups'));
 	}
 
@@ -249,7 +250,7 @@ class UsersController extends AppController {
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
 			$this->User->set('password', '');
-			$this->request->data = $this->User->data;
+			$this->request->data = Sanitize::clean($this->User->data);
 
 		}
 		// TODO ACL CLEANUP combobox for orgs
@@ -257,7 +258,7 @@ class UsersController extends AppController {
 		$orgIds = $this->_arrayToValuesIndexArray($orgIds);
 		$this->set('orgIds', compact('orgIds'));
 		// XXX ACL, Groups in Users
-		$groups = $this->User->Group->find('list');
+		$groups = Sanitize::clean($this->User->Group->find('list'));
 		$this->set(compact('groups'));
 	}
 
@@ -362,7 +363,7 @@ class UsersController extends AppController {
 							'order' => array('User.org'),
 		);
 		$orgs = $this->User->find('all', $params);
-		$this->set('orgs', $orgs);
+		$this->set('orgs', Sanitize::clean($orgs));
 
 		// What org posted what type of attribute
 		$this->loadModel('Attribute');
@@ -372,7 +373,7 @@ class UsersController extends AppController {
 							'group' => array('Attribute.type', 'Event.org'),
 							'order' => array('Event.org', 'num_types DESC'),
 		);
-		$typesHistogram = $this->Attribute->find('all', $params);
+		$typesHistogram = Sanitize::clean($this->Attribute->find('all', $params));
 		$this->set('typesHistogram', $typesHistogram);
 
 		// Nice graphical histogram

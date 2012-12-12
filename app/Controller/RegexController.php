@@ -42,7 +42,7 @@ class RegexController extends AppController {
  */
 	public function admin_index() {
 		$this->Regex->recursive = 0;
-		$this->set('regexs', $this->paginate());
+		$this->set('regexs', Sanitize::clean($this->paginate()));
 	}
 
 /**
@@ -82,7 +82,7 @@ class RegexController extends AppController {
 				$this->Session->setFlash(__('The regex could not be saved. Please, try again.'));
 			}
 		} else {
-			$this->request->data = $this->Regex->read(null, $id);
+			$this->request->data = Sanitize::clean($this->Regex->read(null, $id));
 		}
 	}
 

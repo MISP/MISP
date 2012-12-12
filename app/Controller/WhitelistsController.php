@@ -33,7 +33,7 @@ class WhitelistsController extends AppController {
  */
 	public function admin_index() {
 		$this->Whitelist->recursive = 0;
-		$this->set('whitelists', $this->paginate());
+		$this->set('whitelists', Sanitize::clean($this->paginate()));
 	}
 
 /**
@@ -48,7 +48,7 @@ class WhitelistsController extends AppController {
 		if (!$this->Whitelist->exists()) {
 			throw new NotFoundException(__('Invalid whitelist'));
 		}
-		$this->set('whitelist', $this->Whitelist->read(null, $id));
+		$this->set('whitelist', Sanitize::clean($this->Whitelist->read(null, $id)));
 	}
 
 /**
@@ -88,7 +88,7 @@ class WhitelistsController extends AppController {
 				$this->Session->setFlash(__('The whitelist could not be saved. Please, try again.'));
 			}
 		} else {
-			$this->request->data = $this->Whitelist->read(null, $id);
+			$this->request->data = Sanitize::clean($this->Whitelist->read(null, $id));
 		}
 	}
 

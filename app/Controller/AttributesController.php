@@ -96,7 +96,7 @@ class AttributesController extends AppController {
  */
 	public function index() {
 		$this->Attribute->recursive = 0;
-		$this->set('attributes', $this->paginate());
+		$this->set('attributes', Sanitize::clean($this->paginate()));
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -196,16 +196,16 @@ class AttributesController extends AppController {
 		// combobox for types
 		$types = array_keys($this->Attribute->typeDefinitions);
 		$types = $this->_arrayToValuesIndexArray($types);
-		$this->set('types',$types);
+		$this->set('types', $types);
 		// combobos for categories
 		$categories = $this->Attribute->validate['category']['rule'][1];
 		array_pop($categories);
 		$categories = $this->_arrayToValuesIndexArray($categories);
-		$this->set('categories',compact('categories'));
+		$this->set('categories', compact('categories'));
 		// combobox for distribution
 		$distributions = array_keys($this->Attribute->distributionDescriptions);
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions',$distributions);
+		$this->set('distributions', $distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 
@@ -224,11 +224,11 @@ class AttributesController extends AppController {
 		$file = new File(APP . DS . "files" . DS . $this->Attribute->data['Attribute']['event_id'] . DS . $this->Attribute->data['Attribute']['id']);
 		$filename = '';
 		if ('attachment' == $this->Attribute->data['Attribute']['type']) {
-			$filename = $this->Attribute->data['Attribute']['value'];
+			$filename = Sanitize::clean($this->Attribute->data['Attribute']['value']);
 			$fileExt = pathinfo($filename, PATHINFO_EXTENSION);
 			$filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
 		} elseif ('malware-sample' == $this->Attribute->data['Attribute']['type']) {
-			$filenameHash = explode('|', $this->Attribute->data['Attribute']['value']);
+			$filenameHash = explode('|', Sanitize::clean($this->Attribute->data['Attribute']['value']));
 			$filename = $filenameHash[0];
 			$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 			$fileExt = "zip";
@@ -384,7 +384,7 @@ class AttributesController extends AppController {
 		// combobox for distribution
 		$distributions = array_keys($this->Attribute->distributionDescriptions);
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions',$distributions);
+		$this->set('distributions', $distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 	}
@@ -446,28 +446,28 @@ class AttributesController extends AppController {
 				if (!CakeSession::read('Message.flash')) {
 					$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
 				} else {
-					$this->request->data = $this->Attribute->read(null, $id);
+					$this->request->data = Sanitize::clean($this->Attribute->read(null, $id));
 				}
 			}
 		} else {
-			$this->request->data = $this->Attribute->read(null, $id);
+			$this->request->data = Sanitize::clean($this->Attribute->read(null, $id));
 		}
 		// needed for RBAC
-		$this->set('attribute', $this->request->data);
+		$this->set('attribute', Sanitize::clean($this->request->data));
 
 		// combobox for types
-		$types = $types = array_keys($this->Attribute->typeDefinitions);
+		$types = array_keys($this->Attribute->typeDefinitions);
 		$types = $this->_arrayToValuesIndexArray($types);
-		$this->set('types',$types);
+		$this->set('types', $types);
 		// combobox for categories
 		$categories = $this->Attribute->validate['category']['rule'][1];
 		array_pop(&$categories); // remove that last empty/space option
 		$categories = $this->_arrayToValuesIndexArray($categories);
-		$this->set('categories',$categories);
+		$this->set('categories', $categories);
 		// combobox for distribution
 		$distributions = array_keys($this->Attribute->distributionDescriptions);
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions',$distributions);
+		$this->set('distributions', $distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 
@@ -594,7 +594,7 @@ class AttributesController extends AppController {
 					}
 				}
 
-				$this->set('attributes', $this->paginate());
+				$this->set('attributes', Sanitize::clean($this->paginate()));
 
 				// and store into session
 				$this->Session->write('paginate_conditions',$this->paginate);
@@ -608,13 +608,13 @@ class AttributesController extends AppController {
 				// combobox for types
 				$types = array('' => array('ALL' => 'ALL'), 'types' => array());
 				$types['types'] = array_merge($types['types'], $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions)));
-				$this->set('types',$types);
+				$this->set('types', $types);
 
 				// combobox for categories
 				$categories = array('' => array('ALL' => 'ALL', '' => ''), 'categories' => array());
 				array_pop($this->Attribute->validate['category']['rule'][1]); // remove that last 'empty' item
 				$categories['categories'] = array_merge($categories['categories'], $this->_arrayToValuesIndexArray($this->Attribute->validate['category']['rule'][1]));
-				$this->set('categories',$categories);
+				$this->set('categories', $categories);
 			}
 		} else {
 			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
@@ -624,7 +624,7 @@ class AttributesController extends AppController {
 			$this->Attribute->recursive = 0;
 			// re-get pagination
 			$this->paginate = $this->Session->read('paginate_conditions');
-			$this->set('attributes', $this->paginate());
+			$this->set('attributes', Sanitize::clean($this->paginate()));
 
 			// set the same view as the index page
 			$this->render('index');
@@ -656,11 +656,11 @@ class AttributesController extends AppController {
 			'limit' => 60,
 			'conditions' => $conditions
 		);
-		$this->set('attributes', $this->paginate());
+		$this->set('attributes', Sanitize::clean($this->paginate()));
 
 		// the parent event..
 		$event = ClassRegistry::init('Event')->findById($attributeId);
-		$this->set('event', $event);
+		$this->set('event', Sanitize::clean($event));
 		$this->loadModel('Event');
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 

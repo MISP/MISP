@@ -101,7 +101,7 @@ class AppController extends Controller {
 		}
 
 		// These variables are required for every view
-		$this->set('me', $this->Auth->user());
+		$this->set('me', Sanitize::clean($this->Auth->user()));
 		$this->set('isAdmin', $this->_isAdmin());
 
 		// TODO ACL: 5: from Controller to Views
