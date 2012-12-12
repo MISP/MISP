@@ -16,7 +16,6 @@
 <?php endforeach; ?>
 	</table>
 
-<?php if(file_exists(WWW_ROOT . DS . 'js' . DS . 'ext-4.0.7-gpl' . DS . 'bootstrap.js')): ?>
 	<h2>Attribute Types Histogram</h2>
 	<div id="graph"></div>
 	<script type="text/javascript" src="/js/ext-4.0.7-gpl/bootstrap.js"></script>
@@ -103,7 +102,6 @@ foreach ($graphData as $row) {
 		</tr>
 	<?php endforeach; ?>
 	</table -->
-<?php endif; ?>
 
 </div>
 
