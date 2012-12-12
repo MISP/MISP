@@ -11,7 +11,7 @@ class AppSchema extends CakeSchema {
 		if (isset($event['update'])) {
 		        switch ($event['update']) {
 		            case 'users':
-		            	// TDDO Schema,Users.group_id is not here
+		            	// TDDO Schema,Users.role_id is not here
         				break;
 		        }
 		}
@@ -105,7 +105,7 @@ class AppSchema extends CakeSchema {
 		'nids_sid' => array('type' => 'integer', 'null' => false, 'default' => NULL, 'length' => 15),
 		'termsaccepted' => array('type' => 'boolean', 'null' => false, 'default' => NULL),
 		'newsread' => array('type' => 'date', 'null' => false, 'default' => NULL),
-		'group_id' => array('type' => 'integer', 'null' => true, 'default' => NULL),
+		'role_id' => array('type' => 'integer', 'null' => true, 'default' => NULL),
 		'indexes' => array('PRIMARY' => array('column' => 'id', 'unique' => 1), 'username' => array('column' => 'password', 'unique' => 0)),
 		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'MyISAM')
 	);

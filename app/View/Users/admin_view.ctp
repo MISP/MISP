@@ -26,7 +26,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		</dd>
 		<dt><?php echo __('Role'); ?></dt>
 		<dd>
-			<?php echo $this->Html->link($user['Group']['name'], array('controller' => 'groups', 'action' => 'view', $user['Group']['id'])); ?>
+			<?php echo $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])); ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Email'); ?></dt>

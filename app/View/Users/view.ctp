@@ -21,7 +21,7 @@
 		</dd>
 		<dt><?php echo __('Role'); ?></dt>
 		<dd>
-			<?php echo h($user['Group']['name']); ?>		<!-- TODO ACL, check, My Profile not edit group_id. -->
+			<?php echo h($user['Role']['name']); ?>		<!-- TODO ACL, check, My Profile not edit role_id. -->
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Autoalert'); ?></dt>

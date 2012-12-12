@@ -8,7 +8,7 @@
 PRJCT=/var/www/cydefsig/app
 cd ${PRJCT}
 
-# update Schema, add Users.group_id
+# update Schema, add Users.role_id
 ./Console/cake schema update -s 0.2.2
 
 exit 0

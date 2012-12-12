@@ -5,7 +5,7 @@
 There is now log on every login, logout, addition, change and deletion.</p>
 
 <p><b>Access Control granulation</b><br>
-There is Access Control, an user must be bound to a users-group,<br>
+There is Access Control, an user must be bound to a users-role,<br>
 so we are able to grant global add, modify and publish rights.</p>
 
 <h3>April 2012</h3>

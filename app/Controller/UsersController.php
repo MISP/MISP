@@ -94,9 +94,9 @@ class UsersController extends AppController {
 			$this->User->set('password', '');
 			$this->request->data = Sanitize::clean($this->User->data);
 		}
-		// XXX ACL groups
-		$groups = Sanitize::clean($this->User->Group->find('list'));
-		$this->set(compact('groups'));
+		// XXX ACL roles
+		$roles = Sanitize::clean($this->User->Role->find('list'));
+		$this->set(compact('roles'));
 	}
 
 /**
@@ -176,9 +176,9 @@ class UsersController extends AppController {
 			$this->newkey = $this->User->generateAuthKey();
 			$this->set('authkey', $this->newkey);
 		}
-		// XXX ACL groups
-		$groups = Sanitize::clean($this->User->Group->find('list'));
-		$this->set(compact('groups'));
+		// XXX ACL roles
+		$roles = Sanitize::clean($this->User->Role->find('list'));
+		$this->set(compact('roles'));
 	}
 
 /**
@@ -257,9 +257,9 @@ class UsersController extends AppController {
 		$orgIds = array('ADMIN', 'NCIRC', 'Other MOD');
 		$orgIds = $this->_arrayToValuesIndexArray($orgIds);
 		$this->set('orgIds', compact('orgIds'));
-		// XXX ACL, Groups in Users
-		$groups = Sanitize::clean($this->User->Group->find('list'));
-		$this->set(compact('groups'));
+		// XXX ACL, Roles in Users
+		$roles = Sanitize::clean($this->User->Role->find('list'));
+		$this->set(compact('roles'));
 	}
 
 /**
@@ -470,16 +470,16 @@ class UsersController extends AppController {
 		return $result;
 	}
 
-	public function setgroupid($fk = '2') {
+	public function setRoleId($fk = '2') {
 		$params = array(
-				'conditions' => array('User.group_id' => ''),
+				'conditions' => array('User.role_id' => ''),
 				'recursive' => 0,
 				'fields' => array('User.id'),
 		);
 		$users = $this->User->find('all', $params);
 		foreach ($users as $user) {
 			$this->User->id = $user['User']['id'];
-			$this->User->saveField('group_id', $fk);
+			$this->User->saveField('role_id', $fk);
 		}
 	}
 }

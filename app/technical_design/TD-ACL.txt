@@ -9,7 +9,7 @@ http://book.cakephp.org/2.0/en/tutorials-and-examples/simple-acl-controlled-appl
 
 http://stackoverflow.com/questions/6154285/aros-table-in-cakephp-is-still-including-users-even-after-bindnode
 
-	If ACL on Group level add this small correction, to just only add Groups to CakePHP ACL tables and not to add the Users.
+	If ACL on Role level add this small correction, to just only add Roles to CakePHP ACL tables and not to add the Users.
 
 http://bakery.cakephp.org/articles/theshz/2006/11/28/user-permissions-and-cakephp-acl
 

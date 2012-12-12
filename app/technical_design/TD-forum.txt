@@ -4,7 +4,7 @@ We use a plugin giving Forum use in CakePHP.
 
 http://milesj.me/code/cakephp/forum
 
-Alternative PhpBB in conjunction with CakePHP Users and Groups tables.
+Alternative PhpBB in conjunction with CakePHP Users and Roles tables.
 
 http://bakery.cakephp.org/articles/wilsonsheldon/2009/01/13/phpbb3-api-bridge
 http://www.phpbb.com/community/viewtopic.php?f=71&t=993475

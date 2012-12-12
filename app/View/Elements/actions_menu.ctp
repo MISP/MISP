@@ -27,8 +27,8 @@
 		<li>&nbsp;</li>
 		<li><?php echo $this->Html->link(__('New User', true), array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
 		<li><?php echo $this->Html->link(__('List Users', true), array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
-		<li><?php echo $this->Html->link(__('New Role', true), array('controller' => 'groups', 'action' => 'add', 'admin' => true)); ?> </li>
-		<li><?php echo $this->Html->link(__('List Roles', true), array('controller' => 'groups', 'action' => 'index', 'admin' => true)); ?> </li>
+		<li><?php echo $this->Html->link(__('New Role', true), array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+		<li><?php echo $this->Html->link(__('List Roles', true), array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 		<li>&nbsp;</li>
 		<?php endif; ?>
 		<?php if($isAdmin || $isAclAudit): ?>

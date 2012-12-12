@@ -1,11 +1,11 @@
 <?php
 App::uses('AppModel', 'Model');
 /**
- * Group Model
+ * Role Model
  *
  * @property User $User
  */
-class Group extends AppModel {
+class Role extends AppModel {
 
 /**
  * Validation rules
@@ -33,7 +33,7 @@ class Group extends AppModel {
 	public $hasMany = array(
 		'User' => array(
 			'className' => 'User',
-			'foreignKey' => 'group_id',
+			'foreignKey' => 'role_id',
 			'dependent' => false,
 			'conditions' => '',
 			'fields' => '',
@@ -54,7 +54,7 @@ class Group extends AppModel {
 	public $actsAs = array('Acl' => array('type' => 'requester'), 'MagicTools.OrphansProtectable', 'Trim');
 
 /**
- * TODO ACL: 2: hook Group into CakePHP ACL system (so link to aros)
+ * TODO ACL: 2: hook Role into CakePHP ACL system (so link to aros)
  */
 	public function parentNode() {
 		return null;
@@ -66,34 +66,34 @@ class Group extends AppModel {
  * @var array
  */
 	public $virtualFields = array(
-		'permission' => "IF (Group.perm_add && Group.perm_modify && Group.perm_publish, '3', IF (Group.perm_add && Group.perm_modify_org, '2', IF (Group.perm_add, '1', '0')))",
+		'permission' => "IF (Role.perm_add && Role.perm_modify && Role.perm_publish, '3', IF (Role.perm_add && Role.perm_modify_org, '2', IF (Role.perm_add, '1', '0')))",
 	);
 
 	public function massageData(&$data) {
-		switch ($data['Group']['permission']) {
+		switch ($data['Role']['permission']) {
 			case '0':
-				$data['Group']['perm_add'] = false;
-				$data['Group']['perm_modify'] = false;
-				$data['Group']['perm_modify_org'] = false;
-				$data['Group']['perm_publish'] = false;
+				$data['Role']['perm_add'] = false;
+				$data['Role']['perm_modify'] = false;
+				$data['Role']['perm_modify_org'] = false;
+				$data['Role']['perm_publish'] = false;
 				break;
 			case '1':
-				$data['Group']['perm_add'] = true;
-				$data['Group']['perm_modify'] = true; // SHOULD BE true
-				$data['Group']['perm_modify_org'] = false;
-				$data['Group']['perm_publish'] = false;
+				$data['Role']['perm_add'] = true;
+				$data['Role']['perm_modify'] = true; // SHOULD BE true
+				$data['Role']['perm_modify_org'] = false;
+				$data['Role']['perm_publish'] = false;
 				break;
 			case '2':
-				$data['Group']['perm_add'] = true;
-				$data['Group']['perm_modify'] = true;
-				$data['Group']['perm_modify_org'] = true;
-				$data['Group']['perm_publish'] = false;
+				$data['Role']['perm_add'] = true;
+				$data['Role']['perm_modify'] = true;
+				$data['Role']['perm_modify_org'] = true;
+				$data['Role']['perm_publish'] = false;
 				break;
 			case '3':
-				$data['Group']['perm_add'] = true;
-				$data['Group']['perm_modify'] = true; // ?
-				$data['Group']['perm_modify_org'] = true; // ?
-				$data['Group']['perm_publish'] = true;
+				$data['Role']['perm_add'] = true;
+				$data['Role']['perm_modify'] = true; // ?
+				$data['Role']['perm_modify_org'] = true; // ?
+				$data['Role']['perm_publish'] = true;
 				break;
 		}
 		return $data;

@@ -11,17 +11,17 @@
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
-	foreach ($groups as $group): ?>
+	foreach ($roles as $role): ?>
 	<tr>
-		<td class="short"><?php echo h($group['Group']['id']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($group['Group']['name']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($options[$group['Group']['permission']]); ?>&nbsp;</td>
-		<td class="short"><?php echo h($group['Group']['perm_sync']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($group['Group']['perm_admin']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($group['Group']['perm_audit']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($role['Role']['id']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($role['Role']['name']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($options[$role['Role']['permission']]); ?>&nbsp;</td>
+		<td class="short"><?php echo h($role['Role']['perm_sync']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($role['Role']['perm_admin']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($role['Role']['perm_audit']); ?>&nbsp;</td>
 		<td class="actions">
-			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $group['Group']['id'])); ?>
-			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $group['Group']['id']), null, __('Are you sure you want to delete # %s?', $group['Group']['id'])); ?>
+			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $role['Role']['id'])); ?>
+			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $role['Role']['id']), null, __('Are you sure you want to delete # %s?', $role['Role']['id'])); ?>
 		</td>
 	</tr>
 <?php endforeach; ?>

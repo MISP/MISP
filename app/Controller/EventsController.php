@@ -67,7 +67,7 @@ class EventsController extends AppController {
 			}
 		}
 
-		// do not show private to other groups
+		// do not show private to other orgs
 		if ('true' == Configure::read('CyDefSIG.private')) {
 			// if not admin or own org, check private as well..
 			if (!$this->_IsAdmin()) {
@@ -472,7 +472,7 @@ class EventsController extends AppController {
 			if (!$this->_IsAdmin()) {
 				$this->Event->read(null, $id);
 				// check for non-private and re-read
-				if (($this->Event->data['Event']['org'] != $this->Auth->user('org')) || (($this->Event->data['Event']['org'] == $this->Auth->user('org')) && ($this->Event->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkGroup() || !$this->checkAcl('publish')))) {
+				if (($this->Event->data['Event']['org'] != $this->Auth->user('org')) || (($this->Event->data['Event']['org'] == $this->Auth->user('org')) && ($this->Event->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
 					$this->Session->setFlash(__('Invalid event.'));
 					$this->redirect(array('controller' => 'users', 'action' => 'terms'));
 				}

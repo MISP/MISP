@@ -1,11 +1,11 @@
 <?php
 App::uses('AppController', 'Controller');
 /**
- * Groups Controller
+ * Roles Controller
  *
- * @property Group $Group
+ * @property Role $Role
  */
-class GroupsController extends AppController {
+class RolesController extends AppController {
 
 	public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage & Publish Organization Events');
 
@@ -13,7 +13,7 @@ class GroupsController extends AppController {
         'Acl',
         'Auth' => array(
             'authorize' => array(
-                'Actions' => array('actionPath' => 'controllers/Groups')
+                'Actions' => array('actionPath' => 'controllers/Roles')
             )
         ),
         'Security',
@@ -24,7 +24,7 @@ class GroupsController extends AppController {
     public $paginate = array(
             'limit' => 60,
             'order' => array(
-                    'Group.name' => 'ASC'
+                    'Role.name' => 'ASC'
             )
     );
 
@@ -39,11 +39,11 @@ class GroupsController extends AppController {
  * @return void
  */
 	public function view($id = null) {
-		$this->Group->id = $id;
-		if (!$this->Group->exists()) {
+		$this->Role->id = $id;
+		if (!$this->Role->exists()) {
 			throw new NotFoundException(__('Invalid role'));
 		}
-		$this->set('group', Sanitize::clean($this->Group->read(null, $id)));
+		$this->set('role', Sanitize::clean($this->Role->read(null, $id)));
 	}
 
 /**
@@ -52,8 +52,8 @@ class GroupsController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		$this->Group->recursive = 0;
-		$this->set('groups', Sanitize::clean($this->paginate()));
+		$this->Role->recursive = 0;
+		$this->set('roles', Sanitize::clean($this->paginate()));
 		$this->set('options', $this->options);
 	}
 
@@ -64,11 +64,11 @@ class GroupsController extends AppController {
  * @return void
  */
 	public function admin_view($id = null) {
-		$this->Group->id = $id;
-		if (!$this->Group->exists()) {
+		$this->Role->id = $id;
+		if (!$this->Role->exists()) {
 			throw new NotFoundException(__('Invalid role'));
 		}
-		$this->set('group', Sanitize::clean($this->Group->read(null, $id)));
+		$this->set('role', Sanitize::clean($this->Role->read(null, $id)));
 	}
 
 /**
@@ -78,10 +78,10 @@ class GroupsController extends AppController {
  */
 	public function admin_add() {
 		if ($this->request->is('post')) {
-			$this->Group->create();
-			$this->request->data = $this->Group->massageData(&$this->request->data);
-			if ($this->Group->save($this->request->data)) {
-				$this->saveAcl($this->Group, $this->data['Group']['perm_add'], $this->data['Group']['perm_modify'], $this->data['Group']['perm_publish']);	// save to ACL as well
+			$this->Role->create();
+			$this->request->data = $this->Role->massageData(&$this->request->data);
+			if ($this->Role->save($this->request->data)) {
+				$this->saveAcl($this->Role, $this->data['Role']['perm_add'], $this->data['Role']['perm_modify'], $this->data['Role']['perm_publish']);	// save to ACL as well
 				$this->Session->setFlash(__('The role has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
@@ -98,24 +98,24 @@ class GroupsController extends AppController {
  * @return void
  */
 	public function admin_edit($id = null) {
-		$this->Group->id = $id;
-		if (!$this->Group->exists()) {
+		$this->Role->id = $id;
+		if (!$this->Role->exists()) {
 			throw new NotFoundException(__('Invalid role'));
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$fields = array();
-			$this->request->data = $this->Group->massageData(&$this->request->data);
-			if ($this->Group->save($this->request->data, true, $fields)) {
-				$this->saveAcl($this->Group, $this->data['Group']['perm_add'], $this->data['Group']['perm_modify'], $this->data['Group']['perm_publish']);	// save to ACL as well
+			$this->request->data = $this->Role->massageData(&$this->request->data);
+			if ($this->Role->save($this->request->data, true, $fields)) {
+				$this->saveAcl($this->Role, $this->data['Role']['perm_add'], $this->data['Role']['perm_modify'], $this->data['Role']['perm_publish']);	// save to ACL as well
 				$this->Session->setFlash(__('The role has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
 				$this->Session->setFlash(__('The role could not be saved. Please, try again.'));
 			}
 		} else {
-			$this->Group->recursive=0;
-			$this->Group->read(null, $id);
-			$this->request->data = Sanitize::clean($this->Group->data);
+			$this->Role->recursive=0;
+			$this->Role->read(null, $id);
+			$this->request->data = Sanitize::clean($this->Role->data);
 		}
 		$this->set('options', $this->options);
 	}
@@ -130,11 +130,11 @@ class GroupsController extends AppController {
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
 		}
-		$this->Group->id = $id;
-		if (!$this->Group->exists()) {
-			throw new NotFoundException(__('Invalid group'));
+		$this->Role->id = $id;
+		if (!$this->Role->exists()) {
+			throw new NotFoundException(__('Invalid role'));
 		}
-		if ($this->Group->delete(null, false)) {
+		if ($this->Role->delete(null, false)) {
 			$this->Session->setFlash(__('Role deleted'));
 			$this->redirect(array('action' => 'index'));
 		}
@@ -148,27 +148,27 @@ class GroupsController extends AppController {
  * @param string $id
  * @return void
  */
-	public function saveAcl($group, $permAdd = false, $permModify = false, $permPublish = false) {
+	public function saveAcl($role, $permAdd = false, $permModify = false, $permPublish = false) {
 		// this all could need some 'if-changed then do'
 
 		if ($permAdd) {
-			$this->Acl->allow($group, 'controllers/Events/add');
-			$this->Acl->allow($group, 'controllers/Attributes/add');
+			$this->Acl->allow($role, 'controllers/Events/add');
+			$this->Acl->allow($role, 'controllers/Attributes/add');
 		} else {
-			$this->Acl->deny($group, 'controllers/Events/add');
-			$this->Acl->deny($group, 'controllers/Attributes/add');
+			$this->Acl->deny($role, 'controllers/Events/add');
+			$this->Acl->deny($role, 'controllers/Attributes/add');
 		}
 		if ($permModify) {
-			$this->Acl->allow($group, 'controllers/Events/edit');
-			$this->Acl->allow($group, 'controllers/Attributes/edit');
+			$this->Acl->allow($role, 'controllers/Events/edit');
+			$this->Acl->allow($role, 'controllers/Attributes/edit');
 		} else {
-			$this->Acl->deny($group, 'controllers/Events/edit');
-			$this->Acl->deny($group, 'controllers/Attributes/edit');
+			$this->Acl->deny($role, 'controllers/Events/edit');
+			$this->Acl->deny($role, 'controllers/Attributes/edit');
 		}
 		if ($permPublish) {
-			$this->Acl->allow($group, 'controllers/Events/publish');
+			$this->Acl->allow($role, 'controllers/Events/publish');
 		} else {
-			$this->Acl->deny($group, 'controllers/Events/publish');
+			$this->Acl->deny($role, 'controllers/Events/publish');
 		}
 	}
 }

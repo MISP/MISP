@@ -156,7 +156,7 @@ class Attribute extends AppModel {
 					'types' => array('comment', 'text', 'other')
 					),
 			'Attribution' => array(
-					'desc' => 'Identification of the group, organisation, or coountry behind the attack',
+					'desc' => 'Identification of the group, organisation, or country behind the attack',
 					'types' => array('comment', 'text', 'other')
 					),
 			'External analysis' => array(

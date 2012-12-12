@@ -5,7 +5,7 @@ App::uses('AuthComponent', 'Controller/Component');
 /**
  * User Model
  *
- * @property Group $Group
+ * @property Role $Role
  * @property Event $Event
  */
 class User extends AppModel {
@@ -31,7 +31,7 @@ class User extends AppModel {
  * @var array
  */
 	public $validate = array(
-		'group_id' => array(
+		'role_id' => array(
 			'numeric' => array(
 				'rule' => array('numeric'),
 				//'message' => 'Your custom message here',
@@ -186,9 +186,9 @@ class User extends AppModel {
  * @var array
  */
 	public $belongsTo = array(
-		'Group' => array(
-			'className' => 'Group',
-			'foreignKey' => 'group_id',
+		'Role' => array(
+			'className' => 'Role',
+			'foreignKey' => 'role_id',
 			'conditions' => '',
 			'fields' => '',
 			'order' => ''
@@ -238,24 +238,24 @@ class User extends AppModel {
 		if (!$this->id && empty($this->data)) {
 			return null;
 		}
-		if (isset($this->data['User']['group_id'])) {
-			$groupId = $this->data['User']['group_id'];
+		if (isset($this->data['User']['role_id'])) {
+			$roleId = $this->data['User']['role_id'];
 		} else {
-			$groupId = $this->field('group_id');
+			$roleId = $this->field('role_id');
 		}
-		if (!$groupId) {
+		if (!$roleId) {
 			return null;
 		} else {
-			return array('Group' => array('id' => $groupId));
+			return array('Role' => array('id' => $roleId));
 		}
 	}
 
 /**
- * TODO ACL: 3: rights on Groups: http://stackoverflow.com/questions/6154285/aros-table-in-cakephp-is-still-including-users-even-after-bindnode
+ * TODO ACL: 3: rights on Roles: http://stackoverflow.com/questions/6154285/aros-table-in-cakephp-is-still-including-users-even-after-bindnode
  */
 	public function bindNode($user) {
-		// return array('model' => 'Group', 'foreign_key' => $user['User']['group_id']);
-		return array('Group' => array('id' => $user['User']['group_id']));
+		// return array('model' => 'Group', 'foreign_key' => $user['User']['role_id']);
+		return array('Role' => array('id' => $user['User']['role_id']));
 	}
 
 	public function beforeSave() {

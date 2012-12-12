@@ -10,7 +10,7 @@
 0.2.1.1
 		+Servers.lastpushedid
 0.2.2	
-		+Users.group_id
-		+Groups
+		+Users.role_id
+		+Roles
 		+Logs
 0.2.3

@@ -107,7 +107,7 @@ class AppController extends Controller {
 		// TODO ACL: 5: from Controller to Views
 		$this->set('isAclAdd', $this->checkAcl('add'));
 		$this->set('isAclModify', $this->checkAcl('edit'));
-		$this->set('isAclModifyOrg', $this->checkGroup());
+		$this->set('isAclModifyOrg', $this->checkRole());
 		$this->set('isAclPublish', $this->checkAcl('publish'));
 		$this->set('isAclSync', $this->checkAction('perm_sync'));
 		$this->set('isAclAdmin', $this->checkAction('perm_admin'));
@@ -371,7 +371,7 @@ class AppController extends Controller {
 	}
 
 /**
- * TODO ACL, 6b: check on Group and per Model (not used)
+ * TODO ACL, 6b: check on Role and per Model (not used)
  */
 	public function checkAccess() {
 		$aco = ucfirst($this->params['controller']);
@@ -382,16 +382,16 @@ class AppController extends Controller {
 /**
  * TODO ACL, EXTRA: mixed in Org!!
  */
-	public function checkGroup() {
-		$modifyGroup = false;
+	public function checkRole() {
+		$modifyRole = false;
 		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
 		if (isset($user['User'])) {
-			$group = ClassRegistry::init('Group')->findById($user['User']['group_id']);
-			if ($group['Group']['perm_modify_org']) {
-				$modifyGroup = true;
+			$role = ClassRegistry::init('Role')->findById($user['User']['role_id']);
+			if ($role['Role']['perm_modify_org']) {
+				$modifyRole = true;
 			}
 		}
-		return $modifyGroup;
+		return $modifyRole;
 	}
 
 /**
@@ -401,8 +401,8 @@ class AppController extends Controller {
 		$maySync = false;
 		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
 		if (isset($user['User'])) {
-			$group = ClassRegistry::init('Group')->findById($user['User']['group_id']);
-			if ($group['Group'][$action]) {
+			$role = ClassRegistry::init('Role')->findById($user['User']['role_id']);
+			if ($role['Role'][$action]) {
 				$maySync = true;
 			}
 		}
@@ -410,7 +410,7 @@ class AppController extends Controller {
 	}
 
 /**
- * TODO ACL, 6: check on Group and any Model
+ * TODO ACL, 6: check on Role and any Model
  */
 	public function checkAcl($action) {
 		$aco = 'Events';	// TODO ACL was 'Attributes'

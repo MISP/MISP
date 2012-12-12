@@ -32,7 +32,7 @@ The signature whitelist view, accessible through the administration menu on the 
 <br /><hr /><br />
 <h2><a name ="user"></a>Managing the users:</h2>
 As an admin, you can set up new accounts for users, edit the profiles of users, delete them, or just have a look at all the viewers' profiles.<br /><br />
-<img src="/img/doc/add_user.png" alt = "Add user" style="float:right;" title = "Fill this form out to add a new user. Keep in mind that the drop-down menu titled Group controls the privileges the user will have."/>
+<img src="/img/doc/add_user.png" alt = "Add user" style="float:right;" title = "Fill this form out to add a new user. Keep in mind that the drop-down menu titled Role controls the privileges the user will have."/>
 <h3>Adding a new user:</h3>
 To add a new user, click on the New User button in the administration menu to the left and fill out the following fields in the view that is loaded:<br /><br />
 <ul>
@@ -62,16 +62,16 @@ To list all current users of the system, just click on List Users under the admi
 </ul>
 <br /><hr /><br />
 <h2><a name ="roles"></a>Managing the roles</h2>
-Privileges are assigned to users by assigning them to role-groups, which use one of four options to determine what the users belonging to them are able to do on the site. The four options are: Read Only, Manage My Own Events, Manage Organisation Events, Manage &amp; Publish Organisation Events. <br /><br />
+Privileges are assigned to users by assigning them to role-roles, which use one of four options to determine what the users belonging to them are able to do on the site. The four options are: Read Only, Manage My Own Events, Manage Organisation Events, Manage &amp; Publish Organisation Events. <br /><br />
 <em>Read Only:</em> This allows the user to browse events that his organisation has access to, but doesn't allow any changes to be made to the database. <br /><br />
 <em>Manage My Own Events:</em> The second option, gives its users rights to create, modify or delete their own events, but they cannot publish them. <br /><br />
 <em>Manage Organization Events:</em> allows users to create events or modify and delete events created by a member of their organisation. <br /><br />
 <em>Manage &amp; Publish Organisation Events:</em> This last setting, gives users the right to do all of the above and also to publish the events of their organisation.<br /><br />
-<h3>Creating groups:</h3>
-When creating a new group, you will have to enter a name for the group to be created and set up the permissions (as described above) using four check-boxes, one for each permission flag.<br /><br />
-<h3>Listing groups:</h3>
-By clicking on the List Groups button, you can view a list of all the currently registered groups and a list of the permission flags turned on for each. In addition, you can find buttons that allow you to edit and delete the groups. Keep in mind that you will need to first remove every member from a group before you can delete it.<br /><br />
-<img src="/img/doc/list_groups.png" alt = "List groups" title = "You can View, Edit or Delete groups using the action buttons to the right in each row. Keep in mind that a group has to be devoid of members before it can be deleted."/><br /><br />
+<h3>Creating roles:</h3>
+When creating a new role, you will have to enter a name for the role to be created and set up the permissions (as described above) using four check-boxes, one for each permission flag.<br /><br />
+<h3>Listing roles:</h3>
+By clicking on the List Roles button, you can view a list of all the currently registered roles and a list of the permission flags turned on for each. In addition, you can find buttons that allow you to edit and delete the roles. Keep in mind that you will need to first remove every member from a role before you can delete it.<br /><br />
+<img src="/img/doc/list_groups.png" alt = "List roles" title = "You can View, Edit or Delete roles using the action buttons to the right in each row. Keep in mind that a role has to be devoid of members before it can be deleted."/><br /><br />
 <br /><hr /><br />
 <h2><a name ="logs"></a>Using the logs of MISP</h2>
 Admins are able to browse or search the logs that MISP automatically appends each time any action is taken that alters the data contained within the system (or if a user logs in and out).<br /><br />
