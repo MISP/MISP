@@ -371,8 +371,6 @@ class Event extends AppModel {
 					break;
 				case '302': // Found
 				case '404': // Not Found
-debug($response);
-//debug();
 					$newLocation = $response->headers['Location'];
 					$newTextBody = $response->body();
 					return true;
