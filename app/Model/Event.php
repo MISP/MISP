@@ -375,14 +375,19 @@ class Event extends AppModel {
 		return $data;
 	}
 
-	public function uploadEventToServer($event, $server, $HttpSocket=null) {
+	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$newLocation = $newTextBody = '';
 		$result = $this->RESTfullEventToServer($event, $server, null, $HttpSocket, &$newLocation, &$newTextBody);
 		if (strlen($newLocation) || $result) { // HTTP/1.1 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
 				$result = $this->RESTfullEventToServer($event, $server, $newLocation, $HttpSocket, &$newLocation, &$newTextBody);
 			}
-			$xml = Xml::build($newTextBody);
+			try { // TODO Xml::build() does not throw the XmlException
+				$xml = Xml::build($newTextBody);
+			} catch (XmlException $e) {
+				throw new InternalErrorException();
+				//return false;
+			}
 			// get the remote event_id
 			foreach ($xml as $xmlEvent) {
 				foreach ($xmlEvent as $key => $value) {
@@ -398,11 +403,13 @@ class Event extends AppModel {
 			foreach ($event['Attribute'] as $attribute) {
 					$newerUuids[$attribute['id']] = $attribute['uuid'];
 					$attribute['event_id'] = $remoteId;
-					// do the add attributes here i.s.o. saveAssociates() or save()
-					// and unset Attributes and hasMany for this
-					// following 2 lines can be out-commented if. (EventsController.php:364-365)
-					$anAttr = ClassRegistry::init('Attribute');
-					$anAttr->uploadAttributeToServer($attribute, $server, $HttpSocket);
+					if ("i" == Configure::read('CyDefSIG.rest')) {
+						// do the add attributes here i.s.o. saveAssociates() or save()
+						// and unset Attributes and hasMany for this
+						// following 2 lines can be out-commented if. (EventsController.php:364-365)
+						$anAttr = ClassRegistry::init('Attribute');
+						$anAttr->uploadAttributeToServer($attribute, $server, $HttpSocket);
+					}
 			}
 			// get the already existing attributes and delete the ones that are not there
 			foreach ($xml->Event->Attribute as $attribute) {
@@ -519,7 +526,7 @@ class Event extends AppModel {
 							// parse the XML response and keep the reason why it failed
 							$xmlArray = Xml::toArray(Xml::build($response->body));
 						} catch (XmlException $e) {
-							return true;
+							return true; // TODO should be false
 						}
 						if (strpos($xmlArray['response']['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
 							return true;
@@ -530,6 +537,8 @@ class Event extends AppModel {
 					break;
 				case '302': // Found
 				case '404': // Not Found
+debug($response);
+//debug();
 					$newLocation = $response->headers['Location'];
 					$newTextBody = $response->body();
 					return true;

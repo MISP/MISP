@@ -349,7 +349,7 @@ class EventsController extends AppController {
 						}
 					} else {
 				if ($this->_isRest()) { // TODO return error if REST
-					// REST users want to see the newly created event
+					// REST users want to see the failed event
 					$this->view($savedId);
 					$this->render('view');
 				} else {
@@ -432,11 +432,16 @@ class EventsController extends AppController {
 			$data = $this->Event->massageData(&$data);
 		}
 
-		// this saveAssociated() function will save not only the event, but also the attributes
-		// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-		unset($data['Attribute']);
-		$this->Event->unbindModel(array('hasMany' => array('Attribute')));
-		if ($this->Event->save($data, array('validate' => true, 'fieldList' => $fieldList))) {
+		if ("i" == Configure::read('CyDefSIG.baseurl')) {
+			// this saveAssociated() function will save not only the event, but also the attributes
+			// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
+ 			unset($data['Attribute']);
+			$this->Event->unbindModel(array('hasMany' => array('Attribute')));
+			$saveResult = $this->Event->save($data, array('validate' => true, 'fieldList' => $fieldList));
+ 		} else {
+ 			$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
+ 		}
+		if ($saveResult) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
 				$this->__publish($this->Event->getId());
@@ -495,28 +500,35 @@ class EventsController extends AppController {
  					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
  				}
 
- 				// reposition to get the attribute.id with given uuid
- 				$c = 0;
- 				if (isset($this->request->data['Attribute'])) {
- 					foreach ($this->request->data['Attribute'] as $attribute) {
- 						$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
- 						if (count($existingAttribute)) {
- 							$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
- 						}
- 						$c++;
- 					}
- 				}
+				if ("ii" == Configure::read('CyDefSIG.rest')) {
+	 				// reposition to get the attribute.id with given uuid
+	 				$c = 0;
+	 				if (isset($this->request->data['Attribute'])) {
+	 					foreach ($this->request->data['Attribute'] as $attribute) {
+	 						$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
+	 						if (count($existingAttribute)) {
+	 							$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
+	 						}
+	 						$c++;
+	 					}
+	 				}
+				}
 
  				$fieldList = array(
  					'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private', 'communitie'),
  					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie')
  				);
- 				// this saveAssociated() function will save not only the event, but also the attributes
- 				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
- 				// the following 2 lines can be out-commented if we opt to save associated (Event.php:263-264)
-				unset($this->request->data['Attribute']);
-				$this->Event->unbindModel(array('hasMany' => array('Attribute')));
- 				if ($this->Event->save($this->request->data, array('validate' => true, 'fieldList' => $fieldList))) {
+ 				if ("i" == Configure::read('CyDefSIG.rest')) {
+	 				// this saveAssociated() function will save not only the event, but also the attributes
+	 				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
+	 				// the following 2 lines can be out-commented if we opt to save associated (Event.php:263-264)
+					unset($this->request->data['Attribute']);
+					$this->Event->unbindModel(array('hasMany' => array('Attribute')));
+ 					$saveResult = $this->Event->save($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
+ 				} else {
+ 					$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
+ 				}
+ 				if ($saveResult) {
 
  					// TODO RESTfull: we now need to compare attributes, to see if we need to do a RESTfull attribute delete
 

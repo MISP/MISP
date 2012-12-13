@@ -153,6 +153,10 @@ Configure::write('CyDefSIG.correlation', 'db');        // correlation between at
  */
 Configure::write('CyDefSIG.dns', 'false');				// there is a nameserver available to do resolution.
 
+Configure::write('CyDefSIG.rest', 'ii');				// RESTfull, possible values:
+														// - i, event without attributes
+														// - ii, event with attributes (more framework friendly and more RESTfull friendly)
+
 /**
  * The settings below can be used to set additional paths to models, views and controllers.
  *
