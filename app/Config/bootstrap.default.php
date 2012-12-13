@@ -138,6 +138,10 @@ Configure::write('CyDefSIG.correlation', 'sql');        // correlation between a
  *             17734   8639   8846
  */
 
+Configure::write('CyDefSIG.rest', 'ii');				// RESTfull, possible values:
+														// - i, event without attributes
+														// - ii, event with attributes (more framework friendly and more RESTfull friendly)
+
 /**
  * The settings below can be used to set additional paths to models, views and controllers.
  *

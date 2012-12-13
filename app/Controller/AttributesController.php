@@ -119,7 +119,7 @@ class AttributesController extends AppController {
 				$successes = "";
 				foreach ($attributes as $key => $attribute) {
 					$attribute = trim($attribute);
-					if (strlen($attribute) == 0 )
+					if (strlen($attribute) == 0)
 					continue; // don't do anything for empty lines
 
 					$this->Attribute->create();
@@ -164,12 +164,15 @@ class AttributesController extends AppController {
 				// create the attribute
 				$this->Attribute->create();
 
-				unset($this->request->data['Event']);
-				$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
-				$this->request->data['Attribute']['event_id'] = $eventId;
+				if ("i" == Configure::read('CyDefSIG.rest')) {
+					unset($this->request->data['Event']);
+					$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
+					//$this->request->data['Attribute']['event_id'] = $eventId;
+				}
+				$savedId = $this->request->data['Attribute']['id'];
 				if ($this->Attribute->save($this->request->data)) {
 					if ($this->_isRest()) {
-						// REST users want to see the newly created event
+						// REST users want to see the newly created attribute
 						$this->view($this->Attribute->getId());
 						$this->render('view');
 					} else {
@@ -178,7 +181,13 @@ class AttributesController extends AppController {
 						$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 					}
 				} else {
-					$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
+					if ($this->_isRest()) { // TODO return error if REST
+						// REST users want to see the failed attribute
+						$this->view($savedId);
+						$this->render('view');
+					} else {
+						$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
+					}
 				}
 			}
 		} else {
@@ -391,11 +400,20 @@ class AttributesController extends AppController {
 		}
 
 		if ($this->request->is('post') || $this->request->is('put')) {
+
+			// reposition to get the attribute.id with given uuid
+ 			$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
+ 			if (count($existingAttribute)) {
+ 				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
+ 			}
+
 			// say what fields are to be updated
 			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private');
-			unset($this->request->data['Event']);
-			$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
-			$this->request->data['Attribute']['event_id'] = $eventId;
+			if ("i" == Configure::read('CyDefSIG.rest')) {
+				unset($this->request->data['Event']);
+				$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
+				$this->request->data['Attribute']['event_id'] = $eventId;
+			}
 			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 
@@ -404,7 +422,13 @@ class AttributesController extends AppController {
 				$this->Event->id = $eventId;
 				$this->Event->saveField('published', 0);
 
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+				if ($this->_isRest()) {
+					// REST users want to see the newly created event
+					$this->view($this->Attribute->getId());
+					$this->render('view');
+				} else {
+					$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+				}
 			} else {
 				$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
 			}
@@ -473,18 +497,10 @@ class AttributesController extends AppController {
  * TODO move this to a component(?)
  */
 	private function __deleteAttributeFromServers($uuid) {
-		$result = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $uuid)));
-		$id = $result['Attribute']['id'];
-
 		// TODO private and delete .. bring up ..
 		//if (true == $result['Attribute']['private']) { // never upload private attributes
 		//	return "Attribute is private and non exportable";
 		//}
-
-		// make sure we have all the data of the Attribute
-		$this->Attribute->id = $id;
-		$this->Attribute->recursive = 1;
-		$this->Attribute->read();
 
 		// get a list of the servers
 		$this->loadModel('Server');
@@ -497,7 +513,7 @@ class AttributesController extends AppController {
 		App::uses('HttpSocket', 'Network/Http');
 		$HttpSocket = new HttpSocket();
 		foreach ($servers as &$server) {
-			$this->Attribute->deleteAttributeFromServer($this->Attribute->data['Attribute']['uuid'], $server, $HttpSocket);
+			$this->Attribute->deleteAttributeFromServer($uuid, $server, $HttpSocket);
 		}
 	}
 
