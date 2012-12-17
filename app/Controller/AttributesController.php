@@ -507,11 +507,11 @@ class AttributesController extends AppController {
 				if (!CakeSession::read('Message.flash')) {
 					$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
 				} else {
-					$this->request->data = Sanitize::clean($this->Attribute->read(null, $id));
+					$this->request->data = $this->Attribute->read(null, $id);
 				}
 			}
 		} else {
-			$this->request->data = Sanitize::clean($this->Attribute->read(null, $id));
+			$this->request->data = $this->Attribute->read(null, $id);
 		}
 		// needed for RBAC
 		$this->set('attribute', Sanitize::clean($this->request->data));
