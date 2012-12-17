@@ -1,0 +1,1 @@
+alter table events add column analysis tinyint(1) UNSIGNED DEFAULT NULL;
