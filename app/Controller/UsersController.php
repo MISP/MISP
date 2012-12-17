@@ -99,6 +99,33 @@ class UsersController extends AppController {
 		$this->set(compact('roles'));
 	}
 
+		public function change_pw() {
+		$id = $this->Auth->user('id');
+		$this->User->id = $id;
+		if ($this->request->is('post') || $this->request->is('put')) {
+			// What fields should be saved (allowed to be saved)
+			$fieldList[] = 'password';
+			// Save the data
+			if ($this->User->save($this->request->data, true ,$fieldList)) {
+				$this->Session->setFlash(__('Password Changed.'));
+				$this->User->saveField('email', $this->Auth->user('email'));
+				$this->User->saveField('change_pw', 0);
+				$this->_refreshAuth();
+				$this->redirect(array('action' => 'view', $id));
+			} else {
+				$this->Session->setFlash(__('The password could not be updated. Please, try again.'));
+			}
+		} else {
+			$this->User->recursive = 0;
+			$this->User->read(null, $id);
+			$this->User->set('password', '');
+			$this->request->data = Sanitize::clean($this->User->data);
+		}
+		// XXX ACL roles
+		$this->extraLog("change_pw");
+		$roles = Sanitize::clean($this->User->Role->find('list'));
+		$this->set(compact('roles'));
+	}
 /**
  * delete method
  *
@@ -151,6 +178,8 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		$this->set('user', Sanitize::clean($this->User->read(null, $id)));
+		$temp = $this->User->field('invited_by');
+		$this->set('user2', Sanitize::clean($this->User->read(null, $temp)));
 	}
 
 /**
@@ -163,6 +192,7 @@ class UsersController extends AppController {
 			$this->User->create();
 			// set invited by
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
+			$this->request->data['User']['change_pw']= 1;
 			if ($this->User->save($this->request->data)) {
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->redirect(array('action' => 'index'));
@@ -322,7 +352,7 @@ class UsersController extends AppController {
 	}
 
 	public function logout() {
-		if ($this->Session->check('User')) { // TODO session, user is logged in, so ..
+		if ($this->Session->check('Auth.User')) { // TODO session, user is logged in, so ..
 			$this->extraLog("logout");	// TODO Audit, extraLog, check: customLog i.s.o. extraLog, $this->User->customLog('logout', $this->Auth->user('id'), array());
 		}
 		$this->Session->setFlash(__('Good-Bye'));
@@ -432,6 +462,9 @@ class UsersController extends AppController {
 			$description = "User (" . $this->Auth->user('id') . "): " . $this->Auth->user('email');
 		} elseif ($action == 'edit') {
 			$description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
+		} elseif ($action == 'change_pw') {
+			$description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
+			$fieldsResult = "Password changed.";
 		}
 
 		// query

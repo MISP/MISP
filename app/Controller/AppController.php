@@ -65,8 +65,11 @@ class AppController extends Controller {
 
 	public function beforeFilter() {
 		// user must accept terms
-		if ($this->Session->check('User') && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
+		if ($this->Session->check('Auth.User') && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
 			$this->redirect(array('controller' => 'users', 'action' => 'terms'));
+		}
+		if ($this->Session->check('Auth.User') && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
+			$this->redirect(array('controller' => 'users', 'action' => 'change_pw'));
 		}
 
 		// REST things

@@ -1,4 +1,4 @@
-<?php 
+<?php
 class AppSchema extends CakeSchema {
 
 	public function before($event = array()) {
@@ -38,6 +38,7 @@ class AppSchema extends CakeSchema {
 		'alerted' => array('type' => 'boolean', 'null' => false, 'default' => '0'),
 		'uuid' => array('type' => 'string', 'null' => false, 'default' => NULL, 'length' => 40, 'key' => 'index', 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'private' => array('type' => 'boolean', 'null' => false, 'default' => NULL),
+		'analysis' => array('type' => 'tinying', 'null' => false, 'default' => NULL, 'length' => 4),
 		'published' => array('type' => 'boolean', 'null' => false, 'default' => '0'),
 		'indexes' => array('PRIMARY' => array('column' => 'id', 'unique' => 1), 'uuid' => array('column' => 'uuid', 'unique' => 0), 'info' => array('column' => 'info', 'unique' => 0)),
 		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'MyISAM')
@@ -64,6 +65,7 @@ class AppSchema extends CakeSchema {
 		'gpgkey' => array('type' => 'text', 'null' => false, 'default' => NULL, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'nids_sid' => array('type' => 'integer', 'null' => false, 'default' => NULL, 'length' => 15),
 		'termsaccepted' => array('type' => 'boolean', 'null' => false, 'default' => NULL),
+		'change_pw' => array('type' => 'tinyint', 'null' => false, 'default' => NULL, 'length' => 1),
 		'newsread' => array('type' => 'date', 'null' => false, 'default' => NULL),
 		'indexes' => array('PRIMARY' => array('column' => 'id', 'unique' => 1), 'username' => array('column' => 'password', 'unique' => 0)),
 		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'MyISAM')

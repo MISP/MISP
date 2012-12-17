@@ -12,6 +12,7 @@
 		echo $this->Form->input('authkey');
 		echo $this->Form->input('nids_sid');
 		echo $this->Form->input('termsaccepted');
+		echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => 'Change Password'));
 		echo $this->Form->input('newsread');
 		echo $this->Form->input('gpgkey');
 	?>

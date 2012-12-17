@@ -31,7 +31,13 @@
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['nids_sid']); ?>&nbsp;</td>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
-		<?php echo h($user['User']['termsaccepted']); ?>&nbsp;</td>
+		<?php
+			if (h($user['User']['termsaccepted']) == 1){
+				echo "Yes";
+			}else{
+				echo "No";
+			}
+		?>&nbsp;</td>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['newsread']); ?>&nbsp;</td>
 		<td class="actions">

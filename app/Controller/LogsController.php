@@ -79,7 +79,14 @@ class LogsController extends AppController {
 		    	$action = $this->request->data['Log']['action'];
 		        $title = $this->request->data['Log']['title'];
 		        $change = $this->request->data['Log']['change'];
-
+				
+				// for info on what was searched for
+		        $this->set('emailSearch', $email);
+		        $this->set('orgSearch', $org);
+		        $this->set('actionSearch', $action);
+		        $this->set('titleSearch', $title);
+		        $this->set('changeSearch', $change);
+				
 		        // search the db
 		        $conditions = array();
 	            if ($email) {

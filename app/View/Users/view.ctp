@@ -26,7 +26,7 @@
 		</dd>
 		<dt><?php echo __('Autoalert'); ?></dt>
 		<dd>
-			<?php echo h(0 == ($user['User']['autoalert'])) ? 'no' : 'yes'; ?>
+			<?php echo h(0 == ($user['User']['autoalert'])) ? 'No' : 'Yes'; ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Authkey'); ?></dt>
@@ -42,12 +42,18 @@
 		</dd>
 		<dt><?php echo __('Termsaccepted'); ?></dt>
 		<dd>
-			<?php echo h((0 == $user['User']['termsaccepted'])? 'no' : 'yes'); ?>
+			<?php echo h((0 == $user['User']['termsaccepted'])? 'No' : 'Yes'); ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('GPG Key'); ?></dt>
-		<dd style="font-size: 10px; line-height:100%;">
-			<code><?php echo nl2br(h($user['User']['gpgkey'])); ?></code>
+		<dd>
+		<?php
+			 	if (h($user['User']['gpgkey'])!=0){
+					echo "<code>"+nl2br(h($user['User']['gpgkey']))+"</code>";
+				}else{
+					echo "N/A";
+				}
+		?>
 			&nbsp;
 		</dd>
 	</dl>

@@ -45,6 +45,13 @@ class Event extends AppModel {
 		'Medium' => array('desc' => '*medium* means APT malware', 'formdesc' => 'APT malware'),
 		'High' => array('desc' => '*high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Sophisticated APT malware or 0-day attack')
 	);
+	
+	public $analysisDescriptions = array(
+		0 => array('desc' => '*Initial* means the event has just been created', 'formdesc' => 'Creation started'),
+		1 => array('desc' => '*Sandbox* means that the event was created using a sandbox', 'formdesc' => 'Creation ongoing'),
+		2 => array('desc' => '*Ongoing* means that the event is being populated', 'formdesc' => 'Creation ongoing'),
+		3 => array('desc' => '*Complete* means that the event\'s creation is complete', 'formdesc' => 'Creation complete')
+	);
 
 	public $distributionDescriptions = array(
 		'Your organization only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Only organization members will see the event"),
@@ -53,7 +60,10 @@ class Event extends AppModel {
 		'Connected communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Event visible to CyDefSIG instances with more then two servers but will not be shared past it"),
 		'All communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "To be distributed to every connected CyDefSIG server"),
 	);
-
+	
+	public $analysisLevels = array(
+		0 => 'Initial', 1 => 'Sandbox', 2 => 'Ongoing', 3 => 'Completed'
+	);
 /**
  * Validation rules
  *
@@ -83,6 +93,14 @@ class Event extends AppModel {
 		'risk' => array(
 				'rule' => array('inList', array('Undefined', 'Low','Medium','High')),
 				'message' => 'Options : Undefined, Low, Medium, High',
+				//'allowEmpty' => false,
+				'required' => true,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+		),
+		'analysis' => array(
+			'rule' => array('inList', array('0', '1', '2')),
+				'message' => 'Options : 0, 1, 2',
 				//'allowEmpty' => false,
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -311,6 +329,20 @@ class Event extends AppModel {
 				$data['Event']['cluster'] = false;
 				$data['Event']['communitie'] = false;
 				break;
+		}
+		switch($data['Event']['analysis']){
+			case 'Initial':
+				$data['Event']['analysis'] = 0;
+				break;
+			case 'Ongoing':
+				$data['Event']['analysis'] = 1;
+				break;
+			case 'Sandbox':
+				$data['Event']['analysis'] = 2;
+				break;
+			case 'Completed':
+				$data['Event']['analysis'] = 3;
+				break;	
 		}
 		return $data;
 	}

@@ -13,6 +13,8 @@
 			<th><?php echo $this->Paginator->sort('date');?></th>
 			<th<?php echo ' title="' . $eventDescriptions['risk']['desc'] . '"';?>>
 			<?php echo $this->Paginator->sort('risk');?></th>
+			<th<?php echo ' title="' . $eventDescriptions['analysis']['desc'] . '"';?>>
+			<?php echo $this->Paginator->sort('analysis');?></th>
 			<th><?php echo $this->Paginator->sort('info');?></th>
 			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 				<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
@@ -49,6 +51,8 @@
 		<?php echo $event['Event']['date']; ?>&nbsp;</td>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 		<?php echo $event['Event']['risk']; ?>&nbsp;</td>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+		<?php echo $analysisLevels[$event['Event']['analysis']]; ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 		<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;</td>
 		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>

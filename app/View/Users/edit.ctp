@@ -1,7 +1,7 @@
 <div class="users form">
 <?php echo $this->Form->create('User');?>
 	<fieldset>
-		<legend><?php __('Edit User'); ?></legend>
+		<legend><?php echo __('Edit User'); ?></legend>
 	<?php
 		echo $this->Form->input('email');
 		echo $this->Form->input('password');

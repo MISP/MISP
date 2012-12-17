@@ -36,7 +36,9 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		</dd>
 		<dt><?php echo __('Autoalert'); ?></dt>
 		<dd>
-			<?php echo h($user['User']['autoalert']); ?>
+			<?php
+				echo (h($user['User']['autoalert'])==0)? 'No' : 'Yes' ;
+			?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Authkey'); ?></dt>
@@ -46,16 +48,19 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		</dd>
 		<dt><?php echo __('Invited By'); ?></dt>
 		<dd>
-			<?php echo h($user['User']['invited_by']); ?>
+			<?php echo h($user2['User']['email']); ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Gpgkey'); ?></dt>
-
-				<dd style="font-size: 10px; line-height:100%;">
-						<code><?php echo nl2br(h($user['User']['gpgkey'])); ?></code>
-						&nbsp;
-				</dd>
-
+			<dd>
+				<?php
+						if (h($user['User']['gpgkey'])!=0){
+						echo "<code>".nl2br(h($user['User']['gpgkey']))."</code>";
+					}else{
+						echo "N/A";
+					}
+				?>
+			</dd>
 		<dt><?php echo __('Nids Sid'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['nids_sid']); ?>
@@ -63,7 +68,13 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		</dd>
 		<dt><?php echo __('Termsaccepted'); ?></dt>
 		<dd>
-			<?php echo h($user['User']['termsaccepted']); ?>
+			<?php
+				if (h($user['User']['termsaccepted']) == 1){
+						echo "Yes";
+					}else{
+						echo "No";
+					}
+			?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Newsread'); ?></dt>
@@ -76,7 +87,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 <div class="actions">
 	<ul>
 		<?php if ($isAclModify): ?>
-		<li><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
+		<li><?php echo $this->Html->link(__('Edit User', true), array('admin' => 'true', 'action' => 'edit', $user['User']['id'])); ?></li>
 		<li>&nbsp;</li>
 		<?php endif; ?>
 		<?php echo $this->element('actions_menu'); ?>

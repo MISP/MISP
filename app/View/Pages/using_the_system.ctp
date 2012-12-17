@@ -36,6 +36,12 @@ The process of entering an event can be split into 3 phases, the creation of the
 			<li><i>Medium:</i> Advanced Persistent Threats (APT)<br /><br /></li>
 			<li><i>High:</i> Sophisticated APTs and 0day attacks.<br /><br /></li>
 		</ul>
+		<li><em>Analysis:</em> Indicates the current stage of the analysis for the event, with the following possible options:<br /><br /></li>
+		<ul>
+			<li><i>Initial:</i> The analysis is just beginning<br /><br /></li>
+			<li><i>Ongoing:</i> The analysis is in progress<br /><br /></li>
+			<li><i>Completed:</i> The analysis is complete<br /><br /></li>
+		</ul>
 		<li><em>Info:</em> The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event's creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server's administrator(s). <br /><br /></li>
 		<li><em>GFI Sandbox:</em> It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event's creation, it is important to manually look over all the data that is being entered. <br /><br /></li>
 	</ul>
@@ -100,7 +106,13 @@ On the left menu bar, the option "List events" will generate a list of the last 
 			<li><em>Medium:</em> Advanced Persistent Threats (APTs)</li>
 			<li><em>High:</em> Sophisticated APTs and 0day exploits</li>
 			<li><em>Undefined:</em> This field can be left undefined and edited at a later date.<br /><br /></li>
-		</ul></li>
+		</ul>
+		<li><em>Analysis:</em> Indicates the current stage of the analysis for the event, with the following possible options:<br /><br /></li>
+		<ul>
+			<li><em>Initial:</em> The analysis is just beginning</li>
+			<li><em>Ongoing:</em> The analysis is in progress</li>
+			<li><em>Completed:</em> The analysis is complete<br /><br /></li>
+		</ul>
 		<li><em>Info:</em> A short description of the event, starting with an internal reference number.<br /><br /></li>
 		<li><em>Distribution:</em> This field indicates what the sharing privileges of the event are. The selectable options are "This organisation only", "This server only", "This community only", "Connected communities", "All". For a detailed description of these settings read the section on <a href = #create>creating a new event</a>.<br /><br /></li>
 		<li><em>Actions:</em> The controls that the user has to view or modify the event. The possible actions that are available (depending on user privileges - <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'administration', '#' => 'roles')); ?> to find out more about privileges):<br /><br /></li>

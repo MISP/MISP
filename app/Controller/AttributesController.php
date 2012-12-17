@@ -619,7 +619,9 @@ class AttributesController extends AppController {
 				$keyword = $this->request->data['Attribute']['keyword'];
 				$type = $this->request->data['Attribute']['type'];
 				$category = $this->request->data['Attribute']['category'];
-
+				$this->set('keywordSearch', $keyword);
+				$this->set('typeSearch', $type);
+				$this->set('categorySearch', $category);
 				// search the db
 				$conditions = array();
 				if ($keyword) {

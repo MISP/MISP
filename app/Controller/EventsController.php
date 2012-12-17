@@ -122,6 +122,7 @@ class EventsController extends AppController {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
 		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		$this->set('analysisLevels', $this->Event->analysisLevels);
 	}
 
 /**
@@ -165,6 +166,7 @@ class EventsController extends AppController {
 					$this->redirect(array('controller' => 'users', 'action' => 'terms'));
 				}
 			}
+			$this->set('analysisLevels', $this->Event->analysisLevels);
 		}
 
 		$relatedAttributes = array();
@@ -374,7 +376,15 @@ class EventsController extends AppController {
 		$this->set('risks',$risks);
 		// tooltip for risk
 		$this->set('riskDescriptions', $this->Event->riskDescriptions);
-
+		
+		// combobox for analysis
+		$analysiss = $this->Event->validate['analysis']['rule'][1];
+		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
+		$this->set('analysiss',$analysiss);
+		// tooltip for analysis
+		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
+		$this->set('analysisLevels', $this->Event->analysisLevels);
+		
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
 
@@ -418,12 +428,12 @@ class EventsController extends AppController {
 
 		if ($upstream) {
 			$fieldList = array(
-					'Event' => array('date', 'risk', 'info', 'published', 'uuid'),
+					'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid'),
 					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision')
 			);
 		} else {
 			$fieldList = array(
-					'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'hop_count'),
+					'Event' => array('org', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'hop_count'),
 					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie')
 			);
 		}
@@ -515,7 +525,7 @@ class EventsController extends AppController {
 				}
 
  				$fieldList = array(
- 					'Event' => array('org', 'date', 'risk', 'info', 'published', 'uuid', 'private', 'communitie'),
+ 					'Event' => array('org', 'date', 'risk', 'analysis', 'info', 'published', 'uuid', 'private', 'communitie'),
  					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie')
  				);
  				if ("i" == Configure::read('CyDefSIG.rest')) {
@@ -550,7 +560,7 @@ class EventsController extends AppController {
 			}
 
 			// say what fields are to be updated
-			$fieldList = array('date', 'risk', 'info', 'published', 'private', 'cluster', 'communitie');
+			$fieldList = array('date', 'risk', 'analysis', 'info', 'published', 'private', 'cluster', 'communitie');
 			// always force the org, but do not force it for admins
 			if ($this->_isAdmin()) {
 				// set the same org as existed before
@@ -588,6 +598,14 @@ class EventsController extends AppController {
 		// tooltip for risk
 		$this->set('riskDescriptions', $this->Event->riskDescriptions);
 
+		// combobox for analysis
+		$analysiss = $this->Event->validate['analysis']['rule'][1];
+		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
+		$this->set('analysiss',$analysiss);
+		// tooltip for analysis
+		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
+		$this->set('analysisLevels', $this->Event->analysisLevels);
+		
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
 
@@ -810,6 +828,7 @@ class EventsController extends AppController {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
 		$body .= 'Risk        : ' . $event['Event']['risk'] . "\n";
+		$body .= 'Analysis    : ' . $event['Event']['analysis'] . "\n";
 		$relatedEvents = $this->Event->getRelatedEvents($id);
 		if (!empty($relatedEvents)) {
 			foreach ($relatedEvents as &$relatedEvent) {
@@ -1000,6 +1019,7 @@ class EventsController extends AppController {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
 		$body .= 'Risk		: ' . $event['Event']['risk'] . "\n";
+		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
 		$relatedEvents = $this->Event->getRelatedEvents($id);
 		if (!empty($relatedEvents)) {
 			foreach ($relatedEvents as &$relatedEvent) {
@@ -1125,7 +1145,7 @@ class EventsController extends AppController {
 			$conditions = array();
 		}
 		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid');
+		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
 		if ('true' == Configure::read('CyDefSIG.showorg')) {
 			$fields[] = 'Event.org';
 		}

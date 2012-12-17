@@ -82,6 +82,11 @@ if ($isAdmin || $mayPublish) {
 			<?php echo $event['Event']['risk']; ?>
 			&nbsp;
 		</dd>
+		<dt<?php echo ' title="' . $eventDescriptions['analysis']['desc'] . '"';?>>Analysis</dt>
+		<dd>
+			<?php echo $analysisLevels[$event['Event']['analysis']]; ?>
+			&nbsp;
+		</dd>
 		<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 		<?php if ('true' == Configure::read('CyDefSIG.private')): ?>
 		<dt>Distribution</dt>

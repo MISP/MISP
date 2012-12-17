@@ -13,6 +13,7 @@ class Log extends AppModel {
 							'logout',
 							'add',
 							'edit',
+							'change_pw',
 							'delete',
 							'publish'
 						)),
@@ -25,6 +26,7 @@ class Log extends AppModel {
 		'logout' => array('desc' => 'Logout action', 'formdesc' => "Logout action"),
 		'add' => array('desc' => 'Add action', 'formdesc' => "Add action"),
 		'edit' => array('desc' => 'Edit action', 'formdesc' => "Edit action"),
+		'change_pw' => array('desc' => 'Change_pw action', 'formdesc' => "Change_pw action"),
 		'delete' => array('desc' => 'Delete action', 'formdesc' => "Delete action"),
 		'publish' => array('desc' => "Publish action", 'formdesc' => "Publish action")
 	);
