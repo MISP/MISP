@@ -581,7 +581,7 @@ class EventsController extends AppController {
 				$this->Session->setFlash(__('The event could not be saved. Please, try again.'));
 			}
 		} else {
-			$this->request->data = Sanitize::clean($this->Event->read(null, $id));
+			$this->request->data = $this->Event->read(null, $id);
 		}
 
 		// combobox for distribution
