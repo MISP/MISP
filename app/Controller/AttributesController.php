@@ -96,6 +96,7 @@ class AttributesController extends AppController {
  */
 	public function index() {
 		$this->Attribute->recursive = 0;
+		$this->set('isSearch', 0);
 		$this->set('attributes', Sanitize::clean($this->paginate()));
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
@@ -611,7 +612,6 @@ class AttributesController extends AppController {
 			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 			$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions',array());
 
@@ -621,6 +621,7 @@ class AttributesController extends AppController {
 				$category = $this->request->data['Attribute']['category'];
 				$this->set('keywordSearch', $keyword);
 				$this->set('typeSearch', $type);
+				$this->set('isSearch', 1);
 				$this->set('categorySearch', $category);
 				// search the db
 				$conditions = array();

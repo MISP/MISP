@@ -1,13 +1,14 @@
 <div class="attributes index">
 	<h2><?php echo __('Attributes');?></h2>
-		<h4>Results for all attributes
-			<?php
-				if($keywordSearch!=null) echo " with the value containing \"<b>".h($keywordSearch)."</b>\"";
-				if($categorySearch!="ALL") echo " of category \"<b>".h($categorySearch)."</b>\"";
-				if($typeSearch!="ALL") echo " of type \"<b>".h($typeSearch)."</b>\"";
-				echo ":";
-			?>
-		</h4>
+		<?php
+		if ($isSearch==1){
+			echo "<h4>Results for all attributes";
+			if($keywordSearch!=null) echo " with the value containing \"<b>".h($keywordSearch)."</b>\"";
+			if($categorySearch!="ALL") echo " of category \"<b>".h($categorySearch)."</b>\"";
+			if($typeSearch!="ALL") echo " of type \"<b>".h($typeSearch)."</b>\"";
+			echo ":</h4>";
+		}
+		?>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
 			<th><?php echo $this->Paginator->sort('event_id');?></th>
