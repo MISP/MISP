@@ -412,10 +412,10 @@ class Event extends AppModel {
 
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$newLocation = $newTextBody = '';
-		$result = $this->RESTfullEventToServer($event, $server, null, $HttpSocket, &$newLocation, &$newTextBody);
+		$result = $this->restfullEventToServer($event, $server, null, $HttpSocket, &$newLocation, &$newTextBody);
 		if (strlen($newLocation) || $result) { // HTTP/1.1 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-				$result = $this->RESTfullEventToServer($event, $server, $newLocation, $HttpSocket, &$newLocation, &$newTextBody);
+				$result = $this->restfullEventToServer($event, $server, $newLocation, $HttpSocket, &$newLocation, &$newTextBody);
 			}
 			try { // TODO Xml::build() does not throw the XmlException
 				$xml = Xml::build($newTextBody);
@@ -467,7 +467,7 @@ class Event extends AppModel {
  *
  * @return bool true if success, false or error message if failed
  */
-	public function RESTfullEventToServer($event, $server, $urlPath, $HttpSocket = null, $newLocation, $newTextBody) {
+	public function restfullEventToServer($event, $server, $urlPath, $HttpSocket = null, $newLocation, $newTextBody) {
 		if (true == $event['Event']['private']) { // never upload private events
 			return "Event is private and non exportable";
 		}

@@ -1021,9 +1021,9 @@ class Attribute extends AppModel {
 	}
 
 	public function uploadAttributeToServer($attribute, $server, $HttpSocket=null) {
-		$newLocation = $this->RESTfullAttributeToServer($attribute, $server, null, $HttpSocket);
+		$newLocation = $this->restfullAttributeToServer($attribute, $server, null, $HttpSocket);
 		if (is_string($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-			$newTextBody = $this->RESTfullAttributeToServer($attribute, $server, $newLocation, $HttpSocket);
+			$newTextBody = $this->restfullAttributeToServer($attribute, $server, $newLocation, $HttpSocket);
 		}
 		return true;
 	}
@@ -1034,7 +1034,7 @@ class Attribute extends AppModel {
  *
  * @return bool true if success, error message if failed
  */
-	public function RESTfullAttributeToServer($attribute, $server, $urlPath, $HttpSocket=null) {
+	public function restfullAttributeToServer($attribute, $server, $urlPath, $HttpSocket=null) {
 		// do not keep attributes that are private
 		if (true == $attribute['private']) { // never upload private events
 			return "Attribute is private and non exportable";
