@@ -999,7 +999,7 @@ class EventsController extends AppController {
  * @param unknown_type $all, true: send to org, false: send to person.
  *
  * @codingStandardsIgnoreStart
- * @throws UnauthorizedException as well.
+ * @throws \UnauthorizedException as well. // TODO Exception NotFoundException
  * @codingStandardsIgnoreEnd
  *
  * @return True if success, False if error
