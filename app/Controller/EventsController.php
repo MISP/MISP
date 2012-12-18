@@ -306,6 +306,14 @@ class EventsController extends AppController {
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
+
+		// combobox for analysis
+		$analysiss = $this->Event->validate['analysis']['rule'][1];
+		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
+		$this->set('analysiss',$analysiss);
+		// tooltip for analysis
+		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
+		$this->set('analysisLevels', $this->Event->analysisLevels);
 	}
 
 /**
