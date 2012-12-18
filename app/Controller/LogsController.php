@@ -108,7 +108,7 @@ class LogsController extends AppController {
 	            }
 	            $this->Log->recursive = 0;
 	            $this->paginate = array(
-					'limit' => 6,
+					'limit' => 60,
 					'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 logs(?)
 	            	'conditions' => $conditions
 	            );
