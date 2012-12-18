@@ -43,6 +43,7 @@ class LogsController extends AppController {
 	public function admin_index() {
 		$this->Log->recursive = 0;
 		$this->set('logs', Sanitize::clean($this->paginate()));
+		$this->set('isSearch', 0);
 	}
 
 /**
@@ -86,6 +87,7 @@ class LogsController extends AppController {
 		        $this->set('actionSearch', $action);
 		        $this->set('titleSearch', $title);
 		        $this->set('changeSearch', $change);
+				$this->set('isSearch', 1);
 				
 		        // search the db
 		        $conditions = array();
@@ -106,7 +108,7 @@ class LogsController extends AppController {
 	            }
 	            $this->Log->recursive = 0;
 	            $this->paginate = array(
-					'limit' => 60,
+					'limit' => 6,
 					'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 logs(?)
 	            	'conditions' => $conditions
 	            );
@@ -114,6 +116,11 @@ class LogsController extends AppController {
 
 				// and store into session
 				$this->Session->write('paginate_conditions_log', $this->paginate);
+				$this->Session->write('paginate_conditions_log_email', $email);
+				$this->Session->write('paginate_conditions_log_org', $org);
+				$this->Session->write('paginate_conditions_log_action', $action);
+				$this->Session->write('paginate_conditions_log_title', $title);
+				$this->Session->write('paginate_conditions_log_change', $change);
 
 		        // set the same view as the index page
 		        $this->render('admin_index');
@@ -128,8 +135,23 @@ class LogsController extends AppController {
 		} else {
 		    $this->set('actionDefinitions', $this->Log->actionDefinitions);
 
-			$this->Log->recursive = 0;
+			// get from Session
+			$email = $this->Session->read('paginate_conditions_log_email');
+			$org = $this->Session->read('paginate_conditions_log_org');
+			$action = $this->Session->read('paginate_conditions_log_action');
+			$title = $this->Session->read('paginate_conditions_log_title');
+			$change = $this->Session->read('paginate_conditions_log_change');
+
+			// for info on what was searched for
+	        $this->set('emailSearch', $email);
+	        $this->set('orgSearch', $org);
+	        $this->set('actionSearch', $action);
+	        $this->set('titleSearch', $title);
+	        $this->set('changeSearch', $change);
+			$this->set('isSearch', 1);
+
 			// re-get pagination
+			$this->Log->recursive = 0;
 			$this->paginate = $this->Session->read('paginate_conditions_log');
 			$this->set('logs', Sanitize::clean($this->paginate()));
 

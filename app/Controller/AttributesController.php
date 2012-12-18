@@ -658,6 +658,9 @@ class AttributesController extends AppController {
 
 				// and store into session
 				$this->Session->write('paginate_conditions',$this->paginate);
+				$this->Session->write('paginate_conditions_keyword',$keyword);
+				$this->Session->write('paginate_conditions_type',$type);
+				$this->Session->write('paginate_conditions_category',$category);
 
 				// set the same view as the index page
 				$this->render('index');
@@ -682,6 +685,15 @@ class AttributesController extends AppController {
 			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 
 			$this->Attribute->recursive = 0;
+			// get from Session
+			$keyword = $this->Session->read('paginate_conditions_keyword');
+			$type = $this->Session->read('paginate_conditions_type');
+			$category = $this->Session->read('paginate_conditions_category');
+			$this->set('keywordSearch', $keyword);
+			$this->set('typeSearch', $type);
+			$this->set('isSearch', 1);
+			$this->set('categorySearch', $category);
+			
 			// re-get pagination
 			$this->paginate = $this->Session->read('paginate_conditions');
 			$this->set('attributes', Sanitize::clean($this->paginate()));
