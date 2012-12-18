@@ -14,7 +14,7 @@
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
-	foreach ($users as $user): ?>
+foreach ($users as $user): ?>
 	<tr>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['id']); ?>&nbsp;</td>
@@ -32,23 +32,25 @@
 		<?php echo h($user['User']['nids_sid']); ?>&nbsp;</td>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php
-			if (h($user['User']['termsaccepted']) == 1){
+	if (h($user['User']['termsaccepted']) == 1) {
 				echo "Yes";
-			}else{
+	} else {
 				echo "No";
-			}
+	}
 		?>&nbsp;</td>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['newsread']); ?>&nbsp;</td>
 		<td class="actions">
-			<?php if (($isAclModifyOrg && ($user['User']['org'] == $me['org'])) || ('1' == $me['id'])) {
+			<?php
+	if (($isAclModifyOrg && ($user['User']['org'] == $me['org'])) || ('1' == $me['id'])) {
 				echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $user['User']['id']), null);
 				echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $user['User']['id']), null, __('Are you sure you want to delete # %s?', $user['User']['id']));
-			}?>
+	}?>
 			<?php echo $this->Html->link(__('View'), array('admin' => true, 'action' => 'view', $user['User']['id'])); ?>
 		</td>
 	</tr>
-<?php endforeach; ?>
+	<?php
+endforeach; ?>
 	</table>
 	<p>
 	<?php
