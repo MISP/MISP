@@ -1,4 +1,5 @@
-        <li><?php if ($isAclAdd) echo $this->Html->link(__('New Event', true), array('controller' => 'events', 'action' => 'add')); ?></li>
+        <li><?php
+if ($isAclAdd) echo $this->Html->link(__('New Event', true), array('controller' => 'events', 'action' => 'add')); ?></li>
 		<li><?php echo $this->Html->link(__('List Events', true), array('controller' => 'events', 'action' => 'index')); ?></li>
 		<li><?php echo $this->Html->link(__('List Attributes', true), array('controller' => 'attributes', 'action' => 'index')); ?> </li>
 		<li><?php echo $this->Html->link(__('Search Attributes', true), array('controller' => 'attributes', 'action' => 'search')); ?> </li>
@@ -13,13 +14,16 @@
 		<li><?php echo $this->Html->link(__('Terms & Conditions', true), array('controller' => 'users', 'action' => 'terms')); ?> </li>
 		<li><?php echo $this->Html->link(__('Log out', true), array('controller' => 'users', 'action' => 'logout')); ?> </li>
 
-		<?php if (('true' == Configure::read('CyDefSIG.sync')) && ($isAclSync || $isAdmin)): ?>
+		<?php
+if (('true' == Configure::read('CyDefSIG.sync')) && ($isAclSync || $isAdmin)): ?>
 		<li>&nbsp;</li>
 		<h3><?php echo __('Sync Actions'); ?></h3>
 		<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>
-        <?php endif; ?>
+        <?php
+endif;?>
 
-		<?php if($isAdmin || $isAclAdmin): ?>
+		<?php
+if($isAdmin || $isAclAdmin): ?>
 		<li>&nbsp;</li>
 		<h3><?php echo __('Administration'); ?></h3>
 		<li><?php echo $this->Html->link(__('Import Whitelist', true), array('controller' => 'regex', 'action' => 'index', 'admin' => true)); ?> </li>
@@ -30,9 +34,12 @@
 		<li><?php echo $this->Html->link(__('New Role', true), array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
 		<li><?php echo $this->Html->link(__('List Roles', true), array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 		<li>&nbsp;</li>
-		<?php endif; ?>
-		<?php if($isAdmin || $isAclAudit): ?>
+		<?php
+endif;?>
+		<?php
+if($isAdmin || $isAclAudit): ?>
 		<h3><?php echo __('Audit'); ?></h3>
 		<li><?php echo $this->Html->link(__('List Logs', true), array('controller' => 'logs', 'action' => 'index', 'admin' => true)); ?> </li>
 		<li><?php echo $this->Html->link(__('Search Logs', true), array('controller' => 'logs', 'action' => 'admin_search', 'admin' => true)); ?> </li>
-		<?php endif;
+		<?php
+endif;

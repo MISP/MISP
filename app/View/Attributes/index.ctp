@@ -1,14 +1,13 @@
 <div class="attributes index">
 	<h2><?php echo __('Attributes');?></h2>
 		<?php
-		if ($isSearch==1){
-			echo "<h4>Results for all attributes";
-			if($keywordSearch!=null) echo " with the value containing \"<b>".h($keywordSearch)."</b>\"";
-			if($categorySearch!="ALL") echo " of category \"<b>".h($categorySearch)."</b>\"";
-			if($typeSearch!="ALL") echo " of type \"<b>".h($typeSearch)."</b>\"";
-			echo ":</h4>";
-		}
-		?>
+if ($isSearch == 1) {
+	echo "<h4>Results for all attributes";
+	if($keywordSearch != null) echo " with the value containing \"<b>" . h($keywordSearch) . "</b>\"";
+	if($categorySearch != "ALL") echo " of category \"<b>" . h($categorySearch) . "</b>\"";
+	if($typeSearch! = "ALL") echo " of type \"<b>" . h($typeSearch) . "</b>\"";
+	echo ":</h4>";
+} ?>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
 			<th><?php echo $this->Paginator->sort('event_id');?></th>
@@ -20,7 +19,7 @@
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
-	foreach ($attributes as $attribute): ?>
+foreach ($attributes as $attribute): ?>
 	<tr>
 		<td class="short">
 			<?php echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id'])); ?>
@@ -32,28 +31,30 @@
 		<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
-<?php
-$sigDisplay = nl2br(h($attribute['Attribute']['value']));
-if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
-	echo $this->Html->link($sigDisplay, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']));
-} elseif ('link' == $attribute['Attribute']['type']) {
-	echo $this->Html->link($sigDisplay, $sigDisplay);
-} else {
-	echo $sigDisplay;
-}
-?>&nbsp;</td>
+	<?php
+	$sigDisplay = nl2br(h($attribute['Attribute']['value']));
+	if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
+		echo $this->Html->link($sigDisplay, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']));
+	} elseif ('link' == $attribute['Attribute']['type']) {
+		echo $this->Html->link($sigDisplay, $sigDisplay);
+	} else {
+		echo $sigDisplay;
+	}
+	?>&nbsp;</td>
 		<td class="short" style="text-align: center;" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 		<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td class="actions"><?php
-if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org'] == $me['org'])) {
-	echo $this->Html->link(__('Edit'), array('action' => 'edit', $attribute['Attribute']['id']), null);
-	echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $attribute['Attribute']['id']), null, __('Are you sure you want to delete this attribute?'));
-}
-echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']));
-?>
+	if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org'] == $me['org'])) {
+		echo $this->Html->link(__('Edit'), array('action' => 'edit', $attribute['Attribute']['id']), null);
+		echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $attribute['Attribute']['id']), null, __('Are you sure you want to delete this attribute?'));
+	}
+	echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']));
+	?>
 		</td>
 	</tr>
-	<?php endforeach; ?>
+	<?php
+endforeach;
+	?>
 	</table>
 	<p>
 	<?php

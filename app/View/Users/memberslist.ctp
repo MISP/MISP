@@ -6,14 +6,14 @@
 			<th># of members</th>
  	</tr>
 	<?php
-	foreach ($orgs as $org):
-	?>
+foreach ($orgs as $org):?>
 	<tr>
 		<td><?php echo $org['User']['org']; ?>&nbsp;</td>
 		<td><?php echo $org[0]['num_members']; ?>&nbsp;</td>
 
 	</tr>
-<?php endforeach; ?>
+	<?php
+endforeach; ?>
 	</table>
 
 	<h2>Attribute Types Histogram</h2>
@@ -92,15 +92,15 @@ foreach ($graphData as $row) {
 		<th>Amount</th>
 	</tr>
 	<?php
-	foreach ($typesHistogram as $item):
-	?>
+foreach ($typesHistogram as $item):?>
 		<tr>
 			<td><?php echo $item['Event']['org']; ?>&nbsp;</td>
 			<td><?php echo $item['Attribute']['type']; ?>&nbsp;</td>
 			<td><?php echo $item['0']['num_types']; ?>&nbsp;</td>
 
 		</tr>
-	<?php endforeach; ?>
+		<?php
+endforeach; ?>
 	</table -->
 
 </div>

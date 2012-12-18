@@ -37,7 +37,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<dt><?php echo __('Autoalert'); ?></dt>
 		<dd>
 			<?php
-				echo (h($user['User']['autoalert'])==0)? 'No' : 'Yes' ;
+				echo (h($user['User']['autoalert']) == 0)? 'No' : 'Yes';
 			?>
 			&nbsp;
 		</dd>
@@ -54,12 +54,11 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<dt><?php echo __('Gpgkey'); ?></dt>
 			<dd>
 				<?php
-						if (h($user['User']['gpgkey'])!=0){
-						echo "<code>".nl2br(h($user['User']['gpgkey']))."</code>";
-					}else{
+if (h($user['User']['gpgkey']) != 0) {
+						echo "<code>" . nl2br(h($user['User']['gpgkey'])) . "</code>";
+} else {
 						echo "N/A";
-					}
-				?>
+}?>
 			</dd>
 		<dt><?php echo __('Nids Sid'); ?></dt>
 		<dd>
@@ -69,12 +68,11 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<dt><?php echo __('Termsaccepted'); ?></dt>
 		<dd>
 			<?php
-				if (h($user['User']['termsaccepted']) == 1){
+if (h($user['User']['termsaccepted']) == 1) {
 						echo "Yes";
-					}else{
+} else {
 						echo "No";
-					}
-			?>
+}?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Newsread'); ?></dt>
@@ -86,10 +84,12 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 </div>
 <div class="actions">
 	<ul>
-		<?php if ($isAclModify): ?>
+		<?php
+if ($isAclModify): ?>
 		<li><?php echo $this->Html->link(__('Edit User', true), array('admin' => 'true', 'action' => 'edit', $user['User']['id'])); ?></li>
 		<li>&nbsp;</li>
-		<?php endif; ?>
+		<?php
+endif; ?>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
@@ -109,8 +109,8 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
-		$i = 0;
-		foreach ($user['Event'] as $event): ?>
+	$i = 0;
+	foreach ($user['Event'] as $event): ?>
 		<tr>
 			<td><?php echo h($event['id']);?></td>
 			<td><?php echo h($event['org']);?></td>
@@ -129,8 +129,10 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 				<?php echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $event['id'])); ?>
 			</td>
 		</tr>
-	<?php endforeach; ?>
+	<?php
+	endforeach; ?>
 	</table>
-<?php endif; ?>
+	<?php
+endif; ?>
 
 </div>

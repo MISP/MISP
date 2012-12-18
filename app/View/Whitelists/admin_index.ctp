@@ -7,7 +7,7 @@
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
-	foreach ($whitelists as $whitelist): ?>
+foreach ($whitelists as $whitelist): ?>
 	<tr>
 		<td class="short"><?php echo h($whitelist['Whitelist']['id']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($whitelist['Whitelist']['name']); ?>&nbsp;</td>
@@ -16,7 +16,8 @@
 			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $whitelist['Whitelist']['id']), null, __('Are you sure you want to delete # %s?', $whitelist['Whitelist']['id'])); ?>
 		</td>
 	</tr>
-<?php endforeach; ?>
+	<?php
+endforeach; ?>
 	</table>
 	<p>
 	<?php

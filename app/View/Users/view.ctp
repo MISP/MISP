@@ -48,11 +48,11 @@
 		<dt><?php echo __('GPG Key'); ?></dt>
 		<dd>
 		<?php
-			 	if (h($user['User']['gpgkey'])!=0){
-					echo "<code>"+nl2br(h($user['User']['gpgkey']))+"</code>";
-				}else{
-					echo "N/A";
-				}
+if (h($user['User']['gpgkey']) != 0) {
+	echo "<code>" + nl2br(h($user['User']['gpgkey'])) + "</code>";
+} else {
+	echo "N/A";
+}
 		?>
 			&nbsp;
 		</dd>
@@ -60,10 +60,12 @@
 </div>
 <div class="actions">
 	<ul>
-		<?php if ($isAclModify): ?>
+		<?php
+if ($isAclModify): ?>
 		<li><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
 		<li>&nbsp;</li>
-		<?php endif; ?>
+		<?php
+endif; ?>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>

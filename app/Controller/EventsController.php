@@ -998,9 +998,11 @@ class EventsController extends AppController {
  * @param unknown_type $message The custom message that will be appended to the email.
  * @param unknown_type $all, true: send to org, false: send to person.
  *
- * @return True if success, False if error
+ * @codingStandardsIgnoreStart
+ * @throws UnauthorizedException as well.
+ * @codingStandardsIgnoreEnd
  *
- * @throws NotFoundException,UnauthorizedException // TODO Exception
+ * @return True if success, False if error
  */
 	private function __sendContactEmail($id, $message, $all) {
 		// fetch the event

@@ -6,23 +6,27 @@
 			<th><?php echo $this->Paginator->sort('pull');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
 			<th>From</th>
-			<?php if ($isAdmin): ?>
+			<?php
+if ($isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
-			<?php endif; ?>
+			<?php
+endif; ?>
 			<th>Last Pulled ID</th>
 			<th>Last Pushed ID</th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
-	foreach ($servers as $server): ?>
+foreach ($servers as $server): ?>
 	<tr>
 		<td class="short" style="text-align: center;"><?php echo ($server['Server']['push'])? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td class="short" style="text-align: center;"><?php echo ($server['Server']['pull'])? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
 		<td><?php echo h($server['Server']['organization']); ?>&nbsp;</td>
-		<?php if ($isAdmin): ?>
+		<?php
+	if ($isAdmin): ?>
 		<td class="short"><?php echo h($server['Server']['org']); ?>&nbsp;</td>
-		<?php endif; ?>
+		<?php
+	endif; ?>
 		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="actions">
@@ -38,7 +42,8 @@
 			<?php if ($server['Server']['push']) echo $this->Form->postLink(__('Push All'), array('action' => 'push', $server['Server']['id'], 'full') ); ?>
 		</td>
 	</tr>
-<?php endforeach; ?>
+	<?php
+endforeach; ?>
 	</table>
 	<p>
 	<?php
