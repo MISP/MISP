@@ -6,6 +6,8 @@ App::uses('Xml', 'Utility');
  * Servers Controller
  *
  * @property Server $Server
+ *
+ * @throws ConfigureException // TODO Exception
  */
 class ServersController extends AppController {
 

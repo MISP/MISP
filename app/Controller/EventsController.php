@@ -116,7 +116,7 @@ class EventsController extends AppController {
 	public function index() {
 		// list the events
 		$this->Event->recursive = 0;
-		$events =  Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline'=>true));
+		$events = Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
 		foreach ($events as &$event) {
 			$event['Event']['info'] = str_replace('\n', chr(10), $event['Event']['info']);
 		}
@@ -291,7 +291,7 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 
-		$event =  Sanitize::clean($this->Event->data,array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline'=>true));
+		$event = Sanitize::clean($this->Event->data,array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
 		$event['Event']['info'] = str_replace('\n', chr(10), $event['Event']['info']);
 		foreach ($event['Attribute'] as &$attribute) {
 			$attribute['value'] = str_replace('\n', chr(10), $attribute['value']);
@@ -367,14 +367,14 @@ class EventsController extends AppController {
 							$this->redirect(array('action' => 'view', $this->Event->getId()));
 						}
 					} else {
-				if ($this->_isRest()) { // TODO return error if REST
-					// REST users want to see the failed event
-					$this->view($savedId);
-					$this->render('view');
-				} else {
-						$this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
-						// TODO return error if REST
-				}
+						if ($this->_isRest()) { // TODO return error if REST
+							// REST users want to see the failed event
+							$this->view($savedId);
+							$this->render('view');
+						} else {
+							$this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
+							// TODO return error if REST
+						}
 					}
 				}
 			}
@@ -393,7 +393,7 @@ class EventsController extends AppController {
 		$this->set('risks',$risks);
 		// tooltip for risk
 		$this->set('riskDescriptions', $this->Event->riskDescriptions);
-		
+
 		// combobox for analysis
 		$analysiss = $this->Event->validate['analysis']['rule'][1];
 		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
@@ -401,7 +401,7 @@ class EventsController extends AppController {
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
-		
+
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
 
@@ -462,12 +462,12 @@ class EventsController extends AppController {
 		if ("i" == Configure::read('CyDefSIG.baseurl')) {
 			// this saveAssociated() function will save not only the event, but also the attributes
 			// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
- 			unset($data['Attribute']);
+			unset($data['Attribute']);
 			$this->Event->unbindModel(array('hasMany' => array('Attribute')));
 			$saveResult = $this->Event->save($data, array('validate' => true, 'fieldList' => $fieldList));
- 		} else {
- 			$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
- 		}
+		} else {
+			$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
+		}
 		if ($saveResult) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
@@ -508,72 +508,72 @@ class EventsController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
 
- 				// Workaround for different structure in XML/array than what CakePHP expects
- 				$this->Event->cleanupEventArrayFromXML($this->request->data);
+				// Workaround for different structure in XML/array than what CakePHP expects
+				$this->Event->cleanupEventArrayFromXML($this->request->data);
 
- 				// the event_id field is not set (normal) so make sure no validation errors are thrown
- 				// LATER do this with	 $this->validator()->remove('event_id');
- 				unset($this->Event->Attribute->validate['event_id']);
- 				unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
+				// the event_id field is not set (normal) so make sure no validation errors are thrown
+				// LATER do this with	 $this->validator()->remove('event_id');
+				unset($this->Event->Attribute->validate['event_id']);
+				unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 
- 				// http://book.cakephp.org/2.0/en/models/saving-your-data.html
+				// http://book.cakephp.org/2.0/en/models/saving-your-data.html
 				// Creating or updating is controlled by the models id field.
- 				// If $Model->id is set, the record with this primary key is updated.
- 				// Otherwise a new record is created
+				// If $Model->id is set, the record with this primary key is updated.
+				// Otherwise a new record is created
 
 				// reposition to get the event.id with given uuid
- 				$existingEvent = $this->Event->findByUuid($this->request->data['Event']['uuid']);
- 				if (count($existingEvent)) {
- 					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
- 				}
-
-				if ("ii" == Configure::read('CyDefSIG.rest')) {
-	 				// reposition to get the attribute.id with given uuid
-	 				$c = 0;
-	 				if (isset($this->request->data['Attribute'])) {
-	 					foreach ($this->request->data['Attribute'] as $attribute) {
-	 						$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
-	 						if (count($existingAttribute)) {
-	 							$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
-	 						}
-	 						$c++;
-	 					}
-	 				}
+				$existingEvent = $this->Event->findByUuid($this->request->data['Event']['uuid']);
+				if (count($existingEvent)) {
+					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
 				}
 
- 				$fieldList = array(
- 					'Event' => array('org', 'date', 'risk', 'analysis', 'info', 'published', 'uuid', 'private', 'communitie'),
- 					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie')
- 				);
- 				if ("i" == Configure::read('CyDefSIG.rest')) {
-	 				// this saveAssociated() function will save not only the event, but also the attributes
-	 				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-	 				// the following 2 lines can be out-commented if we opt to save associated (Event.php:263-264)
+				if ("ii" == Configure::read('CyDefSIG.rest')) {
+					// reposition to get the attribute.id with given uuid
+					$c = 0;
+					if (isset($this->request->data['Attribute'])) {
+						foreach ($this->request->data['Attribute'] as $attribute) {
+							$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
+							if (count($existingAttribute)) {
+								$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
+							}
+							$c++;
+						}
+					}
+				}
+
+				$fieldList = array(
+					'Event' => array('org', 'date', 'risk', 'analysis', 'info', 'published', 'uuid', 'private', 'communitie'),
+					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie')
+				);
+				if ("i" == Configure::read('CyDefSIG.rest')) {
+					// this saveAssociated() function will save not only the event, but also the attributes
+					// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
+					// the following 2 lines can be out-commented if we opt to save associated (Event.php:263-264)
 					unset($this->request->data['Attribute']);
 					$this->Event->unbindModel(array('hasMany' => array('Attribute')));
- 					$saveResult = $this->Event->save($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
- 				} else {
- 					$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
- 				}
- 				if ($saveResult) {
+					$saveResult = $this->Event->save($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
+				} else {
+					$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
+				}
+				if ($saveResult) {
 
- 					// TODO RESTfull: we now need to compare attributes, to see if we need to do a RESTfull attribute delete
+					// TODO RESTfull: we now need to compare attributes, to see if we need to do a RESTfull attribute delete
 
- 					$message = 'Saved';
+					$message = 'Saved';
 
 					$this->set('event', Sanitize::clean($this->Event));
 
- 					// REST users want to see the newly created event
- 					$this->view($this->Event->getId());
- 					$this->render('view');
- 					return true;
- 				} else {
- 					$message = 'Error';
- 					$this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
- 					$this->render('edit');
- 					//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
- 					return false;
- 				}
+					// REST users want to see the newly created event
+					$this->view($this->Event->getId());
+					$this->render('view');
+					return true;
+				} else {
+					$message = 'Error';
+					$this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
+					$this->render('edit');
+					//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
+					return false;
+				}
 			}
 
 			// say what fields are to be updated
@@ -622,7 +622,7 @@ class EventsController extends AppController {
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
-		
+
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
 
@@ -999,6 +999,8 @@ class EventsController extends AppController {
  * @param unknown_type $all, true: send to org, false: send to person.
  *
  * @return True if success, False if error
+ *
+ * @throws NotFoundException,UnauthorizedException // TODO Exception
  */
 	private function __sendContactEmail($id, $message, $all) {
 		// fetch the event

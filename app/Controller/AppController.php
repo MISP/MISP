@@ -35,6 +35,8 @@ App::uses('File', 'Utility');
  *
  * @package       app.Controller
  * @link http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
+ *
+ * @throws ForbiddenException // TODO Exception
  */
 class AppController extends Controller {
 
@@ -176,7 +178,7 @@ class AppController extends Controller {
  * Log in as admin user and
  * Then run this function by setting debug = 1 (or more) and call /events/migrate01to02
  *
- * @throws NotFoundException
+ * @throws NotFoundException // TODO Exception
  */
 	public function migrate01to02() {
 		if (!self::_isAdmin()) throw new NotFoundException();
@@ -219,6 +221,8 @@ class AppController extends Controller {
  * First you will need to manually update the database to the new schema.
  * Log in as admin user and
  * Then run this function by setting debug = 1 (or more) and call /events/migrate02to021
+ *
+ * @throws NotFoundException // TODO Exception
  */
 	private function __explodeValueToValues() {
 		// search for composite value1 fields and explode it to value1 and value2
@@ -423,6 +427,8 @@ class AppController extends Controller {
 
 /**
  * TODO ACL, 6: check on Role and any Model
+ *
+ * @throws NotFoundException // TODO Exception
  */
 	public function checkAcl($action) {
 		$aco = 'Events';	// TODO ACL was 'Attributes'
@@ -522,14 +528,16 @@ class AppController extends Controller {
 
 /**
  * generateAllFor<FieldName>
+ *
+ * @throws NotFoundException // TODO Exception
  **/
 	public function generateAllFor($field) {
 		if (!self::_isAdmin()) throw new NotFoundException();
 
 		// contain the newValue and oldValue
-		$method_args = $this->params['pass'];
+		$methodArgs = $this->params['pass'];
 		// use call_user_func_array() to pass the newValue and oldValue
-		$success = call_user_func_array(array($this->{$this->defaultModel}, 'generateAllFor' . $field), $method_args);
+		$success = call_user_func_array(array($this->{$this->defaultModel}, 'generateAllFor' . $field), $methodArgs);
 
 		// give feedback
 		$this->set('succes', $success);
@@ -539,16 +547,16 @@ class AppController extends Controller {
 	public function call($method, $dummySecond) {
 		$this->__call($method, $dummySecond);
 	}
-	
+
 	public function __call($method, $dummySecond) {
 		$args = $this->params['pass']; // TODO this is naughty
 		if (strpos($method, 'generateAllFor') === 0) {
 			// massage the args
-			$method_args = $args;
-			$method_args[0] = str_replace('generateAllFor', '', $method); // TODO
-			//array_unshift($method_args, str_replace('generateAllFor', '', $method));
+			$methodArgs = $args;
+			$methodArgs[0] = str_replace('generateAllFor', '', $method); // TODO
+			//array_unshift($methodArgs, str_replace('generateAllFor', '', $method));
 			// do the actual call
-			return call_user_func_array(array($this, 'generateAllFor'), $method_args);
+			return call_user_func_array(array($this, 'generateAllFor'), $methodArgs);
 		}
 		return false;
 	}

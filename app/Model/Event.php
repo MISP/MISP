@@ -249,6 +249,8 @@ class Event extends AppModel {
  * hasMany associations
  *
  * @var array
+ *
+ * @throws InternalErrorException // TODO Exception
  */
 	public $hasMany = array(
 		'Attribute' => array(
@@ -389,6 +391,8 @@ class Event extends AppModel {
  * modifies the original data.
  *
  * @param &$data The reference to the variable
+ *
+ * @throws InternalErrorException // TODO Exception
  */
 	public function cleanupEventArrayFromXML(&$data) {
 		// Workaround for different structure in XML/array than what CakePHP expects
@@ -432,15 +436,15 @@ class Event extends AppModel {
 			// get the new attribute uuids in an array
 			$newerUuids = array();
 			foreach ($event['Attribute'] as $attribute) {
-					$newerUuids[$attribute['id']] = $attribute['uuid'];
-					$attribute['event_id'] = $remoteId;
-					if ("i" == Configure::read('CyDefSIG.rest')) {
-						// do the add attributes here i.s.o. saveAssociates() or save()
-						// and unset Attributes and hasMany for this
-						// following 2 lines can be out-commented if. (EventsController.php:364-365)
-						$anAttr = ClassRegistry::init('Attribute');
-						$anAttr->uploadAttributeToServer($attribute, $server, $HttpSocket);
-					}
+				$newerUuids[$attribute['id']] = $attribute['uuid'];
+				$attribute['event_id'] = $remoteId;
+				if ("i" == Configure::read('CyDefSIG.rest')) {
+					// do the add attributes here i.s.o. saveAssociates() or save()
+					// and unset Attributes and hasMany for this
+					// following 2 lines can be out-commented if. (EventsController.php:364-365)
+					$anAttr = ClassRegistry::init('Attribute');
+					$anAttr->uploadAttributeToServer($attribute, $server, $HttpSocket);
+				}
 			}
 			// get the already existing attributes and delete the ones that are not there
 			foreach ($xml->Event->Attribute as $attribute) {
@@ -463,7 +467,7 @@ class Event extends AppModel {
  *
  * @return bool true if success, false or error message if failed
  */
-	public function RESTfullEventToServer($event, $server, $urlPath, $HttpSocket=null, $newLocation, $newTextBody) {
+	public function RESTfullEventToServer($event, $server, $urlPath, $HttpSocket = null, $newLocation, $newTextBody) {
 		if (true == $event['Event']['private']) { // never upload private events
 			return "Event is private and non exportable";
 		}

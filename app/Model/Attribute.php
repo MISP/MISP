@@ -913,8 +913,8 @@ class Attribute extends AppModel {
 		foreach ($attributes as $attributeFound) {
 			$this->Correlation->read(null, $attributeFound['Correlation']['id']);
 			$this->Correlation->set(array(
-			    'private' => isset($attribute['private']) ? $attribute['private'] : false,
-			    'cluster' => isset($attribute['cluster']) ? $attribute['cluster'] : false,
+				'private' => isset($attribute['private']) ? $attribute['private'] : false,
+				'cluster' => isset($attribute['cluster']) ? $attribute['cluster'] : false,
 			));
 			$this->Correlation->save();
 		}
@@ -923,7 +923,7 @@ class Attribute extends AppModel {
 		foreach ($attributes as $attributeFound) {
 			$this->Correlation->read(null, $attributeFound['Correlation']['id']);
 			$this->Correlation->set(array(
-			    '1_private' => isset($attribute['private']) ? $attribute['private'] : false,
+				'1_private' => isset($attribute['private']) ? $attribute['private'] : false,
 			));
 			$this->Correlation->save();
 		}
@@ -1144,7 +1144,7 @@ class Attribute extends AppModel {
 	public function checkComposites() {
 		$compositeTypes = $this->getCompositeTypes();
 		$fails = array();
-		$attributes = $this->find('all',array('recursive' => 0));
+		$attributes = $this->find('all', array('recursive' => 0));
 
 		foreach ($attributes as $attribute) {
 			if ((in_array($attribute['Attribute']['type'], $compositeTypes)) && (!strlen($attribute['Attribute']['value1']) || !strlen($attribute['Attribute']['value2']))) {

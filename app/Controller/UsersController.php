@@ -99,7 +99,7 @@ class UsersController extends AppController {
 		$this->set(compact('roles'));
 	}
 
-		public function change_pw() {
+	public function change_pw() {
 		$id = $this->Auth->user('id');
 		$this->User->id = $id;
 		if ($this->request->is('post') || $this->request->is('put')) {
@@ -126,6 +126,7 @@ class UsersController extends AppController {
 		$roles = Sanitize::clean($this->User->Role->find('list'));
 		$this->set(compact('roles'));
 	}
+
 /**
  * delete method
  *
@@ -192,7 +193,7 @@ class UsersController extends AppController {
 			$this->User->create();
 			// set invited by
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
-			$this->request->data['User']['change_pw']= 1;
+			$this->request->data['User']['change_pw'] = 1;
 			if ($this->User->save($this->request->data)) {
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->redirect(array('action' => 'index'));
@@ -519,7 +520,7 @@ class UsersController extends AppController {
 /**
  * generateAllFor<FieldName>
  **/
- 	public function generateAllFor($field) {
+	public function generateAllFor($field) {
 		parent::generateAllFor($field);
 	}
 }

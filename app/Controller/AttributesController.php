@@ -93,11 +93,13 @@ class AttributesController extends AppController {
  * index method
  *
  * @return void
+ *
+ * @throws NotFoundException // TODO Exception
  */
 	public function index() {
 		$this->Attribute->recursive = 0;
 		$this->set('isSearch', 0);
-		$attributes = Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline'=>true));
+		$attributes = Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
 		foreach ($attributes as &$attribute) {
 			$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
 		}
@@ -122,6 +124,8 @@ class AttributesController extends AppController {
  * add method
  *
  * @return void
+ *
+ * @throws NotFoundException // TODO Exception
  */
 	public function add($eventId = null) {
 		if ($this->request->is('post')) {
@@ -480,10 +484,10 @@ class AttributesController extends AppController {
 			}
 
 			// reposition to get the attribute.id with given uuid
- 			$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
- 			if (count($existingAttribute)) {
- 				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
- 			}
+			$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
+			if (count($existingAttribute)) {
+				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
+			}
 
 			// say what fields are to be updated
 			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster');
@@ -648,7 +652,7 @@ class AttributesController extends AppController {
 				if ('true' == Configure::read('CyDefSIG.private')) {
 					if (!$this->_IsAdmin()) {
 						// merge in private conditions
-						$this->paginate = Set::merge($this->paginate,array(
+						$this->paginate = Set::merge($this->paginate, array(
 							'conditions' =>
 								array("OR" => array(
 								array('Event.org =' => $this->Auth->user('org')),
@@ -658,17 +662,17 @@ class AttributesController extends AppController {
 					}
 				}
 
-				$attributes =  Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline'=>true));
+				$attributes = Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
 				foreach ($attributes as &$attribute) {
 					$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
 				}
 				$this->set('attributes', $attributes);
 
 				// and store into session
-				$this->Session->write('paginate_conditions',$this->paginate);
-				$this->Session->write('paginate_conditions_keyword',$keyword);
-				$this->Session->write('paginate_conditions_type',$type);
-				$this->Session->write('paginate_conditions_category',$category);
+				$this->Session->write('paginate_conditions', $this->paginate);
+				$this->Session->write('paginate_conditions_keyword', $keyword);
+				$this->Session->write('paginate_conditions_type', $type);
+				$this->Session->write('paginate_conditions_category', $category);
 
 				// set the same view as the index page
 				$this->render('index');
@@ -700,11 +704,11 @@ class AttributesController extends AppController {
 			$this->set('typeSearch', $type);
 			$this->set('isSearch', 1);
 			$this->set('categorySearch', $category);
-			
+
 			// re-get pagination
 			$this->Attribute->recursive = 0;
 			$this->paginate = $this->Session->read('paginate_conditions');
-			$attributes =  Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline'=>true));
+			$attributes = Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
 			foreach ($attributes as &$attribute) {
 				$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
 			}
@@ -720,6 +724,8 @@ class AttributesController extends AppController {
  *
  * @param int $id
  * @return void
+ *
+ * @throws NotFoundException // TODO Exception
  */
 	public function event($id = null) {
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);

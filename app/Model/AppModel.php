@@ -67,14 +67,14 @@ class AppModel extends Model {
 		return $result;
 	}
 
-	public function __call($method, $args){
+	public function __call($method, $args) {
 		if (strpos ($method, 'generateAllFor') === 0) {
 			// massage the args
-			$method_args = $args;
-			$method_args[0] = str_replace('generateAllFor', '', $method); // TODO
-			//array_unshift($method_args, str_replace('generateAllFor', '', $method));
+			$methodArgs = $args;
+			$methodArgs[0] = str_replace('generateAllFor', '', $method); // TODO
+			//array_unshift($methodArgs, str_replace('generateAllFor', '', $method));
 			// do the actual call
-			return call_user_func_array(array($this, 'generateAllFor'), $method_args);
+			return call_user_func_array(array($this, 'generateAllFor'), $methodArgs);
 		}
 		return false;
 	}
