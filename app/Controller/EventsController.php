@@ -116,7 +116,11 @@ class EventsController extends AppController {
 	public function index() {
 		// list the events
 		$this->Event->recursive = 0;
-		$this->set('events', Sanitize::clean($this->paginate()));
+		$events =  Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline'=>true));
+		foreach ($events as &$event) {
+			$event['Event']['info'] = str_replace('\n', chr(10), $event['Event']['info']);
+		}
+		$this->set('events', $events);
 
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
@@ -287,7 +291,12 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 
-		$this->set('event', Sanitize::clean($this->Event->data));
+		$event =  Sanitize::clean($this->Event->data,array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline'=>true));
+		$event['Event']['info'] = str_replace('\n', chr(10), $event['Event']['info']);
+		foreach ($event['Attribute'] as &$attribute) {
+			$attribute['value'] = str_replace('\n', chr(10), $attribute['value']);
+		}
+		$this->set('event', $event);
 		$this->set('relatedEvents', $relatedEvents);
 
 		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);

@@ -97,7 +97,11 @@ class AttributesController extends AppController {
 	public function index() {
 		$this->Attribute->recursive = 0;
 		$this->set('isSearch', 0);
-		$this->set('attributes', Sanitize::clean($this->paginate()));
+		$attributes = Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline'=>true));
+		foreach ($attributes as &$attribute) {
+			$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
+		}
+		$this->set('attributes', $attributes);
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -654,7 +658,11 @@ class AttributesController extends AppController {
 					}
 				}
 
-				$this->set('attributes', Sanitize::clean($this->paginate()));
+				$attributes =  Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline'=>true));
+				foreach ($attributes as &$attribute) {
+					$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
+				}
+				$this->set('attributes', $attributes);
 
 				// and store into session
 				$this->Session->write('paginate_conditions',$this->paginate);
@@ -684,7 +692,6 @@ class AttributesController extends AppController {
 			$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 
-			$this->Attribute->recursive = 0;
 			// get from Session
 			$keyword = $this->Session->read('paginate_conditions_keyword');
 			$type = $this->Session->read('paginate_conditions_type');
@@ -695,8 +702,13 @@ class AttributesController extends AppController {
 			$this->set('categorySearch', $category);
 			
 			// re-get pagination
+			$this->Attribute->recursive = 0;
 			$this->paginate = $this->Session->read('paginate_conditions');
-			$this->set('attributes', Sanitize::clean($this->paginate()));
+			$attributes =  Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline'=>true));
+			foreach ($attributes as &$attribute) {
+				$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
+			}
+			$this->set('attributes', $attributes);
 
 			// set the same view as the index page
 			$this->render('index');
