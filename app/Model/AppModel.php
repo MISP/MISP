@@ -32,4 +32,50 @@ App::uses('LogableBehavior', 'Assets.models/behaviors');
  * @package       app.Model
  */
 class AppModel extends Model {
+
+/**
+ * Model Name
+ *
+ * @var string
+ */
+	public $name;
+
+	public function __construct($id = false, $table = null, $ds = null) {
+		parent::__construct($id, $table, $ds);
+
+		$this->name = get_class($this);
+	}
+
+/**
+ * generateAllFor<FieldName>
+ **/
+	public function generateAllFor($field, $newValvue, $oldValue, $recursive = -1) {
+		App::uses('CamelCase', 'Lib');
+		$camelCase = new CamelCase();
+		$fieldFromCamelCase = $camelCase->fromCamelCase($field);
+		$succes = $this->generateSomethings($this->name . '.' . $fieldFromCamelCase, $newValvue, $oldValue, $recursive);
+		return $succes;
+	}
+
+	public function generateSomethings($theThing, $newValue, $oldValue, $recursive) {
+		$successes = array();
+		$this->recursive = $recursive;
+		$result = $this->updateAll(
+			array($theThing => $newValue),
+			array($theThing => $oldValue == 'null' ? null : $oldValue)
+		);
+		return $result;
+	}
+
+	public function __call($method, $args){
+		if (strpos ($method, 'generateAllFor') === 0) {
+			// massage the args
+			$method_args = $args;
+			$method_args[0] = str_replace('generateAllFor', '', $method); // TODO
+			//array_unshift($method_args, str_replace('generateAllFor', '', $method));
+			// do the actual call
+			return call_user_func_array(array($this, 'generateAllFor'), $method_args);
+		}
+		return false;
+	}
 }

@@ -38,6 +38,15 @@ App::uses('File', 'Utility');
  */
 class AppController extends Controller {
 
+	public $defaultModel;
+
+	public function __construct($id = false, $table = null, $ds = null) {
+		parent::__construct($id, $table, $ds);
+
+		$name = get_class($this);
+		$this->defaultModel = substr($name, 0, strrpos($name, 'sController'));
+	}
+
 	public $components = array(
 			'Acl',			// TODO XXX remove
 			'Session',
@@ -509,5 +518,38 @@ class AppController extends Controller {
 		debug(md5_file($fileP));
 		$md5 = !$tmpfile->size() ? md5_file($fileP) : $tmpfile->md5();
 		debug($md5);
+	}
+
+/**
+ * generateAllFor<FieldName>
+ **/
+	public function generateAllFor($field) {
+		if (!self::_isAdmin()) throw new NotFoundException();
+
+		// contain the newValue and oldValue
+		$method_args = $this->params['pass'];
+		// use call_user_func_array() to pass the newValue and oldValue
+		$success = call_user_func_array(array($this->{$this->defaultModel}, 'generateAllFor' . $field), $method_args);
+
+		// give feedback
+		$this->set('succes', $success);
+		$this->render('succes');
+	}
+
+	public function call($method, $dummySecond) {
+		$this->__call($method, $dummySecond);
+	}
+	
+	public function __call($method, $dummySecond) {
+		$args = $this->params['pass']; // TODO this is naughty
+		if (strpos($method, 'generateAllFor') === 0) {
+			// massage the args
+			$method_args = $args;
+			$method_args[0] = str_replace('generateAllFor', '', $method); // TODO
+			//array_unshift($method_args, str_replace('generateAllFor', '', $method));
+			// do the actual call
+			return call_user_func_array(array($this, 'generateAllFor'), $method_args);
+		}
+		return false;
 	}
 }

@@ -18,12 +18,6 @@ class User extends AppModel {
 	public $displayField = 'email';
 
 	public $orgField = 'org';	// TODO Audit, LogableBehaviour + org
-/**
- * Model Name
- *
- * @var string
- */
-	public $name = 'User';			// TODO general
 
 /**
  * Validation rules
@@ -342,5 +336,4 @@ class User extends AppModel {
 
 		return $key;
 	}
-
 }

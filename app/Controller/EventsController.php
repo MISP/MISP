@@ -509,7 +509,7 @@ class EventsController extends AppController {
  				unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 
  				// http://book.cakephp.org/2.0/en/models/saving-your-data.html
- 				// Creating or updating is controlled by the model’s id field.
+				// Creating or updating is controlled by the models id field.
  				// If $Model->id is set, the record with this primary key is updated.
  				// Otherwise a new record is created
 
@@ -1559,5 +1559,12 @@ class EventsController extends AppController {
 			}
 		}
 		return $toReturn;
+	}
+
+/**
+ * generateAllFor<FieldName>
+ **/
+	public function generateAllFor($field) {
+		parent::generateAllFor($field);
 	}
 }

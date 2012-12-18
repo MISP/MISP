@@ -503,7 +503,7 @@ class UsersController extends AppController {
 		return $result;
 	}
 
-	public function setRoleId($fk = '2') {
+	public function setRoleId($fk = '2') { // TODO generateAllFor<FieldName>
 		$params = array(
 				'conditions' => array('User.role_id' => ''),
 				'recursive' => 0,
@@ -514,5 +514,12 @@ class UsersController extends AppController {
 			$this->User->id = $user['User']['id'];
 			$this->User->saveField('role_id', $fk);
 		}
+	}
+
+/**
+ * generateAllFor<FieldName>
+ **/
+ 	public function generateAllFor($field) {
+		parent::generateAllFor($field);
 	}
 }

@@ -10,8 +10,6 @@ App::import('Controller', 'Attributes');
  */
 class Event extends AppModel {
 
-	public $name = 'Event';					// TODO general
-
 	public $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
 		'userModel' => 'User',
 		'userKey' => 'user_id',
@@ -704,5 +702,4 @@ class Event extends AppModel {
 		// error, so return null
 		return null;
 	}
-
 }
