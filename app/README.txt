@@ -54,7 +54,7 @@ cd /var/www/cydefsig/app/
 chmod -R g+w tmp
 chmod -R g+w files
 
-# Import the empty MySQL database in /var/www/cydefsig/app/MYSQL.txt using phpmyadmin or mysql>.
+# Import the empty MySQL database from /var/www/cydefsig/app/MYSQL.sql using phpmyadmin or mysql>.
 
 # Now configure your apache server with the DocumentRoot /var/www/cydefsig/app/webroot/
 
