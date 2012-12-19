@@ -564,4 +564,14 @@ class AppController extends Controller {
 		//}
 		return false;
 	}
+
+	public function counterSanitizeClean($str) {
+		// TODO Sanitize %AppData%\<Random>\<Random>.exe slips
+
+		$str = str_replace('\n', chr(10), $str);
+		$str = str_replace('\\\\', '\\', $str);
+		$str = str_replace('&amp;', '&', $str);
+
+		return $str;
+	}
 }

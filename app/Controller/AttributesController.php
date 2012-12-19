@@ -101,7 +101,7 @@ class AttributesController extends AppController {
 		$this->set('isSearch', 0);
 		$attributes = Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
 		foreach ($attributes as &$attribute) {
-			$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
+			$attribute['Attribute']['value'] = $this->counterSanitizeClean($attribute['Attribute']['value']); // TODO generic
 		}
 		$this->set('attributes', $attributes);
 

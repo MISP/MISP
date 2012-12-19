@@ -292,14 +292,9 @@ class EventsController extends AppController {
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 
 		$event = Sanitize::clean($this->Event->data,array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
-		// TODO Sanitize %AppData%\<Random>\<Random>.exe slips
-		$event['Event']['info'] = str_replace('\n', chr(10), $event['Event']['info']);
-		$event['Event']['info'] = str_replace('\\\\', '\\', $event['Event']['info']);
-		$event['Event']['info'] = str_replace('&amp;', '&', $event['Event']['info']);
+		$event['Event']['info'] = $this->counterSanitizeClean($event['Event']['info']);
 		foreach ($event['Attribute'] as &$attribute) {
-			$attribute['value'] = str_replace('\n', chr(10), $attribute['value']);
-			$attribute['value'] = str_replace('\\\\', '\\', $attribute['value']);
-			$attribute['value'] = str_replace('&amp;', '&', $attribute['value']);
+			$attribute['value'] = $this->counterSanitizeClean($attribute['value']);
 		}
 		$this->set('event', $event);
 		$this->set('relatedEvents', $relatedEvents);
