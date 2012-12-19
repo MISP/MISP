@@ -67,8 +67,7 @@ class AppModel extends Model {
 		return $result;
 	}
 
-	public function XXXX__call($method, $params) {
-
+	public function notUsedCall($method, $params) {
 		// Notice (8): Undefined index: Id [CORE/Cake/Model/Model.php, line 2673]
 		// Notice (8): Undefined index: Id [CORE/Cake/Model/Model.php, line 2650]
 

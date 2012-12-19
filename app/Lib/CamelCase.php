@@ -2,6 +2,7 @@
 
 /**
  * http://en.wikipedia.org/wiki/CamelCase
+ * 70 | ERROR   | Public method name "notUsed_Call" is not in camel caps format
  **/
 class CamelCase {
 

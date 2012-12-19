@@ -62,6 +62,7 @@ class Event extends AppModel {
 	public $analysisLevels = array(
 		0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'
 	);
+
 /**
  * Validation rules
  *
