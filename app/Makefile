@@ -17,13 +17,13 @@ check-style-ci:
 		--report-file=build/checkstyle.xml ./
 
 check-cpd:
-	phpcpd --min-lines 3 --min-tokens 50 --suffixes php ./
+	phpcpd --min-lines 3 --min-tokens 50 --names *.php ./
 
 check-cpd-ci:
 	phpcpd --min-lines 3 --min-tokens 50 \
-		--suffixes php --log-pmd build/pmd.xml ./
+		--names *.php --log-pmd build/pmd.xml ./
 
 check-js:
-	jshint webroot/javascript --config app/Config/jshint.json
+	#jshint webroot/js --config app/Config/jshint.json
 
 check-all-ci: check-style-ci check-cpd-ci check-js
