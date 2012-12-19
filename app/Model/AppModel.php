@@ -67,15 +67,26 @@ class AppModel extends Model {
 		return $result;
 	}
 
-	public function __call($method, $args) {
+	public function XXXX__call($method, $params) {
+
+		// Notice (8): Undefined index: Id [CORE/Cake/Model/Model.php, line 2673]
+		// Notice (8): Undefined index: Id [CORE/Cake/Model/Model.php, line 2650]
+
+		if (strpos($method, 'findBy') === 0) {
+			debug($method);
+			parent::__call($method, $params);
+			debug($methodArgs);
+		}
+
 		if (strpos ($method, 'generateAllFor') === 0) {
 			// massage the args
-			$methodArgs = $args;
+			$methodArgs = $params;
 			$methodArgs[0] = str_replace('generateAllFor', '', $method); // TODO
 			//array_unshift($methodArgs, str_replace('generateAllFor', '', $method));
 			// do the actual call
 			return call_user_func_array(array($this, 'generateAllFor'), $methodArgs);
 		}
+
 		return false;
 	}
 }

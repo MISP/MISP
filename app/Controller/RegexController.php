@@ -15,6 +15,7 @@ class RegexController extends AppController {
 					'Regex.id' => 'ASC'
 			)
 	);
+
 	public $helpers = array('Js' => array('Jquery'));
 
 	public function beforeFilter() {

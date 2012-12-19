@@ -450,7 +450,7 @@ class AppController extends Controller {
 		if (!self::_isAdmin()) throw new NotFoundException();
 
 		$this->loadModel('Attribute');
-		$attributes = $this->Attribute->find('all',array('recursive' => 0));
+		$attributes = $this->Attribute->find('all', array('recursive' => 0));
 		foreach ($attributes as $attribute) {
 			if ($attribute['Attribute']['private']) {
 				$attribute['Attribute']['private'] = true;
@@ -465,7 +465,7 @@ class AppController extends Controller {
 		if (!self::_isAdmin()) throw new NotFoundException();
 
 		$this->loadModel('Event');
-		$events = $this->Event->find('all',array('recursive' => 0));
+		$events = $this->Event->find('all', array('recursive' => 0));
 		foreach ($events as $event) {
 			if ($event['Event']['private']) {
 				$attribute['Event']['private'] = true;
@@ -558,6 +558,10 @@ class AppController extends Controller {
 			// do the actual call
 			return call_user_func_array(array($this, 'generateAllFor'), $methodArgs);
 		}
+
+		//if (strpos($method, 'findBy') === 0) {
+		//	//debug(true);debug(tru);
+		//}
 		return false;
 	}
 }
