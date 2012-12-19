@@ -7,33 +7,33 @@ App::uses('AppController', 'Controller');
  */
 class RegexController extends AppController {
 
-    public $components = array('Security', 'RequestHandler');
+	public $components = array('Security', 'RequestHandler');
 
-    public $paginate = array(
-            'limit' => 60,
-    		'order' => array(
-                    'Regex.id' => 'ASC'
-            )
-    );
-    public $helpers = array('Js' => array('Jquery'));
+	public $paginate = array(
+			'limit' => 60,
+			'order' => array(
+					'Regex.id' => 'ASC'
+			)
+	);
+	public $helpers = array('Js' => array('Jquery'));
 
-    function beforeFilter() {
-        parent::beforeFilter();
+	public function beforeFilter() {
+		parent::beforeFilter();
 
-        // permit reuse of CSRF tokens on the search page.
-        if ('search' == $this->request->params['action']) {
-            $this->Security->csrfUseOnce = false;
-        }
-    }
+		// permit reuse of CSRF tokens on the search page.
+		if ('search' == $this->request->params['action']) {
+			$this->Security->csrfUseOnce = false;
+		}
+	}
 
-    public function isAuthorized($user) {
-        // Admins can access everything
-        if (parent::isAuthorized($user)) {
-            return true;
-        }
-        // the other pages are allowed by logged in users
-        return true;
-    }
+	public function isAuthorized($user) {
+		// Admins can access everything
+		if (parent::isAuthorized($user)) {
+			return true;
+		}
+		// the other pages are allowed by logged in users
+		return true;
+	}
 
 /**
  * admin_index method
@@ -157,14 +157,14 @@ class RegexController extends AppController {
 		$returnValue = true;
 		$regex = new Regex();
 		$allRegex = $regex->getAll();
-		foreach($allRegex as $regex) {
+		foreach ($allRegex as $regex) {
 			if (strlen($regex['Regex']['replacement']) && strlen($regex['Regex']['regex'])) {
 				$origString = preg_replace($regex['Regex']['regex'], $regex['Regex']['replacement'], $origString);
 			}
 			if (!strlen($regex['Regex']['replacement']) && preg_match($regex['Regex']['regex'], $origString)) {
 				App::uses('SessionComponent', 'Controller/Component');
 				SessionComponent::setFlash('Blacklisted value!');
-            	$returnValue = false;
+				$returnValue = false;
 			}
 		}
 		return $returnValue;

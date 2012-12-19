@@ -14,13 +14,13 @@ class TrimBehavior extends ModelBehavior {
  * @param unknown_type $settings
  */
 	public function setup(Model $Model, $settings = array()) {
-	    if (!isset($this->settings[$Model->alias])) {
-	        $this->settings[$Model->alias] = array(
-	            'fields' => 'all',
-	        );
-	    }
-	    $this->settings[$Model->alias] = array_merge(
-	        $this->settings[$Model->alias], (array)$settings);
+		if (!isset($this->settings[$Model->alias])) {
+			$this->settings[$Model->alias] = array(
+				'fields' => 'all',
+			);
+		}
+		$this->settings[$Model->alias] = array_merge(
+			$this->settings[$Model->alias], (array)$settings);
 	}
 
 /**

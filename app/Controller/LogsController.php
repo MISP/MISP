@@ -7,33 +7,34 @@ App::uses('AppController', 'Controller');
  */
 class LogsController extends AppController {
 
-    public $components = array('Security', 'RequestHandler');
+	public $components = array('Security', 'RequestHandler');
 
-    public $paginate = array(
-            'limit' => 60,
-    		'order' => array(
-                    'Log.id' => 'DESC'
-            )
-    );
-    public $helpers = array('Js' => array('Jquery'));
+	public $paginate = array(
+			'limit' => 60,
+			'order' => array(
+					'Log.id' => 'DESC'
+			)
+	);
 
-    function beforeFilter() {
-        parent::beforeFilter();
+	public $helpers = array('Js' => array('Jquery'));
 
-        // permit reuse of CSRF tokens on the search page.
-        if ('search' == $this->request->params['action']) {
-            $this->Security->csrfUseOnce = false;
-        }
-    }
+	public function beforeFilter() {
+		parent::beforeFilter();
 
-    public function isAuthorized($user) {
-        // Admins can access everything
-        if (parent::isAuthorized($user)) {
-            return true;
-        }
-        // the other pages are allowed by logged in users
-        return true;
-    }
+		// permit reuse of CSRF tokens on the search page.
+		if ('search' == $this->request->params['action']) {
+			$this->Security->csrfUseOnce = false;
+		}
+	}
+
+	public function isAuthorized($user) {
+		// Admins can access everything
+		if (parent::isAuthorized($user)) {
+			return true;
+		}
+		// the other pages are allowed by logged in users
+		return true;
+	}
 
 /**
  * admin_index method
@@ -50,6 +51,9 @@ class LogsController extends AppController {
  * admin_view method
  *
  * @param string $id
+ *
+ * @throws NotFoundException
+ *
  * @return void
  */
 	public function admin_view($id = null) {
@@ -69,50 +73,50 @@ class LogsController extends AppController {
 
 		if (in_array($this->request->here, $fullAddress)) {
 
-		    $this->set('actionDefinitions', $this->Log->actionDefinitions);
+			$this->set('actionDefinitions', $this->Log->actionDefinitions);
 
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions_log', array());
 
-		    if ($this->request->is('post') && in_array($this->request->here, $fullAddress)) {
-		        $email = $this->request->data['Log']['email'];
-		        $org = $this->request->data['Log']['org'];
-		    	$action = $this->request->data['Log']['action'];
-		        $title = $this->request->data['Log']['title'];
-		        $change = $this->request->data['Log']['change'];
-				
+			if ($this->request->is('post') && in_array($this->request->here, $fullAddress)) {
+				$email = $this->request->data['Log']['email'];
+				$org = $this->request->data['Log']['org'];
+				$action = $this->request->data['Log']['action'];
+				$title = $this->request->data['Log']['title'];
+				$change = $this->request->data['Log']['change'];
+
 				// for info on what was searched for
-		        $this->set('emailSearch', $email);
-		        $this->set('orgSearch', $org);
-		        $this->set('actionSearch', $action);
-		        $this->set('titleSearch', $title);
-		        $this->set('changeSearch', $change);
+				$this->set('emailSearch', $email);
+				$this->set('orgSearch', $org);
+				$this->set('actionSearch', $action);
+				$this->set('titleSearch', $title);
+				$this->set('changeSearch', $change);
 				$this->set('isSearch', 1);
-				
-		        // search the db
-		        $conditions = array();
-	            if ($email) {
-	                $conditions['Log.email LIKE'] = '%'.$email.'%';
-	            }
-		        if ($org) {
-	                $conditions['Log.org LIKE'] = '%'.$org.'%';
-	            }
-	            if ($action != 'ALL') {
-	                $conditions['Log.action ='] = $action;
-	            }
-		        if ($title) {
-	                $conditions['Log.title LIKE'] = '%'.$title.'%';
-	            }
-	            if ($change) {
-	                $conditions['Log.change LIKE'] = '%'.$change.'%';
-	            }
-	            $this->Log->recursive = 0;
-	            $this->paginate = array(
+
+				// search the db
+				$conditions = array();
+				if ($email) {
+					$conditions['Log.email LIKE'] = '%' . $email . '%';
+				}
+				if ($org) {
+					$conditions['Log.org LIKE'] = '%' . $org . '%';
+				}
+				if ($action != 'ALL') {
+					$conditions['Log.action ='] = $action;
+				}
+				if ($title) {
+					$conditions['Log.title LIKE'] = '%' . $title . '%';
+				}
+				if ($change) {
+					$conditions['Log.change LIKE'] = '%' . $change . '%';
+				}
+				$this->Log->recursive = 0;
+				$this->paginate = array(
 					'limit' => 60,
 					'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 logs(?)
-	            	'conditions' => $conditions
-	            );
-		        $this->set('logs', Sanitize::clean($this->paginate()));
+					'conditions' => $conditions
+				);
+				$this->set('logs', Sanitize::clean($this->paginate()));
 
 				// and store into session
 				$this->Session->write('paginate_conditions_log', $this->paginate);
@@ -122,18 +126,18 @@ class LogsController extends AppController {
 				$this->Session->write('paginate_conditions_log_title', $title);
 				$this->Session->write('paginate_conditions_log_change', $change);
 
-		        // set the same view as the index page
-		        $this->render('admin_index');
-		    } else {
-		        // no search keyword is given, show the search form
+				// set the same view as the index page
+				$this->render('admin_index');
+			} else {
+				// no search keyword is given, show the search form
 
-		        // combobox for actions
-	    	    $actions = array('' => array('ALL' => 'ALL'), 'actions' => array());
-	    	    $actions['actions'] = array_merge($actions['actions'], $this->_arrayToValuesIndexArray($this->Log->validate['action']['rule'][1]));
-	    	    $this->set('actions', $actions);
-		    }
+				// combobox for actions
+				$actions = array('' => array('ALL' => 'ALL'), 'actions' => array());
+				$actions['actions'] = array_merge($actions['actions'], $this->_arrayToValuesIndexArray($this->Log->validate['action']['rule'][1]));
+				$this->set('actions', $actions);
+			}
 		} else {
-		    $this->set('actionDefinitions', $this->Log->actionDefinitions);
+			$this->set('actionDefinitions', $this->Log->actionDefinitions);
 
 			// get from Session
 			$email = $this->Session->read('paginate_conditions_log_email');
@@ -143,11 +147,11 @@ class LogsController extends AppController {
 			$change = $this->Session->read('paginate_conditions_log_change');
 
 			// for info on what was searched for
-	        $this->set('emailSearch', $email);
-	        $this->set('orgSearch', $org);
-	        $this->set('actionSearch', $action);
-	        $this->set('titleSearch', $title);
-	        $this->set('changeSearch', $change);
+			$this->set('emailSearch', $email);
+			$this->set('orgSearch', $org);
+			$this->set('actionSearch', $action);
+			$this->set('titleSearch', $title);
+			$this->set('changeSearch', $change);
 			$this->set('isSearch', 1);
 
 			// re-get pagination

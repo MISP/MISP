@@ -10,32 +10,35 @@ class RolesController extends AppController {
 	public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage & Publish Organization Events');
 
 	public $components = array(
-        'Acl',
-        'Auth' => array(
-            'authorize' => array(
-                'Actions' => array('actionPath' => 'controllers/Roles')
-            )
-        ),
-        'Security',
-        'Session'
-    );
+		'Acl',
+		'Auth' => array(
+			'authorize' => array(
+				'Actions' => array('actionPath' => 'controllers/Roles')
+			)
+		),
+		'Security',
+		'Session'
+	);
 
-    //public $components = array('Security');
-    public $paginate = array(
-            'limit' => 60,
-            'order' => array(
-                    'Role.name' => 'ASC'
-            )
-    );
+	//public $components = array('Security');
+	public $paginate = array(
+			'limit' => 60,
+			'order' => array(
+					'Role.name' => 'ASC'
+			)
+	);
 
-    function beforeFilter() {
-        parent::beforeFilter();
-    }
+	public function beforeFilter() {
+		parent::beforeFilter();
+	}
 
 /**
  * view method
  *
  * @param string $id
+ *
+ * @throws NotFoundException
+ *
  * @return void
  */
 	public function view($id = null) {
@@ -61,6 +64,9 @@ class RolesController extends AppController {
  * admin_view method
  *
  * @param string $id
+ *
+ * @throws NotFoundException
+ *
  * @return void
  */
 	public function admin_view($id = null) {
@@ -95,6 +101,9 @@ class RolesController extends AppController {
  * admin_edit method
  *
  * @param string $id
+ *
+ * @throws NotFoundException
+ *
  * @return void
  */
 	public function admin_edit($id = null) {
@@ -113,7 +122,7 @@ class RolesController extends AppController {
 				$this->Session->setFlash(__('The role could not be saved. Please, try again.'));
 			}
 		} else {
-			$this->Role->recursive=0;
+			$this->Role->recursive = 0;
 			$this->Role->read(null, $id);
 			$this->request->data = Sanitize::clean($this->Role->data);
 		}
@@ -124,6 +133,9 @@ class RolesController extends AppController {
  * admin_delete method
  *
  * @param string $id
+ *
+ * @throws NotFoundException
+ *
  * @return void
  */
 	public function admin_delete($id = null) {

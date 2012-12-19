@@ -16,13 +16,13 @@ class RegexBehavior extends ModelBehavior {
  * @param unknown_type $settings
  */
 	public function setup(Model $Model, $settings = array()) {
-	    if (!isset($this->settings[$Model->alias])) {
-	        $this->settings[$Model->alias] = array(
-	            'fields' => array(),
-	        );
-	    }
-	    $this->settings[$Model->alias] = array_merge(
-	        $this->settings[$Model->alias], (array)$settings);
+		if (!isset($this->settings[$Model->alias])) {
+			$this->settings[$Model->alias] = array(
+				'fields' => array(),
+			);
+		}
+		$this->settings[$Model->alias] = array_merge(
+			$this->settings[$Model->alias], (array)$settings);
 	}
 
 /**
@@ -48,9 +48,9 @@ class RegexBehavior extends ModelBehavior {
 		foreach ($Model->data[$Model->name] as $key => &$field) {
 			if (in_array($key, $this->settings[$Model->alias]['fields']) && is_string($field)) {
 				$returnValue = $this->replaceWindowsSpecific($Model, &$field);
-//				if (!$returnValue) {
-//					$Model->blacklistErrors[] = array($key, $field);
-//				}
+				//if (!$returnValue) {
+				//	$Model->blacklistErrors[] = array($key, $field);
+				//}
 			}
 		}
 		return $returnValue;
@@ -67,14 +67,14 @@ class RegexBehavior extends ModelBehavior {
 		$returnValue = true;
 		$regex = new Regex();
 		$allRegex = $regex->getAll();
-		foreach($allRegex as $regex) {
+		foreach ($allRegex as $regex) {
 			if (strlen($regex['Regex']['replacement'] && strlen($regex['Regex']['regex']))) {
 				$string = preg_replace($regex['Regex']['regex'], $regex['Regex']['replacement'], $string);
 			}
 			if (!strlen($regex['Regex']['replacement']) && preg_match($regex['Regex']['regex'], $string)) {
 				App::uses('SessionComponent', 'Controller/Component');
 				SessionComponent::setFlash('Blacklisted value!');
-            	$returnValue = false;
+				$returnValue = false;
 			}
 		}
 		return $returnValue;
