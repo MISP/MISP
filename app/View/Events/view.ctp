@@ -49,9 +49,11 @@ endif; ?>
 	<ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id'])); ?> </li></ul>
 </div>
 
-<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
-	<?php echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']),'width' => '48','hight' => '48', 'style' => 'float:right;')); ?>
-	<?php
+<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?><?php
+	$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
+	$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
+	if (file_exists($imgAbsolutePath)) echo $this->Html->image($imgRelativePath, array('alt' => h($event['Event']['org']),'width' => '48','hight' => '48', 'style' => 'float:right;'));
+	else echo $this->Html->tag('span', h($event['Event']['org']), array('class' => 'welcome', 'style' => 'float:right;'));?><?php
 endif; ?>
 <h2>Event</h2>
 	<dl>
@@ -185,7 +187,9 @@ if (!empty($event['Attribute'])):?>
 			} else {
 				echo '&nbsp;';
 			}?></td>
-			<td class="short" title="<?php echo $typeDefinitions[$attribute['type']]['desc'];?>"><?php echo $attribute['type'];?></td>
+			<td class="short" title="<?php
+			echo $typeDefinitions[$attribute['type']]['desc'];?>"><?php
+			echo $attribute['type'];?></td>
 				<td><?php
 			$sigDisplay = nl2br(h($attribute['value']));
 			if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
