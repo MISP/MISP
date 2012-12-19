@@ -136,7 +136,7 @@ if (!empty($relatedEvents)):?>
 		$passAlong[0] = $relatedEvent['Event']['id'];
 		echo "<div id = \"R" . $currentID . "\" onMouseOver=getTitle(" . $passAlong[0] . "," . $passAlong[1] . ") title = \"Loading event info...\">";
 		echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
-		?></div></li>
+		?></li>
 		<?php
 	endforeach; ?>
 		</ul>
