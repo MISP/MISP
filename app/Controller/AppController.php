@@ -571,6 +571,7 @@ class AppController extends Controller {
 		$str = str_replace('\n', chr(10), $str);
 		$str = str_replace('\\\\', '\\', $str);
 		$str = str_replace('&amp;', '&', $str);
+		$str = str_replace('&quot;', '"', $str);
 
 		return $str;
 	}
