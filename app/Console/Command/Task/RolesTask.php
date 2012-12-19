@@ -3,8 +3,9 @@ App::import('Controller', 'Roles');
 
 class RolesTask extends Shell {
 
-	var $uses = array('Role');
-	var $Roles;
+	public $uses = array('Role');
+
+	public $Roles;
 
 	public function execute() {
 		$this->Roles = new RolesController();
