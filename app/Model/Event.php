@@ -47,9 +47,8 @@ class Event extends AppModel {
 
 	public $analysisDescriptions = array(
 		0 => array('desc' => '*Initial* means the event has just been created', 'formdesc' => 'Creation started'),
-		1 => array('desc' => '*Sandbox* means that the event was created using a sandbox', 'formdesc' => 'Creation ongoing'),
-		2 => array('desc' => '*Ongoing* means that the event is being populated', 'formdesc' => 'Creation ongoing'),
-		3 => array('desc' => '*Complete* means that the event\'s creation is complete', 'formdesc' => 'Creation complete')
+		1 => array('desc' => '*Ongoing* means that the event is being populated', 'formdesc' => 'Creation ongoing'),
+		2 => array('desc' => '*Complete* means that the event\'s creation is complete', 'formdesc' => 'Creation complete')
 	);
 
 	public $distributionDescriptions = array(
@@ -61,7 +60,7 @@ class Event extends AppModel {
 	);
 
 	public $analysisLevels = array(
-		0 => 'Initial', 1 => 'Sandbox', 2 => 'Ongoing', 3 => 'Completed'
+		0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'
 	);
 /**
  * Validation rules
@@ -98,8 +97,8 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 		),
 		'analysis' => array(
-			'rule' => array('inList', array('0', '1', '2', '3')),
-				'message' => 'Options : 0, 1, 2, 3',
+			'rule' => array('inList', array('0', '1', '2')),
+				'message' => 'Options : 0, 1, 2',
 				//'allowEmpty' => false,
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -338,11 +337,8 @@ class Event extends AppModel {
 			case 'Ongoing':
 				$data['Event']['analysis'] = 1;
 				break;
-			case 'Sandbox':
-				$data['Event']['analysis'] = 2;
-				break;
 			case 'Completed':
-				$data['Event']['analysis'] = 3;
+				$data['Event']['analysis'] = 2;
 				break;
 		}
 		return $data;
