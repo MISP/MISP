@@ -11,31 +11,30 @@
 			<th><?php echo $this->Paginator->sort('title');?></th>
 			<th><?php echo $this->Paginator->sort('change');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
-	</tr>
-	<?php
-	foreach ($logs as $log): ?>
+	</tr><?php
+foreach ($logs as $log): ?>
 	<tr>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true);?>';">
 		<?php echo h($log['Log']['id']); ?>&nbsp;</td>
-		<!--td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true) ;?>';">
+		<!--td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true);?>';">
 		<?php echo h($log['Log']['user_id']); ?>&nbsp;</td-->
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true);?>';">
 		<?php echo h($log['Log']['email']); ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true);?>';">
 		<?php echo h($log['Log']['org']); ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true);?>';">
 		<?php echo h($log['Log']['created']); ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true);?>';">
 		<?php echo h($log['Log']['action']); ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true);?>';">
 		<?php echo h($log['Log']['title']); ?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true) ;?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $log['Log']['id']), true);?>';">
 		<?php echo h($log['Log']['change']); ?>&nbsp;</td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('View'), array('admin' => true, 'action' => 'view', $log['Log']['id'])); ?>
 		</td>
-	</tr>
-<?php endforeach; ?>
+	</tr><?php
+endforeach; ?>
 	</table>
 	<p>
 	<?php

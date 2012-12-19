@@ -7,9 +7,8 @@
 			<th><?php echo $this->Paginator->sort('created');?></th>
 			<th><?php echo $this->Paginator->sort('modified');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
-	</tr>
-	<?php
-	foreach ($roles as $role): ?>
+	</tr><?php
+foreach ($roles as $role): ?>
 	<tr>
 		<td><?php echo h($role['Role']['id']); ?>&nbsp;</td>
 		<td><?php echo h($role['Role']['name']); ?>&nbsp;</td>
@@ -20,8 +19,8 @@
 			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $role['Role']['id'])); ?>
 			<?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $role['Role']['id']), null, __('Are you sure you want to delete # %s?', $role['Role']['id'])); ?>
 		</td>
-	</tr>
-<?php endforeach; ?>
+	</tr><?php
+endforeach; ?>
 	</table>
 	<p>
 	<?php

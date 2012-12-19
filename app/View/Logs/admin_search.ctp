@@ -5,7 +5,7 @@
 	<?php
 		echo $this->Form->input('email', array( 'label' => 'Email'));
 		echo $this->Form->input('org', array( 'label' => 'Org'));
-		echo $this->Form->input('action', array('between' => $this->Html->div('forminfo', '', array('id'=> 'LogActionDiv'))));
+		echo $this->Form->input('action', array('between' => $this->Html->div('forminfo', '', array('id' => 'LogActionDiv'))));
 
 		echo $this->Form->input('title', array( 'label' => 'Title'));
 		echo $this->Form->input('change', array( 'label' => 'Change'));
@@ -23,10 +23,10 @@
 var formInfoValues = new Array();
 <?php
 
-	foreach ($actionDefinitions as $action => $def) {
-		$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-		echo "formInfoValues['$action'] = \"$info\";\n";
-	}
+foreach ($actionDefinitions as $action => $def) {
+	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+	echo "formInfoValues['$action'] = \"$info\";\n";
+}
 
 	$this->Js->get('#LogAction')->event('change', 'showFormInfo("#LogAction")');
 
@@ -50,4 +50,4 @@ function showFormInfo(id) {
 $('#LogActionDiv').hide();
 
 </script>
-<?php echo $this->Js->writeBuffer(); // Write cached scripts ?>
+<?php echo $this->Js->writeBuffer();

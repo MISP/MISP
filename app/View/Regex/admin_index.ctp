@@ -6,9 +6,8 @@
 			<th><?php echo $this->Paginator->sort('regex');?></th>
 			<th><?php echo $this->Paginator->sort('replacement');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
-	</tr>
-	<?php
-	foreach ($regexs as $regex): ?>
+	</tr><?php
+foreach ($regexs as $regex): ?>
 	<tr>
 		<td class="short"><?php echo h($regex['Regex']['id']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($regex['Regex']['regex']); ?>&nbsp;</td>
@@ -17,8 +16,8 @@
 			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $regex['Regex']['id'])); ?>
 			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $regex['Regex']['id']), null, __('Are you sure you want to delete # %s?', $regex['Regex']['id'])); ?>
 		</td>
-	</tr>
-<?php endforeach; ?>
+	</tr><?php
+endforeach; ?>
 	</table>
 	<p>
 	<?php
