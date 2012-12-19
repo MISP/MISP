@@ -23,25 +23,25 @@ The process of entering an event can be split into 3 phases, the creation of the
 	<ul>
 		<li><em>Date:</em> The date when the incident has happened.<br /><br /></li>
 		<li><em>Distribution:</em> This setting controls, who will be able to see this event once it becomes published. Apart from being able to set which users on your server are allowed to see the event, this also controls whether the event will be synchronised to other servers or not. The following options are available:<br /><br /></li>
-		<ul>
+		<li style="list-style: none;"><ul>
 			<li><i>Your organization only:</i> This setting will only allow members of your organisation on your server to see it.<br /><br /></li>
 			<li><i>This server-only:</i> This setting will only allow members of any organisation on your server to see it.<br /><br /></li>
 			<li><i>This Community-only:</i> Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on your MISP server and organisations running MISP servers that synchronise with your server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of your community.<br /><br /></li>
 			<li><i>Connected communities:</i> Users that are part of your MISP community will be able to see the event. This includes all organisations on your own MISP server, all organisations on MISP servers synchronising with your server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from your own). Any other organisations connected to linked servers that are 2 hops away from your own will be restricted from seeing the event. Use this option if your server isn't the central MISP hub of the community but is connected to it.<br /><br /></li>
 			<li><i>All communities:</i> This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next.<br /><br /></li>
-		</ul>
+		</ul></li>
 		<li><em>Risk:</em> This field indicates the risk level of the event. Incidents can be categorised into three different threat categories (low, medium, high). This field can alternatively be left as undefined. The 3 options are:<br /><br /></li>
-		<ul>
+		<li style="list-style: none;"><ul>
 			<li><i>Low:</i> General mass malware.<br /><br /></li>
 			<li><i>Medium:</i> Advanced Persistent Threats (APT)<br /><br /></li>
 			<li><i>High:</i> Sophisticated APTs and 0day attacks.<br /><br /></li>
-		</ul>
+		</ul></li>
 		<li><em>Analysis:</em> Indicates the current stage of the analysis for the event, with the following possible options:<br /><br /></li>
-		<ul>
+		<li style="list-style: none;"><ul>
 			<li><i>Initial:</i> The analysis is just beginning<br /><br /></li>
 			<li><i>Ongoing:</i> The analysis is in progress<br /><br /></li>
 			<li><i>Completed:</i> The analysis is complete<br /><br /></li>
-		</ul>
+		</ul></li>
 		<li><em>Info:</em> The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event's creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server's administrator(s). <br /><br /></li>
 		<li><em>GFI Sandbox:</em> It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event's creation, it is important to manually look over all the data that is being entered. <br /><br /></li>
 	</ul>
@@ -55,7 +55,7 @@ Keep in mind that the system searches for regular expressions in the value field
 	<li><em>Category:</em> This drop-down menu explains the category of the attribute, meaning what aspect of the malware this attribute is describing. This could mean the persistence mechanisms of the malware or network activity, etc. For a list of valid categories, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?><br /><br /></li>
 		<li><em>Type:</em> Whilst categories determine what aspect of an event they are describing, the Type explains by what means that aspect is being described. As an example, the source IP address of an attack, a source e-mail address or a file sent through an attachment can all describe the payload delivery of a malware. These would be the types of attributes with the category of payload deliver. For an explanation of what each of the types looks like together with the valid combinations of categories and types, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>.<br /><br /></li>
 		<li><em>Distribution:</em> This drop-down list allows you to control who will be able to see this attribute, independently from its event's distribution settings.<br /><br /></li>
-		<li><ul>
+		<li style="list-style: none;"><ul>
 			<li><i>Your organisation only:</i> This setting will only allow members of your organisation on your server to see it.<br /><br /></li>
 			<li><i>This server-only:</i> This setting will only allow members of any organisation on your server to see it.<br /><br /></li>
 			<li><i>This Community-only:</i> Users that are part of your MISP community will be able to see the attribute. This includes your own organisation, organisations on your MISP server and organisations running MISP servers that synchronise with your server. Any other organisations connected to such linked servers will be restricted from seeing the attribute. Use this option if you are on the central hub of your community.<br /><br /></li>
@@ -75,7 +75,7 @@ You can also upload attachments, such as the malware itself, report files from e
 	<li><em>Upload field:</em> By hitting browse, you can browse your file system and point the uploader to the file that you want to attach to the attribute. This will then be uploaded when the upload button is pushed.<br /><br /></li>
 	<li><em>Malware:</em> This check-box marks the file as malware and as such it will be zipped and passworded, to protect the users of the system from accidentally downloading and executing the file. Make sure to tick this if you suspect that the filed is infected, before uploading it.<br /><br /></li>
 	<li><em>Private:</em> This drop-down menu controls who the attachment will be shared as.<br /><br /></li>
-	<li><ul>
+	<li style="list-style: none;"><ul>
 		<li><i>Your organisation only:</i> This setting will only allow members of your organisation on your server to see it.<br /><br /></li>
 		<li><i>This server only:</i> This setting will only allow members of any organisation on your server to see it.<br /><br /></li>
 		<li><i>This community only:</i> Users that are part of your MISP community will be able to see the attachment. This includes your own organisation, organisations on your MISP server and organisations running MISP servers that synchronise with your server. Any other organisations connected to such linked servers will be restricted from seeing the attachment. Use this option if you are on the central hub of your community.<br /><br /></li>
@@ -101,22 +101,22 @@ On the left menu bar, the option "List events" will generate a list of the last 
 		<li><em>Email:</em> The e-mail address of the event's reporter.<br /><br /></li>
 		<li><em>Date:</em> The date of the attack.<br /><br /></li>
 		<li><em>Risk:</em> The risk level of the attack, the following levels are possible:<br /><br /></li>
-		<li><ul>
+		<li style="list-style: none;"><ul>
 			<li><em>Low:</em> General Malware</li>
 			<li><em>Medium:</em> Advanced Persistent Threats (APTs)</li>
 			<li><em>High:</em> Sophisticated APTs and 0day exploits</li>
 			<li><em>Undefined:</em> This field can be left undefined and edited at a later date.<br /><br /></li>
 		</ul>
 		<li><em>Analysis:</em> Indicates the current stage of the analysis for the event, with the following possible options:<br /><br /></li>
-		<ul>
+		<li style="list-style: none;"><ul>
 			<li><em>Initial:</em> The analysis is just beginning</li>
 			<li><em>Ongoing:</em> The analysis is in progress</li>
 			<li><em>Completed:</em> The analysis is complete<br /><br /></li>
-		</ul>
+		</ul></li>
 		<li><em>Info:</em> A short description of the event, starting with an internal reference number.<br /><br /></li>
 		<li><em>Distribution:</em> This field indicates what the sharing privileges of the event are. The selectable options are "This organisation only", "This server only", "This community only", "Connected communities", "All". For a detailed description of these settings read the section on <a href = #create>creating a new event</a>.<br /><br /></li>
 		<li><em>Actions:</em> The controls that the user has to view or modify the event. The possible actions that are available (depending on user privileges - <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'administration', '#' => 'roles')); ?> to find out more about privileges):<br /><br /></li>
-		<li><ul>
+		<li style="list-style: none;"><ul>
 			<li><em>Publish:</em> Publishing an event will have several effects: The system will e-mail all eligible users that have auto-alert turned on (and having the needed privileges for the event, depending on its private classification) with a description of your newly published event, it will be flagged as published and it will be pushed to all eligible servers (to read more about synchronisation between servers, have a look at the <?php echo $this->Html->link(__('section on connecting servers', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system', '#' => 'connect')); ?>).</li>
 			<li><em>Edit:</em> Clicking on the edit button will bring up the same same screen as the one used for creating new events, with the exception that all fields come filled out with the data of the event that is being edited. For more information on this view, refer to the section on <a href="#create">creating an event</a>.</li>
 			<li><em>Delete:</em> The system will prompt you before erasing the unwanted event.</li>
