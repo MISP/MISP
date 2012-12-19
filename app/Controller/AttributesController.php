@@ -99,7 +99,13 @@ class AttributesController extends AppController {
 	public function index() {
 		$this->Attribute->recursive = 0;
 		$this->set('isSearch', 0);
-		$attributes = Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
+
+		// Sanitize::clean
+		$paginated = $this->paginate();
+		foreach ($paginated as &$attribute) {
+			$attribute['Attribute']['value'] = $this->beforeSanitizeClean($attribute['Attribute']['value']); // TODO generic
+		}
+		$attributes = Sanitize::clean($paginated, array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
 		foreach ($attributes as &$attribute) {
 			$attribute['Attribute']['value'] = $this->counterSanitizeClean($attribute['Attribute']['value']); // TODO generic
 		}

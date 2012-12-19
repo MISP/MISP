@@ -116,9 +116,15 @@ class EventsController extends AppController {
 	public function index() {
 		// list the events
 		$this->Event->recursive = 0;
-		$events = Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
+
+		// Sanitize::clean
+		$paginated = $this->paginate();
+		foreach ($paginated as &$event) {
+			$event['Event']['info'] = $this->beforeSanitizeClean($event['Event']['info']); // TODO generic
+		}
+		$events = Sanitize::clean($paginated, array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
 		foreach ($events as &$event) {
-			$event['Event']['info'] = str_replace('\n', chr(10), $event['Event']['info']);
+			$event['Event']['info'] = $this->counterSanitizeClean($event['Event']['info']); // TODO generic
 		}
 		$this->set('events', $events);
 
@@ -291,12 +297,18 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 
-		$event = Sanitize::clean($this->Event->data,array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
+		// Sanitize::clean
+		$this->Event->data['Event']['info'] = $this->beforeSanitizeClean($this->Event->data['Event']['info']);
+		foreach ($this->Event->data['Attribute'] as &$attribute) {
+			$attribute['value'] = $this->beforeSanitizeClean($attribute['value']);
+		}
+		$event = Sanitize::clean($this->Event->data, array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
 		$event['Event']['info'] = $this->counterSanitizeClean($event['Event']['info']);
 		foreach ($event['Attribute'] as &$attribute) {
 			$attribute['value'] = $this->counterSanitizeClean($attribute['value']);
 		}
 		$this->set('event', $event);
+
 		$this->set('relatedEvents', $relatedEvents);
 
 		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);

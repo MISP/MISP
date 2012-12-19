@@ -565,9 +565,25 @@ class AppController extends Controller {
 		return false;
 	}
 
-	public function counterSanitizeClean($str) {
-		// TODO Sanitize %AppData%\<Random>\<Random>.exe slips
+	public $reservedTags = array( // TODO custom Tags like <Random>
+		array('<Random>', '[RaDdom]')
+	);
 
+	public function beforeSanitizeClean($str) {
+		// TODO custom Tags like <Random>
+		foreach ($this->reservedTags as $reservedTagset) {
+			$str = str_replace($reservedTagset[0], $reservedTagset[1], $str);
+		}
+		return $str;
+	}
+
+	public function counterSanitizeClean($str) {
+		// TODO custom Tags like <Random>
+		foreach ($this->reservedTags as $reservedTagset) {
+			$str = str_replace($reservedTagset[1], $reservedTagset[0], $str);
+		}
+
+		// TODO standard HTML 'markup'
 		$str = str_replace('\n', chr(10), $str);
 		$str = str_replace('\\\\', '\\', $str);
 		$str = str_replace('&amp;', '&', $str);
