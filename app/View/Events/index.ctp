@@ -2,6 +2,7 @@
 	<h2>Events</h2>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
+			<th><?php echo $this->Paginator->sort('Valid.');?></th>
 			<?php
 if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
@@ -38,6 +39,15 @@ endif; ?>
 	<?php
 foreach ($events as $event):?>
 	<tr>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+		<?php
+		if($event['Event']['published'] == 1){
+			echo $this->Html->image('yes.png', array('title' => 'Validated', 'alt' => 'Validated' ,'width' => '16','hight' => '16'));
+		}else{
+			echo $this->Html->image('no.png', array('title' => 'Validated', 'alt' => 'Not Validated' ,'width' => '16','hight' => '16'));
+		}
+		?>
+		&nbsp;</td>
 		<?php
 	if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
