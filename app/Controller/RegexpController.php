@@ -16,8 +16,6 @@ class RegexpController extends AppController {
 			)
 	);
 
-//	//public $helpers = array('Js' => array('Jquery'));
-
 	public function beforeFilter() {
 		parent::beforeFilter();
 
@@ -43,7 +41,6 @@ class RegexpController extends AppController {
  */
 	public function admin_index() {
 		$this->Regexp->recursive = 0;
-//		debug($this->Regexp);
 		$this->set('regexps', Sanitize::clean($this->paginate()));
 	}
 
