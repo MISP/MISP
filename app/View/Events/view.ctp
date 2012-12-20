@@ -49,11 +49,7 @@ endif; ?>
 	<ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id'])); ?> </li></ul>
 </div>
 
-<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?><?php
-	$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
-	$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-	if (file_exists($imgAbsolutePath)) echo $this->Html->image($imgRelativePath, array('alt' => h($event['Event']['org']),'width' => '48','hight' => '48', 'style' => 'float:right;'));
-	else echo $this->Html->tag('span', h($event['Event']['org']), array('class' => 'welcome', 'style' => 'float:right;'));?><?php
+<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?><?php echo $this->element('img', array('id' => $event['Event']['org']));?><?php
 endif; ?>
 <h2>Event</h2>
 	<dl>
