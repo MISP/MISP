@@ -1,7 +1,7 @@
 <?php
-class DbRegexSchema extends CakeSchema {
+class DbRegexpSchema extends CakeSchema {
 
-	public $name = 'DbRegex';
+	public $name = 'DbRegexp';
 
 	public function before($event = array()) {
 		return true;
@@ -10,9 +10,9 @@ class DbRegexSchema extends CakeSchema {
 	public function after($event = array()) {
 	}
 
-	public $regex = array(
+	public $regexp = array(
 		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
-		'regex' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 255, 'collate' => 'latin1_swedish_ci', 'charset' => 'latin1'),
+		'regexp' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 255, 'collate' => 'latin1_swedish_ci', 'charset' => 'latin1'),
 		'replacement' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 255, 'collate' => 'latin1_swedish_ci', 'charset' => 'latin1'),
 		'indexes' => array('PRIMARY' => array('column' => 'id', 'unique' => 1)),
 		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'MyISAM')

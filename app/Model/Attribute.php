@@ -20,7 +20,7 @@ class Attribute extends AppModel {
 		'userKey' => 'user_id',
 		'change' => 'full'
 	), 'Trim'
-	, 'Regex' => array('fields' => array('value', 'value2'))
+	, 'Regexp' => array('fields' => array('value', 'value2'))
 	);
 
 /**

@@ -140,12 +140,12 @@ CREATE TABLE `logs` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `regex`
+-- Table structure for table `regexp`
 --
 
-CREATE TABLE `regex` (
+CREATE TABLE `regexp` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `regex` varchar(255) COLLATE utf8_bin NOT NULL,
+  `regexp` varchar(255) COLLATE utf8_bin NOT NULL,
   `replacement` varchar(255) COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=16 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -214,4 +214,4 @@ CREATE TABLE `whitelist` (
 --
 
 INSERT INTO `users` (`id`,  `password`, `org`, `email`, `autoalert`, `authkey`, `invited_by`, `gpgkey`, `nids_sid`, `termsaccepted`, `newsread`, `role_id`) VALUES(1, 'babc86e0869015b3f0b4d48ca48700d3a9d1b9d7', 'ADMIN', 'admin@admin.test', 0, 'vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb', 1, '', 4000000, 0, '2012-03-13', '');
-INSERT INTO `regex` (`id`,  `regex`, `replacement`) VALUES (1,'/C:.Users.(\\w+).AppData.Local.Temp./','%TEMP%\\\\'),(3,'/C:.Users.(\\w+).AppData.Local./','%LOCALAPPDATA%\\\\'),(4,'/C:.Users.(\\w+).AppData.Roaming./','%APPDATA%\\\\'),(5,'/C:.Users.(\\w+)./','%UserProfile%\\\\'),(6,'/C:.Documents and Settings.(\\w+) (\\w+)./','%UserProfile%\\\\'),(7,'/C:.DOCUME~1.(\\w+)./','%UserProfile%\\\\'),(8,'/C:.Documents and Settings.All Users/','%AllUsersProfile%'),(9,'/.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{9}){1}(-[0-9]{10}){1}-[0-9]{9}-[0-9]{4}/','HKCU'),(10,'@.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){2}-[0-9]{9}-[0-9]{4}@','HKCU'),(11,'@.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){3}-[0-9]{4}@','HKCU'),(13,'@.REGISTRY.MACHINE.@','HKLM\\\\'),(14,'@.Registry.Machine.@','HKLM\\\\'),(15,'','not allowed'),(16,'/not allowed/',''),(26,'/%AppData\\\\\\\\/','%AppData%'),(27,'/%APPDATA%/','%AppData%'),(20,'','replacements to uniform the data'),(25,'/%allusers%/','%AllUsers%'),(28,'/%APPDATA%/','%AppData%'),(29,'/%LocalSettings&\\\\\\\\/','%LocalSettings%'),(30,'/%Programfiles%/','%ProgramFiles%'),(31,'/%systemroot%/','%SystemRoot%'),(32,'/%Temp\\\\\\\\/','%TEMP%'),(33,'/%Temp%/','%TEMP%'),(34,'/%temp%/','%TEMP%'),(35,'/%UserProfile\\\\\\\\/','%UserProfile%'),(36,'/%userprofile%/','%UserProfile%'),(37,'/%Windir%/','%windir%'),(38,'/%WINDIR%/','%windir%');
+INSERT INTO `regexp` (`id`,  `regexp`, `replacement`) VALUES (1,'/C:.Users.(\\w+).AppData.Local.Temp./','%TEMP%\\\\'),(3,'/C:.Users.(\\w+).AppData.Local./','%LOCALAPPDATA%\\\\'),(4,'/C:.Users.(\\w+).AppData.Roaming./','%APPDATA%\\\\'),(5,'/C:.Users.(\\w+)./','%UserProfile%\\\\'),(6,'/C:.Documents and Settings.(\\w+) (\\w+)./','%UserProfile%\\\\'),(7,'/C:.DOCUME~1.(\\w+)./','%UserProfile%\\\\'),(8,'/C:.Documents and Settings.All Users/','%AllUsersProfile%'),(9,'/.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{9}){1}(-[0-9]{10}){1}-[0-9]{9}-[0-9]{4}/','HKCU'),(10,'@.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){2}-[0-9]{9}-[0-9]{4}@','HKCU'),(11,'@.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){3}-[0-9]{4}@','HKCU'),(13,'@.REGISTRY.MACHINE.@','HKLM\\\\'),(14,'@.Registry.Machine.@','HKLM\\\\'),(15,'','not allowed'),(16,'/not allowed/',''),(26,'/%AppData\\\\\\\\/','%AppData%'),(27,'/%APPDATA%/','%AppData%'),(20,'','replacements to uniform the data'),(25,'/%allusers%/','%AllUsers%'),(28,'/%APPDATA%/','%AppData%'),(29,'/%LocalSettings&\\\\\\\\/','%LocalSettings%'),(30,'/%Programfiles%/','%ProgramFiles%'),(31,'/%systemroot%/','%SystemRoot%'),(32,'/%Temp\\\\\\\\/','%TEMP%'),(33,'/%Temp%/','%TEMP%'),(34,'/%temp%/','%TEMP%'),(35,'/%UserProfile\\\\\\\\/','%UserProfile%'),(36,'/%userprofile%/','%UserProfile%'),(37,'/%Windir%/','%windir%'),(38,'/%WINDIR%/','%windir%');

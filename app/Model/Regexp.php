@@ -1,19 +1,19 @@
 <?php
+
 App::uses('AppModel', 'Model');
+
 /**
- * Log Model
+ * Regexp Model
  *
  */
-class Regex extends AppModel {
+class Regexp extends AppModel {
 
 /**
  * Use table
  *
  * @var mixed False or table name
  */
-	public $useTable = 'regex';
-
-	public $actsAs = array('Regex' => array('fields' => array('info', 'value')));
+	public $useTable = 'regexp';
 
 	public function getAll() {
 		return $this->find('all');

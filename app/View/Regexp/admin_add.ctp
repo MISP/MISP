@@ -1,9 +1,9 @@
-<div class="whitelists form">
-<?php echo $this->Form->create('Regex');?>
+<div class="regexp form">
+<?php echo $this->Form->create('Regexp');?>
 	<fieldset>
-		<legend><?php echo __('Add Import Whitelist'); ?></legend>
+		<legend><?php echo __('Add Import Regexp'); ?></legend>
 	<?php
-		echo $this->Form->input('regex');
+		echo $this->Form->input('regexp');
 		echo $this->Form->input('replacement');
 	?>
 	</fieldset>

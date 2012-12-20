@@ -1,20 +1,20 @@
-<div class="logs index">
-	<h2><?php echo __('Import Whitelist');?></h2>
+<div class="regexp index">
+	<h2><?php echo __('Import Regexp');?></h2>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
-			<th><?php echo $this->Paginator->sort('regex');?></th>
+			<th><?php echo $this->Paginator->sort('regexp');?></th>
 			<th><?php echo $this->Paginator->sort('replacement');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
-foreach ($regexs as $regex): ?>
+foreach ($regexps as $regexp): ?>
 	<tr>
-		<td class="short"><?php echo h($regex['Regex']['id']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($regex['Regex']['regex']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($regex['Regex']['replacement']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($regexp['Regexp']['id']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($regexp['Regexp']['regexp']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($regexp['Regexp']['replacement']); ?>&nbsp;</td>
 		<td class="actions">
-			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $regex['Regex']['id'])); ?>
-			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $regex['Regex']['id']), null, __('Are you sure you want to delete # %s?', $regex['Regex']['id'])); ?>
+			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $regexp['Regexp']['id'])); ?>
+			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $regexp['Regexp']['id']), null, __('Are you sure you want to delete # %s?', $regexp['Regexp']['id'])); ?>
 		</td>
 	</tr><?php
 endforeach; ?>
@@ -36,8 +36,8 @@ endforeach; ?>
 </div>
 <div class="actions">
 	<ul>
-		<li><?php echo $this->Html->link(__('Perform on existing data'), array('admin' => true, 'action' => 'clean')); ?></li>
-		<li><?php echo $this->Html->link(__('New Regex'), array('admin' => true, 'action' => 'add')); ?></li>
+		<li><?php echo $this->Html->link(__('Perform on existing'), array('admin' => true, 'action' => 'clean')); ?></li>
+		<li><?php echo $this->Html->link(__('New Regexp'), array('admin' => true, 'action' => 'add')); ?></li>
 		<li>&nbsp;</li>
         <?php echo $this->element('actions_menu'); ?>
 	</ul>

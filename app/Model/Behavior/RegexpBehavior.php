@@ -1,14 +1,14 @@
 <?php
 
-App::uses('Regex', 'Model');
+App::uses('Regexp', 'Model');
 
 /**
- * Behavior to trim all string fields in a model
+ * Behavior to regexp all string fields in a model
  *
  * @author noud
  *
  */
-class RegexBehavior extends ModelBehavior {
+class RegexpBehavior extends ModelBehavior {
 
 /**
  *
@@ -32,7 +32,7 @@ class RegexBehavior extends ModelBehavior {
 	public function beforeValidate(Model $Model, $options = array()) {
 		$returnValue = true;
 		// process some..
-		$returnValue = $this->regexStringFields($Model);
+		$returnValue = $this->regexpStringFields($Model);
 
 		return $returnValue;
 	}
@@ -43,7 +43,7 @@ class RegexBehavior extends ModelBehavior {
  * @param Model $Model
  * @param unknown_type $array
  */
-	public function regexStringFields(Model $Model) {
+	public function regexpStringFields(Model $Model) {
 		$returnValue = true;
 		foreach ($Model->data[$Model->name] as $key => $field) {
 			if (in_array($key, $this->settings[$Model->alias]['fields']) && is_string($field)) {
@@ -65,13 +65,13 @@ class RegexBehavior extends ModelBehavior {
  */
 	public function replaceWindowsSpecific(Model $Model, $string) {
 		$returnValue = true;
-		$regex = new Regex();
-		$allRegex = $regex->getAll();
-		foreach ($allRegex as $regex) {
-			if (strlen($regex['Regex']['replacement'] && strlen($regex['Regex']['regex']))) {
-				$string = preg_replace($regex['Regex']['regex'], $regex['Regex']['replacement'], $string);
+		$regexp = new Regexp();
+		$allRegexp = $regexp->getAll();
+		foreach ($allRegexp as $regexp) {
+			if (strlen($regexp['Regexp']['replacement'] && strlen($regexp['Regexp']['regexp']))) {
+				$string = preg_replace($regexp['Regexp']['regexp'], $regexp['Regexp']['replacement'], $string);
 			}
-			if (!strlen($regex['Regex']['replacement']) && preg_match($regex['Regex']['regex'], $string)) {
+			if (!strlen($regexp['Regexp']['replacement']) && preg_match($regexp['Regexp']['regexp'], $string)) {
 				App::uses('SessionComponent', 'Controller/Component');
 				SessionComponent::setFlash('Blacklisted value!');
 				$returnValue = false;

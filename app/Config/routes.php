@@ -29,6 +29,8 @@
 
 	// admin Paginator
 	Router::connect('/whitelists/admin_index/*', array('controller' => 'whitelists', 'action' => 'index', 'admin' => true));
+	Router::connect('/regexp/admin_index/*', array('controller' => 'regexp', 'action' => 'index', 'admin' => true));
+
 	Router::connect('/users/admin_index/*', array('controller' => 'users', 'action' => 'index', 'admin' => true));
 	Router::connect('/roles/admin_index/*', array('controller' => 'roles', 'action' => 'index', 'admin' => true));
 	Router::connect('/roles/admin_add/*', array('controller' => 'roles', 'action' => 'add', 'admin' => true));
@@ -42,7 +44,7 @@
 
 	Router::connect('/admin/users/edit/:id', array('controller' => 'users', 'action' => 'edit'), array('pass' => array('field', 'id')));
 	Router::connect('/admin/users/view/:id', array('controller' => 'users', 'action' => 'view'), array('pass' => array('field', 'id')));
-	Router::connect('/:controller/:field/:newValue/:oldValue', array('action' => 'call'), array('pass' => array('field', 'newValue', 'oldValue')));
+	//Router::connect('/:controller/:field/:newValue/:oldValue', array('action' => 'call'), array('pass' => array('field', 'newValue', 'oldValue')));
 
 	// Activate REST
 	Router::mapResources(array('events', 'attributes'));

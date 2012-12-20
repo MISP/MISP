@@ -100,7 +100,7 @@ and answer (y)es to all the questions asked
 and afterward run http://<host>:<port>/events/migratemisp11to2/<your org>
 with <your org> being MIL.BE or NCIRC where appropriate.
 
-Import the regex data in /var/www/cydefsig/app/MYSQL.regex.sql using phpmyadmin or mysql>.
+Import the regexp data in /var/www/cydefsig/app/MYSQL.regexp.sql using phpmyadmin or mysql>.
 
 
 Recommended patches

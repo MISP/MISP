@@ -5,18 +5,18 @@ App::uses('AppController', 'Controller');
  *
  * @property Log $Log
  */
-class RegexController extends AppController {
+class RegexpController extends AppController {
 
 	public $components = array('Security', 'RequestHandler');
 
 	public $paginate = array(
 			'limit' => 60,
 			'order' => array(
-					'Regex.id' => 'ASC'
+					'Regexp.id' => 'ASC'
 			)
 	);
 
-	public $helpers = array('Js' => array('Jquery'));
+//	//public $helpers = array('Js' => array('Jquery'));
 
 	public function beforeFilter() {
 		parent::beforeFilter();
@@ -42,8 +42,9 @@ class RegexController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		$this->Regex->recursive = 0;
-		$this->set('regexs', Sanitize::clean($this->paginate()));
+		$this->Regexp->recursive = 0;
+//		debug($this->Regexp);
+		$this->set('regexps', Sanitize::clean($this->paginate()));
 	}
 
 /**
@@ -53,12 +54,12 @@ class RegexController extends AppController {
  */
 	public function admin_add() {
 		if ($this->request->is('post')) {
-			$this->Regex->create();
-			if ($this->Regex->save($this->request->data)) {
-				$this->Session->setFlash(__('The regex has been saved'));
+			$this->Regexp->create();
+			if ($this->Regexp->save($this->request->data)) {
+				$this->Session->setFlash(__('The regexp has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
-				$this->Session->setFlash(__('The regex could not be saved. Please, try again.'));
+				$this->Session->setFlash(__('The regexp could not be saved. Please, try again.'));
 			}
 		}
 	}
@@ -71,19 +72,19 @@ class RegexController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
-		$this->Regex->id = $id;
-		if (!$this->Regex->exists()) {
+		$this->Regexp->id = $id;
+		if (!$this->Regexp->exists()) {
 			throw new NotFoundException(__('Invalid whitelist'));
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
-			if ($this->Regex->save($this->request->data)) {
-				$this->Session->setFlash(__('The regex has been saved'));
+			if ($this->Regexp->save($this->request->data)) {
+				$this->Session->setFlash(__('The regexp has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
-				$this->Session->setFlash(__('The regex could not be saved. Please, try again.'));
+				$this->Session->setFlash(__('The regexp could not be saved. Please, try again.'));
 			}
 		} else {
-			$this->request->data = Sanitize::clean($this->Regex->read(null, $id));
+			$this->request->data = Sanitize::clean($this->Regexp->read(null, $id));
 		}
 	}
 
@@ -99,15 +100,15 @@ class RegexController extends AppController {
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
 		}
-		$this->Regex->id = $id;
-		if (!$this->Regex->exists()) {
-			throw new NotFoundException(__('Invalid regex'));
+		$this->Regexp->id = $id;
+		if (!$this->Regexp->exists()) {
+			throw new NotFoundException(__('Invalid regexp'));
 		}
-		if ($this->Regex->delete()) {
-			$this->Session->setFlash(__('Regex deleted'));
+		if ($this->Regexp->delete()) {
+			$this->Session->setFlash(__('Regexp deleted'));
 			$this->redirect(array('action' => 'index'));
 		}
-		$this->Session->setFlash(__('Regex was not deleted'));
+		$this->Session->setFlash(__('Regexp was not deleted'));
 		$this->redirect(array('action' => 'index'));
 	}
 
@@ -156,13 +157,13 @@ class RegexController extends AppController {
 
 	public function replaceSpecific($origString) {
 		$returnValue = true;
-		$regex = new Regex();
-		$allRegex = $regex->getAll();
-		foreach ($allRegex as $regex) {
-			if (strlen($regex['Regex']['replacement']) && strlen($regex['Regex']['regex'])) {
-				$origString = preg_replace($regex['Regex']['regex'], $regex['Regex']['replacement'], $origString);
+		$regexp = new Regexp();
+		$allRegexp = $regexp->getAll();
+		foreach ($allRegexp as $regexp) {
+			if (strlen($regexp['Regexp']['replacement']) && strlen($regexp['Regexp']['regexp'])) {
+				$origString = preg_replace($regexp['Regexp']['regexp'], $regexp['Regexp']['replacement'], $origString);
 			}
-			if (!strlen($regex['Regex']['replacement']) && preg_match($regex['Regex']['regex'], $origString)) {
+			if (!strlen($regexp['Regexp']['replacement']) && preg_match($regexp['Regexp']['regexp'], $origString)) {
 				App::uses('SessionComponent', 'Controller/Component');
 				SessionComponent::setFlash('Blacklisted value!');
 				$returnValue = false;
