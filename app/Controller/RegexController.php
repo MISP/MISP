@@ -120,7 +120,7 @@ class RegexController extends AppController {
 		$this->loadModel('Attribute');
 		$attributes = $this->Attribute->find('all', array('recursive' => 0));
 		foreach ($attributes as $attribute) {
-			$result = $this->replaceSpecific(&$attribute['Attribute']['value']);
+			$result = $this->replaceSpecific($attribute['Attribute']['value']);
 			if (!$result) {
 				$deletableAttributes[] = $attribute['Attribute']['id'];
 			} else {
@@ -138,7 +138,7 @@ class RegexController extends AppController {
 		$this->loadModel('Event');
 		$events = $this->Event->find('all', array('recursive' => 0));
 		foreach ($events as $event) {
-			$result = $this->replaceSpecific(&$event['Event']['info']);
+			$result = $this->replaceSpecific($event['Event']['info']);
 			if (!$result) {
 				$deletableEvents[] = $event['Event']['id'];
 			} else {

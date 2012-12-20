@@ -14,7 +14,7 @@ class AttributesController extends AppController {
 
 	public $paginate = array(
 			'limit' => 60,
-			'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 events
+			'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
@@ -156,7 +156,7 @@ class AttributesController extends AppController {
 				// make array from value field
 				$attributes = explode("\n", $this->request->data['Attribute']['value']);
 
-				$fails = "";	 // will be used to keep a list of the lines that failed or succeeded
+				$fails = "";	// will be used to keep a list of the lines that failed or succeeded
 				$successes = "";
 				foreach ($attributes as $key => $attribute) {
 					$attribute = trim($attribute);
@@ -164,9 +164,9 @@ class AttributesController extends AppController {
 					continue; // don't do anything for empty lines
 
 					$this->Attribute->create();
-					$this->request->data['Attribute']['value'] = $attribute;  // set the value as the content of the single line
+					$this->request->data['Attribute']['value'] = $attribute; // set the value as the content of the single line
 					if ('true' == Configure::read('CyDefSIG.private')) {
-						$this->request->data = $this->Attribute->massageData(&$this->request->data);
+						$this->request->data = $this->Attribute->massageData($this->request->data);
 					}
 					if ($this->Attribute->save($this->request->data)) {
 						$successes .= " " . ($key + 1);
@@ -214,7 +214,7 @@ class AttributesController extends AppController {
 				$this->Attribute->create();
 
 				if ('true' == Configure::read('CyDefSIG.private')) {
-					$this->request->data = $this->Attribute->massageData(&$this->request->data);
+					$this->request->data = $this->Attribute->massageData($this->request->data);
 				}
 
 				if ("i" == Configure::read('CyDefSIG.rest')) {
@@ -297,10 +297,10 @@ class AttributesController extends AppController {
 		$this->viewClass = 'Media';
 		$params = array(
 				'id'		=> $file->path,
-				'name'	    => $filename,
+				'name'		=> $filename,
 				'extension' => $fileExt,
-				'download'  => true,
-				'path'	    => DS
+				'download'	=> true,
+				'path'		=> DS
 		);
 		$this->set($params);
 	}
@@ -348,11 +348,11 @@ class AttributesController extends AppController {
 			$this->request->data['Attribute']['uuid'] = String::uuid();
 			$this->request->data['Attribute']['batch_import'] = 0;
 			if ('true' == Configure::read('CyDefSIG.private')) {
-				$this->request->data = $this->Attribute->massageData(&$this->request->data);
+				$this->request->data = $this->Attribute->massageData($this->request->data);
 			}
 
 			if ($this->Attribute->save($this->request->data)) {
-				 // attribute saved correctly in the db
+				// attribute saved correctly in the db
 			} else {
 				$this->Session->setFlash(__('The attribute could not be saved. Did you already upload this file?'));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
@@ -364,7 +364,7 @@ class AttributesController extends AppController {
 			$rootDir = APP . DS . "files" . DS . $this->request->data['Attribute']['event_id'];
 			$dir = new Folder($rootDir, true);
 			// move the file to the correct location
-			$destpath = $rootDir . DS . $this->Attribute->id;   // id of the new attribute in the database
+			$destpath = $rootDir . DS . $this->Attribute->id; // id of the new attribute in the database
 			$file = new File ($destpath);
 			$zipfile = new File ($destpath . '.zip');
 			$fileInZip = new File($rootDir . DS . $filename); // FIXME do sanitization of the filename
@@ -390,7 +390,7 @@ class AttributesController extends AppController {
 				$execOutput = array();
 				rename($file->path, $fileInZip->path); // TODO check if no workaround exists for the current filtering mechanisms
 				exec("zip -j -P infected " . $zipfile->path . ' "' . addslashes($fileInZip->path) . '"', $execOutput, $execRetval);
-				if ($execRetval != 0) {   // not EXIT_SUCCESS
+				if ($execRetval != 0) {	// not EXIT_SUCCESS
 					$this->Session->setFlash(__('Problem with zipping the attachment. Please report to administrator. ' . $execOutput, true), 'default', array(), 'error');
 					// remove the entry from the database
 					$this->Attribute->delete();
@@ -398,7 +398,7 @@ class AttributesController extends AppController {
 					$file->delete();
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 				};
-				$fileInZip->delete();			  // delete the original not-zipped-file
+				$fileInZip->delete();	// delete the original not-zipped-file
 				rename($zipfile->path, $file->path); // rename the .zip to .nothing
 			}
 
@@ -486,7 +486,7 @@ class AttributesController extends AppController {
 
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ('true' == Configure::read('CyDefSIG.private')) {
-				$this->request->data = $this->Attribute->massageData(&$this->request->data);
+				$this->request->data = $this->Attribute->massageData($this->request->data);
 			}
 
 			// reposition to get the attribute.id with given uuid
@@ -536,7 +536,7 @@ class AttributesController extends AppController {
 		$this->set('types', $types);
 		// combobox for categories
 		$categories = $this->Attribute->validate['category']['rule'][1];
-		array_pop(&$categories); // remove that last empty/space option
+		array_pop($categories); // remove that last empty/space option
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', $categories);
 		// combobox for distribution
@@ -651,7 +651,7 @@ class AttributesController extends AppController {
 				$this->Attribute->recursive = 0;
 				$this->paginate = array(
 					'limit' => 60,
-					'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 attributes?
+					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
 					'conditions' => $conditions
 				);
 

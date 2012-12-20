@@ -32,7 +32,7 @@ class RegexBehavior extends ModelBehavior {
 	public function beforeValidate(Model $Model, $options = array()) {
 		$returnValue = true;
 		// process some..
-		$returnValue = $this->regexStringFields(&$Model);
+		$returnValue = $this->regexStringFields($Model);
 
 		return $returnValue;
 	}
@@ -45,9 +45,9 @@ class RegexBehavior extends ModelBehavior {
  */
 	public function regexStringFields(Model $Model) {
 		$returnValue = true;
-		foreach ($Model->data[$Model->name] as $key => &$field) {
+		foreach ($Model->data[$Model->name] as $key => $field) {
 			if (in_array($key, $this->settings[$Model->alias]['fields']) && is_string($field)) {
-				$returnValue = $this->replaceWindowsSpecific($Model, &$field);
+				$returnValue = $this->replaceWindowsSpecific($Model, $field);
 				//if (!$returnValue) {
 				//	$Model->blacklistErrors[] = array($key, $field);
 				//}

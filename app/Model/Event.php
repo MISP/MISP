@@ -236,7 +236,7 @@ class Event extends AppModel {
 		//	'fields' => '',
 		//	'order' => ''
 		//)
- 		'User' => array(
+		'User' => array(
 			'className' => 'User',
 			'foreignKey' => 'user_id',
 			'conditions' => '',
@@ -256,7 +256,7 @@ class Event extends AppModel {
 		'Attribute' => array(
 			'className' => 'Attribute',
 			'foreignKey' => 'event_id',
-			'dependent' => true,		 // cascade deletes
+			'dependent' => true,	// cascade deletes
 			'conditions' => '',
 			'fields' => '',
 			'order' => array('Attribute.category ASC', 'Attribute.type ASC'),
@@ -270,7 +270,7 @@ class Event extends AppModel {
 
 	public function beforeDelete($cascade = true) {
 		// delete event from the disk
-		$this->read();  // first read the event from the db
+		$this->read();	// first read the event from the db
 		// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 		// only delete the file if it exists
 		$filepath = APP . "files" . DS . $this->data['Event']['id'];
@@ -358,7 +358,7 @@ class Event extends AppModel {
 		$relatedEventIds = Array();
 		foreach ($this->data['Attribute'] as &$attribute) {
 			if ($attribute['type'] == 'other') {
-				continue;  // sigs of type 'other' should not be matched against the others
+				continue;	// sigs of type 'other' should not be matched against the others
 			}
 			$conditions = array('Attribute.value =' => $attribute['value'], 'Attribute.type =' => $attribute['type']);
 			$similarAttributes = $this->Attribute->find('all',array('conditions' => $conditions));
@@ -409,10 +409,10 @@ class Event extends AppModel {
 
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$newLocation = $newTextBody = '';
-		$result = $this->restfullEventToServer($event, $server, null, $HttpSocket, &$newLocation, &$newTextBody);
+		$result = $this->restfullEventToServer($event, $server, null, $HttpSocket, $newLocation, $newTextBody);
 		if (strlen($newLocation) || $result) { // HTTP/1.1 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-				$result = $this->restfullEventToServer($event, $server, $newLocation, $HttpSocket, &$newLocation, &$newTextBody);
+				$result = $this->restfullEventToServer($event, $server, $newLocation, $HttpSocket, $newLocation, $newTextBody);
 			}
 			try { // TODO Xml::build() does not throw the XmlException
 				$xml = Xml::build($newTextBody);
@@ -464,7 +464,7 @@ class Event extends AppModel {
  *
  * @return bool true if success, false or error message if failed
  */
-	public function restfullEventToServer($event, $server, $urlPath, $HttpSocket = null, $newLocation, $newTextBody) {
+	public function restfullEventToServer($event, $server, $urlPath, $newLocation, $newTextBody, $HttpSocket = null) {
 		if (true == $event['Event']['private']) { // never upload private events
 			return "Event is private and non exportable";
 		}
@@ -573,7 +573,6 @@ class Event extends AppModel {
 					$newTextBody = $response->body();
 					return true;
 					//return isset($urlPath) ? $response->body() : $response->headers['Location'];
-					break;
 			}
 		}
 	}

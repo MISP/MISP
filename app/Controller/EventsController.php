@@ -26,7 +26,7 @@ class EventsController extends AppController {
 
 	public $paginate = array(
 			'limit' => 60,
-			'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 events
+			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events
 			'order' => array(
 					'Event.id' => 'DESC'
 			)
@@ -239,7 +239,7 @@ class EventsController extends AppController {
 						$relatedEvents[] = array('Event' => array('id' => $key, 'date' => $relatedEventsDate));
 					}
 				}
-				usort($relatedEvents, array(&$this, 'compareRelatedEvents'));
+				usort($relatedEvents, array($this, 'compareRelatedEvents'));
 			}
 		} else {
 			$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
@@ -343,7 +343,7 @@ class EventsController extends AppController {
 					// Distribution, reporter for the events pushed will be the owner of the authentication key
 					$this->request->data['Event']['user_id'] = $this->Auth->user('id');
 				}
-				$this->request->data = $this->Event->massageData(&$this->request->data);
+				$this->request->data = $this->Event->massageData($this->request->data);
 			}
 
 			if (!empty($this->data)) {
@@ -468,7 +468,7 @@ class EventsController extends AppController {
 		}
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
-			$data = $this->Event->massageData(&$data);
+			$data = $this->Event->massageData($data);
 		}
 
 		if ("i" == Configure::read('CyDefSIG.baseurl')) {
@@ -600,7 +600,7 @@ class EventsController extends AppController {
 			$this->request->data['Event']['published'] = 0;
 
 			if ('true' == Configure::read('CyDefSIG.private')) {
-				$this->request->data = $this->Event->massageData(&$this->request->data);
+				$this->request->data = $this->Event->massageData($this->request->data);
 			}
 
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
@@ -880,7 +880,7 @@ class EventsController extends AppController {
 			}
 		}
 		$body .= "\n";
-		$body .= $bodyTempOther;  // append the 'other' attribute types to the bottom.
+		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 
 		// sign the body
 		require_once 'Crypt/GPG.php';
@@ -911,7 +911,7 @@ class EventsController extends AppController {
 				$this->Email->bcc = Sanitize::clean($alertEmails);
 				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
-				$this->Email->sendAs = 'text';        // both text or html
+				$this->Email->sendAs = 'text';	// both text or html
 				$this->set('body', Sanitize::clean($bodySigned));
 				// send it
 				$this->Email->send();
@@ -924,7 +924,7 @@ class EventsController extends AppController {
 			// Build a list of the recipients that wish to receive encrypted mails.
 			//
 			$alertUsers = $this->User->find('all', array(
-					'conditions' => array(  'User.autoalert' => 1,
+					'conditions' => array('User.autoalert' => 1,
 							'User.gpgkey !=' => ""),
 					'recursive' => 0,
 			)
@@ -936,7 +936,7 @@ class EventsController extends AppController {
 				$this->Email->to = Sanitize::clean($user['User']['email']);
 				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
-				$this->Email->sendAs = 'text';        // both text or html
+				$this->Email->sendAs = 'text';		// both text or html
 
 				// import the key of the user into the keyring
 				// this is not really necessary, but it enables us to find
@@ -1074,7 +1074,7 @@ class EventsController extends AppController {
 			}
 		}
 		$body .= "\n";
-		$body .= $bodyTempOther;  // append the 'other' attribute types to the bottom.
+		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 
 		// sign the body
 		require_once 'Crypt/GPG.php';
@@ -1423,7 +1423,7 @@ class EventsController extends AppController {
 			$execRetval = '';
 			exec("unzip " . $zipfile->path . ' -d "' . addslashes($rootDir) . '"', $execOutput, $execRetval);
 			$execOutput = array();
-			if ($execRetval != 0) {   // not EXIT_SUCCESS
+			if ($execRetval != 0) {	// not EXIT_SUCCESS
 				// do some?
 			}
 

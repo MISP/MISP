@@ -85,7 +85,7 @@ class RolesController extends AppController {
 	public function admin_add() {
 		if ($this->request->is('post')) {
 			$this->Role->create();
-			$this->request->data = $this->Role->massageData(&$this->request->data);
+			$this->request->data = $this->Role->massageData($this->request->data);
 			if ($this->Role->save($this->request->data)) {
 				$this->saveAcl($this->Role, $this->data['Role']['perm_add'], $this->data['Role']['perm_modify'], $this->data['Role']['perm_publish']);	// save to ACL as well
 				$this->Session->setFlash(__('The role has been saved'));
@@ -113,7 +113,7 @@ class RolesController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$fields = array();
-			$this->request->data = $this->Role->massageData(&$this->request->data);
+			$this->request->data = $this->Role->massageData($this->request->data);
 			if ($this->Role->save($this->request->data, true, $fields)) {
 				$this->saveAcl($this->Role, $this->data['Role']['perm_add'], $this->data['Role']['perm_modify'], $this->data['Role']['perm_publish']);	// save to ACL as well
 				$this->Session->setFlash(__('The role has been saved'));
