@@ -290,7 +290,7 @@ class EventsController extends AppController {
 				'Event' => array('org', 'date', 'risk', 'info', 'user_id', 'published', 'uuid', 'private'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private')
 		);
- 		if ("i" == Configure::read('CyDefSIG.baseurl')) {
+ 		if ("i" == Configure::read('CyDefSIG.rest')) {
 			// this saveAssociated() function will save not only the event, but also the attributes
 			// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
  			unset($data['Attribute']);
