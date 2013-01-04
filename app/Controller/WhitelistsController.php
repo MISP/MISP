@@ -1,5 +1,7 @@
 <?php
+
 App::uses('AppController', 'Controller');
+
 /**
  * Whitelists Controller
  *
@@ -7,18 +9,17 @@ App::uses('AppController', 'Controller');
  */
 class WhitelistsController extends AppController {
 
+	public $XXXcomponents = array('Security', 'RequestHandler');
 	public $components = array(
-		'Acl',
 		'Auth' => array(
 			'authorize' => array(
 				'Actions' => array('actionPath' => 'controllers/Whitelists')
 			)
 		),
 		'Security',
-		'Session'
+		'AdminCrud'
 	);
 
-	//public $components = array('Security');
 	public $paginate = array(
 			'limit' => 60,
 			'order' => array(
@@ -26,74 +27,50 @@ class WhitelistsController extends AppController {
 			)
 	);
 
-/**
- * index method
- *
- * @return void
- */
-	public function admin_index() {
-		$this->Whitelist->recursive = 0;
-		$this->set('whitelists', Sanitize::clean($this->paginate()));
+	public function beforeFilter() { // TODO REMOVE
+		parent::beforeFilter();
 	}
 
-/**
- * view method
- *
- * @param string $id
- * @return void
- * @throws NotFoundException
- */
-	public function admin_view($id = null) {
-		$this->Whitelist->id = $id;
-		if (!$this->Whitelist->exists()) {
-			throw new NotFoundException(__('Invalid whitelist'));
+	public function isAuthorized($user) { // TODO REMOVE
+		// Admins can access everything
+		if (parent::isAuthorized($user)) {
+			return true;
 		}
-		$this->set('whitelist', Sanitize::clean($this->Whitelist->read(null, $id)));
+		// the other pages are allowed by logged in users
+		return true;
 	}
 
 /**
- * add method
+ * admin_add method
  *
  * @return void
  */
 	public function admin_add() {
-		if ($this->request->is('post')) {
-			$this->Whitelist->create();
-			if ($this->Whitelist->save($this->request->data)) {
-				$this->Session->setFlash(__('The whitelist has been saved'));
-				$this->redirect(array('action' => 'index'));
-			} else {
-				$this->Session->setFlash(__('The whitelist could not be saved. Please, try again.'));
-			}
-		}
+		$this->AdminCrud->adminAdd();
 	}
 
 /**
- * edit method
+ * admin_index method
+ *
+ * @return void
+ */
+	public function admin_index() {
+		$this->AdminCrud->adminIndex();
+	}
+
+/**
+ * admin_edit method
  *
  * @param string $id
  * @return void
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
-		$this->Whitelist->id = $id;
-		if (!$this->Whitelist->exists()) {
-			throw new NotFoundException(__('Invalid whitelist'));
-		}
-		if ($this->request->is('post') || $this->request->is('put')) {
-			if ($this->Whitelist->save($this->request->data)) {
-				$this->Session->setFlash(__('The whitelist has been saved'));
-				$this->redirect(array('action' => 'index'));
-			} else {
-				$this->Session->setFlash(__('The whitelist could not be saved. Please, try again.'));
-			}
-		} else {
-			$this->request->data = Sanitize::clean($this->Whitelist->read(null, $id));
-		}
+		$this->AdminCrud->adminEdit($id);
 	}
 
 /**
- * delete method
+ * admin_delete method
  *
  * @param string $id
  * @return void
@@ -101,18 +78,6 @@ class WhitelistsController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_delete($id = null) {
-		if (!$this->request->is('post')) {
-			throw new MethodNotAllowedException();
-		}
-		$this->Whitelist->id = $id;
-		if (!$this->Whitelist->exists()) {
-			throw new NotFoundException(__('Invalid whitelist'));
-		}
-		if ($this->Whitelist->delete()) {
-			$this->Session->setFlash(__('Whitelist deleted'));
-			$this->redirect(array('action' => 'index'));
-		}
-		$this->Session->setFlash(__('Whitelist was not deleted'));
-		$this->redirect(array('action' => 'index'));
+		$this->AdminCrud->adminDelete($id);
 	}
 }

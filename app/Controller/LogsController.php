@@ -1,5 +1,7 @@
 <?php
+
 App::uses('AppController', 'Controller');
+
 /**
  * Logs Controller
  *
@@ -7,16 +9,20 @@ App::uses('AppController', 'Controller');
  */
 class LogsController extends AppController {
 
-	public $components = array('Security', 'RequestHandler');
-
-	public $paginate = array(
-			'limit' => 60,
-			'order' => array(
-					'Log.id' => 'DESC'
-			)
+	public $components = array(
+		'Security',
+		'RequestHandler',
+		'AdminCrud' => array(
+			'crud' => array('index')
+		)
 	);
 
-	public $helpers = array('Js' => array('Jquery'));
+	public $paginate = array(
+		'limit' => 60,
+		'order' => array(
+			'Log.id' => 'DESC'
+		)
+	);
 
 	public function beforeFilter() {
 		parent::beforeFilter();
@@ -42,38 +48,18 @@ class LogsController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		$this->Log->recursive = 0;
-		$this->set('logs', Sanitize::clean($this->paginate()));
+		$this->AdminCrud->adminIndex();
 		$this->set('isSearch', 0);
 	}
 
-/**
- * admin_view method
- *
- * @param string $id
- *
- * @throws NotFoundException
- *
- * @return void
- */
-	public function admin_view($id = null) {
-		$this->Log->id = $id;
-		if (!$this->Log->exists()) {
-			throw new NotFoundException(__('Invalid log'));
-		}
-		$this->set('log', Sanitize::clean($this->Log->read(null, $id)));
-	}
-
-	public function search() {
-		$this->admin_search();
-	}
+	public $helpers = array('Js' => array('Jquery'));
 
 	public function admin_search() {
 		$fullAddress = array('/admin/logs/search', '/logs/admin_search');
 
 		if (in_array($this->request->here, $fullAddress)) {
 
-			$this->set('actionDefinitions', $this->Log->actionDefinitions);
+			$this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
 
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions_log', array());
@@ -110,7 +96,7 @@ class LogsController extends AppController {
 				if ($change) {
 					$conditions['Log.change LIKE'] = '%' . $change . '%';
 				}
-				$this->Log->recursive = 0;
+				$this->{$this->defaultModel}->recursive = 0;
 				$this->paginate = array(
 					'limit' => 60,
 					'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 logs(?)
@@ -133,11 +119,11 @@ class LogsController extends AppController {
 
 				// combobox for actions
 				$actions = array('' => array('ALL' => 'ALL'), 'actions' => array());
-				$actions['actions'] = array_merge($actions['actions'], $this->_arrayToValuesIndexArray($this->Log->validate['action']['rule'][1]));
+				$actions['actions'] = array_merge($actions['actions'], $this->_arrayToValuesIndexArray($this->{$this->defaultModel}->validate['action']['rule'][1]));
 				$this->set('actions', $actions);
 			}
 		} else {
-			$this->set('actionDefinitions', $this->Log->actionDefinitions);
+			$this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
 
 			// get from Session
 			$email = $this->Session->read('paginate_conditions_log_email');
@@ -155,7 +141,7 @@ class LogsController extends AppController {
 			$this->set('isSearch', 1);
 
 			// re-get pagination
-			$this->Log->recursive = 0;
+			$this->{$this->defaultModel}->recursive = 0;
 			$this->paginate = $this->Session->read('paginate_conditions_log');
 			$this->set('logs', Sanitize::clean($this->paginate()));
 
