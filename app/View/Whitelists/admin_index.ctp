@@ -1,23 +1,21 @@
-<div class="whitelists index">
+<div class="whitelist index">
 	<h2><?php echo __('Signature Whitelist');?></h2>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
-	</tr>
-	<?php
-foreach ($whitelists as $whitelist): ?>
+	</tr><?php
+foreach ($list as $item):?>
 	<tr>
-		<td class="short"><?php echo h($whitelist['Whitelist']['id']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($whitelist['Whitelist']['name']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Whitelist']['id']);?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Whitelist']['name']);?>&nbsp;</td>
 		<td class="actions">
-			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $whitelist['Whitelist']['id'])); ?>
-			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $whitelist['Whitelist']['id']), null, __('Are you sure you want to delete # %s?', $whitelist['Whitelist']['id'])); ?>
+			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $item['Whitelist']['id']));?>
+			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $item['Whitelist']['id']), null, __('Are you sure you want to delete "%s"?', $item['Whitelist']['name']));?>
 		</td>
-	</tr>
-	<?php
-endforeach; ?>
+	</tr><?php
+endforeach;?>
 	</table>
 	<p>
 	<?php
@@ -37,8 +35,8 @@ endforeach; ?>
 <div class="actions">
 	<ul>
 
-		<li><?php echo $this->Html->link(__('New Whitelist'), array('admin' => true, 'action' => 'add')); ?></li>
+		<li><?php echo $this->Html->link(__('New Whitelist'), array('admin' => true, 'action' => 'add'));?></li>
 		<li>&nbsp;</li>
-		<?php echo $this->element('actions_menu'); ?>
+		<?php echo $this->element('actions_menu');?>
 	</ul>
 </div>

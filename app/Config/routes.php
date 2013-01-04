@@ -28,7 +28,11 @@
 	Router::connect('/', array('controller' => 'events', 'action' => 'index'));
 
 	// admin Paginator
+	//Router::connect('/whitelists/admin_add/*', array('controller' => 'whitelists', 'action' => 'add', 'admin' => true));
 	Router::connect('/whitelists/admin_index/*', array('controller' => 'whitelists', 'action' => 'index', 'admin' => true));
+	//Router::connect('/whitelists/admin_edit/*', array('controller' => 'whitelists', 'action' => 'edit', 'admin' => true));
+	//Router::connect('/whitelists/admin_delete/*', array('controller' => 'whitelists', 'action' => 'delete', 'admin' => true));
+
 	Router::connect('/regexp/admin_index/*', array('controller' => 'regexp', 'action' => 'index', 'admin' => true));
 
 	Router::connect('/users/admin_index/*', array('controller' => 'users', 'action' => 'index', 'admin' => true));

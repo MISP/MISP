@@ -7,17 +7,17 @@
 			<th><?php echo $this->Paginator->sort('replacement');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
-foreach ($regexps as $regexp): ?>
+foreach ($list as $item):?>
 	<tr>
-		<td class="short"><?php echo h($regexp['Regexp']['id']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($regexp['Regexp']['regexp']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($regexp['Regexp']['replacement']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Regexp']['id']);?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Regexp']['regexp']);?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Regexp']['replacement']);?>&nbsp;</td>
 		<td class="actions">
-			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $regexp['Regexp']['id'])); ?>
-			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $regexp['Regexp']['id']), null, __('Are you sure you want to delete # %s?', $regexp['Regexp']['id'])); ?>
+			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $item['Regexp']['id']));?>
+			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $item['Regexp']['id']), null, __('Are you sure you want to delete %s?', $item['Regexp']['regexp']));?>
 		</td>
 	</tr><?php
-endforeach; ?>
+endforeach;?>
 	</table>
 	<p>
 	<?php
@@ -36,9 +36,9 @@ endforeach; ?>
 </div>
 <div class="actions">
 	<ul>
-		<li><?php echo $this->Html->link(__('Perform on existing'), array('admin' => true, 'action' => 'clean')); ?></li>
-		<li><?php echo $this->Html->link(__('New Regexp'), array('admin' => true, 'action' => 'add')); ?></li>
+		<li><?php echo $this->Html->link(__('Perform on existing'), array('admin' => true, 'action' => 'clean'));?></li>
+		<li><?php echo $this->Html->link(__('New Regexp'), array('admin' => true, 'action' => 'add'));?></li>
 		<li>&nbsp;</li>
-        <?php echo $this->element('actions_menu'); ?>
+		<?php echo $this->element('actions_menu');?>
 	</ul>
 </div>

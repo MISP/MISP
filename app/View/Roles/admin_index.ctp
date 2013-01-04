@@ -10,17 +10,17 @@
 			<th><?php echo $this->Paginator->sort('perm_audit', 'Audit Actions');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
-foreach ($roles as $role): ?>
+foreach ($list as $item): ?>
 	<tr>
-		<td class="short"><?php echo h($role['Role']['id']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($role['Role']['name']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($options[$role['Role']['permission']]); ?>&nbsp;</td>
-		<td class="short"><?php echo h($role['Role']['perm_sync']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($role['Role']['perm_admin']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($role['Role']['perm_audit']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['id']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['name']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['perm_sync']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['perm_admin']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['perm_audit']); ?>&nbsp;</td>
 		<td class="actions">
-			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $role['Role']['id'])); ?>
-			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $role['Role']['id']), null, __('Are you sure you want to delete # %s?', $role['Role']['id'])); ?>
+			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $item['Role']['id'])); ?>
+			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $item['Role']['id']), null, __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>
 		</td>
 	</tr><?php
 endforeach; ?>

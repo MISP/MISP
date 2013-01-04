@@ -69,33 +69,70 @@ class Role extends AppModel {
 		'permission' => "IF (Role.perm_add && Role.perm_modify && Role.perm_publish, '3', IF (Role.perm_add && Role.perm_modify_org, '2', IF (Role.perm_add, '1', '0')))",
 	);
 
-	public function massageData(&$data) {
-		switch ($data['Role']['permission']) {
+	public function beforeSave($options = array()) {
+		switch ($this->data['Role']['permission']) {
 			case '0':
-				$data['Role']['perm_add'] = false;
-				$data['Role']['perm_modify'] = false;
-				$data['Role']['perm_modify_org'] = false;
-				$data['Role']['perm_publish'] = false;
+				$this->data['Role']['perm_add'] = false;
+				$this->data['Role']['perm_modify'] = false;
+				$this->data['Role']['perm_modify_org'] = false;
+				$this->data['Role']['perm_publish'] = false;
 				break;
 			case '1':
-				$data['Role']['perm_add'] = true;
-				$data['Role']['perm_modify'] = true; // SHOULD BE true
-				$data['Role']['perm_modify_org'] = false;
-				$data['Role']['perm_publish'] = false;
+				$this->data['Role']['perm_add'] = true;
+				$this->data['Role']['perm_modify'] = true; // SHOULD BE true
+				$this->data['Role']['perm_modify_org'] = false;
+				$this->data['Role']['perm_publish'] = false;
 				break;
 			case '2':
-				$data['Role']['perm_add'] = true;
-				$data['Role']['perm_modify'] = true;
-				$data['Role']['perm_modify_org'] = true;
-				$data['Role']['perm_publish'] = false;
+				$this->data['Role']['perm_add'] = true;
+				$this->data['Role']['perm_modify'] = true;
+				$this->data['Role']['perm_modify_org'] = true;
+				$this->data['Role']['perm_publish'] = false;
 				break;
 			case '3':
-				$data['Role']['perm_add'] = true;
-				$data['Role']['perm_modify'] = true; // ?
-				$data['Role']['perm_modify_org'] = true; // ?
-				$data['Role']['perm_publish'] = true;
+				$this->data['Role']['perm_add'] = true;
+				$this->data['Role']['perm_modify'] = true; // ?
+				$this->data['Role']['perm_modify_org'] = true; // ?
+				$this->data['Role']['perm_publish'] = true;
+				break;
+			default:
 				break;
 		}
-		return $data;
+		return true;
+	}
+
+	public function afterSava($created) {
+		$this->saveAcl($this, $this->data['Role']['perm_add'], $this->data['Role']['perm_modify'], $this->data['Role']['perm_publish']);	// save to ACL as well
+	}
+
+/**
+ * saveAcl method
+ *
+ * @param string $id
+ * @return void
+ */
+	public function saveAcl($role, $permAdd = false, $permModify = false, $permPublish = false) {
+		$acl = new Acl();
+		// this all could need some 'if-changed then do'
+
+		if ($permAdd) {
+			$acl->allow($role, 'controllers/Events/add');
+			$acl->allow($role, 'controllers/Attributes/add');
+		} else {
+			$acl->deny($role, 'controllers/Events/add');
+			$aAcl->deny($role, 'controllers/Attributes/add');
+		}
+		if ($permModify) {
+			$acl->allow($role, 'controllers/Events/edit');
+			$acl->allow($role, 'controllers/Attributes/edit');
+		} else {
+			$acl->deny($role, 'controllers/Events/edit');
+			$acl->deny($role, 'controllers/Attributes/edit');
+		}
+		if ($permPublish) {
+			$acl->allow($role, 'controllers/Events/publish');
+		} else {
+			$acl->deny($role, 'controllers/Events/publish');
+		}
 	}
 }

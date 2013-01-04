@@ -1,4 +1,4 @@
-<div class="whitelists form">
+<div class="whitelist form">
 <?php echo $this->Form->create('Whitelist');?>
 	<fieldset>
 		<legend><?php echo __('Edit Signature Whitelist'); ?></legend>
@@ -11,9 +11,8 @@
 </div>
 <div class="actions">
 	<ul>
-
-		<li><?php echo $this->Form->postLink(__('Delete Whitelist'), array('admin' => true, 'action' => 'delete', $this->Form->value('Whitelist.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Whitelist.id'))); ?></li>
+		<li><?php echo $this->Form->postLink(__('Delete Whitelist'), array('admin' => true, 'action' => 'delete', $this->Form->value('Whitelist.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Whitelist.id')));?></li>
 		<li>&nbsp;</li>
-		<?php echo $this->element('actions_menu'); ?>
+		<?php echo $this->element('actions_menu');?>
 	</ul>
 </div>

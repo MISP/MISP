@@ -14,8 +14,4 @@ class Regexp extends AppModel {
  * @var mixed False or table name
  */
 	public $useTable = 'regexp';
-
-	public function getAll() {
-		return $this->find('all');
-	}
 }

@@ -22,15 +22,15 @@ if ($isSearch == 1) {
 			<th><?php echo $this->Paginator->sort('title');?></th>
 			<th><?php echo $this->Paginator->sort('change');?></th>
 	</tr><?php
-foreach ($logs as $log): ?>
+foreach ($list as $item): ?>
 	<tr>
-		<td class="short"><?php echo h($log['Log']['id']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($log['Log']['email']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($log['Log']['org']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($log['Log']['created']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($log['Log']['action']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($log['Log']['title']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($log['Log']['change']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Log']['id']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Log']['email']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Log']['org']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Log']['created']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Log']['action']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Log']['title']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Log']['change']); ?>&nbsp;</td>
 	</tr><?php
 endforeach; ?>
 	</table>

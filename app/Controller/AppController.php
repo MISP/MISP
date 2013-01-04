@@ -40,17 +40,19 @@ App::uses('File', 'Utility');
  */
 class AppController extends Controller {
 
-	public $defaultModel;
+	public $defaultModel = '';
 
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
 
 		$name = get_class($this);
-		$this->defaultModel = substr($name, 0, strrpos($name, 'sController'));
+		$name = str_replace('sController', '', $name);
+		$name = str_replace('Controller', '', $name);
+		$this->defaultModel = $name;
 	}
 
 	public $components = array(
-			'Acl',			// TODO XXX remove
+			'Acl',			// TODO ACL, components
 			'Session',
 			'Auth' => array(
 				'className' => 'SecureAuth',
@@ -77,10 +79,10 @@ class AppController extends Controller {
 	public function beforeFilter() {
 		// user must accept terms
 		if ($this->Session->check('Auth.User') && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
-			$this->redirect(array('controller' => 'users', 'action' => 'terms'));
+			$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 		}
 		if ($this->Session->check('Auth.User') && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
-			$this->redirect(array('controller' => 'users', 'action' => 'change_pw'));
+			$this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
 		}
 
 		// REST things
