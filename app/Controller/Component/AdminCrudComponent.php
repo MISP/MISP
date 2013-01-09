@@ -18,7 +18,9 @@ class AdminCrudComponent extends AuthComponent {
 				$this->controller->Session->setFlash(__(sprintf('The %s has been saved.', strtolower($this->controller->defaultModel))));
 				$this->controller->redirect(array('action' => 'index'));
 			} else {
-				$this->controller->Session->setFlash(__(sprintf('The %s could not be saved. Please, try again.', strtolower($this->controller->defaultModel))));
+				if (!($this->Session->check('Message.flash'))) {
+					$this->controller->Session->setFlash(__(sprintf('The %s could not be saved. Please, try again.', strtolower($this->controller->defaultModel))));
+				}
 			}
 		}
 	}
@@ -50,7 +52,9 @@ class AdminCrudComponent extends AuthComponent {
 				$this->controller->Session->setFlash(__(sprintf('The %s has been saved', strtolower($this->controller->defaultModel))));
 				$this->controller->redirect(array('action' => 'index'));
 			} else {
-				$this->controller->Session->setFlash(__(sprintf('The %s could not be saved. Please, try again.', strtolower($this->controller->defaultModel))));
+				if (!($this->Session->check('Message.flash'))) {
+					$this->controller->Session->setFlash(__(sprintf('The %s could not be saved. Please, try again.', strtolower($this->controller->defaultModel))));
+				}
 			}
 		} else {
 			$this->controller->request->data = Sanitize::clean($this->controller->{$this->controller->defaultModel}->read(null, $id));
