@@ -10,11 +10,15 @@ App::import('Controller', 'Attributes');
  */
 class Event extends AppModel {
 
-	public $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
-		'userModel' => 'User',
-		'userKey' => 'user_id',
-		'change' => 'full'
-	), 'Trim', 'Regexp' => array('fields' => array('info')));
+	public $actsAs = array(
+		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+			'userModel' => 'User',
+			'userKey' => 'user_id',
+			'change' => 'full'),
+		'Trim',
+		'Regexp' => array('fields' => array('info')),
+		'Blacklist' => array('fields' => array('info')),
+	);
 
 /**
  * Display field
