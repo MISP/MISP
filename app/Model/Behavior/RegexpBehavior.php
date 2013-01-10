@@ -66,7 +66,7 @@ class RegexpBehavior extends ModelBehavior {
 	public function replaceWindowsSpecific(Model $Model, $string) {
 		$returnValue = true;
 		$regexp = new Regexp();
-		$allRegexp = $regexp->find('all'); // TODO REGEXP INIT LOAD ARRAY
+		$allRegexp = $regexp->find('all'); // TODO INIT LOAD ARRAY
 		foreach ($allRegexp as $regexp) {
 			if (strlen($regexp['Regexp']['replacement'] && strlen($regexp['Regexp']['regexp']))) {
 				$string = preg_replace($regexp['Regexp']['regexp'], $regexp['Regexp']['replacement'], $string);

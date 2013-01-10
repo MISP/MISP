@@ -18,7 +18,6 @@ class BlacklistBehavior extends ModelBehavior {
 	public function setup(Model $Model, $settings = array()) {
 		if (!isset($this->settings[$Model->alias])) {
 			$this->settings[$Model->alias] = array(
-				'fields' => array(),
 			);
 		}
 		$this->settings[$Model->alias] = array_merge(
@@ -46,8 +45,7 @@ class BlacklistBehavior extends ModelBehavior {
 	public function blacklistStringFields(Model $Model) {
 		$returnValue = true;
 		foreach ($Model->data[$Model->name] as $key => $field) {
-			if ($returnValue && is_string($field)) {
-			//if ($returnValue && in_array($key, $this->settings[$Model->alias]['fields']) && is_string($field)) { // TODO fields
+			if ($returnValue && in_array($key, $this->settings[$Model->alias]['fields']) && is_string($field)) { // TODO fields
 				$returnValue = $this->replaceWindowsSpecific($Model, $field);
 			}
 		}
@@ -64,7 +62,7 @@ class BlacklistBehavior extends ModelBehavior {
 	public function replaceWindowsSpecific(Model $Model, $string) {
 		$returnValue = true;
 		$blacklist = new Blacklist();
-		$allBlacklist = $blacklist->find('all'); // TODO REGEXP INIT LOAD ARRAY
+		$allBlacklist = $blacklist->find('all'); // TODO INIT LOAD ARRAY
 		foreach ($allBlacklist as $item) {
 			if ($item['Blacklist']['name'] == $string) {
 				App::uses('SessionComponent', 'Controller/Component');
