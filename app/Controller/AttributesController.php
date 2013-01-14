@@ -159,6 +159,8 @@ class AttributesController extends AppController {
 
 				$fails = "";	// will be used to keep a list of the lines that failed or succeeded
 				$successes = "";
+				// TODO loop-holes,
+				// the value null value thing
 				foreach ($attributes as $key => $attribute) {
 					$attribute = trim($attribute);
 					if (strlen($attribute) == 0)
