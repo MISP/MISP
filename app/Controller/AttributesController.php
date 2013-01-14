@@ -11,6 +11,7 @@ App::uses('File', 'Utility');
 class AttributesController extends AppController {
 
 	public $components = array('Acl', 'Security', 'RequestHandler');	// XXX ACL component
+	//public $components = array('Security', 'RequestHandler');
 
 	public $paginate = array(
 			'limit' => 60,
@@ -168,10 +169,16 @@ class AttributesController extends AppController {
 					if ('true' == Configure::read('CyDefSIG.private')) {
 						$this->request->data = $this->Attribute->massageData($this->request->data);
 					}
+					// TODO loop-holes,
+					// there seems to be a loop-hole in misp here
+					// be it an create and not an update
+					$this->Attribute->id = null;
 					if ($this->Attribute->save($this->request->data)) {
 						$successes .= " " . ($key + 1);
 					} else {
 						$fails .= " " . ($key + 1);
+				//	debug(CakeSession::read('Message.flash'));
+				//		debug(tru);
 					}
 
 				}
