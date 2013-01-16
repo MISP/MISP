@@ -500,6 +500,7 @@ class AttributesController extends AppController {
 			}
 
 			// reposition to get the attribute.id with given uuid
+			// Notice (8): Undefined index: uuid [APP/Controller/AttributesController.php, line 502]
 			$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
 			if (count($existingAttribute)) {
 				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
