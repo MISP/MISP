@@ -231,6 +231,7 @@ class AttributesController extends AppController {
 					$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
 					//$this->request->data['Attribute']['event_id'] = $eventId;
 				}
+				// Notice (8): Undefined index: id [APP/Controller/AttributesController.php, line 234]
 				$savedId = $this->request->data['Attribute']['id'];
 
 				if ($this->Attribute->save($this->request->data)) {
