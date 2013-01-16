@@ -569,6 +569,8 @@ class AttributesController extends AppController {
  * @return void
  * @throws MethodNotAllowedException
  * @throws NotFoundException
+ *
+ * and is able to delete w/o question
  */
 	public function delete($id = null) {
 		if (!$this->request->is('post') && !$this->_isRest()) {
