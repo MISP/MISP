@@ -3,7 +3,7 @@
 	<fieldset>
 		<legend><?php echo __('Search Attribute'); ?></legend>
 	<?php
-		echo $this->Form->input('keyword');
+		echo $this->Form->input('keyword', array('type' => 'textarea'));
 		echo $this->Form->input('type', array('between' => $this->Html->div('forminfo', '', array('id' => 'AttributeTypeDiv'))));
 		echo $this->Form->input('category', array('between' => $this->Html->div('forminfo', '', array('id' => 'AttributeCategoryDiv'))));
 	?>
