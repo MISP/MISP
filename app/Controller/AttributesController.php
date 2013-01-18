@@ -656,7 +656,7 @@ class AttributesController extends AppController {
 					$temp = array();
 					foreach ($keywordArray as $keywordArrayElement){
 							$keywordArrayElement = '%' . trim($keywordArrayElement) . '%';
-							array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+							if($keywordArrayElement!='%%')array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
 					}
 					$conditions['OR'] = $temp;
 				}
