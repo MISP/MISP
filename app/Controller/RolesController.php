@@ -34,6 +34,20 @@ class RolesController extends AppController {
 	}
 
 /**
+ * view method
+ *
+ * @param string $id
+ * @return void
+ */
+	public function view($id = null) {
+		$this->Role->id = $id;
+		if (!$this->Role->exists()) {
+			throw new NotFoundException(__('Invalid role'));
+		}
+		$this->set('role', $this->Role->read(null, $id));
+	}
+
+/**
  * admin_add method
  *
  * @return void
