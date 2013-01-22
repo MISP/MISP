@@ -9,7 +9,7 @@ App::uses('AppController', 'Controller');
  */
 class RolesController extends AppController {
 
-	public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage & Publish Organization Events');
+	public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage &amp; Publish Organization Events');
 
 	public $components = array(
 		'Acl',
@@ -19,7 +19,7 @@ class RolesController extends AppController {
 			)
 		),
 		'Security',
-		'Session', 'AdminCrud'
+		'Session', 'AdminCrud' // => array('fields' => array('name'))
 	);
 
 	public $paginate = array(
