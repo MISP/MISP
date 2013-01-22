@@ -10,7 +10,7 @@ class UsersController extends AppController {
 
 	public $newkey;
 
-	public $components = array('Acl','Security');	// TODO ACL, components
+	public $components = array('Security');
 
 	public $paginate = array(
 			'limit' => 60,
@@ -238,6 +238,7 @@ class UsersController extends AppController {
 			// TODO Audit, extraLog, fields get orig END
 			if ("" != $this->request->data['User']['password'])
 				$fields[] = 'password';
+			$fields[] = 'role_id';
 			if ($this->User->save($this->request->data, true, $fields)) {
 				// TODO Audit, extraLog, fields compare
 				// newValues to array
