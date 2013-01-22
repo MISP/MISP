@@ -22,6 +22,8 @@ class RolesController extends AppController {
 		'Session', 'AdminCrud' // => array('fields' => array('name'))
 	);
 
+	public $helpers = array('Js' => array('Jquery'));
+
 	public $paginate = array(
 			'limit' => 60,
 			'order' => array(
