@@ -46,7 +46,7 @@
 	Router::connect('/admin/users/login', array('controller' => 'users', 'action' => 'login'));
 	Router::connect('/admin/users/routeafterlogin', array('controller' => 'users', 'action' => 'routeafterlogin'));
 
-	Router::connect('/admin/users/edit/:id', array('controller' => 'users', 'action' => 'edit'), array('pass' => array('field', 'id')));
+//	Router::connect('/admin/users/edit/:id', array('controller' => 'users', 'action' => 'edit'), array('pass' => array('field', 'id')));
 	Router::connect('/admin/users/view/:id', array('controller' => 'users', 'action' => 'view'), array('pass' => array('field', 'id')));
 	//Router::connect('/:controller/:field/:newValue/:oldValue', array('action' => 'call'), array('pass' => array('field', 'newValue', 'oldValue')));
 

@@ -220,6 +220,7 @@ class UsersController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
+//			debug($fields);debug(tru);
 		$this->User->id = $id;
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
@@ -239,6 +240,7 @@ class UsersController extends AppController {
 			if ("" != $this->request->data['User']['password'])
 				$fields[] = 'password';
 			$fields[] = 'role_id';
+//			debug($fields);debug(tru);
 			if ($this->User->save($this->request->data, true, $fields)) {
 				// TODO Audit, extraLog, fields compare
 				// newValues to array
