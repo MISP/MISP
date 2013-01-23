@@ -345,4 +345,17 @@ class User extends AppModel {
 
 		return $key;
 	}
+
+	public function checkAndCorrectPgps() {
+		$fails = array();
+		$users = $this->find('all', array('recursive' => 0));
+
+		foreach ($users as $user) {
+			if (strlen($user['User']['gpgkey']) && strpos($user['User']['gpgkey'], "\n")) {
+				$fails[] = $user['User']['id'] . ':' . $user['User']['id'];
+				//$check['gpgkey'] = trim(preg_replace('/\n', '', $check['gpgkey']));
+			}
+		}
+		return $fails;
+	}
 }

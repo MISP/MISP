@@ -526,4 +526,10 @@ class UsersController extends AppController {
 	public function generateAllFor($field) {
 		parent::generateAllFor($field);
 	}
+
+	public function checkAndCorrectPgps() {
+		if (!self::_isAdmin()) throw new NotFoundException();
+
+		$this->set('fails', $this->User->checkAndCorrectPgps());
+	}
 }
