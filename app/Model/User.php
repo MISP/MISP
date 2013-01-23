@@ -232,7 +232,9 @@ class User extends AppModel {
 			'userModel' => 'User',
 			'userKey' => 'user_id',
 			'change' => 'full'
-		), 'Trim'
+		),
+		'Trim',
+//		'RemoveNewline' => array('fields' => array('gpgkey')),
 	);
 
 /**
@@ -281,17 +283,34 @@ class User extends AppModel {
 			return true;
 		}
 
+		// clean key
+		// CHECK http://stackoverflow.com/questions/3760816/remove-new-lines-from-string
+		//debug($check['gpgkey']);
+		$check['gpgkey'] = str_replace("BEGIN PGP PUBLIC KEY BLOCK", "", $check['gpgkey']);
+		//debug($check['gpgkey']);
+		//while (strpos ($check['gpgkey'], "\n")) {
+		//	$check['gpgkey'] = str_replace("\n", "", $check['gpgkey']);
+		//}
+		//$check['gpgkey'] = trim(preg_replace('/\n', '', $check['gpgkey']));
+		//debug($check['gpgkey']);
+		//		$check['gpgkey'] = trim(preg_replace('/\s+/', '', $check['gpgkey']));
+
 		// key is entered
 		require_once 'Crypt/GPG.php';
-		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 		try {
-			$keyImportOutput = $gpg->importKey($check['gpgkey']);
-			if (!empty($keyImportOutput['fingerprint'])) {
-				return true;
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+			try {
+				$keyImportOutput = $gpg->importKey($check['gpgkey']);
+				if (!empty($keyImportOutput['fingerprint'])) {
+					return true;
+				}
+			} catch (Exception $e) {
+				//debug($e);
+				return false;
 			}
 		} catch (Exception $e) {
 			//debug($e);
-			return false;
+			return true; // TODO was false
 		}
 	}
 
