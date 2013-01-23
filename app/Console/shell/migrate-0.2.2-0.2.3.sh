@@ -23,6 +23,9 @@ cd ${PRJCT}
 # create Whitelist table
 ./Console/cake schema create DbWhitelist
 
+# create Blacklist table
+./Console/cake schema create DbBlacklist
+
 # update Schema, add Users.role_id
 ./Console/cake schema update -s 0.2.2.1
 
