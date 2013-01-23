@@ -283,17 +283,7 @@ class User extends AppModel {
 			return true;
 		}
 
-		// clean key
-		// CHECK http://stackoverflow.com/questions/3760816/remove-new-lines-from-string
-		//debug($check['gpgkey']);
-		$check['gpgkey'] = str_replace("BEGIN PGP PUBLIC KEY BLOCK", "", $check['gpgkey']);
-		//debug($check['gpgkey']);
-		//while (strpos ($check['gpgkey'], "\n")) {
-		//	$check['gpgkey'] = str_replace("\n", "", $check['gpgkey']);
-		//}
-		//$check['gpgkey'] = trim(preg_replace('/\n', '', $check['gpgkey']));
-		//debug($check['gpgkey']);
-		//		$check['gpgkey'] = trim(preg_replace('/\s+/', '', $check['gpgkey']));
+		// we have a clean, hopefull public, key here
 
 		// key is entered
 		require_once 'Crypt/GPG.php';
