@@ -308,7 +308,7 @@ class Event extends AppModel {
 	}
 
 	public function massageData(&$data) {
-		switch ($data['Event']['distribution']) {
+/*		switch ($data['Event']['distribution']) {
 			case 'Your organization only':
 				$data['Event']['private'] = true;
 				$data['Event']['cluster'] = false;
@@ -345,7 +345,7 @@ class Event extends AppModel {
 			case 'Completed':
 				$data['Event']['analysis'] = 2;
 				break;
-		}
+		}*/
 		return $data;
 	}
 
@@ -413,16 +413,16 @@ class Event extends AppModel {
 
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$newLocation = $newTextBody = '';
-		$result = $this->restfullEventToServer($event, $server, null, $HttpSocket, $newLocation, $newTextBody);
+		$result = $this->restfullEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
 		if (strlen($newLocation) || $result) { // HTTP/1.1 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-				$result = $this->restfullEventToServer($event, $server, $newLocation, $HttpSocket, $newLocation, $newTextBody);
+				$result = $this->restfullEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
 			}
 			try { // TODO Xml::build() does not throw the XmlException
 				$xml = Xml::build($newTextBody);
 			} catch (XmlException $e) {
-				throw new InternalErrorException();
-				//return false;
+				//throw new InternalErrorException();
+				return false;
 			}
 			// get the remote event_id
 			foreach ($xml as $xmlEvent) {
@@ -468,7 +468,7 @@ class Event extends AppModel {
  *
  * @return bool true if success, false or error message if failed
  */
-	public function restfullEventToServer($event, $server, $urlPath, $newLocation, $newTextBody, $HttpSocket = null) {
+	public function restfullEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
 		if (true == $event['Event']['private']) { // never upload private events
 			return "Event is private and non exportable";
 		}

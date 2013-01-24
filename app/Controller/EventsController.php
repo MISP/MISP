@@ -336,7 +336,6 @@ class EventsController extends AppController {
 	public function add() {
 		if ($this->request->is('post')) {
 			$savedId = $this->request->data['Event']['id'];
-
 			// TODO or massageData here
 			if ('true' == Configure::read('CyDefSIG.private')) {
 				if ($this->_isRest()) {
@@ -345,7 +344,6 @@ class EventsController extends AppController {
 				}
 				$this->request->data = $this->Event->massageData($this->request->data);
 			}
-
 			if (!empty($this->data)) {
 				if (isset($this->data['Event']['submittedfile'])) {
 					App::uses('File', 'Utility');
@@ -428,7 +426,6 @@ class EventsController extends AppController {
 		$data['Event']['org'] = strlen($or) ? $or : $auth->user('org'); // FIXME security - org problem
 		unset ($data['Event']['id']);
 		$this->Event->create();
-
 		if ($fromXml) {
 			// Workaround for different structure in XML/array than what CakePHP expects
 			$this->Event->cleanupEventArrayFromXML($data);
@@ -438,7 +435,6 @@ class EventsController extends AppController {
 			unset($this->Event->Attribute->validate['event_id']);
 			unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 		}
-
 		// upstream: false = distribution
 		// true = reverse distribution, back to origin
 		$upstream = false;
@@ -506,20 +502,18 @@ class EventsController extends AppController {
 		}
 		// only edit own events verified by isAuthorized
 
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			if (!$this->_IsAdmin()) {
+		//if ('true' == Configure::read('CyDefSIG.private')) {
+//			if (!$this->_IsAdmin()) {
 				$this->Event->read(null, $id);
 				// check for non-private and re-read
-				if (($this->Event->data['Event']['org'] != $this->Auth->user('org')) || (($this->Event->data['Event']['org'] == $this->Auth->user('org')) && ($this->Event->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
-					$this->Session->setFlash(__('Invalid event.'));
-					$this->redirect(array('controller' => 'users', 'action' => 'terms'));
-				}
-			}
-		}
-
+				//if (($this->Event->data['Event']['org'] != $this->Auth->user('org')) || (($this->Event->data['Event']['org'] == $this->Auth->user('org')) && ($this->Event->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
+//					$this->Session->setFlash(__('Invalid event.'));
+	//				$this->redirect(array('controller' => 'users', 'action' => 'terms'));
+		//		}
+		//	}
+		//}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
-
 				// Workaround for different structure in XML/array than what CakePHP expects
 				$this->Event->cleanupEventArrayFromXML($this->request->data);
 
@@ -538,7 +532,6 @@ class EventsController extends AppController {
 				if (count($existingEvent)) {
 					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
 				}
-
 				if ("ii" == Configure::read('CyDefSIG.rest')) {
 					// reposition to get the attribute.id with given uuid
 					$c = 0;
@@ -573,7 +566,7 @@ class EventsController extends AppController {
 
 					$message = 'Saved';
 
-					$this->set('event', Sanitize::clean($this->Event));
+					$this->set('event', Sanitize::clean($this->Event->data));
 
 					// REST users want to see the newly created event
 					$this->view($this->Event->getId());
