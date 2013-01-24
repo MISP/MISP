@@ -78,6 +78,9 @@ class AppController extends Controller {
 
 	public function beforeFilter() {
 		// user must accept terms
+		//
+		// TODO $this->Session->check('Auth.User') (16:32:45) andras.iklody@gmail.com: think this was documented as check('Auth')
+
 		if ($this->Session->check('Auth.User') && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
 			$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 		}
@@ -155,7 +158,7 @@ class AppController extends Controller {
  */
 	protected function _isAdmin() {
 		$org = $this->Auth->user('org');
-		if (isset($org) && $org === 'ADMIN') {
+		if ((isset($org) && $org === 'ADMIN') || $this->checkAction('perm_admin')) {
 			return true;
 		}
 		return false;
