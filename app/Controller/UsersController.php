@@ -284,7 +284,7 @@ class UsersController extends AppController {
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
 			$this->User->set('password', '');
-			$this->request->data = $this->User->data; // TODO PGP escape
+			$this->request->data = Sanitize::clean($this->User->data, array('escape' => False));
 
 		}
 		// TODO ACL CLEANUP combobox for orgs
