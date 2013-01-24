@@ -156,7 +156,6 @@ class ServersController extends AppController {
 
 		App::uses('HttpSocket', 'Network/Http');
 		$this->Server->read(null, $id);
-
 		if (false == $this->Server->data['Server']['pull']) {
 			$this->Session->setFlash(__('Pull setting not enabled for this server.'));
 			$this->redirect(array('action' => 'index'));
@@ -165,7 +164,6 @@ class ServersController extends AppController {
 		if ("full" == $full) {
 			// get a list of the event_ids on the server
 			$eventIds = $this->Event->getEventIdsFromServer($this->Server->data);
-
 			$successes = array();
 			$fails = array();
 			// download each event
@@ -184,7 +182,6 @@ class ServersController extends AppController {
 							}
 							// up the hop count
 							$event['Event']['hop_count']++;
-
 							// Distribution
 							switch($event['Event']['distribution']) {
 								case 'Your organization only': // Distribution, no Org only in Event
@@ -256,8 +253,9 @@ class ServersController extends AppController {
 						}
 						$eventsController = new EventsController();
 						$eventsController->constructClasses();
+						$passAlong = $this->Server->data['Server']['url'];
 						try {
-							$result = $eventsController->_add($event, $this->Auth, $fromXml = true, $this->Server->data['Server']['organization']);
+							$result = $eventsController->_add($event, $this->Auth, $fromXml = true, $this->Server->data['Server']['organization'], $passAlong);
 						} catch (MethodNotAllowedException $e) {
 							if ($e->getMessage() == 'Event already exists') {
 								//$successes[] = $eventId;	// commented given it's in a catch..

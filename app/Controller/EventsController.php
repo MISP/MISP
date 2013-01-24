@@ -420,16 +420,16 @@ class EventsController extends AppController {
  *
  * @return bool true if success
  */
-	public function _add(&$data, &$auth, $fromXml, $or='') {
+	public function _add(&$data, &$auth, $fromXml, $or='', $passAlong = null) {
 		// force check userid and orgname to be from yourself
 		$data['Event']['user_id'] = $auth->user('id');
 		$data['Event']['org'] = strlen($or) ? $or : $auth->user('org'); // FIXME security - org problem
 		unset ($data['Event']['id']);
 		$this->Event->create();
+		$this->Event->data = $data;
 		if ($fromXml) {
 			// Workaround for different structure in XML/array than what CakePHP expects
 			$this->Event->cleanupEventArrayFromXML($data);
-
 			// the event_id field is not set (normal) so make sure no validation errors are thrown
 			// LATER do this with	 $this->validator()->remove('event_id');
 			unset($this->Event->Attribute->validate['event_id']);
@@ -445,8 +445,8 @@ class EventsController extends AppController {
 			if ($existingEventCount > 0) {
 				// TODO RESTfull, set responce location header..so client can find right URL to edit
 				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
-				$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $existingEvent['Event']['id']);
-				$this->response->send();
+				//$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $existingEvent['Event']['id']);
+				//$this->response->send();
 				return false;
 			}
 		}
@@ -479,7 +479,7 @@ class EventsController extends AppController {
 		if ($saveResult) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
-				$this->__publish($this->Event->getId());
+				$this->__publish($this->Event->getId(), $passAlong);
 			}
 			return true;
 		} else {
@@ -503,12 +503,12 @@ class EventsController extends AppController {
 		// only edit own events verified by isAuthorized
 
 		//if ('true' == Configure::read('CyDefSIG.private')) {
-		//	if (!$this->_IsAdmin()) {
-		$this->Event->read(null, $id);
-		//		 check for non-private and re-read
-		//		if (($this->Event->data['Event']['org'] != $this->Auth->user('org')) || (($this->Event->data['Event']['org'] == $this->Auth->user('org')) && ($this->Event->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
-		//			$this->Session->setFlash(__('Invalid event.'));
-		//			$this->redirect(array('controller' => 'users', 'action' => 'terms'));
+//			if (!$this->_IsAdmin()) {
+				$this->Event->read(null, $id);
+				// check for non-private and re-read
+				//if (($this->Event->data['Event']['org'] != $this->Auth->user('org')) || (($this->Event->data['Event']['org'] == $this->Auth->user('org')) && ($this->Event->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
+//					$this->Session->setFlash(__('Invalid event.'));
+	//				$this->redirect(array('controller' => 'users', 'action' => 'terms'));
 		//		}
 		//	}
 		//}
@@ -675,7 +675,7 @@ class EventsController extends AppController {
  *
  * @return bool true if success, false if, partly, failed
  */
-	private function __uploadEventToServers($id) {
+	private function __uploadEventToServers($id, $passAlong = null) {
 		// make sure we have all the data of the Event
 		$this->Event->id = $id;
 		$this->Event->recursive = 1;
@@ -696,10 +696,12 @@ class EventsController extends AppController {
 		App::uses('HttpSocket', 'Network/Http');
 		$HttpSocket = new HttpSocket();
 		foreach ($servers as &$server) {
-			$thisUploaded = $this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
-			if (!$thisUploaded) {
-				$uploaded = !$uploaded ? $uploaded : $thisUploaded;
-				$failedServers[] = $server['Server']['url'];
+			if((!$passAlong == null) && (!$passAlong == $server)){
+				$thisUploaded = $this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
+				if (!$thisUploaded) {
+					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
+					$failedServers[] = $server['Server']['url'];
+				}
 			}
 		}
 
@@ -737,7 +739,7 @@ class EventsController extends AppController {
  *
  * @param unknown_type $id
  */
-	private function __publish($id) {
+	private function __publish($id, $passAlong = null) {
 		$this->Event->id = $id;
 		$this->Event->recursive = 0;
 		//$this->Event->read();
@@ -749,7 +751,7 @@ class EventsController extends AppController {
 
 		// upload the event to remote servers
 		if ('true' == Configure::read('CyDefSIG.sync')) {
-			$uploaded = $this->__uploadEventToServers($id);
+			$uploaded = $this->__uploadEventToServers($id, $passAlong);
 			if ((is_bool($uploaded) && !$uploaded) || (is_array($uploaded))) { // TODO remove bool
 				$this->Event->saveField('published', 0);
 			}
