@@ -15,7 +15,7 @@ echo $this->Form->input('malware', array(
 ));
 if ('true' == Configure::read('CyDefSIG.sync')) {
 	if ('true' == Configure::read('CyDefSIG.private')) {
-		echo $this->Form->input('distribution', array('label' => 'Distribution', 'selected' => 'All communities',
+		echo $this->Form->input('distribution', array('label' => 'Distribution', 'selected' => $maxDist,
 			'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))
 		));
 		//'before' => $this->Html->div('forminfo', isset($attrDescriptions['distribution']['formdesc']) ? $attrDescriptions['distribution']['formdesc'] : $attrDescriptions['distribution']['desc']),));

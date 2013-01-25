@@ -15,7 +15,7 @@ echo $this->Form->input('type', array(
 		));
 if ('true' == Configure::read('CyDefSIG.sync')) {
 	if ('true' == Configure::read('CyDefSIG.private')) {
-		echo $this->Form->input('distribution', array('label' => 'Distribution', 'selected' => 'All communities',
+		echo $this->Form->input('distribution', array('label' => 'Distribution', 'selected' => $maxDist,
 			'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))
 		));
 	} else {

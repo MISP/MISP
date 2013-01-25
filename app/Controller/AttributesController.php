@@ -259,10 +259,6 @@ class AttributesController extends AppController {
 		} else {
 			// set the event_id in the form
 			$this->request->data['Attribute']['event_id'] = $eventId;
-			// set distribution in the form
-			$this->loadModel('Event');
-			$events = $this->Event->findById($eventId);
-			$this->request->data['Attribute']['distribution'] = $events['Event']['distribution'];
 		}
 
 		// combobox for types
@@ -274,8 +270,22 @@ class AttributesController extends AppController {
 		array_pop($categories);
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', compact('categories'));
+		$this->loadModel('Event');
+		$events = $this->Event->findById($eventId);
+		$maxDist = $events['Event']['distribution'];
+		$this->set('maxDist', $maxDist);
 		// combobox for distribution
-		$distributions = array_keys($this->Attribute->distributionDescriptions);
+		$count = 0;
+		$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
+		if(isset($maxDist)){
+			foreach($distributionsBeforeCut as $current){
+				$distributions[$count] = $current;
+				if($distributions[$count] == $maxDist)break;
+				$count++;
+			}
+		}else{
+			$distributions = array_keys($this->Attribute->distributionDescriptions);
+		}
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
 		$this->set('distributions', $distributions);
 		// tooltip for distribution
@@ -327,7 +337,6 @@ class AttributesController extends AppController {
  */
 	public function add_attachment($eventId = null) {
 		if ($this->request->is('post')) {
-			$this->loadModel('Event');
 			// only own attributes verified by isAuthorized
 
 			// Check if there were problems with the file upload
@@ -423,6 +432,10 @@ class AttributesController extends AppController {
 		} else {
 			// set the event_id in the form
 			$this->request->data['Attribute']['event_id'] = $eventId;
+			$this->loadModel('Event');
+			$events = $this->Event->findById($eventId);
+			$maxDist = $events['Event']['distribution'];
+			$this->set('maxDist', $maxDist);
 		}
 
 		// combobos for categories
@@ -454,7 +467,17 @@ class AttributesController extends AppController {
 		$this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
 
 		// combobox for distribution
-		$distributions = array_keys($this->Attribute->distributionDescriptions);
+		if(isset($maxDist)){
+			$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
+			$count = 0;
+			foreach($distributionsBeforeCut as $current){
+				$distributions[$count] = $current;
+				if($distributions[$count] == $maxDist)break;
+				$count++;
+			}
+		}else{
+			$distributions = array_keys($this->Attribute->distributionDescriptions);
+		}
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
 		$this->set('distributions', $distributions);
 		// tooltip for distribution
@@ -554,8 +577,22 @@ class AttributesController extends AppController {
 		array_pop($categories); // remove that last empty/space option
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', $categories);
+		$this->loadModel('Event');
+		$events = $this->Event->findById($eventId);
+		$maxDist = $events['Event']['distribution'];
+		$this->set('maxDist', $maxDist);
 		// combobox for distribution
-		$distributions = array_keys($this->Attribute->distributionDescriptions);
+		if(isset($maxDist)){
+			$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
+			$count = 0;
+			foreach($distributionsBeforeCut as $current){
+				$distributions[$count] = $current;
+				if($distributions[$count] == $maxDist)break;
+				$count++;
+			}
+		}else{
+			$distributions = array_keys($this->Attribute->distributionDescriptions);
+		}
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
 		$this->set('distributions', $distributions);
 		// tooltip for distribution
