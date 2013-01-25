@@ -4,9 +4,10 @@
 		<legend><?php echo __('Search Log'); ?></legend>
 	<?php
 		echo $this->Form->input('email', array( 'label' => 'Email'));
-		echo $this->Form->input('org', array( 'label' => 'Org'));
+		if($orgRestriction == false){
+			echo $this->Form->input('org', array( 'label' => 'Org'));
+		}
 		echo $this->Form->input('action', array('between' => $this->Html->div('forminfo', '', array('id' => 'LogActionDiv'))));
-
 		echo $this->Form->input('title', array( 'label' => 'Title'));
 		echo $this->Form->input('change', array( 'label' => 'Change'));
 	?>

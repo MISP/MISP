@@ -48,15 +48,35 @@ class LogsController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		$this->AdminCrud->adminIndex();
 		$this->set('isSearch', 0);
+		if($this->Auth->user('org') == 'ADMIN'){
+			$this->AdminCrud->adminIndex();
+		}else{
+			$orgRestriction = null;
+			$orgRestriction = $this->Auth->user('org');
+			$conditions['Log.org LIKE'] = '%' . $orgRestriction . '%';
+			$this->recursive = 0;
+			$this->paginate = array(
+					'limit' => 60,
+					'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 logs(?)
+					'conditions' => $conditions
+			);
+
+			$this->set('list', Sanitize::clean($this->paginate()));
+		}
 	}
 
 	public $helpers = array('Js' => array('Jquery'));
 
 	public function admin_search() {
 		$fullAddress = array('/admin/logs/search', '/logs/admin_search');
-
+		$orgRestriction = null;
+		if($this->Auth->user('org') == 'ADMIN'){
+			$orgRestriction = false;
+		}else{
+			$orgRestriction = $this->Auth->user('org');
+		}
+		$this->set('orgRestriction', $orgRestriction);
 		if (in_array($this->request->here, $fullAddress)) {
 
 			$this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
@@ -66,7 +86,11 @@ class LogsController extends AppController {
 
 			if ($this->request->is('post') && in_array($this->request->here, $fullAddress)) {
 				$email = $this->request->data['Log']['email'];
-				$org = $this->request->data['Log']['org'];
+				if(!$orgRestriction){
+					$org = $this->request->data['Log']['org'];
+				}else{
+					$org = $this->Auth->user('org');
+				}
 				$action = $this->request->data['Log']['action'];
 				$title = $this->request->data['Log']['title'];
 				$change = $this->request->data['Log']['change'];
@@ -102,7 +126,7 @@ class LogsController extends AppController {
 					'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 logs(?)
 					'conditions' => $conditions
 				);
-				$this->set('logs', Sanitize::clean($this->paginate()));
+				$this->set('list', Sanitize::clean($this->paginate()));
 
 				// and store into session
 				$this->Session->write('paginate_conditions_log', $this->paginate);
@@ -143,7 +167,7 @@ class LogsController extends AppController {
 			// re-get pagination
 			$this->{$this->defaultModel}->recursive = 0;
 			$this->paginate = $this->Session->read('paginate_conditions_log');
-			$this->set('logs', Sanitize::clean($this->paginate()));
+			$this->set('list', Sanitize::clean($this->paginate()));
 
 			// set the same view as the index page
 			$this->render('admin_index');
