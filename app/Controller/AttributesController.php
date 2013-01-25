@@ -259,6 +259,10 @@ class AttributesController extends AppController {
 		} else {
 			// set the event_id in the form
 			$this->request->data['Attribute']['event_id'] = $eventId;
+			// set distribution in the form
+			$this->loadModel('Event');
+			$events = $this->Event->findById($eventId);
+			$this->request->data['Attribute']['distribution'] = $events['Event']['distribution'];
 		}
 
 		// combobox for types
