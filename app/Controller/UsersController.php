@@ -189,24 +189,20 @@ class UsersController extends AppController {
  * @return void
  */
 	public function admin_add() {
+		$this->set('currentOrg', $this->Auth->User('org'));
 		if ($this->request->is('post')) {
-			if ($this->request->data['User']['org'] == $this->Auth->user('org')) {
-				$this->User->create();
-				// set invited by
-				$this->request->data['User']['invited_by'] = $this->Auth->user('id');
-				$this->request->data['User']['change_pw'] = 1;
-				if ($this->User->save($this->request->data)) {
-					$this->Session->setFlash(__('The user has been saved'));
-					$this->redirect(array('action' => 'index'));
-				} else {
-					// reset auth key for a new user
-					$this->set('authkey', $this->newkey);
-					$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
-				}
+			$this->User->create();
+			// set invited by
+			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
+			$this->request->data['User']['change_pw'] = 1;
+			if($this->Auth->User('org')!='ADMIN')$this->request->data['User']['org'] = $this->Auth->User('org');
+			if ($this->User->save($this->request->data)) {
+				$this->Session->setFlash(__('The user has been saved'));
+				$this->redirect(array('action' => 'index'));
 			} else {
-				$this->newkey = $this->User->generateAuthKey();
+				// reset auth key for a new user
 				$this->set('authkey', $this->newkey);
-				$this->Session->setFlash(__('The user could not be saved, not your organisation. Please, try again.'));
+				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
 			}
 		} else {
 			// generate auth key for a new user
@@ -227,6 +223,7 @@ class UsersController extends AppController {
  */
 	public function admin_edit($id = null) {
 //			debug($fields);debug(tru);
+		$this->set('currentOrg', $this->Auth->User('org'));
 		$this->User->id = $id;
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));

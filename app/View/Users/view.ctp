@@ -1,6 +1,6 @@
 <div class="users view">
 <div class="actions" style="float:right;">
-	<ul><li><?php if ($isAclModify) echo $this->Html->link(__('Edit Profile', true), array('action' => 'edit', $user['User']['id'])); ?> </li></ul>
+	<ul><li><?php if ($isAclModify && ($me['org'] == $user['User']['org'] || $me['org'] == 'ADMIN')) echo $this->Html->link(__('Edit Profile', true), array('action' => 'edit', $user['User']['id'])); ?> </li></ul>
 </div>
 <h2><?php  echo __('User');?></h2>
 	<dl>
@@ -61,7 +61,7 @@ if (h($user['User']['gpgkey']) != 0) {
 <div class="actions">
 	<ul>
 		<?php
-if ($isAclModify): ?>
+if ($isAclModify && ($me['org'] == $user['User']['org'] || $me['org'] == 'ADMIN')): ?>
 		<li><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
 		<li>&nbsp;</li>
 		<?php
