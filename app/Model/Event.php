@@ -308,7 +308,7 @@ class Event extends AppModel {
 	}
 
 	public function massageData(&$data) {
-/*		switch ($data['Event']['distribution']) {
+		switch ($data['Event']['distribution']) {
 			case 'Your organization only':
 				$data['Event']['private'] = true;
 				$data['Event']['cluster'] = false;
@@ -345,7 +345,7 @@ class Event extends AppModel {
 			case 'Completed':
 				$data['Event']['analysis'] = 2;
 				break;
-		}*/
+		}
 		return $data;
 	}
 
@@ -412,10 +412,12 @@ class Event extends AppModel {
 	}
 
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
+		$updated = null;
 		$newLocation = $newTextBody = '';
 		$result = $this->restfullEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
-		if (strlen($newLocation) || $result) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+		if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+				//$updated = true;
 				$result = $this->restfullEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
 			}
 			try { // TODO Xml::build() does not throw the XmlException
@@ -459,6 +461,7 @@ class Event extends AppModel {
 				}
 			}
 		}
+		//if($updated)return false;
 		return true;
 	}
 
@@ -488,7 +491,6 @@ class Event extends AppModel {
 				)
 		);
 		$uri = isset($urlPath) ? $urlPath : $url . '/events';
-
 		// LATER try to do this using a separate EventsController and renderAs() function
 		$xmlArray = array();
 		// rearrange things to be compatible with the Xml::fromArray()
@@ -555,6 +557,7 @@ class Event extends AppModel {
 				case '200':	// 200 (OK) + entity-action-result
 					if ($response->isOk()) {
 						$newTextBody = $response->body();
+						$newLocation = null;
 						return true;
 						//return isset($urlPath) ? $response->body() : true;
 					} else {

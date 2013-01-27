@@ -420,13 +420,13 @@ class EventsController extends AppController {
  *
  * @return bool true if success
  */
-	public function _add(&$data, &$auth, $fromXml, $or='', $passAlong = null) {
+	public function _add(&$data, &$auth, $fromXml, $or='', $passAlong = null, $fromPull = false) {
 		// force check userid and orgname to be from yourself
 		$data['Event']['user_id'] = $auth->user('id');
 		$data['Event']['org'] = strlen($or) ? $or : $auth->user('org'); // FIXME security - org problem
 		unset ($data['Event']['id']);
 		$this->Event->create();
-		$this->Event->data = $data;
+		//$this->Event->data = $data;
 		if ($fromXml) {
 			// Workaround for different structure in XML/array than what CakePHP expects
 			$this->Event->cleanupEventArrayFromXML($data);
@@ -444,9 +444,10 @@ class EventsController extends AppController {
 			$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 			if ($existingEventCount > 0) {
 				// TODO RESTfull, set responce location header..so client can find right URL to edit
+				if($fromPull)return false;
 				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
-				//$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $existingEvent['Event']['id']);
-				//$this->response->send();
+				$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $existingEvent['Event']['id']);
+				$this->response->send();
 				return false;
 			}
 		}
@@ -696,7 +697,7 @@ class EventsController extends AppController {
 		App::uses('HttpSocket', 'Network/Http');
 		$HttpSocket = new HttpSocket();
 		foreach ($servers as &$server) {
-			if((!$passAlong == null) && (!$passAlong == $server)){
+			if(($passAlong != $server)){
 				$thisUploaded = $this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
 				if (!$thisUploaded) {
 					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
