@@ -6,9 +6,9 @@
 		echo $this->Form->input('email');
 		echo $this->Form->input('password');
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
-		if ($currentOrg == 'ADMIN') {
-			echo $this->Form->input('org');
-		}
+if ($currentOrg == 'ADMIN') {
+	echo $this->Form->input('org');
+}
 		echo $this->Form->input('role_id', array('label' => 'Role'));
 		echo $this->Form->input('autoalert');
 		echo $this->Form->input('authkey', array('value' => $authkey));
