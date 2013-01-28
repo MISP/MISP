@@ -46,6 +46,7 @@ class BlacklistsController extends AppController {
  * @return void
  */
 	public function admin_add() {
+		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'blacklists', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminAdd();
 	}
 
@@ -55,6 +56,7 @@ class BlacklistsController extends AppController {
  * @return void
  */
 	public function admin_index() {
+		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'blacklists', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminIndex();
 	}
 
@@ -66,6 +68,7 @@ class BlacklistsController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
+		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'blacklists', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminEdit($id);
 	}
 
@@ -78,6 +81,17 @@ class BlacklistsController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_delete($id = null) {
+		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'blacklists', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminDelete($id);
+	}
+
+/**
+ * index method
+ *
+ * @return void
+ */
+	public function index() {
+		$this->recursive = 0;
+		$this->set('list', Sanitize::clean($this->paginate()));
 	}
 }

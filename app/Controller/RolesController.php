@@ -55,6 +55,7 @@ class RolesController extends AppController {
  * @return void
  */
 	public function admin_add() {
+		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminAdd();
 		$this->set('options', $this->options);
 	}
@@ -65,6 +66,7 @@ class RolesController extends AppController {
  * @return void
  */
 	public function admin_index() {
+		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminIndex();
 		$this->set('options', $this->options);
 	}
@@ -77,6 +79,7 @@ class RolesController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
+		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminEdit($id);
 		$this->set('options', $this->options);
 	}
@@ -84,7 +87,7 @@ class RolesController extends AppController {
 /**
  * admin_delete method
  *
- * @param string $id 
+ * @param string $id
  *
  * @throws MethodNotAllowedException
  * @throws NotFoundException
@@ -93,5 +96,16 @@ class RolesController extends AppController {
  */
 	public function admin_delete($id = null) {
 		$this->AdminCrud->adminDelete($id);
+	}
+
+/**
+ * index method
+ *
+ * @return void
+ */
+	public function index() {
+		$this->recursive = 0;
+		$this->set('list', Sanitize::clean($this->paginate()));
+		$this->set('options', $this->options);
 	}
 }
