@@ -101,7 +101,7 @@ Cache::config('default', array('engine' => 'File'));
 //Configure::write('CyDefSIG.baseurl', 'https://sig.cyber-defence.be');
 Configure::write('CyDefSIG.baseurl', 'http://localhost:8888');
 if (!Configure::read('CyDefSIG.baseurl')) {
-	if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'|| $_SERVER['SERVER_PORT'] == 443) {
+	if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) {
 		Configure::write('CyDefSIG.baseurl', sprintf('https://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
 	} else {
 		Configure::write('CyDefSIG.baseurl', sprintf('http://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
