@@ -10,6 +10,7 @@ App::uses('AppController', 'Controller');
 class BlacklistsController extends AppController {
 
 	public $XXXcomponents = array('Security', 'RequestHandler');
+
 	public $components = array(
 		'Auth' => array(
 			'authorize' => array(

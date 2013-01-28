@@ -86,7 +86,6 @@ class RegexpController extends AppController {
 		$this->set('list', Sanitize::clean($this->paginate()));
 	}
 
-
 /**
  *
  */

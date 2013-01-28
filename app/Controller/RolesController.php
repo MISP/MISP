@@ -40,6 +40,8 @@ class RolesController extends AppController {
  *
  * @param string $id
  * @return void
+ *
+ * @throws NotFoundException
  */
 	public function view($id = null) {
 		$this->Role->id = $id;

@@ -84,13 +84,14 @@ class WhitelistsController extends AppController {
 		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'blaclists', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminDelete($id);
 	}
+
 /**
  * index method
  *
  * @return void
  */
-public function index() {
-	$this->recursive = 0;
-	$this->set('list', Sanitize::clean($this->paginate()));
+	public function index() {
+		$this->recursive = 0;
+		$this->set('list', Sanitize::clean($this->paginate()));
 	}
 }
