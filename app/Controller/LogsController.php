@@ -49,9 +49,9 @@ class LogsController extends AppController {
  */
 	public function admin_index() {
 		$this->set('isSearch', 0);
-		if($this->Auth->user('org') == 'ADMIN'){
+		if ($this->Auth->user('org') == 'ADMIN') {
 			$this->AdminCrud->adminIndex();
-		}else{
+		} else {
 			$orgRestriction = null;
 			$orgRestriction = $this->Auth->user('org');
 			$conditions['Log.org LIKE'] = '%' . $orgRestriction . '%';
@@ -71,9 +71,9 @@ class LogsController extends AppController {
 	public function admin_search() {
 		$fullAddress = array('/admin/logs/search', '/logs/admin_search');
 		$orgRestriction = null;
-		if($this->Auth->user('org') == 'ADMIN'){
+		if ($this->Auth->user('org') == 'ADMIN') {
 			$orgRestriction = false;
-		}else{
+		} else {
 			$orgRestriction = $this->Auth->user('org');
 		}
 		$this->set('orgRestriction', $orgRestriction);
@@ -86,9 +86,9 @@ class LogsController extends AppController {
 
 			if ($this->request->is('post') && in_array($this->request->here, $fullAddress)) {
 				$email = $this->request->data['Log']['email'];
-				if(!$orgRestriction){
+				if (!$orgRestriction) {
 					$org = $this->request->data['Log']['org'];
-				}else{
+				} else {
 					$org = $this->Auth->user('org');
 				}
 				$action = $this->request->data['Log']['action'];

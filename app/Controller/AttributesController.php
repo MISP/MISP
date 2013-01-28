@@ -179,8 +179,8 @@ class AttributesController extends AppController {
 						$successes .= " " . ($key + 1);
 					} else {
 						$fails .= " " . ($key + 1);
-					//debug(CakeSession::read('Message.flash'));
-					//	debug(tru);
+						//debug(CakeSession::read('Message.flash'));
+						//	debug(tru);
 					}
 
 				}
@@ -278,9 +278,9 @@ class AttributesController extends AppController {
 		$count = 0;
 		$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
 		if (isset($maxDist)) {
-			foreach ($distributionsBeforeCut as $current ){
+			foreach ($distributionsBeforeCut as $current) {
 				$distributions[$count] = $current;
-				if($distributions[$count] == $maxDist)break;
+				if ($distributions[$count] == $maxDist) break;
 				$count++;
 			}
 		} else {
@@ -697,7 +697,7 @@ class AttributesController extends AppController {
 					$keywordArray = explode("\n", $keyword);
 					$i = 0;
 					$temp = array();
-					foreach ($keywordArray as $keywordArrayElement){
+					foreach ($keywordArray as $keywordArrayElement) {
 							$keywordArrayElement = '%' . trim($keywordArrayElement) . '%';
 							if ($keywordArrayElement != '%%') array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
 					}

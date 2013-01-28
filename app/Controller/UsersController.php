@@ -222,7 +222,7 @@ class UsersController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
-//			debug($fields);debug(tru);
+		//debug($fields);debug(tru);
 		$this->set('currentOrg', $this->Auth->User('org'));
 		$this->User->id = $id;
 		if (!$this->User->exists()) {
