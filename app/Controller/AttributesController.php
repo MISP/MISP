@@ -182,7 +182,6 @@ class AttributesController extends AppController {
 						//debug(CakeSession::read('Message.flash'));
 						//	debug(tru);
 					}
-
 				}
 				// we added all the attributes,
 				if ($fails) {
@@ -337,8 +336,8 @@ class AttributesController extends AppController {
  */
 	public function add_attachment($eventId = null) {
 		if ($this->request->is('post')) {
+			$this->loadModel('Event');
 			// only own attributes verified by isAuthorized
-
 			// Check if there were problems with the file upload
 			// only keep the last part of the filename, this should prevent directory attacks
 			$filename = basename($this->request->data['Attribute']['value']['name']);
