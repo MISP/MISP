@@ -195,7 +195,7 @@ class UsersController extends AppController {
 			// set invited by
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
 			$this->request->data['User']['change_pw'] = 1;
-			if($this->Auth->User('org')!='ADMIN')$this->request->data['User']['org'] = $this->Auth->User('org');
+			if ($this->Auth->User('org') != 'ADMIN') $this->request->data['User']['org'] = $this->Auth->User('org');
 			if ($this->User->save($this->request->data)) {
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->redirect(array('action' => 'index'));
@@ -243,7 +243,7 @@ class UsersController extends AppController {
 			if ("" != $this->request->data['User']['password'])
 				$fields[] = 'password';
 			$fields[] = 'role_id';
-//			debug($fields);debug(tru);
+			//debug($fields);debug(tru);
 			if ($this->User->save($this->request->data, true, $fields)) {
 				// TODO Audit, extraLog, fields compare
 				// newValues to array
@@ -287,7 +287,7 @@ class UsersController extends AppController {
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
 			$this->User->set('password', '');
-			$this->request->data = Sanitize::clean($this->User->data, array('escape' => False));
+			$this->request->data = Sanitize::clean($this->User->data, array('escape' => false)); // TODO CHECK
 
 		}
 		// TODO ACL CLEANUP combobox for orgs
@@ -530,6 +530,9 @@ class UsersController extends AppController {
 		parent::generateAllFor($field);
 	}
 
+/**
+ * @throws NotFoundException
+ **/
 	public function checkAndCorrectPgps() {
 		if (!self::_isAdmin()) throw new NotFoundException();
 

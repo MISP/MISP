@@ -504,12 +504,12 @@ class EventsController extends AppController {
 		// only edit own events verified by isAuthorized
 
 		//if ('true' == Configure::read('CyDefSIG.private')) {
-//			if (!$this->_IsAdmin()) {
-				$this->Event->read(null, $id);
-				// check for non-private and re-read
-				//if (($this->Event->data['Event']['org'] != $this->Auth->user('org')) || (($this->Event->data['Event']['org'] == $this->Auth->user('org')) && ($this->Event->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
-//					$this->Session->setFlash(__('Invalid event.'));
-	//				$this->redirect(array('controller' => 'users', 'action' => 'terms'));
+		//	if (!$this->_IsAdmin()) {
+		$this->Event->read(null, $id);
+		//		// check for non-private and re-read
+		//		if (($this->Event->data['Event']['org'] != $this->Auth->user('org')) || (($this->Event->data['Event']['org'] == $this->Auth->user('org')) && ($this->Event->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
+		//			$this->Session->setFlash(__('Invalid event.'));
+		//			$this->redirect(array('controller' => 'users', 'action' => 'terms'));
 		//		}
 		//	}
 		//}
@@ -697,7 +697,7 @@ class EventsController extends AppController {
 		App::uses('HttpSocket', 'Network/Http');
 		$HttpSocket = new HttpSocket();
 		foreach ($servers as &$server) {
-			if(($passAlong != $server)){
+			if (($passAlong != $server)) {
 				$thisUploaded = $this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
 				if (!$thisUploaded) {
 					$uploaded = !$uploaded ? $uploaded : $thisUploaded;

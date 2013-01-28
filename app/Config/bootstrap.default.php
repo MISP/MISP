@@ -102,7 +102,7 @@ Cache::config('default', array('engine' => 'File'));
 Configure::write('CyDefSIG.baseurl', 'http://localhost:8888');
 if (!Configure::read('CyDefSIG.baseurl')) {
 	if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'|| $_SERVER['SERVER_PORT'] == 443) {
-    	Configure::write('CyDefSIG.baseurl', sprintf('https://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
+		Configure::write('CyDefSIG.baseurl', sprintf('https://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
 	} else {
 		Configure::write('CyDefSIG.baseurl', sprintf('http://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
 	}
@@ -112,7 +112,7 @@ Configure::write('CyDefSIG.version', '1.1.1');
 Configure::write('CyDefSIG.header', 'CyDefSIG: Cyber Defence Signature Sharing Platform');
 Configure::write('CyDefSIG.footerpart1', 'Powered by CyDefSIG');
 Configure::write('CyDefSIG.footerpart2', '&copy; Belgian Defense CERT & NCIRC');
-Configure::write('CyDefSIG.footer', Configure::read('CyDefSIG.footerpart1') . ' ' .  Configure::read('CyDefSIG.footerpart2'));
+Configure::write('CyDefSIG.footer', Configure::read('CyDefSIG.footerpart1') . ' ' . Configure::read('CyDefSIG.footerpart2'));
 Configure::write('CyDefSIG.footerversion', Configure::read('CyDefSIG.footerpart1') . ' version ' . Configure::read('CyDefSIG.version') . ' ' . Configure::read('CyDefSIG.footerpart2'));
 Configure::write('CyDefSIG.org', 'BE MOD');                // if sync this will be Event.org content on the peer side
 Configure::write('CyDefSIG.logo', 'orgs/MIL.be.png');     // used in Events::index for owned events

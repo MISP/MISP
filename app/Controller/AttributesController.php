@@ -179,8 +179,8 @@ class AttributesController extends AppController {
 						$successes .= " " . ($key + 1);
 					} else {
 						$fails .= " " . ($key + 1);
-				//	debug(CakeSession::read('Message.flash'));
-				//		debug(tru);
+					//debug(CakeSession::read('Message.flash'));
+					//	debug(tru);
 					}
 
 				}
@@ -277,13 +277,13 @@ class AttributesController extends AppController {
 		// combobox for distribution
 		$count = 0;
 		$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
-		if(isset($maxDist)){
-			foreach($distributionsBeforeCut as $current){
+		if (isset($maxDist)) {
+			foreach ($distributionsBeforeCut as $current ){
 				$distributions[$count] = $current;
 				if($distributions[$count] == $maxDist)break;
 				$count++;
 			}
-		}else{
+		} else {
 			$distributions = array_keys($this->Attribute->distributionDescriptions);
 		}
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
@@ -467,15 +467,15 @@ class AttributesController extends AppController {
 		$this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
 
 		// combobox for distribution
-		if(isset($maxDist)){
+		if (isset($maxDist)) {
 			$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
 			$count = 0;
-			foreach($distributionsBeforeCut as $current){
+			foreach ($distributionsBeforeCut as $current) {
 				$distributions[$count] = $current;
-				if($distributions[$count] == $maxDist)break;
+				if ($distributions[$count] == $maxDist)break;
 				$count++;
 			}
-		}else{
+		} else {
 			$distributions = array_keys($this->Attribute->distributionDescriptions);
 		}
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
@@ -582,15 +582,15 @@ class AttributesController extends AppController {
 		$maxDist = $events['Event']['distribution'];
 		$this->set('maxDist', $maxDist);
 		// combobox for distribution
-		if(isset($maxDist)){
+		if (isset($maxDist)) {
 			$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
 			$count = 0;
-			foreach($distributionsBeforeCut as $current){
+			foreach ($distributionsBeforeCut as $current) {
 				$distributions[$count] = $current;
-				if($distributions[$count] == $maxDist)break;
+				if ($distributions[$count] == $maxDist)break;
 				$count++;
 			}
-		}else{
+		} else {
 			$distributions = array_keys($this->Attribute->distributionDescriptions);
 		}
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
@@ -699,7 +699,7 @@ class AttributesController extends AppController {
 					$temp = array();
 					foreach ($keywordArray as $keywordArrayElement){
 							$keywordArrayElement = '%' . trim($keywordArrayElement) . '%';
-							if($keywordArrayElement!='%%')array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+							if ($keywordArrayElement != '%%') array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
 					}
 					$conditions['OR'] = $temp;
 				}

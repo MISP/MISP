@@ -4,7 +4,7 @@
 		<legend><?php echo __('Search Log'); ?></legend>
 	<?php
 		echo $this->Form->input('email', array( 'label' => 'Email'));
-		if($orgRestriction == false){
+		if ($orgRestriction == false) {
 			echo $this->Form->input('org', array( 'label' => 'Org'));
 		}
 		echo $this->Form->input('action', array('between' => $this->Html->div('forminfo', '', array('id' => 'LogActionDiv'))));
