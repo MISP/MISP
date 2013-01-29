@@ -144,6 +144,7 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
+		//if ($this->Auth->User('org') != 'ADMIN' && $this->Auth->User('org') != $this->User->data['User']['org']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
 		//Replaced by isAuthorized
 		//// Only own profile
 		//if ($this->Auth->user('id') != $id) {
@@ -294,6 +295,7 @@ class UsersController extends AppController {
 		} else {
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
+			if ($this->Auth->User('org') != 'ADMIN' && $this->Auth->User('org') != $this->User->data['User']['org']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
 			$this->User->set('password', '');
 			$this->request->data = Sanitize::clean($this->User->data, array('escape' => false)); // TODO CHECK
 
