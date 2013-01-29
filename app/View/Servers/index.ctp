@@ -7,6 +7,7 @@
 			<th><?php echo $this->Paginator->sort('url');?></th>
 			<th>From</th>
 			<?php
+
 if ($isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<?php
@@ -31,15 +32,15 @@ foreach ($servers as $server): ?>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="actions">
 			<?php
-			$mayModify = $isAdmin || ($isAclModifyOrg && ($server['Server']['org'] == $me['org']));
+			$mayModify = ($me['org'] == 'ADMIN' || $me['org'] == $server['Server']['organization']) || ($isAdmin && ($server['Server']['organization'] == $me['org']));
 			if ($mayModify) echo $this->Html->link(__('Edit'), array('action' => 'edit', $server['Server']['id']), null);
 			if ($mayModify) echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $server['Server']['id']), null, __('Are you sure you want to delete # %s?', $server['Server']['id'])); ?>
 
 			<?php // if ($server['Server']['pull']) echo $this->Form->postLink(__('Pull'), array('action' => 'pull', $server['Server']['id']) ); ?>
 			<?php // if ($server['Server']['push']) echo $this->Form->postLink(__('Push'), array('action' => 'push', $server['Server']['id']) ); ?>
 
-			<?php if ($server['Server']['pull']) echo $this->Form->postLink(__('Pull All'), array('action' => 'pull', $server['Server']['id'], 'full') ); ?>
-			<?php if ($server['Server']['push']) echo $this->Form->postLink(__('Push All'), array('action' => 'push', $server['Server']['id'], 'full') ); ?>
+			<?php if ($server['Server']['pull'] && $me['org'] == 'ADMIN') echo $this->Form->postLink(__('Pull All'), array('action' => 'pull', $server['Server']['id'], 'full') ); ?>
+			<?php if ($server['Server']['push'] && $me['org'] == 'ADMIN') echo $this->Form->postLink(__('Push All'), array('action' => 'push', $server['Server']['id'], 'full') ); ?>
 		</td>
 	</tr>
 	<?php
@@ -63,7 +64,7 @@ endforeach; ?>
 </div>
 <div class="actions">
 	<ul>
-		<li><?php if ($isAclAdd) echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
+		<li><?php if ($isAclAdd && $me['org'] == 'ADMIN') echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
 		<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>
 		<li>&nbsp;</li>
 		<?php echo $this->element('actions_menu'); ?>

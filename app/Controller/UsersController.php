@@ -163,7 +163,15 @@ class UsersController extends AppController {
  */
 	public function admin_index() {
 		$this->User->recursive = 0;
-		$this->set('users', Sanitize::clean($this->paginate()));
+		if ($this->Auth->User('org') == "ADMIN") {
+			$this->set('users', Sanitize::clean($this->paginate()));
+		} else {
+			$conditions['User.org LIKE'] = $this->Auth->User('org');
+			$this->paginate = array(
+					'conditions' => array($conditions),
+			);
+			$this->set('users', Sanitize::clean($this->paginate()));
+		}
 	}
 
 /**
@@ -256,7 +264,7 @@ class UsersController extends AppController {
 							$cP = 0;
 							foreach ($newValue as $newValuePart) {
 								if ($cP < 2) $newValueStr .= '-' . $newValuePart;
-								else  $newValueStr = $newValuePart . $newValueStr;
+								else $newValueStr = $newValuePart . $newValueStr;
 								$cP++;
 							}
 							array_push($fieldsNewValues, $newValueStr);
@@ -419,7 +427,7 @@ class UsersController extends AppController {
 		$replace = array('-', '|');
 		$graphFields = '';
 		foreach ($sigTypes as &$sigType) {
-			if ($graphFields != "")  $graphFields .= ", ";
+			if ($graphFields != "") $graphFields .= ", ";
 			$graphFields .= "'" . $sigType . "'";
 		}
 		$graphFields = str_replace($replace, "_", $graphFields);
@@ -444,8 +452,7 @@ class UsersController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$this->User->id = $this->Auth->user('id');
 			$this->User->saveField('termsaccepted', true);
-
-			$this->_refreshAuth();  // refresh auth info
+			$this->_refreshAuth(); // refresh auth info
 			$this->Session->setFlash(__('You accepted the Terms and Conditions.'));
 			$this->redirect(array('action' => 'routeafterlogin'));
 		}
@@ -455,7 +462,7 @@ class UsersController extends AppController {
 	public function news() {
 		$this->User->id = $this->Auth->user('id');
 		$this->User->saveField('newsread', date("Y-m-d"));
-		$this->_refreshAuth();  // refresh auth info
+		$this->_refreshAuth(); // refresh auth info
 	}
 
 	public function extraLog($action = null, $description = null, $fieldsResult = null) {	// TODO move audit to AuditsController?
