@@ -154,7 +154,7 @@ class ServersController extends AppController {
 
 	public function pull($id = null, $full=false) {
 		// TODO should we de-activate data validation for type and category / and or mapping? Maybe other instances have other configurations that are incompatible.
-		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
 		}
@@ -305,7 +305,7 @@ class ServersController extends AppController {
 	}
 
 	public function push($id = null, $full=false) {
-		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
 		}
