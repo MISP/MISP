@@ -9,9 +9,9 @@
 	</tr><?php
 foreach ($list as $item):?>
 	<tr>
-		<td class="short"><?php echo h($item['Regexp']['id']);?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Regexp']['regexp']);?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Regexp']['replacement']);?>&nbsp;</td>
+		<td class="short"><?php echo $item['Regexp']['id'];?>&nbsp;</td>
+		<td class="short"><?php echo $item['Regexp']['regexp'];?>&nbsp;</td>
+		<td class="short"><?php echo $item['Regexp']['replacement'];?>&nbsp;</td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $item['Regexp']['id']));?>
 			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $item['Regexp']['id']), null, __('Are you sure you want to delete %s?', $item['Regexp']['regexp']));?>

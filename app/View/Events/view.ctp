@@ -116,7 +116,7 @@ endif; ?>
 		</dd -->
 		<dt>Info</dt>
 		<dd>
-			<?php echo nl2br(h($event['Event']['info'])); ?>
+			<?php echo nl2br($event['Event']['info']); ?>
 			&nbsp;
 		</dd>
 	</dl>

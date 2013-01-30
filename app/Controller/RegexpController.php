@@ -46,7 +46,7 @@ class RegexpController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminIndex();
 		//}
 	}
@@ -59,7 +59,7 @@ class RegexpController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
-		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminEdit($id);
 	}
 
@@ -72,7 +72,7 @@ class RegexpController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_delete($id = null) {
-		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminDelete($id);
 	}
 
@@ -90,7 +90,7 @@ class RegexpController extends AppController {
  *
  */
 	public function admin_clean() {
-		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->regexpAll('Attribute', 'value');
 		$this->regexpAll('Event', 'info');
 
@@ -98,7 +98,7 @@ class RegexpController extends AppController {
 	}
 
 	public function regexpAll($Model, $Field) {
-		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$deletable = array();
 		$this->loadModel($Model);
 		$all = $this->{$Model}->find('all', array('recursive' => -1));
@@ -118,7 +118,7 @@ class RegexpController extends AppController {
 	}
 
 	public function replaceSpecific($origString) {
-		if($this->Auth->User['User']['org'] != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$returnValue = true;
 		$allRegexp = $this->Regexp->find('all'); // TODO REGEXP INIT LOAD ARRAY
 		foreach ($allRegexp as $regexp) {

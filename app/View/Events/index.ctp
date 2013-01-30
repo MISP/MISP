@@ -69,7 +69,7 @@ foreach ($events as $event):?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 		<?php echo $analysisLevels[$event['Event']['analysis']]; ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
-		<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;</td>
+		<?php echo nl2br($event['Event']['info']); ?>&nbsp;</td>
 		<?php
 	if ('true' == Configure::read('CyDefSIG.sync')): ?><?php
 		if ('true' == Configure::read('CyDefSIG.private')): ?>

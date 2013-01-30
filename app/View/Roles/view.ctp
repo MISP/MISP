@@ -3,12 +3,12 @@
 	<dl>
 		<dt><?php echo __('Id'); ?></dt>
 		<dd>
-			<?php echo h($role['Role']['id']); ?>
+			<?php echo $role['Role']['id']; ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Name'); ?></dt>
 		<dd>
-			<?php echo h($role['Role']['name']); ?>
+			<?php echo $role['Role']['name']; ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Add'); ?></dt>
