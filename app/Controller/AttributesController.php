@@ -302,7 +302,12 @@ class AttributesController extends AppController {
 		}
 
 		$this->Attribute->read();
-		$file = new File(APP . DS . "files" . DS . $this->Attribute->data['Attribute']['event_id'] . DS . $this->Attribute->data['Attribute']['id']);
+		if (PHP_OS == 'WINNT') {
+			$path = APP . "files" . DS . $this->Attribute->data['Attribute']['event_id'] . DS;
+			$file = $this->Attribute->data['Attribute']['id'];
+		} else {
+			$file = new File(APP . "files" . DS . $this->Attribute->data['Attribute']['event_id'] . DS . $this->Attribute->data['Attribute']['id']);
+		}
 		$filename = '';
 		if ('attachment' == $this->Attribute->data['Attribute']['type']) {
 			$filename = Sanitize::clean($this->Attribute->data['Attribute']['value']);
@@ -318,13 +323,23 @@ class AttributesController extends AppController {
 		}
 
 		$this->viewClass = 'Media';
-		$params = array(
-				'id'		=> $file->path,
-				'name'		=> $filename,
-				'extension' => $fileExt,
-				'download'	=> true,
-				'path'		=> DS
-		);
+		if (PHP_OS == 'WINNT') {
+			$params = array(
+					'id'		=> $file,
+					'name'		=> $filename,
+					'extension' => $fileExt,
+					'download'	=> true,
+					'path'		=> $path
+			);
+		} else {
+			$params = array(
+					'id'		=> $file->path,
+					'name'		=> $filename,
+					'extension' => $fileExt,
+					'download'	=> true,
+					'path'		=> DS
+			);
+		}
 		$this->set($params);
 	}
 
@@ -383,7 +398,11 @@ class AttributesController extends AppController {
 			// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
 			// no sanitization is required on the filename, path or type as we save
 			// create directory structure
-			$rootDir = APP . DS . "files" . DS . $this->request->data['Attribute']['event_id'];
+			if (PHP_OS == 'WINNT') {
+				$rootDir = APP . "files" . DS . $this->request->data['Attribute']['event_id'];
+			} else {
+				$rootDir = APP . DS . "files" . DS . $this->request->data['Attribute']['event_id'];
+			}
 			$dir = new Folder($rootDir, true);
 			// move the file to the correct location
 			$destpath = $rootDir . DS . $this->Attribute->id; // id of the new attribute in the database
@@ -411,9 +430,14 @@ class AttributesController extends AppController {
 				$execRetval = '';
 				$execOutput = array();
 				rename($file->path, $fileInZip->path); // TODO check if no workaround exists for the current filtering mechanisms
-				exec("zip -j -P infected " . $zipfile->path . ' "' . addslashes($fileInZip->path) . '"', $execOutput, $execRetval);
+				if (PHP_OS == 'WINNT') {
+					$string = "zip -j -P infected " . $zipfile->path . ' "' . $fileInZip->path . '"';
+					exec("zip -j -P infected " . $zipfile->path . ' "' . $fileInZip->path . '"', $execOutput, $execRetval);
+				} else {
+					exec("zip -j -P infected " . $zipfile->path . ' "' . addslashes($fileInZip->path) . '"', $execOutput, $execRetval);
+				}
 				if ($execRetval != 0) {	// not EXIT_SUCCESS
-					$this->Session->setFlash(__('Problem with zipping the attachment. Please report to administrator. ' . $execOutput, true), 'default', array(), 'error');
+					$this->Session->setFlash(__('Problem with zipping the attachment. Please report to administrator. ' . $string . PHP_OS . $execOutput, true), 'default', array(), 'error');
 					// remove the entry from the database
 					$this->Attribute->delete();
 					$fileInZip->delete();
