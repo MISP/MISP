@@ -167,7 +167,7 @@ class AttributesController extends AppController {
 					continue; // don't do anything for empty lines
 
 					$this->Attribute->create();
-					$this->request->data['Attribute']['value'] = $attribute; // set the value as the content of the single line
+					$this->request->data['Attribute']['value'] = Sanitize::clean($attribute); // set the value as the content of the single line
 					if ('true' == Configure::read('CyDefSIG.private')) {
 						$this->request->data = $this->Attribute->massageData($this->request->data);
 					}
@@ -375,10 +375,12 @@ class AttributesController extends AppController {
 			$this->Attribute->create();
 			if ($this->request->data['Attribute']['malware']) {
 				$this->request->data['Attribute']['type'] = "malware-sample";
+				$filename = Sanitize::clean($filename);
 				$this->request->data['Attribute']['value'] = $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
 				$this->request->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 			} else {
 				$this->request->data['Attribute']['type'] = "attachment";
+				$filename = Sanitize::clean($filename);
 				$this->request->data['Attribute']['value'] = $filename;
 				$this->request->data['Attribute']['to_ids'] = 0;
 			}
@@ -431,13 +433,12 @@ class AttributesController extends AppController {
 				$execOutput = array();
 				rename($file->path, $fileInZip->path); // TODO check if no workaround exists for the current filtering mechanisms
 				if (PHP_OS == 'WINNT') {
-					$string = "zip -j -P infected " . $zipfile->path . ' "' . $fileInZip->path . '"';
 					exec("zip -j -P infected " . $zipfile->path . ' "' . $fileInZip->path . '"', $execOutput, $execRetval);
 				} else {
 					exec("zip -j -P infected " . $zipfile->path . ' "' . addslashes($fileInZip->path) . '"', $execOutput, $execRetval);
 				}
 				if ($execRetval != 0) {	// not EXIT_SUCCESS
-					$this->Session->setFlash(__('Problem with zipping the attachment. Please report to administrator. ' . $string . PHP_OS . $execOutput, true), 'default', array(), 'error');
+					$this->Session->setFlash(__('Problem with zipping the attachment. Please report to administrator. ' . $execOutput, true), 'default', array(), 'error');
 					// remove the entry from the database
 					$this->Attribute->delete();
 					$fileInZip->delete();

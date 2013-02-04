@@ -11,7 +11,9 @@ if ($currentOrg == 'ADMIN') {
 }
 		echo $this->Form->input('role_id', array('label' => 'Role'));	// TODO ACL, User edit role_id.
 		echo $this->Form->input('autoalert');
-		echo $this->Form->input('authkey');
+		echo $this->Form->input('authkey', array('disabled' => 'disabled'));
+		echo $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $currentId));
+		echo ('<br><br>');
 		echo $this->Form->input('nids_sid');
 		echo $this->Form->input('termsaccepted');
 		echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => 'Change Password'));

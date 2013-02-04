@@ -49,13 +49,13 @@ class Attribute extends AppModel {
 			IF (Attribute.category="Payload type", "h",
 			IF (Attribute.category="Attribution", "i",
 			IF (Attribute.category="External analysis", "j", "k"))))))))))'
-	); 	// TODO hardcoded
+	); // TODO hardcoded
 
 /**
  * Field Descriptions
  * explanations of certain fields to be used in various views
  *
- * @public array
+ * @var array
  */
 	public $fieldDescriptions = array(
 			'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
@@ -63,8 +63,8 @@ class Attribute extends AppModel {
 	);
 
 	public $distributionDescriptions = array(
-		'Your organization only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of your organisation on your server to see it."),
-		'This server-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of any organisation on your server to see it."),
+		'Your organization only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
+		'This server-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of any organisation on this server to see it."),
 		'This Community-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on your MISP server and organisations running MISP servers that synchronise with your server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of your community."), // former Community
 		'Connected communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes all organisations on your own MISP server, all organisations on MISP servers synchronising with your server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from your own). Any other organisations connected to linked servers that are 2 hops away from your own will be restricted from seeing the event. Use this option if your server isn't the central MISP hub of the community but is connected to it."),
 		'All communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
@@ -403,7 +403,7 @@ class Attribute extends AppModel {
 
 	public function beforeDelete($cascade = true) {
 		// delete attachments from the disk
-		$this->read();  // first read the attribute from the db
+		$this->read(); // first read the attribute from the db
 		if ($this->typeIsAttachment($this->data['Attribute']['type'])) {
 			// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 			// only delete the file if it exists
@@ -821,7 +821,7 @@ class Attribute extends AppModel {
 		}
 
 		if ($this->save($this->data)) {
-			 // attribute saved correctly in the db
+			// attribute saved correctly in the db
 		} else {
 			// do some?
 		}
@@ -832,7 +832,7 @@ class Attribute extends AppModel {
 		$rootDir = APP . DS . "files" . DS . $eventId;
 		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
-		$destpath = $rootDir . DS . $this->getId();   // id of the new attribute in the database
+		$destpath = $rootDir . DS . $this->getId(); // id of the new attribute in the database
 		$file = new File ($destpath);
 		$zipfile = new File ($destpath . '.zip');
 		$fileInZip = new File($rootDir . DS . $extraPath . $filename); // FIXME do sanitization of the filename
@@ -843,10 +843,10 @@ class Attribute extends AppModel {
 			$execRetval = '';
 			$execOutput = array();
 			exec("zip -j -P infected " . $zipfile->path . ' "' . addslashes($fileInZip->path) . '"', $execOutput, $execRetval);
-			if ($execRetval != 0) {   // not EXIT_SUCCESS
+			if ($execRetval != 0) { // not EXIT_SUCCESS
 				// do some?
 			};
-			$fileInZip->delete();              // delete the original not-zipped-file
+			$fileInZip->delete(); // delete the original not-zipped-file
 			rename($zipfile->path, $file->path); // rename the .zip to .nothing
 		} else {
 			$fileAttach = new File($fileP);

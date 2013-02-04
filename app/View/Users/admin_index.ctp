@@ -42,7 +42,7 @@ foreach ($users as $user): ?>
 		<?php echo h($user['User']['newsread']); ?>&nbsp;</td>
 		<td class="actions">
 			<?php
-	if (($isAclModifyOrg && ($user['User']['org'] == $me['org'])) || ('1' == $me['id'])) {
+	if (($isAclAdmin && (($user['User']['org'] == $me['org'])) || ('1' == $me['id'])) || ($me['org'] == 'ADMIN')) {
 				echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $user['User']['id']), null);
 				echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $user['User']['id']), null, __('Are you sure you want to delete # %s?', $user['User']['id']));
 	}?>

@@ -48,6 +48,7 @@ class LogsController extends AppController {
  * @return void
  */
 	public function admin_index() {
+		if(!$this->checkAction('perm_audit')) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$this->set('isSearch', 0);
 		if ($this->Auth->user('org') == 'ADMIN') {
 			$this->AdminCrud->adminIndex();
@@ -58,7 +59,7 @@ class LogsController extends AppController {
 			$this->recursive = 0;
 			$this->paginate = array(
 					'limit' => 60,
-					'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 logs(?)
+					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 logs(?)
 					'conditions' => $conditions
 			);
 
@@ -69,6 +70,7 @@ class LogsController extends AppController {
 	public $helpers = array('Js' => array('Jquery'));
 
 	public function admin_search() {
+		if(!$this->checkAction('perm_audit')) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$fullAddress = array('/admin/logs/search', '/logs/admin_search');
 		$orgRestriction = null;
 		if ($this->Auth->user('org') == 'ADMIN') {
@@ -123,7 +125,7 @@ class LogsController extends AppController {
 				$this->{$this->defaultModel}->recursive = 0;
 				$this->paginate = array(
 					'limit' => 60,
-					'maxLimit' => 9999,  // LATER we will bump here on a problem once we have more than 9999 logs(?)
+					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 logs(?)
 					'conditions' => $conditions
 				);
 				$this->set('list', Sanitize::clean($this->paginate()));

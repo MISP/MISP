@@ -92,7 +92,7 @@ class AppController extends Controller {
 		if ($this->_isRest()) {
 			// disable CSRF for REST access
 			if (array_key_exists('Security', $this->components))
-				$this->Security->csrfCheck = false;
+				$this->Security->csrfCheck = true;
 
 			// Authenticate user with authkey in Authorization HTTP header
 			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
@@ -128,6 +128,7 @@ class AppController extends Controller {
 		$this->set('isAclModify', $this->checkAcl('edit'));
 		$this->set('isAclModifyOrg', $this->checkRole());
 		$this->set('isAclPublish', $this->checkAcl('publish'));
+		$this->set('isAclAdd2', $this->checkAction('perm_add'));
 		$this->set('isAclSync', $this->checkAction('perm_sync'));
 		$this->set('isAclAdmin', $this->checkAction('perm_admin'));
 		$this->set('isAclAudit', $this->checkAction('perm_audit'));
@@ -159,6 +160,14 @@ class AppController extends Controller {
 	protected function _isAdmin() {
 		$org = $this->Auth->user('org');
 		if ((isset($org) && $org === 'ADMIN') || $this->checkAction('perm_admin')) {
+			return true;
+		}
+		return false;
+	}
+
+	protected function _isSiteAdmin() {
+		$org = $this->Auth->user('org');
+		if (isset($org) && $org === 'ADMIN') {
 			return true;
 		}
 		return false;
@@ -304,7 +313,7 @@ class AppController extends Controller {
 		$queries = array(
 		// ATTRIBUTES
 				// rename value to value1
-				 "ALTER TABLE `attributes` CHANGE `value` `value1` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL "
+				"ALTER TABLE `attributes` CHANGE `value` `value1` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL "
 				// add value2
 				,"ALTER TABLE `attributes` ADD `value2` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL AFTER `value1` "
 				// fix the keys
