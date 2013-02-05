@@ -7,6 +7,8 @@ App::uses('AppModel', 'Model');
  */
 class Role extends AppModel {
 
+	public $components = array('Acl');
+
 /**
  * Validation rules
  *
@@ -99,40 +101,5 @@ class Role extends AppModel {
 				break;
 		}
 		return true;
-	}
-
-	public function afterSava($created) {
-		$this->saveAcl($this, $this->data['Role']['perm_add'], $this->data['Role']['perm_modify'], $this->data['Role']['perm_publish']);	// save to ACL as well
-	}
-
-/**
- * saveAcl method
- *
- * @param string $id
- * @return void
- */
-	public function saveAcl($role, $permAdd = false, $permModify = false, $permPublish = false) {
-		$acl = new Acl();
-		// this all could need some 'if-changed then do'
-
-		if ($permAdd) {
-			$acl->allow($role, 'controllers/Events/add');
-			$acl->allow($role, 'controllers/Attributes/add');
-		} else {
-			$acl->deny($role, 'controllers/Events/add');
-			$aAcl->deny($role, 'controllers/Attributes/add');
-		}
-		if ($permModify) {
-			$acl->allow($role, 'controllers/Events/edit');
-			$acl->allow($role, 'controllers/Attributes/edit');
-		} else {
-			$acl->deny($role, 'controllers/Events/edit');
-			$acl->deny($role, 'controllers/Attributes/edit');
-		}
-		if ($permPublish) {
-			$acl->allow($role, 'controllers/Events/publish');
-		} else {
-			$acl->deny($role, 'controllers/Events/publish');
-		}
 	}
 }

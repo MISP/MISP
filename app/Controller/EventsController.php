@@ -173,7 +173,7 @@ class EventsController extends AppController {
 				// check private
 				if (($this->Event->data['Event']['private'] && !$this->Event->data['Event']['cluster']) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
 					$this->Session->setFlash(__('Invalid event.'));
-					$this->redirect(array('controller' => 'users', 'action' => 'terms'));
+					$this->redirect(array('controller' => 'events', 'action' => 'index'));
 				}
 			}
 			$this->set('analysisLevels', $this->Event->analysisLevels);

@@ -9,13 +9,13 @@ App::uses('AppController', 'Controller');
  */
 class RolesController extends AppController {
 
-	public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage &amp; Publish Organization Events');
+	public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage &amp Publish Organization Events');
 
 	public $components = array(
 		'Acl',
 		'Auth' => array(
 			'authorize' => array(
-				'Actions' => array('actionPath' => 'controllers/Roles')
+				'Actions' => array('actionPath' => 'controllers')
 			)
 		),
 		'Security',
@@ -45,6 +45,8 @@ class RolesController extends AppController {
  */
 	public function view($id = null) {
 		$this->Role->id = $id;
+		//$this->Acl->allow($this->Role, 'controllers/Events/add');
+		debug('here');
 		if (!$this->Role->exists()) {
 			throw new NotFoundException(__('Invalid role'));
 		}
@@ -58,8 +60,23 @@ class RolesController extends AppController {
  */
 	public function admin_add() {
 		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
-		$this->AdminCrud->adminAdd();
+		if ($this->request->is('post')) {
+			$this->Role->create();
+			if ($this->Role->save($this->request->data)) {
+				$this->Session->setFlash(__(sprintf('The Role has been saved.')));
+				$this->set('options', $this->options);
+				$passAlong = $this->Role->read(null, $this->Role->getInsertID());
+				debug($passAlong);
+				$this->generateACL($passAlong);
+				$this->redirect(array('action' => 'index'));
+			} else {
+				if (!($this->Session->check('Message.flash'))) {
+					$this->Role->Session->setFlash(__(sprintf('The Role could not be saved. Please, try again.')));
+				}
+			}
+		}
 		$this->set('options', $this->options);
+		//$this->AdminCrud->adminAdd();
 	}
 
 /**

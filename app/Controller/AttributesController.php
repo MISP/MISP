@@ -528,7 +528,7 @@ class AttributesController extends AppController {
 				// check for non-private and re-read
 				if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
 					$this->Session->setFlash(__('Invalid attribute.'));
-					$this->redirect(array('controller' => 'users', 'action' => 'terms'));
+					$this->redirect(array('controller' => 'events', 'action' => 'index'));
 				}
 			}
 		}

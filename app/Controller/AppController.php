@@ -372,6 +372,91 @@ class AppController extends Controller {
 		$this->generateHop($yourOrg);
 	}
 
+	public function generateArosAcos() {
+		if (!self::_isAdmin()) throw new NotFoundException();
+		$this->loadModel('Role');
+		$roles = $this->Role->find('all',array('recursive' => 0));
+		foreach ($roles as $role) {
+			$this->generateACL($role);
+		}
+		exit;
+	}
+
+	public function generateACL($inc) {
+		if (!self::_isAdmin()) throw new NotFoundException();
+		if($inc['Role']['permission'] == null) $inc['Role']['permission'] = 0;
+		switch ($inc['Role']['permission']) {
+			case '0':
+				$permAdd = false;
+				$permModify = false;
+				$PermModifyOrg = false;
+				$permPublish = false;
+				break;
+			case '1':
+				$permAdd = true;
+				$permModify = true;
+				$PermModifyOrg = false;
+				$permPublish = false;
+				break;
+			case '2':
+				$permAdd = true;
+				$permModify = true;
+				$PermModifyOrg = true;
+				$permPublish = false;
+				break;
+			case '3':
+				$permAdd = true;
+				$permModify = true;
+				$PermModifyOrg = true;
+				$permPublish = true;
+				break;
+			default:
+				break;
+		}
+		if ($permAdd) {
+			$this->Acl->allow($inc, 'controllers/Events/add');
+			$this->Acl->allow($inc, 'controllers/Attributes/add');
+		} else {
+			$this->Acl->deny($inc, 'controllers/Events/add');
+			$this->Acl->deny($inc, 'controllers/Attributes/add');
+		}
+		if ($permModify) {
+			$this->Acl->allow($inc, 'controllers/Events/edit');
+			$this->Acl->allow($inc, 'controllers/Attributes/edit');
+		} else {
+			$this->Acl->deny($inc, 'controllers/Events/edit');
+			$this->Acl->deny($inc, 'controllers/Attributes/edit');
+		}
+		if ($permPublish) {
+			$this->Acl->allow($inc, 'controllers/Events/publish');
+		} else {
+			$this->Acl->deny($inc, 'controllers/Events/publish');
+		}
+		if (isset($inc['Role']['perm_sync'])) {
+			if ($inc['Role']['perm_sync']) {
+				$this->Acl->allow($inc, 'controllers/Servers');
+			}
+		} else {
+				$this->Acl->deny($inc, 'controllers/Servers');
+		}
+
+		if (isset($inc['Role']['perm_audit'])) {
+			if ($inc['Role']['perm_audit']) {
+				$this->Acl->allow($inc, 'controllers/Logs');
+			}
+		} else {
+			$this->Acl->deny($inc, 'controllers/Logs');
+		}
+
+		if (isset($inc['Role']['perm_admin'])) {
+			if ($inc['Role']['perm_admin']) {
+				//$this->Acl->allow($inc, 'controllers/Logs');
+			}
+		} else {
+			$this->Acl->deny($inc, 'controllers/Roles');
+		}
+	}
+
 	public function generateCorrelation() {
 		if (!self::_isAdmin()) throw new NotFoundException();
 
