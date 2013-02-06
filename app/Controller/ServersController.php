@@ -64,6 +64,7 @@ class ServersController extends AppController {
 							'conditions' => array(),
 			);
 		} else {
+			if (!$this->checkAction('perm_sync')) $this->redirect(array('controller' => 'events', 'action' => 'index'));
 			$conditions['Server.organization LIKE'] = $this->Auth->user('org');
 			$this->paginate = array(
 					'conditions' => array($conditions),
@@ -78,7 +79,7 @@ class ServersController extends AppController {
  * @return void
  */
 	public function add() {
-		if($this->Auth->user('org') != 'ADMIN') $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (($this->Auth->user('org') != 'ADMIN') && !($this->Server->id == $this->Auth->user('org') && $this->checkAction('perm_sync'))) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post')) {
 			// force check userid and orgname to be from yourself
 			$this->request->data['Server']['org'] = $this->Auth->user('org');
@@ -136,7 +137,7 @@ class ServersController extends AppController {
  * @throws NotFoundException
  */
 	public function delete($id = null) {
-		if($this->Auth->user('org') != 'ADMIN' && $this->Server->id != $this->Auth->user('org')) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if($this->Auth->user('org') != 'ADMIN' && !($this->Server->id == $this->Auth->user('org') && $this->checkAction('perm_sync'))) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
 		}
