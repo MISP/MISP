@@ -31,6 +31,11 @@
 			<?php echo h($role['Role']['perm_full']); ?>
 			&nbsp;
 		</dd>
+		<dt><?php echo __('Auth'); ?></dt>
+		<dd>
+			<?php echo h($role['Role']['perm_auth']); ?>
+			&nbsp;
+		</dd>
 	</dl>
 </div>
 <div class="actions">

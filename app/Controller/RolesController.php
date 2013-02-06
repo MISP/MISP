@@ -9,7 +9,7 @@ App::uses('AppController', 'Controller');
  */
 class RolesController extends AppController {
 
-	public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage &amp Publish Organization Events');
+	public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage &amp; Publish Organization Events');
 
 	public $components = array(
 		'Acl',
@@ -46,7 +46,6 @@ class RolesController extends AppController {
 	public function view($id = null) {
 		$this->Role->id = $id;
 		//$this->Acl->allow($this->Role, 'controllers/Events/add');
-		debug('here');
 		if (!$this->Role->exists()) {
 			throw new NotFoundException(__('Invalid role'));
 		}

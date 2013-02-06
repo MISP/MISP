@@ -8,6 +8,7 @@
 		<?php echo $this->Form->input('perm_sync', array('type' => 'checkbox', 'label' => 'Sync Actions'));?>
 		<?php echo $this->Form->input('perm_admin', array('type' => 'checkbox', 'label' => 'Administration Actions'));?>
 		<?php echo $this->Form->input('perm_audit', array('type' => 'checkbox', 'label' => 'Audit Actions'));?>
+		<?php echo $this->Form->input('perm_auth', array('type' => 'checkbox', 'label' => 'Auth Key Access'));?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit'));?>
 </div>

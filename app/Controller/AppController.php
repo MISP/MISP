@@ -92,11 +92,15 @@ class AppController extends Controller {
 		if ($this->_isRest()) {
 			// disable CSRF for REST access
 			if (array_key_exists('Security', $this->components))
-				$this->Security->csrfCheck = true;
+				$this->Security->csrfCheck = false;
 
 			// Authenticate user with authkey in Authorization HTTP header
 			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
-				$authkey = $_SERVER['HTTP_AUTHORIZATION'];
+				//Sanitize the authkey
+				$authkey = Sanitize::clean($_SERVER['HTTP_AUTHORIZATION']);
+				if (!$this->checkAuthUser($authkey)) {
+					throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
+				}
 				$this->loadModel('User');
 				$params = array(
 						'conditions' => array('User.authkey' => $authkey),
@@ -132,6 +136,7 @@ class AppController extends Controller {
 		$this->set('isAclSync', $this->checkAction('perm_sync'));
 		$this->set('isAclAdmin', $this->checkAction('perm_admin'));
 		$this->set('isAclAudit', $this->checkAction('perm_audit'));
+		$this->set('isAclAuth', $this->checkAction('perm_auth'));
 	}
 
 	//public function blackhole($type) {
@@ -455,6 +460,12 @@ class AppController extends Controller {
 		} else {
 			$this->Acl->deny($inc, 'controllers/Roles');
 		}
+		if (isset($inc['Role']['perm_auth'])) {
+			if ($inc['Role']['perm_auth']) {
+			}
+		} else {
+			$this->Acl->deny($inc, 'controllers/Events/export');
+		}
 	}
 
 	public function generateCorrelation() {
@@ -522,6 +533,23 @@ class AppController extends Controller {
 			}
 		}
 		return $maySync;
+	}
+
+/**
+ *
+ * @param unknown $authkey
+ * @return boolean
+ */
+	public function checkAuthUser($authkey) {
+		$result = false;
+		$user = ClassRegistry::init('User')->findByAuthkey($authkey);
+		if (isset($user['User'])) {
+			$role = ClassRegistry::init('Role')->findById($user['User']['role_id']);
+			if ($role['Role']['perm_auth']) {
+				$result = true;
+			}
+		}
+		return $result;
 	}
 
 /**

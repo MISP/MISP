@@ -8,6 +8,7 @@
 			<th><?php echo $this->Paginator->sort('perm_sync', 'Sync Actions');?></th>
 			<th><?php echo $this->Paginator->sort('perm_admin', 'Administration Actions');?></th>
 			<th><?php echo $this->Paginator->sort('perm_audit', 'Audit Actions');?></th>
+			<th><?php echo $this->Paginator->sort('perm_auth', 'Auth Key Access');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
 foreach ($list as $item): ?>
@@ -18,6 +19,7 @@ foreach ($list as $item): ?>
 		<td class="short"><?php echo h($item['Role']['perm_sync']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_admin']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_audit']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['perm_auth']); ?>&nbsp;</td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $item['Role']['id'])); ?>
 			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $item['Role']['id']), null, __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>

@@ -784,7 +784,7 @@ class EventsController extends AppController {
 			} else {
 				$lastResult = array_pop($result);
 				$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
-				$this->Session->setFlash(__(sprintf('Event not published to %s, re-try later.', $resultString), true));
+				$this->Session->setFlash(__(sprintf('Event not published to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString), true));
 			}
 			$this->redirect(array('action' => 'view', $id));
 		}
@@ -1147,7 +1147,9 @@ class EventsController extends AppController {
 
 	public function export() {
 		// Simply display a static view
-
+		if (!$this->checkAction('perm_auth')) {
+			$this->redirect(array('controller' => 'events', 'action' => 'index'));
+		}
 		// generate the list of Attribute types
 		$this->loadModel('Attribute');
 		$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
@@ -1159,6 +1161,9 @@ class EventsController extends AppController {
 		$user = $this->User->findByAuthkey($key);
 		if (empty($user)) {
 			throw new UnauthorizedException('Incorrect authentication key');
+		}
+		if (!$this->checkAuthUser($key)) {
+			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		// display the full xml
 		$this->response->type('xml');	// set the content type
@@ -1198,6 +1203,9 @@ class EventsController extends AppController {
 		if (empty($user)) {
 			throw new UnauthorizedException('Incorrect authentication key');
 		}
+		if (!$this->checkAuthUser($key)) {
+			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+		}
 		// display the full snort rulebase
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: inline; filename="cydefsig.rules"');
@@ -1232,6 +1240,9 @@ class EventsController extends AppController {
 		$user = $this->User->findByAuthkey($key);
 		if (empty($user)) {
 			throw new UnauthorizedException('Incorrect authentication key');
+		}
+		if (!$this->checkAuthUser($key)) {
+			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		// display the full md5 set
 		$this->response->type(array('txt' => 'text/html'));	// set the content type
@@ -1273,6 +1284,9 @@ class EventsController extends AppController {
 		if (empty($user)) {
 			throw new UnauthorizedException('Incorrect authentication key');
 		}
+		if (!$this->checkAuthUser($key)) {
+			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+		}
 		// display the full SHA-1 set
 		$this->response->type(array('txt' => 'text/html'));	// set the content type
 		$this->header('Content-Disposition: inline; filename="cydefsig.rules"');
@@ -1312,7 +1326,9 @@ class EventsController extends AppController {
 		if (empty($user)) {
 			throw new UnauthorizedException('Incorrect authentication key');
 		}
-
+		if (!$this->checkAuthUser($key)) {
+			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+		}
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: inline; filename="cydefsig.' . $type . '.txt"');
 		$this->layout = 'text/default';

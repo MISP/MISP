@@ -7,8 +7,6 @@ App::uses('AppModel', 'Model');
  */
 class Role extends AppModel {
 
-	public $components = array('Acl');
-
 /**
  * Validation rules
  *

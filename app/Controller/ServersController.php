@@ -174,6 +174,10 @@ class ServersController extends AppController {
 		if ("full" == $full) {
 			// get a list of the event_ids on the server
 			$eventIds = $this->Event->getEventIdsFromServer($this->Server->data);
+			if ($eventIds === 403) {
+				$this->Session->setFlash(__('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server.'));
+				$this->redirect(array('action' => 'index'));
+			}
 			$successes = array();
 			$fails = array();
 			// download each event

@@ -3,7 +3,8 @@ if ($isAclAdd) echo $this->Html->link(__('New Event', true), array('controller' 
 		<li><?php echo $this->Html->link(__('List Events', true), array('controller' => 'events', 'action' => 'index')); ?></li>
 		<li><?php echo $this->Html->link(__('List Attributes', true), array('controller' => 'attributes', 'action' => 'index')); ?> </li>
 		<li><?php echo $this->Html->link(__('Search Attributes', true), array('controller' => 'attributes', 'action' => 'search')); ?> </li>
-		<li><?php echo $this->Html->link(__('Export', true), array('controller' => 'events', 'action' => 'export')); ?></li>
+		<li><?php
+if ($isAclAuth) echo $this->Html->link(__('Export', true), array('controller' => 'events', 'action' => 'export')); ?></li>
 
 		<li>&nbsp;</li>
 		<h3><?php echo __('Global Actions'); ?></h3>

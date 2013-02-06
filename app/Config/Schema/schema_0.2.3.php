@@ -102,6 +102,7 @@ class AppSchema extends CakeSchema {
 		'perm_modify' => array('type' => 'boolean', 'null' => true, 'default' => null),
 		'perm_publish' => array('type' => 'boolean', 'null' => true, 'default' => null),
 		'perm_full' => array('type' => 'boolean', 'null' => true, 'default' => null),
+		'perm_auth' => array('type' => 'boolean', 'null' => true, 'default' => null),
 		'indexes' => array('PRIMARY' => array('column' => 'id', 'unique' => 1)),
 		'tableParameters' => array('charset' => 'latin1', 'collate' => 'latin1_swedish_ci', 'engine' => 'InnoDB')
 	);

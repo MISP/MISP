@@ -1,0 +1,1 @@
+ALTER TABLE `roles` ADD `perm_auth` TINYINT( 1 ) NOT NULL 

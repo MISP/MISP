@@ -234,7 +234,6 @@ class UsersController extends AppController {
 		//debug($fields);debug(tru);
 		$this->set('currentOrg', $this->Auth->User('org'));
 		$this->User->id = $id;
-		$this->set('currentId', $id);
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
