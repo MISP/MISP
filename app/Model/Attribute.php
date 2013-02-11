@@ -645,7 +645,8 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'link':
-				if (!preg_match("^(?:https?://)?(?:[a-z0-9-]+\\.)*((?:[a-z0-9-]+\\.)[a-z]+)", $value)) {
+				if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $value) && !preg_match("#\n#", $value)) {
+					debug('here');
 					$returnValue = true;
 				}
 				break;
@@ -669,10 +670,12 @@ class Attribute extends AppModel {
 				break;
 			case 'regkey|value':
 				// no newline
-				if (!preg_match("#.+\|.+#", $value)) {
+				if (!preg_match("#.+\|.+#", $value) && !preg_match("#\n#", $value)) {
 					$returnValue = true;
 				}
 				break;
+			case 'attachment':
+			case 'malware-sample':
 			case 'snort':
 				// no validation yet. TODO implement data validation on snort attribute type
 			case 'other':
@@ -681,9 +684,11 @@ class Attribute extends AppModel {
 		}
 
 		// default action is to return false
+		/*
 		if (!$returnValue) {
 			$returnValue = true;
 		}
+		*/
 		return $returnValue;
 	}
 
@@ -834,7 +839,11 @@ class Attribute extends AppModel {
 		// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
 		// no sanitization is required on the filename, path or type as we save
 		// create directory structure
-		$rootDir = APP . DS . "files" . DS . $eventId;
+		if (PHP_OS == 'WINNT') {
+			$rootDir = APP . "files" . DS . $eventId;
+		} else {
+			$rootDir = APP . DS . "files" . DS . $eventId;
+		}
 		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
 		$destpath = $rootDir . DS . $this->getId(); // id of the new attribute in the database
