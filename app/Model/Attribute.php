@@ -644,6 +644,11 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				}
 				break;
+			case 'link':
+				if (!preg_match("^(?:https?://)?(?:[a-z0-9-]+\\.)*((?:[a-z0-9-]+\\.)[a-z]+)", $value)) {
+					$returnValue = true;
+				}
+				break;
 			case 'url':
 				// no newline
 				if (!preg_match("#\n#", $value)) {

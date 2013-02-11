@@ -237,6 +237,7 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
+		$this->set('currentId', $id);
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$fields = array();
 			foreach (array_keys($this->request->data['User']) as $field) {

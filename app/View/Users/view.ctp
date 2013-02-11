@@ -1,7 +1,7 @@
 <div class="users view">
 <div class="actions" style="float:right;">
 	<ul><li><?php if ($isAclAdmin && ($me['org'] == $user['User']['org'] || $me['org'] == 'ADMIN')) echo $this->Html->link(__('Edit Profile', true), array('admin' => true, 'action' => 'edit', $user['User']['id'])); ?> </li></ul>
-	<ul><li><?php if ($me['id'] == $user['User']['id']) echo $this->Html->link(__('Edit Profile', true), array('action' => 'edit', $user['User']['id'])); ?> </li></ul>
+	<ul><li><?php if ($me['id'] == $user['User']['id'] && (!$isAclAdmin)) echo $this->Html->link(__('Edit Profile', true), array('action' => 'edit', $user['User']['id'])); ?> </li></ul>
 </div>
 <h2><?php  echo __('User');?></h2>
 	<dl>
@@ -65,7 +65,7 @@ if (h($user['User']['gpgkey']) != 0) {
 if ($isAclAdmin && ($me['org'] == $user['User']['org'] || $me['org'] == 'ADMIN')) { ?>
 		<li><?php echo $this->Html->link(__('Edit User', true), array('admin' => true, 'action' => 'edit', $user['User']['id'])); ?></li>
 	<?php
-} else if ($me['id'] == $user['User']['id']) {
+} else if ($me['id'] == $user['User']['id'] && $me['org'] != 'ADMIN') {
 	?>
 	<li><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
 	<?php

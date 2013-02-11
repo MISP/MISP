@@ -231,7 +231,8 @@ class AttributesController extends AppController {
 					//$this->request->data['Attribute']['event_id'] = $eventId;
 				}
 				// Notice (8): Undefined index: id [APP/Controller/AttributesController.php, line 234]
-				$savedId = $this->request->data['Attribute']['id'];
+				// Should be fixed
+				$savedId = $this->Attribute->getId();
 
 				if ($this->Attribute->save($this->request->data)) {
 					if ($this->_isRest()) {
