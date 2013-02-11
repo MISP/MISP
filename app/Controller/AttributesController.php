@@ -376,12 +376,12 @@ class AttributesController extends AppController {
 			$this->Attribute->create();
 			if ($this->request->data['Attribute']['malware']) {
 				$this->request->data['Attribute']['type'] = "malware-sample";
-				//$filename = Sanitize::clean($filename);
+				$filename = Sanitize::clean($filename);
 				$this->request->data['Attribute']['value'] = $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
 				$this->request->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 			} else {
 				$this->request->data['Attribute']['type'] = "attachment";
-				//$filename = Sanitize::clean($filename);
+				$filename = Sanitize::clean($filename);
 				$this->request->data['Attribute']['value'] = $filename;
 				$this->request->data['Attribute']['to_ids'] = 0;
 			}

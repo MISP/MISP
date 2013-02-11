@@ -644,12 +644,6 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				}
 				break;
-			case 'link':
-				if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $value) && !preg_match("#\n#", $value)) {
-					debug('here');
-					$returnValue = true;
-				}
-				break;
 			case 'url':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
@@ -674,10 +668,26 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				}
 				break;
+
+			case 'AS':
+			case 'snort':
+			case 'pattern-in-file':
+			case 'pattern-in-traffic':
+			case 'pattern-in-memory':
+			case 'yara':
+			case 'vulnerability':
 			case 'attachment':
 			case 'malware-sample':
-			case 'snort':
-				// no validation yet. TODO implement data validation on snort attribute type
+				$returnValue = true;
+				break;
+			case 'link':
+				if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $value) && !preg_match("#\n#", $value)) {
+					debug('here');
+					$returnValue = true;
+				}
+				break;
+			case 'comment':
+			case 'text':
 			case 'other':
 				$returnValue = true;
 				break;
