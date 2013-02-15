@@ -22,4 +22,6 @@ Documentation
 Make sure you read the documentation in the INSTALL directory.
 We are currently consolidating the documentation, so it will be updated often.
 
-This part of the code is a major rewrite of a first version of the codebase.
+This code is the first version of MISP. (previously known as CyDefSIG)
+Feel free to look at the develop branch to look the very new features that will come.
+
