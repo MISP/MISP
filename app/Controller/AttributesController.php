@@ -521,11 +521,11 @@ class AttributesController extends AppController {
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
+		$this->Attribute->read();
 		// only own attributes verified by isAuthorized
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
 			if (!$this->_IsAdmin()) {
-				$this->Attribute->read(null, $id);
 				// check for non-private and re-read
 				if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
 					$this->Session->setFlash(__('Invalid attribute.'));
@@ -534,7 +534,6 @@ class AttributesController extends AppController {
 			}
 		}
 
-		$this->Attribute->read();
 		$eventId = $this->Attribute->data['Attribute']['event_id'];
 		if ('attachment' == $this->Attribute->data['Attribute']['type'] ||
 			'malware-sample' == $this->Attribute->data['Attribute']['type'] ) {
@@ -545,7 +544,6 @@ class AttributesController extends AppController {
 		} else {
 			$this->set('attachment', false);
 		}
-
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ('true' == Configure::read('CyDefSIG.private')) {
 				$this->request->data = $this->Attribute->massageData($this->request->data);
@@ -558,19 +556,18 @@ class AttributesController extends AppController {
 				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
 			}
 
-			// say what fields are to be updated
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster');
 			if ("i" == Configure::read('CyDefSIG.rest')) {
 				unset($this->request->data['Event']);
 				$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
 				$this->request->data['Attribute']['event_id'] = $eventId;
 			}
+
+			$this->loadModel('Event');
+			$this->Event->id = $eventId;
 			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 
 				// remove the published flag from the event
-				$this->loadModel('Event');
-				$this->Event->id = $eventId;
 				$this->Event->saveField('published', 0);
 
 				if ($this->_isRest()) {
@@ -590,9 +587,20 @@ class AttributesController extends AppController {
 		} else {
 			$this->request->data = $this->Attribute->read(null, $id);
 		}
-		// needed for RBAC
 		$this->set('attribute', Sanitize::clean($this->request->data));
 
+		// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
+		$this->loadModel('Event');
+		$this->Event->id = $eventId;
+		$this->Event->read();
+		$canEditDist = false;
+		if ($this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
+			$this->set('canEditDist', true);
+			$canEditDist = true;
+		} else {
+			$this->set('canEditDist', false);
+		}
+		// needed for RBAC
 		// combobox for types
 		$types = array_keys($this->Attribute->typeDefinitions);
 		$types = $this->_arrayToValuesIndexArray($types);
@@ -602,26 +610,30 @@ class AttributesController extends AppController {
 		array_pop($categories); // remove that last empty/space option
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', $categories);
-		$this->loadModel('Event');
-		$events = $this->Event->findById($eventId);
-		$maxDist = $events['Event']['distribution'];
-		$this->set('maxDist', $maxDist);
-		// combobox for distribution
-		if (isset($maxDist)) {
-			$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
-			$count = 0;
-			foreach ($distributionsBeforeCut as $current) {
-				$distributions[$count] = $current;
-				if ($distributions[$count] == $maxDist)break;
-				$count++;
+
+		//None of this needed if distribution can't be edited due to org restrictions
+		if ($canEditDist) {
+			$this->loadModel('Event');
+			$events = $this->Event->findById($eventId);
+			$maxDist = $events['Event']['distribution'];
+			$this->set('maxDist', $maxDist);
+		// 	combobox for distribution
+			if (isset($maxDist)) {
+				$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
+				$count = 0;
+				foreach ($distributionsBeforeCut as $current) {
+					$distributions[$count] = $current;
+					if ($distributions[$count] == $maxDist)break;
+					$count++;
+				}
+			} else {
+				$distributions = array_keys($this->Attribute->distributionDescriptions);
 			}
-		} else {
-			$distributions = array_keys($this->Attribute->distributionDescriptions);
+			$distributions = $this->_arrayToValuesIndexArray($distributions);
+			$this->set('distributions', $distributions);
+		// 	tooltip for distribution
+			$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 		}
-		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions', $distributions);
-		// tooltip for distribution
-		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -658,10 +670,10 @@ class AttributesController extends AppController {
 		if ($this->Attribute->delete()) {
 
 			// delete the attribute from remote servers
-			//if ('true' == Configure::read('CyDefSIG.sync')) {
-			//	// find the uuid
-			//	$this->__deleteAttributeFromServers($uuid);
-			//}
+			if ('true' == Configure::read('CyDefSIG.sync')) {
+			// find the uuid
+				$this->__deleteAttributeFromServers($uuid);
+			}
 
 			$this->Session->setFlash(__('Attribute deleted'));
 		} else {
@@ -678,9 +690,11 @@ class AttributesController extends AppController {
  */
 	private function __deleteAttributeFromServers($uuid) {
 		// TODO private and delete .. bring up ..
-		//if (true == $result['Attribute']['private']) { // never upload private attributes
+		//$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
+		if (true == $result['Attribute']['private']) { // never upload private attributes
 		//	return "Attribute is private and non exportable";
-		//}
+			return;
+		}
 
 		// get a list of the servers
 		$this->loadModel('Server');

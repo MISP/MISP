@@ -11,7 +11,7 @@ if ($currentOrg == 'ADMIN') {
 }
 		echo $this->Form->input('role_id', array('label' => 'Role'));
 		echo $this->Form->input('autoalert');
-		echo $this->Form->input('authkey', array('value' => $authkey, 'disabled' => 'disabled'));
+		echo $this->Form->input('authkey', array('value' => $authkey, 'readonly' => 'readonly'));
 		echo $this->Form->input('nids_sid');
 		echo $this->Form->input('gpgkey');
 	?>

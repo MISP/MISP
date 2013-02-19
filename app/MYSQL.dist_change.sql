@@ -1,0 +1,1 @@
+ALTER TABLE `events` ADD `dist_change` INT NOT NULL DEFAULT '0'

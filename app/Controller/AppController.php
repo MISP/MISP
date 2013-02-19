@@ -170,12 +170,19 @@ class AppController extends Controller {
 		return false;
 	}
 
+/**
+ * checks if the currently logged user is a site administrator
+ */
 	protected function _isSiteAdmin() {
 		$org = $this->Auth->user('org');
 		if (isset($org) && $org === 'ADMIN') {
 			return true;
 		}
 		return false;
+	}
+
+	protected function _checkOrg() {
+		return $this->Auth->user('org');
 	}
 
 /**

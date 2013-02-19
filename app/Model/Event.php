@@ -83,6 +83,16 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
+		'orgc' => array(
+			'notempty' => array(
+				'rule' => array('notempty'),
+				//'message' => 'Your custom message here',
+				//'allowEmpty' => false,
+				//'required' => false,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
+		),
 		'date' => array(
 			'date' => array(
 				'rule' => array('date'),
@@ -534,11 +544,14 @@ class Event extends AppModel {
 		if ($event['Event']['cluster'] && !$event['Event']['private']) {
 			$event['Event']['private'] = true;
 			$event['Event']['cluster'] = false;
+			//$event['Event']['communitie'] = false;
 			$event['Event']['distribution'] = 'Your organization only';
 		}
 		// Distribution, correct All to Community in Event
+		// Potential problem here -> setting cluster gives 0-1-1 (pr/cl/co) settings that don't exist. Adding switch from comm true to false
 		if (!$event['Event']['cluster'] && !$event['Event']['private'] && $event['Event']['communitie']) {
 			$event['Event']['cluster'] = true;
+			$event['Event']['communitie'] = false;
 			$event['Event']['distribution'] = 'This Community-only';
 		}
 		// up the hop count

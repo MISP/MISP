@@ -65,7 +65,7 @@ class ServersController extends AppController {
 			);
 		} else {
 			if (!$this->checkAction('perm_sync')) $this->redirect(array('controller' => 'events', 'action' => 'index'));
-			$conditions['Server.organization LIKE'] = $this->Auth->user('org');
+			$conditions['Server.org LIKE'] = $this->Auth->user('org');
 			$this->paginate = array(
 					'conditions' => array($conditions),
 			);

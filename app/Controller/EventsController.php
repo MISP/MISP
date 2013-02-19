@@ -299,13 +299,17 @@ class EventsController extends AppController {
 
 		// Sanitize::clean
 		$this->Event->data['Event']['info'] = $this->beforeSanitizeClean($this->Event->data['Event']['info']);
-		foreach ($this->Event->data['Attribute'] as &$attribute) {
-			$attribute['value'] = $this->beforeSanitizeClean($attribute['value']);
+		if (isset($this->Event->data['Attribute'])) {
+			foreach ($this->Event->data['Attribute'] as &$attribute) {
+				$attribute['value'] = $this->beforeSanitizeClean($attribute['value']);
+			}
 		}
 		$event = Sanitize::clean($this->Event->data, array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
 		$event['Event']['info'] = $this->counterSanitizeClean($event['Event']['info']);
-		foreach ($event['Attribute'] as &$attribute) {
-			$attribute['value'] = $this->counterSanitizeClean($attribute['value']);
+		if (isset($event['Attribute'])) {
+			foreach ($event['Attribute'] as &$attribute) {
+				$attribute['value'] = $this->counterSanitizeClean($attribute['value']);
+			}
 		}
 		$this->set('event', $event);
 
@@ -423,7 +427,11 @@ class EventsController extends AppController {
 	public function _add(&$data, &$auth, $fromXml, $or='', $passAlong = null, $fromPull = false) {
 		// force check userid and orgname to be from yourself
 		$data['Event']['user_id'] = $auth->user('id');
-		$data['Event']['org'] = strlen($or) ? $or : $auth->user('org'); // FIXME security - org problem
+		$data['Event']['org'] = $auth->user('org');
+		//$data['Event']['org'] = strlen($or) ? $or : $auth->user('org'); // FIXME security - org problem
+		if(!$fromXml){
+			$data['Event']['orgc'] = $data['Event']['org'];
+		}
 		unset ($data['Event']['id']);
 		$this->Event->create();
 		//$this->Event->data = $data;
@@ -444,7 +452,7 @@ class EventsController extends AppController {
 			$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 			if ($existingEventCount > 0) {
 				// TODO RESTfull, set responce location header..so client can find right URL to edit
-				if($fromPull)return false;
+				if ($fromPull) return false;
 				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 				$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $existingEvent['Event']['id']);
 				$this->response->send();
@@ -454,12 +462,12 @@ class EventsController extends AppController {
 
 		if ($upstream) {
 			$fieldList = array(
-					'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid'),
+					'Event' => array('orgc', 'date', 'risk', 'analysis', 'info', 'published', 'uuid'),
 					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision')
 			);
 		} else {
 			$fieldList = array(
-					'Event' => array('org', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'hop_count'),
+					'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'hop_count', 'dist_change', 'from'),
 					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie')
 			);
 		}
@@ -478,7 +486,7 @@ class EventsController extends AppController {
 			$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
 		}
 		if ($saveResult) {
-			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
+			if (!empty($data['Event']['published']) && 1 == $data['Event']['published'] && $data['Event']['private'] == false) {
 				// do the necessary actions to publish the event (email, upload,...)
 				$this->__publish($this->Event->getId(), $passAlong);
 			}
@@ -506,13 +514,28 @@ class EventsController extends AppController {
 		//if ('true' == Configure::read('CyDefSIG.private')) {
 		//	if (!$this->_IsAdmin()) {
 		$this->Event->read(null, $id);
-		//		// check for non-private and re-read
-		//		if (($this->Event->data['Event']['org'] != $this->Auth->user('org')) || (($this->Event->data['Event']['org'] == $this->Auth->user('org')) && ($this->Event->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
-		//			$this->Session->setFlash(__('Invalid event.'));
-		//			$this->redirect(array('controller' => 'users', 'action' => 'terms'));
-		//		}
-		//	}
+		//		// check for if private and user not authorised to edit, go away
+		if(!$this->isSiteAdmin() && !$this->checkAction('perm_sync') && $this->Event->data['Event']['distribution'] == 'Your organization only'){
+			if (($this->Event->data['Event']['org'] != $this->_checkOrg()) || !($this->checkAction('perm_modify'))) {
+				$this->Session->setFlash(__('You are not authorised to do that.'));
+				$this->redirect(array('controller' => 'events', 'action' => 'index'));
+			}
+		}
+			//if (!$this->Event->data['Event']['org'] == $this->_checkOrg()){
+				//throw new MethodNotAllowedException();
+				//$this->Session->setFlash(__('Invalid event.'));
+				//$this->redirect(array('controller' => 'users', 'action' => 'terms'));
+			//}
 		//}
+
+		// check if the user is of the creating org, if not, don't let him/her change the distribution.
+		$canEditDist = false;
+		if ($this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
+			$canEditDist = true;
+			$this->set('canEditDist', true);
+		} else {
+			$this->set('canEditDist', false);
+		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
 				// Workaround for different structure in XML/array than what CakePHP expects
@@ -533,6 +556,11 @@ class EventsController extends AppController {
 				if (count($existingEvent)) {
 					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
 				}
+				if ($existingEvent['Event']['orgc'] == $this->_checkOrg()) {
+					$this->set('canEditDist', true);
+				} else {
+					$this->set('canEditDist', false);
+				}
 				if ("ii" == Configure::read('CyDefSIG.rest')) {
 					// reposition to get the attribute.id with given uuid
 					$c = 0;
@@ -546,11 +574,14 @@ class EventsController extends AppController {
 						}
 					}
 				}
-
 				$fieldList = array(
-					'Event' => array('org', 'date', 'risk', 'analysis', 'info', 'published', 'uuid', 'private', 'communitie'),
-					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie')
+						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'dist_change', 'from'),
+						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'communitie', 'cluster', 'private')
 				);
+
+				if ($this->request->data['Event']['dist_change'] > $existingEvent['Event']['dist_change']) {
+					array_push($fieldList['Event'], 'private', 'communitie', 'cluster');
+				}
 				if ("i" == Configure::read('CyDefSIG.rest')) {
 					// this saveAssociated() function will save not only the event, but also the attributes
 					// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
@@ -568,6 +599,11 @@ class EventsController extends AppController {
 					$message = 'Saved';
 
 					$this->set('event', Sanitize::clean($this->Event->data));
+					//if published -> do the actual publishing
+					if ((!empty($this->request->data['Event']['published']) && 1 == $this->request->data['Event']['published'])) {
+						// do the necessary actions to publish the event (email, upload,...)
+						$this->__publish($existingEvent['Event']['id']);
+					}
 
 					// REST users want to see the newly created event
 					$this->view($this->Event->getId());
@@ -581,18 +617,26 @@ class EventsController extends AppController {
 					return false;
 				}
 			}
-
 			// say what fields are to be updated
-			$fieldList = array('date', 'risk', 'analysis', 'info', 'published', 'private', 'cluster', 'communitie');
+			$fieldList = array('date', 'risk', 'analysis', 'info', 'published', 'private', 'cluster', 'communitie', 'dist_change');
+
+			//Moved this out of (if ($this->_isAdmin()) to use for the dist_change
+			$this->Event->read();
+
 			// always force the org, but do not force it for admins
 			if ($this->_isAdmin()) {
 				// set the same org as existed before
-				$this->Event->read();
 				$this->request->data['Event']['org'] = Sanitize::clean($this->Event->data['Event']['org']);
 			}
 			// we probably also want to remove the published flag
 			$this->request->data['Event']['published'] = 0;
 
+			// If the distribution has changed, up the dist_change count
+			if ($canEditDist) {
+				if ($this->request->data['Event']['distribution'] != $this->Event->data['Event']['distribution']) {
+					$this->request->data['Event']['dist_change'] = 1 + $this->Event->data['Event']['dist_change'];
+				}
+			}
 			if ('true' == Configure::read('CyDefSIG.private')) {
 				$this->request->data = $this->Event->massageData($this->request->data);
 			}
@@ -612,6 +656,7 @@ class EventsController extends AppController {
 		$distributions = array_keys($this->Event->distributionDescriptions);
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
 		$this->set('distributions', $distributions);
+
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
 
@@ -619,6 +664,7 @@ class EventsController extends AppController {
 		$risks = $this->Event->validate['risk']['rule'][1];
 		$risks = $this->_arrayToValuesIndexArray($risks);
 		$this->set('risks',$risks);
+
 		// tooltip for risk
 		$this->set('riskDescriptions', $this->Event->riskDescriptions);
 
@@ -626,6 +672,7 @@ class EventsController extends AppController {
 		$analysiss = $this->Event->validate['analysis']['rule'][1];
 		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
 		$this->set('analysiss',$analysiss);
+
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
@@ -641,6 +688,7 @@ class EventsController extends AppController {
  * @throws MethodNotAllowedException
  * @throws NotFoundException
  */
+
 	public function delete($id = null) {
 		if (!$this->request->is('post') && !$this->_isRest()) {
 			throw new MethodNotAllowedException();
@@ -655,6 +703,12 @@ class EventsController extends AppController {
 			// find the uuid
 			$result = $this->Event->findById($id);
 			$uuid = $result['Event']['uuid'];
+		}
+
+		if (!$this->_isSiteAdmin()) {
+			if (!$this->Event->data['Event']['org'] == $this->_checkOrg()){
+				throw new MethodNotAllowedException();
+			}
 		}
 
 		if ($this->Event->delete()) {
@@ -683,12 +737,14 @@ class EventsController extends AppController {
 		$this->Event->recursive = 1;
 		$this->Event->read();
 
+		//Save the from field of the event to know where it came from originally and then set the event's from field to the current server's host org
+		$from = $this->Event->data['Event']['from'];
+		$this->Event->data['Event']['from'] = Configure::read('CyDefSIG.org');
 		// get a list of the servers
 		$this->loadModel('Server');
 		$servers = $this->Server->find('all', array(
 				'conditions' => array('Server.push' => true)
 		));
-
 		// iterate over the servers and upload the event
 		if(empty($servers))
 			return;
@@ -698,7 +754,8 @@ class EventsController extends AppController {
 		App::uses('HttpSocket', 'Network/Http');
 		$HttpSocket = new HttpSocket();
 		foreach ($servers as &$server) {
-			if (($passAlong != $server)) {
+			//Skip servers where the event has come from.
+			if (($passAlong != $server && $server['Server']['organization'] != $from)) {
 				$thisUploaded = $this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
 				if (!$thisUploaded) {
 					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
@@ -706,7 +763,7 @@ class EventsController extends AppController {
 				}
 			}
 		}
-
+		$this->Event->data['Event']['from'] = Configure::read('CyDefSIG.org');
 		if (!$uploaded) {
 			return $failedServers;
 		} else {
@@ -744,14 +801,13 @@ class EventsController extends AppController {
 	private function __publish($id, $passAlong = null) {
 		$this->Event->id = $id;
 		$this->Event->recursive = 0;
-		//$this->Event->read();
+		$event = $this->Event->read(null, $id);
 
 		// update the DB to set the published flag
 		$this->Event->saveField('published', 1);
-
+		$event['Event']['from'] = Configure::read('CyDefSIG.sync');
 		$uploaded = false;
-
-		// upload the event to remote servers
+		//if ($event['Event']['distribution'] == 'Your organization only' || $event['Event']['distribution'] == 'This server-only') return true;
 		if ('true' == Configure::read('CyDefSIG.sync')) {
 			$uploaded = $this->__uploadEventToServers($id, $passAlong);
 			if ((is_bool($uploaded) && !$uploaded) || (is_array($uploaded))) { // TODO remove bool
@@ -771,6 +827,7 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
+		$this->Event->saveField('from', Configure::read('CyDefSIG.org'));
 
 		// only allow publish for own events verified by isAuthorized
 
@@ -802,7 +859,7 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-
+		$this->Event->saveField('from', Configure::read('CyDefSIG.org'));
 		// only allow alert for own events verified by isAuthorized
 
 		// only allow form submit CSRF protection.

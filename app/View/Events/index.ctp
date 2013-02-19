@@ -8,6 +8,11 @@ if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<?php
 endif; ?>
+			<?php
+if ($isAdmin): ?>
+			<th><?php echo $this->Paginator->sort('owner org');?></th>
+			<?php
+endif; ?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
 			<?php
@@ -45,6 +50,15 @@ foreach ($events as $event):?>
 	}?>
 		&nbsp;</td><?php
 	if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';"><?php
+		$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
+		$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
+		if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['orgc']) . '.png', array('alt' => h($event['Event']['orgc']),'width' => '48','hight' => '48'));
+		else echo $this->Html->tag('span', h($event['Event']['orgc']), array('class' => 'welcome', 'style' => 'float:right;'));?><?php
+		?>
+		&nbsp;</td><?php
+	endif;
+	if ('true' == $isAdmin): ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';"><?php
 		$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
 		$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;

@@ -49,7 +49,7 @@ endif; ?>
 	<ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id'])); ?> </li></ul>
 </div>
 
-<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?><?php echo $this->element('img', array('id' => $event['Event']['org']));?><?php
+<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?><?php echo $this->element('img', array('id' => $event['Event']['orgc']));?><?php
 endif; ?>
 <h2>Event</h2>
 	<dl>
@@ -59,7 +59,15 @@ endif; ?>
 			&nbsp;
 		</dd>
 		<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
-		<dt>Org</dt>
+		<dt>Creating Org</dt>
+		<dd>
+			<?php echo h($event['Event']['orgc']); ?>
+			&nbsp;
+		</dd>
+		<?php
+endif; ?>
+		<?php if ($isAdmin): ?>
+		<dt>Owner org</dt>
 		<dd>
 			<?php echo h($event['Event']['org']); ?>
 			&nbsp;
@@ -244,7 +252,7 @@ if (!empty($event['Attribute'])):?>
 				<td class="actions">
 					<?php
 					echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']));
-					echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, __('Are you sure you want to delete this attribute?'));
+					echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, __('Are you sure you want to delete this attribute? Keep in mind that this will also delete this attribute on remote MISP instances.'));
 					?>
 				</td>
 				<?php
