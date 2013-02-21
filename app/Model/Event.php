@@ -519,11 +519,6 @@ class Event extends AppModel {
 				unset($event['Event']['Attribute'][$key]);
 				continue; // stop processing this
 			}
-			// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
-			// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
-			// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
-			// solves the issue and a new attribute is always created.
-			unset($attribute['id']);
 			// Distribution, correct Community to Org only in Attribute
 			if ($attribute['cluster'] && !$attribute['private']) {
 				$attribute['private'] = true;
@@ -544,6 +539,11 @@ class Event extends AppModel {
 				$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
 				$attribute['data'] = $encodedFile;
 			}
+			// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
+			// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
+			// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
+			// solves the issue and a new attribute is always created.
+			unset($attribute['id']);
 		}
 		// Distribution, correct Community to Org only in Event
 		if ($event['Event']['cluster'] && !$event['Event']['private']) {
