@@ -21,8 +21,8 @@ class Attribute extends AppModel {
 			'userKey' => 'user_id',
 			'change' => 'full'),
 		'Trim',
-		//'Regexp' => array('fields' => array('value', 'value2')),
-		//'Blacklist' => array('fields' => array('value'))
+		'Regexp' => array('fields' => array('value', 'value2')),
+		'Blacklist' => array('fields' => array('value'))
 	);
 
 /**

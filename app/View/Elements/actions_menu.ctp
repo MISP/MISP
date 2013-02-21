@@ -25,7 +25,7 @@ endif;?>
 
 		<?php
 		//Site admin
-if($isAdmin && $isAclAdmin && $me['org'] == 'ADMIN'): ?>
+if($isSiteAdmin): ?>
 		<li>&nbsp;</li>
 		<h3><?php echo __('Input Filters'); ?></h3>
 		<li><?php echo $this->Html->link(__('Import Blacklist', true), array('controller' => 'blacklists', 'action' => 'index', 'admin' => true)); ?> </li>
@@ -43,7 +43,7 @@ endif;?>
 
 		<?php
 		//org admin
-if($isAdmin && $isAclAdmin && $me['org'] != 'ADMIN'): ?>
+if($isAdmin && !$isSiteAdmin): ?>
 		<li>&nbsp;</li>
 		<h3><?php echo __('Input Filters'); ?></h3>
 		<li><?php echo $this->Html->link(__('Import Blacklist', true), array('controller' => 'blacklists', 'action' => 'index')); ?> </li>
@@ -60,7 +60,7 @@ endif;?>
 
 		<?php
 		//normal user
-if(!$isAdmin && !$isAclAdmin): ?>
+if(!$isSiteAdmin && !$isAclAdmin): ?>
 		<li>&nbsp;</li>
 		<h3><?php echo __('Input Filters'); ?></h3>
 		<li><?php echo $this->Html->link(__('Import Blacklist', true), array('controller' => 'blacklists', 'action' => 'index')); ?> </li>
@@ -70,9 +70,9 @@ if(!$isAdmin && !$isAclAdmin): ?>
 endif;?>
 
 		<?php
-if($isAdmin || $isAclAudit): ?>
+if($isAclAudit): ?>
 		<h3><?php echo __('Audit'); ?></h3>
 		<li><?php echo $this->Html->link(__('List Logs', true), array('controller' => 'logs', 'action' => 'index', 'admin' => true)); ?> </li>
 		<li><?php echo $this->Html->link(__('Search Logs', true), array('controller' => 'logs', 'action' => 'admin_search', 'admin' => true)); ?> </li>
 		<?php
-endif;?>
+endif;

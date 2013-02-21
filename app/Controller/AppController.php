@@ -126,6 +126,7 @@ class AppController extends Controller {
 		// These variables are required for every view
 		$this->set('me', Sanitize::clean($this->Auth->user()));
 		$this->set('isAdmin', $this->_isAdmin());
+		$this->set('isSiteAdmin', $this->_isSiteAdmin());
 
 		// TODO ACL: 5: from Controller to Views
 		$this->set('isAclAdd', $this->checkAcl('add'));
@@ -396,7 +397,7 @@ class AppController extends Controller {
 
 	public function generateACL($inc) {
 		if (!self::_isAdmin()) throw new NotFoundException();
-		if($inc['Role']['permission'] == null) $inc['Role']['permission'] = 0;
+		if ($inc['Role']['permission'] == null) $inc['Role']['permission'] = 0;
 		switch ($inc['Role']['permission']) {
 			case '0':
 				$permAdd = false;
