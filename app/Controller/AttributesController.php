@@ -371,17 +371,18 @@ class AttributesController extends AppController {
 			// remove the published flag from the event
 			$this->Event->id = $this->request->data['Attribute']['event_id'];
 			$this->Event->saveField('published', 0);
-
 			// save the file-info in the database
 			$this->Attribute->create();
 			if ($this->request->data['Attribute']['malware']) {
 				$this->request->data['Attribute']['type'] = "malware-sample";
 				$filename = Sanitize::clean($filename);
+				preg_replace('\/:*?"<>', '', $filename);
 				$this->request->data['Attribute']['value'] = $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
 				$this->request->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 			} else {
 				$this->request->data['Attribute']['type'] = "attachment";
 				$filename = Sanitize::clean($filename);
+				preg_replace('\/:*?"<>', '', $filename);
 				$this->request->data['Attribute']['value'] = $filename;
 				$this->request->data['Attribute']['to_ids'] = 0;
 			}
@@ -522,8 +523,11 @@ class AttributesController extends AppController {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
 		$this->Attribute->read();
+		//set stuff to fix undefined index: uuid
+		if (!$this->_isRest()) {
+			$uuid = $this->Attribute->data['Attribute']['uuid'];
+		}
 		// only own attributes verified by isAuthorized
-
 		if ('true' == Configure::read('CyDefSIG.private')) {
 			if (!$this->_IsAdmin()) {
 				// check for non-private and re-read
@@ -548,14 +552,20 @@ class AttributesController extends AppController {
 			if ('true' == Configure::read('CyDefSIG.private')) {
 				$this->request->data = $this->Attribute->massageData($this->request->data);
 			}
-
 			// reposition to get the attribute.id with given uuid
+			debug($this->request->data['Attribute']);
 			// Notice (8): Undefined index: uuid [APP/Controller/AttributesController.php, line 502]
-			$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
+			// Fixed - uuid was not passed back from the form since it's not a field. Set the uuid in a variable for non rest users, rest should have uuid.
+			if ($this->_isRest()) {
+				$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
+			} else {
+				$existingAttribute = $this->Attribute->findByUuid($uuid);
+			}
 			if (count($existingAttribute)) {
 				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
 			}
 
+			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster');
 			if ("i" == Configure::read('CyDefSIG.rest')) {
 				unset($this->request->data['Event']);
 				$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
@@ -611,13 +621,13 @@ class AttributesController extends AppController {
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', $categories);
 
-		//None of this needed if distribution can't be edited due to org restrictions
+		// None of this needed if distribution can't be edited due to org restrictions
 		if ($canEditDist) {
 			$this->loadModel('Event');
 			$events = $this->Event->findById($eventId);
 			$maxDist = $events['Event']['distribution'];
 			$this->set('maxDist', $maxDist);
-		// 	combobox for distribution
+			// combobox for distribution
 			if (isset($maxDist)) {
 				$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
 				$count = 0;
@@ -631,7 +641,7 @@ class AttributesController extends AppController {
 			}
 			$distributions = $this->_arrayToValuesIndexArray($distributions);
 			$this->set('distributions', $distributions);
-		// 	tooltip for distribution
+			// tooltip for distribution
 			$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 		}
 
@@ -668,10 +678,9 @@ class AttributesController extends AppController {
 
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->delete()) {
-
 			// delete the attribute from remote servers
 			if ('true' == Configure::read('CyDefSIG.sync')) {
-			// find the uuid
+				// find the uuid
 				$this->__deleteAttributeFromServers($uuid);
 			}
 
@@ -692,7 +701,7 @@ class AttributesController extends AppController {
 		// TODO private and delete .. bring up ..
 		//$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
 		if (true == $result['Attribute']['private']) { // never upload private attributes
-		//	return "Attribute is private and non exportable";
+			//	return "Attribute is private and non exportable";
 			return;
 		}
 
