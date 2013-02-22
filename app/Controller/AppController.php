@@ -382,7 +382,9 @@ class AppController extends Controller {
 		$this->generatePrivate();
 		$this->generateCorrelation(); // 	TODO
 		$this->generateCount();
-		$this->generateHop($yourOrg);
+		// Deprecated - hop unused currently, also, it would generate hop count 1 for all local events created by other hosted orgs.
+		// $this->generateHop($yourOrg);
+		$this->generateArosAcos();
 	}
 
 	public function generateArosAcos() {
@@ -591,6 +593,10 @@ class AppController extends Controller {
 				$attribute['Attribute']['private'] = true;
 				$attribute['Attribute']['cluster'] = false;
 				$attribute['Attribute']['communitie'] = false;
+			} else {
+				$attribute['Attribute']['private'] = false;
+				$attribute['Attribute']['cluster'] = true;
+				$attribute['Attribute']['communitie'] = false;
 			}
 			$this->Attribute->save($attribute);
 		}
@@ -603,10 +609,18 @@ class AppController extends Controller {
 		$events = $this->Event->find('all', array('recursive' => 0));
 		foreach ($events as $event) {
 			if ($event['Event']['private']) {
-				$attribute['Event']['private'] = true;
-				$attribute['Event']['cluster'] = false;
-				$attribute['Event']['communitie'] = false;
+				$event['Event']['private'] = true;
+				$event['Event']['cluster'] = false;
+				$event['Event']['communitie'] = false;
+			} else {
+				$event['Event']['private'] = false;
+				$event['Event']['cluster'] = true;
+				$event['Event']['communitie'] = false;
 			}
+			$event['Event']['orgc'] = $event['Event']['org'];
+			$event['Event']['dist_change'] = 0;
+			$event['Event']['analysis'] = 2;
+			$event['Event']['hop_count'] = 0;
 			$this->Event->save($event);
 		}
 	}
