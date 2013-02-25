@@ -382,7 +382,6 @@ class Attribute extends AppModel {
 				$this->data['Attribute']['value2'] = '';
 			}
 		}
-
 		// always return true after a beforeSave()
 		return true;
 	}
@@ -682,7 +681,6 @@ class Attribute extends AppModel {
 				break;
 			case 'link':
 				if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $value) && !preg_match("#\n#", $value)) {
-					debug('here');
 					$returnValue = true;
 				}
 				break;

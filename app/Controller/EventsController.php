@@ -26,7 +26,7 @@ class EventsController extends AppController {
 
 	public $paginate = array(
 			'limit' => 60,
-			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events
+			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
 			'order' => array(
 					'Event.id' => 'DESC'
 			)
@@ -429,7 +429,7 @@ class EventsController extends AppController {
 		$data['Event']['user_id'] = $auth->user('id');
 		$data['Event']['org'] = $auth->user('org');
 		//$data['Event']['org'] = strlen($or) ? $or : $auth->user('org'); // FIXME security - org problem
-		if(!$fromXml){
+		if (!$fromXml) {
 			$data['Event']['orgc'] = $data['Event']['org'];
 		}
 		unset ($data['Event']['id']);
@@ -468,7 +468,7 @@ class EventsController extends AppController {
 		} else {
 			$fieldList = array(
 					'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'hop_count', 'dist_change', 'from'),
-					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie')
+					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie', 'dist_change')
 			);
 		}
 
@@ -515,7 +515,7 @@ class EventsController extends AppController {
 		//	if (!$this->_IsAdmin()) {
 		$this->Event->read(null, $id);
 		//		// check for if private and user not authorised to edit, go away
-		if(!$this->isSiteAdmin() && !$this->checkAction('perm_sync') && $this->Event->data['Event']['distribution'] == 'Your organization only'){
+		if (!$this->isSiteAdmin() && !$this->checkAction('perm_sync') && $this->Event->data['Event']['distribution'] == 'Your organization only') {
 			if (($this->Event->data['Event']['org'] != $this->_checkOrg()) || !($this->checkAction('perm_modify'))) {
 				$this->Session->setFlash(__('You are not authorised to do that.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -561,6 +561,12 @@ class EventsController extends AppController {
 				} else {
 					$this->set('canEditDist', false);
 				}
+
+				$fieldList = array(
+						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'dist_change', 'from'),
+						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie', 'cluster', 'dist_change')
+				);
+
 				if ("ii" == Configure::read('CyDefSIG.rest')) {
 					// reposition to get the attribute.id with given uuid
 					$c = 0;
@@ -569,15 +575,16 @@ class EventsController extends AppController {
 							$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
 							if (count($existingAttribute)) {
 								$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
+								if (!($this->request->data['Attribute'][$c]['dist_change'] > $existingAttribute['Attribute']['dist_change'])) {
+									unset($this->request->data['Attribute'][$c]['private']);
+									unset($this->request->data['Attribute'][$c]['cluster']);
+									unset($this->request->data['Attribute'][$c]['communitie']);
+								}
 							}
 							$c++;
 						}
 					}
 				}
-				$fieldList = array(
-						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'dist_change', 'from'),
-						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'communitie', 'cluster', 'private')
-				);
 
 				if ($this->request->data['Event']['dist_change'] > $existingEvent['Event']['dist_change']) {
 					array_push($fieldList['Event'], 'private', 'communitie', 'cluster');
@@ -706,7 +713,7 @@ class EventsController extends AppController {
 		}
 
 		if (!$this->_isSiteAdmin()) {
-			if (!$this->Event->data['Event']['org'] == $this->_checkOrg()){
+			if (!$this->Event->data['Event']['org'] == $this->_checkOrg()) {
 				throw new MethodNotAllowedException();
 			}
 		}

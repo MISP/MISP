@@ -552,10 +552,11 @@ class AttributesController extends AppController {
 			if ('true' == Configure::read('CyDefSIG.private')) {
 				$this->request->data = $this->Attribute->massageData($this->request->data);
 			}
+
 			// reposition to get the attribute.id with given uuid
-			debug($this->request->data['Attribute']);
 			// Notice (8): Undefined index: uuid [APP/Controller/AttributesController.php, line 502]
 			// Fixed - uuid was not passed back from the form since it's not a field. Set the uuid in a variable for non rest users, rest should have uuid.
+			// Generally all of this should be _isRest() only, but that's something for later to think about
 			if ($this->_isRest()) {
 				$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
 			} else {
@@ -574,6 +575,21 @@ class AttributesController extends AppController {
 
 			$this->loadModel('Event');
 			$this->Event->id = $eventId;
+
+			// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
+			$this->Event->read();
+			if(!$this->_isRest()) {
+				$canEditDist = false;
+				if ($this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
+					$this->set('canEditDist', true);
+					$canEditDist = true;
+				} else {
+					$this->set('canEditDist', false);
+				}
+				if ($this->request->data['Attribute']['distribution'] != $existingAttribute['Attribute']['distribution']) {
+					$this->request->data['Attribute']['dist_change'] = 1 + $existingAttribute['Attribute']['dist_change'];
+				}
+			}
 			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 
@@ -597,6 +613,7 @@ class AttributesController extends AppController {
 		} else {
 			$this->request->data = $this->Attribute->read(null, $id);
 		}
+
 		$this->set('attribute', Sanitize::clean($this->request->data));
 
 		// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
@@ -621,7 +638,6 @@ class AttributesController extends AppController {
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', $categories);
 
-		// None of this needed if distribution can't be edited due to org restrictions
 		if ($canEditDist) {
 			$this->loadModel('Event');
 			$events = $this->Event->findById($eventId);
@@ -736,6 +752,7 @@ class AttributesController extends AppController {
 				$type = $this->request->data['Attribute']['type'];
 				$category = $this->request->data['Attribute']['category'];
 				$this->set('keywordSearch', $keyword);
+				$keyWordText = null;
 				$this->set('typeSearch', $type);
 				$this->set('isSearch', 1);
 				$this->set('categorySearch', $category);
@@ -743,12 +760,18 @@ class AttributesController extends AppController {
 				$conditions = array();
 				if ($keyword) {
 					$keywordArray = explode("\n", $keyword);
-					$i = 0;
+					$i = 1;
 					$temp = array();
 					foreach ($keywordArray as $keywordArrayElement) {
-							$keywordArrayElement = '%' . trim($keywordArrayElement) . '%';
-							if ($keywordArrayElement != '%%') array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+						$saveWord = trim($keywordArrayElement);
+						$keywordArrayElement = '%' . trim($keywordArrayElement) . '%';
+						if ($keywordArrayElement != '%%') array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+						if ($i == 1 && $saveWord != '') $keyWordText = $saveWord;
+						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText = $keyWordText .', '. $saveWord;
+						else if ($i == 10 && $saveWord != '') $keyWordText = $keyWordText . ' and several other keywords';
+						$i++;
 					}
+					$this->set('keywordSearch', $keyWordText);
 					$conditions['OR'] = $temp;
 				}
 				if ($type != 'ALL') {
