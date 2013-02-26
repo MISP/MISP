@@ -369,17 +369,19 @@ class Attribute extends AppModel {
 		if (!empty($this->data['Attribute']['type'])) {
 			$compositeTypes = $this->getCompositeTypes();
 			// explode composite types in value1 and value2
-			$pieces = explode('|', $this->data['Attribute']['value']);
-			if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
-				if (2 != count($pieces)) {
-					throw new InternalErrorException('Composite type, but value not explodable');
+			if (!isset($this->data['Attribute']['value1'])) {
+				$pieces = explode('|', $this->data['Attribute']['value']);
+				if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
+					if (2 != count($pieces)) {
+						throw new InternalErrorException('Composite type, but value not explodable');
+					}
+					$this->data['Attribute']['value1'] = $pieces[0];
+					$this->data['Attribute']['value2'] = $pieces[1];
+				} else {
+					$total = implode('|', $pieces);
+					$this->data['Attribute']['value1'] = $total;
+					$this->data['Attribute']['value2'] = '';
 				}
-				$this->data['Attribute']['value1'] = $pieces[0];
-				$this->data['Attribute']['value2'] = $pieces[1];
-			} else {
-				$total = implode('|', $pieces);
-				$this->data['Attribute']['value1'] = $total;
-				$this->data['Attribute']['value2'] = '';
 			}
 		}
 		// always return true after a beforeSave()
