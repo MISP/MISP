@@ -3,7 +3,8 @@
 	<fieldset>
 		<legend><?php echo __('Search Attribute'); ?></legend>
 	<?php
-		echo $this->Form->input('keyword', array('type' => 'textarea'));
+		echo $this->Form->input('keyword', array('type' => 'textarea', 'label' => 'Containing the following expressions'));
+		echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Excluding the following events'));
 		echo $this->Form->input('type', array('between' => $this->Html->div('forminfo', '', array('id' => 'AttributeTypeDiv'))));
 		echo $this->Form->input('category', array('between' => $this->Html->div('forminfo', '', array('id' => 'AttributeCategoryDiv'))));
 	?>

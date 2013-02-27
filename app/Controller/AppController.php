@@ -379,7 +379,9 @@ class AppController extends Controller {
 			throw new NotFoundException();
 		}
 
-		$this->generatePrivate();
+		// Deprecated - generate Private sets the values for the 3 distribution fields on migration - however the new SQL scheme sets cluster + communitie
+		// to false, which means that private will become org only and non-private will become all communities - which is desired behaviour.
+		// $this->generatePrivate();
 		$this->generateCorrelation(); // 	TODO
 		$this->generateCount();
 		// Deprecated - hop unused currently, also, it would generate hop count 1 for all local events created by other hosted orgs.
@@ -595,7 +597,7 @@ class AppController extends Controller {
 				$attribute['Attribute']['communitie'] = false;
 			} else {
 				$attribute['Attribute']['private'] = false;
-				$attribute['Attribute']['cluster'] = true;
+				$attribute['Attribute']['cluster'] = false;
 				$attribute['Attribute']['communitie'] = false;
 			}
 			$this->Attribute->save($attribute);
@@ -614,7 +616,7 @@ class AppController extends Controller {
 				$event['Event']['communitie'] = false;
 			} else {
 				$event['Event']['private'] = false;
-				$event['Event']['cluster'] = true;
+				$event['Event']['cluster'] = false;
 				$event['Event']['communitie'] = false;
 			}
 			$event['Event']['orgc'] = $event['Event']['org'];

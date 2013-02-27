@@ -735,16 +735,18 @@ class AttributesController extends AppController {
 
 			if ($this->request->is('post') && ($this->request->here == $fullAddress)) {
 				$keyword = $this->request->data['Attribute']['keyword'];
+				$keyword2 = $this->request->data['Attribute']['keyword2'];
 				$type = $this->request->data['Attribute']['type'];
 				$category = $this->request->data['Attribute']['category'];
 				$this->set('keywordSearch', $keyword);
 				$keyWordText = null;
+				$keyWordText2 = null;
 				$this->set('typeSearch', $type);
 				$this->set('isSearch', 1);
 				$this->set('categorySearch', $category);
 				// search the db
 				$conditions = array();
-				if ($keyword) {
+				if (isset($keyword)) {
 					$keywordArray = explode("\n", $keyword);
 					$i = 1;
 					$temp = array();
@@ -759,6 +761,22 @@ class AttributesController extends AppController {
 					}
 					$this->set('keywordSearch', $keyWordText);
 					$conditions['OR'] = $temp;
+				}
+				if (isset($keyword2)) {
+					$keywordArray2 = explode("\n", $keyword2);
+					$i = 1;
+					$temp = array();
+					foreach ($keywordArray2 as $keywordArrayElement) {
+						$saveWord = trim($keywordArrayElement);
+						if (!is_numeric($saveWord) || $saveWord < 1) continue;
+						array_push($temp, array('Attribute.event_id !=' => $keywordArrayElement));
+						if ($i == 1 && $saveWord != '') $keyWordText2 = $saveWord;
+						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText2 = $keyWordText2 .', '. $saveWord;
+						else if ($i == 10 && $saveWord != '') $keyWordText2 = $keyWordText2 . ' and several other events';
+						$i++;
+					}
+					$this->set('keywordSearch2', $keyWordText2);
+					$conditions['AND'] = $temp;
 				}
 				if ($type != 'ALL') {
 					$conditions['Attribute.type ='] = $type;
@@ -789,6 +807,12 @@ class AttributesController extends AppController {
 				$attributes = Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
 				foreach ($attributes as &$attribute) {
 					$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
+					foreach ($keywordArray as $keywordArrayElement) {
+						$keywordArrayElement = trim($keywordArrayElement);
+						if ($attribute['Attribute']['type'] != 'malware-sample' && $attribute['Attribute']['type'] != 'link' && $attribute['Attribute']['type'] != 'attachment') {
+							$attribute['Attribute']['value'] = preg_replace('%'.$keywordArrayElement.'%', '<b><i>'.$keywordArrayElement.'</i></b>', $attribute['Attribute']['value']);
+						}
+					}
 				}
 				$this->set('attributes', $attributes);
 
