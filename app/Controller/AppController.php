@@ -428,6 +428,7 @@ class AppController extends Controller {
 			default:
 				break;
 		}
+		//$this->Acl->allow($inc, 'controllers/Events/add');
 		if ($permAdd) {
 			$this->Acl->allow($inc, 'controllers/Events/add');
 			$this->Acl->allow($inc, 'controllers/Attributes/add');
@@ -463,12 +464,11 @@ class AppController extends Controller {
 			$this->Acl->deny($inc, 'controllers/Logs');
 		}
 
-		if (isset($inc['Role']['perm_admin'])) {
-			if ($inc['Role']['perm_admin']) {
+		if (isset($inc['Role']['perm_admin']) && $inc['Role']['perm_admin']) {
 				//$this->Acl->allow($inc, 'controllers/Logs');
-			}
 		} else {
 			$this->Acl->deny($inc, 'controllers/Roles');
+			//$this->Acl->deny($inc, 'controllers');
 		}
 		if (isset($inc['Role']['perm_auth'])) {
 			if ($inc['Role']['perm_auth']) {

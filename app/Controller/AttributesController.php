@@ -303,12 +303,8 @@ class AttributesController extends AppController {
 		}
 
 		$this->Attribute->read();
-		if (PHP_OS == 'WINNT') {
-			$path = APP . "files" . DS . $this->Attribute->data['Attribute']['event_id'] . DS;
-			$file = $this->Attribute->data['Attribute']['id'];
-		} else {
-			$file = new File(APP . "files" . DS . $this->Attribute->data['Attribute']['event_id'] . DS . $this->Attribute->data['Attribute']['id']);
-		}
+		$path = APP . "files" . DS . $this->Attribute->data['Attribute']['event_id'] . DS;
+		$file = $this->Attribute->data['Attribute']['id'];
 		$filename = '';
 		if ('attachment' == $this->Attribute->data['Attribute']['type']) {
 			$filename = Sanitize::clean($this->Attribute->data['Attribute']['value']);
@@ -324,23 +320,13 @@ class AttributesController extends AppController {
 		}
 
 		$this->viewClass = 'Media';
-		if (PHP_OS == 'WINNT') {
-			$params = array(
+		$params = array(
 					'id'		=> $file,
 					'name'		=> $filename,
 					'extension' => $fileExt,
 					'download'	=> true,
 					'path'		=> $path
-			);
-		} else {
-			$params = array(
-					'id'		=> $file->path,
-					'name'		=> $filename,
-					'extension' => $fileExt,
-					'download'	=> true,
-					'path'		=> DS
-			);
-		}
+		);
 		$this->set($params);
 	}
 
@@ -376,13 +362,13 @@ class AttributesController extends AppController {
 			if ($this->request->data['Attribute']['malware']) {
 				$this->request->data['Attribute']['type'] = "malware-sample";
 				$filename = Sanitize::clean($filename);
-				preg_replace('\/:*?"<>', '', $filename);
+				preg_replace('/\//:*?"<>/', '', $filename);
 				$this->request->data['Attribute']['value'] = $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
 				$this->request->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 			} else {
 				$this->request->data['Attribute']['type'] = "attachment";
 				$filename = Sanitize::clean($filename);
-				preg_replace('\/:*?"<>', '', $filename);
+				preg_replace('/\/:*?"<>/', '', $filename);
 				$this->request->data['Attribute']['value'] = $filename;
 				$this->request->data['Attribute']['to_ids'] = 0;
 			}
