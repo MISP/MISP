@@ -21,6 +21,7 @@ class Attribute extends AppModel {
 			'userKey' => 'user_id',
 			'change' => 'full'),
 		'Trim',
+		'Containable',
 		'Regexp' => array('fields' => array('value', 'value2')),
 		'Blacklist' => array('fields' => array('value'))
 	);
@@ -369,7 +370,7 @@ class Attribute extends AppModel {
 		if (!empty($this->data['Attribute']['type'])) {
 			$compositeTypes = $this->getCompositeTypes();
 			// explode composite types in value1 and value2
-			if (!isset($this->data['Attribute']['value1'])) {
+			//if (!isset($this->data['Attribute']['value1'])) {
 				$pieces = explode('|', $this->data['Attribute']['value']);
 				if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
 					if (2 != count($pieces)) {
@@ -382,7 +383,7 @@ class Attribute extends AppModel {
 					$this->data['Attribute']['value1'] = $total;
 					$this->data['Attribute']['value2'] = '';
 				}
-			}
+			//}
 		}
 		// always return true after a beforeSave()
 		return true;
@@ -424,6 +425,7 @@ class Attribute extends AppModel {
 	}
 
 	public function massageData(&$data) {
+		if(!isset($data['Attribute']['distribution'])) return $data;
 		switch ($data['Attribute']['distribution']) {
 			case 'Your organization only':
 				$data['Attribute']['private'] = true;

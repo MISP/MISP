@@ -1243,17 +1243,43 @@ class EventsController extends AppController {
 		} else {
 			$conditions = array();
 		}
+		//restricting to non-private or same org if the user is not a site-admin.
+		if (!$this->isSiteAdmin()) {
+			$temp = array();
+			$temp2 = array();
+			$org = $this->_checkOrg();
+			$distribution = array();
+			array_push($distribution, array('Event.private =' => 0));
+			array_push($distribution, array('Event.cluster =' => 1));
+			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('Event.org LIKE' => $org));
+			$conditions['OR'] = $temp;
+			$distribution2 = array();
+			array_push($distribution2, array('Attribute.private =' => 0));
+			array_push($distribution2, array('Attribute.cluster =' => 1));
+			array_push($temp2, array('OR' => $distribution2));
+			array_push($temp2, array('(SELECT EVENTS.ORG FROM EVENTS WHERE EVENTS.ID = Attribute.event_id) LIKE' => $org));
+			$conditionsAttributes['OR'] = $temp2;
+		}
+
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
+		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id');
 		if ('true' == Configure::read('CyDefSIG.showorg')) {
 			$fields[] = 'Event.org';
 		}
+
 		$params = array('conditions' => $conditions,
 				'recursive' => 1,
 				'fields' => $fields,
-		);
+				'contain' =>array(
+					'Attribute' => array(
+						'fields' => $fieldsAtt,
+						'conditions' => $conditionsAttributes,
+						),
+					)
+				);
 		$results = $this->Event->find('all', $params);
-
 		$this->set('results', Sanitize::clean($results));
 	}
 
@@ -1277,8 +1303,20 @@ class EventsController extends AppController {
 
 		$this->loadModel('Attribute');
 
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
+		if (!$this->isSiteAdmin()) {
+			$temp = array();
+			$distribution = array();
+			array_push($distribution, array('Attribute.private =' => 0));
+			array_push($distribution, array('Attribute.cluster =' => 1));
+			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('(SELECT EVENTS.ORG FROM EVENTS WHERE EVENTS.ID = Attribute.event_id) LIKE' => $this->_checkOrg()));
+			$conditions['OR'] = $temp;
+		}
+
 		$params = array(
-				'conditions' => array( "AND" => array ('Attribute.to_ids' => 1, "Event.published" => 1)), //array of conditions
+				'conditions' => $conditions, //array of conditions
 				'recursive' => 0, //int
 				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
 		);
@@ -1315,8 +1353,20 @@ class EventsController extends AppController {
 
 		$this->loadModel('Attribute');
 
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
+		if (!$this->isSiteAdmin()) {
+			$temp = array();
+			$distribution = array();
+			array_push($distribution, array('Attribute.private =' => 0));
+			array_push($distribution, array('Attribute.cluster =' => 1));
+			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('(SELECT EVENTS.ORG FROM EVENTS WHERE EVENTS.ID = Attribute.event_id) LIKE' => $this->_checkOrg()));
+			$conditions['OR'] = $temp;
+		}
+
 		$params = array(
-				'conditions' => array('Attribute.to_ids' => 1), //array of conditions
+				'conditions' => $conditions, //array of conditions
 				'recursive' => 0, //int
 				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
 		);
@@ -1358,8 +1408,20 @@ class EventsController extends AppController {
 
 		$this->loadModel('Attribute');
 
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
+		if (!$this->isSiteAdmin()) {
+			$temp = array();
+			$distribution = array();
+			array_push($distribution, array('Attribute.private =' => 0));
+			array_push($distribution, array('Attribute.cluster =' => 1));
+			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('(SELECT EVENTS.ORG FROM EVENTS WHERE EVENTS.ID = Attribute.event_id) LIKE' => $this->_checkOrg()));
+			$conditions['OR'] = $temp;
+		}
+
 		$params = array(
-				'conditions' => array('Attribute.to_ids' => 1), //array of conditions
+				'conditions' => $conditions, //array of conditions
 				'recursive' => 0, //int
 				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
 		);
@@ -1398,8 +1460,23 @@ class EventsController extends AppController {
 		$this->layout = 'text/default';
 
 		$this->loadModel('Attribute');
+
+
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array('Attribute.type' => $type);
+		if (!$this->isSiteAdmin()) {
+			$temp = array();
+			$distribution = array();
+			array_push($distribution, array('Attribute.private =' => 0));
+			array_push($distribution, array('Attribute.cluster =' => 1));
+			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('(SELECT EVENTS.ORG FROM EVENTS WHERE EVENTS.ID = Attribute.event_id) LIKE' => $this->_checkOrg()));
+			$conditions['OR'] = $temp;
+		}
+
+
 		$params = array(
-				'conditions' => array('Attribute.type' => $type), //array of conditions
+				'conditions' => $conditions, //array of conditions
 				'recursive' => 0, //int
 				'fields' => array('Attribute.value'), //array of field names
 				'order' => array('Attribute.value'), //string or array defining order

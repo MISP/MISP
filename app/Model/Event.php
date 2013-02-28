@@ -16,8 +16,9 @@ class Event extends AppModel {
 			'userKey' => 'user_id',
 			'change' => 'full'),
 		'Trim',
-		//'Regexp' => array('fields' => array('info')),
-		//'Blacklist' => array('fields' => array('info')),
+		'Containable',
+		'Regexp' => array('fields' => array('info')),
+		'Blacklist' => array('fields' => array('info')),
 	);
 
 /**

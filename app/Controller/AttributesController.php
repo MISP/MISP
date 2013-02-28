@@ -552,7 +552,7 @@ class AttributesController extends AppController {
 				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
 			}
 
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster');
+			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster', 'value');
 			if ("i" == Configure::read('CyDefSIG.rest')) {
 				unset($this->request->data['Event']);
 				$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
@@ -572,13 +572,12 @@ class AttributesController extends AppController {
 				} else {
 					$this->set('canEditDist', false);
 				}
-				if ($this->request->data['Attribute']['distribution'] != $existingAttribute['Attribute']['distribution']) {
+				if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] != $existingAttribute['Attribute']['distribution']) {
 					$this->request->data['Attribute']['dist_change'] = 1 + $existingAttribute['Attribute']['dist_change'];
 				}
 			}
 			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
-
 				// remove the published flag from the event
 				$this->Event->saveField('published', 0);
 
@@ -734,8 +733,8 @@ class AttributesController extends AppController {
 			$this->Session->write('paginate_conditions',array());
 
 			if ($this->request->is('post') && ($this->request->here == $fullAddress)) {
-				$keyword = Sanitize::clean($this->request->data['Attribute']['keyword']);
-				$keyword2 = Sanitize::clean($this->request->data['Attribute']['keyword2']);
+				$keyword = $this->request->data['Attribute']['keyword'];
+				$keyword2 = $this->request->data['Attribute']['keyword2'];
 				$type = $this->request->data['Attribute']['type'];
 				$category = $this->request->data['Attribute']['category'];
 				$this->set('keywordSearch', $keyword);
@@ -747,7 +746,7 @@ class AttributesController extends AppController {
 				// search the db
 				$conditions = array();
 				if (isset($keyword)) {
-					$keywordArray = explode("\n", $keyword);
+					$keywordArray = preg_split("/\r\n|\n|\r/", $keyword);
 					$i = 1;
 					$temp = array();
 					foreach ($keywordArray as $keywordArrayElement) {
@@ -769,7 +768,7 @@ class AttributesController extends AppController {
 					}
 				}
 				if (isset($keyword2)) {
-					$keywordArray2 = explode("\n", $keyword2);
+					$keywordArray2 = preg_split("/\r\n|\n|\r/", $keyword2);
 					$i = 1;
 					$temp = array();
 					foreach ($keywordArray2 as $keywordArrayElement) {
@@ -784,7 +783,7 @@ class AttributesController extends AppController {
 					$this->set('keywordSearch2', $keyWordText2);
 					if (!empty($temp)){
 						if (count($temp) == 1) {
-							$conditions['Attribute.event_id'] = $keyWordText2;
+							$conditions['Attribute.event_id !='] = $keyWordText2;
 						} else {
 							$conditions['AND'] = $temp;
 						}
