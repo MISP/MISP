@@ -734,8 +734,8 @@ class AttributesController extends AppController {
 			$this->Session->write('paginate_conditions',array());
 
 			if ($this->request->is('post') && ($this->request->here == $fullAddress)) {
-				$keyword = $this->request->data['Attribute']['keyword'];
-				$keyword2 = $this->request->data['Attribute']['keyword2'];
+				$keyword = Sanitize::clean($this->request->data['Attribute']['keyword']);
+				$keyword2 = Sanitize::clean($this->request->data['Attribute']['keyword2']);
 				$type = $this->request->data['Attribute']['type'];
 				$category = $this->request->data['Attribute']['category'];
 				$this->set('keywordSearch', $keyword);
@@ -760,7 +760,9 @@ class AttributesController extends AppController {
 						$i++;
 					}
 					$this->set('keywordSearch', $keyWordText);
-					$conditions['OR'] = $temp;
+					if (!empty($temp)){
+						$conditions['OR'] = $temp;
+					}
 				}
 				if (isset($keyword2)) {
 					$keywordArray2 = explode("\n", $keyword2);
@@ -776,7 +778,9 @@ class AttributesController extends AppController {
 						$i++;
 					}
 					$this->set('keywordSearch2', $keyWordText2);
-					$conditions['AND'] = $temp;
+					if (!empty($temp)){
+						$conditions['AND'] = $temp;
+					}
 				}
 				if ($type != 'ALL') {
 					$conditions['Attribute.type ='] = $type;
