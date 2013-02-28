@@ -761,7 +761,11 @@ class AttributesController extends AppController {
 					}
 					$this->set('keywordSearch', $keyWordText);
 					if (!empty($temp)){
-						$conditions['OR'] = $temp;
+						if (count($temp) == 1) {
+							$conditions['Attribute.value LIKE'] = '%'.$keyWordText.'%';
+						} else {
+							$conditions['OR'] = $temp;
+						}
 					}
 				}
 				if (isset($keyword2)) {
@@ -779,7 +783,11 @@ class AttributesController extends AppController {
 					}
 					$this->set('keywordSearch2', $keyWordText2);
 					if (!empty($temp)){
-						$conditions['AND'] = $temp;
+						if (count($temp) == 1) {
+							$conditions['Attribute.event_id'] = $keyWordText2;
+						} else {
+							$conditions['AND'] = $temp;
+						}
 					}
 				}
 				if ($type != 'ALL') {
