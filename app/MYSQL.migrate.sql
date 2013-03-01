@@ -49,7 +49,8 @@ ALTER TABLE `events` ADD `attribute_count` int(11) UNSIGNED DEFAULT NULL;
 ALTER TABLE `events` ADD `hop_count` int(11) UNSIGNED DEFAULT NULL;
 ALTER TABLE `events` ADD `dist_change` int(11) NOT NULL DEFAULT 0;
 ALTER TABLE `events` ADD `orgc` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;
-UPDATE TABLE `events` SET `orgc` = `org` WHERE `orgc` = NULL;  
+UPDATE `events` SET `orgc` = `org` WHERE `orgc` = '';
+UPDATE `events` SET `analysis` = '2';  
 -- --------------------------------------------------------
 
 --
@@ -144,6 +145,6 @@ ALTER TABLE `servers` DROP `logo`;
 ALTER TABLE `users` ADD `role_id` int(11) NOT NULL;
 ALTER TABLE `users` ADD `change_pw` tinyint(1) NOT NULL;
 ALTER TABLE `users` CHANGE `email` `email` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL 
-UPDATE TABLE `users` SET `role_id` = '3';
-UPDATE TABLE `users` SET `role_id` = '1' WHERE `org` = 'ADMIN';  
+UPDATE `users` SET `role_id` = '3';
+UPDATE `users` SET `role_id` = '1' WHERE `org` = 'ADMIN';  
 -- --------------------------------------------------------
