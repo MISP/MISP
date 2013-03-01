@@ -1259,7 +1259,7 @@ class EventsController extends AppController {
 			array_push($distribution2, array('Attribute.private =' => 0));
 			array_push($distribution2, array('Attribute.cluster =' => 1));
 			array_push($temp2, array('OR' => $distribution2));
-			array_push($temp2, array('(SELECT Events.org FROM Events WHERE Events.id = Attribute.event_id) LIKE' => $org));
+			array_push($temp2, array('(SELECT events.org FROM eventse WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
 		}
 
@@ -1312,7 +1312,7 @@ class EventsController extends AppController {
 			array_push($distribution, array('Attribute.private =' => 0));
 			array_push($distribution, array('Attribute.cluster =' => 1));
 			array_push($temp, array('OR' => $distribution));
-			array_push($temp, array('(SELECT Events.org FROM Events WHERE Events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
+			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
 			$conditions['OR'] = $temp;
 		}
 
@@ -1362,7 +1362,7 @@ class EventsController extends AppController {
 			array_push($distribution, array('Attribute.private =' => 0));
 			array_push($distribution, array('Attribute.cluster =' => 1));
 			array_push($temp, array('OR' => $distribution));
-			array_push($temp, array('(SELECT Events.org FROM Events WHERE Events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
+			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
 			$conditions['OR'] = $temp;
 		}
 
@@ -1417,7 +1417,7 @@ class EventsController extends AppController {
 			array_push($distribution, array('Attribute.private =' => 0));
 			array_push($distribution, array('Attribute.cluster =' => 1));
 			array_push($temp, array('OR' => $distribution));
-			array_push($temp, array('(SELECT Events.org FROM Events WHERE Events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
+			array_push($temp, array('(SELECT events.org FROM eventse WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
 			$conditions['OR'] = $temp;
 		}
 
@@ -1471,7 +1471,7 @@ class EventsController extends AppController {
 			array_push($distribution, array('Attribute.private =' => 0));
 			array_push($distribution, array('Attribute.cluster =' => 1));
 			array_push($temp, array('OR' => $distribution));
-			array_push($temp, array('(SELECT Events.org FROM Events WHERE Events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
+			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
 			$conditions['OR'] = $temp;
 		}
 
