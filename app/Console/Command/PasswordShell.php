@@ -27,7 +27,7 @@ class PasswordShell extends AppShell {
 			$this->out(print_r($this->User->invalidFields(), true));
 		}
 
-		echo 'Updated ',  PHP_EOL;
+		echo 'Updated ', PHP_EOL;
 		exit;
 	}
 }

@@ -152,7 +152,7 @@ if (!empty($event['Attribute'])):?>
 				<td class="actions">
 					<?php
 						echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['Attribute']['id']));
-						echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['Attribute']['id']), null, __('Are you sure you want to delete this attribute?'));
+						echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['Attribute']['id']), null, __('Are you sure you want to delete this attribute? Keep in mind that this will also delete this attribute on remote MISP instances.'));
 					?>
 				</td><?php
 			endif;?>

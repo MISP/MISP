@@ -16,9 +16,11 @@ if ($attachment) {
 }
 if ('true' == Configure::read('CyDefSIG.sync')) {
 	if ('true' == Configure::read('CyDefSIG.private')) {
-		echo $this->Form->input('distribution', array('label' => 'Distribution',
-			'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))
-		));
+		if ('true' == $canEditDist) {
+			echo $this->Form->input('distribution', array('label' => 'Distribution',
+				'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))
+			));
+		}
 	} else {
 		echo $this->Form->input('private', array(
 				'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),
@@ -40,8 +42,9 @@ if ($attachment) {
 }
 $this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
 $this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');
-$this->Js->get('#AttributeDistribution')->event('change', 'showFormInfo("#AttributeDistribution")');
-
+if ($canEditDist) {
+	$this->Js->get('#AttributeDistribution')->event('change', 'showFormInfo("#AttributeDistribution")');
+}
 ?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit'));?>

@@ -32,6 +32,7 @@ CREATE TABLE `attributes` (
   `private` tinyint(1) NOT NULL,
   `cluster` tinyint(1) NOT NULL,
   `communitie` tinyint(1) NOT NULL,
+  `dist_change` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
   KEY `value1_key` (`value1`(5)),
@@ -105,6 +106,7 @@ CREATE TABLE `events` (
   `communitie` tinyint(1) NOT NULL,
   `attribute_count` int(11) UNSIGNED DEFAULT NULL,
   `hop_count` int(11) UNSIGNED DEFAULT 0,
+  `dist_change` int(11) NOT NULL DEFAULT '0'
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
@@ -119,13 +121,15 @@ CREATE TABLE `roles` (
   `name` varchar(100) COLLATE utf8_bin NOT NULL,
   `created` datetime NOT NULL,
   `modified` datetime NOT NULL,
-  `perm_add` tinyint(1) NOT NULL,
-  `perm_modify` tinyint(1) NOT NULL,
-  `perm_modify_org` tinyint(1) NOT NULL,
-  `perm_publish` tinyint(1) NOT NULL,
-  `perm_sync` tinyint(1) NOT NULL,
-  `perm_full` tinyint(1) NOT NULL,
-  `perm_auth` tinyint(1) NOT NULL,
+  `perm_add` tinyint(1) NOT NULL DEFAULT 0,
+  `perm_modify` tinyint(1) NOT NULL DEFAULT 0,
+  `perm_modify_org` tinyint(1) NOT NULL DEFAULT 0,
+  `perm_publish` tinyint(1) NOT NULL DEFAULT 0,
+  `perm_sync` tinyint(1) NOT NULL DEFAULT 0,
+  `perm_full` tinyint(1) NOT NULL DEFAULT 0,
+  `perm_audit` tinyint(1) NOT NULL DEFAULT 0,
+  `perm_admin` tinyint(1) NOT NULL DEFAULT 0,
+  `perm_auth` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 

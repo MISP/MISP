@@ -126,6 +126,7 @@ class AppController extends Controller {
 		// These variables are required for every view
 		$this->set('me', Sanitize::clean($this->Auth->user()));
 		$this->set('isAdmin', $this->_isAdmin());
+		$this->set('isSiteAdmin', $this->_isSiteAdmin());
 
 		// TODO ACL: 5: from Controller to Views
 		$this->set('isAclAdd', $this->checkAcl('add'));
@@ -170,12 +171,19 @@ class AppController extends Controller {
 		return false;
 	}
 
+/**
+ * checks if the currently logged user is a site administrator
+ */
 	protected function _isSiteAdmin() {
 		$org = $this->Auth->user('org');
 		if (isset($org) && $org === 'ADMIN') {
 			return true;
 		}
 		return false;
+	}
+
+	protected function _checkOrg() {
+		return $this->Auth->user('org');
 	}
 
 /**
@@ -371,10 +379,14 @@ class AppController extends Controller {
 			throw new NotFoundException();
 		}
 
-		$this->generatePrivate();
+		// Deprecated - generate Private sets the values for the 3 distribution fields on migration - however the new SQL scheme sets cluster + communitie
+		// to false, which means that private will become org only and non-private will become all communities - which is desired behaviour.
+		// $this->generatePrivate();
 		$this->generateCorrelation(); // 	TODO
 		$this->generateCount();
-		$this->generateHop($yourOrg);
+		// Deprecated - hop unused currently, also, it would generate hop count 1 for all local events created by other hosted orgs.
+		// $this->generateHop($yourOrg);
+		$this->generateArosAcos();
 	}
 
 	public function generateArosAcos() {
@@ -389,7 +401,7 @@ class AppController extends Controller {
 
 	public function generateACL($inc) {
 		if (!self::_isAdmin()) throw new NotFoundException();
-		if($inc['Role']['permission'] == null) $inc['Role']['permission'] = 0;
+		if ($inc['Role']['permission'] == null) $inc['Role']['permission'] = 0;
 		switch ($inc['Role']['permission']) {
 			case '0':
 				$permAdd = false;
@@ -418,6 +430,7 @@ class AppController extends Controller {
 			default:
 				break;
 		}
+		//$this->Acl->allow($inc, 'controllers/Events/add');
 		if ($permAdd) {
 			$this->Acl->allow($inc, 'controllers/Events/add');
 			$this->Acl->allow($inc, 'controllers/Attributes/add');
@@ -453,12 +466,11 @@ class AppController extends Controller {
 			$this->Acl->deny($inc, 'controllers/Logs');
 		}
 
-		if (isset($inc['Role']['perm_admin'])) {
-			if ($inc['Role']['perm_admin']) {
+		if (isset($inc['Role']['perm_admin']) && $inc['Role']['perm_admin']) {
 				//$this->Acl->allow($inc, 'controllers/Logs');
-			}
 		} else {
 			$this->Acl->deny($inc, 'controllers/Roles');
+			//$this->Acl->deny($inc, 'controllers');
 		}
 		if (isset($inc['Role']['perm_auth'])) {
 			if ($inc['Role']['perm_auth']) {
@@ -583,6 +595,10 @@ class AppController extends Controller {
 				$attribute['Attribute']['private'] = true;
 				$attribute['Attribute']['cluster'] = false;
 				$attribute['Attribute']['communitie'] = false;
+			} else {
+				$attribute['Attribute']['private'] = false;
+				$attribute['Attribute']['cluster'] = false;
+				$attribute['Attribute']['communitie'] = false;
 			}
 			$this->Attribute->save($attribute);
 		}
@@ -595,10 +611,18 @@ class AppController extends Controller {
 		$events = $this->Event->find('all', array('recursive' => 0));
 		foreach ($events as $event) {
 			if ($event['Event']['private']) {
-				$attribute['Event']['private'] = true;
-				$attribute['Event']['cluster'] = false;
-				$attribute['Event']['communitie'] = false;
+				$event['Event']['private'] = true;
+				$event['Event']['cluster'] = false;
+				$event['Event']['communitie'] = false;
+			} else {
+				$event['Event']['private'] = false;
+				$event['Event']['cluster'] = false;
+				$event['Event']['communitie'] = false;
 			}
+			$event['Event']['orgc'] = $event['Event']['org'];
+			$event['Event']['dist_change'] = 0;
+			$event['Event']['analysis'] = 2;
+			$event['Event']['hop_count'] = 0;
 			$this->Event->save($event);
 		}
 	}

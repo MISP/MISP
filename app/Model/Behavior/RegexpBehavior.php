@@ -33,7 +33,6 @@ class RegexpBehavior extends ModelBehavior {
 		$returnValue = true;
 		// process some..
 		$returnValue = $this->regexpStringFields($Model);
-
 		return $returnValue;
 	}
 
@@ -48,9 +47,7 @@ class RegexpBehavior extends ModelBehavior {
 		foreach ($Model->data[$Model->name] as $key => $field) {
 			if (in_array($key, $this->settings[$Model->alias]['fields']) && is_string($field)) {
 				$returnValue = $this->replaceWindowsSpecific($Model, $field);
-				//if (!$returnValue) {
-				//	$Model->blacklistErrors[] = array($key, $field);
-				//}
+				$Model->data[$Model->name][$key] = $returnValue;
 			}
 		}
 		return $returnValue;
@@ -70,11 +67,12 @@ class RegexpBehavior extends ModelBehavior {
 		foreach ($allRegexp as $regexp) {
 			if (strlen($regexp['Regexp']['replacement'] && strlen($regexp['Regexp']['regexp']))) {
 				$string = preg_replace($regexp['Regexp']['regexp'], $regexp['Regexp']['replacement'], $string);
+				$returnValue = $string;
 			}
 			if (!strlen($regexp['Regexp']['replacement']) && preg_match($regexp['Regexp']['regexp'], $string)) {
 				App::uses('SessionComponent', 'Controller/Component');
 				SessionComponent::setFlash('Blacklisted value!');
-				$returnValue = false;
+				return false;
 			}
 		}
 		return $returnValue;

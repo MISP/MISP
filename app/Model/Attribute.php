@@ -21,8 +21,9 @@ class Attribute extends AppModel {
 			'userKey' => 'user_id',
 			'change' => 'full'),
 		'Trim',
-		//'Regexp' => array('fields' => array('value', 'value2')),
-		//'Blacklist' => array('fields' => array('value'))
+		'Containable',
+		'Regexp' => array('fields' => array('value', 'value2')),
+		'Blacklist' => array('fields' => array('value'))
 	);
 
 /**
@@ -369,20 +370,21 @@ class Attribute extends AppModel {
 		if (!empty($this->data['Attribute']['type'])) {
 			$compositeTypes = $this->getCompositeTypes();
 			// explode composite types in value1 and value2
-			$pieces = explode('|', $this->data['Attribute']['value']);
-			if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
-				if (2 != count($pieces)) {
-					throw new InternalErrorException('Composite type, but value not explodable');
+			//if (!isset($this->data['Attribute']['value1'])) {
+				$pieces = explode('|', $this->data['Attribute']['value']);
+				if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
+					if (2 != count($pieces)) {
+						throw new InternalErrorException('Composite type, but value not explodable');
+					}
+					$this->data['Attribute']['value1'] = $pieces[0];
+					$this->data['Attribute']['value2'] = $pieces[1];
+				} else {
+					$total = implode('|', $pieces);
+					$this->data['Attribute']['value1'] = $total;
+					$this->data['Attribute']['value2'] = '';
 				}
-				$this->data['Attribute']['value1'] = $pieces[0];
-				$this->data['Attribute']['value2'] = $pieces[1];
-			} else {
-				$total = implode('|', $pieces);
-				$this->data['Attribute']['value1'] = $total;
-				$this->data['Attribute']['value2'] = '';
-			}
+			//}
 		}
-
 		// always return true after a beforeSave()
 		return true;
 	}
@@ -423,6 +425,7 @@ class Attribute extends AppModel {
 	}
 
 	public function massageData(&$data) {
+		if(!isset($data['Attribute']['distribution'])) return $data;
 		switch ($data['Attribute']['distribution']) {
 			case 'Your organization only':
 				$data['Attribute']['private'] = true;
@@ -682,7 +685,6 @@ class Attribute extends AppModel {
 				break;
 			case 'link':
 				if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $value) && !preg_match("#\n#", $value)) {
-					debug('here');
 					$returnValue = true;
 				}
 				break;

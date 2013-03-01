@@ -20,6 +20,7 @@ function getTitle(incInt, id){
 if ($isSearch == 1) {
 	echo "<h4>Results for all attributes";
 	if ($keywordSearch != null) echo " with the value containing \"<b>" . h($keywordSearch) . "</b>\"";
+	if ($keywordSearch2 != null) echo " excluding the events \"<b>" . h($keywordSearch2) . "</b>\"";
 	if ($categorySearch != "ALL") echo " of category \"<b>" . h($categorySearch) . "</b>\"";
 	if ($typeSearch != "ALL") echo " of type \"<b>" . h($typeSearch) . "</b>\"";
 	echo ":</h4>";
@@ -53,7 +54,7 @@ foreach ($attributes as $attribute): ?>
 		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 	<?php
-	$sigDisplay = nl2br(h($attribute['Attribute']['value']));
+	$sigDisplay = nl2br(($attribute['Attribute']['value']));
 	if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
 		echo $this->Html->link($sigDisplay, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']));
 	} elseif ('link' == $attribute['Attribute']['type']) {

@@ -46,7 +46,7 @@ class NidsExportComponent extends Component {
 			$ruleFormatReference = 'reference:url,' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $item['Event']['id'];
 			$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $priority . '; ' . $ruleFormatReference . ';) ';
 
-			$sid = $startSid + ($item['Attribute']['id'] * 10);  // leave 9 possible rules per attribute type
+			$sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
 			$attribute = &$item['Attribute'];
 
 			$sid++;
@@ -99,17 +99,17 @@ class NidsExportComponent extends Component {
 		$overruled = in_array($attribute['value'], $this->whitelist);
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-				'ip',						   // proto
+				'ip',							// proto
 				'$HOME_NET',					// src_ip
-				'any',						  // src_port
-				'->',						   // direction
+				'any',							// src_port
+				'->',							// direction
 				$attribute['value'],			// dst_ip
-				'any',						  // dst_port
-				'Outgoing To IP: ' . $attribute['value'],		   // msg
-				'',							 // rule_content
-				'',							 // tag
-				$sid,						   // sid
-				1							   // rev
+				'any',							// dst_port
+				'Outgoing To IP: ' . $attribute['value'],		// msg
+				'',							// rule_content
+				'',							// tag
+				$sid,							// sid
+				1								// rev
 				);
 	}
 
@@ -117,17 +117,17 @@ class NidsExportComponent extends Component {
 		$overruled = in_array($attribute['value'], $this->whitelist);
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-				'ip',						   // proto
+				'ip',							// proto
 				$attribute['value'],			// src_ip
-				'any',						  // src_port
-				'->',						   // direction
+				'any',							// src_port
+				'->',							// direction
 				'$HOME_NET',					// dst_ip
-				'any',						  // dst_port
-				'Incoming From IP: ' . $attribute['value'],		 // msg
-				'',							 // rule_content
-				'',							 // tag
-				$sid,						   // sid
-				1							   // rev
+				'any',							// dst_port
+				'Incoming From IP: ' . $attribute['value'],		// msg
+				'',							// rule_content
+				'',							// tag
+				$sid,							// sid
+				1								// rev
 				);
 	}
 
@@ -135,17 +135,17 @@ class NidsExportComponent extends Component {
 		$content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				(false) ? '#OVERRULED BY WHITELIST# ' : '',
-				'tcp',						  // proto
+				'tcp',							// proto
 				'$EXTERNAL_NET',				// src_ip
-				'any',						  // src_port
-				'<>',						   // direction
+				'any',							// src_port
+				'<>',							// direction
 				'$SMTP_SERVERS',				// dst_ip
-				'25',						   // dst_port
-				'Source Email Address: ' . $attribute['value'],	 // msg
-				$content,					   // rule_content
-				'tag:session,600,seconds;',	 // tag
-				$sid,						   // sid
-				1							   // rev
+				'25',							// dst_port
+				'Source Email Address: ' . $attribute['value'],		// msg
+				$content,						// rule_content
+				'tag:session,600,seconds;',		// tag
+				$sid,							// sid
+				1								// rev
 				);
 	}
 
@@ -153,17 +153,17 @@ class NidsExportComponent extends Component {
 		$content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				(false) ? '#OVERRULED BY WHITELIST# ' : '',
-				'tcp',						  // proto
+				'tcp',							// proto
 				'$EXTERNAL_NET',				// src_ip
-				'any',						  // src_port
-				'<>',						   // direction
+				'any',							// src_port
+				'<>',							// direction
 				'$SMTP_SERVERS',				// dst_ip
-				'25',						   // dst_port
-				'Destination Email Address: ' . $attribute['value'],// msg
-				$content,					   // rule_content
-				'tag:session,600,seconds;',	 // tag
-				$sid,						   // sid
-				1							   // rev
+				'25',							// dst_port
+				'Destination Email Address: ' . $attribute['value'],	// msg
+				$content,						// rule_content
+				'tag:session,600,seconds;',	// tag
+				$sid,							// sid
+				1								// rev
 				);
 	}
 
@@ -172,17 +172,17 @@ class NidsExportComponent extends Component {
 		$content = 'flow:established,to_server; content:"Subject|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				(false) ? '#OVERRULED BY WHITELIST# ' : '',
-				'tcp',						  // proto
+				'tcp',							// proto
 				'$EXTERNAL_NET',				// src_ip
-				'any',						  // src_port
-				'<>',						   // direction
+				'any',							// src_port
+				'<>',							// direction
 				'$SMTP_SERVERS',				// dst_ip
-				'25',						   // dst_port
+				'25',							// dst_port
 				'Bad Email Subject',			// msg
-				$content,					   // rule_content
-				'tag:session,600,seconds;',	 // tag
-				$sid,						   // sid
-				1							   // rev
+				$content,						// rule_content
+				'tag:session,600,seconds;',		// tag
+				$sid,							// sid
+				1								// rev
 				);
 	}
 
@@ -191,17 +191,17 @@ class NidsExportComponent extends Component {
 		$content = 'flow:established,to_server; content:"Content-Disposition: attachment|3b| filename=|22|"; content:"' . $attribute['value'] . '|22|";';
 		$this->rules[] = sprintf($ruleFormat,
 				(false) ? '#OVERRULED BY WHITELIST# ' : '',
-				'tcp',						  // proto
+				'tcp',							// proto
 				'$EXTERNAL_NET',				// src_ip
-				'any',						  // src_port
-				'<>',						   // direction
+				'any',							// src_port
+				'<>',							// direction
 				'$SMTP_SERVERS',				// dst_ip
-				'25',						   // dst_port
-				'Bad Email Attachment',		 // msg
-				$content,					   // rule_content   // LATER nids - test and finetune this snort rule https://secure.wikimedia.org/wikipedia/en/wiki/MIME#Content-Disposition
-				'tag:session,600,seconds;',	 // tag
-				$sid,						   // sid
-				1							   // rev
+				'25',							// dst_port
+				'Bad Email Attachment',			// msg
+				$content,						// rule_content	// LATER nids - test and finetune this snort rule https://secure.wikimedia.org/wikipedia/en/wiki/MIME#Content-Disposition
+				'tag:session,600,seconds;',		// tag
+				$sid,							// sid
+				1								// rev
 				);
 	}
 
@@ -210,32 +210,32 @@ class NidsExportComponent extends Component {
 		$content = 'content:"' . $this->dnsNameToRawFormat($attribute['value'], 'hostname') . '"; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-				'udp',						  // proto
-				'any',						  // src_ip
-				'any',						  // src_port
-				'->',						   // direction
-				'any',						  // dst_ip
-				'53',						   // dst_port
-				'Hostname: ' . $attribute['value'],		 // msg
-				$content,					   // rule_content
-				'',							 // tag
-				$sid,						   // sid
-				1							   // rev
+				'udp',							// proto
+				'any',							// src_ip
+				'any',							// src_port
+				'->',							// direction
+				'any',							// dst_ip
+				'53',							// dst_port
+				'Hostname: ' . $attribute['value'],		// msg
+				$content,						// rule_content
+				'',							// tag
+				$sid,							// sid
+				1								// rev
 		);
 		$sid++;
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-				'tcp',						  // proto
-				'any',						  // src_ip
-				'any',						  // src_port
-				'->',						   // direction
-				'any',						  // dst_ip
-				'53',						   // dst_port
-				'Hostname: ' . $attribute['value'],		 // msg
-				$content,					   // rule_content
-				'',							 // tag
-				$sid,						   // sid
-				1							   // rev
+				'tcp',							// proto
+				'any',							// src_ip
+				'any',							// src_port
+				'->',							// direction
+				'any',							// dst_ip
+				'53',							// dst_port
+				'Hostname: ' . $attribute['value'],		// msg
+				$content,						// rule_content
+				'',							// tag
+				$sid,							// sid
+				1								// rev
 		);
 		$sid++;
 		// also do http requests
@@ -243,17 +243,17 @@ class NidsExportComponent extends Component {
 		$content = 'flow:to_server,established; content: "Host: ' . $attribute['value'] . '"; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-]/";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-				'http',						 // proto
+				'http',						// proto
 				'$HOME_NET',					// src_ip
-				'any',						  // src_port
-				'->',						   // direction
+				'any',							// src_port
+				'->',							// direction
 				'$EXTERNAL_NET',				// dst_ip
-				'any',						  // dst_port
+				'any',							// dst_port
 				'Outgoing HTTP Hostname: ' . $attribute['value'],		// msg
-				$content,					   // rule_content
-				'tag:session,600,seconds;',	 // tag
-				$sid,						   // sid
-				1							   // rev
+				$content,						// rule_content
+				'tag:session,600,seconds;',	// tag
+				$sid,							// sid
+				1								// rev
 		);
 	}
 
@@ -262,32 +262,32 @@ class NidsExportComponent extends Component {
 		$content = 'content:"' . $this->dnsNameToRawFormat($attribute['value']) . '"; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-				'udp',						  // proto
-				'any',						  // src_ip
-				'any',						  // src_port
-				'->',						   // direction
-				'any',						  // dst_ip
-				'53',						   // dst_port
-				'Domain: ' . $attribute['value'],		 // msg
-				$content,					   // rule_content
-				'',							 // tag
-				$sid,						   // sid
-				1							   // rev
+				'udp',							// proto
+				'any',							// src_ip
+				'any',							// src_port
+				'->',							// direction
+				'any',							// dst_ip
+				'53',							// dst_port
+				'Domain: ' . $attribute['value'],		// msg
+				$content,						// rule_content
+				'',							// tag
+				$sid,							// sid
+				1								// rev
 				);
 		$sid++;
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-				'tcp',						  // proto
-				'any',						  // src_ip
-				'any',						  // src_port
-				'->',						   // direction
-				'any',						  // dst_ip
-				'53',						   // dst_port
-				'Domain: ' . $attribute['value'],		 // msg
-				$content,					   // rule_content
-				'',							 // tag
-				$sid,						   // sid
-				1							   // rev
+				'tcp',							// proto
+				'any',							// src_ip
+				'any',							// src_port
+				'->',							// direction
+				'any',							// dst_ip
+				'53',							// dst_port
+				'Domain: ' . $attribute['value'],		// msg
+				$content,						// rule_content
+				'',							// tag
+				$sid,							// sid
+				1								// rev
 				);
 		$sid++;
 		// also do http requests,
@@ -295,17 +295,17 @@ class NidsExportComponent extends Component {
 		$content = 'flow:to_server,established; content: "Host:"; nocase; http_header; content:"' . $attribute['value'] . '"; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-]/";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-				'http',						 // proto
+				'http',						// proto
 				'$HOME_NET',					// src_ip
-				'any',						  // src_port
-				'->',						   // direction
+				'any',							// src_port
+				'->',							// direction
 				'$EXTERNAL_NET',				// dst_ip
-				'any',						  // dst_port
+				'any',							// dst_port
 				'Outgoing HTTP Domain: ' . $attribute['value'],		// msg
-				$content,					   // rule_content
-				'tag:session,600,seconds;',	 // tag
-				$sid,						   // sid
-				1							   // rev
+				$content,						// rule_content
+				'tag:session,600,seconds;',	// tag
+				$sid,							// sid
+				1								// rev
 		);
 	}
 
@@ -317,17 +317,17 @@ class NidsExportComponent extends Component {
 		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; nocase; http_uri;';
 		$this->rules[] = sprintf($ruleFormat,
 				(false) ? '#OVERRULED BY WHITELIST# ' : '',
-				'http',						  // proto
+				'http',							// proto
 				'$HOME_NET',					// src_ip
-				'any',						  // src_port
-				'->',						   // direction
+				'any',							// src_port
+				'->',							// direction
 				'$EXTERNAL_NET',				// dst_ip
-				'any',						  // dst_port
+				'any',							// dst_port
 				'Outgoing HTTP URL: ' . $attribute['value'],		// msg
-				$content,					   // rule_content
-				'tag:session,600,seconds;',	 // tag
-				$sid,						   // sid
-				1							   // rev
+				$content,						// rule_content
+				'tag:session,600,seconds;',	// tag
+				$sid,							// sid
+				1								// rev
 				);
 	}
 
@@ -348,18 +348,18 @@ class NidsExportComponent extends Component {
 		//   tag	   - '/tag\s*:\s*.+?;/'
 		$replaceCount = array();
 		$tmpRule = preg_replace('/sid\s*:\s*[0-9]+\s*;/', 'sid:' . $sid . ';', $tmpRule, -1, $replaceCount['sid']);
-		if (null == $tmpRule ) break;  // don't output the rule on error with the regex
+		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/rev\s*:\s*[0-9]+\s*;/', 'rev:1;', $tmpRule, -1, $replaceCount['rev']);
-		if (null == $tmpRule ) break;  // don't output the rule on error with the regex
+		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:' . $this->classtype . ';', $tmpRule, -1, $replaceCount['classtype']);
-		if (null == $tmpRule ) break;  // don't output the rule on error with the regex
+		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
 		$tmpMessage = sprintf($ruleFormatMsg, 'snort-rule');
 		$tmpRule = preg_replace('/msg\s*:\s*".*?"\s*;/', $tmpMessage . ';', $tmpRule, -1, $replaceCount['msg']);
-		if (null == $tmpRule ) break;  // don't output the rule on error with the regex
+		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/reference\s*:\s*.+?;/', $ruleFormatReference . ';', $tmpRule, -1, $replaceCount['reference']);
-		if (null == $tmpRule ) break;  // don't output the rule on error with the regex
+		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/reference\s*:\s*.+?;/', $ruleFormatReference . ';', $tmpRule, -1, $replaceCount['reference']);
-		if (null == $tmpRule ) break;  // don't output the rule on error with the regex
+		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
 		// FIXME nids -  implement priority overwriting
 
 		// some values were not replaced, so we need to add them ourselves, and insert them in the rule
