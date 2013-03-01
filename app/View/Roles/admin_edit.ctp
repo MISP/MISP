@@ -4,7 +4,7 @@
 		<legend><?php echo __('Edit Role'); ?></legend>
 	<?php
 		echo $this->Form->input('name');?>
-		<?php echo $this->Form->radio('permission', $options, array('label' => 'Permissions'));?>
+		<?php echo $this->Form->radio('permission', $options, array('label' => 'Permissions', 'style' => 'vertical-align: middle'));?>
 		<?php echo $this->Form->input('perm_sync', array('type' => 'checkbox', 'label' => 'Sync Actions', 'style' => 'vertical-align: middle'));?>
 		<?php echo $this->Form->input('perm_admin', array('type' => 'checkbox', 'label' => 'Administration Actions', 'style' => 'vertical-align: middle'));?>
 		<?php echo $this->Form->input('perm_audit', array('type' => 'checkbox', 'label' => 'Audit Actions', 'style' => 'vertical-align: middle'));?>
