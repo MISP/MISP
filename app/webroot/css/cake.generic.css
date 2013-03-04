@@ -367,6 +367,7 @@ option {
 input[type=checkbox] {
 	clear: left;
 	float: left;
+	padding: 0;
 	margin: 0px 6px 7px 2px;
 	width: auto;
 }
@@ -376,6 +377,7 @@ div.checkbox label {
 input[type=radio] {
 	float:left;
 	width:auto;
+	padding: 0;
 	margin: 0 3px 7px 0;
 }
 .radio label {
