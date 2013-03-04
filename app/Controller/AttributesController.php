@@ -820,9 +820,10 @@ class AttributesController extends AppController {
 					$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
 					foreach ($keywordArray as $keywordArrayElement) {
 						$keywordArrayElement = trim($keywordArrayElement);
-						if ($attribute['Attribute']['type'] != 'malware-sample' && $attribute['Attribute']['type'] != 'link' && $attribute['Attribute']['type'] != 'attachment') {
-							$attribute['Attribute']['value'] = preg_replace('%'.$keywordArrayElement.'%i', '<span style="color:red">'.$keywordArrayElement.'</span>', $attribute['Attribute']['value']);
+						if ($attribute['Attribute']['type'] == 'malware-sample' || $attribute['Attribute']['type'] == 'link' || $attribute['Attribute']['type'] == 'attachment') {
+							$attribute['Attribute']['valueNoScript'] = preg_replace('%'.$keywordArrayElement.'%i', $keywordArrayElement, $attribute['Attribute']['value']);
 						}
+						$attribute['Attribute']['value'] = preg_replace('%'.$keywordArrayElement.'%i', '<span style="color:red">'.$keywordArrayElement.'</span>', $attribute['Attribute']['value']);
 					}
 				}
 				$this->set('attributes', $attributes);

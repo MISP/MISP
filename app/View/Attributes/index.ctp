@@ -56,9 +56,9 @@ foreach ($attributes as $attribute): ?>
 	<?php
 	$sigDisplay = nl2br(($attribute['Attribute']['value']));
 	if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
-		echo $this->Html->link($sigDisplay, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']));
+		echo $this->Html->link($sigDisplay, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']), array('escape' => FALSE));
 	} elseif ('link' == $attribute['Attribute']['type']) {
-		echo $this->Html->link($sigDisplay, $sigDisplay);
+		echo $this->Html->link($sigDisplay, nl2br($attribute['Attribute']['valueNoScript']), array('escape' => FALSE));
 	} else {
 		echo $sigDisplay;
 	}

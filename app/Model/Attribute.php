@@ -854,7 +854,7 @@ class Attribute extends AppModel {
 		if (PHP_OS == 'WINNT') {
 			$rootDir = APP . "files" . DS . $eventId;
 		} else {
-			$rootDir = APP . DS . "files" . DS . $eventId;
+			$rootDir = APP . "files" . DS . $eventId;
 		}
 		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
