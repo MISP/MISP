@@ -815,13 +815,13 @@ class AttributesController extends AppController {
 					}
 				}
 
-				$attributes = Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
+				$attributes = h($this->paginate());
 				foreach ($attributes as &$attribute) {
 					$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
 					foreach ($keywordArray as $keywordArrayElement) {
 						$keywordArrayElement = trim($keywordArrayElement);
 						if ($attribute['Attribute']['type'] != 'malware-sample' && $attribute['Attribute']['type'] != 'link' && $attribute['Attribute']['type'] != 'attachment') {
-							$attribute['Attribute']['value'] = preg_replace('%'.$keywordArrayElement.'%', '<b><i>'.$keywordArrayElement.'</i></b>', $attribute['Attribute']['value']);
+							$attribute['Attribute']['value'] = preg_replace('%'.$keywordArrayElement.'%i', '<span style="color:red">'.$keywordArrayElement.'</span>', $attribute['Attribute']['value']);
 						}
 					}
 				}
