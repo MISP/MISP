@@ -50,6 +50,7 @@ class RegexpBehavior extends ModelBehavior {
 				$Model->data[$Model->name][$key] = $returnValue;
 			}
 		}
+		if ($returnValue != false) $returnValue = true;
 		return $returnValue;
 	}
 
@@ -61,7 +62,7 @@ class RegexpBehavior extends ModelBehavior {
  * @return string
  */
 	public function replaceWindowsSpecific(Model $Model, $string) {
-		$returnValue = true;
+		$returnValue = $string;
 		$regexp = new Regexp();
 		$allRegexp = $regexp->find('all'); // TODO INIT LOAD ARRAY
 		foreach ($allRegexp as $regexp) {
