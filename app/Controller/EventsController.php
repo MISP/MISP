@@ -944,6 +944,13 @@ class EventsController extends AppController {
 		$body .= "\n";
 		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 
+		// find out whether the event is private, to limit the alerted user's list to the org only
+		if ($event['Event']['private'] && !$event['Event']['cluster']) {
+			$eventIsPrivate = true;
+		} else {
+			$eventIsPrivate = false;
+		}
+
 		// sign the body
 		require_once 'Crypt/GPG.php';
 		try {
@@ -957,10 +964,14 @@ class EventsController extends AppController {
 			// Build a list of the recipients that get a non-encrypted mail
 			// But only do this if it is allowed in the bootstrap.php file.
 			//
+			if ($eventIsPrivate) {
+				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "", 'User.org =' => $event['Event']['org']);
+			} else {
+				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "");
+			}
 			if ('false' == Configure::read('GnuPG.onlyencrypted')) {
 				$alertUsers = $this->User->find('all', array(
-						'conditions' => array('User.autoalert' => 1,
-											'User.gpgkey =' => ""),
+						'conditions' => $conditions,
 						'recursive' => 0,
 				));
 				$alertEmails = Array();
@@ -985,9 +996,13 @@ class EventsController extends AppController {
 			//
 			// Build a list of the recipients that wish to receive encrypted mails.
 			//
+			if ($eventIsPrivate) {
+				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "", 'User.org =' => $event['Event']['org']);
+			} else {
+				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "");
+			}
 			$alertUsers = $this->User->find('all', array(
-					'conditions' => array('User.autoalert' => 1,
-							'User.gpgkey !=' => ""),
+					'conditions' => $conditions,
 					'recursive' => 0,
 			)
 			);
