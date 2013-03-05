@@ -974,7 +974,7 @@ class EventsController extends AppController {
 				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';	// both text or html
-				$this->set('body', Sanitize::clean($bodySigned));
+				$this->set('body', $bodySigned);
 				// send it
 				$this->Email->send();
 				// If you wish to send multiple emails using a loop, you'll need
@@ -1187,7 +1187,7 @@ class EventsController extends AppController {
 			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
 			$this->Email->template = 'body';
 			$this->Email->sendAs = 'text';		// both text or html
-			$this->set('body', Sanitize::clean($bodyEncSig));
+			$this->set('body', $bodyEncSig);
 			// Add the GPG key of the user as attachment
 			// LATER sign the attached GPG key
 			if (!empty($meUser['gpgkey'])) {
