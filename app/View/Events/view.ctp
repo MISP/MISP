@@ -35,7 +35,7 @@ $mayPublish = ($isAclPublish && $event['Event']['org'] == $me['org']);
 	// only show button if alert has not been sent  // LATER show the ALERT button in red-ish
 	?>
 	<ul><li><?php
-	if ($isAdmin || $mayPublish) {
+	if ($isSiteAdmin || $mayPublish) {
 		echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?');
 		echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!');
 	}
@@ -248,7 +248,7 @@ if (!empty($event['Attribute'])):?>
 				<?php
 			endif;?>
 				<?php
-			if ($isAdmin || $mayModify): ?>
+			if ($isSiteAdmin || $mayModify): ?>
 				<td class="actions">
 					<?php
 					echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']));
@@ -266,7 +266,7 @@ if (!empty($event['Attribute'])):?>
 		<?php
 endif; ?>
 		<?php
-if ($isAdmin || $mayModify): ?>
+if ($isSiteAdmin || $mayModify): ?>
 		<div class="actions">
 			<ul>
 				<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?> </li>
@@ -281,7 +281,7 @@ endif; ?>
 <div class="actions">
 	<ul>
 	<?php
-if ($isAdmin || $mayModify): ?>
+if ($isSiteAdmin || $mayModify): ?>
 		<li><?php echo $this->Html->link(__('Add Attribute', true), array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?> </li>
 		<li><?php echo $this->Html->link(__('Add Attachment', true), array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
 		<li><?php echo $this->Html->link(__('Edit Event', true), array('action' => 'edit', $event['Event']['id'])); ?> </li>

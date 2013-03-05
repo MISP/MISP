@@ -58,7 +58,11 @@ foreach ($attributes as $attribute): ?>
 	if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
 		echo $this->Html->link($sigDisplay, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']), array('escape' => FALSE));
 	} elseif ('link' == $attribute['Attribute']['type']) {
-		echo $this->Html->link($sigDisplay, nl2br($attribute['Attribute']['valueNoScript']), array('escape' => FALSE));
+		if (isset($attribute['Attribute']['ValueNoScript'])) {
+			echo $this->Html->link($sigDisplay, nl2br($attribute['Attribute']['valueNoScript']), array('escape' => FALSE));
+		} else {
+			echo $this->Html->link($sigDisplay, nl2br($attribute['Attribute']['value']), array('escape' => FALSE));
+		}
 	} else {
 		echo $sigDisplay;
 	}

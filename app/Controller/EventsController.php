@@ -521,12 +521,13 @@ class EventsController extends AppController {
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
-			//if (!$this->Event->data['Event']['org'] == $this->_checkOrg()){
-				//throw new MethodNotAllowedException();
-				//$this->Session->setFlash(__('Invalid event.'));
-				//$this->redirect(array('controller' => 'users', 'action' => 'terms'));
-			//}
-		//}
+		if (!$this->_isRest()) {
+			if ($this->Event->data['Event']['org'] != $this->_checkOrg()){
+				// throw new MethodNotAllowedException();
+				$this->Session->setFlash(__('Invalid event.'));
+				$this->redirect(array('controller' => 'events', 'action' => 'index'));
+			}
+		}
 
 		// check if the user is of the creating org, if not, don't let him/her change the distribution.
 		$canEditDist = false;

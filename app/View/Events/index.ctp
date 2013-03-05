@@ -102,7 +102,7 @@ foreach ($events as $event):?>
 			elseif (0 == $event['Event']['published']) echo 'Not published';
 			?>
 		<?php
-	if ($isAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org'])) {
+	if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org'])) {
 		echo $this->Html->link(__('Edit', true), array('action' => 'edit', $event['Event']['id']), null);
 		echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id']));
 	}?>
