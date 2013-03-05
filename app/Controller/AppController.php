@@ -70,7 +70,7 @@ class AppController extends Controller {
 	);
 
 	public function isAuthorized($user) {
-		if (self::_isAdmin()) {
+		if (self::_IsSiteAdmin()) {
 			return true; // admin can access every action on every controller
 		}
 		return false; // The rest don't
@@ -208,7 +208,7 @@ class AppController extends Controller {
  * @throws NotFoundException // TODO Exception
  */
 	public function migrate01to02() {
-		if (!self::_isAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 
 		// generate uuids for events who have no uuid
 		$this->loadModel('Event');
@@ -279,7 +279,7 @@ class AppController extends Controller {
 	}
 
 	public function migrate02to021() {
-		if (!self::_isAdmin()) {
+		if (!self::_isSiteAdmin()) {
 			throw new NotFoundException();
 		}
 
@@ -288,7 +288,7 @@ class AppController extends Controller {
 	}
 
 	public function migrate021to022() {
-		if (!self::_isAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 
 		// replace description by comment
 
@@ -318,7 +318,7 @@ class AppController extends Controller {
 	}
 
 	public function migratemisp02to10() {
-		if (!self::_isAdmin()) {
+		if (!self::_isSiteAdmin()) {
 			throw new NotFoundException();
 		}
 
@@ -358,7 +358,7 @@ class AppController extends Controller {
 	}
 
 	public function migratemisp10to11() {
-		if (!self::_isAdmin()) {
+		if (!self::_isSiteAdmin()) {
 			throw new NotFoundException();
 		}
 
@@ -375,7 +375,7 @@ class AppController extends Controller {
 	}
 
 	public function migratemisp11to2($yourOrg = 'NCIRC') {
-		if (!self::_isAdmin()) {
+		if (!self::_isSiteAdmin()) {
 			throw new NotFoundException();
 		}
 
@@ -390,7 +390,7 @@ class AppController extends Controller {
 	}
 
 	public function generateArosAcos() {
-		if (!self::_isAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$this->loadModel('Role');
 		$roles = $this->Role->find('all',array('recursive' => 0));
 		foreach ($roles as $role) {
@@ -400,7 +400,7 @@ class AppController extends Controller {
 	}
 
 	public function generateACL($inc) {
-		if (!self::_isAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		if ($inc['Role']['permission'] == null) $inc['Role']['permission'] = 0;
 		switch ($inc['Role']['permission']) {
 			case '0':
@@ -481,7 +481,7 @@ class AppController extends Controller {
 	}
 
 	public function generateCorrelation() {
-		if (!self::_isAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 
 		$this->loadModel('Correlation');
 		$this->Correlation->deleteAll(array('id !=' => ''), false);
@@ -586,7 +586,7 @@ class AppController extends Controller {
 	}
 
 	public function generatePrivateForAttributes() {
-		if (!self::_isAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 
 		$this->loadModel('Attribute');
 		$attributes = $this->Attribute->find('all', array('recursive' => 0));
@@ -605,7 +605,7 @@ class AppController extends Controller {
 	}
 
 	public function generatePrivateForEvents() {
-		if (!self::_isAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 
 		$this->loadModel('Event');
 		$events = $this->Event->find('all', array('recursive' => 0));
@@ -628,7 +628,7 @@ class AppController extends Controller {
 	}
 
 	public function generateCount() {
-		if (!self::_isAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 
 		$this->loadModel('Attribute');
 		$attributes = $this->Attribute->find('all', array('recursive' => 0));
@@ -648,7 +648,7 @@ class AppController extends Controller {
  * @param unknown_type $yourOrg being f.i. 'NCIRC' or 'MIL.be'
  */
 	public function generateHop($yourOrg = 'NCIRC') {
-		if (!self::_isAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 
 		$this->loadModel('Event');
 		$events = $this->Event->find('all', array('recursive' => 0));
@@ -683,7 +683,7 @@ class AppController extends Controller {
  * @throws NotFoundException // TODO Exception
  **/
 	public function generateAllFor($field) {
-		if (!self::_isAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 
 		// contain the newValue and oldValue
 		$methodArgs = $this->params['pass'];

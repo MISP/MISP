@@ -70,7 +70,7 @@ class EventsController extends AppController {
 		// do not show private to other orgs
 		if ('true' == Configure::read('CyDefSIG.private')) {
 			// if not admin or own org, check private as well..
-			if (!$this->_IsAdmin()) {
+			if (!$this->_IsSiteAdmin()) {
 				$this->paginate = Set::merge($this->paginate,array(
 				'conditions' =>
 						array("OR" => array(
@@ -163,7 +163,7 @@ class EventsController extends AppController {
 		$this->Event->read(null, $id);
 
 		if ('true' == Configure::read('CyDefSIG.private')) {
-			if (!$this->_IsAdmin()) {
+			if (!$this->_IsSiteAdmin()) {
 				// check for non-private and re-read
 				if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
 					$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1))); // TODO seems very dangerous for the correlation construction in afterSave!!!
@@ -631,7 +631,7 @@ class EventsController extends AppController {
 			$this->Event->read();
 
 			// always force the org, but do not force it for admins
-			if ($this->_isAdmin()) {
+			if (!$this->_isSiteAdmin()) {
 				// set the same org as existed before
 				$this->request->data['Event']['org'] = Sanitize::clean($this->Event->data['Event']['org']);
 			}
@@ -1576,7 +1576,8 @@ class EventsController extends AppController {
 
 			// extract zip..
 			$execRetval = '';
-			exec("unzip " . $zipfile->path . ' -d "' . addslashes($rootDir) . '"', $execOutput, $execRetval);
+			exec("unzip " . $zipfile->path . ' -d "' . $rootDir . '"', $execOutput, $execRetval);
+			//exec("unzip " . $zipfile->path . ' -d "' . addslashes($rootDir) . '"', $execOutput, $execRetval);
 			$execOutput = array();
 			if ($execRetval != 0) {	// not EXIT_SUCCESS
 				// do some?

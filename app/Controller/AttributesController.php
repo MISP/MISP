@@ -46,7 +46,7 @@ class AttributesController extends AppController {
 		// do not show private to other orgs
 		if ('true' == Configure::read('CyDefSIG.private')) {
 			// if not admin or own org, check private as well..
-			if (!$this->_IsAdmin()) {
+			if (!$this->_IsSiteAdmin()) {
 				$this->paginate = Set::merge($this->paginate,array(
 				'conditions' =>
 						array("OR" => array(
@@ -515,7 +515,7 @@ class AttributesController extends AppController {
 		}
 		// only own attributes verified by isAuthorized
 		if ('true' == Configure::read('CyDefSIG.private')) {
-			if (!$this->_IsAdmin()) {
+			if (!$this->_IsSiteAdmin()) {
 				// check for non-private and re-read
 				if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
 					$this->Session->setFlash(__('Invalid attribute.'));
@@ -803,7 +803,7 @@ class AttributesController extends AppController {
 				);
 
 				if ('true' == Configure::read('CyDefSIG.private')) {
-					if (!$this->_IsAdmin()) {
+					if (!$this->_IsSiteAdmin()) {
 						// merge in private conditions
 						$this->paginate = Set::merge($this->paginate, array(
 							'conditions' =>
