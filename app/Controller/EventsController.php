@@ -1594,6 +1594,7 @@ class EventsController extends AppController {
 			$dir = new Folder($rootDir, true);
 			$destpath = $rootDir;
 			$file = new File ($destpath);
+			if (!preg_match('@[\w-,\s]+\.[A-Za-z]{2,4}$@', $this->data['Event']['submittedfile']['name'])) throw new Exception ('Filename not allowed');
 			$zipfile = new File ($destpath . DS . $this->data['Event']['submittedfile']['name']);
 			$result = $zipfile->write($zipData);
 			if (!$result) $this->Session->setFlash(__('Problem with writing the zip file. Please report to administrator.'));
