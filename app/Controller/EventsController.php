@@ -1601,8 +1601,7 @@ class EventsController extends AppController {
 
 			// extract zip..
 			$execRetval = '';
-			exec("unzip " . $zipfile->path . ' -d "' . $rootDir . '"', $execOutput, $execRetval);
-			//exec("unzip " . $zipfile->path . ' -d "' . addslashes($rootDir) . '"', $execOutput, $execRetval);
+			exec("unzip " . $zipfile->path . ' -d "' . addslashes($rootDir) . '"', $execOutput, $execRetval);
 			$execOutput = array();
 			if ($execRetval != 0) {	// not EXIT_SUCCESS
 				// do some?
