@@ -1099,7 +1099,15 @@ class EventsController extends AppController {
 		$this->loadModel('User');
 		if (!$all) {
 			//Insert extra field here: alertOrg or something, then foreach all the org members
-			$orgMembers = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey'));
+			//limit this array to users with contactalerts turned on!
+			$orgMembers = array();
+			$this->User->recursive = 0;
+			$temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert'));
+			foreach ($temp as $tempElement) {
+				if ($tempElement['User']['contactalert']) {
+					array_push($orgMembers, $tempElement);
+				}
+			}
 		} else {
 			$orgMembers = $this->User->findAllById($event['Event']['user_id'], array('email', 'gpgkey'));
 		}

@@ -37,8 +37,12 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<dt><?php echo __('Autoalert'); ?></dt>
 		<dd>
 			<?php
-				echo (h($user['User']['autoalert']) == 0)? 'No' : 'Yes';
-			?>
+				echo (h($user['User']['autoalert']) == 0)? 'No' : 'Yes'; ?>
+			&nbsp;
+		</dd>
+		<dt><?php echo __('Contactalert'); ?></dt>
+		<dd>
+			<?php echo h(0 == ($user['User']['contactalert'])) ? 'No' : 'Yes'; ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Authkey'); ?></dt>

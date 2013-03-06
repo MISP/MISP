@@ -30,6 +30,11 @@
 			<?php echo h(0 == ($user['User']['autoalert'])) ? 'No' : 'Yes'; ?>
 			&nbsp;
 		</dd>
+		<dt><?php echo __('Contactalert'); ?></dt>
+		<dd>
+			<?php echo h(0 == ($user['User']['contactalert'])) ? 'No' : 'Yes'; ?>
+			&nbsp;
+		</dd>
 		<dt><?php echo __('Authkey'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['authkey']); ?>
