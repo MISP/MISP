@@ -4,11 +4,11 @@
 		<legend><?php echo __('Add Role'); ?></legend>
 	<?php
 		echo $this->Form->input('name');?>
-		<?php echo $this->Form->radio('permission', $options, array('value' => '3', 'style' => 'vertical-align: middle'));?>
-		<?php echo $this->Form->input('perm_sync', array('type' => 'checkbox', 'checked' => false, 'label' => 'Sync Actions', 'style' => 'vertical-align: middle'));?>
-		<?php echo $this->Form->input('perm_admin', array('type' => 'checkbox', 'checked' => false, 'label' => 'Administration Actions', 'style' => 'vertical-align: middle'));?>
-		<?php echo $this->Form->input('perm_audit', array('type' => 'checkbox', 'checked' => false, 'label' => 'Audit Actions', 'style' => 'vertical-align: middle'));?>
-		<?php echo $this->Form->input('perm_auth', array('type' => 'checkbox', 'checked' => false, 'label' => 'Auth Key Access', 'style' => 'vertical-align: middle'));?>
+		<?php echo $this->Form->radio('permission', $options, array('value' => '3'));?>
+		<?php echo $this->Form->input('perm_sync', array('type' => 'checkbox', 'checked' => false));?>
+		<?php echo $this->Form->input('perm_admin', array('type' => 'checkbox', 'checked' => false));?>
+		<?php echo $this->Form->input('perm_audit', array('type' => 'checkbox', 'checked' => false));?>
+		<?php echo $this->Form->input('perm_auth', array('type' => 'checkbox', 'checked' => false));?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit'));?>
 </div>

@@ -8,6 +8,13 @@ App::uses('AppModel', 'Model');
  */
 class Regexp extends AppModel {
 
+	public $actsAs = array(
+			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+					'roleModel' => 'Role',
+					'roleKey' => 'role_id',
+					'change' => 'full'
+			),
+	);
 /**
  * Use table
  *

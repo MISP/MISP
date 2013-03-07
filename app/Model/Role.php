@@ -51,7 +51,16 @@ class Role extends AppModel {
  *
  * @var unknown_type
  */
-	public $actsAs = array('Acl' => array('type' => 'requester'), 'MagicTools.OrphansProtectable', 'Trim');
+	public $actsAs = array(
+			'Acl' => array('type' => 'requester'),
+			'MagicTools.OrphansProtectable',
+			'Trim',
+			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+					'roleModel' => 'Role',
+					'roleKey' => 'role_id',
+					'change' => 'full'
+			),
+	);
 
 /**
  * TODO ACL: 2: hook Role into CakePHP ACL system (so link to aros)

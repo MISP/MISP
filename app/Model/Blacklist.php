@@ -22,7 +22,14 @@ class Blacklist extends AppModel {
  */
 	public $displayField = 'name';
 
-	public $actsAs = array('Trim');
+	public $actsAs = array(
+			'Trim',
+			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+					'roleModel' => 'Role',
+					'roleKey' => 'role_id',
+					'change' => 'full'
+			),
+	);
 
 /**
  * Validation rules

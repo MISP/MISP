@@ -204,6 +204,30 @@ class SysLogLogableBehavior extends LogableBehavior {
 					$title = 'Server ('. $Model->data[$Model->alias]['id'].'): '. $this->Servers->getName($Model->data[$Model->alias]['id']);
 					$logData['Log']['title'] = $title;
 					break;
+				case "Role":
+					$this->Roles = new RolesController();
+					$this->Roles->constructClasses();
+					$title = 'Role ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
+					$logData['Log']['title'] = $title;
+					break;
+				case "Whitelist":
+					$this->Whitelists = new WhitelistsController();
+					$this->Whitelists->constructClasses();
+					$title = 'Whitelist ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
+					$logData['Log']['title'] = $title;
+					break;
+				case "Blacklist":
+					$this->Blacklists = new BlacklistsController();
+					$this->Blacklists->constructClasses();
+					$title = 'Blacklists ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
+					$logData['Log']['title'] = $title;
+					break;
+				case "Regexp":
+						$this->Regexp = new RegexpController();
+						$this->Regexp->constructClasses();
+						$title = 'Regexp ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['regexp'];
+						$logData['Log']['title'] = $title;
+						break;
 				default:
 					if (isset($Model->combinedKeys)) {
 						if (is_array($Model->combinedKeys)) {
