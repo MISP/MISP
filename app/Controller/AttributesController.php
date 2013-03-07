@@ -49,12 +49,16 @@ class AttributesController extends AppController {
 			if (!$this->_IsSiteAdmin()) {
 				$this->paginate = Set::merge($this->paginate,array(
 				'conditions' =>
-						array("OR" => array(
-							array('Event.org =' => $this->Auth->user('org')),
-							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1)),
-							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private =' => 1), array('Event.cluster =' => 1), array('Attribute.private =' => 1), array('Attribute.cluster =' => 1)))),
-				)
-				);
+						array('OR' =>
+								array(
+									'Event.org =' => $this->Auth->user('org'),
+									'AND' => array(
+										array('Attribute.distribution !=' => 'Your organization only'),
+										array('OR' => array(
+												array('Event.private !=' => 1),
+												array('Event.cluster =' => 1),
+											)),
+				)))));
 			}
 		}
 

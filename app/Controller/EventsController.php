@@ -75,8 +75,8 @@ class EventsController extends AppController {
 				'conditions' =>
 						array("OR" => array(
 							array('Event.org =' => $this->Auth->user('org')),
-							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1)),
-							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private =' => 1), array('Event.cluster =' => 1)))),
+							array('Event.private !=' => 1),
+							array('Event.cluster =' => 1))),
 							)
 						);
 			}
