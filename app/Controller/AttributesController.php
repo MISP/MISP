@@ -53,7 +53,10 @@ class AttributesController extends AppController {
 								array(
 									'Event.org =' => $this->Auth->user('org'),
 									'AND' => array(
-										array('Attribute.distribution !=' => 'Your organization only'),
+										array('OR' => array(
+												array('Attribute.private !=' => 1),
+												array('Attribute.cluster =' => 1),
+											)),
 										array('OR' => array(
 												array('Event.private !=' => 1),
 												array('Event.cluster =' => 1),
@@ -568,7 +571,7 @@ class AttributesController extends AppController {
 
 			// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
 			$this->Event->read();
-			if(!$this->_isRest()) {
+			if (!$this->_isRest()) {
 				$canEditDist = false;
 				if ($this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
 					$this->set('canEditDist', true);
@@ -758,14 +761,14 @@ class AttributesController extends AppController {
 						$keywordArrayElement = '%' . trim($keywordArrayElement) . '%';
 						if ($keywordArrayElement != '%%') array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
 						if ($i == 1 && $saveWord != '') $keyWordText = $saveWord;
-						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText = $keyWordText .', '. $saveWord;
+						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText = $keyWordText . ', ' . $saveWord;
 						else if ($i == 10 && $saveWord != '') $keyWordText = $keyWordText . ' and several other keywords';
 						$i++;
 					}
 					$this->set('keywordSearch', $keyWordText);
-					if (!empty($temp)){
+					if (!empty($temp)) {
 						if (count($temp) == 1) {
-							$conditions['Attribute.value LIKE'] = '%'.$keyWordText.'%';
+							$conditions['Attribute.value LIKE'] = '%' . $keyWordText . '%';
 						} else {
 							$conditions['OR'] = $temp;
 						}
@@ -780,12 +783,12 @@ class AttributesController extends AppController {
 						if (!is_numeric($saveWord) || $saveWord < 1) continue;
 						array_push($temp, array('Attribute.event_id !=' => $keywordArrayElement));
 						if ($i == 1 && $saveWord != '') $keyWordText2 = $saveWord;
-						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText2 = $keyWordText2 .', '. $saveWord;
+						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText2 = $keyWordText2 . ', ' . $saveWord;
 						else if ($i == 10 && $saveWord != '') $keyWordText2 = $keyWordText2 . ' and several other events';
 						$i++;
 					}
 					$this->set('keywordSearch2', $keyWordText2);
-					if (!empty($temp)){
+					if (!empty($temp)) {
 						if (count($temp) == 1) {
 							$conditions['Attribute.event_id !='] = $keyWordText2;
 						} else {
@@ -825,9 +828,9 @@ class AttributesController extends AppController {
 					foreach ($keywordArray as $keywordArrayElement) {
 						$keywordArrayElement = trim($keywordArrayElement);
 						if ($attribute['Attribute']['type'] == 'malware-sample' || $attribute['Attribute']['type'] == 'link' || $attribute['Attribute']['type'] == 'attachment') {
-							$attribute['Attribute']['valueNoScript'] = preg_replace('%'.$keywordArrayElement.'%i', $keywordArrayElement, $attribute['Attribute']['value']);
+							$attribute['Attribute']['valueNoScript'] = preg_replace('%' . $keywordArrayElement . '%i', $keywordArrayElement, $attribute['Attribute']['value']);
 						}
-						$attribute['Attribute']['value'] = preg_replace('%'.$keywordArrayElement.'%i', '<span style="color:red">'.$keywordArrayElement.'</span>', $attribute['Attribute']['value']);
+						$attribute['Attribute']['value'] = preg_replace('%' . $keywordArrayElement . '%i', '<span style="color:red">' . $keywordArrayElement . '</span>', $attribute['Attribute']['value']);
 					}
 				}
 				$this->set('attributes', $attributes);

@@ -1,19 +1,3 @@
-<script>
-function getTitle(incInt, id){
-	if (document.getElementById(incInt).title == "Loading event info..."){
-		$.ajax({
-			type: 'GET',
-			url: "/events/"+id+".xml",
-			dataType: 'xml',
-			async:true,
-			success:function(result){
-				var returnData = $(result).find("info").text();
-				document.getElementById(incInt).title=returnData;
-			},
-		});
-	};
-}
-</script>
 <div class="attributes index">
 	<h2><?php echo __('Attributes');?></h2>
 		<?php
@@ -41,7 +25,7 @@ foreach ($attributes as $attribute): ?>
 	<tr>
 		<td class="short">
 			<?php
-				echo "<div id = \"" . $attribute['Attribute']['id'] . "\" onMouseOver=getTitle(" . $attribute['Attribute']['id'] . "," . $attribute['Event']['id'] . ") title = \"Loading event info...\">";
+				echo "<div id = \"" . $attribute['Attribute']['id'] . "\" title = \"".h($attribute['Event']['info'])."\">";
 				echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id']));
 				$currentCount++;
 			?>

@@ -15,6 +15,7 @@ class Regexp extends AppModel {
 					'change' => 'full'
 			),
 	);
+
 /**
  * Use table
  *
@@ -23,6 +24,7 @@ class Regexp extends AppModel {
 	public $useTable = 'regexp';
 
 	// this checks whether the regexp would fail and if yes, the entry is blocked from being entered.
+
 	public function beforeValidate($options = array()) {
 		$test = preg_replace($this->data['Regexp']['regexp'], 'success', $this->data['Regexp']['regexp']);
 		if ($test == null) return false;

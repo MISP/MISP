@@ -181,6 +181,7 @@ class EventsController extends AppController {
 
 		$relatedAttributes = array();
 		$this->loadModel('Attribute');
+		$this->loadModel('Event');
 		if ('db' == Configure::read('CyDefSIG.correlation')) {
 			$this->loadModel('Correlation');
 			$fields = array('Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date');
@@ -225,18 +226,30 @@ class EventsController extends AppController {
 				// This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
 				$relatedEventIds = array();
 				$relatedEventDates = array();
+				$relatedEventInfos = array();
 				$relatedEvents = array();
 				foreach ($relatedAttributes as &$relatedAttribute) {
 					if (null == $relatedAttribute) continue;
 					foreach ($relatedAttribute as &$item) {
 						$relatedEventsIds[] = $item['Attribute']['event_id'];
 						$relatedEventsDates[$item['Attribute']['event_id']] = $item['Attribute']['date'];
+						$temp = $this->Event->find('first', array(
+								'conditions' => array('Event.id' => $item['Attribute']['event_id']),
+								'fields' => array('info'),
+								'recursive' => 0,
+								));
+						$item['Attribute']['event_info'] = $temp['Event']['info'];
+						$relatedEventInfos[$item['Attribute']['event_id']] = $temp['Event']['info'];
 					}
 				}
-
 				if (isset($relatedEventsDates)) {
 					foreach ($relatedEventsDates as $key => $relatedEventsDate) {
 						$relatedEvents[] = array('Event' => array('id' => $key, 'date' => $relatedEventsDate));
+					}
+					$i = 0;
+					foreach ($relatedEventInfos as $info) {
+						$relatedEvents[$i]['Event']['info'] = $info;
+						$i++;
 					}
 				}
 				usort($relatedEvents, array($this, 'compareRelatedEvents'));
@@ -280,7 +293,7 @@ class EventsController extends AppController {
 				$findParams = array(
 						'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
 						'recursive' => 0, //int
-						'fields' => array('Event.id', 'Event.date', 'Event.uuid'), //array of field names
+						'fields' => array('Event.id', 'Event.date', 'Event.uuid', 'Event.info'), //array of field names
 						'order' => array('Event.date DESC'), //string or array defining order
 				);
 				$relatedEvents = $this->Event->find('all', $findParams);
@@ -312,7 +325,6 @@ class EventsController extends AppController {
 			}
 		}
 		$this->set('event', $event);
-
 		$this->set('relatedEvents', $relatedEvents);
 
 		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
@@ -522,7 +534,7 @@ class EventsController extends AppController {
 			}
 		}
 		if (!$this->_isRest()) {
-			if ($this->Event->data['Event']['org'] != $this->_checkOrg()){
+			if ($this->Event->data['Event']['org'] != $this->_checkOrg()) {
 				// throw new MethodNotAllowedException();
 				$this->Session->setFlash(__('Invalid event.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -1297,7 +1309,7 @@ class EventsController extends AppController {
 		$params = array('conditions' => $conditions,
 				'recursive' => 1,
 				'fields' => $fields,
-				'contain' =>array(
+				'contain' => array(
 					'Attribute' => array(
 						'fields' => $fieldsAtt,
 						'conditions' => $conditionsAttributes,
@@ -1486,7 +1498,6 @@ class EventsController extends AppController {
 
 		$this->loadModel('Attribute');
 
-
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.type' => $type);
 		if (!$this->isSiteAdmin()) {
@@ -1498,7 +1509,6 @@ class EventsController extends AppController {
 			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
 			$conditions['OR'] = $temp;
 		}
-
 
 		$params = array(
 				'conditions' => $conditions, //array of conditions

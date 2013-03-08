@@ -1,30 +1,3 @@
-<script>
-function getTitle(incInt, incIntb, incIntc){
-	id = incInt;
-	type = null;
-	if (incIntb==0){
-		type = "R";
-	}else{
-		type = "A";
-	}
-	findElementString = type+id;
-	if (type == "A"){
-		findElementString += "X"+incIntc;
-	}
-	if (document.getElementById(findElementString).title == "Loading event info..."){
-		$.ajax({
-			type: 'GET',
-			url: "/events/"+id+".xml",
-			dataType: 'xml',
-			async:false,
-			success:function(result){
-				var returnData = $(result).find("info").text();
-				document.getElementById(findElementString).title=returnData;
-			},
-		});
-	};
-}
-</script>
 <?php
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['org'] == $me['org']);
@@ -129,7 +102,6 @@ endif; ?>
 		</dd>
 	</dl>
 <?php
-	$passAlong = array(0, 0);
 if (!empty($relatedEvents)):?>
 	<div class="related">
 		<h3>Related Events</h3>
@@ -138,9 +110,7 @@ if (!empty($relatedEvents)):?>
 	foreach ($relatedEvents as $relatedEvent): ?>
 		<li><?php
 		$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-		$currentID = $relatedEvent['Event']['id'];
-		$passAlong[0] = $relatedEvent['Event']['id'];
-		echo "<div id = \"R" . $currentID . "\" onMouseOver=getTitle(" . $passAlong[0] . "," . $passAlong[1] . ") title = \"Loading event info...\">";
+		echo "<div \" title = \"".$relatedEvent['Event']['info']."\">";
 		echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
 		?></li>
 		<?php
@@ -178,7 +148,6 @@ if (!empty($event['Attribute'])):?>
 			<?php
 	endif;?>
 		</tr><?php
-	$passAlong = array(0, 1, 0);
 	foreach ($categories as $category):
 		$first = 1;
 		foreach ($event['Attribute'] as $attribute):
@@ -224,12 +193,10 @@ if (!empty($event['Attribute'])):?>
 			$first = 0;
 			if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 				foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
-					$passAlong[0] = $relatedAttribute['Attribute']['event_id'];
-					echo "<span id = \"A" . $passAlong[0] . "X" . $passAlong[2] . "\" onMouseOver=getTitle(" . $passAlong[0] . "," . $passAlong[1] . "," . $passAlong[2] . ") title = \"Loading event info...\">";
+					echo "<span title = \"".$relatedAttribute['Attribute']['event_info']."\">";
 					echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
 					echo "</span>";
 					echo ' ';
-					$passAlong[2]++;
 				}
 			}
 				?>&nbsp;

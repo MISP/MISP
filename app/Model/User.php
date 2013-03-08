@@ -236,7 +236,7 @@ class User extends AppModel {
 	public $actsAs = array(
 		'Acl' => array(	// TODO ACL, + 'enabled' => false
 			'type' => 'requester',
-	 		'enabled' => false
+			'enabled' => false
 		),
 		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
 			'userModel' => 'User',
