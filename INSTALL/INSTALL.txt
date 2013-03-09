@@ -1,10 +1,7 @@
-                                                                     
+                                                                   
 
 TODOs
 -----
-
-Auth
-- Prevent bruteforce auth attempts
 
 implement auditing/logging system
 - add / edit events and signatures
@@ -25,9 +22,6 @@ pear install Net_GeoIP
 #wget 'http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz'
 #gunzip GeoIP.dat.gz
 
-
-TODO rewrite instructions using git clones and git submodules
-
 # Download CakePHP from github
 cd /opt/
 git pull https://github.com/cakephp/cakephp.git
@@ -36,7 +30,7 @@ chmod -R 755 /opt/cakephp
 
 # Download CyDefSIG using git in the /var/www/ directory. 
 cd /var/www/
-git clone git@code.lab.modiss.be:cydefsig.git 
+git clone https://github.com/BeDefCERT/MISP.git 
 
 
 # Check if the permissions are set correctly using the following commands as root:
@@ -47,9 +41,9 @@ cd /var/www/cydefsig/app/
 chmod -R g+w tmp
 chmod -R g+w files
 
-# If installed Crypt_GPG and created it's homedir:
-chown -R www-data:www-data /var/www/cydefsig/.gnupg
-chmod -R u+rwx,go-rwxs /var/www/cydefsig/.gnupg
+# Set the CakePHP lib directory in line 59 in app/webroot/index.php
+define('CAKE_CORE_INCLUDE_PATH', '/opt/cakephp/lib');
+
 
 # Import the empty MySQL database in /var/www/cydefsig/app/MYSQL.txt using phpmyadmin or mysql>.
 
@@ -65,11 +59,14 @@ webroot/index.php : CAKE_CORE_INCLUDE_PATH   (optional for multi-cydefsig instal
 # Generate a GPG encryption key.
 mkdir /var/www/cydefsig/.gnupg
 chown www-data:www-data /var/www/cydefsig/.gnupg
-chmod 700 /var/www/cydefsig/.gnupg
+# Make sure teh permissions are correct:
+chown -R www-data:www-data /var/www/cydefsig/.gnupg
+chmod -R u+rwx,go-rwxs /var/www/cydefsig/.gnupg
 sudo -u www-data gpg --homedir /var/www/cydefsig/.gnupg --gen-key
 
 # And export the public key to the webroot
 sudo -u www-data gpg --homedir .gnupg --export --armor no-reply > app/webroot/gpg.asc
+
 
 
 
