@@ -45,7 +45,10 @@ chmod -R g+w files
 define('CAKE_CORE_INCLUDE_PATH', '/opt/cakephp/lib');
 
 
-# Import the empty MySQL database in /var/www/cydefsig/app/MYSQL.txt using phpmyadmin or mysql>.
+# Import the empty MySQL database in /var/www/MISP/INSTALL/MYSQL.txt using phpmyadmin or mysql command line client.
+# using mysql command line client would be
+mysql --password --execute "CREATE DATABASE misp;"			#to create the database misp
+mysql --password --database=misp < /var/www/MISP/INSTALL/MYSQL.txt	#to insert the base schema
 
 # Now configure your apache server with the DocumentRoot /var/www/cydefsig/app/webroot/
 
