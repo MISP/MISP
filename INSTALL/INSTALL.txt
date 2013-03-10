@@ -43,7 +43,7 @@ chmod -R 755 /opt/cakephp
 
 # Download CyDefSIG using git in the /var/www/ directory. 
 cd /var/www/
-git clone git@code.lab.modiss.be:cydefsig.git 
+git clone https://github.com/BeDefCERT/MISP.git 
 
 
 # Check if the permissions are set correctly using the following commands as root:
