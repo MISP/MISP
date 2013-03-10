@@ -15,7 +15,7 @@ INSTALLATION INSTRUCTIONS
 -------------------------
 Install the following libraries:
 apt-get install zip
-apt-get install pear
+apt-get install php-pear
 pear install Crypt_GPG    # need version >1.3.0 
 pear install Net_GeoIP
 # ideally make sure geoip database is updated using crontab
@@ -34,10 +34,10 @@ git clone https://github.com/BeDefCERT/MISP.git
 
 
 # Check if the permissions are set correctly using the following commands as root:
-chown -R <user>:www-data /var/www/cydefsig
-chmod -R 750 /var/www/cydefsig
-chmod -R g+s /var/www/cydefsig
-cd /var/www/cydefsig/app/
+chown -R <user>:www-data /var/www/MISP
+chmod -R 750 /var/www/MISP
+chmod -R g+s /var/www/MISP
+cd /var/www/MISP/app/
 chmod -R g+w tmp
 chmod -R g+w files
 
@@ -45,9 +45,9 @@ chmod -R g+w files
 define('CAKE_CORE_INCLUDE_PATH', '/opt/cakephp/lib');
 
 
-# Import the empty MySQL database in /var/www/cydefsig/app/MYSQL.txt using phpmyadmin or mysql>.
+# Import the empty MySQL database in /var/www/MISP/app/MYSQL.txt using phpmyadmin or mysql>.
 
-# Now configure your apache server with the DocumentRoot /var/www/cydefsig/app/webroot/
+# Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
 
 
 # Configure the fields in the files:
@@ -57,12 +57,12 @@ core.php : debug,
 webroot/index.php : CAKE_CORE_INCLUDE_PATH   (optional for multi-cydefsig installations)
 
 # Generate a GPG encryption key.
-mkdir /var/www/cydefsig/.gnupg
-chown www-data:www-data /var/www/cydefsig/.gnupg
+mkdir /var/www/MISP/.gnupg
+chown www-data:www-data /var/www/MISP/.gnupg
 # Make sure teh permissions are correct:
-chown -R www-data:www-data /var/www/cydefsig/.gnupg
-chmod -R u+rwx,go-rwxs /var/www/cydefsig/.gnupg
-sudo -u www-data gpg --homedir /var/www/cydefsig/.gnupg --gen-key
+chown -R www-data:www-data /var/www/MISP/.gnupg
+chmod -R u+rwx,go-rwxs /var/www/MISP/.gnupg
+sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 
 # And export the public key to the webroot
 sudo -u www-data gpg --homedir .gnupg --export --armor no-reply > app/webroot/gpg.asc
@@ -86,6 +86,6 @@ Multiple instances on a single server
 If you want to install multiple instances on a single server, extract the CakePHP sources 
 in a central location like /opt/cakephp.
  
-Then edit /var/www/cydefsig/app/webroot/index.php and change :
+Then edit /var/www/MISP/app/webroot/index.php and change :
 	define('CAKE_CORE_INCLUDE_PATH', '/opt/cakephp/lib');
 
