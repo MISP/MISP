@@ -70,7 +70,7 @@ class AppController extends Controller {
 	);
 
 	public function isAuthorized($user) {
-		if (self::_IsSiteAdmin()) {
+		if (self::_IsAdmin()) {
 			return true; // admin can access every action on every controller
 		}
 		return false; // The rest don't
@@ -468,8 +468,9 @@ class AppController extends Controller {
 
 		if (isset($inc['Role']['perm_admin']) && $inc['Role']['perm_admin']) {
 				//$this->Acl->allow($inc, 'controllers/Logs');
+			$this->Acl->allow($inc, 'controllers/Users/admin_index');
 		} else {
-			$this->Acl->deny($inc, 'controllers/Roles');
+			//$this->Acl->deny($inc, 'controllers/Roles');
 			//$this->Acl->deny($inc, 'controllers');
 		}
 		if (isset($inc['Role']['perm_auth'])) {

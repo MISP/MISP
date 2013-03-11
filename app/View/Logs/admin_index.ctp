@@ -25,12 +25,21 @@ if ($isSearch == 1) {
 foreach ($list as $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['Log']['id']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Log']['email']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Log']['org']); ?>&nbsp;</td>
+		<td class="short"><?php if (isset($emailSearch)) echo ($this->Highlight->highlighter(h($item['Log']['email']), $emailSearch));
+			else echo (h($item['Log']['email'])); ?>&nbsp;</td>
+		<td class="short"><?php if (isset($emailSearch)) echo ($this->Highlight->highlighter(h($item['Log']['org']), $orgSearch));
+			else echo (h($item['Log']['org'])); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Log']['created']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Log']['action']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Log']['title']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Log']['change']); ?>&nbsp;</td>
+		<td class="short"><?php if (isset($emailSearch)) echo ($this->Highlight->highlighter(h($item['Log']['action']), $actionSearch));
+			else echo (h($item['Log']['action'])); ?>&nbsp;</td>
+		<td class="short"><?php if (isset($emailSearch)) echo ($this->Highlight->highlighter(h($item['Log']['title']), $titleSearch));
+			else echo (h($item['Log']['title'])); ?>&nbsp;</td>
+		<td class="short"><?php
+			$temp = h($item['Log']['change']);
+			$temp = str_replace('&amp;gt;', '>', $temp);
+			if (isset($changeSearch)) $temp = $this->Highlight->highlighter($temp, $changeSearch);
+			echo $temp;
+		?>&nbsp;</td>
 	</tr><?php
 endforeach; ?>
 	</table>

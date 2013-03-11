@@ -67,7 +67,7 @@ class LogsController extends AppController {
 		}
 	}
 
-	public $helpers = array('Js' => array('Jquery'));
+	public $helpers = array('Js' => array('Jquery'), 'Highlight');
 
 	public function admin_search() {
 		if(!$this->checkAction('perm_audit')) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
@@ -108,20 +108,21 @@ class LogsController extends AppController {
 				// search the db
 				$conditions = array();
 				if ($email) {
-					$conditions['Log.email LIKE'] = '%' . $email . '%';
+					$conditions['LOWER(Log.email) LIKE'] = '%' . strtolower($email) . '%';
 				}
-				if ($org) {
-					$conditions['Log.org LIKE'] = '%' . $org . '%';
+				if (isset($org)) {
+					$conditions['LOWER(Log.org) LIKE'] = '%' . strtolower($org) . '%';
 				}
 				if ($action != 'ALL') {
 					$conditions['Log.action ='] = $action;
 				}
-				if ($title) {
-					$conditions['Log.title LIKE'] = '%' . $title . '%';
+				if (isset($title)) {
+					$conditions['LOWER(Log.title) LIKE'] = '%' . strtolower($title) . '%';
 				}
-				if ($change) {
-					$conditions['Log.change LIKE'] = '%' . $change . '%';
+				if (isset($change)) {
+					$conditions['LOWER(Log.change) LIKE'] = '%' . strtolower($change) . '%';
 				}
+				//$conditions['COLLATE'] = 'utf_general_ci';
 				$this->{$this->defaultModel}->recursive = 0;
 				$this->paginate = array(
 					'limit' => 60,
