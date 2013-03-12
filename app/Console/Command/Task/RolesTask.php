@@ -13,12 +13,12 @@ class RolesTask extends Shell {
 
 		$roles = ClassRegistry::init('Role');
 		$roles->create();
-		$roles->save(array('Role' => array('name' => 'malware analyst', 'perm_add' => true, 'perm_modify' => true, 'perm_publish' => false, 'perm_full' => false)));
+		$roles->save(array('Role' => array('name' => 'admin', 'perm_add' => true, 'perm_modify' => true, 'perm_publish' => true, 'perm_full' => true, 'perm_sync' => true, 'perm_audit' => true, 'perm_auth' =>true)));
 		$roles->create();
-		$roles->save(array('Role' => array('name' => 'admin', 'perm_add' => true, 'perm_modify' => true, 'perm_publish' => true, 'perm_full' => true)));
+		$roles->save(array('Role' => array('name' => 'org_admin', 'perm_add' => true, 'perm_modify' => true, 'perm_publish' => false, 'perm_full' => false, 'perm_sync' => true, 'perm_audit' => true, 'perm_auth' =>true)));
 		$roles->create();
-		$roles->save(array('Role' => array('name' => 'IDS analyst', 'perm_add' => true, 'perm_modify' => true, 'perm_publish' => true, 'perm_full' => false)));
+		$roles->save(array('Role' => array('name' => 'User', 'perm_add' => true, 'perm_modify' => true, 'perm_publish' => false, 'perm_full' => false, 'perm_sync' => true, 'perm_audit' => true, 'perm_auth' =>false)));
 		$roles->create();
-		$roles->save(array('Role' => array('name' => 'guest', 'perm_add' => false, 'perm_modify' => false, 'perm_publish' => false, 'perm_full' => false)));
+		$roles->save(array('Role' => array('name' => 'Sync', 'perm_add' => true, 'perm_modify' => true, 'perm_publish' => true, 'perm_full' => false, 'perm_sync' => true, 'perm_audit' => true, 'perm_auth' =>true)));
 	}
 }
