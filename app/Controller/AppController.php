@@ -631,12 +631,11 @@ class AppController extends Controller {
 
 	public function generateCount() {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
-
-		$this->loadModel('Attribute');
-		$attributes = $this->Attribute->find('all', array('recursive' => 0));
-		// for all attributes..
-		foreach ($attributes as $attribute) {
-			$this->Attribute->save($attribute);
+		$this->loadModel('Event');
+		$events = $this->Event->find('all', array('recursive' => 1));
+		foreach ($events as $event) {
+			$event['Event']['attribute_count'] = sizeof($event['Attribute']);
+			$this->Event->save($event);
 		}
 	}
 
