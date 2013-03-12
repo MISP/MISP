@@ -394,14 +394,26 @@ class AppController extends Controller {
 		$this->loadModel('Role');
 		$roles = $this->Role->find('all',array('recursive' => 0));
 		foreach ($roles as $role) {
+			if (!isset($role['permission'])) {
+				if (!$role['perm_add'] ) $role['permission'] = 0;
+				if ($role['perm_add'] && !$role['permModifyOrg']) $role['permission'] = 1;
+				if ($role['permModifyOrg'] && !$role['permPublish']) $role['permission'] = 2;
+				if ($role['permPublish']) $role['permission'] = 3;
+			}
 			$this->generateACL($role);
+			$aro->save(array(
+					'model' => 'Role',
+					'foreign key' => $role['id'],
+					'parent_id' => null,
+					'alias' => $role['name'],
+					));
 		}
 		exit;
 	}
 
 	public function generateACL($inc) {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		if ($inc['Role']['permission'] == null) $inc['Role']['permission'] = 0;
+		if (!isset($inc['Role']['permission'])) $inc['Role']['permission'] = 0;
 		switch ($inc['Role']['permission']) {
 			case '0':
 				$permAdd = false;
@@ -479,6 +491,7 @@ class AppController extends Controller {
 		} else {
 			$this->Acl->deny($inc, 'controllers/Events/export');
 		}
+
 	}
 
 	public function generateCorrelation() {
