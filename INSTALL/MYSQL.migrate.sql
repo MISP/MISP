@@ -173,7 +173,8 @@ ALTER TABLE `servers` DROP `logo`;
 
 ALTER TABLE `users` ADD `role_id` int(11) NOT NULL;
 ALTER TABLE `users` ADD `change_pw` tinyint(1) NOT NULL;
-ALTER TABLE `users` CHANGE `email` `email` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL 
+ALTER TABLE `users` ADD `contactalert` TINYINT( 1 ) NOT NULL;
+ALTER TABLE `users` CHANGE `email` `email` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL; 
 UPDATE `users` SET `role_id` = '3';
 UPDATE `users` SET `role_id` = '1' WHERE `org` = 'ADMIN';  
 -- --------------------------------------------------------
