@@ -394,19 +394,7 @@ class AppController extends Controller {
 		$this->loadModel('Role');
 		$roles = $this->Role->find('all',array('recursive' => 0));
 		foreach ($roles as $role) {
-			if (!isset($role['permission'])) {
-				if (!$role['perm_add'] ) $role['permission'] = 0;
-				if ($role['perm_add'] && !$role['permModifyOrg']) $role['permission'] = 1;
-				if ($role['permModifyOrg'] && !$role['permPublish']) $role['permission'] = 2;
-				if ($role['permPublish']) $role['permission'] = 3;
-			}
 			$this->generateACL($role);
-			$aro->save(array(
-					'model' => 'Role',
-					'foreign key' => $role['id'],
-					'parent_id' => null,
-					'alias' => $role['name'],
-					));
 		}
 		exit;
 	}
