@@ -107,7 +107,6 @@ ALTER TABLE `events` ADD `dist_change` int(11) NOT NULL DEFAULT 0;
 ALTER TABLE `events` ADD `orgc` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;
 UPDATE `events` SET `orgc` = `org` WHERE `orgc` = '';
 UPDATE `events` SET `analysis` = '2';
-UPDATE `events` SET `user_id` = (SELECT `id` FROM `users` WHERE `email` = 'cisprotection@ncirc.nato.int') WHERE `user_id` = '';  
 -- --------------------------------------------------------
 
 --
