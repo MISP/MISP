@@ -396,7 +396,8 @@ class AppController extends Controller {
 		foreach ($roles as $role) {
 			$this->generateACL($role);
 		}
-		exit;
+		$this->Session->setFlash(__('All done.'));
+		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 	}
 
 	public function generateACL($inc) {
@@ -508,6 +509,8 @@ class AppController extends Controller {
 			//	}
 			//}
 		}
+		$this->Session->setFlash(__('All done.'));
+		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 	}
 
 /**
@@ -637,6 +640,8 @@ class AppController extends Controller {
 			$event['Event']['attribute_count'] = sizeof($event['Attribute']);
 			$this->Event->save($event);
 		}
+		$this->Session->setFlash(__('All done.'));
+		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 	}
 
 /**

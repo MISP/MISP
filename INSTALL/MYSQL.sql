@@ -1,17 +1,54 @@
--- phpMyAdmin SQL Dump
--- version 3.3.9.2
--- http://www.phpmyadmin.net
---
--- Host: localhost
--- Generation Time: Jun 14, 2012 at 09:57 AM
--- Server version: 5.5.9
--- PHP Version: 5.3.6
-
-SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+-- --------------------------------------------------------
 
 --
--- Database: `cydefsig`
+-- Table structure for table `acos`
 --
+
+CREATE TABLE IF NOT EXISTS `acos` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `parent_id` int(10) DEFAULT NULL,
+  `model` varchar(255) DEFAULT NULL,
+  `foreign_key` int(10) DEFAULT NULL,
+  `alias` varchar(255) DEFAULT NULL,
+  `lft` int(10) DEFAULT NULL,
+  `rght` int(10) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `aros`
+--
+
+CREATE TABLE IF NOT EXISTS `aros` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `parent_id` int(10) DEFAULT NULL,
+  `model` varchar(255) DEFAULT NULL,
+  `foreign_key` int(10) DEFAULT NULL,
+  `alias` varchar(255) DEFAULT NULL,
+  `lft` int(10) DEFAULT NULL,
+  `rght` int(10) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `aros_acos`
+--
+
+CREATE TABLE IF NOT EXISTS `aros_acos` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `aro_id` int(10) NOT NULL,
+  `aco_id` int(10) NOT NULL,
+  `_create` varchar(2) NOT NULL DEFAULT '0',
+  `_read` varchar(2) NOT NULL DEFAULT '0',
+  `_update` varchar(2) NOT NULL DEFAULT '0',
+  `_delete` varchar(2) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ARO_ACO_KEY` (`aro_id`,`aco_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -19,25 +56,24 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 -- Table structure for table `attributes`
 --
 
-CREATE TABLE `attributes` (
+CREATE TABLE IF NOT EXISTS `attributes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `event_id` int(11) NOT NULL,
-  `category` varchar(255) COLLATE utf8_bin NOT NULL,
   `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `value1` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `value2` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `category` varchar(255) COLLATE utf8_bin NOT NULL,
+  `value1` text COLLATE utf8_bin,
   `to_ids` tinyint(1) NOT NULL DEFAULT '1',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `revision` int(10) NOT NULL DEFAULT '0',
   `private` tinyint(1) NOT NULL,
   `cluster` tinyint(1) NOT NULL,
   `communitie` tinyint(1) NOT NULL,
+  `value2` text COLLATE utf8_bin,
   `dist_change` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
-  KEY `value1_key` (`value1`(5)),
-  KEY `value2_key` (`value2`(5))
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+  KEY `uuid` (`uuid`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -45,11 +81,11 @@ CREATE TABLE `attributes` (
 -- Table structure for table `blacklist`
 --
 
-CREATE TABLE `blacklist` (
+CREATE TABLE IF NOT EXISTS `blacklist` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(254) NOT NULL,
+  `name` varchar(254) COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -57,7 +93,7 @@ CREATE TABLE `blacklist` (
 -- Table structure for table `bruteforces`
 --
 
-CREATE TABLE `bruteforces` (
+CREATE TABLE IF NOT EXISTS `bruteforces` (
   `ip` varchar(255) COLLATE utf8_bin NOT NULL,
   `username` varchar(255) COLLATE utf8_bin NOT NULL,
   `expire` datetime NOT NULL
@@ -69,12 +105,11 @@ CREATE TABLE `bruteforces` (
 -- Table structure for table `correlations`
 --
 
-DROP TABLE IF EXISTS `correlations`;
-CREATE TABLE `correlations` (
+CREATE TABLE IF NOT EXISTS `correlations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `1_event_id` int(11) NOT NULL,
   `1_attribute_id` int(11) NOT NULL,
-  `1_private` tinyint(1) NOT NULL,
+  `1_private` tinyint(1) NOT NULL DEFAULT '0',
   `event_id` int(11) NOT NULL,
   `attribute_id` int(11) NOT NULL,
   `org` varchar(255) COLLATE utf8_bin NOT NULL,
@@ -82,7 +117,7 @@ CREATE TABLE `correlations` (
   `cluster` tinyint(1) NOT NULL,
   `date` date NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=118 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -90,48 +125,29 @@ CREATE TABLE `correlations` (
 -- Table structure for table `events`
 --
 
-CREATE TABLE `events` (
+CREATE TABLE IF NOT EXISTS `events` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `org` varchar(255) COLLATE utf8_bin NOT NULL,
   `date` date NOT NULL,
   `risk` enum('Undefined','Low','Medium','High') COLLATE utf8_bin NOT NULL,
   `info` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `user_id` int(11) NOT NULL,
-  `published` tinyint(1) NOT NULL DEFAULT '0',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
-  `revision` int(10) NOT NULL DEFAULT '0',
+  `revision` tinyint(1) NOT NULL,
   `private` tinyint(1) NOT NULL,
   `cluster` tinyint(1) NOT NULL,
-  `analysis` tinyint(4) NOT NULL,
   `communitie` tinyint(1) NOT NULL,
-  `attribute_count` int(11) UNSIGNED DEFAULT NULL,
-  `hop_count` int(11) UNSIGNED DEFAULT 0,
-  `dist_change` int(11) NOT NULL DEFAULT '0'
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `roles`
---
-
-CREATE TABLE `roles` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(100) COLLATE utf8_bin NOT NULL,
-  `created` datetime NOT NULL,
-  `modified` datetime NOT NULL,
-  `perm_add` tinyint(1) NOT NULL DEFAULT 0,
-  `perm_modify` tinyint(1) NOT NULL DEFAULT 0,
-  `perm_modify_org` tinyint(1) NOT NULL DEFAULT 0,
-  `perm_publish` tinyint(1) NOT NULL DEFAULT 0,
-  `perm_sync` tinyint(1) NOT NULL DEFAULT 0,
-  `perm_full` tinyint(1) NOT NULL DEFAULT 0,
-  `perm_audit` tinyint(1) NOT NULL DEFAULT 0,
-  `perm_admin` tinyint(1) NOT NULL DEFAULT 0,
-  `perm_auth` tinyint(1) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+  `attribute_count` int(11) NOT NULL,
+  `hop_count` int(11) NOT NULL DEFAULT '0',
+  `published` tinyint(1) NOT NULL DEFAULT '0',
+  `analysis` tinyint(4) NOT NULL,
+  `orgc` varchar(255) COLLATE utf8_bin NOT NULL,
+  `dist_change` int(11) NOT NULL DEFAULT '0',
+  `from` varchar(10) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `uuid` (`uuid`),
+  FULLTEXT KEY `info` (`info`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -139,20 +155,20 @@ CREATE TABLE `roles` (
 -- Table structure for table `logs`
 --
 
-CREATE TABLE `logs` (
+CREATE TABLE IF NOT EXISTS `logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `title` varchar(255) COLLATE utf8_bin NOT NULL,
-  `created` datetime NOT NULL,
-  `model` varchar(20) COLLATE utf8_bin NOT NULL,
-  `model_id` int(11) NOT NULL,
-  `action` varchar(20) COLLATE utf8_bin NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `change` varchar(255) COLLATE utf8_bin,
-  `email` varchar(255) COLLATE utf8_bin NOT NULL,
-  `org` varchar(255) COLLATE utf8_bin NOT NULL,
-  `description` varchar(255) COLLATE utf8_bin NOT NULL,
+  `title` varchar(255) COLLATE utf8_bin DEFAULT NULL,
+  `created` datetime DEFAULT NULL,
+  `model` varchar(20) COLLATE utf8_bin DEFAULT NULL,
+  `model_id` int(11) DEFAULT NULL,
+  `action` varchar(20) COLLATE utf8_bin DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `change` varchar(255) COLLATE utf8_bin DEFAULT NULL,
+  `email` varchar(255) COLLATE utf8_bin DEFAULT NULL,
+  `org` varchar(255) COLLATE utf8_bin DEFAULT NULL,
+  `description` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -160,12 +176,35 @@ CREATE TABLE `logs` (
 -- Table structure for table `regexp`
 --
 
-CREATE TABLE `regexp` (
+CREATE TABLE IF NOT EXISTS `regexp` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `regexp` varchar(255) COLLATE utf8_bin NOT NULL,
   `replacement` varchar(255) COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=16 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `roles`
+--
+
+CREATE TABLE IF NOT EXISTS `roles` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `created` datetime DEFAULT NULL,
+  `modified` datetime DEFAULT NULL,
+  `perm_add` tinyint(1) DEFAULT NULL,
+  `perm_modify` tinyint(1) DEFAULT NULL,
+  `perm_modify_org` tinyint(1) DEFAULT NULL,
+  `perm_publish` tinyint(1) DEFAULT NULL,
+  `perm_sync` tinyint(1) DEFAULT NULL,
+  `perm_admin` tinyint(1) DEFAULT NULL,
+  `perm_audit` tinyint(1) DEFAULT NULL,
+  `perm_full` tinyint(1) DEFAULT NULL,
+  `perm_auth` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -173,7 +212,7 @@ CREATE TABLE `regexp` (
 -- Table structure for table `servers`
 --
 
-CREATE TABLE `servers` (
+CREATE TABLE IF NOT EXISTS `servers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `url` varchar(255) COLLATE utf8_bin NOT NULL,
   `authkey` varchar(40) COLLATE utf8_bin NOT NULL,
@@ -181,10 +220,10 @@ CREATE TABLE `servers` (
   `organization` varchar(10) COLLATE utf8_bin NOT NULL,
   `push` tinyint(1) NOT NULL,
   `pull` tinyint(1) NOT NULL,
-  `lastpushedid` int(11) NOT NULL,
   `lastpulledid` int(11) NOT NULL,
+  `lastpushedid` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -192,23 +231,24 @@ CREATE TABLE `servers` (
 -- Table structure for table `users`
 --
 
-CREATE TABLE `users` (
+CREATE TABLE IF NOT EXISTS `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `password` varchar(40) COLLATE utf8_bin NOT NULL,
   `org` varchar(255) COLLATE utf8_bin NOT NULL,
-  `email` varchar(255) COLLATE utf8_bin NOT NULL,
+  `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `autoalert` tinyint(1) NOT NULL,
   `authkey` varchar(40) COLLATE utf8_bin NOT NULL,
   `invited_by` int(11) NOT NULL,
   `gpgkey` longtext COLLATE utf8_bin NOT NULL,
   `nids_sid` int(15) NOT NULL,
   `termsaccepted` tinyint(1) NOT NULL,
-  `change_pw` tinyint(1) NOT NULL,
   `newsread` date NOT NULL,
-  `role_id` int(11) NOT NULL,
+  `role_id` int(11) DEFAULT NULL,
+  `change_pw` tinyint(4) NOT NULL,
+  `contactalert` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `email` (`email`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=2 ;
+  KEY `username` (`password`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -216,19 +256,75 @@ CREATE TABLE `users` (
 -- Table structure for table `whitelist`
 --
 
-CREATE TABLE `whitelist` (
+CREATE TABLE IF NOT EXISTS `whitelist` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(254) NOT NULL,
+  `name` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
+-- --------------------------------------------------------
 
 --
--- Dumping data for table `attributes`
+-- Default values for initial installation
 --
 
--- Dumping data for table `users`
+INSERT INTO `users` (`id`,  `password`, `org`, `email`, `autoalert`, `authkey`, `invited_by`, `gpgkey`, `nids_sid`, `termsaccepted`, `newsread`, `role_id`, `change_pw`) VALUES(1, 'babc86e0869015b3f0b4d48ca48700d3a9d1b9d7', 'ADMIN', 'admin@admin.test', 0, 'vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb', 1, '', 4000000, 0, '2012-03-13', '1', '1');
+INSERT INTO `regexp` 
+  (`regexp`, `replacement`)
+VALUES 
+  ('/.:.ProgramData./i','%ALLUSERSPROFILE%\\\\'),
+  ('/.:.Documents and Settings.All Users./i','%ALLUSERSPROFILE%\\\\'),
+  ('/.:.Program Files.Common Files./i','%COMMONPROGRAMFILES%\\\\'),
+  ('/.:.Program Files \(x86\).Common Files./i','%COMMONPROGRAMFILES(x86)%\\\\'),
+  ('/.:.Users.(\\w+).AppData.Local.Temp./i','%TEMP%\\\\'),
+  ('/.:.ProgramData./i','%PROGRAMDATA%\\\\'),
+  ('/.:.Program Files./i','%PROGRAMFILES%\\\\'),
+  ('/.:.Program Files \(x86\)./i','%PROGRAMFILES(X86)%\\\\'),
+  ('/.:.Users.Public./i','%PUBLIC%\\\\'),
+  ('/.:.Documents and Settings.(\\w+).Local Settings.Temp./i','%TEMP%\\\\'),
+  ('/.:.Users.(\\w+).AppData.Local.Temp./i','%TEMP%\\\\'),
+  ('/.:.Users.(\\w+).AppData.Local./i','%LOCALAPPDATA%\\\\'),
+  ('/.:.Users.(\\w+).AppData.Roaming./i','%APPDATA%\\\\'),
+  ('/.:.Users.(\\w+).Application Data./i','%APPDATA%\\\\'),
+  ('/.:.Windows.(\\w+).Application Data./i','%APPDATA%\\\\'),
+  ('/.:.Users.(\\w+)./i','%USERPROFILE%\\\\'),
+  ('/.:.DOCUME~1.(\\w+)./i','%USERPROFILE%\\\\'),
+  ('/.:.Documents and Settings.(\\w+)./i','%USERPROFILE%\\\\'),
+  ('/.:.Windows./i','%WINDIR%\\\\'),
+  ('/.:.Windows./i','%WINDIR%\\\\'),
+  ('/.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{9}){1}(-[0-9]{10}){1}-[0-9]{9}-[0-9]{4}/i','HKCU'),
+  ('/.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){2}-[0-9]{9}-[0-9]{4}/i','HKCU'),
+  ('/.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){3}-[0-9]{4}/i','HKCU'),
+  ('/.REGISTRY.MACHINE./i','HKLM\\\\'),
+  ('/.Registry.Machine./i','HKLM\\\\');
+
+-- --------------------------------------------------------
+
+--
+-- Creating initial roles
+--
+-- 1. Admin - has full access
+-- 2. Org Admin - read/write/publish/audit/admin/sync/auth
+-- 3. User - User - Read / Write, no other permissions (default)
+-- 4. Sync user - read/write/publish/sync/auth
 --
 
-INSERT INTO `users` (`id`,  `password`, `org`, `email`, `autoalert`, `authkey`, `invited_by`, `gpgkey`, `nids_sid`, `termsaccepted`, `newsread`, `role_id`) VALUES(1, 'babc86e0869015b3f0b4d48ca48700d3a9d1b9d7', 'ADMIN', 'admin@admin.test', 0, 'vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb', 1, '', 4000000, 0, '2012-03-13', '');
-INSERT INTO `regexp` (`id`,  `regexp`, `replacement`) VALUES (1,'/C:.Users.(\\w+).AppData.Local.Temp./','%TEMP%\\\\'),(3,'/C:.Users.(\\w+).AppData.Local./','%LOCALAPPDATA%\\\\'),(4,'/C:.Users.(\\w+).AppData.Roaming./','%APPDATA%\\\\'),(5,'/C:.Users.(\\w+)./','%UserProfile%\\\\'),(6,'/C:.Documents and Settings.(\\w+) (\\w+)./','%UserProfile%\\\\'),(7,'/C:.DOCUME~1.(\\w+)./','%UserProfile%\\\\'),(8,'/C:.Documents and Settings.All Users/','%AllUsersProfile%'),(9,'/.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{9}){1}(-[0-9]{10}){1}-[0-9]{9}-[0-9]{4}/','HKCU'),(10,'@.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){2}-[0-9]{9}-[0-9]{4}@','HKCU'),(11,'@.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){3}-[0-9]{4}@','HKCU'),(13,'@.REGISTRY.MACHINE.@','HKLM\\\\'),(14,'@.Registry.Machine.@','HKLM\\\\'),(15,'','not allowed'),(16,'/not allowed/',''),(26,'/%AppData\\\\\\\\/','%AppData%'),(27,'/%APPDATA%/','%AppData%'),(20,'','replacements to uniform the data'),(25,'/%allusers%/','%AllUsers%'),(28,'/%APPDATA%/','%AppData%'),(29,'/%LocalSettings&\\\\\\\\/','%LocalSettings%'),(30,'/%Programfiles%/','%ProgramFiles%'),(31,'/%systemroot%/','%SystemRoot%'),(32,'/%Temp\\\\\\\\/','%TEMP%'),(33,'/%Temp%/','%TEMP%'),(34,'/%temp%/','%TEMP%'),(35,'/%UserProfile\\\\\\\\/','%UserProfile%'),(36,'/%userprofile%/','%UserProfile%'),(37,'/%Windir%/','%windir%'),(38,'/%WINDIR%/','%windir%');
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`)
+VALUES ('1', 'admin', NOW() , NOW() , '1', '1', '1', '1', '1', '1', '1', '1', '1');
+
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`)
+VALUES ('2', 'Org Admin', NOW() , NOW() , '1', '1', '0' , '1', '1', '1', '1', '0' , '1');
+
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`)
+VALUES ('3', 'User', NOW() , NOW() , '1', '1', '0' , '0' , '0' , '0' , '0' , '0' , '0');
+
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`)
+VALUES ('4', 'Sync user', NOW(), NOW(), '1', '1', '1', '1', '1', '0', '1', '0', '1');
+
+INSERT INTO `aros` (`id`, `parent_id`, `model`, `foreign_key`, `alias`, `lft`, `rght`) VALUES
+(1, NULL, 'Role', 1, NULL, 1, 2),
+(2, NULL, 'Role', 2, NULL, 3, 4),
+(3, NULL, 'Role', 3, NULL, 5, 6),
+(4, NULL, 'Role', 4, NULL, 7, 8);
+
+-- --------------------------------------------------------

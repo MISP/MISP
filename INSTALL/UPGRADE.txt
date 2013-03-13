@@ -10,11 +10,8 @@ Upgrade procedure from v1 to v2
 	./Console/cake acl create aco root controllers
 	./Console/cake AclExtras.AclExtras aco_sync
 
-- Log in with the following credentials:
-	- username: admin@admin.test
-	- password: admin
-
-- execute the following commands by changing the url (where <MISP> is the address of your instance):
+- Log in with the site admin credentials and execute the following commands by changing the url 
+(where <MISP> is the address of your instance):
 	- https://<MISP>/events/generateCorrelation
 	- https://<MISP>/events/generateCount
 	- https://<MISP>/events/generateArosAcos
