@@ -9,7 +9,7 @@ if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 			<?php
 endif; ?>
 			<?php
-if ($isAdmin): ?>
+if ($isSiteAdmin): ?>
 			<th><?php echo $this->Paginator->sort('owner org');?></th>
 			<?php
 endif; ?>
@@ -58,7 +58,7 @@ foreach ($events as $event):?>
 		?>
 		&nbsp;</td><?php
 	endif;
-	if ('true' == $isAdmin): ?>
+	if ('true' == $isSiteAdmin): ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';"><?php
 		$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
 		$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
@@ -74,7 +74,8 @@ foreach ($events as $event):?>
 		<?php echo $event['Event']['attribute_count']; ?>&nbsp;</td><?php
 	if ('true' == Configure::read('CyDefSIG.showowner') || $isAdmin): ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
-		<?php echo h($event['User']['email']); ?>&nbsp;</td><?php
+		<?php if('false' == Configure::read('CyDefSIG.showowner') && ($isSiteAdmin || $event['Event']['org'] == $me['org'])) echo h($event['User']['email']);
+		?>&nbsp;</td><?php
 	endif; ?>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 		<?php echo $event['Event']['date']; ?>&nbsp;</td>
@@ -97,7 +98,7 @@ foreach ($events as $event):?>
 	endif; ?>
 		<td class="actions">
 			<?php
-			if (0 == $event['Event']['published'] && ($isAdmin || ($isAclPublish && $event['Event']['org'] == $me['org'])))
+			if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['org'] == $me['org'])))
 				echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), array('action' => 'alert', $event['Event']['id']), 'Are you sure this event is complete and everyone should be informed?');
 			elseif (0 == $event['Event']['published']) echo 'Not published';
 			?>

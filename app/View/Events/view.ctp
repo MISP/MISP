@@ -32,14 +32,14 @@ endif; ?>
 			&nbsp;
 		</dd>
 		<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
-		<dt>Creating Org</dt>
+		<dt>Org</dt>
 		<dd>
 			<?php echo h($event['Event']['orgc']); ?>
 			&nbsp;
 		</dd>
 		<?php
 endif; ?>
-		<?php if ($isAdmin): ?>
+		<?php if ($isSiteAdmin): ?>
 		<dt>Owner org</dt>
 		<dd>
 			<?php echo h($event['Event']['org']); ?>
@@ -47,7 +47,7 @@ endif; ?>
 		</dd>
 		<?php
 endif; ?>
-		<?php if ('true' == Configure::read('CyDefSIG.showowner') || $isAdmin): ?>
+		<?php if ('true' == Configure::read('CyDefSIG.showowner') || ($isSiteAdmin || ($isAdmin && $me['org'] == $event['Event']['org']))): ?>
 		<dt>Email</dt>
 		<dd>
 			<?php echo h($event['User']['email']); ?>
