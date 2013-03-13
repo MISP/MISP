@@ -1114,9 +1114,9 @@ class EventsController extends AppController {
 			//limit this array to users with contactalerts turned on!
 			$orgMembers = array();
 			$this->User->recursive = 0;
-			$temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert'));
+			$temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert', 'id'));
 			foreach ($temp as $tempElement) {
-				if ($tempElement['User']['contactalert']) {
+				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
 					array_push($orgMembers, $tempElement);
 				}
 			}
