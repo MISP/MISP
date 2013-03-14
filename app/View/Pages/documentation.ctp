@@ -28,18 +28,21 @@
 		<li><em>Log out:</em> Logs the current user out.<br /><br /></li></ul>
 	<i><u>Sync Actions</u></i><br /><br />
 	<ul>
-		<li><em>List Servers:</em> Connect your MISP server to other servers, or view and modify the currently established connections.<br /><br /></li></ul>
+		<li><em>List Servers:</em> Connect your MISP instance to other instances, or view and modify the currently established connections.<br /><br /></li></ul>
+	<i><u>Input Filters</u></i><br /><br />
+	<ul>
+		<li><em>Import Blacklist:</em> Create, modify or delete blacklisted strings. These will stop any matching events/attributes from being entered into the system.</li>
+		<li><em>Import Regexp:</em> Create, modify or delete regular expressions and their replacements. Each time an event / attribute is created or modified, they will be parsed and found expressions will be replaced.</li>
+		<li><em>Signature Whitelist:</em> View and manage the list of whitelisted addresses. These, if contained in attributes, will be blocked from the NIDS signature exports.<br /><br /></li></ul>
 	<i><u>Administration</u></i><br /><br />
 	<ul>
-		<li><em>Regex:</em> Create, modify or delete Regex entries, which will be used for altering newly entered attributes.</li>
-		<li><em>Whitelist:</em> View and manage the list of whitelisted addresses.</li>
 		<li><em>New User:</em> Create an account for a new user.</li>
 		<li><em>List Users:</em> View, modify or delete the currently registered users.</li>
-		<li><em>New Role:</em> Create a new role group for the users of this server, controlling their privileges to create, modify, delete and to publish events.</li>
+		<li><em>New Role:</em> Create a new role group for the users of this instance, controlling their privileges to create, modify, delete and to publish events.</li>
 		<li><em>List Roles:</em> List, modify or delete currently existing roles.<br /><br /></li></ul>
 	<i><u>Audit</u></i><br /><br />
 	<ul>
-		<li><em>List Logs:</em> View the logs of the server.</li>
+		<li><em>List Logs:</em> View the logs of the instance.</li>
 		<li><em>Search Logs:</em> Search the logs by various attributes.<br /><br /></li></ul>
 
 <h3>The main area</h3>

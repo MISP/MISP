@@ -74,7 +74,7 @@ You can also upload attachments, such as the malware itself, report files from e
 	<li><em>Category:</em> The category is the same as with the attributes, it answers the question of what the uploaded file is meant to describe.<br /><br /></li>
 	<li><em>Upload field:</em> By hitting browse, you can browse your file system and point the uploader to the file that you want to attach to the attribute. This will then be uploaded when the upload button is pushed.<br /><br /></li>
 	<li><em>Malware:</em> This check-box marks the file as malware and as such it will be zipped and passworded, to protect the users of the system from accidentally downloading and executing the file. Make sure to tick this if you suspect that the filed is infected, before uploading it.<br /><br /></li>
-	<li><em>Private:</em> This drop-down menu controls who the attachment will be shared as.<br /><br /></li>
+	<li><em>Distribution:</em> This drop-down menu controls who the attachment will be shared as.<br /><br /></li>
 	<li style="list-style: none;"><ul>
 		<li><i>Your organisation only:</i> This setting will only allow members of your organisation on your server to see it.<br /><br /></li>
 		<li><i>This server only:</i> This setting will only allow members of any organisation on your server to see it.<br /><br /></li>
@@ -86,7 +86,7 @@ You can also upload attachments, such as the malware itself, report files from e
 <br /><hr /><br />
 <h3>Publish an event:</h3>
 <p><img src="/img/doc/publish.png" alt = "Publish" style="float:right;" title = "Only use publish (no email) for minor changes such as the correction of typos."/></p><br />
-Once all the attributes and attachments that you want to include with the event are uploaded / set, it is time to finalise its creation by publishing the event (click on publish event in the event view). This will alert the eligible users of it (based on the private-controls of the event and its attributes/attachments and whether they have auto-alert turned on), push the event to servers that your server connects to if allowed (private needs to be set to all) and readies the network related attributes for NIDS signature creation (through the NIDS signature export feature, for more information, go to the export section.).<br /><br />
+Once all the attributes and attachments that you want to include with the event are uploaded / set, it is time to finalise its creation by publishing the event (click on publish event in the event view). This will alert the eligible users of it (based on the private-controls of the event and its attributes/attachments and whether they have auto-alert turned on), push the event to instances that your instance connects to and propagate it further based on the distribution rules. It also readies the network related attributes for NIDS signature creation (through the NIDS signature export feature, for more information, go to the export section.).<br /><br />
 There is an alternate way of publishing an event without alerting any other users, by using the "publish (no email)" button. This should only be used for minor edits (such as correcting a typo). <br />
 <br /><hr /><br />
 <a name ="browsing_events"></a><h2>Browsing past events:</h2>
@@ -95,7 +95,9 @@ The MISP interface allows the user to have an overview over or to search for eve
 On the left menu bar, the option "List events" will generate a list of the last 60 events. While the attributes themselves aren't shown in this view, the following pieces of information can be seen:<br /><br />
 <img src="/img/doc/list_events2.png" alt = "List events" title = "This is the list of events in the system. Use the buttons to the right to alter or view any of the events."/><br /><br />
 	<ul>
-		<li><em>Org:</em> The organisation that uploaded the event.<br /><br /></li>
+		<li><em>Valid.:</em> Validation, an event that has been published counts as validated, marked by a checkmark. Unpublished events are marked by a cross.<br /><br /></li>
+		<li><em>Org:</em> The organisation that created the event.<br /><br /></li>
+		<li><em>Owner Org:</em> The organisation that owns the event on this instance. This field is only visible to administrators. <br /><br /></li>
 		<li><em>ID:</em> The event's ID number, assigned by the system when the event was first entered (or in the case of an event that was synchronized, when it was first copied over - more on synchronisation in chapter xy)<br /><br /></li>
 		<li><em>#:</em> The number of attributes that the event has.<br /><br /></li>
 		<li><em>Email:</em> The e-mail address of the event's reporter.<br /><br /></li>
@@ -118,7 +120,7 @@ On the left menu bar, the option "List events" will generate a list of the last 
 		<li><em>Actions:</em> The controls that the user has to view or modify the event. The possible actions that are available (depending on user privileges - <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'administration', '#' => 'roles')); ?> to find out more about privileges):<br /><br /></li>
 		<li style="list-style: none;"><ul>
 			<li><em>Publish:</em> Publishing an event will have several effects: The system will e-mail all eligible users that have auto-alert turned on (and having the needed privileges for the event, depending on its private classification) with a description of your newly published event, it will be flagged as published and it will be pushed to all eligible servers (to read more about synchronisation between servers, have a look at the <?php echo $this->Html->link(__('section on connecting servers', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system', '#' => 'connect')); ?>).</li>
-			<li><em>Edit:</em> Clicking on the edit button will bring up the same same screen as the one used for creating new events, with the exception that all fields come filled out with the data of the event that is being edited. For more information on this view, refer to the section on <a href="#create">creating an event</a>.</li>
+			<li><em>Edit:</em> Clicking on the edit button will bring up the same same screen as the one used for creating new events, with the exception that all fields come filled out with the data of the event that is being edited. The distribution of an event can only be edited if you are a user of the creating organisation of the event. For more information on this view, refer to the section on <a href="#create">creating an event</a>.</li>
 			<li><em>Delete:</em> The system will prompt you before erasing the unwanted event.</li>
 			<li><em>View:</em> Will bring up the event view, which besides the basic information contained in the event list, will also include the following:<br /><br />
 			<img src="/img/doc/event_detail.png" alt = "Event" title = "This view includes the basic information about an event, a link to related events, all attributes and attachments with tools to modify or delete them and extra functions for publishing the event or getting in touch with the event's reporter."/><br /><br /></li>
@@ -143,19 +145,18 @@ On the left menu bar, the option "List events" will generate a list of the last 
 <h3>Searching for attributes:</h3>
 Apart from being able to list all events, it is also possible to search for data contained in the value field of an attribute, by clicking on the "Search Attributes" button.<br /><br />
 <img src="/img/doc/search_attribute.png" alt = "Search attribute" title = "You can search for attributes by searching for a phrase contained in its value. Narrow your search down by selecting a type and/or a category which the event has to belong to."/><br /><br />
-This will bring up a form that lets you enter a search string that will be compared to the values of all attributes, along with options to narrow down the search based on category and type. The entered search string has to be an exact match with (the sub-string of) a value.<br /><br />
-The list generated by the search will look exactly the same as listing all attributes, except that only the attributes that matched the search criteria will be listed (to find out more about the list attributes view, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>.).<br />
+This will bring up a form that lets you enter one or several search strings (separate search strings with line breaks) that will be compared to the values of all attributes, along with options to narrow down the search based on category and type. The entered search string has to be an exact match with (the sub-string of) a value. A second text field makes it possible to enter event IDs for events that should be excluded from the search (again, each line represents an event ID to be excluded).<br /><br />
+The list generated by the search will look exactly the same as listing all attributes, except that only the attributes that matched the search criteria will be listed (to find out more about the list attributes view, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>.). The search parameters will be shown above the produced list and the search terms will be highlighted.<br />
 <br /><img src="/img/doc/search_attribute_result.png" alt = "" title = "You can view the event that an attribute belongs to with the view button, or you can edit/delete the attribute via the buttons on the right."/><br />
 <br /><hr /><br />
 <a name ="update_events"></a><h2>Updating and modifying events and attributes:</h2>
 Every event and attribute can easily be edited. First of all it is important to find the event or attribute that is to be edited, using any of the methods mentioned in the section on <a href="#browsing_events">browsing past events</a>.<br /><br />
 Once it is found, the edit button (whether it be under actions when events/attributes get listed or simply on the event view) will bring up the same screen as what is used to create the entry of the same type (for an event it would be the event screen as <a href="#create">seen here</a>, for an attribute the attribute screen as <a href="#create_attribute">described here</a>).<br /><br />
 Keep in mind that editing any event (either directly or indirectly through an attribute) will unpublish it, meaning that you'll have to publish it (through the event view) again once you are done.<br /><br />
-<br /><img src="/img/doc/edit_event.png" alt = "" title = "Just alter any of the fields and click submit to change the event."/><br />
  <br /><hr /><br />
-<a name ="contact"></a><h2>Contacting the publisher:</h2>
+<a name ="contact"></a><h2>Contacting the reporter:</h2>
 To get in touch with the reporter of a previously registered event, just find the event for which you would like to contact the reporter by either finding it on the list of events, by finding it through one of its attributes or by finding it through a related event.<br /><br />
-Once the event is found and the event view opened, click the button titled "Contact Reporter". This will bring up a view where you can enter your message that is to be e-mailed to the reporting organisation or the reporter himself. Along with your message, the detailed information about the event in question will be included in the e-mail.<br /><br />
+Once the event is found and the event view opened, click the button titled "Contact Reporter". This will bring up a view where you can enter your message that is to be e-mailed to all members of the reporting organisation that subscribe to receiving such reports or the reporting user himself. Along with your message, the detailed information about the event in question will be included in the e-mail.<br /><br />
 <br /><img src="/img/doc/contact_reporter.png" alt = "" title = "Enter your message to the reporter and choose whether his/her entire organisation should get the message or not by ticking the check-box."/><br /><br />
 By default, the message will be sent to every member of the organisation that posted the event in the first place, but if you tick the check-box below the message field before sending the mail, only the person that reported the event will get e-mailed. <br />
 <br /><hr /><br />
@@ -163,46 +164,51 @@ By default, the message will be sent to every member of the organisation that po
 It is possible to quickly and conveniently export the data contained within the system using the export features located in the main menu on the left. There are various sets of data that can be exported, by using the authentication key provided by the system (also shown on the export page). If for whatever reason you would need to invalidate your current key and get a new one instead (for example due to the old one becoming compromise) just hit the reset link next to the authentication key in the export view or in your "my profile" view.<br /><br />
 The following types of export are possible:<br /><br />
 	<h3>XML export:</h3>
-		Exports all attributes and the event data of every single event in the database in the XML format. The usage is:<br /><br /><i>&lt;server&gt;/events/xml/&lt;authentication_key&gt;</i><br /><br />
+		Exports all attributes and the event data of every single event in the database (that you are eligible to see) in the XML format. The usage is:<br /><br /><i>&lt;server&gt;/events/xml/&lt;authentication_key&gt;</i><br /><br />
 		In order to export the data about a single event and its attributes, use the following syntax:<br /><br />
 		<i>&lt;server&gt;/events/xml/&lt;authentication_key&gt;/&lt;EventID&gt;</i><br /><br />
 	<h3>NIDS export:</h3>
-		This allows the user to export all network related attributes under the Snort format. The attributes have to belong to a published event and they have to have IDS signature generation enabled. The types that will be used when creating the export are: email-dst, ip-src, ip-dst, snort, url, domain. The usage is as follows:<br /><br /><i>&lt;server&gt;/events/nids/&lt;authentication_key&gt;</i><br /><br />
+		This allows the user to export all network related attributes (that you are eligible to see) under the Snort format. The attributes have to belong to a published event and they have to have IDS signature generation enabled. The types that will be used when creating the export are: email-dst, ip-src, ip-dst, snort, url, domain. The usage is as follows:<br /><br /><i>&lt;server&gt;/events/nids/&lt;authentication_key&gt;</i><br /><br />
 	<h3>Hash database export:</h3>
 		There are two hash formats (sha1 and md5) in which all filenames stored in the system can be exported. Events need to be published and the IDS Signature field needs to be turned on for this export. The usage is as follows:<br /><br />
 		For MD5: <i>&lt;server&gt;events/hids_md5/&lt;authentication_key&gt;</i><br /><br />
 		For SHA1: <i>&lt;server&gt;events/hids_sha1/&lt;authentication_key&gt;</i><br /><br />
 	<h3>Text export:</h3>
-		It is also possible to export a list of all attributes that match a specific type into a plain text file. The format to do this is:<br /><br />
+		It is also possible to export a list of all eligible attributes that match a specific type into a plain text file. The format to do this is:<br /><br />
 		<i>&lt;server&gt;/events/text/&lt;authentication_key&gt;/&lt;type&gt;</i><br /><br />
-		Type could be any valid type (as according to section 10), for example md5, ip-src or comment.<br />
+		Type could be any valid type (as according to the list of <?php echo $this->Html->link(__('categories and types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>), for example md5, ip-src or comment.<br />
 <br /><hr /><br />
-<h2><a name ="connect"></a>Connecting to other servers:</h2>
-Apart from being a self contained repository of attacks/malware, one of the main features of MISP is its ability to connect to other instances of the server and share (parts of) its information. The following options allow you to set up and maintain such connections.<br /><br />
+<h2><a name ="connect"></a>Connecting to other instances:</h2>
+Apart from being a self contained repository of attacks/malware, one of the main features of MISP is its ability to connect to other instances and share (parts of) its information. The following options allow you to set up and maintain such connections.<br /><br />
 <h3><a name ="new_server"></a>Setting up a connection to another server:</h3>
-In order to share data with a remote server via pushes and pulls, you need to create an account on the remote server, note down the authentication key and use that to add the server on the home server. When clicking on List Servers and then on New Server, a form comes up that needs to be filled out in order for your server to connect to it. The following fields need to be filled out:<br /><br />
-<p><img src="/img/doc/add_server.png" alt ="Add server" title = "Make sure that you enter the authentication key that you have been assigned on the remote server instead of the one you got from this server."/></p><br />
+In order to share data with a remote server via pushes and pulls, you need to request a valid authentication key from the hosting organisation of the remote instance. When clicking on List Servers and then on New Server, a form comes up that needs to be filled out in order for your instance to connect to it. The following fields need to be filled out:<br /><br />
+<p><img src="/img/doc/add_server.png" alt ="Add server" title = "Make sure that you enter the authentication key that you have been given by the hosting organisation of the remote instance, instead of the one you have gotten from this one."/></p><br />
 <ul>
 	<li><em>Base URL:</em> The URL of the remote server.<br /><br /></li>
-	<li><em>Organization:</em> The organisation that runs the remote server.<br /><br /></li>
-	<li><em>Authkey:</em> The authentication key that you have received on the remote server.<br /><br /></li>
-	<li><em>Push:</em> This check-box controls whether your server is allowed to push to the remote server.<br /><br /></li>
-	<li><em>Pull:</em> This check-box controls whether your server can request to pull all data from the request server.<br /><br /></li>
+	<li><em>Organization:</em> The organisation that runs the remote server. It is very impoportant that this setting is filled out exactly as the organisation name set up in the bootstrap file of the remote instance.<br /><br /></li>
+	<li><em>Authkey:</em> The authentication key that you have received from the hosting organisation of the remote instance.<br /><br /></li>
+	<li><em>Push:</em> This check-box controls whether your server is allowed to push to the remote instance.<br /><br /></li>
+	<li><em>Pull:</em> This check-box controls whether your server can request to pull all data from the remote instance.<br /><br /></li>
+</ul>
+<em>If you are an administrator</em>, trying to allow another instance to connect to your own, it is vital that two rules are followed when setting up a synchronisation account: <br /><br />
+<ul>
+	<li>The synchronisation user has to have the sync permission and full read/write/publish privileges turned on<br /><br /></li>
+	<li>Both the sync user and the organisation setting in your instance's Config/bootstrap.php file have to match the organisation identifier of the hosting organisation.<br /><br /></li>
 </ul>
 <h3>Browsing the currently set up server connections and interacting with them:</h3>
 If you ever need to change the data about the linked servers or remove any connections, you have the following options to view and manipulate the server connections, when clicking on List Servers: (you will be able to see a list of all servers that your server connects to, including the base address, the organisation running the server the last pushed and pulled event IDs and the control buttons.).<br /><br />
 <p><img src="/img/doc/list_servers.png" alt = "" title = "Apart from editing / deleting the link to the remote server, you can issue a push all or pull all command from here."/></p><br />
 <ul>
-	<li><em>Editing the server data:</em> By clicking edit a view, <a href=#new_server>that is identical to the new server view</a>, is loaded, with all the current information on the server pre-entered.<br /><br /></li>
-	<li><em>Deleting the server:</em> Clicking the delete button will delete the link to your server.<br /><br /></li>
-	<li><em>Push all:</em> By clicking this button, all events that are eligible to be pushed on your server will start to be pushed to the remote server.<br /><br /></li>
-	<li><em>Pull all:</em> By clicking this button, all events that are set to be pull-able or full access on the remote server will be copied to your server. <br /><br /></li>
+	<li><em>Editing the connection to the:</em> By clicking edit a view, <a href=#new_server>that is identical to the new instance view</a>, is loaded, with all the current information of the instance pre-entered.<br /><br /></li>
+	<li><em>Deleting the connection to the instance:</em> Clicking the delete button will delete the link to the instance.<br /><br /></li>
+	<li><em>Push all:</em> By clicking this button, all events that are eligible to be pushed on the instance you are on will start to be pushed to the remote instance. Events and attributes that exist on the far end will be updated.<br /><br /></li>
+	<li><em>Pull all:</em> By clicking this button, all events that are set to be pull-able or full access on the remote server will be copied to this instance. Existing events will not be updated.<br /><br /></li>
 </ul>
 <br /><hr /><br />
 <a name ="rest"></a><h2>Rest API:</h2>
-The platform is also <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTfull</a>, so this means you can use structured format (XML) to access Events data.<br /><br />
+The platform is also <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTfull</a>, so this means that you can use structured format (XML) to access Events data.<br /><br />
 <h3>Requests</h3>
-Use any HTTP compliant library to perform requests. However to make clear you are doing a REST request you need to either specify the Accept type to application/xml, or append .xml to the ur<br /><br />
+Use any HTTP compliant library to perform requests. However to make clear you are doing a REST request you need to either specify the Accept type to application/xml, or append .xml to the url<br /><br />
 The following table shows the relation of the request type and the resulting action:<br /><br />
 
 <table style="width:250px;" summary="">

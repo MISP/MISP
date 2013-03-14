@@ -60,7 +60,8 @@ To list all current users of the system, just click on List Users under the admi
 	<li><em>Id:</em> The user's automatically assigned ID number.<br /><br /></li>
 	<li><em>Org:</em> The organisation that the user belongs to.<br /><br /></li>
 	<li><em>Email:</em> The e-mail address (and login name) of the user.<br /><br /></li>
-	<li><em>Autoalert:</em> Shows whether the user has auto-alerts enabled and is always receiving the mass-emails that he is eligible for.<br /><br /></li>
+	<li><em>Autoalert:</em> Shows whether the user has subscribed to auto-alerts and is always receiving the mass-emails regarding newly published events that he/she is eligible for.<br /><br /></li>
+	<li><em>ontactalert:</em> Shows whether the user has the subscription to contact reporter e-mails directed at his/her organisation turned on or off.<br /><br /></li>
 	<li><em>Gpgkey:</em> Shows whether the user has entered a Gpgkey yet.<br /><br /></li>
 	<li><em>Nids Sid:</em> Shows the currently assigned NIDS ID.<br /><br /></li>
 	<li><em>Termsaccepted:</em> This flag indicates whether the user has accepted the terms of use or not.<br /><br /></li>
