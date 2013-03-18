@@ -130,9 +130,9 @@ class AppController extends Controller {
 
 		// TODO ACL: 5: from Controller to Views
 		$this->set('isAclAdd', $this->checkAcl('add'));
-		$this->set('isAclModify', $this->checkAction('perm_modify'));
+		$this->set('isAclModify', $this->checkAcl('edit'));
 		$this->set('isAclModifyOrg', $this->checkAction('perm_modify_org'));
-		$this->set('isAclPublish', $this->checkAction('publish'));
+		$this->set('isAclPublish', $this->checkAction('perm_publish'));
 		$this->set('isAclAdd2', $this->checkAction('perm_add'));
 		$this->set('isAclSync', $this->checkAction('perm_sync'));
 		$this->set('isAclAdmin', $this->checkAction('perm_admin'));

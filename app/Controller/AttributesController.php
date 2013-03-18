@@ -368,13 +368,13 @@ class AttributesController extends AppController {
 			$this->Attribute->create();
 			if ($this->request->data['Attribute']['malware']) {
 				$this->request->data['Attribute']['type'] = "malware-sample";
-				//preg_replace('@[*|\||<|>|?|"|\\|/|\:]@', '', $filename);
+				// Validate filename
 				if (!preg_match('@[\w-,\s]+\.[A-Za-z]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
 				$this->request->data['Attribute']['value'] = $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
 				$this->request->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 			} else {
 				$this->request->data['Attribute']['type'] = "attachment";
-				//preg_replace('@[*|\||<|>|?|"|\\|/|\:]@', '', $filename);
+				// Validate filename
 				if (!preg_match('@[\w-,\s]+\.[A-Za-z]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
 				$this->request->data['Attribute']['value'] = $filename;
 				$this->request->data['Attribute']['to_ids'] = 0;
@@ -821,9 +821,12 @@ class AttributesController extends AppController {
 						);
 					}
 				}
-
+				$idList = array();
 				$attributes = h($this->paginate());
 				foreach ($attributes as &$attribute) {
+					if (!in_array($attribute['Attribute']['event_id'], $idList)) {
+						$idList[] = $attribute['Attribute']['event_id'];
+					}
 					$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
 					foreach ($keywordArray as $keywordArrayElement) {
 						$keywordArrayElement = trim($keywordArrayElement);
@@ -840,6 +843,7 @@ class AttributesController extends AppController {
 				$this->Session->write('paginate_conditions_keyword', $keyword);
 				$this->Session->write('paginate_conditions_type', $type);
 				$this->Session->write('paginate_conditions_category', $category);
+				$this->Session->write('search_find_idlist', $idList);
 
 				// set the same view as the index page
 				$this->render('index');
@@ -884,6 +888,42 @@ class AttributesController extends AppController {
 			// set the same view as the index page
 			$this->render('index');
 		}
+	}
+
+	public function downloadAttributes() {
+		$idList = $this->Session->read('search_find_idlist');
+		$this->response->type('xml');	// set the content type
+		$this->header('Content-Disposition: download; filename="misp.attribute.search.xml"');
+		$this->layout = 'xml/default';
+		$this->loadModel('Attribute');
+		if (!isset($idList)) {
+			print "No results found to export\n";
+		} else {
+			foreach ($idList as $listElement) {
+				$put['OR'][] = array('Attribute.id' => $listElement);
+			}
+			$conditions['AND'][] = $put;
+			//	restricting to non-private or same org if the user is not a site-admin.
+			if (!$this->_isSiteAdmin()) {
+				$temp = array();
+				$distribution = array();
+				array_push($distribution, array('Attribute.private =' => 0));
+				array_push($distribution, array('Attribute.cluster =' => 1));
+				array_push($temp, array('OR' => $distribution));
+				array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
+				$put2['OR'][] = $temp;
+				$conditions['AND'][] = $put2;
+			}
+			$params = array(
+					'conditions' => $conditions, //array of conditions
+					'recursive' => 0, //int
+					'fields' => array('Attribute.id', 'Attribute.value'), //array of field names
+					'order' => array('Attribute.id'), //string or array defining order
+			);
+			$attributes = $this->Attribute->find('all', $params);
+			$this->set('results', $attributes);
+		}
+		$this->render('xml');
 	}
 
 /**

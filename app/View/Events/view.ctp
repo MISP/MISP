@@ -20,6 +20,7 @@ $mayPublish = ($isAclPublish && $event['Event']['org'] == $me['org']);
 	<?php
 endif; ?>
 	<ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id'])); ?> </li></ul>
+	<ul><li><?php echo $this->Html->link(__('Download as XML', true), array('action' => 'downloadxml', $event['Event']['id'])); ?> </li></ul>
 </div>
 
 <?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?><?php echo $this->element('img', array('id' => $event['Event']['orgc']));?><?php

@@ -1128,7 +1128,7 @@ class EventsController extends AppController {
 		$body = "";
 		$body .= "Hello, \n";
 		$body .= "\n";
-		$body .= "Someone wants to get in touch with you concerning a CyDefSIG event. \n";
+		$body .= "Someone wants to get in touch with you concerning a MISP event. \n";
 		$body .= "\n";
 		$body .= "You can reach him at " . $this->Auth->user('email') . "\n";
 		if (!$this->Auth->user('gpgkey'))
@@ -1246,11 +1246,18 @@ class EventsController extends AppController {
 		return $result;
 	}
 
-	public function export() {
+	public function automation() {
 		// Simply display a static view
 		if (!$this->checkAction('perm_auth')) {
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
+		// generate the list of Attribute types
+		$this->loadModel('Attribute');
+		$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
+	}
+
+	public function export() {
+		// Simply display a static view
 		// generate the list of Attribute types
 		$this->loadModel('Attribute');
 		$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
@@ -1269,7 +1276,7 @@ class EventsController extends AppController {
 		// display the full xml
 		$this->response->type('xml');	// set the content type
 		$this->layout = 'xml/default';
-		$this->header('Content-Disposition: inline; filename="cydefsig.xml"');
+		$this->header('Content-Disposition: inline; filename="misp.xml"');
 
 		if (isset($eventid)) {
 			$this->Event->id = $eventid;
@@ -1335,7 +1342,7 @@ class EventsController extends AppController {
 		}
 		// display the full snort rulebase
 		$this->response->type('txt');	// set the content type
-		$this->header('Content-Disposition: inline; filename="cydefsig.rules"');
+		$this->header('Content-Disposition: inline; filename="misp.rules"');
 		$this->layout = 'text/default';
 
 		$this->loadModel('Attribute');
@@ -1385,7 +1392,7 @@ class EventsController extends AppController {
 		}
 		// display the full md5 set
 		$this->response->type(array('txt' => 'text/html'));	// set the content type
-		$this->header('Content-Disposition: inline; filename="cydefsig.rules"');
+		$this->header('Content-Disposition: inline; filename="misp.rules"');
 		$this->layout = 'text/default';
 
 		$this->loadModel('Attribute');
@@ -1440,7 +1447,7 @@ class EventsController extends AppController {
 		}
 		// display the full SHA-1 set
 		$this->response->type(array('txt' => 'text/html'));	// set the content type
-		$this->header('Content-Disposition: inline; filename="cydefsig.rules"');
+		$this->header('Content-Disposition: inline; filename="misp.rules"');
 		$this->layout = 'text/default';
 
 		$this->loadModel('Attribute');
@@ -1476,7 +1483,7 @@ class EventsController extends AppController {
 
 			$this->set('rules', Sanitize::clean($rules));
 		} else {
-			print "Not any SHA-1 found to export\n";
+			print "No SHA-1 found to export\n";
 		}
 		$this->render('hids');
 	}
@@ -1493,7 +1500,7 @@ class EventsController extends AppController {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		$this->response->type('txt');	// set the content type
-		$this->header('Content-Disposition: inline; filename="cydefsig.' . $type . '.txt"');
+		$this->header('Content-Disposition: inline; filename="misp.' . $type . '.txt"');
 		$this->layout = 'text/default';
 
 		$this->loadModel('Attribute');
@@ -1781,4 +1788,276 @@ class EventsController extends AppController {
 	public function generateAllFor($field) {
 		parent::generateAllFor($field);
 	}
+
+	public function downloadxml($eventid=null) {
+		// display the full xml
+		$this->response->type('xml');	// set the content type
+		$this->layout = 'xml/default';
+		if ($eventid == null) {
+			$this->header('Content-Disposition: download; filename="misp.export.all.xml"');
+		} else {
+			$this->header('Content-Disposition: download; filename="misp.export.event' . $eventid . '.xml"');
+		}
+
+		if (isset($eventid)) {
+			$this->Event->id = $eventid;
+			if (!$this->Event->exists()) {
+				throw new NotFoundException(__('Invalid event'));
+			}
+			$conditions = array("Event.id" => $eventid);
+		} else {
+			$conditions = array();
+		}
+		//restricting to non-private or same org if the user is not a site-admin.
+		if (!$this->isSiteAdmin()) {
+			$temp = array();
+			$temp2 = array();
+			$org = $this->_checkOrg();
+			$distribution = array();
+			array_push($distribution, array('Event.private =' => 0));
+			array_push($distribution, array('Event.cluster =' => 1));
+			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('Event.org LIKE' => $org));
+			$conditions['OR'] = $temp;
+			$distribution2 = array();
+			array_push($distribution2, array('Attribute.private =' => 0));
+			array_push($distribution2, array('Attribute.cluster =' => 1));
+			array_push($temp2, array('OR' => $distribution2));
+			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
+			$conditionsAttributes['OR'] = $temp2;
+		}
+
+		// do not expose all the data ...
+		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
+		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id');
+		if ('true' == Configure::read('CyDefSIG.showorg')) {
+			$fields[] = 'Event.org';
+		}
+
+		$params = array('conditions' => $conditions,
+				'recursive' => 1,
+				'fields' => $fields,
+				'contain' => array(
+						'Attribute' => array(
+								'fields' => $fieldsAtt,
+								'conditions' => $conditionsAttributes,
+						),
+				)
+		);
+		$results = $this->Event->find('all', $params);
+		$this->set('results', $results);
+		$this->render('xml');
+	}
+
+	public function downloadnids() {
+		// display the full snort rulebase
+		$this->response->type('txt');	// set the content type
+		$this->header('Content-Disposition: download; filename="misp.nids.rules"');
+		$this->layout = 'text/default';
+
+		$this->loadModel('Attribute');
+
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
+		if (!$this->isSiteAdmin()) {
+			$temp = array();
+			$distribution = array();
+			array_push($distribution, array('Attribute.private =' => 0));
+			array_push($distribution, array('Attribute.cluster =' => 1));
+			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
+			$conditions['OR'] = $temp;
+		}
+
+		$params = array(
+				'conditions' => $conditions, //array of conditions
+				'recursive' => 0, //int
+				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+		);
+		$items = $this->Attribute->find('all', $params);
+
+		$rules = $this->NidsExport->suricataRules($items, $this->Auth->user('nids_sid'));
+		print ("#<h1>This part might still contain bugs, use and your own risk and report any issues.</h1>\n");
+
+		print "#<pre> \n";
+		foreach ($rules as &$rule)
+			print $rule . "\n";
+		print "#</pre>\n";
+
+		$this->set('rules', $rules);
+		$this->render('nids');
+	}
+
+	public function downloadhids_md5() {
+		// display the full md5 set
+		$this->response->type(array('txt' => 'text/html'));	// set the content type
+		$this->header('Content-Disposition: download; filename="misp.md5.rules"');
+		$this->layout = 'text/default';
+
+		$this->loadModel('Attribute');
+
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
+		if (!$this->isSiteAdmin()) {
+			$temp = array();
+			$distribution = array();
+			array_push($distribution, array('Attribute.private =' => 0));
+			array_push($distribution, array('Attribute.cluster =' => 1));
+			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
+			$conditions['OR'] = $temp;
+		}
+
+		$params = array(
+				'conditions' => $conditions, //array of conditions
+				'recursive' => 0, //int
+				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+		);
+		$items = $this->Attribute->find('all', $params);
+
+		$rules = $this->HidsMd5Export->suricataRules($items);	// TODO NIDS_SID??
+		if (count($rules) >= 4) {
+			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
+
+			print "#<pre> \n";
+			foreach ($rules as &$rule)
+				print $rule . "\n";
+			print "#</pre>\n";
+
+			$this->set('rules', $rules);
+		} else {
+			print "No MD5 found to export\n";
+		}
+		$this->render('hids');
+	}
+
+	public function downloadhids_sha1() {
+		// display the full SHA-1 set
+		$this->response->type(array('txt' => 'text/html'));	// set the content type
+		$this->header('Content-Disposition: download; filename="misp.sha1.rules"');
+		$this->layout = 'text/default';
+
+		$this->loadModel('Attribute');
+
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
+		if (!$this->isSiteAdmin()) {
+			$temp = array();
+			$distribution = array();
+			array_push($distribution, array('Attribute.private =' => 0));
+			array_push($distribution, array('Attribute.cluster =' => 1));
+			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
+			$conditions['OR'] = $temp;
+		}
+
+		$params = array(
+				'conditions' => $conditions, //array of conditions
+				'recursive' => 0, //int
+				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+		);
+		$items = $this->Attribute->find('all', $params);
+
+		$rules = $this->HidsSha1Export->suricataRules($items);	// TODO NIDS_SID??
+		if (count($rules) >= 4) {
+			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
+
+			print "#<pre> \n";
+			foreach ($rules as &$rule) {
+				print $rule . "\n";
+			}
+			print "#</pre>\n";
+
+			$this->set('rules', Sanitize::clean($rules));
+		} else {
+			print "No SHA-1 found to export\n";
+		}
+		$this->render('hids');
+	}
+
+	public function downloadtext($type="") {
+		$this->response->type('txt');	// set the content type
+		$this->header('Content-Disposition: download; filename="misp.' . $type . '.txt"');
+		$this->layout = 'text/default';
+		$this->loadModel('Attribute');
+
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array('Attribute.type' => $type);
+		if (!$this->isSiteAdmin()) {
+			$temp = array();
+			$distribution = array();
+			array_push($distribution, array('Attribute.private =' => 0));
+			array_push($distribution, array('Attribute.cluster =' => 1));
+			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
+			$conditions['OR'] = $temp;
+		}
+
+		$params = array(
+				'conditions' => $conditions, //array of conditions
+				'recursive' => 0, //int
+				'fields' => array('Attribute.value'), //array of field names
+				'order' => array('Attribute.value'), //string or array defining order
+				'group' => array('Attribute.value'), //fields to GROUP BY
+		);
+		$attributes = $this->Attribute->find('all', $params);
+
+		$this->set('attributes', $attributes);
+		$this->render('text');
+	}
+
+	public function downloadSearchResult() {
+		$idList = $this->Session->read('search_find_idlist');
+		$this->Session->write('search_find_idlist', '');
+		// display the full xml
+		$this->response->type('xml');	// set the content type
+		$this->layout = 'xml/default';
+		$this->header('Content-Disposition: download; filename="misp.search.results.xml"');
+		$put['OR'] = array();
+		foreach ($idList as $listElement) {
+			$put['OR'][] = array('Event.id' => $listElement);
+		}
+		$conditions['AND'][] = $put;
+		//restricting to non-private or same org if the user is not a site-admin.
+		if (!$this->isSiteAdmin()) {
+			$temp = array();
+			$temp2 = array();
+			$org = $this->_checkOrg();
+			$distribution = array();
+			array_push($distribution, array('Event.private =' => 0));
+			array_push($distribution, array('Event.cluster =' => 1));
+			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('Event.org LIKE' => $org));
+			$put2['OR'] = $temp;
+			$conditions['AND'][] = $put2;
+			$distribution2 = array();
+			array_push($distribution2, array('Attribute.private =' => 0));
+			array_push($distribution2, array('Attribute.cluster =' => 1));
+			array_push($temp2, array('OR' => $distribution2));
+			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
+			$conditionsAttributes['OR'] = $temp2;
+		}
+
+		// do not expose all the data ...
+		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
+		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id');
+		if ('true' == Configure::read('CyDefSIG.showorg')) {
+			$fields[] = 'Event.org';
+		}
+
+		$params = array('conditions' => $conditions,
+				'recursive' => 1,
+				'fields' => $fields,
+				'contain' => array(
+						'Attribute' => array(
+								'fields' => $fieldsAtt,
+								'conditions' => $conditionsAttributes,
+						),
+				)
+		);
+		$results = $this->Event->find('all', $params);
+		$this->set('results', $results);
+		$this->render('xml');
+	}
+
 }

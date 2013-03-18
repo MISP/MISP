@@ -21,7 +21,8 @@ if ($isSearch == 1) {
 	</tr>
 	<?php
 	$currentCount = 0;
-foreach ($attributes as $attribute): ?>
+foreach ($attributes as $attribute):
+	?>
 	<tr>
 		<td class="short">
 			<?php
@@ -83,6 +84,7 @@ endforeach;
 </div>
 <div class="actions">
 	<ul>
+		<li><?php echo $this->Html->link(__('Download results as XML'), array('admin' => false, 'controller' => 'events', 'action' => 'downloadSearchResult'));?></li>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
