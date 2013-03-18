@@ -84,7 +84,7 @@ endforeach;
 </div>
 <div class="actions">
 	<ul>
-		<li><?php echo $this->Html->link(__('Download results as XML'), array('admin' => false, 'controller' => 'events', 'action' => 'downloadSearchResult'));?></li>
+		<li><?php if ($isSearch == 1) echo $this->Html->link(__('Download results as XML'), array('admin' => false, 'controller' => 'events', 'action' => 'downloadSearchResult'));?></li>
 		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
