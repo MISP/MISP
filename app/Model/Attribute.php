@@ -670,14 +670,19 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				}
 				break;
-
+			case 'vulnerability':
+				if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4}$#", $value)) {
+					$returnValue = true;
+				} else {
+					$returnValue = 'Invalid format. Expected: CVE-xxxx-xxxx.';
+				}
+				break;
 			case 'AS':
 			case 'snort':
 			case 'pattern-in-file':
 			case 'pattern-in-traffic':
 			case 'pattern-in-memory':
 			case 'yara':
-			case 'vulnerability':
 			case 'attachment':
 			case 'malware-sample':
 				$returnValue = true;
@@ -823,6 +828,8 @@ class Attribute extends AppModel {
 		// Check if there were problems with the file upload
 		// only keep the last part of the filename, this should prevent directory attacks
 		$filename = basename($fileP);
+		debug($filename);
+		throw new Exception('yay');
 		$tmpfile = new File($fileP);
 
 		// save the file-info in the database
