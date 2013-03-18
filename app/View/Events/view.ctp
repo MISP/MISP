@@ -4,6 +4,12 @@ $mayPublish = ($isAclPublish && $event['Event']['org'] == $me['org']);
 ?>
 <div class="events view">
 <div class="actions" style="float:right;">
+	<?php
+		if ($isSiteAdmin || $mayModify): ?>
+	<ul><li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?>
+	<?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li></ul><br />
+		<?php
+endif; ?>
 <?php if ( 0 == $event['Event']['published'] && ($isAdmin || $mayPublish)):
 	// only show button if alert has not been sent  // LATER show the ALERT button in red-ish
 	?>
@@ -19,7 +25,7 @@ $mayPublish = ($isAclPublish && $event['Event']['org'] == $me['org']);
 		<!-- ul><li>Alert already sent</li></ul -->
 	<?php
 endif; ?>
-	<ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id'])); ?> </li></ul>
+	<br /><ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id'])); ?> </li></ul><br />
 	<ul><li><?php echo $this->Html->link(__('Download as XML', true), array('action' => 'downloadxml', $event['Event']['id'])); ?> </li></ul>
 </div>
 
@@ -101,7 +107,7 @@ endif; ?>
 			<?php echo nl2br($event['Event']['info']); ?>
 			&nbsp;
 		</dd>
-	</dl>
+	</dl><br />
 <?php
 if (!empty($relatedEvents)):?>
 	<div class="related">
@@ -117,9 +123,10 @@ if (!empty($relatedEvents)):?>
 		<?php
 	endforeach; ?>
 		</ul>
-	</div>
+	</div><br />
 	<?php
 endif; ?>
+
 	<div class="related">
 		<h3>Attributes</h3>
 		<?php
@@ -231,16 +238,6 @@ if (!empty($event['Attribute'])):?>
 		<?php
 	endforeach; ?>
 		</table>
-		<?php
-endif; ?>
-		<?php
-if ($isSiteAdmin || $mayModify): ?>
-		<div class="actions">
-			<ul>
-				<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?> </li>
-				<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
-			</ul>
-		</div>
 		<?php
 endif; ?>
 	</div>
