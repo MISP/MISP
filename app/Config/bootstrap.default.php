@@ -107,35 +107,35 @@ if (!Configure::read('CyDefSIG.baseurl')) {
 		Configure::write('CyDefSIG.baseurl', sprintf('http://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
 	}
 }
-Configure::write('CyDefSIG.name', 'CyDefSIG');
-Configure::write('CyDefSIG.version', '1.1.1');
+Configure::write('CyDefSIG.name', 'MISP');
+Configure::write('CyDefSIG.version', '2.0');
 Configure::write('CyDefSIG.header', 'CyDefSIG: Cyber Defence Signature Sharing Platform');
-Configure::write('CyDefSIG.footerpart1', 'Powered by CyDefSIG');
+Configure::write('CyDefSIG.footerpart1', 'Powered by MISP');
 Configure::write('CyDefSIG.footerpart2', '&copy; Belgian Defense CERT & NCIRC');
 Configure::write('CyDefSIG.footer', Configure::read('CyDefSIG.footerpart1') . ' ' . Configure::read('CyDefSIG.footerpart2'));
 Configure::write('CyDefSIG.footerversion', Configure::read('CyDefSIG.footerpart1') . ' version ' . Configure::read('CyDefSIG.version') . ' ' . Configure::read('CyDefSIG.footerpart2'));
-Configure::write('CyDefSIG.org', 'BE MOD');					// if sync this will be Event.org content on the peer side
-Configure::write('CyDefSIG.logo', 'orgs/MIL.be.png');		// used in Events::index for owned events
+Configure::write('CyDefSIG.org', 'ORGNAME');                // if sync this will be Event.org content on the peer side
+Configure::write('CyDefSIG.logo', 'orgs/ORGNAME.png');     // used in Events::index for owned events
 
 
-Configure::write('CyDefSIG.showorg', 'true');				// show the name/flag of the organisation that uploaded the data
-Configure::write('CyDefSIG.showowner', 'false');			// show the email of the owner that uploaded the data
-Configure::write('CyDefSIG.sync', 'false');					// enable features related to syncing with other CyDefSIG instances
-Configure::write('CyDefSIG.private', 'true');				// respect private to org or server.
+Configure::write('CyDefSIG.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
+Configure::write('CyDefSIG.showowner', 'false');           // show the email of the owner that uploaded the data
+Configure::write('CyDefSIG.sync', 'true');                 // enable features related to syncing with other CyDefSIG instances - should be always on because of the current distribution model.
+Configure::write('CyDefSIG.private', 'true');                 // respect private to org or server.
 if ('true' == Configure::read('CyDefSIG.private')) {
 	Configure::write('CyDefSIG.sync', 'true');
 }
-Configure::write('CyDefSIG.email', 'no-reply@sig.mil.be');	// email from for all the mails
+Configure::write('CyDefSIG.email', 'email@address.com'); // email from for all the mails
 
-Configure::write('GnuPG.onlyencrypted', 'true');			// only allow encrypted email, do not allow plaintext mails
-Configure::write('GnuPG.email', 'no-reply@sig.mil.be');
-Configure::write('GnuPG.password', 'ii3naxoK|o2a');
-Configure::write('GnuPG.homedir', '/Users/chri/Documents/Work/Projects/201107-CyDefSIG/.gnupg/');
+Configure::write('GnuPG.onlyencrypted', 'true');         // only allow encrypted email, do not allow plaintext mails
+Configure::write('GnuPG.email', 'email@address.com');
+Configure::write('GnuPG.password', 'yourpassword');
+Configure::write('GnuPG.homedir', '/path/to/your/.gnupg/');
 
-Configure::write('SecureAuth.amount', 5);					// the maximum amount of failed logins
-Configure::write('SecureAuth.expire', 300);					// the time-window for the maximum amount of logins in seconds
+Configure::write('SecureAuth.amount', 5);              // the maximum amount of failed logins
+Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
 
-Configure::write('CyDefSIG.correlation', 'db');				// correlation between attributes of events.
+Configure::write('CyDefSIG.correlation', 'db');        // correlation between attributes of events.
 														// possible values:
 														// - default, like it was (this is depreciated, use 'db' instead)
 														// - db, correlation in database
@@ -153,7 +153,8 @@ Configure::write('CyDefSIG.correlation', 'db');				// correlation between attrib
  */
 Configure::write('CyDefSIG.dns', 'false');				// there is a nameserver available to do resolution.
 
-Configure::write('CyDefSIG.rest', 'ii');				// RESTfull, possible values:
+Configure::write('CyDefSIG.rest', 'ii');				// i is unchecked, use ii
+														// RESTfull, possible values:
 														// - i, event without attributes
 														// - ii, event with attributes (more framework friendly and more RESTfull friendly)
 

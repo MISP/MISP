@@ -63,10 +63,10 @@ class DATABASE_CONFIG {
 		'datasource' => 'Database/Mysql',
 		'persistent' => false,
 		'host' => '127.0.0.1',
-		'login' => 'cyberdefence',
+		'login' => 'db login',
 		'port' => 8889,
-		'password' => 'PhwaxFJbNhnRGfZ8',
-		'database' => 'cydefsig',
+		'password' => 'db password',
+		'database' => 'misp',
 		'prefix' => '',
 		//'encoding' => 'utf8',
 	);

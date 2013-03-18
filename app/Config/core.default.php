@@ -32,7 +32,7 @@
  * In production mode, flash messages redirect after a time interval.
  * In development mode, you need to click the flash message to continue.
  */
-	Configure::write('debug', 2);
+	Configure::write('debug', 0);	// 0 = for production, 2 = full debug mode
 
 /**
  * Configure the Error handler used to handle errors for your application.  By default
@@ -173,6 +173,7 @@
  *
  */
 	Configure::write('Session', array(
+		'timeout' => 3600,	// Session timeout, default is 1 hour
 		'defaults' => 'php'
 	));
 
