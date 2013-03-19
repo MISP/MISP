@@ -176,9 +176,9 @@ if (!empty($event['Attribute'])):?>
 			echo $typeDefinitions[$attribute['type']]['desc'];?>"><?php
 			echo $attribute['type'];?></td>
 				<td><?php
-			$sigDisplay = nl2br(h($attribute['value']));
+			$sigDisplay = nl2br($attribute['value']);
 			if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
-				$filenameHash = explode('|', h($attribute['value']));
+				$filenameHash = explode('|', $attribute['value']);
 				if (strrpos($filenameHash[0], '\\')) {
 					$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
 					$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
@@ -189,7 +189,7 @@ if (!empty($event['Attribute'])):?>
 				}
 				if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 			} elseif (strpos($attribute['type'], '|') !== false) {
-				$filenameHash = explode('|', h($attribute['value']));
+				$filenameHash = explode('|', $attribute['value']);
 				echo $filenameHash[0];
 				if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 			} elseif ('vulnerability' == $attribute['type']) {
