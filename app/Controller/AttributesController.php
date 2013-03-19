@@ -369,13 +369,13 @@ class AttributesController extends AppController {
 			if ($this->request->data['Attribute']['malware']) {
 				$this->request->data['Attribute']['type'] = "malware-sample";
 				// Validate filename
-				if (!preg_match('@[\w-,\s]+\.[A-Za-z_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
+				if (!preg_match('@[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
 				$this->request->data['Attribute']['value'] = $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
 				$this->request->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 			} else {
 				$this->request->data['Attribute']['type'] = "attachment";
 				// Validate filename
-				if (!preg_match('@[\w-,\s]+\.[A-Za-z_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
+				if (!preg_match('@[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
 				$this->request->data['Attribute']['value'] = $filename;
 				$this->request->data['Attribute']['to_ids'] = 0;
 			}
