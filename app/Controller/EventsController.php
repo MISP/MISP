@@ -235,11 +235,13 @@ class EventsController extends AppController {
 						$relatedEventsDates[$item['Attribute']['event_id']] = $item['Attribute']['date'];
 						$temp = $this->Event->find('first', array(
 								'conditions' => array('Event.id' => $item['Attribute']['event_id']),
-								'fields' => array('info'),
+								'fields' => array('info', 'orgc'),
 								'recursive' => 0,
 								));
 						$item['Attribute']['event_info'] = $temp['Event']['info'];
+						$item['Attribute']['relatedOrg'] = $temp['Event']['orgc'];
 						$relatedEventInfos[$item['Attribute']['event_id']] = $temp['Event']['info'];
+						$relatedEventOrgs[$item['Attribute']['event_id']] = $temp['Event']['orgc'];
 					}
 				}
 				if (isset($relatedEventsDates)) {
@@ -249,6 +251,11 @@ class EventsController extends AppController {
 					$i = 0;
 					foreach ($relatedEventInfos as $info) {
 						$relatedEvents[$i]['Event']['info'] = $info;
+						$i++;
+					}
+					$i = 0;
+					foreach ($relatedEventOrgs as $org) {
+						$relatedEvents[$i]['Event']['org'] = $org;
 						$i++;
 					}
 				}
@@ -293,7 +300,7 @@ class EventsController extends AppController {
 				$findParams = array(
 						'conditions' => array('OR' => array('Event.id' => $relatedEventsIds)), //array of conditions
 						'recursive' => 0, //int
-						'fields' => array('Event.id', 'Event.date', 'Event.uuid', 'Event.info'), //array of field names
+						'fields' => array('Event.id', 'Event.date', 'Event.uuid', 'Event.info', 'Event.orgc'), //array of field names
 						'order' => array('Event.date DESC'), //string or array defining order
 				);
 				$relatedEvents = $this->Event->find('all', $findParams);

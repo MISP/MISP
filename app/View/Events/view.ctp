@@ -118,7 +118,11 @@ if (!empty($relatedEvents)):?>
 		<li><?php
 		$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
 		echo "<div \" title = \"".$relatedEvent['Event']['info']."\">";
-		echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
+		if ($relatedEvent['Event']['org'] == $me['org']) {
+			echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']), array('class' => 'SameOrgLink'));
+		} else {
+			echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
+		}
 		?></li>
 		<?php
 	endforeach; ?>
@@ -202,7 +206,12 @@ if (!empty($event['Attribute'])):?>
 			if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 				foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
 					echo "<span title = \"".$relatedAttribute['Attribute']['event_info']."\">";
-					echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
+					if ($relatedAttribute['Attribute']['relatedOrg'] == $me['org']) {
+						echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']), array ('class' => 'SameOrgLink'));
+					} else {
+						echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
+					}
+
 					echo "</span>";
 					echo ' ';
 				}

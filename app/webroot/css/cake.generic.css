@@ -34,6 +34,10 @@ a {
 	text-decoration: underline;
 	font-weight: bold;
 }
+a.SameOrgLink {
+	color: red;
+	text-decoration: underline;
+}
 a:hover {
 	color: #367889;
 	text-decoration:none;
