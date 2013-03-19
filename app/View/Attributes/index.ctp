@@ -7,6 +7,7 @@ if ($isSearch == 1) {
 	if ($keywordSearch2 != null) echo " excluding the events \"<b>" . h($keywordSearch2) . "</b>\"";
 	if ($categorySearch != "ALL") echo " of category \"<b>" . h($categorySearch) . "</b>\"";
 	if ($typeSearch != "ALL") echo " of type \"<b>" . h($typeSearch) . "</b>\"";
+	if (isset($orgSearch) && $orgSearch != '' && $orgSearch != null) echo " created by the organisation \"<b>" . h($orgSearch) . "</b>\"";
 	echo ":</h4>";
 } ?>
 	<table cellpadding="0" cellspacing="0">
@@ -27,7 +28,11 @@ foreach ($attributes as $attribute):
 		<td class="short">
 			<?php
 				echo "<div id = \"" . $attribute['Attribute']['id'] . "\" title = \"".h($attribute['Event']['info'])."\">";
-				echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id']));
+				if ($attribute['Event']['orgc'] == $me['org']) {
+					echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id']), array('class' => 'SameOrgLink'));
+				} else {
+					echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id']));
+				}
 				$currentCount++;
 			?>
 		</td>

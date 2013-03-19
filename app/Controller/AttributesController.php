@@ -742,6 +742,7 @@ class AttributesController extends AppController {
 			if ($this->request->is('post') && ($this->request->here == $fullAddress)) {
 				$keyword = $this->request->data['Attribute']['keyword'];
 				$keyword2 = $this->request->data['Attribute']['keyword2'];
+				$org = $this->request->data['Attribute']['org'];
 				$type = $this->request->data['Attribute']['type'];
 				$category = $this->request->data['Attribute']['category'];
 				$this->set('keywordSearch', $keyword);
@@ -752,6 +753,8 @@ class AttributesController extends AppController {
 				$this->set('categorySearch', $category);
 				// search the db
 				$conditions = array();
+
+				// search on the value field
 				if (isset($keyword)) {
 					$keywordArray = preg_split("/\r\n|\n|\r/", $keyword);
 					$i = 1;
@@ -774,6 +777,8 @@ class AttributesController extends AppController {
 						}
 					}
 				}
+
+				// event IDs to be excluded
 				if (isset($keyword2)) {
 					$keywordArray2 = preg_split("/\r\n|\n|\r/", $keyword2);
 					$i = 1;
@@ -802,13 +807,18 @@ class AttributesController extends AppController {
 				if ($category != 'ALL') {
 					$conditions['Attribute.category ='] = $category;
 				}
+				// organisation search field
+				if (isset($org) && $org != '') {
+					$org = trim($org);
+					$this->set('orgSearch', $org);
+					$conditions['Event.orgc ='] = $org;
+				}
 				$this->Attribute->recursive = 0;
 				$this->paginate = array(
 					'limit' => 60,
 					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
 					'conditions' => $conditions
 				);
-
 				if ('true' == Configure::read('CyDefSIG.private')) {
 					if (!$this->_IsSiteAdmin()) {
 						// merge in private conditions
