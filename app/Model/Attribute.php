@@ -666,7 +666,7 @@ class Attribute extends AppModel {
 				break;
 			case 'regkey|value':
 				// no newline
-				if (!preg_match("#.+\|.+#", $value) && !preg_match("#\n#", $value)) {
+				if (preg_match("#(.)+\|(.)+#", $value) && !preg_match("#\n#", $value)) {
 					$returnValue = true;
 				}
 				break;
