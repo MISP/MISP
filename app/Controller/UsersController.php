@@ -10,7 +10,10 @@ class UsersController extends AppController {
 
 	public $newkey;
 
-	public $components = array('Security');
+	public $components = array(
+			'Security',
+			'Email',
+			);
 
 	public $paginate = array(
 			'limit' => 60,
@@ -548,4 +551,160 @@ class UsersController extends AppController {
 
 		$this->set('fails', $this->User->checkAndCorrectPgps());
 	}
+
+	public function admin_email() {
+		if (!$this->_isSiteAdmin()) {
+			throw new MethodNotAllowedException();
+		}
+		$this->User->recursive = 0;
+		$temp = $this->User->find('all', array('fields' => array('email', 'gpgkey')));
+		$emails = array();
+		$gpgKeys = array();
+		// save all the emails of the users and set it for the dropdown list in the form
+		foreach ($temp as $user) {
+			array_push($emails, $user['User']['email']);
+			array_push($gpgKeys, $user['User']['gpgkey']);
+		}
+		$this->set('recipientEmail', $emails);
+
+		// User has filled in his contact form, send out the email.
+		if ($this->request->is('post') || $this->request->is('put')) {
+			$message1 = null;
+			$message2 = null;
+			$recipients = array();
+			$messageP = array();
+			$finalPackage = array();
+			// Formulating the message and the subject that will be common to the e-mail(s) sent
+			if ($this->request->data['User']['action'] == '0') {
+				// Custom message
+				$subject = $this->request->data['User']['subject'];
+				$message1 .= $this->request->data['User']['message'];
+			} else {
+				// Temp password
+				if ($this->request->data['User']['customMessage']) {
+					$message1 .= $this->request->data['User']['message'];
+				} else {
+					$message1 .= "Dear MISP user,\n\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at ";
+					$message1 .= Configure::read('CyDefSIG.baseurl');
+					$message1 .= ", where you will be prompted to manually change your password to something of your own choice.";
+				}
+				//$message .= "\n\nYour temporary password: " . $password;
+				$subject = 'Password reset on ' . Configure::read('CyDefSIG.org') . ' MISP';
+			}
+			if (Configure::read('CyDefSIG.contact')) {
+				$message2 .= "\n\nIf you have any questions, contact us at: " . Configure::read('CyDefSIG.contact') . ".";
+			}
+			$message2 .= "\n\nBest Regards,\n" . Configure::read('CyDefSIG.org') . ' MISP support';
+
+			// Setting up the list of recipient(s) based on the setting and creating the final message for each user, including the password
+			// If the recipient is all users, and the action to create a password, create it and for each user and squeeze it between the main message and the signature
+			if ($this->request->data['User']['recipient'] == 0) {
+				$recipients = $emails;
+				$recipientGPG = $gpgKeys;
+				if ($this->request->data['User']['action'] == '1') {
+					$i = 0;
+					foreach ($recipients as $rec) {
+						$password = $this->__randomPassword();
+						$messageP = "\n\nYour temporary password: " . $password;
+						$message[$i] = $message1 . $messageP . $message2;
+						$recipientPass[$i] = $password;
+						$i++;
+					}
+				} else {
+					$message[0] = $message1;
+				}
+			}
+
+			// If the recipient is a user, and the action to create a password, create it and squeeze it between the main message and the signature
+			if ($this->request->data['User']['recipient'] == 1) {
+				$recipients[0] = $emails[$this->request->data['User']['recipientEmailList']];
+				$recipientGPG[0] = $gpgKeys[$this->request->data['User']['recipientEmailList']];
+				if ($this->request->data['User']['action'] == '1') {
+					$password = $this->__randomPassword();
+					$message[0] = $message1 . "\n\nYour temporary password: " . $password . $message2;
+					$recipientPass[0] = $password;
+				} else {
+					$message[0] = $message1;
+				}
+			}
+
+			// If the recipient is a future user, and the action to create a password, create it and squeeze it between the main message and the signature
+			if ($this->request->data['User']['recipient'] == 2) {
+				$recipients[0] = $this->request->data['User']['recipientEmail'];
+				$recipientGPG[0] = $this->request->data['User']['gpg'];
+				if ($this->request->data['User']['action'] == '1') {
+					$password = $this->__randomPassword();
+					$message[0] = $message1 . "\n\nYour temporary password: " . $password . $message2;
+					$recipientPass[0] = $password;
+				} else {
+					$message[0] = $message1;
+				}
+			}
+			require_once 'Crypt/GPG.php';
+			$i = 0;
+			foreach ($recipients as $recipient) {
+				$finalPackage[$i]['message'] = $message[$i];
+				$finalPackage[$i]['gpgkey'] = $recipientGPG[$i];
+				$finalPackage[$i]['email'] = $recipients[$i];
+				if (!empty($finalPackage[$i]['gpgkey'])) {
+					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
+					$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+					$finalPackage[$i]['messageSigned'] = $gpg->sign($finalPackage[$i]['message'], Crypt_GPG::SIGN_MODE_CLEAR);
+					$keyImportOutput = $gpg->importKey($finalPackage[$i]['gpgkey']);
+					try {
+						$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+						$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
+
+						$finalPackage[$i]['encryptedMessage'] = $gpg->encrypt($finalPackage[$i]['messageSigned'], true);
+					} catch (Exception $e){
+						// catch errors like expired PGP keys
+						$this->log($e->getMessage());
+						// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
+					}
+				} else {
+					$finalPackage[$i]['encryptedMessage'] = $finalPackage[$i]['message'];
+				}
+
+				// prepare the email
+				$this->Email->from = Configure::read('CyDefSIG.email');
+				$this->Email->to = Sanitize::clean($finalPackage[$i]['email']);
+				$this->Email->subject = $subject;
+				//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
+				$this->Email->template = 'body';
+				$this->Email->sendAs = 'text';		// both text or html
+				$this->set('body', $finalPackage[$i]['encryptedMessage']);
+
+				// send it
+				$result = $this->Email->send();
+
+				// if sending successful and action was a password change, update the user's password.
+				if ($result && $this->request->data['User']['action'] == '1') {
+					$this->User->recursive = 0;
+					$temp = $this->User->findByEmail($finalPackage[$i]['email']);
+					$this->User->id = $temp['User']['id'];
+					$this->User->read();
+					$this->User->saveField('password', $recipientPass[$i]);
+					$this->User->saveField('change_pw', '1');
+				}
+				// If you wish to send multiple emails using a loop, you'll need
+				// to reset the email fields using the reset method of the Email component.
+				$this->Email->reset();
+				$i++;
+			}
+			throw new Exception();
+		}
+		// User didn't see the contact form yet. Present it to him.
+	}
+
+	private function __randomPassword() {
+		$alphabet = "abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ0123456789";
+		$pass = array();
+		$alphaLength = strlen($alphabet) - 1;
+		for ($i = 0; $i < 8; $i++) {
+			$n = rand(0, $alphaLength);
+			$pass[] = $alphabet[$n];
+		}
+		return implode($pass);
+	}
+
 }
