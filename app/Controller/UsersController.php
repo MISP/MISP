@@ -691,7 +691,6 @@ class UsersController extends AppController {
 				$this->Email->reset();
 				$i++;
 			}
-			throw new Exception();
 		}
 		// User didn't see the contact form yet. Present it to him.
 	}
