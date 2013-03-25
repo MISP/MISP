@@ -691,6 +691,7 @@ class UsersController extends AppController {
 				$this->Email->reset();
 				$i++;
 			}
+			$this->Session->setFlash(__('E-mails sent.'));
 		}
 		// User didn't see the contact form yet. Present it to him.
 	}
