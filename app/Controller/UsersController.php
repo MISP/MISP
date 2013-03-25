@@ -611,7 +611,10 @@ class UsersController extends AppController {
 						$i++;
 					}
 				} else {
-					$message[0] = $message1;
+					$i = 0;
+					foreach ($recipients as $rec) {
+						$message[$i] = $message1;
+					}
 				}
 			}
 
