@@ -84,6 +84,17 @@ To add a new user, click on the New User button in the administration menu to th
 	<li><em>Change Password:</em> Setting this flag will require the user to change password after the next login.<br /><br /></li>
 	<li><em>Gpgkey:</em> The key used for encrypting e-mails sent through the system. <br /><br /></li>
 </ul>
+<h3>Contacting a user:</h3>
+Site admins can use the "Contact users" feature to send all or an individual user an e-mail. Users that have a PGP key set will receive their e-mails encrypted. When clicking this button on the left, you'll be presented with a form that allows you to specify the type of the e-mail, who it should reach and what the content is using the following options:<br /><br />
+<img src="/img/doc/contact.png" alt = "Contact" title = "Contact your users here."/><br /><br />
+<ul>
+	<li><em>Action:</em> This defines the type of the e-mail, which can be a custom message or a password reset. Password resets automatically include a new temporary password at the bottom of the message and will automatically change the user's password accordingly.<br /><br /></li>
+	<li><em>Recipient:</em> The recipient toggle lets you contact all your users, a single user (which creates a second drop-down list with all the e-mail addresses of the users) and potential future users (which opens up a text field for the e-mail address and a text area field for a PGP public key).<br /><br /></li>
+	<li><em>Subject:</em> In the case of a custom e-mail, you can enter a subject line here.<br /><br /></li>
+	<li><em>Subject:</em> In the case of a custom e-mail, you can enter a subject line here.<br /><br /></li>
+	<li><em>Custom message checkbox:</em> This is available for password resets, you can either write your own message (which will be appended with a temporary key and the signature), or let the system generate one automatically.<br /><br /></li>
+</ul>
+Keep in mind that all e-mails sent through this system will, in addition to your own message, will be signed in the name of the instance's host organisation's support team, will include the e-mail address of the instance's support (if the contact field is set in the bootstrap file), and will include the instance's PGP signature for users that have a PGP key set (and thus are eligible for an encrypted e-mail).
 <br /><hr /><br />
 <h2><a name ="roles"></a>Managing the roles</h2>
 Privileges are assigned to users by assigning them to rule groups, which use one of four options determining what they can do with events and four additional privilege elevating settings. The four options for event manipulation are: Read Only, Manage My Own Events, Manage Organisation Events, Manage &amp; Publish Organisation Events. The extra privileges are admin, sync, authentication key usage and audit permission<br /><br />

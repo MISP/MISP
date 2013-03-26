@@ -8,9 +8,10 @@
 	<li>b. <a href="#browsing_events">Browsing past events</a></li>
 	<li>c. <a href="#update_events">Updating and modifying events</a></li>
 	<li>d. <a href="#contact">Contacting the publisher</a></li>
-	<li>e. <a href="#export">Exporting data</a></li>
-	<li>f. <a href="#connect">Connecting to other servers</a></li>
-	<li>g. <a href="#rest">Rest API</a></li>
+	<li>e. <a href="#automation">Automation</a></li>
+	<li>f. <a href="#export">Exporting data</a></li>
+	<li>g. <a href="#connect">Connecting to other servers</a></li>
+	<li>h. <a href="#rest">Rest API</a></li>
 </ul>
 4. <?php echo $this->Html->link(__('Administration', true), array('controller' => 'pages', 'action' => 'display', 'administration')); ?><br />
 5. <?php echo $this->Html->link(__('Categories and Types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?><br />
@@ -160,8 +161,8 @@ Once the event is found and the event view opened, click the button titled "Cont
 <br /><img src="/img/doc/contact_reporter.png" alt = "" title = "Enter your message to the reporter and choose whether his/her entire organisation should get the message or not by ticking the check-box."/><br /><br />
 By default, the message will be sent to every member of the organisation that posted the event in the first place, but if you tick the check-box below the message field before sending the mail, only the person that reported the event will get e-mailed. <br />
 <br /><hr /><br />
-<a name ="export"></a><h2>Exporting data:</h2>
-It is possible to quickly and conveniently export the data contained within the system using the export features located in the main menu on the left. There are various sets of data that can be exported, by using the authentication key provided by the system (also shown on the export page). If for whatever reason you would need to invalidate your current key and get a new one instead (for example due to the old one becoming compromise) just hit the reset link next to the authentication key in the export view or in your "my profile" view.<br /><br />
+<a name ="automation"></a><h2>Automation:</h2>
+It is possible to quickly and conveniently export the data contained within the system using the automation features located in the main menu on the left (available to users with authentication key access only). There are various sets of data that can be exported, by using the authentication key provided by the system (also shown on the export page). If for whatever reason you would need to invalidate your current key and get a new one instead (for example due to the old one becoming compromised) just hit the reset link next to the authentication key in the export view or in your "my profile" view.<br /><br />
 The following types of export are possible:<br /><br />
 	<h3>XML export:</h3>
 		Exports all attributes and the event data of every single event in the database (that you are eligible to see) in the XML format. The usage is:<br /><br /><i>&lt;server&gt;/events/xml/&lt;authentication_key&gt;</i><br /><br />
@@ -177,6 +178,14 @@ The following types of export are possible:<br /><br />
 		It is also possible to export a list of all eligible attributes that match a specific type into a plain text file. The format to do this is:<br /><br />
 		<i>&lt;server&gt;/events/text/&lt;authentication_key&gt;/&lt;type&gt;</i><br /><br />
 		Type could be any valid type (as according to the list of <?php echo $this->Html->link(__('categories and types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>), for example md5, ip-src or comment.<br />
+<br /><hr /><br />
+<a name ="export"></a><h2>Exporting data:</h2>
+For users that do not have authentication key access, an alternate export feature is available that relies on your interactive login to the site. To access these, just use the automation menu button to the left and you'll be presented with a list of export options. The results of the export will automatically be offered as a file download.<br /><br/>
+<br /><img src="/img/doc/export.png" alt = "" title = "Use the export features here to quickly download data in various formats"/><br /><br />
+Apart from that, it's also possible to export all events involved in a search attribute result table, by using the "Download results as XML" button on the left menu bar. <br /><br />
+<br /><img src="/img/doc/export_search.png" alt = "" title = "Download a .xml from all the events that are shown through an attribute in the search results."/><br /><br />
+Each event's view has its own export feature, both as an XML export and as a .ioc file. To reach these features, just navigate to an event and use the appropriate buttons on the right side.<br /><br />
+<br /><img src="/img/doc/export_event.png" alt = "" title = "Download a .xml or a .ioc of the event."/><br /><br />
 <br /><hr /><br />
 <h2><a name ="connect"></a>Connecting to other instances:</h2>
 Apart from being a self contained repository of attacks/malware, one of the main features of MISP is its ability to connect to other instances and share (parts of) its information. The following options allow you to set up and maintain such connections.<br /><br />
