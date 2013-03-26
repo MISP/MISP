@@ -2,7 +2,7 @@
 	<h2>Events</h2>
 	<table cellpadding="0" cellspacing="0">
 	<tr>
-			<th><?php echo $this->Paginator->sort('Valid.');?></th>
+			<th><?php echo $this->Paginator->sort('published', 'Valid.');?></th>
 			<?php
 if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
