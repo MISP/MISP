@@ -161,7 +161,6 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event'));
 		}
 		$this->Event->read(null, $id);
-
 		if ('true' == Configure::read('CyDefSIG.private')) {
 			if (!$this->_IsSiteAdmin()) {
 				// check for non-private and re-read
@@ -213,15 +212,6 @@ class EventsController extends AppController {
 					}
 				}
 
-				foreach ($this->Event->data['Attribute'] as &$attribute) {
-					// for REST requests also add the encoded attachment
-					if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
-						// LATER check if this has a serious performance impact on XML conversion and memory usage
-						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-						$attribute['data'] = $encodedFile;
-					}
-				}
-
 				// search for related Events using the results form the related attributes
 				// This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
 				$relatedEventIds = array();
@@ -260,6 +250,16 @@ class EventsController extends AppController {
 					}
 				}
 				usort($relatedEvents, array($this, 'compareRelatedEvents'));
+			}
+			if ($this->_isRest()) {
+				foreach ($this->Event->data['Attribute'] as &$attribute) {
+					// 	for REST requests also add the encoded attachment
+					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+					// 	LATER check if this has a serious performance impact on XML conversion and memory usage
+						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+						$attribute['data'] = $encodedFile;
+					}
+				}
 			}
 		} else {
 			$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.uuid');
