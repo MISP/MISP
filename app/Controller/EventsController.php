@@ -2025,7 +2025,7 @@ class EventsController extends AppController {
 			$put['OR'][] = array('Event.id' => $listElement);
 		}
 		$conditions['AND'][] = $put;
-		//restricting to non-private or same org if the user is not a site-admin.
+		// Restricting to non-private or same org if the user is not a site-admin.
 		if (!$this->isSiteAdmin()) {
 			$temp = array();
 			$temp2 = array();
@@ -2067,4 +2067,166 @@ class EventsController extends AppController {
 		$this->render('xml');
 	}
 
+	public function downloadOpenIOCEvent($eventid) {
+		// display the full xml
+		$this->response->type('text');	// set the content type
+		if ($eventid == null) {
+			$this->header('Content-Disposition: download; filename="misp.openIOC.ioc"');
+		} else {
+			$this->header('Content-Disposition: download; filename="misp.openIOC' . $eventid . '.ioc"');
+		}
+		$this->layout = 'text/default';
+
+		$this->Event->id = $eventid;
+		if (!$this->Event->exists()) {
+			throw new NotFoundException(__('Invalid event'));
+		}
+		$event = $this->Event->read(null, $eventid);
+
+		// check if the user has permission - attribute checked further down in loop
+		if (!$this->isSiteAdmin()) {
+			if ($this->Auth->User != $event['Event']['org'] && ($event['Event']['private'] && !$event['Event']['cluster'])) {
+				throw new Exception('Nothing to see here (not authorised)');
+			}
+		}
+
+		// We will start adding all the components that will be in the xml file here
+		$final = array();
+		$final[] = '<?xml version="1.0" encoding="utf-8"?>';
+		$final[] = '<ioc xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="' . $event['Event']['uuid'] . '" last-modified="' . $event['Event']['date'] . 'T00:00:00" xmlns="http://schemas.mandiant.com/2010/ioc">';
+		$final[] = '  <short_description>Event #' . $event['Event']['id'] . '</short_description>';
+		$final[] = '  <description>' . $event['Event']['info'] . '</description>';
+		$final[] = '  <keywords />';
+  		$final[] = '  <authored_by>' . $event['Event']['orgc'] . '</authored_by>';
+  		$final[] = '  <authored_date>' . $event['Event']['date'] . '</authored_date>';
+  		$final[] = '  <links />';
+  		$final[] = '  <definition>';
+  		// for now, since we don't have any logical links between attributes, we'll OR all of them
+  		$final[] = '    <Indicator operator="OR" id="' . $event['Event']['uuid'] . '">';
+
+  		// start converting each attribute to its appropriate IOC entry
+		foreach ($event['Attribute'] as $attribute) {
+			// check whether the attribute is exportable by the user
+			if ($this->isSiteAdmin || !$attribute['private'] || $attribute['cluster']) {
+				// check whether the attribute is sent for IOC export based on category/type
+				if (!$this->__checkValidTypeForIOC($attribute)) continue;
+				// Composite type regkey|value doesn\t need the leading and closing IndicatorItem, so taken outside of the switch
+				if ($attribute['type'] == 'regkey|value') {
+					$final[] = '    	<Indicator operator="AND" id="' . $attribute['uuid'] . '">';
+					$final[] = '          <IndicatorItem id="' . $attribute['uuid'] . '" condition="is">';
+					$final[] = '            <Context document="Network" search="RegistryItem/KeyPath" type="mir" />';
+					$final[] = '            <Content type="string">' . $attribute['value1'] . '</Content>';
+					$final[] = '          </IndicatorItem>';
+					$final[] = '          <IndicatorItem id="' . $attribute['uuid'] . '" condition="is">';
+					$final[] = '            <Context document="Network" search="RegistryItem/Value" type="mir" />';
+					$final[] = '            <Content type="string">' . $attribute['value2'] . '</Content>';
+					$final[] = '          </IndicatorItem>';
+					$final[] = '        </Indicator>';
+					continue;
+				} else {
+					// for all other types
+					$final[] = '      <IndicatorItem id="' . $attribute['uuid'] . '" condition="is">';
+				}
+				// main switch to convert attributes to the IOC indicator equivalent
+				switch ($attribute['type']) {
+					case 'md5':
+						$final[] = '        <Context document="FileItem" search="FileItem/Md5sum" type="mir" />';
+						$final[] = '        <Content type="md5">' . $attribute['value'] . '</Content>';
+						break;
+					case 'sha1':
+						$final[] = '        <Context document="TaskItem" search="TaskItem/sha1sum" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'filename':
+						$final[] = '        <Context document="FileItem" search="FileItem/FileName" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'filename|md5':
+						$final[] = '        <Context document="FileItem" search="FileItem/Md5sum" type="mir" />';
+						$final[] = '        <Content type="md5">' . $attribute['value2'] . '</Content>';
+						break;
+					case 'filename|sha1':
+						$final[] = '        <Context document="TaskItem" search="TaskItem/sha1sum" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value2'] . '</Content>';
+						break;
+					case 'ip-src':
+						$final[] = '        <Context document="PortItem" search="PortItem/remoteIP" type="mir" />';
+						$final[] = '        <Content type="IP">' . $attribute['value'] . '</Content>';
+						break;
+					case 'ip-dst':
+						$final[] = '        <Context document="RouteEntryItem" search="RouteEntryItem/Destination" type="mir" />';
+						$final[] = '        <Content type="IP">' . $attribute['value'] . '</Content>';
+						break;
+					case 'hostname':
+						$final[] = '        <Context document="RouteEntryItem" search="RouteEntryItem/Destination" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'domain':
+						$final[] = '        <Context document="SystemInfoItem" search="SystemInfoItem/domain" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'email-src':
+						$final[] = '        <Context document="Email" search="Email/From" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'email-dst':
+						$final[] = '        <Context document="Email" search="Email/To" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'email-subject':
+						$final[] = '        <Context document="Email" search="Email/Subject" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'email-attachment':
+						$final[] = '        <Context document="Email" search="Email/Attachment/Name" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'url':
+						$final[] = '        <Context document="UrlHistoryItem" search="UrlHistoryItem/URL" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'user-agent':
+						$final[] = '        <Context document="Network" search="Network/UserAgent" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'regkey':
+						$final[] = '        <Context document="Network" search="RegistryItem/KeyPath" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'snort':
+						$final[] = '        <Context document="Snort" search="Snort/Snort" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'attachment':
+						$final[] = '        <Context document="FileItem" search="FileItem/FileName" type="mir" />';
+						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						break;
+					case 'malware-sample':
+						$final[] = '        <Context document="FileItem" search="FileItem/Md5sum" type="mir" />';
+						$final[] = '        <Content type="md5">' . $attribute['value2'] . '</Content>';
+						break;
+					case 'link':
+						$final[] = '        <Context document="URL" search="UrlHistoryItem/URL" type="mir" />';
+						$final[] = '        <Content type="md5">' . $attribute['value2'] . '</Content>';
+				}
+				if ($attribute['type'] != 'regkey|value') {
+					$final[] = '      </IndicatorItem>';
+				}
+			}
+		}
+		$final[] = '    </Indicator>';
+		$final[] = '  </definition>';
+		$final[] = '</ioc>';
+		$this->set('final', $final);
+	}
+
+	// Simple check for valid categories and types for IOC generation
+	private function __checkValidTypeForIOC($attribute) {
+		$skipCategory = array('Payload delivery', 'Artifacts dropped', 'Payload installation', 'Persistence mechanism', 'Network activity');
+		$skipType = array('AS', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'comment', 'text', 'other');
+		if (!in_array($attribute['category'], $skipCategory)) return false;
+		if (in_array($attribute['type'], $skipType)) return false;
+		return true;
+	}
 }
+
