@@ -66,7 +66,7 @@ git clone https://github.com/cakephp/cakephp.git
 ------------
 # Download MISP using git in the /var/www/ directory. 
 cd /var/www/
-git clone https://github.com/BeDefCERT/MISP.git 
+git clone https://github.com/MISP/MISP.git 
 
 # Make git ignore filesystem permission differences
 cd /var/www/MISP
