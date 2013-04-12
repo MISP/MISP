@@ -828,8 +828,6 @@ class Attribute extends AppModel {
 		// Check if there were problems with the file upload
 		// only keep the last part of the filename, this should prevent directory attacks
 		$filename = basename($fileP);
-		debug($filename);
-		throw new Exception('yay');
 		$tmpfile = new File($fileP);
 
 		// save the file-info in the database
