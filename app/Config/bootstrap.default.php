@@ -126,6 +126,7 @@ if ('true' == Configure::read('CyDefSIG.private')) {
 	Configure::write('CyDefSIG.sync', 'true');
 }
 Configure::write('CyDefSIG.email', 'email@address.com'); // email from for all the mails
+Configure::write('CyDefSIG.contact', 'email@address.com'); // contact address for this instance's support person / group
 
 Configure::write('GnuPG.onlyencrypted', 'true');         // only allow encrypted email, do not allow plaintext mails
 Configure::write('GnuPG.email', 'email@address.com');
