@@ -161,7 +161,7 @@ class AppController extends Controller {
 	}
 
 /**
- * checks if the currently logged user is an administrator
+ * checks if the currently logged user is an org admin (an admin that can manage the users and events of his own organisation)
  */
 	protected function _isAdmin() {
 		$org = $this->Auth->user('org');
@@ -172,7 +172,7 @@ class AppController extends Controller {
 	}
 
 /**
- * checks if the currently logged user is a site administrator
+ * checks if the currently logged user is a site administrator (an admin that can manage any user or event on the instance and create / edit the roles).
  */
 	protected function _isSiteAdmin() {
 		$org = $this->Auth->user('org');
