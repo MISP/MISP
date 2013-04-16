@@ -1000,7 +1000,7 @@ class EventsController extends AppController {
 
 					$bodyEncSig = $gpg->encrypt($bodySigned, true);
 
-					$this->set('body', Sanitize::clean($bodyEncSig));
+					$this->set('body', $bodyEncSig);
 					$this->Email->send();
 				} catch (Exception $e){
 					// catch errors like expired PGP keys
