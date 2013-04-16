@@ -119,7 +119,6 @@ Configure::write('CyDefSIG.logo', 'orgs/ORGNAME.png');     // used in Events::in
 
 
 Configure::write('CyDefSIG.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
-Configure::write('CyDefSIG.showowner', 'false');           // show the email of the owner that uploaded the data
 Configure::write('CyDefSIG.sync', 'true');                 // enable features related to syncing with other CyDefSIG instances - should be always on because of the current distribution model.
 Configure::write('CyDefSIG.private', 'true');                 // respect private to org or server.
 if ('true' == Configure::read('CyDefSIG.private')) {
