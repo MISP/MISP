@@ -48,6 +48,7 @@ class AdminCrudComponent extends AuthComponent {
 			throw new NotFoundException(__(sprintf('Invalid %s', strtolower($this->controller->defaultModel))));
 		}
 		if ($this->controller->request->is('post') || $this->controller->request->is('put')) {
+			$this->controller->request->data[$this->controller->defaultModel]['id'] = $id;
 			if ($this->controller->{$this->controller->defaultModel}->save($this->controller->request->data)) {
 				$this->controller->Session->setFlash(__(sprintf('The %s has been saved', strtolower($this->controller->defaultModel))));
 				$this->controller->redirect(array('action' => 'index'));
@@ -57,6 +58,7 @@ class AdminCrudComponent extends AuthComponent {
 				}
 			}
 		} else {
+			$this->controller->request->data[$this->controller->defaultModel]['id'] = $id;
 			$this->controller->request->data = Sanitize::clean($this->controller->{$this->controller->defaultModel}->read(null, $id));
 		}
 	}
