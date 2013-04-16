@@ -55,7 +55,7 @@ endif; ?>
 		</dd>
 		<?php
 endif; ?>
-		<?php if ('true' == Configure::read('CyDefSIG.showowner') || ($isSiteAdmin || ($isAdmin && $me['org'] == $event['Event']['org']))): ?>
+		<?php if ($isSiteAdmin || ($isAdmin && $me['org'] == $event['Event']['org'])): ?>
 		<dt>Email</dt>
 		<dd>
 			<?php echo h($event['User']['email']); ?>
