@@ -187,7 +187,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 					App::build(array('Controller' => array(APP . DS . 'Controller'), 'EventsController'));
 					$this->Events = new EventsController();
         			$this->Events->constructClasses();
-					$title = 'Event ('. $Model->data[$Model->alias]['id'].'): '.$this->Events->getName($Model->data[$Model->alias]['id']);
+        			$title = 'Event ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['info'];
 					$logData['Log']['title'] = $title;
 					break;
 				case "Attribute":

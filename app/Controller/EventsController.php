@@ -310,7 +310,6 @@ class EventsController extends AppController {
  */
 	public function add() {
 		if ($this->request->is('post')) {
-			$savedId = $this->request->data['Event']['id'];
 			// TODO or massageData here
 			if ($this->_isRest()) {
 				// Distribution, reporter for the events pushed will be the owner of the authentication key
@@ -352,7 +351,7 @@ class EventsController extends AppController {
 					} else {
 						if ($this->_isRest()) { // TODO return error if REST
 							// REST users want to see the failed event
-							$this->view($savedId);
+							$this->view($this->Event->getId());
 							$this->render('view');
 						} else {
 							$this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
@@ -613,7 +612,6 @@ class EventsController extends AppController {
 				}
 			}
 			$this->request->data = $this->Event->massageData($this->request->data);
-
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The event has been saved'));
 				$this->redirect(array('action' => 'view', $id));

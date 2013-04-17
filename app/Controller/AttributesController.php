@@ -691,12 +691,6 @@ class AttributesController extends AppController {
  * TODO move this to a component(?)
  */
 	private function __deleteAttributeFromServers($uuid) {
-		// TODO private and delete .. bring up ..
-		//$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
-		if (true == $result['Attribute']['private']) { // never upload private attributes
-			//	return "Attribute is private and non exportable";
-			return;
-		}
 
 		// get a list of the servers
 		$this->loadModel('Server');
