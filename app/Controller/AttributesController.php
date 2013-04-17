@@ -44,36 +44,32 @@ class AttributesController extends AppController {
 		}
 
 		// do not show private to other orgs
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			// if not admin or own org, check private as well..
-			if (!$this->_IsSiteAdmin()) {
-				$this->paginate = Set::merge($this->paginate,array(
-				'conditions' =>
-						array('OR' =>
-								array(
-									'Event.org =' => $this->Auth->user('org'),
-									'AND' => array(
-										array('OR' => array(
-												array('Attribute.private !=' => 1),
-												array('Attribute.cluster =' => 1),
-											)),
-										array('OR' => array(
-												array('Event.private !=' => 1),
-												array('Event.cluster =' => 1),
-											)),
-				)))));
-			}
+		// if not admin or own org, check private as well..
+		if (!$this->_IsSiteAdmin()) {
+			$this->paginate = Set::merge($this->paginate,array(
+			'conditions' =>
+					array('OR' =>
+							array(
+								'Event.org =' => $this->Auth->user('org'),
+								'AND' => array(
+									array('OR' => array(
+											array('Attribute.private !=' => 1),
+											array('Attribute.cluster =' => 1),
+										)),
+									array('OR' => array(
+											array('Event.private !=' => 1),
+											array('Event.cluster =' => 1),
+										)),
+			)))));
 		}
 
 		// do not show cluster outside server
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			if ($this->_isRest()) {
-					$this->paginate = Set::merge($this->paginate,array(
-					'conditions' =>
-							array("AND" => array('Event.cluster !=' => true),array('Attribute.cluster !=' => true)),
-							//array("AND" => array(array('Event.private !=' => 2))),
-					));
-			}
+		if ($this->_isRest()) {
+				$this->paginate = Set::merge($this->paginate,array(
+				'conditions' =>
+						array("AND" => array('Event.cluster !=' => true),array('Attribute.cluster !=' => true)),
+						//array("AND" => array(array('Event.private !=' => 2))),
+				));
 		}
 	}
 
@@ -175,9 +171,7 @@ class AttributesController extends AppController {
 
 					$this->Attribute->create();
 					$this->request->data['Attribute']['value'] = Sanitize::clean($attribute); // set the value as the content of the single line
-					if ('true' == Configure::read('CyDefSIG.private')) {
-						$this->request->data = $this->Attribute->massageData($this->request->data);
-					}
+					$this->request->data = $this->Attribute->massageData($this->request->data);
 					// TODO loop-holes,
 					// there seems to be a loop-hole in misp here
 					// be it an create and not an update
@@ -227,10 +221,7 @@ class AttributesController extends AppController {
 				//
 				// create the attribute
 				$this->Attribute->create();
-
-				if ('true' == Configure::read('CyDefSIG.private')) {
-					$this->request->data = $this->Attribute->massageData($this->request->data);
-				}
+				$this->request->data = $this->Attribute->massageData($this->request->data);
 
 				if ("i" == Configure::read('CyDefSIG.rest')) {
 					unset($this->request->data['Event']);
@@ -381,9 +372,7 @@ class AttributesController extends AppController {
 			}
 			$this->request->data['Attribute']['uuid'] = String::uuid();
 			$this->request->data['Attribute']['batch_import'] = 0;
-			if ('true' == Configure::read('CyDefSIG.private')) {
-				$this->request->data = $this->Attribute->massageData($this->request->data);
-			}
+			$this->request->data = $this->Attribute->massageData($this->request->data);
 
 			if ($this->Attribute->save($this->request->data)) {
 				// attribute saved correctly in the db
@@ -521,13 +510,11 @@ class AttributesController extends AppController {
 			$uuid = $this->Attribute->data['Attribute']['uuid'];
 		}
 		// only own attributes verified by isAuthorized
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			if (!$this->_IsSiteAdmin()) {
-				// check for non-private and re-read
-				if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
-					$this->Session->setFlash(__('Invalid attribute.'));
-					$this->redirect(array('controller' => 'events', 'action' => 'index'));
-				}
+		if (!$this->_IsSiteAdmin()) {
+			// check for non-private and re-read
+			if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
+				$this->Session->setFlash(__('Invalid attribute.'));
+				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
 
@@ -542,9 +529,7 @@ class AttributesController extends AppController {
 			$this->set('attachment', false);
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
-			if ('true' == Configure::read('CyDefSIG.private')) {
-				$this->request->data = $this->Attribute->massageData($this->request->data);
-			}
+			$this->request->data = $this->Attribute->massageData($this->request->data);
 
 			// reposition to get the attribute.id with given uuid
 			// Notice (8): Undefined index: uuid [APP/Controller/AttributesController.php, line 502]
@@ -819,17 +804,15 @@ class AttributesController extends AppController {
 					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
 					'conditions' => $conditions
 				);
-				if ('true' == Configure::read('CyDefSIG.private')) {
-					if (!$this->_IsSiteAdmin()) {
-						// merge in private conditions
-						$this->paginate = Set::merge($this->paginate, array(
-							'conditions' =>
-								array("OR" => array(
-								array('Event.org =' => $this->Auth->user('org')),
-								array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1)))),
-							)
-						);
-					}
+				if (!$this->_IsSiteAdmin()) {
+					// merge in private conditions
+					$this->paginate = Set::merge($this->paginate, array(
+						'conditions' =>
+							array("OR" => array(
+							array('Event.org =' => $this->Auth->user('org')),
+							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1)))),
+						)
+					);
 				}
 				$idList = array();
 				$attributes = h($this->paginate());

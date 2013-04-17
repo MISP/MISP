@@ -14,15 +14,10 @@ echo $this->Form->input('malware', array(
 		'after' => '<br>Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"',
 ));
 if ('true' == Configure::read('CyDefSIG.sync')) {
-	if ('true' == Configure::read('CyDefSIG.private')) {
-		echo $this->Form->input('distribution', array('label' => 'Distribution', 'selected' => $maxDist,
-			'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))
-		));
-		//'before' => $this->Html->div('forminfo', isset($attrDescriptions['distribution']['formdesc']) ? $attrDescriptions['distribution']['formdesc'] : $attrDescriptions['distribution']['desc']),));
-	} else {
-		echo $this->Form->input('private', array(
-			'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),));
-	}
+	echo $this->Form->input('distribution', array('label' => 'Distribution', 'selected' => $maxDist,
+		'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))
+	));
+	//'before' => $this->Html->div('forminfo', isset($attrDescriptions['distribution']['formdesc']) ? $attrDescriptions['distribution']['formdesc'] : $attrDescriptions['distribution']['desc']),));
 }
 // link an onchange event to the form elements
 $this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');

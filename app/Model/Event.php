@@ -192,48 +192,44 @@ class Event extends AppModel {
 
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
+		$this->virtualFields = Set::merge($this->virtualFields, array(
+			'distribution' => 'IF (Event.private=true AND Event.cluster=false, "Your organization only", IF (Event.private=true AND Event.cluster=true, "This server-only", IF (Event.private=false AND Event.cluster=true, "This Community-only", IF (Event.communitie=true, "Connected communities" , "All communities"))))',
+		));
 
-		if ('true' == Configure::read('CyDefSIG.private')) {
+		$this->fieldDescriptions = Set::merge($this->fieldDescriptions, array(
+			'distribution' => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => 'This field determines the current distribution of the event:<br/>Org - only organization memebers will see the event<br/>Community - event visible to all on this CyDefSIG instance but will not be shared past it</br>All - to be distributed to other connected CyDefSIG servers'),
+		));
 
-			$this->virtualFields = Set::merge($this->virtualFields, array(
-				'distribution' => 'IF (Event.private=true AND Event.cluster=false, "Your organization only", IF (Event.private=true AND Event.cluster=true, "This server-only", IF (Event.private=false AND Event.cluster=true, "This Community-only", IF (Event.communitie=true, "Connected communities" , "All communities"))))',
-			));
-
-			$this->fieldDescriptions = Set::merge($this->fieldDescriptions, array(
-				'distribution' => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => 'This field determines the current distribution of the event:<br/>Org - only organization memebers will see the event<br/>Community - event visible to all on this CyDefSIG instance but will not be shared past it</br>All - to be distributed to other connected CyDefSIG servers'),
-			));
-
-			$this->validate = Set::merge($this->validate,array(
-				'cluster' => array(
-					'boolean' => array(
-						'rule' => array('boolean'),
-						//'message' => 'Your custom message here',
-						//'allowEmpty' => false,
-						'required' => false,
-						//'last' => false, // Stop validation after this rule
-						//'on' => 'create', // Limit validation to 'create' or 'update' operations
-					),
+		$this->validate = Set::merge($this->validate,array(
+			'cluster' => array(
+				'boolean' => array(
+					'rule' => array('boolean'),
+					//'message' => 'Your custom message here',
+					//'allowEmpty' => false,
+					'required' => false,
+					//'last' => false, // Stop validation after this rule
+					//'on' => 'create', // Limit validation to 'create' or 'update' operations
 				),
-				'communitie' => array(
-					'boolean' => array(
-						'rule' => array('boolean'),
-						//'message' => 'Your custom message here',
-						//'allowEmpty' => false,
-						'required' => false,
-						//'last' => false, // Stop validation after this rule
-						//'on' => 'create', // Limit validation to 'create' or 'update' operations
-					),
+			),
+			'communitie' => array(
+				'boolean' => array(
+					'rule' => array('boolean'),
+					//'message' => 'Your custom message here',
+					//'allowEmpty' => false,
+					'required' => false,
+					//'last' => false, // Stop validation after this rule
+					//'on' => 'create', // Limit validation to 'create' or 'update' operations
 				),
-				'distribution' => array(
-					'rule' => array('inList', array("Your organization only", "This server-only", "This Community-only", "Connected communities", "All communities")),
-						//'message' => 'Your custom message here',
-						'allowEmpty' => false,
-						'required' => false,
-						//'last' => false, // Stop validation after this rule
-						//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-			));
-		}
+			),
+			'distribution' => array(
+				'rule' => array('inList', array("Your organization only", "This server-only", "This Community-only", "Connected communities", "All communities")),
+					//'message' => 'Your custom message here',
+					'allowEmpty' => false,
+					'required' => false,
+					//'last' => false, // Stop validation after this rule
+					//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
+		));
 	}
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed

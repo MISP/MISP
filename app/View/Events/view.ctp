@@ -78,26 +78,12 @@ endif; ?>
 			<?php echo $analysisLevels[$event['Event']['analysis']]; ?>
 			&nbsp;
 		</dd>
-		<?php
-if ('true' == Configure::read('CyDefSIG.sync')): ?>
-		<?php
-	if ('true' == Configure::read('CyDefSIG.private')): ?>
-		<dt>Distribution</dt>
-		<dd>
-			<?php echo $event['Event']['distribution'] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'; ?>
-			&nbsp;
-		</dd>
-		<?php
-	else: ?>
-		<dt>Private</dt>
-		<dd>
-			<?php echo ($event['Event']['private'])? 'Yes, never upload Event or any Attributes.' : 'No, upload Event and all Attributes except those marked as Private.'; ?>
-			&nbsp;
-		</dd>
-		<?php
-	endif; ?>
-		<?php
-endif; ?>
+
+	<dt>Distribution</dt>
+	<dd>
+		<?php echo $event['Event']['distribution'] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'; ?>
+		&nbsp;
+	</dd>
 		<!-- dt>UUID</dt>
 		<dd>
 			<?php echo $event['Event']['uuid']; ?>
@@ -143,18 +129,7 @@ if (!empty($event['Attribute'])):?>
 			<th>Value</th>
 			<th>Related Events</th>
 			<th <?php echo "title='" . $attrDescriptions['signature']['desc'] . "'";?>>IDS Signature</th>
-			<?php
-	if ('true' == Configure::read('CyDefSIG.sync')): ?>
-			<?php
-		if ('true' == Configure::read('CyDefSIG.private')): ?>
 			<th <?php echo "title='" . $attrDescriptions['private']['desc'] . "'";?>>Distribution</th>
-			<?php
-		else:?>
-			<th <?php echo "title='" . $attrDescriptions['private']['desc'] . "'";?>>Private</th>
-			<?php
-		endif;?>
-			<?php
-	endif;?>
 			<?php
 	if ($isAdmin || $mayModify): ?>
 			<th class="actions">Actions</th>
@@ -220,18 +195,7 @@ if (!empty($event['Attribute'])):?>
 				?>&nbsp;
 				</td>
 				<td class="short" style="text-align: center;"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
-				<?php
-			if ('true' == Configure::read('CyDefSIG.sync')): ?>
-				<?php
-				if ('true' == Configure::read('CyDefSIG.private')): ?>
-					<td class="short" style="text-align: center;"><?php echo $attribute['distribution'] != 'All communities' ? $attribute['distribution'] : 'All';?></td>
-					<?php
-				else:?>
-					<td class="short" style="text-align: center;"><?php echo $attribute['private'] ? 'Private' : '&nbsp;';?></td>
-					<?php
-				endif;?>
-				<?php
-			endif;?>
+				<td class="short" style="text-align: center;"><?php echo $attribute['distribution'] != 'All communities' ? $attribute['distribution'] : 'All';?></td>
 				<?php
 			if ($isSiteAdmin || $mayModify): ?>
 				<td class="actions">

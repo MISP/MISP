@@ -68,18 +68,16 @@ class EventsController extends AppController {
 		}
 
 		// do not show private to other orgs
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			// if not admin or own org, check private as well..
-			if (!$this->_IsSiteAdmin()) {
-				$this->paginate = Set::merge($this->paginate,array(
-				'conditions' =>
-						array("OR" => array(
-							array('Event.org =' => $this->Auth->user('org')),
-							array('Event.private !=' => 1),
-							array('Event.cluster =' => 1))),
-							)
-						);
-			}
+		// if not admin or own org, check private as well..
+		if (!$this->_IsSiteAdmin()) {
+			$this->paginate = Set::merge($this->paginate,array(
+			'conditions' =>
+					array("OR" => array(
+						array('Event.org =' => $this->Auth->user('org')),
+						array('Event.private !=' => 1),
+						array('Event.cluster =' => 1))),
+						)
+					);
 		}
 
 		//// do not show cluster outside server
@@ -161,22 +159,21 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event'));
 		}
 		$this->Event->read(null, $id);
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			if (!$this->_IsSiteAdmin()) {
-				// check for non-private and re-read
-				if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
-					$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1))); // TODO seems very dangerous for the correlation construction in afterSave!!!
-					$this->Event->read(null, $id);
-				}
 
-				// check private
-				if (($this->Event->data['Event']['private'] && !$this->Event->data['Event']['cluster']) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
-					$this->Session->setFlash(__('Invalid event.'));
-					$this->redirect(array('controller' => 'events', 'action' => 'index'));
-				}
+		if (!$this->_IsSiteAdmin()) {
+			// check for non-private and re-read
+			if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
+				$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1))); // TODO seems very dangerous for the correlation construction in afterSave!!!
+				$this->Event->read(null, $id);
 			}
-			$this->set('analysisLevels', $this->Event->analysisLevels);
+			// check private
+			if (($this->Event->data['Event']['private'] && !$this->Event->data['Event']['cluster']) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
+				$this->Session->setFlash(__('Invalid event.'));
+				$this->redirect(array('controller' => 'events', 'action' => 'index'));
+			}
 		}
+		$this->set('analysisLevels', $this->Event->analysisLevels);
+
 
 		$relatedAttributes = array();
 		$this->loadModel('Attribute');
@@ -186,7 +183,7 @@ class EventsController extends AppController {
 		$fields = array('Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date');
 		$fields2 = array('Correlation.1_attribute_id','Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date', 'Correlation.private', 'Correlation.org');
 		$relatedAttributes2 = array();
-		if (('true' == Configure::read('CyDefSIG.private')) && ('ADMIN' != $this->Auth->user('org'))) {
+		if ('ADMIN' != $this->Auth->user('org')) {
 			$conditionsCorrelation =
 			array('AND' => array('Correlation.1_event_id' => $id),
 			array("OR" => array('Correlation.org =' => $this->Auth->user('org'), 'Correlation.private !=' => 1,
@@ -315,13 +312,11 @@ class EventsController extends AppController {
 		if ($this->request->is('post')) {
 			$savedId = $this->request->data['Event']['id'];
 			// TODO or massageData here
-			if ('true' == Configure::read('CyDefSIG.private')) {
-				if ($this->_isRest()) {
-					// Distribution, reporter for the events pushed will be the owner of the authentication key
-					$this->request->data['Event']['user_id'] = $this->Auth->user('id');
-				}
-				$this->request->data = $this->Event->massageData($this->request->data);
+			if ($this->_isRest()) {
+				// Distribution, reporter for the events pushed will be the owner of the authentication key
+				$this->request->data['Event']['user_id'] = $this->Auth->user('id');
 			}
+			$this->request->data = $this->Event->massageData($this->request->data);
 			if (!empty($this->data)) {
 				if (isset($this->data['Event']['submittedfile'])) {
 					App::uses('File', 'Utility');
@@ -446,9 +441,7 @@ class EventsController extends AppController {
 			);
 		}
 
-		if ('true' == Configure::read('CyDefSIG.private')) {
-			$data = $this->Event->massageData($data);
-		}
+		$data = $this->Event->massageData($data);
 
 		if ("i" == Configure::read('CyDefSIG.baseurl')) {
 			// this saveAssociated() function will save not only the event, but also the attributes
@@ -619,9 +612,7 @@ class EventsController extends AppController {
 					$this->request->data['Event']['dist_change'] = 1 + $this->Event->data['Event']['dist_change'];
 				}
 			}
-			if ('true' == Configure::read('CyDefSIG.private')) {
-				$this->request->data = $this->Event->massageData($this->request->data);
-			}
+			$this->request->data = $this->Event->massageData($this->request->data);
 
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The event has been saved'));
@@ -787,7 +778,7 @@ class EventsController extends AppController {
 
 		// update the DB to set the published flag
 		$this->Event->saveField('published', 1);
-		$event['Event']['from'] = Configure::read('CyDefSIG.sync');
+		$event['Event']['from'] = Configure::read('CyDefSIG.org');
 		$uploaded = false;
 		//if ($event['Event']['distribution'] == 'Your organization only' || $event['Event']['distribution'] == 'This server-only') return true;
 		if ('true' == Configure::read('CyDefSIG.sync')) {

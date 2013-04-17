@@ -190,80 +190,70 @@ class ServersController extends AppController {
 							$this->Server->data);
 					if (null != $event) {
 						// we have an Event array
-						if ('true' == Configure::read('CyDefSIG.private')) {
-							if (!isset($event['Event']['distribution'])) { // version 1
+						if (!isset($event['Event']['distribution'])) { // version 1
+							$event['Event']['distribution'] = 'This Community-only';
+						}
+						// up the hop count
+						$event['Event']['hop_count']++;
+						// Distribution
+						switch($event['Event']['distribution']) {
+							case 'Your organization only': // Distribution, no Org only in Event
+							case 'This server-only':
+								continue 2; // to the next iteration of the outer loop
+								break;
+							case 'This Community-only': // Distribution, correct Community to Org only in Event
+								$event['Event']['distribution'] = 'Your organization only';
+								break;
+							case 'Connected communities': // Distribution, correct All to Community in Event
 								$event['Event']['distribution'] = 'This Community-only';
-							}
-							// up the hop count
-							$event['Event']['hop_count']++;
-							// Distribution
-							switch($event['Event']['distribution']) {
-								case 'Your organization only': // Distribution, no Org only in Event
-								case 'This server-only':
-									continue 2; // to the next iteration of the outer loop
-									break;
-								case 'This Community-only': // Distribution, correct Community to Org only in Event
-									$event['Event']['distribution'] = 'Your organization only';
-									break;
-								case 'Connected communities': // Distribution, correct All to Community in Event
-									$event['Event']['distribution'] = 'This Community-only';
-									break;
-							}
+								break;
+						}
 
-							// correct $event if just one Attribute
-							if (is_array($event['Event']['Attribute']) && isset($event['Event']['Attribute']['id'])) {
-								$tmp = $event['Event']['Attribute'];
-								unset($event['Event']['Attribute']);
-								$event['Event']['Attribute'][0] = $tmp;
-							}
+						// correct $event if just one Attribute
+						if (is_array($event['Event']['Attribute']) && isset($event['Event']['Attribute']['id'])) {
+							$tmp = $event['Event']['Attribute'];
+							unset($event['Event']['Attribute']);
+							$event['Event']['Attribute'][0] = $tmp;
+						}
 
-							if (is_array($event['Event']['Attribute'])) {
-								$toRemove = array();
-								$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
-								for ($i = 0; $i < $size; $i++) {
-									if (!isset($event['Event']['Attribute'][$i]['distribution'])) { // version 1
+						if (is_array($event['Event']['Attribute'])) {
+							$toRemove = array();
+							$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
+							for ($i = 0; $i < $size; $i++) {
+								if (!isset($event['Event']['Attribute'][$i]['distribution'])) { // version 1
+									$event['Event']['Attribute'][$i]['distribution'] = 'This Community-only';
+								}
+								switch($event['Event']['Attribute'][$i]['distribution']) {
+									case 'Your organization only':
+									case 'This server-only':
+										$toRemove[] = $i;
+										break;
+									case 'This Community-only':
+										$event['Event']['Attribute'][$i]['private'] = true;
+										$event['Event']['Attribute'][$i]['cluster'] = false;
+										$event['Event']['Attribute'][$i]['communitie'] = false;
+										$event['Event']['Attribute'][$i]['distribution'] = 'Your organization only';
+										break;
+									case 'Connected communities':
+										$event['Event']['Attribute'][$i]['cluster'] = true;
 										$event['Event']['Attribute'][$i]['distribution'] = 'This Community-only';
-									}
-									switch($event['Event']['Attribute'][$i]['distribution']) {
-										case 'Your organization only':
-										case 'This server-only':
-											$toRemove[] = $i;
-											break;
-										case 'This Community-only':
-											$event['Event']['Attribute'][$i]['private'] = true;
-											$event['Event']['Attribute'][$i]['cluster'] = false;
-											$event['Event']['Attribute'][$i]['communitie'] = false;
-											$event['Event']['Attribute'][$i]['distribution'] = 'Your organization only';
-											break;
-										case 'Connected communities':
-											$event['Event']['Attribute'][$i]['cluster'] = true;
-											$event['Event']['Attribute'][$i]['distribution'] = 'This Community-only';
-											break;
-									}
+										break;
 								}
-								foreach ($toRemove as $thisRemove) {
-									unset($event['Event']['Attribute'][$thisRemove]);
-								}
-								$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
-							} else {
-								unset($event['Event']['Attribute']);
 							}
-							// Distribution, set reporter of the event, being the admin that initiated the pull
-							$event['Event']['user_id'] = $this->Auth->user('id');
-							// check if the event already exist (using the uuid)
-							$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
-							if ($existingEventCount == 0) {
-								// add data for newly imported events
-								$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
+							foreach ($toRemove as $thisRemove) {
+								unset($event['Event']['Attribute'][$thisRemove]);
 							}
+							$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 						} else {
-							// check if the event already exist (using the uuid)
-							$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
-							if ($existingEventCount == 0) {
-								// add data for newly imported events
-								$event['Event']['private'] = true;
-								$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
-							}
+							unset($event['Event']['Attribute']);
+						}
+						// Distribution, set reporter of the event, being the admin that initiated the pull
+						$event['Event']['user_id'] = $this->Auth->user('id');
+						// check if the event already exist (using the uuid)
+						$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
+						if ($existingEventCount == 0) {
+							// add data for newly imported events
+							$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
 						}
 						$eventsController = new EventsController();
 						$eventsController->constructClasses();

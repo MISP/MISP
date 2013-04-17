@@ -15,15 +15,9 @@ if ($attachment) {
 	echo $this->Form->input('type', array('between' => $this->Html->div('forminfo', '', array('id' => 'AttributeTypeDiv'))));
 }
 if ('true' == Configure::read('CyDefSIG.sync')) {
-	if ('true' == Configure::read('CyDefSIG.private')) {
-		if ('true' == $canEditDist) {
-			echo $this->Form->input('distribution', array('label' => 'Distribution',
-				'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))
-			));
-		}
-	} else {
-		echo $this->Form->input('private', array(
-				'before' => $this->Html->div('forminfo', isset($attrDescriptions['private']['formdesc']) ? $attrDescriptions['private']['formdesc'] : $attrDescriptions['private']['desc']),
+	if ('true' == $canEditDist) {
+		echo $this->Form->input('distribution', array('label' => 'Distribution',
+			'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))
 		));
 	}
 }

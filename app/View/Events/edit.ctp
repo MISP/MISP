@@ -11,15 +11,10 @@ echo $this->Form->input('analysis', array(
 		'options' => array($analysisLevels),
 		'before' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))));
 if ('true' == Configure::read('CyDefSIG.sync')) {
-	if ('true' == Configure::read('CyDefSIG.private')) {
-		if ('true' == $canEditDist) {
-			echo $this->Form->input('distribution', array('label' => 'Distribution',
-				'between' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv'))
-			));
-		}
-	} else {
-		echo $this->Form->input('private', array(
-			'before' => $this->Html->div('forminfo', isset($eventDescriptions['private']['formdesc']) ? $eventDescriptions['private']['formdesc'] : $eventDescriptions['private']['desc']),));
+	if ('true' == $canEditDist) {
+		echo $this->Form->input('distribution', array('label' => 'Distribution',
+			'between' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv'))
+		));
 	}
 }
 echo $this->Form->input('info');
