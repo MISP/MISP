@@ -389,15 +389,13 @@ class Attribute extends AppModel {
 	}
 
 	public function afterSave($created) {
-		if ('db' == Configure::read('CyDefSIG.correlation')) {
-			// update correlation..
-			$this->__afterSaveCorrelation($this->data['Attribute']);
-		}
+		// update correlation..
+		$this->__afterSaveCorrelation($this->data['Attribute']);
 
 		$result = true;
 		// if the 'data' field is set on the $this->data then save the data to the correct file
 		if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
-			$result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']);
+			$result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']); // TODO : is this correct?
 		}
 		return $result;
 	}
@@ -417,10 +415,9 @@ class Attribute extends AppModel {
 			}
 		}
 
-		if ('db' == Configure::read('CyDefSIG.correlation')) {
-			// update correlation..
-			$this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
-		}
+		// update correlation..
+		$this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
+
 	}
 
 	public function massageData(&$data) {

@@ -22,60 +22,141 @@ Security
 
 
 INSTALLATION INSTRUCTIONS
+------------------------- for ubuntu 12.04-server
+
+1/ Minimal ubuntu install
 -------------------------
-Install the following libraries:
-apt-get install zip
-apt-get install php-pear
-pear install Crypt_GPG    # need version >1.3.0 
+Install a minimal ubuntu 12.04-server system with the software:
+- OpenSSH server
+- LAMP server
+- Mail server
+
+You will get some questions, you will probably want to set:
+- Postfix Configuration: Satellite system
+
+Make sure your system is up2date:
+apt-get update
+apt-get upgrade
+
+
+2/ Dependencies
+----------------
+Once the system is installed you can perform the following steps as root:
+
+# Because vim is just so practical
+apt-get install vim
+
+# Install the dependencies:
+apt-get install zip php-pear git
+pear install Crypt_GPG    # we need version >1.3.0 
 pear install Net_GeoIP
-# ideally make sure geoip database is updated using crontab
-#wget 'http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz'
-#gunzip GeoIP.dat.gz
 
 
+3/ CakePHP
+-----------
 # Download CakePHP from github
 cd /opt/
-git pull https://github.com/cakephp/cakephp.git
-chmod -R 755 /opt/cakephp
+git clone https://github.com/cakephp/cakephp.git
 
+# You should REALLY make sure that you install security updates of CakePHP when your system is in production !
 
-# Download CyDefSIG using git in the /var/www/ directory. 
+# If you plan to run multiple MISP instances on a single server, only one installation of CakePHP is needed !
+
+4/ MISP code
+------------
+# Download MISP using git in the /var/www/ directory. 
 cd /var/www/
-git clone https://github.com/BeDefCERT/MISP.git 
+git clone https://github.com/MISP/MISP.git 
+
+# Make git ignore filesystem permission differences
+cd /var/www/MISP
+git config core.filemode false
 
 
 # Check if the permissions are set correctly using the following commands as root:
-chown -R <user>:www-data /var/www/cydefsig
-chmod -R 750 /var/www/cydefsig
-chmod -R g+s /var/www/cydefsig
-cd /var/www/cydefsig/app/
-chmod -R g+w tmp
-chmod -R g+w files
+chown -R www-data:www-data /var/www/MISP
+chmod -R 750 /var/www/MISP
+cd /var/www/MISP/app/
+chmod -R g+ws tmp
+chmod -R g+ws files
+cd /var/www/MISP
 
-# Import the empty MySQL database from /var/www/cydefsig/app/MYSQL.sql using phpmyadmin or mysql>.
+##
+## FIXME this is not really clean
+## 
+# Currently you will need to copy the plugins to the CakePHP directory.
+cp -r /var/www/MISP/plugins/* /opt/cakephp/plugins/
+chmod -R o+rx /opt/cakephp/plugins
 
-# Now configure your apache server with the DocumentRoot /var/www/cydefsig/app/webroot/
+5/ Create a database and user
+-----------------------------
+# Enter the mysql shell
+mysql -u root -p
+
+mysql> create database misp;
+mysql> grant usage on *.* to misp@localhost identified by 'XXXXXXXXX';
+mysql> grant all privileges on misp.* to misp@localhost ;
+mysql> exit
+
+# Import the empty MySQL database from MYSQL.sql 
+mysql -u misp -p misp < INSTALL/MYSQL.sql
 
 
-# Configure the fields in the files:
+6/ Apache configuration
+-----------------------
+# Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
+# A sample ghost can be found in /var/www/MISP/INSTALL/apache.misp
+
+cp /var/www/MISP/INSTALL/apache.misp /etc/apache2/sites-available/misp
+a2dissite default
+a2ensite misp
+
+# Enable modules
+a2enmod rewrite
+
+# Restart apache
+service apache2 reload
+
+# We seriously recommend using only SSL ! 
+# Check out the apache.misp.ssl file for an example
+
+
+7/ MISP configuration
+---------------------
+# Configure the fields in the files located in /var/www/MISP/app/Config/:
 database.php : login, port, password, database
 bootstrap.php: CyDefSIG.*, GnuPG.*
-core.php : debug, 
-webroot/index.php : CAKE_CORE_INCLUDE_PATH   (optional for multi-cydefsig installations)
+core.php : debug, Security.*
+
+# and make sure the file permissions are still OK
+chown -R www-data:www-data /var/www/MISP/app/Config
+chmod -R 750 /var/www/MISP/app/Config
+
+
+# Let MISP know where the CakePHP libraries are located by editing the file app/webroot/index.php and setting (on line 59):
+	define('CAKE_CORE_INCLUDE_PATH', '/opt/cakephp/lib');
+
 
 # Generate a GPG encryption key.
-mkdir /var/www/cydefsig/.gnupg
-chown www-data:www-data /var/www/cydefsig/.gnupg
-chmod 700 /var/www/cydefsig/.gnupg
-sudo -u www-data gpg --homedir /var/www/cydefsig/.gnupg --gen-key
+mkdir /var/www/MISP/.gnupg
+chown www-data:www-data /var/www/MISP/.gnupg
+chmod 700 /var/www/MISP/.gnupg
+sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
+# Recommended key type: RSA (sign only)
+# The email address should match the one set int he bootstrap.php configuration file
 
 # And export the public key to the webroot
-sudo -u www-data gpg --homedir .gnupg --export --armor no-reply > app/webroot/gpg.asc
+sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
+
+
 
 # Create the Role Based Access Control (RBAC) tables and content:
-cd /var/www/cydefsig/app
-./Console/cake acl create aco root controllers
-./Console/cake AclExtras.AclExtras aco_sync
+cd /var/www/MISP/app
+export PATH="$PATH:/opt/cakephp/lib/Cake/Console"
+cake acl create aco root controllers
+cake AclExtras.AclExtras aco_sync    
+# You might get an 'Warning Error: Argument…'
+# however if it ends with 'Aco Update Complete' it should be OK
 
 
 Now log in using the webinterface:
@@ -105,15 +186,14 @@ with <your org> being MIL.BE or NCIRC where appropriate.
 Import the regexp data in /var/www/cydefsig/app/MYSQL.regexp.sql using phpmyadmin or mysql>.
 
 
-Recommended patches
+Recommended actions
 -------------------
-By default CakePHP exposes his name and version in email headers. Apply a patch to remove this behavior.
+- By default CakePHP exposes his name and version in email headers. Apply a patch to remove this behavior.
 
-Multiple instances on a single server
--------------------------------------
-If you want to install multiple instances on a single server, extract the CakePHP sources 
-in a central location like /opt/cakephp.
- 
-Then edit /var/www/cydefsig/app/webroot/index.php and change :
-	define('CAKE_CORE_INCLUDE_PATH', '/opt/cakephp/lib');
+- You should really harden your OS
+- You should really harden the configuration of Apache
+- You should really harden the configuration of MySQL
+- Keep your software up2date (MISP, CakePHP and everything else)
+- Log and audit
+
 

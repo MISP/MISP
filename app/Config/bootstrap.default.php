@@ -119,7 +119,7 @@ Configure::write('CyDefSIG.logo', 'orgs/ORGNAME.png');     // used in Events::in
 
 
 Configure::write('CyDefSIG.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
-Configure::write('CyDefSIG.showowner', 'false');           // show the email of the owner that uploaded the data
+
 Configure::write('CyDefSIG.sync', 'true');                 // enable features related to syncing with other CyDefSIG instances - should be always on because of the current distribution model.
 Configure::write('CyDefSIG.private', 'true');                 // respect private to org or server.
 if ('true' == Configure::read('CyDefSIG.private')) {
@@ -136,11 +136,6 @@ Configure::write('GnuPG.homedir', '/path/to/your/.gnupg/');
 Configure::write('SecureAuth.amount', 5);              // the maximum amount of failed logins
 Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
 
-Configure::write('CyDefSIG.correlation', 'db');        // correlation between attributes of events.
-														// possible values:
-														// - default, like it was (this is depreciated, use 'db' instead)
-														// - db, correlation in database
-														// - sql, selection on event i.s.o. per attribute (improvement possible) (this is depreciated, use 'db' instead)
 /**
  * Network activity, ip-src
  * 30 class-C network ip addresses
@@ -246,3 +241,4 @@ CakeLog::config('error', array(
 	'types' => array('warning', 'error', 'critical', 'alert', 'emergency'),
 	'file' => 'error',
 ));
+
