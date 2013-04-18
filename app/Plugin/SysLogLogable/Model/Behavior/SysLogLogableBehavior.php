@@ -201,7 +201,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 				case "Server":
 					$this->Servers = new ServersController();
         			$this->Servers->constructClasses();
-					$title = 'Server ('. $Model->data[$Model->alias]['id'].'): '. $this->Servers->getName($Model->data[$Model->alias]['id']);
+					$title = 'Server ('. $Model->data[$Model->alias]['id'].'): '. $Model->data[$Model->alias]['url'];
 					$logData['Log']['title'] = $title;
 					break;
 				case "Role":
