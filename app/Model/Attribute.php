@@ -880,8 +880,8 @@ class Attribute extends AppModel {
 
 	private function __afterSaveCorrelation($attribute) {
 		$this->Correlation = ClassRegistry::init('Correlation');
-		$dummy = $this->Correlation->deleteAll(array('OR' => array('Correlation.attribute_id' => $attribute)));
-		$dummy = $this->Correlation->deleteAll(array('OR' => array('Correlation.1_attribute_id' => $attribute)));
+		$dummy = $this->Correlation->deleteAll(array('OR' => array('Correlation.attribute_id' => $attribute['id'])), false);
+		$dummy = $this->Correlation->deleteAll(array('OR' => array('Correlation.1_attribute_id' => $attribute['id'])), false);
 		// re-add
 		$this->setRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Attribute.cluster', 'Event.date', 'Event.org'));
 		// update where refered..
