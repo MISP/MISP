@@ -494,20 +494,7 @@ class AppController extends Controller {
 		$attributes = $this->Attribute->find('all',array('recursive' => 0));
 		// for all attributes..
 		foreach ($attributes as $attribute) {
-			$this->Attribute->setInitialRelatedAttributes($attribute['Attribute'], $fields = array());
-
-			//// i want to keep this in repo for a moment
-			//$relatedAttributes = $this->Attribute->getRelatedAttributes($attribute['Attribute'], $fields);
-			//if ($relatedAttributes) {
-			//	foreach ($relatedAttributes as $relatedAttribute) {
-			//		// and store into table
-			//		$this->Correlation->create();
-			//		$this->Correlation->save(array('Correlation' => array(
-			//		'1_event_id' => $attribute['Attribute']['event_id'], '1_attribute_id' => $attribute['Attribute']['id'],
-			//		'event_id' => $relatedAttribute['Attribute']['event_id'], 'attribute_id' => $relatedAttribute['Attribute']['id'],
-			//		'date' => $relatedAttribute['Event']['date'])));
-			//	}
-			//}
+			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
 		}
 		$this->Session->setFlash(__('All done.'));
 		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));

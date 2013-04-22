@@ -381,12 +381,15 @@ class Attribute extends AppModel {
 				$this->data['Attribute']['value2'] = '';
 			}
 		}
+
+		// update correlation... (only needed here if there's an update)
+ 		$this->__beforeSaveCorrelation($this->data['Attribute']);
 		// always return true after a beforeSave()
 		return true;
 	}
 
 	public function afterSave($created) {
-		// update correlation..
+		// update correlation...
 		$this->__afterSaveCorrelation($this->data['Attribute']);
 
 		$result = true;
@@ -878,21 +881,88 @@ class Attribute extends AppModel {
 		}
 	}
 
-	private function __afterSaveCorrelation($attribute) {
-		$this->Correlation = ClassRegistry::init('Correlation');
-		$dummy = $this->Correlation->deleteAll(array('OR' => array('Correlation.attribute_id' => $attribute['id'])), false);
-		$dummy = $this->Correlation->deleteAll(array('OR' => array('Correlation.1_attribute_id' => $attribute['id'])), false);
-		// re-add
-		$this->setRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Attribute.cluster', 'Event.date', 'Event.org'));
-		// update where refered..
-		$this->updateRelatedAttributes($attribute, array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Attribute.cluster', 'Event.date', 'Event.org'));
+	public function __beforeSaveCorrelation($a) {
+
+		// (update-only) clean up the relation of the old value: remove the existing relations related to that attribute, we DO have a reference, the id
+		// ==> DELETE FROM correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id; */
+		// first check if it's an update
+		if (isset($a['id'])) {
+			$this->Correlation = ClassRegistry::init('Correlation');
+			// FIXME : check that $a['id'] is checked correctly so that the user can't remove attributes he shouldn't
+			$dummy = $this->Correlation->deleteAll(array('OR' => array(
+					'Correlation.1_attribute_id' => $a['id'],
+					'Correlation.attribute_id' => $a['id']))
+			);
+		}
 	}
 
-	private function __beforeDeleteCorrelation($attribute) {
+	public function __afterSaveCorrelation($a) {
 		$this->Correlation = ClassRegistry::init('Correlation');
+		//
+		// When we add/update an attribute we need to
+		// - (beforeSave) (update-only) clean up the relation of the old value: remove the existing relations related to that attribute, we DO have a reference, the id
+
+		// - remove the existing relations for that value1 or value2, we do NOT have an id reference, but we have a value1/value2 field to search for
+		// ==> DELETE FROM correlations WHERE value = $value1 OR value = $value2 */
+		$dummy = $this->Correlation->deleteAll(array('Correlation.value' => array($a['value1'], $a['value2'])));
+
+		// now build a correlation array of things that will need to be added in the db
+		// we do this twice, once for value1 and once for value2
+		$correlations = array();   // init variable
+		$value_names = array ('value1', 'value2');
+		// do the correlation for value1 and value2, this needs to be done separately
+		foreach ($value_names as $value_name) {
+		    if (empty($a[$value_name])) continue;  // do not correlate if attribute is empty
+		    $params = array(
+		            'conditions' => array('OR' => array(
+		                    'Attribute.value1' => $a[$value_name],
+		                    'Attribute.value2' => $a[$value_name]
+		            )),
+		            'recursive' => 0,
+		            //'fields' => '', // we want to have the Attribute AND Event, so do not filter here
+		    );
+		    // search for the related attributes for that "value(1|2)"
+		    $attributes = $this->find('all', $params);
+		    // build the correlations, each attribute should have a relation in both directions
+		    // this is why we have a double loop.
+		    // The result is that for each Attribute pair we want: A1-A2, A2-A1 and so on,
+		    // In total that's N * (N-1) rows (minus the ones from the same event) (with N the number of related attributes)
+		    $attributes_right = $attributes;
+		    foreach ($attributes as $attribute) {
+		        foreach ($attributes_right as $attribute_right) {
+		            if ($attribute['Attribute']['event_id'] == $attribute_right['Attribute']['event_id']) {
+		                // do not build a relation between the same attributes
+		                // or attributes from the same event
+		                continue;
+		            }
+		            $is_private = $attribute_right['Event']['private'] || $attribute_right['Attribute']['private'];
+		            $is_cluster = $attribute_right['Event']['cluster'] || $attribute_right['Attribute']['cluster'];
+		            $correlations[] = array(
+		                    'value' => $a[$value_name],
+		                    '1_event_id' => $attribute['Attribute']['event_id'],
+		                    '1_attribute_id' => $attribute['Attribute']['id'],
+		                    'event_id' => $attribute_right['Attribute']['event_id'],
+		                    'attribute_id' => $attribute_right['Attribute']['id'],
+		                    'org' => $attribute_right['Event']['org'],
+		                    'private' => $is_private,
+		                    'cluster' => $is_cluster,
+		                    'date' => $attribute_right['Event']['date']
+		            );
+		        }
+		    }
+		}
+		// save the new correlations to the database in a single shot
+		$this->Correlation->saveMany($correlations);
+	}
+
+	private function __beforeDeleteCorrelation($attribute_id) {
+		$this->Correlation = ClassRegistry::init('Correlation');
+		// When we remove an attribute we need to
+		// - remove the existing relations related to that attribute, we DO have an id reference
+		// ==> DELETE FROM correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id;
 		$dummy = $this->Correlation->deleteAll(array('OR' => array(
-						'Correlation.1_attribute_id' => $attribute,
-						'Correlation.attribute_id' => $attribute))
+						'Correlation.1_attribute_id' => $attribute_id,
+						'Correlation.attribute_id' => $attribute_id))
 		);
 	}
 
@@ -930,120 +1000,6 @@ class Attribute extends AppModel {
 			}
 		}
 		return $double;
-	}
-
-	public function updateRelatedAttributes($attribute, $fields=array()) {
-		$this->Correlation = ClassRegistry::init('Correlation');
-		// update related
-		$attributes = $this->Correlation->find('all', array('recursive' => 0, 'conditions' => array('attribute_id' => $attribute['id'])));
-		foreach ($attributes as $attributeFound) {
-			$this->Correlation->read(null, $attributeFound['Correlation']['id']);
-			$this->Correlation->set(array(
-				'private' => isset($attribute['private']) ? $attribute['private'] : false,
-				'cluster' => isset($attribute['cluster']) ? $attribute['cluster'] : false,
-			));
-			$this->Correlation->save();
-		}
-		// update relating
-		$attributes = $this->Correlation->find('all', array('recursive' => 0, 'conditions' => array('1_attribute_id' => $attribute['id'])));
-		foreach ($attributes as $attributeFound) {
-			$this->Correlation->read(null, $attributeFound['Correlation']['id']);
-			$this->Correlation->set(array(
-				'1_private' => isset($attribute['private']) ? $attribute['private'] : false,
-			));
-			$this->Correlation->save();
-		}
-		// TODO what if value1/2 changes??
-	}
-
-	public function setInitialRelatedAttributes($attribute, $fields=array()) {
-		$this->Event = ClassRegistry::init('Event');
-		$relatedAttributes = $this->getRelatedAttributes($attribute, $fields);
-		if ($relatedAttributes) {
-			$this->Correlation = ClassRegistry::init('Correlation');
-			foreach ($relatedAttributes as $relatedAttribute) {
-
-				// and store into table
-				$params = array(
-					'conditions' => array('Event.id' => $relatedAttribute['Attribute']['event_id']),
-					'recursive' => 0,
-					'fields' => array('Event.date', 'Event.org', 'Event.private', 'Event.cluster')
-				);
-				$eventDate = $this->Event->find('first', $params);
-
-				// event preveal over atribute
-				$isPrivate = $eventDate['Event']['private'] ? $eventDate['Event']['private'] : $relatedAttribute['Attribute']['private'];
-				$isCluster = $eventDate['Event']['cluster'] ? $eventDate['Event']['cluster'] : $relatedAttribute['Attribute']['cluster'];
-
-				// needed seek original Org
-				$params = array(
-					'conditions' => array('Event.id' => $attribute['event_id']),
-					'recursive' => 0,
-					'fields' => array('Event.org', 'Event.private', 'Event.cluster')
-				);
-				$eventOrg = $this->Event->find('first', $params);
-				$origPrivate = isset($attribute['private']) ? $attribute['private'] : false;
-				$origPrivate = $eventOrg['Event']['private'] ? $eventOrg['Event']['private'] : $origPrivate;
-
-				$this->Correlation->create();
-				$this->Correlation->save(array(
-					'Correlation' => array(
-						'1_event_id' => $attribute['event_id'], '1_attribute_id' => $attribute['id'], '1_private' => $origPrivate,
-						//'1_org' => $eventOrg['Event']['org'], // TODO newest
-						'event_id' => $relatedAttribute['Attribute']['event_id'], 'attribute_id' => $relatedAttribute['Attribute']['id'],
-						'org' => $eventDate['Event']['org'],
-						'private' => $isPrivate,
-						'cluster' => $isCluster,
-						'date' => $eventDate['Event']['date']))
-				);
-			}
-		}
-	}
-
-	public function setRelatedAttributes($attribute, $fields=array()) {
-		$this->setInitialRelatedAttributes($attribute, $fields);
-		$this->Event = ClassRegistry::init('Event');
-		$relatedAttributes = $this->getRelatedAttributes($attribute, $fields);
-		if ($relatedAttributes) {
-			$this->Correlation = ClassRegistry::init('Correlation');
-			foreach ($relatedAttributes as $relatedAttribute) {
-
-				// and vise versa
-				$params = array(
-					'conditions' => array('Event.id' => $attribute['event_id']),
-					'recursive' => 0,
-					'fields' => array('Event.date', 'Event.org', 'Event.private', 'Event.cluster')
-				);
-				$eventDate = $this->Event->find('first', $params);
-				// event preveal over atribute
-				$origPrivate = isset($attribute['private']) ? $attribute['private'] : false;
-				$origPrivate = $eventDate['Event']['private'] ? $eventDate['Event']['private'] : $origPrivate;
-				$origCluster = isset($attribute['cluster']) ? $attribute['cluster'] : false;
-				$origCluster = $eventDate['Event']['cluster'] ? $eventDate['Event']['cluster'] : $origCluster;
-
-				// event preveal over atribute
-				$params = array(
-					'conditions' => array('Event.id' => $relatedAttribute['Attribute']['event_id']),
-					'recursive' => 0,
-					'fields' => array('Event.date', 'Event.org', 'Event.private', 'Event.cluster')
-				);
-				$isEvent = $this->Event->find('first', $params);
-				$isPrivate = $isEvent['Event']['private'] ? $isEvent['Event']['private'] : $relatedAttribute['Attribute']['private'];
-				$isCluster = $isEvent['Event']['cluster'] ? $isEvent['Event']['cluster'] : $relatedAttribute['Attribute']['cluster'];
-
-				$this->Correlation->create();
-				$this->Correlation->save(array(
-					'Correlation' => array(
-						'1_event_id' => $relatedAttribute['Attribute']['event_id'], '1_attribute_id' => $relatedAttribute['Attribute']['id'], '1_private' => $isPrivate,
-						//'1_org' => $relatedAttribute['Event']['org'], // TODO newest
-						'event_id' => $attribute['event_id'], 'attribute_id' => $attribute['id'],
-						'org' => $eventDate['Event']['org'],
-						'private' => $origPrivate,
-						'cluster' => $origCluster,
-						'date' => $eventDate['Event']['date']))
-				);
-			}
-		}
 	}
 
 	public function uploadAttributeToServer($attribute, $server, $HttpSocket=null) {

@@ -105,8 +105,9 @@ CREATE TABLE IF NOT EXISTS `bruteforces` (
 -- Table structure for table `correlations`
 --
 
-CREATE TABLE IF NOT EXISTS `correlations` (
+CREATE TABLE `correlations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `value` text COLLATE utf8_bin NOT NULL,
   `1_event_id` int(11) NOT NULL,
   `1_attribute_id` int(11) NOT NULL,
   `1_private` tinyint(1) NOT NULL DEFAULT '0',
