@@ -92,6 +92,6 @@ class WhitelistsController extends AppController {
  */
 	public function index() {
 		$this->recursive = 0;
-		$this->set('list', Sanitize::clean($this->paginate()));
+		$this->set('list', $this->paginate());
 	}
 }
