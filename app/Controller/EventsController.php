@@ -174,80 +174,11 @@ class EventsController extends AppController {
 		}
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 
-
-		$relatedAttributes = array();
 		$this->loadModel('Attribute');
-		$this->loadModel('Event');
 
-		$this->loadModel('Correlation');
-		$fields = array('Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date');
-		$fields2 = array('Correlation.1_attribute_id','Correlation.event_id', 'Correlation.attribute_id', 'Correlation.date', 'Correlation.private', 'Correlation.org');
-		$relatedAttributes2 = array();
-		if ('ADMIN' != $this->Auth->user('org')) {
-			$conditionsCorrelation =
-			array('AND' => array('Correlation.1_event_id' => $id),
-			array("OR" => array('Correlation.org =' => $this->Auth->user('org'), 'Correlation.private !=' => 1,
-						'AND' => array('Correlation.private =' => 1,'Correlation.cluster =' => 1)),
-					));
-		} else {
-			$conditionsCorrelation =
-				array('AND' => array('Correlation.1_event_id' => $id,));
-		}
-		$relatedAttributes2 = $this->Correlation->find('all',array(
-		'fields' => $fields2,
-		'conditions' => $conditionsCorrelation,
-		'recursive' => 0, 'order' => array('Correlation.event_id DESC')));
+		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
+		$relatedAttributes = $this->Event->getRelatedAttributes($this->Auth->user());
 
-		if (empty($relatedAttributes2)) {
-			$relatedEvents = null;
-		} else {
-			foreach ($relatedAttributes2 as $relatedAttribute2) {
-				$helpArray = array();
-				if (!isset($helpArray[$relatedAttribute2['Correlation']['1_attribute_id']]) || !in_array($relatedAttribute2['Correlation']['event_id'], $helpArray[$relatedAttribute2['Correlation']['1_attribute_id']])) {
-					$helpArray[$relatedAttribute2['Correlation']['1_attribute_id']][] = $relatedAttribute2['Correlation']['event_id'];
-					$relatedAttributes[$relatedAttribute2['Correlation']['1_attribute_id']][] = array('Attribute' => $relatedAttribute2['Correlation']);
-				}
-			}
-
-			// search for related Events using the results form the related attributes
-			// This is a lot faster (only additional query) than $this->Event->getRelatedEvents()
-			$relatedEventIds = array();
-			$relatedEventDates = array();
-			$relatedEventInfos = array();
-			$relatedEvents = array();
-			foreach ($relatedAttributes as &$relatedAttribute) {
-				if (null == $relatedAttribute) continue;
-				foreach ($relatedAttribute as &$item) {
-					$relatedEventsIds[] = $item['Attribute']['event_id'];
-					$relatedEventsDates[$item['Attribute']['event_id']] = $item['Attribute']['date'];
-					$temp = $this->Event->find('first', array(
-							'conditions' => array('Event.id' => $item['Attribute']['event_id']),
-							'fields' => array('info', 'orgc'),
-							'recursive' => 0,
-							));
-					$item['Attribute']['event_info'] = $temp['Event']['info'];
-					$item['Attribute']['relatedOrg'] = $temp['Event']['orgc'];
-					$relatedEventInfos[$item['Attribute']['event_id']] = $temp['Event']['info'];
-					$relatedEventOrgs[$item['Attribute']['event_id']] = $temp['Event']['orgc'];
-				}
-			}
-			if (isset($relatedEventsDates)) {
-				foreach ($relatedEventsDates as $key => $relatedEventsDate) {
-					$relatedEvents[] = array('Event' => array('id' => $key, 'date' => $relatedEventsDate));
-				}
-				$i = 0;
-				foreach ($relatedEventInfos as $info) {
-					$relatedEvents[$i]['Event']['info'] = $info;
-					$i++;
-				}
-				$i = 0;
-				foreach ($relatedEventOrgs as $org) {
-					$relatedEvents[$i]['Event']['org'] = $org;
-					$i++;
-				}
-			}
-			usort($relatedEvents, array($this, 'compareRelatedEvents'));
-		}
 		if ($this->_isRest()) {
 			foreach ($this->Event->data['Attribute'] as &$attribute) {
 				// 	for REST requests also add the encoded attachment
@@ -258,10 +189,6 @@ class EventsController extends AppController {
 				}
 			}
 		}
-
-		// params for the jQuery RESTfull interface
-		$this->set('authkey', $this->Auth->user('authkey'));
-		$this->set('baseurl', Configure::read('CyDefSIG.baseurl'));
 
 		$this->set('relatedAttributes', $relatedAttributes);
 
@@ -883,7 +810,7 @@ class EventsController extends AppController {
 		}
 		$body .= 'Risk        : ' . $event['Event']['risk'] . "\n";
 		$body .= 'Analysis    : ' . $event['Event']['analysis'] . "\n";
-		$relatedEvents = $this->Event->getRelatedEvents($id);
+		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
 		if (!empty($relatedEvents)) {
 			foreach ($relatedEvents as &$relatedEvent) {
 				$body .= 'Related to  : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
@@ -1102,7 +1029,7 @@ class EventsController extends AppController {
 		}
 		$body .= 'Risk		: ' . $event['Event']['risk'] . "\n";
 		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
-		$relatedEvents = $this->Event->getRelatedEvents($id);
+		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
 		if (!empty($relatedEvents)) {
 			foreach ($relatedEvents as &$relatedEvent) {
 				$body .= 'Related to  : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";

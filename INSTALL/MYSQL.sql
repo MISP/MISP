@@ -115,11 +115,10 @@ CREATE TABLE `correlations` (
   `attribute_id` int(11) NOT NULL,
   `org` varchar(255) COLLATE utf8_bin NOT NULL,
   `private` tinyint(1) NOT NULL,
-  `cluster` tinyint(1) NOT NULL,
   `date` date NOT NULL,
+  `info` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
 -- --------------------------------------------------------
 
 --

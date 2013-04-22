@@ -936,7 +936,6 @@ class Attribute extends AppModel {
 		                continue;
 		            }
 		            $is_private = $attribute_right['Event']['private'] || $attribute_right['Attribute']['private'];
-		            $is_cluster = $attribute_right['Event']['cluster'] || $attribute_right['Attribute']['cluster'];
 		            $correlations[] = array(
 		                    'value' => $a[$value_name],
 		                    '1_event_id' => $attribute['Attribute']['event_id'],
@@ -945,8 +944,8 @@ class Attribute extends AppModel {
 		                    'attribute_id' => $attribute_right['Attribute']['id'],
 		                    'org' => $attribute_right['Event']['org'],
 		                    'private' => $is_private,
-		                    'cluster' => $is_cluster,
-		                    'date' => $attribute_right['Event']['date']
+		                    'date' => $attribute_right['Event']['date'],
+		            		'info' => $attribute_right['Event']['info'],
 		            );
 		        }
 		    }

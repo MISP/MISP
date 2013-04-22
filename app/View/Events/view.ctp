@@ -104,7 +104,7 @@ if (!empty($relatedEvents)):?>
 	foreach ($relatedEvents as $relatedEvent): ?>
 		<li><?php
 		$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-		echo "<div \" title = \"".$relatedEvent['Event']['info']."\">";
+		echo '<div title="'.h($relatedEvent['Event']['info']).'">';
 		if ($relatedEvent['Event']['org'] == $me['org']) {
 			echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']), array('class' => 'SameOrgLink'));
 		} else {
@@ -128,8 +128,8 @@ if (!empty($event['Attribute'])):?>
 			<th>Type</th>
 			<th>Value</th>
 			<th>Related Events</th>
-			<th <?php echo "title='" . $attrDescriptions['signature']['desc'] . "'";?>>IDS Signature</th>
-			<th <?php echo "title='" . $attrDescriptions['private']['desc'] . "'";?>>Distribution</th>
+			<th <?php echo 'title="' . $attrDescriptions['signature']['desc'] . '"';?>>IDS Signature</th>
+			<th <?php echo 'title="' . $attrDescriptions['private']['desc'] . '"';?>>Distribution</th>
 			<?php
 	if ($isAdmin || $mayModify): ?>
 			<th class="actions">Actions</th>
@@ -178,20 +178,19 @@ if (!empty($event['Attribute'])):?>
 				?></td>
 				<td class="short" style="text-align: center;">
 				<?php
-			$first = 0;
-			if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
-				foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
-					echo "<span title = \"".$relatedAttribute['Attribute']['event_info']."\">";
-					if ($relatedAttribute['Attribute']['relatedOrg'] == $me['org']) {
-						echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']), array ('class' => 'SameOrgLink'));
-					} else {
-						echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']));
-					}
 
-					echo "</span>";
-					echo ' ';
+				if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
+					foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
+						echo '<span title="'.h($relatedAttribute['info']).'">';
+						if ($relatedAttribute['org'] == $me['org']) {
+							echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id']), array ('class' => 'SameOrgLink'));
+						} else {
+							echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id']));
+						}
+						echo "</span> ";
+
+					}
 				}
-			}
 				?>&nbsp;
 				</td>
 				<td class="short" style="text-align: center;"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
