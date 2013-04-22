@@ -129,11 +129,12 @@ class AppController extends Controller {
 		$this->set('isSiteAdmin', $this->_isSiteAdmin());
 
 		// TODO ACL: 5: from Controller to Views
-		$this->set('isAclAdd', $this->checkAcl('add'));
-		$this->set('isAclModify', $this->checkAcl('edit'));
+		//$this->set('isAclAdd', $this->checkAcl('add'));
+		$this->set('isAclAdd', $this->checkAction('perm_add'));
+		//$this->set('isAclModify', $this->checkAcl('edit'));
+		$this->set('isAclModify', $this->checkAction('perm_modify'));
 		$this->set('isAclModifyOrg', $this->checkAction('perm_modify_org'));
 		$this->set('isAclPublish', $this->checkAction('perm_publish'));
-		$this->set('isAclAdd2', $this->checkAction('perm_add'));
 		$this->set('isAclSync', $this->checkAction('perm_sync'));
 		$this->set('isAclAdmin', $this->checkAction('perm_admin'));
 		$this->set('isAclAudit', $this->checkAction('perm_audit'));
@@ -161,7 +162,7 @@ class AppController extends Controller {
 	}
 
 /**
- * checks if the currently logged user is an org admin (an admin that can manage the users and events of his own organisation)
+ * checks if the currently logged user is an administrator (an admin that can manage the users and events of his own organisation)
  */
 	protected function _isAdmin() {
 		$org = $this->Auth->user('org');
@@ -194,7 +195,9 @@ class AppController extends Controller {
 		if (isset($this->User)) {
 			$user = $this->User->read(false, $this->Auth->user('id'));
 		} else {
-			$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
+			$this->loadModel('User');
+			$this->User->recursive = -1;
+			$user = $this->User->findById($this->Auth->user('id'));
 		}
 		$this->Auth->login($user['User']);
 	}
@@ -505,7 +508,9 @@ class AppController extends Controller {
  */
 	public function checkAccess() {
 		$aco = ucfirst($this->params['controller']);
-		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
+		$this->loadModel('User');
+		$this->User->recursive = -1;
+		$user = $this->User->findById($this->Auth->user('id'));
 		return $this->Acl->check($user, 'controllers/' . $aco, '*');
 	}
 
@@ -514,9 +519,13 @@ class AppController extends Controller {
  */
 	public function checkRole() {
 		$modifyRole = false;
-		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
+		$this->loadModel('User');
+		$this->User->recursive = -1;
+		$user = $this->User->findById($this->Auth->user('id'));
 		if (isset($user['User'])) {
-			$role = ClassRegistry::init('Role')->findById($user['User']['role_id']);
+			$this->loadModel('Role');
+			$this->Role->recursive = -1;
+			$role = $this->Role->findById($user['User']['role_id']);
 			if ($role['Role']['perm_modify_org']) {
 				$modifyRole = true;
 			}
@@ -529,9 +538,13 @@ class AppController extends Controller {
  */
 	public function checkAction($action = 'perm_sync') {
 		$maySync = false;
-		$user = ClassRegistry::init('User')->findById($this->Auth->user('id'));
+		$this->loadModel('User');
+		$this->User->recursive = -1;
+		$user = $this->User->findById($this->Auth->user('id'));
 		if (isset($user['User'])) {
-			$role = ClassRegistry::init('Role')->findById($user['User']['role_id']);
+			$this->loadModel('Role');
+			$this->Role->recursive = -1;
+			$role = $this->Role->findById($user['User']['role_id']);
 			if ($role['Role'][$action]) {
 				$maySync = true;
 			}
@@ -546,9 +559,13 @@ class AppController extends Controller {
  */
 	public function checkAuthUser($authkey) {
 		$result = false;
-		$user = ClassRegistry::init('User')->findByAuthkey($authkey);
+		$this->loadModel('User');
+		$this->User->recursive = -1;
+		$user = $this->User->findByAuthkey($authkey);
 		if (isset($user['User'])) {
-			$role = ClassRegistry::init('Role')->findById($user['User']['role_id']);
+			$this->loadModel('Role');
+			$this->Role->recursive = -1;
+			$role = $this->Role->findById($user['User']['role_id']);
 			if ($role['Role']['perm_auth']) {
 				$result = true;
 			}
