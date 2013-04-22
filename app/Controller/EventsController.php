@@ -190,29 +190,13 @@ class EventsController extends AppController {
 			}
 		}
 
+		$this->set('event', $this->Event->data);
+		$this->set('relatedEvents', $relatedEvents);
 		$this->set('relatedAttributes', $relatedAttributes);
 
 		// passing decriptions for model fields
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-
-		// Sanitize::clean
-		$this->Event->data['Event']['info'] = $this->beforeSanitizeClean($this->Event->data['Event']['info']);
-		if (isset($this->Event->data['Attribute'])) {
-			foreach ($this->Event->data['Attribute'] as &$attribute) {
-				$attribute['value'] = $this->beforeSanitizeClean($attribute['value']);
-			}
-		}
-		$event = Sanitize::clean($this->Event->data, array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
-		$event['Event']['info'] = $this->counterSanitizeClean($event['Event']['info']);
-		if (isset($event['Attribute'])) {
-			foreach ($event['Attribute'] as &$attribute) {
-				$attribute['value'] = $this->counterSanitizeClean($attribute['value']);
-			}
-		}
-		$this->set('event', $event);
-		$this->set('relatedEvents', $relatedEvents);
-
 		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
 
 		// passing type and category definitions (explanations)

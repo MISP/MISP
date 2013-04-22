@@ -68,30 +68,30 @@ endif; ?>
 			<?php echo h($event['Event']['date']); ?>
 			&nbsp;
 		</dd>
-		<dt<?php echo ' title="' . $eventDescriptions['risk']['desc'] . '"';?>>Risk</dt>
+		<dt title="<?php echo h($eventDescriptions['risk']['desc']);?>">Risk</dt>
 		<dd>
-			<?php echo $event['Event']['risk']; ?>
+			<?php echo h($event['Event']['risk']); ?>
 			&nbsp;
 		</dd>
-		<dt<?php echo ' title="' . $eventDescriptions['analysis']['desc'] . '"';?>>Analysis</dt>
+		<dt title="<?php echo h($eventDescriptions['analysis']['desc']);?>">Analysis</dt>
 		<dd>
-			<?php echo $analysisLevels[$event['Event']['analysis']]; ?>
+			<?php echo h($analysisLevels[$event['Event']['analysis']]); ?>
 			&nbsp;
 		</dd>
 
 	<dt>Distribution</dt>
 	<dd>
-		<?php echo $event['Event']['distribution'] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'; ?>
+		<?php echo h($event['Event']['distribution'] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
 		&nbsp;
 	</dd>
 		<!-- dt>UUID</dt>
 		<dd>
-			<?php echo $event['Event']['uuid']; ?>
+			<?php echo h($event['Event']['uuid']); ?>
 			&nbsp;
 		</dd -->
 		<dt>Info</dt>
 		<dd>
-			<?php echo nl2br($event['Event']['info']); ?>
+			<?php echo nl2br(h($event['Event']['info'])); ?>
 			&nbsp;
 		</dd>
 	</dl><br />
@@ -102,15 +102,14 @@ if (!empty($relatedEvents)):?>
 		<ul>
 		<?php
 	foreach ($relatedEvents as $relatedEvent): ?>
-		<li><?php
-		$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-		echo '<div title="'.h($relatedEvent['Event']['info']).'">';
+		<li><?php $linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';?>
+		<div title="<?php echo h($relatedEvent['Event']['info']);?>"><?php
 		if ($relatedEvent['Event']['org'] == $me['org']) {
 			echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']), array('class' => 'SameOrgLink'));
 		} else {
 			echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
 		}
-		?></li>
+		?></div></li>
 		<?php
 	endforeach; ?>
 		</ul>
@@ -122,14 +121,14 @@ endif; ?>
 		<h3>Attributes</h3>
 		<?php
 if (!empty($event['Attribute'])):?>
-		<table cellpadding = "0" cellspacing = "0">
+		<table cellpadding="0" cellspacing="0">
 		<tr>
 			<th>Category</th>
 			<th>Type</th>
 			<th>Value</th>
 			<th>Related Events</th>
-			<th <?php echo 'title="' . $attrDescriptions['signature']['desc'] . '"';?>>IDS Signature</th>
-			<th <?php echo 'title="' . $attrDescriptions['private']['desc'] . '"';?>>Distribution</th>
+			<th title="<?php echo $attrDescriptions['signature']['desc'];?>">IDS Signature</th>
+			<th title="<?php echo $attrDescriptions['private']['desc'];?>">Distribution</th>
 			<?php
 	if ($isAdmin || $mayModify): ?>
 			<th class="actions">Actions</th>
@@ -142,43 +141,42 @@ if (!empty($event['Attribute'])):?>
 			if ($attribute['category'] != $category) continue;?>
 			<tr>
 				<td class="short" title="<?php if('' != $attribute['category']) echo $categoryDefinitions[$attribute['category']]['desc'];?>"><?php
-			if ($first) {
-				if ('' == $attribute['category']) echo '(no category)';
-					echo $attribute['category'];
-			} else {
-				echo '&nbsp;';
-			}?></td>
-			<td class="short" title="<?php
-			echo $typeDefinitions[$attribute['type']]['desc'];?>"><?php
-			echo $attribute['type'];?></td>
+					if ($first) {
+						if ('' == $attribute['category']) echo '(no category)';
+							echo h($attribute['category']);
+					} else {
+						echo '&nbsp;';
+					}?>
+				</td>
+				<td class="short" title="<?php echo $typeDefinitions[$attribute['type']]['desc'];?>">
+				<?php echo h($attribute['type']);?></td>
 				<td><?php
-			$sigDisplay = nl2br($attribute['value']);
-			if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
-				$filenameHash = explode('|', $attribute['value']);
-				if (strrpos($filenameHash[0], '\\')) {
-					$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
-					$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
-					echo $filepath;
-					echo $this->Html->link($filename, array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
-				} else {
-					echo $this->Html->link($filenameHash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
-				}
-				if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-			} elseif (strpos($attribute['type'], '|') !== false) {
-				$filenameHash = explode('|', $attribute['value']);
-				echo $filenameHash[0];
-				if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-			} elseif ('vulnerability' == $attribute['type']) {
-				echo $this->Html->link($sigDisplay, 'http://www.google.com/search?q=' . $sigDisplay, array('target' => '_blank'));
-			} elseif ('link' == $attribute['type']) {
-				echo $this->Html->link($sigDisplay, $sigDisplay);
-			} else {
-				echo $sigDisplay;
-			}
-				?></td>
+					$sigDisplay = nl2br($attribute['value']);
+					if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
+						$filenameHash = explode('|', $attribute['value']);
+						if (strrpos($filenameHash[0], '\\')) {
+							$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
+							$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
+							echo h($filepath);
+							echo $this->Html->link($filename, array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
+						} else {
+							echo $this->Html->link($filenameHash[0], array('controller' => 'attributes', 'action' => 'download', $attribute['id']));
+						}
+						if (isset($filenameHash[1])) echo ' | ' . h($filenameHash[1]);
+					} elseif (strpos($attribute['type'], '|') !== false) {
+						$filenameHash = explode('|', $attribute['value']);
+						echo h($filenameHash[0]);
+						if (isset($filenameHash[1])) echo ' | ' . h($filenameHash[1]);
+					} elseif ('vulnerability' == $attribute['type']) {
+						echo $this->Html->link($sigDisplay, 'http://www.google.com/search?q=' . $sigDisplay, array('target' => '_blank'));
+					} elseif ('link' == $attribute['type']) {
+						echo $this->Html->link($sigDisplay, $sigDisplay);
+					} else {
+						echo h($sigDisplay);
+					}?>
+				</td>
 				<td class="short" style="text-align: center;">
 				<?php
-
 				if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 					foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
 						echo '<span title="'.h($relatedAttribute['info']).'">';
@@ -194,7 +192,7 @@ if (!empty($event['Attribute'])):?>
 				?>&nbsp;
 				</td>
 				<td class="short" style="text-align: center;"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
-				<td class="short" style="text-align: center;"><?php echo $attribute['distribution'] != 'All communities' ? $attribute['distribution'] : 'All';?></td>
+				<td class="short" style="text-align: center;"><?php echo h($attribute['distribution'] != 'All communities' ? $attribute['distribution'] : 'All');?></td>
 				<?php
 			if ($isSiteAdmin || $mayModify): ?>
 				<td class="actions">
