@@ -360,26 +360,30 @@ class Event extends AppModel {
 		return $this->field('id', array('id' => $eventid, 'org' => $org)) === $eventid;
 	}
 
-	public function getRelatedEvents() {
-		// FIXME rewrite this to use the getRelatedAttributes function from the Attributes Model.
-		// only this way the code will be consistent
-
-		// first get a list of related event_ids
-		// then do a single query to search for all the events with that id
-		$relatedEventIds = Array();
-		foreach ($this->data['Attribute'] as &$attribute) {
-			if ($attribute['type'] == 'other') {
-				continue;	// sigs of type 'other' should not be matched against the others
-			}
-			$conditions = array('Attribute.value =' => $attribute['value'], 'Attribute.type =' => $attribute['type']);
-			$similarAttributes = $this->Attribute->find('all',array('conditions' => $conditions));
-			foreach ($similarAttributes as &$similarAttribute) {
-				if ($this->id == $similarAttribute['Attribute']['event_id']) {
-					continue; // same as this event, not needed in the list
-				}
-				$relatedEventIds[] = $similarAttribute['Attribute']['event_id'];
-			}
+	public function getRelatedEvents($me) {
+		$this->Correlation = ClassRegistry::init('Correlation');
+		// search the correlation table for the event ids of the related events
+		if ('ADMIN' != $me['org']) {
+		    $conditionsCorrelation = array('AND' =>
+		            array('Correlation.1_event_id' => $this->data['Event']['id']),
+		            array("OR" => array(
+		                    'Correlation.org' => $me['org'],
+		                    'Correlation.private' => 0),
+		            ));
+		} else {
+		    $conditionsCorrelation = array('Correlation.1_event_id' => $this->data['Event']['id']);
 		}
+		$correlations = $this->Correlation->find('all',array(
+		        'fields' => 'Correlation.event_id',
+		        'conditions' => $conditionsCorrelation,
+		        'recursive' => 0,
+		        'order' => array('Correlation.event_id DESC')));
+
+		$relatedEventIds = array();
+		foreach ($correlations as $correlation) {
+			$relatedEventIds[] = $correlation['Correlation']['event_id'];
+		}
+		// now look up the event data for these attributes
 		$conditions = array("Event.id" => $relatedEventIds);
 		$relatedEvents = $this->find('all',
 							array('conditions' => $conditions,
@@ -389,6 +393,36 @@ class Event extends AppModel {
 								)
 		);
 		return $relatedEvents;
+	}
+
+	public function getRelatedAttributes($me) {
+		$this->Correlation = ClassRegistry::init('Correlation');
+		// search the correlation table for the event ids of the related attributes
+		if ('ADMIN' != $me['org']) {
+		    $conditionsCorrelation = array('AND' =>
+		            array('Correlation.1_event_id' => $this->data['Event']['id']),
+		            array("OR" => array(
+		                    'Correlation.org' => $me['org'],
+		                    'Correlation.private' => 0),
+		            ));
+		} else {
+		    $conditionsCorrelation = array('Correlation.1_event_id' => $this->data['Event']['id']);
+		}
+		$correlations = $this->Correlation->find('all',array(
+		        'fields' => 'Correlation.*',
+		        'conditions' => $conditionsCorrelation,
+		        'recursive' => 0,
+		        'order' => array('Correlation.event_id DESC')));
+		$relatedAttributes = array();
+		foreach($correlations as $correlation) {
+		    $relatedAttributes[$correlation['Correlation']['1_attribute_id']][] = array(
+		            'id' => $correlation['Correlation']['event_id'],
+		            'org' => $correlation['Correlation']['org'],
+		    		'info' => $correlation['Correlation']['info']
+		    );
+
+		}
+		return $relatedAttributes;
 	}
 
 /**
