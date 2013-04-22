@@ -966,42 +966,6 @@ class Attribute extends AppModel {
 		);
 	}
 
-/**
- * return an array containing 'double-values'
- *
- * @return array()
- */
-	public function doubleAttributes() {
-		$doubleAttributes = array();
-
-		$similarValue1 = $this->find('all',array('conditions' => array(),
-												'fields' => 'value1',
-												'recursive' => 0,
-												'group' => 'Attribute.value1 HAVING count(1)>1' ));
-		$similarValue2 = $this->find('all',array('conditions' => array(),
-												'fields' => 'value2',
-												'recursive' => 0,
-												'group' => 'Attribute.value2 HAVING count(1)>1' ));
-		$similarValues = $this->find('all', array('joins' => array(array(
-															'table' => 'attributes',
-															'alias' => 'att2',
-															'type' => 'INNER',
-															'conditions' => array('Attribute.value2 = att2.value1'))),
-															'fields' => array('att2.value1')));
-		$doubleAttributes = array_merge($similarValue1,$similarValue2);
-		$doubleAttributes = array_merge($doubleAttributes,$similarValues);
-
-		$double = array();
-		foreach ($doubleAttributes as $key => $doubleAttribute) {
-			$v = isset($doubleAttribute['Attribute']) ? $doubleAttribute['Attribute'] : $doubleAttribute['att2'];
-			$v = isset($v['value1']) ? $v['value1'] : $v['value2'];
-			if ($v != '') {
-				$double[] = $v;
-			}
-		}
-		return $double;
-	}
-
 	public function uploadAttributeToServer($attribute, $server, $HttpSocket=null) {
 		$newLocation = $this->restfullAttributeToServer($attribute, $server, null, $HttpSocket);
 		if (is_string($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
