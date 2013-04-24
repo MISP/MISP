@@ -32,7 +32,7 @@ class AdminCrudComponent extends AuthComponent {
  */
 	public function adminIndex() {
 		$this->controller->recursive = 0;
-		$this->controller->set('list', Sanitize::clean($this->controller->paginate()));
+		$this->controller->set('list', $this->controller->paginate());
 	}
 
 /**
@@ -59,7 +59,7 @@ class AdminCrudComponent extends AuthComponent {
 			}
 		} else {
 			$this->controller->request->data[$this->controller->defaultModel]['id'] = $id;
-			$this->controller->request->data = Sanitize::clean($this->controller->{$this->controller->defaultModel}->read(null, $id));
+			$this->controller->request->data = $this->controller->{$this->controller->defaultModel}->read(null, $id);
 		}
 	}
 
