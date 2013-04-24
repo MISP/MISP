@@ -70,7 +70,7 @@ class ServersController extends AppController {
 					'conditions' => array($conditions),
 			);
 		}
-		$this->set('servers', Sanitize::clean($this->paginate()));
+		$this->set('servers', $this->paginate());
 	}
 
 /**
@@ -124,7 +124,7 @@ class ServersController extends AppController {
 		} else {
 			$this->Server->read(null, $id);
 			$this->Server->set('authkey', '');
-			$this->request->data = Sanitize::clean($this->Server->data);
+			$this->request->data = $this->Server->data;
 		}
 	}
 
