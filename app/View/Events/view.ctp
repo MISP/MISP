@@ -151,7 +151,7 @@ if (!empty($event['Attribute'])):?>
 				<td class="short" title="<?php echo $typeDefinitions[$attribute['type']]['desc'];?>">
 				<?php echo h($attribute['type']);?></td>
 				<td><?php
-					$sigDisplay = nl2br($attribute['value']);
+					$sigDisplay = $attribute['value'];
 					if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
 						$filenameHash = explode('|', $attribute['value']);
 						if (strrpos($filenameHash[0], '\\')) {
@@ -168,11 +168,11 @@ if (!empty($event['Attribute'])):?>
 						echo h($filenameHash[0]);
 						if (isset($filenameHash[1])) echo ' | ' . h($filenameHash[1]);
 					} elseif ('vulnerability' == $attribute['type']) {
-						echo $this->Html->link($sigDisplay, 'http://www.google.com/search?q=' . $sigDisplay, array('target' => '_blank'));
+						echo $this->Html->link($sigDisplay, 'http://www.google.com/search?q=' . h($sigDisplay), array('target' => '_blank'));
 					} elseif ('link' == $attribute['type']) {
-						echo $this->Html->link($sigDisplay, $sigDisplay);
+						echo $this->Html->link(h($sigDisplay), h($sigDisplay));
 					} else {
-						echo h($sigDisplay);
+						echo nl2br(h($sigDisplay));
 					}?>
 				</td>
 				<td class="short" style="text-align: center;">
