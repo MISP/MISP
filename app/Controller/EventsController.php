@@ -115,16 +115,7 @@ class EventsController extends AppController {
 		// list the events
 		$this->Event->recursive = 0;
 
-		// Sanitize::clean
-		$paginated = $this->paginate();
-		foreach ($paginated as &$event) {
-			$event['Event']['info'] = $this->beforeSanitizeClean($event['Event']['info']); // TODO generic
-		}
-		$events = Sanitize::clean($paginated, array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
-		foreach ($events as &$event) {
-			$event['Event']['info'] = $this->counterSanitizeClean($event['Event']['info']); // TODO generic
-		}
-		$this->set('events', $events);
+		$this->set('events', $this->paginate());
 
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
@@ -483,7 +474,7 @@ class EventsController extends AppController {
 
 					$message = 'Saved';
 
-					$this->set('event', Sanitize::clean($this->Event->data));
+					$this->set('event', $this->Event->data);
 					//if published -> do the actual publishing
 					if ((!empty($this->request->data['Event']['published']) && 1 == $this->request->data['Event']['published'])) {
 						// do the necessary actions to publish the event (email, upload,...)
@@ -511,7 +502,7 @@ class EventsController extends AppController {
 			// always force the org, but do not force it for admins
 			if (!$this->_isSiteAdmin()) {
 				// set the same org as existed before
-				$this->request->data['Event']['org'] = Sanitize::clean($this->Event->data['Event']['org']);
+				$this->request->data['Event']['org'] = $this->Event->data['Event']['org'];
 			}
 			// we probably also want to remove the published flag
 			$this->request->data['Event']['published'] = 0;
@@ -854,8 +845,7 @@ class EventsController extends AppController {
 				}
 				// prepare the the unencrypted email
 				$this->Email->from = Configure::read('CyDefSIG.email');
-				//$this->Email->to = "CyDefSIG <sig@cyber-defence.be>"; TODO check if it doesn't break things to not set a to , like being spammed away
-				$this->Email->bcc = Sanitize::clean($alertEmails);
+				$this->Email->bcc = $alertEmails;
 				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';	// both text or html
@@ -884,7 +874,7 @@ class EventsController extends AppController {
 			foreach ($alertUsers as &$user) {
 				// send the email
 				$this->Email->from = Configure::read('CyDefSIG.email');
-				$this->Email->to = Sanitize::clean($user['User']['email']);
+				$this->Email->to = $user['User']['email'];
 				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';		// both text or html
@@ -947,7 +937,7 @@ class EventsController extends AppController {
 		}
 		// User didn't see the contact form yet. Present it to him.
 		if (empty($this->data)) {
-			$this->data = Sanitize::clean($this->Event->read(null, $id));
+			$this->data = $this->Event->read(null, $id);
 		}
 	}
 
@@ -1079,7 +1069,7 @@ class EventsController extends AppController {
 
 			// prepare the email
 			$this->Email->from = Configure::read('CyDefSIG.email');
-			$this->Email->to = Sanitize::clean($reporter['User']['email']);
+			$this->Email->to = $reporter['User']['email'];
 			$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Need info about event " . $id . " - TLP Amber";
 			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
 			$this->Email->template = 'body';
@@ -1186,7 +1176,7 @@ class EventsController extends AppController {
 					)
 				);
 		$results = $this->Event->find('all', $params);
-		$this->set('results', Sanitize::clean($results));
+		$this->set('results', $results);
 	}
 
 	public function nids($key) {
@@ -1236,7 +1226,7 @@ class EventsController extends AppController {
 			print $rule . "\n";
 		print "#</pre>\n";
 
-		$this->set('rules', Sanitize::clean($rules));
+		$this->set('rules', $rules);
 	}
 
 	public function hids_md5($key) {
@@ -1287,7 +1277,7 @@ class EventsController extends AppController {
 				print $rule . "\n";
 			print "#</pre>\n";
 
-			$this->set('rules', Sanitize::clean($rules));
+			$this->set('rules', $rules);
 		} else {
 			print "Not any MD5 found to export\n";
 		}
@@ -1343,7 +1333,7 @@ class EventsController extends AppController {
 			}
 			print "#</pre>\n";
 
-			$this->set('rules', Sanitize::clean($rules));
+			$this->set('rules', $rules);
 		} else {
 			print "No SHA-1 found to export\n";
 		}
@@ -1388,7 +1378,7 @@ class EventsController extends AppController {
 		);
 		$attributes = $this->Attribute->find('all', $params);
 
-		$this->set('attributes', Sanitize::clean($attributes));
+		$this->set('attributes', $attributes);
 	}
 
 	//public function dot($key) {
@@ -1822,7 +1812,7 @@ class EventsController extends AppController {
 			}
 			print "#</pre>\n";
 
-			$this->set('rules', Sanitize::clean($rules));
+			$this->set('rules', $rules);
 		} else {
 			print "No SHA-1 found to export\n";
 		}

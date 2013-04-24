@@ -4,9 +4,9 @@
 		<legend><?php echo __('Search Log'); ?></legend>
 	<?php
 		echo $this->Form->input('email', array( 'label' => 'Email'));
-if ($orgRestriction == false) {
-	echo $this->Form->input('org', array( 'label' => 'Org'));
-}
+		if ($orgRestriction == false) {
+			echo $this->Form->input('org', array( 'label' => 'Org'));
+		}
 		echo $this->Form->input('action', array('between' => $this->Html->div('forminfo', '', array('id' => 'LogActionDiv'))));
 		echo $this->Form->input('title', array( 'label' => 'Title'));
 		echo $this->Form->input('change', array( 'label' => 'Change'));
@@ -20,19 +20,14 @@ if ($orgRestriction == false) {
 	</ul>
 </div>
 <script type="text/javascript">
-
 var formInfoValues = new Array();
 <?php
-
 foreach ($actionDefinitions as $action => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['$action'] = \"$info\";\n";
 }
-
-	$this->Js->get('#LogAction')->event('change', 'showFormInfo("#LogAction")');
-
+$this->Js->get('#LogAction')->event('change', 'showFormInfo("#LogAction")');
 ?>
-
 formInfoValues['ALL'] = '';
 
 function showFormInfo(id) {

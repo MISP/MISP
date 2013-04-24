@@ -61,7 +61,7 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		// Only own profile verified by isAuthorized
-		$this->set('user', Sanitize::clean($this->User->read(null, $id)));
+		$this->set('user', $this->User->read(null, $id));
 	}
 
 /**
@@ -95,10 +95,10 @@ class UsersController extends AppController {
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
 			$this->User->set('password', '');
-			$this->request->data = Sanitize::clean($this->User->data);
+			$this->request->data = $this->User->data;
 		}
 		// XXX ACL roles
-		$roles = Sanitize::clean($this->User->Role->find('list'));
+		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
 
@@ -122,11 +122,11 @@ class UsersController extends AppController {
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
 			$this->User->set('password', '');
-			$this->request->data = Sanitize::clean($this->User->data);
+			$this->request->data = $this->User->data;
 		}
 		// XXX ACL roles
 		$this->extraLog("change_pw");
-		$roles = Sanitize::clean($this->User->Role->find('list'));
+		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
 
@@ -168,13 +168,13 @@ class UsersController extends AppController {
 	public function admin_index() {
 		$this->User->recursive = 0;
 		if ($this->Auth->User('org') == "ADMIN") {
-			$this->set('users', Sanitize::clean($this->paginate()));
+			$this->set('users', $this->paginate());
 		} else {
 			$conditions['User.org LIKE'] = $this->Auth->User('org');
 			$this->paginate = array(
 					'conditions' => array($conditions),
 			);
-			$this->set('users', Sanitize::clean($this->paginate()));
+			$this->set('users', $this->paginate());
 		}
 	}
 
@@ -190,9 +190,9 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		$this->set('user', Sanitize::clean($this->User->read(null, $id)));
+		$this->set('user', $this->User->read(null, $id));
 		$temp = $this->User->field('invited_by');
-		$this->set('user2', Sanitize::clean($this->User->read(null, $temp)));
+		$this->set('user2', $this->User->read(null, $temp));
 	}
 
 /**
@@ -222,7 +222,7 @@ class UsersController extends AppController {
 			$this->set('authkey', $this->newkey);
 		}
 		// XXX ACL roles
-		$roles = Sanitize::clean($this->User->Role->find('list'));
+		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
 
@@ -301,7 +301,7 @@ class UsersController extends AppController {
 			$this->User->read(null, $id);
 			if ($this->Auth->User('org') != 'ADMIN' && $this->Auth->User('org') != $this->User->data['User']['org']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
 			$this->User->set('password', '');
-			$this->request->data = Sanitize::clean($this->User->data, array('escape' => false)); // TODO CHECK
+			$this->request->data = $this->User->data; // TODO CHECK
 
 		}
 		// TODO ACL CLEANUP combobox for orgs
@@ -309,7 +309,7 @@ class UsersController extends AppController {
 		$orgIds = $this->_arrayToValuesIndexArray($orgIds);
 		$this->set('orgIds', compact('orgIds'));
 		// XXX ACL, Roles in Users
-		$roles = Sanitize::clean($this->User->Role->find('list'));
+		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
 
@@ -414,7 +414,7 @@ class UsersController extends AppController {
 							'order' => array('User.org'),
 		);
 		$orgs = $this->User->find('all', $params);
-		$this->set('orgs', Sanitize::clean($orgs));
+		$this->set('orgs', $orgs);
 
 		// What org posted what type of attribute
 		$this->loadModel('Attribute');
@@ -424,7 +424,7 @@ class UsersController extends AppController {
 							'group' => array('Attribute.type', 'Event.org'),
 							'order' => array('Event.org', 'num_types DESC'),
 		);
-		$typesHistogram = Sanitize::clean($this->Attribute->find('all', $params));
+		$typesHistogram = $this->Attribute->find('all', $params);
 		$this->set('typesHistogram', $typesHistogram);
 
 		// Nice graphical histogram
@@ -647,6 +647,7 @@ class UsersController extends AppController {
 			require_once 'Crypt/GPG.php';
 			$i = 0;
 			foreach ($recipients as $recipient) {
+				// FIXME rewrite this code and remove the useless $finalPackage array. All data seems to stay in the foreach loop, so no need to keep everything in an array.
 				$finalPackage[$i]['message'] = $message[$i];
 				$finalPackage[$i]['gpgkey'] = $recipientGPG[$i];
 				$finalPackage[$i]['email'] = $recipients[$i];
@@ -671,7 +672,7 @@ class UsersController extends AppController {
 
 				// prepare the email
 				$this->Email->from = Configure::read('CyDefSIG.email');
-				$this->Email->to = Sanitize::clean($finalPackage[$i]['email']);
+				$this->Email->to = $finalPackage[$i]['email'];
 				$this->Email->subject = $subject;
 				//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
 				$this->Email->template = 'body';

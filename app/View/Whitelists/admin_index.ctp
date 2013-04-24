@@ -12,7 +12,7 @@ foreach ($list as $item):?>
 		<td class="short"><?php echo h($item['Whitelist']['name']);?>&nbsp;</td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $item['Whitelist']['id']));?>
-			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $item['Whitelist']['id']), null, __('Are you sure you want to delete "%s"?', $item['Whitelist']['name']));?>
+			<?php echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $item['Whitelist']['id']), null, __('Are you sure you want to delete "%s"?', h($item['Whitelist']['name'])));?>
 		</td>
 	</tr><?php
 endforeach;?>

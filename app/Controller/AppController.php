@@ -23,8 +23,6 @@
 // TODO GPG encryption has issues when keys are expired
 
 App::uses('Controller', 'Controller');
-App::uses('Sanitize', 'Utility');
-
 App::uses('File', 'Utility');
 
 /**
@@ -96,9 +94,7 @@ class AppController extends Controller {
 
 			// Authenticate user with authkey in Authorization HTTP header
 			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
-				//Sanitize the authkey
-				$authkey = Sanitize::clean($_SERVER['HTTP_AUTHORIZATION']);
-				if (!$this->checkAuthUser($authkey)) {
+				if (!$this->checkAuthUser($_SERVER['HTTP_AUTHORIZATION'])) {
 					throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
 				}
 				$this->loadModel('User');
@@ -124,7 +120,7 @@ class AppController extends Controller {
 		}
 
 		// These variables are required for every view
-		$this->set('me', Sanitize::clean($this->Auth->user()));
+		$this->set('me', $this->Auth->user());
 		$this->set('isAdmin', $this->_isAdmin());
 		$this->set('isSiteAdmin', $this->_isSiteAdmin());
 
@@ -726,30 +722,5 @@ class AppController extends Controller {
 		return false;
 	}
 
-	public $reservedTags = array( // TODO custom Tags like <Random>
-		array('<Random>', '[RaDdom]')
-	);
 
-	public function beforeSanitizeClean($str) {
-		// TODO custom Tags like <Random>
-		foreach ($this->reservedTags as $reservedTagset) {
-			$str = str_replace($reservedTagset[0], $reservedTagset[1], $str);
-		}
-		return $str;
-	}
-
-	public function counterSanitizeClean($str) {
-		// TODO custom Tags like <Random>
-		foreach ($this->reservedTags as $reservedTagset) {
-			$str = str_replace($reservedTagset[1], $reservedTagset[0], $str);
-		}
-
-		// TODO standard HTML 'markup'
-		$str = str_replace('\n', chr(10), $str);
-		$str = str_replace('\\\\', '\\', $str);
-		$str = str_replace('&amp;', '&', $str);
-		$str = str_replace('&quot;', '"', $str);
-
-		return $str;
-	}
 }
