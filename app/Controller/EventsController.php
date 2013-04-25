@@ -114,10 +114,7 @@ class EventsController extends AppController {
 		// list the events
 		$this->Event->recursive = 0;
 
-		$paginated = $this->paginate();
-		$events = $paginated;
-		$this->set('events', $events);
-
+		$this->set('events', $this->paginate());
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
 		}

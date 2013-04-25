@@ -85,7 +85,7 @@ class AttributesController extends AppController {
 		$this->Attribute->recursive = 0;
 		$this->set('isSearch', 0);
 
-		$this->set('attributes', $this->paginate);
+		$this->set('attributes', $this->paginate());
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -708,6 +708,7 @@ class AttributesController extends AppController {
 				// search on the value field
 				if (isset($keyword)) {
 					$keywordArray = explode("\n", $keyword);
+					$this->set('keywordArray', $keywordArray);
 					$i = 1;
 					$temp = array();
 					foreach ($keywordArray as $keywordArrayElement) {

@@ -57,7 +57,6 @@ foreach ($attributes as $attribute):
 		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 	<?php
-	$sigDisplay = nl2br($attribute['Attribute']['value']);
 	$sigDisplay = nl2br(h($attribute['Attribute']['value']));
 	if ($isSearch == 1 && !empty($replacePairs)) {
 		// highlight the keywords if there are any

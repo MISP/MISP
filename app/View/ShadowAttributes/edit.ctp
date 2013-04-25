@@ -1,6 +1,3 @@
-<?php
-$mayModify = true;
-?>
 <div class="shadowAttributes form">
 <?php echo $this->Form->create('ShadowAttribute');?>
 	<fieldset>
