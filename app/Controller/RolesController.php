@@ -65,7 +65,6 @@ class RolesController extends AppController {
 				$this->Session->setFlash(__(sprintf('The Role has been saved.')));
 				$this->set('options', $this->options);
 				$passAlong = $this->Role->read(null, $this->Role->getInsertID());
-				$this->generateACL($passAlong);
 				$this->redirect(array('action' => 'index'));
 			} else {
 				if (!($this->Session->check('Message.flash'))) {
@@ -99,7 +98,6 @@ class RolesController extends AppController {
 		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminEdit($id);
 		$passAlong = $this->Role->read(null, $id);
-		$this->generateACL($passAlong);
 		$this->set('options', $this->options);
 	}
 
