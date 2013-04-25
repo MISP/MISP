@@ -26,17 +26,17 @@ foreach ($list as $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['Log']['id']); ?>&nbsp;</td>
 		<td class="short"><?php
-			if (isset($emailSearch)) echo ($this->Highlight->highlighter(h($item['Log']['email']), h($emailSearch)));
+		if (isset($emailSearch)) echo ($this->Highlight->highlighter(h($item['Log']['email']), h($emailSearch)));
 			else echo (h($item['Log']['email'])); ?>&nbsp;</td>
 		<td class="short"><?php
-			if (isset($emailSearch)) echo ($this->Highlight->highlighter(h($item['Log']['org']), h($orgSearch)));
+		if (isset($emailSearch)) echo ($this->Highlight->highlighter(h($item['Log']['org']), h($orgSearch)));
 			else echo (h($item['Log']['org'])); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Log']['created']); ?>&nbsp;</td>
 		<td class="short"><?php
-			if (isset($emailSearch)) echo ($this->Highlight->highlighter(h($item['Log']['action']), h($actionSearch)));
+		if (isset($emailSearch)) echo ($this->Highlight->highlighter(h($item['Log']['action']), h($actionSearch)));
 			else echo (h($item['Log']['action'])); ?>&nbsp;</td>
 		<td class="short"><?php
-			if (isset($emailSearch)) echo ($this->Highlight->highlighter(h($item['Log']['title']), h($titleSearch)));
+		if (isset($emailSearch)) echo ($this->Highlight->highlighter(h($item['Log']['title']), h($titleSearch)));
 			else echo (h($item['Log']['title'])); ?>&nbsp;</td>
 		<td class="short"><?php
 			if (isset($changeSearch)) echo $this->Highlight->highlighter(h($item['Log']['change']), h($changeSearch));

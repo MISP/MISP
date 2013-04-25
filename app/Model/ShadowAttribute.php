@@ -9,26 +9,30 @@ App::uses('File', 'Utility');
  *
  * @property Event $Event
  */
-class Attribute extends AppModel {
+class ShadowAttribute extends AppModel {
 
 	public $combinedKeys = array('event_id', 'category', 'type');
 
-	public $name = 'Attribute';				// TODO general
+	public $name = 'ShadowAttribute';				// TODO general
 
 	public $actsAs = array(
-		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
-			'userModel' => 'User',
-			'userKey' => 'user_id',
-			'change' => 'full'),
+//		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+			//'userModel' => 'User',
+			//'userKey' => 'user_id',
+			//'change' => 'full'),
 		'Trim',
 		'Containable',
-		'Regexp' => array('fields' => array('value', 'value2')),
-		'Blacklist' => array('fields' => array('value'))
+		//'Regexp' => array('fields' => array('value', 'value2')),
+		//'Blacklist' => array('fields' => array('value'))
 	);
 
+	/**
+	 * hasMany relation to shadow attributes
+	 *
+	 * @var unknown
+	 */
+
 /**
- * hasMany relation to shadow attributes
- *
  * Display field
  *
  * @var string
@@ -41,17 +45,17 @@ class Attribute extends AppModel {
  * @var array
  */
 	public $virtualFields = array(
-			'value' => 'IF (Attribute.value2="", Attribute.value1, CONCAT(Attribute.value1, "|", Attribute.value2))',
-			'category_order' => 'IF (Attribute.category="Internal reference", "a",
-			IF (Attribute.category="Antivirus detection", "b",
-			IF (Attribute.category="Payload delivery", "c",
-			IF (Attribute.category="Payload installation", "d",
-			IF (Attribute.category="Artifacts dropped", "e",
-			IF (Attribute.category="Persistence mechanism", "f",
-			IF (Attribute.category="Network activity", "g",
-			IF (Attribute.category="Payload type", "h",
-			IF (Attribute.category="Attribution", "i",
-			IF (Attribute.category="External analysis", "j", "k"))))))))))'
+			'value' => 'IF (ShadowAttribute.value2="", ShadowAttribute.value1, CONCAT(ShadowAttribute.value1, "|", ShadowAttribute.value2))',
+			'category_order' => 'IF (ShadowAttribute.category="Internal reference", "a",
+			IF (ShadowAttribute.category="Antivirus detection", "b",
+			IF (ShadowAttribute.category="Payload delivery", "c",
+			IF (ShadowAttribute.category="Payload installation", "d",
+			IF (ShadowAttribute.category="Artifacts dropped", "e",
+			IF (ShadowAttribute.category="Persistence mechanism", "f",
+			IF (ShadowAttribute.category="Network activity", "g",
+			IF (ShadowAttribute.category="Payload type", "h",
+			IF (ShadowAttribute.category="Attribution", "i",
+			IF (ShadowAttribute.category="External analysis", "j", "k"))))))))))'
 	); // TODO hardcoded
 
 /**
@@ -62,35 +66,8 @@ class Attribute extends AppModel {
  */
 	public $fieldDescriptions = array(
 			'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
-			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
+			//'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
 	);
-
-	public $distributionDescriptions = array(
-		'Your organization only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
-		'This server-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of any organisation on this server to see it."),
-		'This Community-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of this community."), // former Community
-		'Connected communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes all organisations on this MISP server, all organisations on MISP servers synchronising with this server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from this one). Any other organisations connected to linked servers that are 2 hops away from this will be restricted from seeing the event. Use this option if this server isn't the central MISP hub of the community but is connected to it."),
-		'All communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
-	);
-
-	public $hasMany = array(
-			'ShadowAttribute' => array(
-					'className' => 'ShadowAttribute',
-					'foreignKey' => 'old_id',
-					'dependent' => true,	// cascade deletes
-					'conditions' => '',
-					'fields' => '',
-					'order' => array('ShadowAttribute.old_id DESC', 'ShadowAttribute.old_id DESC'),
-					'limit' => '',
-					'offset' => '',
-					'exclusive' => '',
-					'finderQuery' => '',
-					'counterQuery' => ''
-			)
-	);
-
-	// these are definition of possible types + their descriptions and maybe later other behaviors
-	// e.g. if the attribute should be correlated with others or not
 
 	// if these then a category my have upload to be zipped
 
@@ -191,7 +168,7 @@ class Attribute extends AppModel {
 					)
 	);
 
-	public $order = array("Attribute.event_id" => "DESC", "Attribute.type" => "ASC");
+	public $order = array("ShadowAttribute.event_id" => "DESC", "ShadowAttribute.type" => "ASC");
 
 /**
  * Validation rules
@@ -254,14 +231,6 @@ class Attribute extends AppModel {
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
-			'unique' => array(
-					'rule' => array('valueIsUnique'),
-					'message' => 'A similar attribute already exists for this event.',
-					//'allowEmpty' => false,
-					//'required' => true,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
 		),
 		'to_ids' => array(
 			'boolean' => array(
@@ -283,70 +252,22 @@ class Attribute extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'revision' => array(
-			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
-		),
-		'private' => array(
-				'boolean' => array(
-						'rule' => array('boolean'),
-						//'message' => 'Your custom message here',
-						'allowEmpty' => true,
-						'required' => false,
-						//'last' => false, // Stop validation after this rule
-						//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-		),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
 
-		$this->virtualFields = Set::merge($this->virtualFields,array(
-			//'distribution' => 'IF (Attribute.private=true, "Your organization only", IF (Attribute.cluster=true, "This Community-only", "All communities"))',
-			'distribution' => 'IF (Attribute.private=true AND Attribute.cluster=false, "Your organization only", IF (Attribute.private=true AND Attribute.cluster=true, "This server-only", IF (Attribute.private=false AND Attribute.cluster=true, "This Community-only", IF (Attribute.communitie=true, "Connected communities" , "All communities"))))',
-		));
+		if ('true' == Configure::read('CyDefSIG.private')) {
 
-		$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
-			'distribution' => array('desc' => 'This fields indicates the intended distribution of the attribute (same as when adding an event, see Add Event)'),
-		));
-
-		$this->validate = Set::merge($this->validate,array(
-			'cluster' => array(
-				'boolean' => array(
-					'rule' => array('boolean'),
-					//'message' => 'Your custom message here',
-					//'allowEmpty' => false,
-					'required' => false,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-			),
-			'communitie' => array(
-				'boolean' => array(
-					'rule' => array('boolean'),
-					//'message' => 'Your custom message here',
-					//'allowEmpty' => false,
-					'required' => false,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-			),
-			'distribution' => array(
-				'rule' => array('inList', array("Your organization only", "This server-only", "This Community-only", "Connected communities", "All communities")),
-					//'message' => 'Your custom message here',
-					'allowEmpty' => false,
-					'required' => false,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
+			$this->virtualFields = Set::merge($this->virtualFields,array(
+				//'distribution' => 'IF (Attribute.private=true, "Your organization only", IF (Attribute.cluster=true, "This Community-only", "All communities"))',
+				//'distribution' => 'IF (ShadowAttribute.private=true AND ShadowAttribute.cluster=false, "Your organization only", IF (ShadowAttribute.private=true AND ShadowAttribute.cluster=true, "This server-only", IF (ShadowAttribute.private=false AND ShadowAttribute.cluster=true, "This Community-only", IF (ShadowAttribute.communitie=true, "Connected communities" , "All communities"))))',
 			));
+
+			$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
+				//'distribution' => array('desc' => 'This fields indicates the intended distribution of the attribute (same as when adding an event, see Add Event)'),
+			));
+		}
 	}
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
@@ -357,9 +278,9 @@ class Attribute extends AppModel {
  * @var array
  */
 	public $belongsTo = array(
-		'Event' => array(
-			'className' => 'Event',
-			'foreignKey' => 'event_id',
+		'Attribute' => array(
+			'className' => 'Attribute',
+			'foreignKey' => 'id',
 			'conditions' => '',
 			'fields' => '',
 			'order' => '',
@@ -374,46 +295,36 @@ class Attribute extends AppModel {
  * @return bool always true
  */
 	public function beforeSave($options = array()) {
-		// increment the revision number
-		if (empty($this->data['Attribute']['revision'])) {
-			$this->data['Attribute']['revision'] = 0;
-		}
-		$this->data['Attribute']['revision'] = 1 + $this->data['Attribute']['revision'];
 
 		// explode value of composite type in value1 and value2
 		// or copy value to value1 if not composite type
-		if (!empty($this->data['Attribute']['type'])) {
+		if (!empty($this->data['ShadowAttribute']['type'])) {
 			$compositeTypes = $this->getCompositeTypes();
 			// explode composite types in value1 and value2
-			//if (!isset($this->data['Attribute']['value1'])) {
-			$pieces = explode('|', $this->data['Attribute']['value']);
-			if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
+			//if (!isset($this->data['ShadowAttribute']['value1'])) {
+			$pieces = explode('|', $this->data['ShadowAttribute']['value']);
+			if (in_array($this->data['ShadowAttribute']['type'], $compositeTypes)) {
 				if (2 != count($pieces)) {
 					throw new InternalErrorException('Composite type, but value not explodable');
 				}
-				$this->data['Attribute']['value1'] = $pieces[0];
-				$this->data['Attribute']['value2'] = $pieces[1];
+				$this->data['ShadowAttribute']['value1'] = $pieces[0];
+				$this->data['ShadowAttribute']['value2'] = $pieces[1];
 			} else {
 				$total = implode('|', $pieces);
-				$this->data['Attribute']['value1'] = $total;
-				$this->data['Attribute']['value2'] = '';
+				$this->data['ShadowAttribute']['value1'] = $total;
+				$this->data['ShadowAttribute']['value2'] = '';
 			}
 		}
-
-		// update correlation... (only needed here if there's an update)
- 		$this->__beforeSaveCorrelation($this->data['Attribute']);
 		// always return true after a beforeSave()
 		return true;
 	}
 
 	public function afterSave($created) {
-		// update correlation...
-		$this->__afterSaveCorrelation($this->data['Attribute']);
 
 		$result = true;
 		// if the 'data' field is set on the $this->data then save the data to the correct file
-		if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
-			$result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']); // TODO : is this correct?
+		if (isset($this->data['ShadowAttribute']['type']) && $this->typeIsAttachment($this->data['ShadowAttribute']['type']) && !empty($this->data['ShadowAttribute']['data'])) {
+			$result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
 		}
 		return $result;
 	}
@@ -421,10 +332,10 @@ class Attribute extends AppModel {
 	public function beforeDelete($cascade = true) {
 		// delete attachments from the disk
 		$this->read(); // first read the attribute from the db
-		if ($this->typeIsAttachment($this->data['Attribute']['type'])) {
+		if ($this->typeIsAttachment($this->data['ShadowAttribute']['type'])) {
 			// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 			// only delete the file if it exists
-			$filepath = APP . "files" . DS . $this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id'];
+			$filepath = APP . "files" . DS . $this->data['ShadowAttribute']['event_id'] . DS . 'shadow' . DS . $this->data['ShadowAttribute']['id'];
 			$file = new File ($filepath);
 			if ($file->exists()) {
 				if (!$file->delete()) {
@@ -432,109 +343,44 @@ class Attribute extends AppModel {
 				}
 			}
 		}
-
-		// update correlation..
-		$this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
-
-	}
-
-	public function massageData(&$data) {
-		if(!isset($data['Attribute']['distribution'])) return $data;
-		switch ($data['Attribute']['distribution']) {
-			case 'Your organization only':
-				$data['Attribute']['private'] = true;
-				$data['Attribute']['cluster'] = false;
-				$data['Attribute']['communitie'] = false;
-				break;
-			case 'This server-only': // TODO
-				$data['Attribute']['private'] = true;
-				$data['Attribute']['cluster'] = true;
-				$data['Attribute']['communitie'] = false;
-				break;
-			case 'This Community-only':
-				$data['Attribute']['private'] = false;
-				$data['Attribute']['cluster'] = true;
-				$data['Attribute']['communitie'] = false;
-				break;
-			case 'Connected communities': // TODO
-				$data['Attribute']['private'] = false;
-				$data['Attribute']['cluster'] = false;
-				$data['Attribute']['communitie'] = true;
-				break;
-			case 'All communities':
-				$data['Attribute']['private'] = false;
-				$data['Attribute']['cluster'] = false;
-				$data['Attribute']['communitie'] = false;
-				break;
-		}
-		return $data;
 	}
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-
 		// remove leading and trailing blanks
 		//$this->trimStringFields(); // TODO
-		$this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
+		if (isset($this->data['ShadowAttribute']['value'])) $this->data['ShadowAttribute']['value'] = trim($this->data['ShadowAttribute']['value']);
 
-		if (!isset($this->data['Attribute']['type'])) {
+		if (!isset($this->data['ShadowAttribute']['type'])) {
 			return false;
 		}
 
-		switch($this->data['Attribute']['type']) {
+		switch($this->data['ShadowAttribute']['type']) {
 			// lowercase these things
 			case 'md5':
 			case 'sha1':
 			case 'domain':
 			case 'hostname':
-				$this->data['Attribute']['value'] = strtolower($this->data['Attribute']['value']);
+				$this->data['ShadowAttribute']['value'] = strtolower($this->data['ShadowAttribute']['value']);
 				break;
 			case 'filename|md5':
 			case 'filename|sha1':
-				$pieces = explode('|', $this->data['Attribute']['value']);
-				$this->data['Attribute']['value'] = $pieces[0] . '|' . strtolower($pieces[1]);
+				$pieces = explode('|', $this->data['ShadowAttribute']['value']);
+				$this->data['ShadowAttribute']['value'] = $pieces[0] . '|' . strtolower($pieces[1]);
 				break;
 		}
 
 		// generate UUID if it doesn't exist
-		if (empty($this->data['Attribute']['uuid'])) {
-			$this->data['Attribute']['uuid'] = String::uuid();
+		if (empty($this->data['ShadowAttribute']['uuid'])) {
+			$this->data['ShadowAttribute']['uuid'] = String::uuid();
 		}
 
 		// always return true, otherwise the object cannot be saved
 		return true;
 	}
 
-	public function valueIsUnique ($fields) {
-		$value = $fields['value'];
-		$eventId = $this->data['Attribute']['event_id'];
-		$type = $this->data['Attribute']['type'];
-		$toIds = $this->data['Attribute']['to_ids'];
-		$category = $this->data['Attribute']['category'];
-
-		// check if the attribute already exists in the same event
-		$conditions = array('Attribute.event_id' => $eventId,
-				'Attribute.type' => $type,
-				'Attribute.category' => $category,
-				'Attribute.value' => $value
-		);
-		if (isset($this->data['Attribute']['id'])) {
-			$conditions['Attribute.id !='] = $this->data['Attribute']['id'];
-		}
-
-		$params = array('recursive' => 0,
-				'conditions' => $conditions,
-		);
-		if (0 != $this->find('count', $params)) {
-			return false;
-		}
-
-		// Say everything is fine
-		return true;
-	}
-
 	public function validateTypeValue($fields) {
-		$category = $this->data['Attribute']['category'];
+		$category = $this->data['ShadowAttribute']['category'];
 		if (isset($this->categoryDefinitions[$category]['types'])) {
 			return in_array($fields['type'], $this->categoryDefinitions[$category]['types']);
 		}
@@ -546,7 +392,7 @@ class Attribute extends AppModel {
 		$returnValue = false;
 
 		// check data validation
-		switch($this->data['Attribute']['type']) {
+		switch($this->data['ShadowAttribute']['type']) {
 			case 'md5':
 				if (preg_match("#^[0-9a-f]{32}$#", $value)) {
 					$returnValue = true;
@@ -714,12 +560,6 @@ class Attribute extends AppModel {
 				break;
 		}
 
-		// default action is to return false
-		/*
-		if (!$returnValue) {
-			$returnValue = true;
-		}
-		*/
 		return $returnValue;
 	}
 
@@ -735,63 +575,6 @@ class Attribute extends AppModel {
 			}
 		}
 		return $compositeTypes;
-	}
-
-	public function isOwnedByOrg($attributeid, $org) {
-		$this->id = $attributeid;
-		$this->read();
-		return $this->data['Event']['org'] === $org;
-	}
-
-	public function getRelatedAttributes($attribute, $fields=array()) {
-		// LATER getRelatedAttributes($attribute) this might become a performance bottleneck
-
-		// exclude these specific categories to be linked
-		switch ($attribute['category']) {
-			case 'Antivirus detection':
-				return null;
-		}
-		// exclude these specific types to be linked
-		switch ($attribute['type']) {
-			case 'other':
-			case 'comment':
-				return null;
-		}
-
-		// prepare the conditions
-		$conditions = array(
-				'Attribute.event_id !=' => $attribute['event_id'],
-				//'Attribute.type' => $attribute['type'],  // do not filter on type
-				);
-		if (empty($attribute['value1'])) {	// prevent issues with empty fields
-			return null;
-		}
-
-		if (empty($attribute['value2'])) {
-			// no value2, only search for value 1
-			$conditions['OR'] = array(
-					'Attribute.value1' => $attribute['value1'],
-					'Attribute.value2' => $attribute['value1'],
-			);
-		} else {
-			// value2 also set, so search for both
-			$conditions['AND'] = array( // TODO was OR
-					'Attribute.value1' => array($attribute['value1'],$attribute['value2']),
-					'Attribute.value2' => array($attribute['value1'],$attribute['value2']),
-			);
-		}
-
-		// do the search
-		if (empty($fields)) {
-			$fields = array('Attribute.*');
-		}
-		$similarEvents = $this->find('all',array('conditions' => $conditions,
-												'fields' => $fields,
-												'recursive' => 0,
-												'group' => array('Attribute.event_id'),
-												'order' => 'Attribute.event_id DESC', )
-		);
-		return $similarEvents;
 	}
 
 	public function typeIsMalware($type) {
@@ -847,18 +630,18 @@ class Attribute extends AppModel {
 
 		// save the file-info in the database
 		$this->create();
-		$this->data['Attribute']['event_id'] = $eventId;
+		$this->data['ShadowAttribute']['event_id'] = $eventId;
 		if ($malware) {
 			$md5 = !$tmpfile->size() ? md5_file($fileP) : $tmpfile->md5();
-			$this->data['Attribute']['category'] = $category ? $category : "Payload delivery";
-			$this->data['Attribute']['type'] = "malware-sample";
-			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $md5 : $filename . '|' . $md5; // TODO gives problems with bigger files
-			$this->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
+			$this->data['ShadowAttribute']['category'] = $category ? $category : "Payload delivery";
+			$this->data['ShadowAttribute']['type'] = "malware-sample";
+			$this->data['ShadowAttribute']['value'] = $fullFileName ? $fullFileName . '|' . $md5 : $filename . '|' . $md5; // TODO gives problems with bigger files
+			$this->data['ShadowAttribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 		} else {
-			$this->data['Attribute']['category'] = $category ? $category : "Artifacts dropped";
-			$this->data['Attribute']['type'] = "attachment";
-			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName : $realFileName;
-			$this->data['Attribute']['to_ids'] = 0;
+			$this->data['ShadowAttribute']['category'] = $category ? $category : "Artifacts dropped";
+			$this->data['ShadowAttribute']['type'] = "attachment";
+			$this->data['ShadowAttribute']['value'] = $fullFileName ? $fullFileName : $realFileName;
+			$this->data['ShadowAttribute']['to_ids'] = 0;
 		}
 
 		if ($this->save($this->data)) {
@@ -899,221 +682,17 @@ class Attribute extends AppModel {
 		}
 	}
 
-	public function __beforeSaveCorrelation($a) {
-
-		// (update-only) clean up the relation of the old value: remove the existing relations related to that attribute, we DO have a reference, the id
-		// ==> DELETE FROM correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id; */
-		// first check if it's an update
-		if (isset($a['id'])) {
-			$this->Correlation = ClassRegistry::init('Correlation');
-			// FIXME : check that $a['id'] is checked correctly so that the user can't remove attributes he shouldn't
-			$dummy = $this->Correlation->deleteAll(array('OR' => array(
-					'Correlation.1_attribute_id' => $a['id'],
-					'Correlation.attribute_id' => $a['id']))
-			);
-		}
-	}
-
-	public function __afterSaveCorrelation($a) {
-		$this->Correlation = ClassRegistry::init('Correlation');
-		//
-		// When we add/update an attribute we need to
-		// - (beforeSave) (update-only) clean up the relation of the old value: remove the existing relations related to that attribute, we DO have a reference, the id
-
-		// - remove the existing relations for that value1 or value2, we do NOT have an id reference, but we have a value1/value2 field to search for
-		// ==> DELETE FROM correlations WHERE value = $value1 OR value = $value2 */
-		$dummy = $this->Correlation->deleteAll(array('Correlation.value' => array($a['value1'], $a['value2'])));
-
-		// now build a correlation array of things that will need to be added in the db
-		// we do this twice, once for value1 and once for value2
-		$correlations = array();   // init variable
-		$value_names = array ('value1', 'value2');
-		// do the correlation for value1 and value2, this needs to be done separately
-		foreach ($value_names as $value_name) {
-		    if (empty($a[$value_name])) continue;  // do not correlate if attribute is empty
-		    $params = array(
-		            'conditions' => array('OR' => array(
-		                    'Attribute.value1' => $a[$value_name],
-		                    'Attribute.value2' => $a[$value_name]
-		            )),
-		            'recursive' => 0,
-		            //'fields' => '', // we want to have the Attribute AND Event, so do not filter here
-		    );
-		    // search for the related attributes for that "value(1|2)"
-		    $attributes = $this->find('all', $params);
-		    // build the correlations, each attribute should have a relation in both directions
-		    // this is why we have a double loop.
-		    // The result is that for each Attribute pair we want: A1-A2, A2-A1 and so on,
-		    // In total that's N * (N-1) rows (minus the ones from the same event) (with N the number of related attributes)
-		    $attributes_right = $attributes;
-		    foreach ($attributes as $attribute) {
-		        foreach ($attributes_right as $attribute_right) {
-		            if ($attribute['Attribute']['event_id'] == $attribute_right['Attribute']['event_id']) {
-		                // do not build a relation between the same attributes
-		                // or attributes from the same event
-		                continue;
-		            }
-		            $is_private = $attribute_right['Event']['private'] || $attribute_right['Attribute']['private'];
-		            $correlations[] = array(
-		                    'value' => $a[$value_name],
-		                    '1_event_id' => $attribute['Attribute']['event_id'],
-		                    '1_attribute_id' => $attribute['Attribute']['id'],
-		                    'event_id' => $attribute_right['Attribute']['event_id'],
-		                    'attribute_id' => $attribute_right['Attribute']['id'],
-		                    'org' => $attribute_right['Event']['org'],
-		                    'private' => $is_private,
-		                    'date' => $attribute_right['Event']['date'],
-		            		'info' => $attribute_right['Event']['info'],
-		            );
-		        }
-		    }
-		}
-		// save the new correlations to the database in a single shot
-		$this->Correlation->saveMany($correlations);
-	}
-
-	private function __beforeDeleteCorrelation($attribute_id) {
-		$this->Correlation = ClassRegistry::init('Correlation');
-		// When we remove an attribute we need to
-		// - remove the existing relations related to that attribute, we DO have an id reference
-		// ==> DELETE FROM correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id;
-		$dummy = $this->Correlation->deleteAll(array('OR' => array(
-						'Correlation.1_attribute_id' => $attribute_id,
-						'Correlation.attribute_id' => $attribute_id))
-		);
-	}
-
-	public function uploadAttributeToServer($attribute, $server, $HttpSocket=null) {
-		$newLocation = $this->restfullAttributeToServer($attribute, $server, null, $HttpSocket);
-		if (is_string($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-			$newTextBody = $this->restfullAttributeToServer($attribute, $server, $newLocation, $HttpSocket);
-		}
-		return true;
-	}
-
-/**
- * Uploads the attribute to another Server
- * TODO move this to a component
- *
- * @return bool true if success, error message if failed
- */
-	public function restfullAttributeToServer($attribute, $server, $urlPath, $HttpSocket=null) {
-		// do not keep attributes that are private
-		if (true == $attribute['private']) { // never upload private events
-			return "Attribute is private and non exportable";
-		}
-
-		$url = $server['Server']['url'];
-		$authkey = $server['Server']['authkey'];
-		if (null == $HttpSocket) {
-			App::uses('HttpSocket', 'Network/Http');
-			$HttpSocket = new HttpSocket();
-		}
-		$request = array(
-				'header' => array(
-						'Authorization' => $authkey,
-						'Accept' => 'application/xml',
-						'Content-Type' => 'application/xml',
-						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
-				)
-		);
-		$uri = isset($urlPath) ? $urlPath : $url . '/attributes';
-
-		// LATER try to do this using a separate EventsController and renderAs() function
-		$xmlArray = array();
-
-		// cleanup the array from things we do not want to expose
-		//unset($event['Event']['org']);
-		// remove value1 and value2 from the output
-		unset($attribute['value1']);
-		unset($attribute['value2']);
-		// also add the encoded attachment
-		if ($this->typeIsAttachment($attribute['type'])) {
-			$encodedFile = $this->base64EncodeAttachment($attribute);
-			$attribute['data'] = $encodedFile;
-		}
-
-		// display the XML to the user
-		$xmlArray['Attribute'] = $attribute;
-		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
-		$attributesXml = $xmlObject->asXML();
-		// do a REST POST request with the server
-		$data = $attributesXml;
-		// LATER validate HTTPS SSL certificate
-		$this->Dns = ClassRegistry::init('Dns');
-		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
-			// TODO NETWORK for now do not know how to catch the following..
-			// TODO NETWORK No route to host
-			$response = $HttpSocket->post($uri, $data, $request);
-			switch ($response->code) {
-				case '200':	// 200 (OK) + entity-action-result
-					if ($response->isOk()) {
-						return isset($urlPath) ? $response->body() : true;
-					} else {
-						try {
-							// parse the XML response and keep the reason why it failed
-							$xmlArray = Xml::toArray(Xml::build($response->body));
-						} catch (XmlException $e) {
-							return true;
-						}
-						if (strpos($xmlArray['response']['name'], "Attribute already exists")) {	// strpos, so i can piggyback some value if needed.
-							return true;
-						} else {
-							return $xmlArray['response']['name'];
-						}
-					}
-					break;
-				case '302': // Found
-				case '404': // Not Found
-					return isset($urlPath) ? $response->body() : $response->headers['Location'];
-					break;
-			}
-		}
-	}
-
-/**
- * Deletes the attribute from another Server
- * TODO move this to a component
- *
- * @return bool true if success, error message if failed
- */
-	public function deleteAttributeFromServer($uuid, $server, $HttpSocket = null) {
-		$url = $server['Server']['url'];
-		$authkey = $server['Server']['authkey'];
-		if (null == $HttpSocket) {
-			App::uses('HttpSocket', 'Network/Http');
-			$HttpSocket = new HttpSocket();
-		}
-		$request = array(
-				'header' => array(
-						'Authorization' => $authkey,
-						'Accept' => 'application/xml',
-						'Content-Type' => 'application/xml',
-						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
-				)
-		);
-		$uri = $url . '/attributes/0?uuid=' . $uuid;
-
-		// LATER validate HTTPS SSL certificate
-		$this->Dns = ClassRegistry::init('Dns');
-		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
-			// TODO NETWORK for now do not know how to catch the following..
-			// TODO NETWORK No route to host
-			$response = $HttpSocket->delete($uri, array(), $request);
-			// TODO REST, DELETE, no responce needed
-		}
-	}
-
 	public function checkComposites() {
 		$compositeTypes = $this->getCompositeTypes();
 		$fails = array();
 		$attributes = $this->find('all', array('recursive' => 0));
 
 		foreach ($attributes as $attribute) {
-			if ((in_array($attribute['Attribute']['type'], $compositeTypes)) && (!strlen($attribute['Attribute']['value1']) || !strlen($attribute['Attribute']['value2']))) {
-				$fails[] = $attribute['Attribute']['event_id'] . ':' . $attribute['Attribute']['id'];
+			if ((in_array($attribute['ShadowAttribute']['type'], $compositeTypes)) && (!strlen($attribute['ShadowAttribute']['value1']) || !strlen($attribute['ShadowAttribute']['value2']))) {
+				$fails[] = $attribute['ShadowAttribute']['event_id'] . ':' . $attribute['ShadowAttribute']['id'];
 			}
 		}
 		return $fails;
 	}
 }
+

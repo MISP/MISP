@@ -67,7 +67,6 @@ class EventsController extends AppController {
 			}
 		}
 
-		// do not show private to other orgs
 		// if not admin or own org, check private as well..
 		if (!$this->_IsSiteAdmin()) {
 			$this->paginate = Set::merge($this->paginate,array(
@@ -115,7 +114,9 @@ class EventsController extends AppController {
 		// list the events
 		$this->Event->recursive = 0;
 
-		$this->set('events', $this->paginate());
+		$paginated = $this->paginate();
+		$events = $paginated;
+		$this->set('events', $events);
 
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
@@ -146,17 +147,22 @@ class EventsController extends AppController {
  */
 	public function view($id = null) {
 		$this->Event->id = $id;
+		$this->Event->recursive = 2;
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
+		$this->Event->contain('Attribute', 'Attribute.ShadowAttribute', 'User.email');
 		$this->Event->read(null, $id);
-
+		$userEmail = $this->Event->data['User']['email'];
+		unset ($this->Event->data['User']);
+		$this->Event->data['User']['email'] = $userEmail;
 		if (!$this->_IsSiteAdmin()) {
 			// check for non-private and re-read
 			if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
 				$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1))); // TODO seems very dangerous for the correlation construction in afterSave!!!
 				$this->Event->read(null, $id);
 			}
+
 			// check private
 			if (($this->Event->data['Event']['private'] && !$this->Event->data['Event']['cluster']) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
 				$this->Session->setFlash(__('Invalid event.'));
@@ -166,7 +172,6 @@ class EventsController extends AppController {
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 
 		$this->loadModel('Attribute');
-
 		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
 		$relatedAttributes = $this->Event->getRelatedAttributes($this->Auth->user());
 
@@ -180,14 +185,50 @@ class EventsController extends AppController {
 				}
 			}
 		}
+		// set up the ShadowAttributes for the view - the only shadow attributes that should be passed to the view are the ones that the user is eligible to see
+		// This means: Proposals of other organisations to own events, if the user is a publisher
+		// Also: proposals made by the current user's organisation
+		if (!$this->_isRest()) {
+			foreach ($this->Event->data['Attribute'] as &$attribute) {
+				// if the user is of the same org as the event and has publishing rights, just show everything
+				if (($this->Auth->user('org') != $this->Event->data['Event']['org'] || !$this->checkAction('perm_publish')) && !$this->_isSiteAdmin()) {
+					$counter = 0;
+					foreach ($attribute['ShadowAttribute'] as &$shadow) {
+						if ($shadow['org'] != $this->Auth->user('org')) unset($attribute['ShadowAttribute'][$counter]);
+						$counter++;
+					}
+				}
+			}
+			// Grab the shadow attributes that do not have an old_id - these are not proposals to edit an attribute but instead proposals to add a new one
+			if ($this->Auth->user('org') == $this->Event->data['Event']['orgc'] && $this->checkAction('perm_publish')) {
+				$conditions = array('AND' => array('ShadowAttribute.event_id' => $this->Event->data['Event']['id'], 'ShadowAttribute.old_id' => '0'));
+			} else {
+				$conditions = array('AND' => array('ShadowAttribute.event_id' => $this->Event->data['Event']['id'], 'ShadowAttribute.old_id' => '0', 'ShadowAttribute.org' => $this->Auth->user('org')));
+			}
+			$this->loadModel('ShadowAttribute');
+			// Only load the shadow attributes, nothing related
+			$this->ShadowAttribute->recursive = -1;
+			$remaining = $this->ShadowAttribute->find('all', array(
+					'conditions' => $conditions
+			));
+		}
 
-		$this->set('event', $this->Event->data);
-		$this->set('relatedEvents', $relatedEvents);
+		// params for the jQuery RESTfull interface
+		$this->set('authkey', $this->Auth->user('authkey'));
+		$this->set('baseurl', Configure::read('CyDefSIG.baseurl'));
+
 		$this->set('relatedAttributes', $relatedAttributes);
 
 		// passing decriptions for model fields
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+
+		$this->set('event', $this->Event->data);
+		if(isset($remaining)) {
+			$this->set('remaining', $remaining);
+		}
+		$this->set('relatedEvents', $relatedEvents);
+
 		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
 
 		// passing type and category definitions (explanations)
@@ -341,7 +382,6 @@ class EventsController extends AppController {
 					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie', 'dist_change')
 			);
 		}
-
 		$data = $this->Event->massageData($data);
 
 		if ("i" == Configure::read('CyDefSIG.baseurl')) {
@@ -379,10 +419,10 @@ class EventsController extends AppController {
 		}
 		// only edit own events verified by isAuthorized
 
-		//if ('true' == Configure::read('CyDefSIG.private')) {
+		//	if ('true' == Configure::read('CyDefSIG.private')) {
 		//	if (!$this->_IsAdmin()) {
 		$this->Event->read(null, $id);
-		//		// check for if private and user not authorised to edit, go away
+		// check for if private and user not authorised to edit, go away
 		if (!$this->isSiteAdmin() && !$this->checkAction('perm_sync') && $this->Event->data['Event']['distribution'] == 'Your organization only') {
 			if (($this->Event->data['Event']['org'] != $this->_checkOrg()) || !($this->checkAction('perm_modify'))) {
 				$this->Session->setFlash(__('You are not authorised to do that.'));
@@ -391,7 +431,6 @@ class EventsController extends AppController {
 		}
 		if (!$this->_isRest()) {
 			if ($this->Event->data['Event']['org'] != $this->_checkOrg()) {
-				// throw new MethodNotAllowedException();
 				$this->Session->setFlash(__('Invalid event.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
@@ -1918,6 +1957,7 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
+		$this->event->recursive = 1;
 		$event = $this->Event->read(null, $eventid);
 
 		// check if the user has permission - attribute checked further down in loop
@@ -2059,7 +2099,9 @@ class EventsController extends AppController {
 
 	// Simple check for valid categories and types for IOC generation
 	private function __checkValidTypeForIOC($attribute) {
+		// categories that should be included
 		$skipCategory = array('Payload delivery', 'Artifacts dropped', 'Payload installation', 'Persistence mechanism', 'Network activity');
+		// types that should be excluded
 		$skipType = array('AS', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'comment', 'text', 'other');
 		if (!in_array($attribute['category'], $skipCategory)) return false;
 		if (in_array($attribute['type'], $skipType)) return false;

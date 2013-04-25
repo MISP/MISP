@@ -57,6 +57,7 @@ class UsersController extends AppController {
 	public function view($id = null) {
 		if ("me" == $id) $id = $this->Auth->user('id');
 		$this->User->id = $id;
+		$this->User->recursive = 0;
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
@@ -387,12 +388,6 @@ class UsersController extends AppController {
 		}
 		if ('me' == $id ) $id = $this->Auth->user('id');
 
-		//Replaced by isAuthorized
-		//// only allow reset key for own account, except for admins
-		//if (!$this->_isAdmin() && $id != $this->Auth->user('id')) {
-		//	throw new ForbiddenException('Not authorized to reset the key for this user');
-		//}
-
 		// reset the key
 		$this->User->id = $id;
 		$newkey = $this->User->generateAuthKey();
@@ -573,7 +568,6 @@ class UsersController extends AppController {
 			$message2 = null;
 			$recipients = array();
 			$messageP = array();
-			$finalPackage = array();
 			// Formulating the message and the subject that will be common to the e-mail(s) sent
 			if ($this->request->data['User']['action'] == '0') {
 				// Custom message
@@ -647,37 +641,33 @@ class UsersController extends AppController {
 			require_once 'Crypt/GPG.php';
 			$i = 0;
 			foreach ($recipients as $recipient) {
-				// FIXME rewrite this code and remove the useless $finalPackage array. All data seems to stay in the foreach loop, so no need to keep everything in an array.
-				$finalPackage[$i]['message'] = $message[$i];
-				$finalPackage[$i]['gpgkey'] = $recipientGPG[$i];
-				$finalPackage[$i]['email'] = $recipients[$i];
-				if (!empty($finalPackage[$i]['gpgkey'])) {
+				if (!empty($recipientGPG[$i])) {
 					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 					$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-					$finalPackage[$i]['messageSigned'] = $gpg->sign($finalPackage[$i]['message'], Crypt_GPG::SIGN_MODE_CLEAR);
-					$keyImportOutput = $gpg->importKey($finalPackage[$i]['gpgkey']);
+					$messageSigned = $gpg->sign($message[$i], Crypt_GPG::SIGN_MODE_CLEAR);
+					$keyImportOutput = $gpg->importKey($recipientGPG[$i]);
 					try {
 						$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 						$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
 
-						$finalPackage[$i]['encryptedMessage'] = $gpg->encrypt($finalPackage[$i]['messageSigned'], true);
+						$encryptedMessage = $gpg->encrypt($messageSigned, true);
 					} catch (Exception $e){
 						// catch errors like expired PGP keys
 						$this->log($e->getMessage());
 						// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 					}
 				} else {
-					$finalPackage[$i]['encryptedMessage'] = $finalPackage[$i]['message'];
+					$encryptedMessage = $message[$i];
 				}
 
 				// prepare the email
 				$this->Email->from = Configure::read('CyDefSIG.email');
-				$this->Email->to = $finalPackage[$i]['email'];
+				$this->Email->to = $recipients[$i];
 				$this->Email->subject = $subject;
 				//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';		// both text or html
-				$this->set('body', $finalPackage[$i]['encryptedMessage']);
+				$this->set('body', $encryptedMessage);
 
 				// send it
 				$result = $this->Email->send();
@@ -685,7 +675,7 @@ class UsersController extends AppController {
 				// if sending successful and action was a password change, update the user's password.
 				if ($result && $this->request->data['User']['action'] == '1') {
 					$this->User->recursive = 0;
-					$temp = $this->User->findByEmail($finalPackage[$i]['email']);
+					$temp = $this->User->findByEmail($recipients[$i]);
 					$this->User->id = $temp['User']['id'];
 					$this->User->read();
 					$this->User->saveField('password', $recipientPass[$i]);

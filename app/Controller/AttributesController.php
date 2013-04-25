@@ -27,7 +27,7 @@ class AttributesController extends AppController {
 		if ('search' == $this->request->params['action']) {
 			$this->Security->csrfUseOnce = false;
 		}
-		$this->Security->validatePost = false;
+		$this->Security->validatePost = true;
 
 		// convert uuid to id if present in the url, and overwrite id field
 		if (isset($this->params->query['uuid'])) {
@@ -43,7 +43,7 @@ class AttributesController extends AppController {
 			}
 		}
 
-		// do not show private to other orgs
+	// do not show private to other orgs
 		// if not admin or own org, check private as well..
 		if (!$this->_IsSiteAdmin()) {
 			$this->paginate = Set::merge($this->paginate,array(
@@ -63,6 +63,7 @@ class AttributesController extends AppController {
 			)))));
 		}
 
+
 		// do not show cluster outside server
 		if ($this->_isRest()) {
 				$this->paginate = Set::merge($this->paginate,array(
@@ -71,26 +72,6 @@ class AttributesController extends AppController {
 						//array("AND" => array(array('Event.private !=' => 2))),
 				));
 		}
-	}
-
-	public function isAuthorized($user) {
-		// Admins can access everything
-		if (parent::isAuthorized($user)) {
-			return true;
-		}
-		// Only on own attributes for these actions
-		if (in_array($this->action, array('delete'))) {	// TODO ACL, removed 'edit' override
-			$attributeid = $this->request->params['pass'][0];
-			return $this->Attribute->isOwnedByOrg($attributeid, $this->Auth->user('org'));
-		}
-		// Only on own events for these actions
-		if (in_array($this->action, array('add', 'add_attachment'))) {
-			$this->loadModel('Event');
-			$eventid = $this->request->params['pass'][0];
-			return $this->Event->isOwnedByOrg($eventid, $this->Auth->user('org'));
-		}
-		// the other pages are allowed by logged in users
-		return true;
 	}
 
 /**
@@ -104,7 +85,7 @@ class AttributesController extends AppController {
 		$this->Attribute->recursive = 0;
 		$this->set('isSearch', 0);
 
-		$this->set('attributes', $this->paginate());
+		$this->set('attributes', $this->paginate);
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -727,7 +708,6 @@ class AttributesController extends AppController {
 				// search on the value field
 				if (isset($keyword)) {
 					$keywordArray = explode("\n", $keyword);
-					$this->set('keywordArray', $keywordArray);
 					$i = 1;
 					$temp = array();
 					foreach ($keywordArray as $keywordArrayElement) {
@@ -800,6 +780,7 @@ class AttributesController extends AppController {
 						)
 					);
 				}
+
 				$idList = array();
 				$attributes = $this->paginate();
 				foreach ($attributes as &$attribute) {

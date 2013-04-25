@@ -187,6 +187,25 @@ th.actions {
 td.short {
 	width:5%;
 	white-space: nowrap;
+	text-align: left;
+}
+td.highlightTop {
+	border-top : 1px solid;
+}
+td.highlightBottom {
+	border-bottom : 1px solid;
+}
+td.highlightLeft {
+	border-left : 1px solid;
+}
+td.highlightRight {
+	border-right : 1px solid;
+}
+td.highlightRed {
+	color : red;
+}
+td.highlightGreen {
+	color : green;
 }
 
 /* added */

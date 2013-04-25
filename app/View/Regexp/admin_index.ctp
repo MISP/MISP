@@ -9,7 +9,7 @@
 	</tr><?php
 foreach ($list as $item):?>
 	<tr>
-		<td class="short"><?php echo $item['Regexp']['id'];?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Regexp']['id']);?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Regexp']['regexp']);?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Regexp']['replacement']);?>&nbsp;</td>
 		<td class="actions">

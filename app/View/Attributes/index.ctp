@@ -22,18 +22,18 @@ if ($isSearch == 1) {
 	</tr>
 	<?php
 	$currentCount = 0;
+	if ($isSearch == 1) {
+	    // build the $replacePairs variable used to highlight the keywords
+	    $replacementArray = array();
+	    foreach ($keywordArray as &$keywordArrayElement) {
+	        $keywordArrayElement = trim($keywordArrayElement);
+	        if ("" == $keywordArrayElement) continue;
+	        $replacementArray[] = '<span style="color:red">'.$keywordArrayElement.'</span>';
+	    }
+	    if (!empty($replacementArray))
+	      $replacePairs = array_combine($keywordArray, $replacementArray);
+	}
 
-if ($isSearch == 1) {
-    // build the $replacePairs variable used to highlight the keywords
-    $replacementArray = array();
-    foreach ($keywordArray as &$keywordArrayElement) {
-        $keywordArrayElement = trim($keywordArrayElement);
-        if ("" == $keywordArrayElement) continue;
-        $replacementArray[] = '<span style="color:red">'.$keywordArrayElement.'</span>';
-    }
-    if (!empty($replacementArray))
-    	$replacePairs = array_combine($keywordArray, $replacementArray);
-}
 foreach ($attributes as $attribute):
 	?>
 	<tr>
@@ -57,6 +57,7 @@ foreach ($attributes as $attribute):
 		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 	<?php
+	$sigDisplay = nl2br($attribute['Attribute']['value']);
 	$sigDisplay = nl2br(h($attribute['Attribute']['value']));
 	if ($isSearch == 1 && !empty($replacePairs)) {
 		// highlight the keywords if there are any

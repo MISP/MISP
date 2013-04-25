@@ -26,6 +26,7 @@ foreach ($actionDefinitions as $action => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['$action'] = \"$info\";\n";
 }
+
 $this->Js->get('#LogAction')->event('change', 'showFormInfo("#LogAction")');
 ?>
 formInfoValues['ALL'] = '';

@@ -79,14 +79,14 @@ class LogsController extends AppController {
 			$orgRestriction = $this->Auth->user('org');
 		}
 		$this->set('orgRestriction', $orgRestriction);
-		if (in_array($this->request->here, $fullAddress)) {  // FIXME remove this crap check
+		if (in_array($this->request->here, $fullAddress)) { // FIXME remove this crap check
 
 			$this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
 
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions_log', array());
 
-			if ($this->request->is('post') && in_array($this->request->here, $fullAddress)) {  // FIXME remove this crap check
+			if ($this->request->is('post') && in_array($this->request->here, $fullAddress)) { // FIXME remove this crap check
 				$email = $this->request->data['Log']['email'];
 				if (!$orgRestriction) {
 					$org = $this->request->data['Log']['org'];

@@ -74,9 +74,11 @@ class Role extends AppModel {
  *
  * @var array
  */
+
 	public $virtualFields = array(
 		'permission' => "IF (Role.perm_add && Role.perm_modify && Role.perm_publish, '3', IF (Role.perm_add && Role.perm_modify_org, '2', IF (Role.perm_add, '1', '0')))",
 	);
+
 
 	public function beforeSave($options = array()) {
 		switch ($this->data['Role']['permission']) {
