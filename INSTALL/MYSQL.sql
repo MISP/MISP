@@ -1,58 +1,6 @@
 -- --------------------------------------------------------
 
 --
--- Table structure for table `acos`
---
-
-CREATE TABLE IF NOT EXISTS `acos` (
-  `id` int(10) NOT NULL AUTO_INCREMENT,
-  `parent_id` int(10) DEFAULT NULL,
-  `model` varchar(255) DEFAULT NULL,
-  `foreign_key` int(10) DEFAULT NULL,
-  `alias` varchar(255) DEFAULT NULL,
-  `lft` int(10) DEFAULT NULL,
-  `rght` int(10) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `aros`
---
-
-CREATE TABLE IF NOT EXISTS `aros` (
-  `id` int(10) NOT NULL AUTO_INCREMENT,
-  `parent_id` int(10) DEFAULT NULL,
-  `model` varchar(255) DEFAULT NULL,
-  `foreign_key` int(10) DEFAULT NULL,
-  `alias` varchar(255) DEFAULT NULL,
-  `lft` int(10) DEFAULT NULL,
-  `rght` int(10) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `aros_acos`
---
-
-CREATE TABLE IF NOT EXISTS `aros_acos` (
-  `id` int(10) NOT NULL AUTO_INCREMENT,
-  `aro_id` int(10) NOT NULL,
-  `aco_id` int(10) NOT NULL,
-  `_create` varchar(2) NOT NULL DEFAULT '0',
-  `_read` varchar(2) NOT NULL DEFAULT '0',
-  `_update` varchar(2) NOT NULL DEFAULT '0',
-  `_delete` varchar(2) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `ARO_ACO_KEY` (`aro_id`,`aco_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `attributes`
 --
 
@@ -225,6 +173,29 @@ CREATE TABLE IF NOT EXISTS `servers` (
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `shadow_attributes`
+--
+
+CREATE TABLE IF NOT EXISTS `shadow_attributes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `old_id` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `category` varchar(255) COLLATE utf8_bin NOT NULL,
+  `value1` text COLLATE utf8_bin,
+  `to_ids` tinyint(1) NOT NULL DEFAULT '1',
+  `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `value2` text COLLATE utf8_bin,
+  `org` varchar(255) COLLATE utf8_bin NOT NULL,
+  `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `event_id` (`event_id`),
+  KEY `uuid` (`uuid`),
+  KEY `old_id` (`old_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=11 ;
 -- --------------------------------------------------------
 
 --
