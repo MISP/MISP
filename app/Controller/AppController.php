@@ -87,7 +87,6 @@ class AppController extends Controller {
 
 			// Authenticate user with authkey in Authorization HTTP header
 			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
-				//Sanitize the authkey
 				if (!$this->checkAuthUser($_SERVER['HTTP_AUTHORIZATION'])) {
 					throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
 				}

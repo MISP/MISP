@@ -38,20 +38,6 @@ class ServersController extends AppController {
 		}
 	}
 
-	public function isAuthorized($user) {
-		// Admins can access everything
-		if (parent::isAuthorized($user)) {
-			return true;
-		}
-		// Only on own servers for these actions
-		if (in_array($this->action, array('edit', 'delete', 'pull'))) {
-			$serverid = $this->request->params['pass'][0];
-			return $this->Server->isOwnedByOrg($serverid, $this->Auth->user('org'));
-		}
-		// the other pages are allowed by logged in users
-		return true;
-	}
-
 /**
  * index method
  *
@@ -107,8 +93,6 @@ class ServersController extends AppController {
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
 		}
-		// only edit own servers verified by isAuthorized
-
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// say what fields are to be updated
 			$fieldList = array('url', 'push', 'pull', 'organization');

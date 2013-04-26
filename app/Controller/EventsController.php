@@ -15,7 +15,6 @@ class EventsController extends AppController {
  * @var array
  */
 	public $components = array(
-			'Acl',	// XXX ACL component
 			'Security',
 			'Email',
 			'RequestHandler',
@@ -50,8 +49,6 @@ class EventsController extends AppController {
 		if (count($this->uses) && $this->{$this->modelClass}->Behaviors->attached('SysLogLogable')) {
 			$this->{$this->modelClass}->setUserData($this->activeUser);
 		}
-
-		// TODO ACL, if on ent/attr level, $this->set('isAcl', $this->checkAccess());
 
 		// convert uuid to id if present in the url, and overwrite id field
 		if (isset($this->params->query['uuid'])) {
@@ -89,20 +86,6 @@ class EventsController extends AppController {
 		//			));
 		//	}
 		//}
-	}
-
-	public function isAuthorized($user) {
-		// Admins can access everything
-		if (parent::isAuthorized($user)) {
-			return true;
-		}
-		// Only on own events for these actions
-		if (in_array($this->action, array('alert'))) {	// TODO ACL, CHECK, remove overruling 'edit', 'delete' and 'publish'
-			$eventid = $this->request->params['pass'][0];
-			return $this->Event->isOwnedByOrg($eventid, $this->Auth->user('org'));
-		}
-		// the other pages are allowed by logged in users
-		return true;
 	}
 
 /**
@@ -414,10 +397,6 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-		// only edit own events verified by isAuthorized
-
-		//	if ('true' == Configure::read('CyDefSIG.private')) {
-		//	if (!$this->_IsAdmin()) {
 		$this->Event->read(null, $id);
 		// check for if private and user not authorised to edit, go away
 		if (!$this->isSiteAdmin() && !$this->checkAction('perm_sync') && $this->Event->data['Event']['distribution'] == 'Your organization only') {
@@ -738,8 +717,6 @@ class EventsController extends AppController {
 		}
 		$this->Event->saveField('from', Configure::read('CyDefSIG.org'));
 
-		// only allow publish for own events verified by isAuthorized
-
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// Performs all the actions required to publish an event
@@ -769,7 +746,6 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event'));
 		}
 		$this->Event->saveField('from', Configure::read('CyDefSIG.org'));
-		// only allow alert for own events verified by isAuthorized
 
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {

@@ -10,8 +10,7 @@ App::uses('File', 'Utility');
  */
 class AttributesController extends AppController {
 
-	public $components = array('Acl', 'Security', 'RequestHandler');	// XXX ACL component
-	//public $components = array('Security', 'RequestHandler');
+	public $components = array('Security', 'RequestHandler');
 
 	public $paginate = array(
 			'limit' => 60,
@@ -112,7 +111,6 @@ class AttributesController extends AppController {
 	public function add($eventId = null) {
 		if ($this->request->is('post')) {
 			$this->loadModel('Event');
-			// only own attributes verified by isAuthorized
 
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
 			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
@@ -309,7 +307,6 @@ class AttributesController extends AppController {
 	public function add_attachment($eventId = null) {
 		if ($this->request->is('post')) {
 			$this->loadModel('Event');
-			// only own attributes verified by isAuthorized
 			// Check if there were problems with the file upload
 			// only keep the last part of the filename, this should prevent directory attacks
 			$filename = basename($this->request->data['Attribute']['value']['name']);
@@ -481,10 +478,9 @@ class AttributesController extends AppController {
 		if (!$this->_isRest()) {
 			$uuid = $this->Attribute->data['Attribute']['uuid'];
 		}
-		// only own attributes verified by isAuthorized
 		if (!$this->_IsSiteAdmin()) {
 			// check for non-private and re-read
-			if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAcl('edit') || !$this->checkRole() || !$this->checkAcl('publish')))) {
+			if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAction('prem_modify') || !$this->checkRole() || !$this->checkAction('perm_publish')))) {
 				$this->Session->setFlash(__('Invalid attribute.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}

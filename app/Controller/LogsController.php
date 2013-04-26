@@ -33,15 +33,6 @@ class LogsController extends AppController {
 		}
 	}
 
-	public function isAuthorized($user) {
-		// Admins can access everything
-		if (parent::isAuthorized($user)) {
-			return true;
-		}
-		// the other pages are allowed by logged in users
-		return true;
-	}
-
 /**
  * admin_index method
  *

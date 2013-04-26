@@ -13,6 +13,7 @@ class AdminCrudComponent extends AuthComponent {
  */
 	public function adminAdd() {
 		if ($this->controller->request->is('post')) {
+			if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 			$this->controller->{$this->controller->defaultModel}->create();
 			if ($this->controller->{$this->controller->defaultModel}->save($this->controller->request->data)) {
 				$this->controller->Session->setFlash(__(sprintf('The %s has been saved.', strtolower($this->controller->defaultModel))));
@@ -31,6 +32,7 @@ class AdminCrudComponent extends AuthComponent {
  * @return void
  */
 	public function adminIndex() {
+		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		$this->controller->recursive = 0;
 		$this->controller->set('list', $this->controller->paginate());
 	}
@@ -43,6 +45,7 @@ class AdminCrudComponent extends AuthComponent {
  * @throws NotFoundException
  */
 	public function adminEdit($id = null) {
+		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		$this->controller->{$this->controller->defaultModel}->id = $id;
 		if (!$this->controller->{$this->controller->defaultModel}->exists()) {
 			throw new NotFoundException(__(sprintf('Invalid %s', strtolower($this->controller->defaultModel))));
@@ -72,6 +75,7 @@ class AdminCrudComponent extends AuthComponent {
  * @throws NotFoundException
  */
 	public function adminDelete($id = null) {
+		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		if (!$this->controller->request->is('post')) {
 			throw new MethodNotAllowedException();
 		}

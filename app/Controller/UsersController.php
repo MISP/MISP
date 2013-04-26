@@ -29,24 +29,6 @@ class UsersController extends AppController {
 		$this->Auth->allow('login', 'logout');
 	}
 
-	public function isAuthorized($user) {
-		// Admins can access everything
-		if (parent::isAuthorized($user)) {
-			return true;
-		}
-		// Do not allow admin routing
-		if (isset($this->request->params['admin']) && true == $this->request->params['admin'])
-			return false;
-		// Only on own user for these actions
-		if (in_array($this->action, array('view', 'edit', 'delete', 'resetauthkey'))) {
-			$userid = $this->request->params['pass'][0];
-			if ("me" == $userid ) return true;
-			return ($userid === $this->Auth->user('id'));
-		}
-		// the other pages are allowed by logged in users
-		return true;
-	}
-
 /**
  * view method
  *
@@ -61,7 +43,6 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		// Only own profile verified by isAuthorized
 		$this->set('user', $this->User->read(null, $id));
 	}
 
@@ -73,12 +54,15 @@ class UsersController extends AppController {
  * @throws NotFoundException
  */
 	public function edit($id = null) {
-		if ("me" == $id) $id = $this->Auth->user('id');
-		$this->User->id = $id;
-		if (!$this->User->exists()) {
-			throw new NotFoundException(__('Invalid user'));
+		$me = false;
+		if ("me" == $id) {
+			$id = $this->Auth->user('id');
+			$me = true;
 		}
-		// Only own profile verified by isAuthorized
+		$this->User->read(null, $id);
+		if (!$this->User->exists() && !$me && !$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org') == $this->User->data['User']['org'])) {
+			throw new NotFoundException(__('Invalid user or not authorised.'));
+		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// What fields should be saved (allowed to be saved)
 			$fieldList = array('email', 'autoalert', 'gpgkey', 'nids_sid' );
@@ -98,7 +82,6 @@ class UsersController extends AppController {
 			$this->User->set('password', '');
 			$this->request->data = $this->User->data;
 		}
-		// XXX ACL roles
 		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
@@ -149,7 +132,6 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		//if ($this->Auth->User('org') != 'ADMIN' && $this->Auth->User('org') != $this->User->data['User']['org']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
-		//Replaced by isAuthorized
 		//// Only own profile
 		//if ($this->Auth->user('id') != $id) {
 		//	throw new ForbiddenException('You are not authorized to delete this profile.');
@@ -168,9 +150,10 @@ class UsersController extends AppController {
  */
 	public function admin_index() {
 		$this->User->recursive = 0;
-		if ($this->Auth->User('org') == "ADMIN") {
+		if ($this->_isSiteAdmin()) {
 			$this->set('users', $this->paginate());
 		} else {
+			if (!($this->_isAdmin())) throw new NotFoundException(__('Invalid user or not authorised.'));
 			$conditions['User.org LIKE'] = $this->Auth->User('org');
 			$this->paginate = array(
 					'conditions' => array($conditions),
@@ -192,6 +175,7 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		$this->set('user', $this->User->read(null, $id));
+		if (!$this->_isSiteADmin && !($this->_isAdmin() && $this->Auth->user('org') == $this->User->data['User']['org'])) throw new MethodNotAllowedException();
 		$temp = $this->User->field('invited_by');
 		$this->set('user2', $this->User->read(null, $temp));
 	}
@@ -202,6 +186,7 @@ class UsersController extends AppController {
  * @return void
  */
 	public function admin_add() {
+		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		$this->set('currentOrg', $this->Auth->User('org'));
 		if ($this->request->is('post')) {
 			$this->User->create();
@@ -326,6 +311,7 @@ class UsersController extends AppController {
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
 		}
+		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		$this->User->id = $id;
 		$user = $this->User->read('email', $id);
 		$fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
@@ -387,6 +373,7 @@ class UsersController extends AppController {
 			$this->redirect(array('action' => 'index'));
 		}
 		if ('me' == $id ) $id = $this->Auth->user('id');
+		else if (!$this->_isAdmin()) throw new MethodNotAllowedException();
 
 		// reset the key
 		$this->User->id = $id;
