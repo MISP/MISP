@@ -12,11 +12,6 @@ class BlacklistsController extends AppController {
 	public $XXXcomponents = array('Security', 'RequestHandler');
 
 	public $components = array(
-		'Auth' => array(
-			'authorize' => array(
-				'Actions' => array('actionPath' => 'controllers/Blacklists')
-			)
-		),
 		'Security',
 		'AdminCrud'
 	);

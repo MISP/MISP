@@ -50,7 +50,6 @@ class AppController extends Controller {
 	}
 
 	public $components = array(
-			'Acl',			// TODO ACL, components
 			'Session',
 			'Auth' => array(
 				'className' => 'SecureAuth',

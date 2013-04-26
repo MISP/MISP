@@ -12,11 +12,6 @@ class WhitelistsController extends AppController {
 	public $XXXcomponents = array('Security', 'RequestHandler');
 
 	public $components = array(
-		'Auth' => array(
-			'authorize' => array(
-				'Actions' => array('actionPath' => 'controllers/Whitelists')
-			)
-		),
 		'Security',
 		'AdminCrud'
 	);
@@ -38,6 +33,7 @@ class WhitelistsController extends AppController {
  * @return void
  */
 	public function admin_add() {
+		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminAdd();
 	}
 

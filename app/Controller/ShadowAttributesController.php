@@ -149,7 +149,6 @@ class ShadowAttributesController extends AppController {
 		}
 	}
 
-
 /**
  * discard method
  *

@@ -12,12 +12,6 @@ class RolesController extends AppController {
 	public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage & Publish Organization Events'); // FIXME move this to Role Model
 
 	public $components = array(
-		'Acl',
-		'Auth' => array(
-			'authorize' => array(
-				'Actions' => array('actionPath' => 'controllers')
-			)
-		),
 		'Security',
 		'Session', 'AdminCrud' // => array('fields' => array('name'))
 	);

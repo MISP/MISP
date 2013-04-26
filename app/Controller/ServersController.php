@@ -11,7 +11,7 @@ App::uses('Xml', 'Utility');
  */
 class ServersController extends AppController {
 
-	public $components = array('Acl' ,'Security' ,'RequestHandler');	// XXX ACL component
+	public $components = array('Security' ,'RequestHandler');	// XXX ACL component
 
 	public $paginate = array(
 			'limit' => 60,
