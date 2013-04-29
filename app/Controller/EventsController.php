@@ -690,9 +690,10 @@ class EventsController extends AppController {
 		$this->Event->id = $id;
 		$this->Event->recursive = 0;
 		$event = $this->Event->read(null, $id);
-
 		// update the DB to set the published flag
-		$this->Event->saveField('published', 1);
+		$fieldList = array('published', 'id', 'info');
+		$event['Event']['published'] = 1;
+		$this->Event->save($event, array('fieldList' => $fieldList));
 		$event['Event']['from'] = Configure::read('CyDefSIG.org');
 		$uploaded = false;
 		//if ($event['Event']['distribution'] == 'Your organization only' || $event['Event']['distribution'] == 'This server-only') return true;
@@ -1246,7 +1247,7 @@ class EventsController extends AppController {
 		$this->loadModel('Attribute');
 
 		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
+		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
 		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
