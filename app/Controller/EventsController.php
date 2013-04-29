@@ -1129,12 +1129,8 @@ class EventsController extends AppController {
 
 	public function xml($key, $eventid=null) {
 		// check if the key is valid -> search for users based on key
-		$this->loadModel('User');
-		$user = $this->User->findByAuthkey($key);
-		if (empty($user)) {
-			throw new UnauthorizedException('Incorrect authentication key');
-		}
-		if (!$this->checkAuthUser($key)) {
+		$user = $this->checkAuthUser($key);
+		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		// display the full xml
@@ -1193,15 +1189,8 @@ class EventsController extends AppController {
 
 	public function nids($key) {
 		// check if the key is valid -> search for users based on key
-		$this->loadModel('User');
-		// no input sanitization necessary, it's done by model
-		// do not fetch recursive
-		$this->User->recursive = 0;
-		$user = $this->User->findByAuthkey($key);
-		if (empty($user)) {
-			throw new UnauthorizedException('Incorrect authentication key');
-		}
-		if (!$this->checkAuthUser($key)) {
+		$user = $this->checkAuthUser($key);
+		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		// display the full snort rulebase
@@ -1243,15 +1232,8 @@ class EventsController extends AppController {
 
 	public function hids_md5($key) {
 		// check if the key is valid -> search for users based on key
-		$this->loadModel('User');
-		// no input sanitization necessary, it's done by model
-		// do not fetch recursive
-		$this->User->recursive = 0;
-		$user = $this->User->findByAuthkey($key);
-		if (empty($user)) {
-			throw new UnauthorizedException('Incorrect authentication key');
-		}
-		if (!$this->checkAuthUser($key)) {
+		$user = $this->checkAuthUser($key);
+		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		// display the full md5 set
@@ -1298,15 +1280,8 @@ class EventsController extends AppController {
 
 	public function hids_sha1($key) {
 		// check if the key is valid -> search for users based on key
-		$this->loadModel('User');
-		// no input sanitization necessary, it's done by model
-		// do not fetch recursive
-		$this->User->recursive = 0;
-		$user = $this->User->findByAuthkey($key);
-		if (empty($user)) {
-			throw new UnauthorizedException('Incorrect authentication key');
-		}
-		if (!$this->checkAuthUser($key)) {
+		$user = $this->checkAuthUser($key);
+		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		// display the full SHA-1 set
@@ -1354,13 +1329,8 @@ class EventsController extends AppController {
 
 	public function text($key, $type="") {
 		// check if the key is valid -> search for users based on key
-		$this->loadModel('User');
-		// no input sanitization necessary, it's done by model
-		$user = $this->User->findByAuthkey($key);
-		if (empty($user)) {
-			throw new UnauthorizedException('Incorrect authentication key');
-		}
-		if (!$this->checkAuthUser($key)) {
+		$user = $this->checkAuthUser($key);
+		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		$this->response->type('txt');	// set the content type
