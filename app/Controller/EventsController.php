@@ -1147,6 +1147,7 @@ class EventsController extends AppController {
 		} else {
 			$conditions = array();
 		}
+		$conditionsAttributes = array();
 		//restricting to non-private or same org if the user is not a site-admin.
 		if (!$this->_isSiteAdmin()) {
 			$temp = array();
@@ -1164,6 +1165,7 @@ class EventsController extends AppController {
 			array_push($temp2, array('OR' => $distribution2));
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
+			$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 		}
 
 		// do not expose all the data ...
@@ -1340,7 +1342,7 @@ class EventsController extends AppController {
 		$this->loadModel('Attribute');
 
 		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.type' => $type);
+		$conditions['AND'] = array('Attribute.type' => $type, 'Attribute.to_ids =' => 1);
 		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
@@ -1634,6 +1636,7 @@ class EventsController extends AppController {
 		} else {
 			$conditions = array();
 		}
+		$conditionsAttributes = array();
 		//restricting to non-private or same org if the user is not a site-admin.
 		if (!$this->_isSiteAdmin()) {
 			$temp = array();
@@ -1651,6 +1654,7 @@ class EventsController extends AppController {
 			array_push($temp2, array('OR' => $distribution2));
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
+			$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 		}
 
 		// do not expose all the data ...
@@ -1808,7 +1812,7 @@ class EventsController extends AppController {
 		$this->loadModel('Attribute');
 
 		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.type' => $type);
+		$conditions['AND'] = array('Attribute.type' => $type, 'Attribute.to_ids =' => 1);
 		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
@@ -1862,6 +1866,7 @@ class EventsController extends AppController {
 			array_push($temp2, array('OR' => $distribution2));
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
+			$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 		}
 
 		// do not expose all the data ...
@@ -1900,7 +1905,7 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-		$this->event->recursive = 1;
+		$this->Event->recursive = 1;
 		$event = $this->Event->read(null, $eventid);
 
 		// check if the user has permission - attribute checked further down in loop
@@ -1926,6 +1931,8 @@ class EventsController extends AppController {
 
 		// start converting each attribute to its appropriate IOC entry
 		foreach ($event['Attribute'] as $attribute) {
+			// Hop over attributes that don't have the to ids flag turned on.
+			if ($attribute['to_ids'] == 0) continue;
 			// check whether the attribute is exportable by the user
 			if ($this->_isSiteAdmin || !$attribute['private'] || $attribute['cluster']) {
 				// check whether the attribute is sent for IOC export based on category/type
