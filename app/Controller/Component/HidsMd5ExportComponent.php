@@ -11,7 +11,7 @@ class HidsMd5ExportComponent extends Component {
 		array_unshift($this->rules, '# These HIDS export contains MD5 checksums.');
 	}
 
-	public function suricataRules($items) {
+	public function export($items) {
 		$itemsDone = array();
 		foreach ($items as &$item) {
 

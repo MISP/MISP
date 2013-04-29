@@ -17,7 +17,7 @@ class NidsExportComponent extends Component {
 		$this->rules[] = '# ';
 	}
 
-	public function suricataRules($items, $startSid) {
+	public function export($items, $startSid) {
 		$this->Whitelist = ClassRegistry::init('Whitelist');
 		$this->whitelist = $this->Whitelist->populateWhitelist();
 

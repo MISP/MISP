@@ -11,7 +11,7 @@ class HidsSha1ExportComponent extends Component {
 		array_unshift($this->rules, '# These HIDS export contains SHA-1 checksums.');
 	}
 
-	public function suricataRules($items) {
+	public function export($items) {
 		$itemsDone = array();
 
 		foreach ($items as &$item) {

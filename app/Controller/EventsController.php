@@ -1219,7 +1219,7 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->NidsExport->suricataRules($items, $user['User']['nids_sid']);
+		$rules = $this->NidsExport->export($items, $user['User']['nids_sid']);
 		print ("#<h1>This part might still contain bugs, use and your own risk and report any issues.</h1>\n");
 
 		print "#<pre> \n";
@@ -1262,7 +1262,7 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->HidsMd5Export->suricataRules($items);	// TODO NIDS_SID??
+		$rules = $this->HidsMd5Export->export($items);
 		if (count($rules) >= 4) {
 			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
 
@@ -1310,7 +1310,7 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->HidsSha1Export->suricataRules($items);	// TODO NIDS_SID??
+		$rules = $this->HidsSha1Export->export($items);
 		if (count($rules) >= 4) {
 			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
 
@@ -1702,7 +1702,7 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->NidsExport->suricataRules($items, $this->Auth->user('nids_sid'));
+		$rules = $this->NidsExport->export($items, $this->Auth->user('nids_sid'));
 		print ("#<h1>This part might still contain bugs, use and your own risk and report any issues.</h1>\n");
 
 		print "#<pre> \n";
@@ -1741,7 +1741,7 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->HidsMd5Export->suricataRules($items);	// TODO NIDS_SID??
+		$rules = $this->HidsMd5Export->export($items);
 		if (count($rules) >= 4) {
 			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
 
@@ -1784,7 +1784,7 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->HidsSha1Export->suricataRules($items);	// TODO NIDS_SID??
+		$rules = $this->HidsSha1Export->export($items);
 		if (count($rules) >= 4) {
 			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
 
