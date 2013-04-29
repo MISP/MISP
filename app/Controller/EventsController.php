@@ -6,14 +6,14 @@ App::uses('Xml', 'Utility');
  * Events Controller
  *
  * @property Event $Event
- */
+*/
 class EventsController extends AppController {
 
-/**
- * Components
- *
- * @var array
- */
+	/**
+	 * Components
+	 *
+	 * @var array
+	 */
 	public $components = array(
 			'Security',
 			'Email',
@@ -56,7 +56,7 @@ class EventsController extends AppController {
 					'conditions' => array('Event.uuid' => $this->params->query['uuid']),
 					'recursive' => 0,
 					'fields' => 'Event.id'
-					);
+			);
 			$result = $this->Event->find('first', $params);
 			if (isset($result['Event']) && isset($result['Event']['id'])) {
 				$id = $result['Event']['id'];
@@ -67,13 +67,13 @@ class EventsController extends AppController {
 		// if not admin or own org, check private as well..
 		if (!$this->_IsSiteAdmin()) {
 			$this->paginate = Set::merge($this->paginate,array(
-			'conditions' =>
+					'conditions' =>
 					array("OR" => array(
-						array('Event.org =' => $this->Auth->user('org')),
-						array('Event.private !=' => 1),
-						array('Event.cluster =' => 1))),
-						)
-					);
+							array('Event.org =' => $this->Auth->user('org')),
+							array('Event.private !=' => 1),
+							array('Event.cluster =' => 1))),
+			)
+			);
 		}
 
 		//// do not show cluster outside server
@@ -88,11 +88,11 @@ class EventsController extends AppController {
 		//}
 	}
 
-/**
- * index method
- *
- * @return void
- */
+	/**
+	 * index method
+	 *
+	 * @return void
+	 */
 	public function index() {
 		// list the events
 		$this->Event->recursive = 0;
@@ -105,12 +105,12 @@ class EventsController extends AppController {
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 	}
 
-/**
- * Compare Related Events, first sort on date then on id
- *
- * @param unknown_type $a
- * @param unknown_type $b
- */
+	/**
+	 * Compare Related Events, first sort on date then on id
+	 *
+	 * @param unknown_type $a
+	 * @param unknown_type $b
+	 */
 	public function compareRelatedEvents($a, $b) {
 		$retval = strnatcmp($b['Event']['date'], $a['Event']['date']);
 		if (!$retval)
@@ -118,13 +118,13 @@ class EventsController extends AppController {
 		return $retval;
 	}
 
-/**
- * view method
- *
- * @param int $id
- * @return void
- * @throws NotFoundException
- */
+	/**
+	 * view method
+	 *
+	 * @param int $id
+	 * @return void
+	 * @throws NotFoundException
+	 */
 	public function view($id = null) {
 		$this->Event->id = $id;
 		$this->Event->recursive = 2;
@@ -159,7 +159,7 @@ class EventsController extends AppController {
 			foreach ($this->Event->data['Attribute'] as &$attribute) {
 				// 	for REST requests also add the encoded attachment
 				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-				// 	LATER check if this has a serious performance impact on XML conversion and memory usage
+					// 	LATER check if this has a serious performance impact on XML conversion and memory usage
 					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
 					$attribute['data'] = $encodedFile;
 				}
@@ -226,11 +226,11 @@ class EventsController extends AppController {
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 	}
 
-/**
- * add method
- *
- * @return void
- */
+	/**
+	 * add method
+	 *
+	 * @return void
+	 */
 	public function add() {
 		if ($this->request->is('post')) {
 			// TODO or massageData here
@@ -248,7 +248,7 @@ class EventsController extends AppController {
 					$ext = '';
 				}
 				if (isset($this->data['Event']['submittedfile']) && $ext != 'zip' && $this->data['Event']['submittedfile']['size'] > 0 &&
-			is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
+						is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
 					//return false;
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
@@ -310,11 +310,11 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
 
-/**
- * Low level functino to add an Event based on an Event $data array
- *
- * @return bool true if success
- */
+	/**
+	 * Low level functino to add an Event based on an Event $data array
+	 *
+	 * @return bool true if success
+	 */
 	public function _add(&$data, &$auth, $fromXml, $or='', $passAlong = null, $fromPull = false) {
 		// force check userid and orgname to be from yourself
 		$data['Event']['user_id'] = $auth->user('id');
@@ -385,13 +385,13 @@ class EventsController extends AppController {
 		}
 	}
 
-/**
- * edit method
- *
- * @param int $id
- * @return void
- * @throws NotFoundException
- */
+	/**
+	 * edit method
+	 *
+	 * @param int $id
+	 * @return void
+	 * @throws NotFoundException
+	 */
 	public function edit($id = null) {
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
@@ -568,14 +568,14 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
 
-/**
- * delete method
- *
- * @param int $id
- * @return void
- * @throws MethodNotAllowedException
- * @throws NotFoundException
- */
+	/**
+	 * delete method
+	 *
+	 * @param int $id
+	 * @return void
+	 * @throws MethodNotAllowedException
+	 * @throws NotFoundException
+	 */
 
 	public function delete($id = null) {
 		if (!$this->request->is('post') && !$this->_isRest()) {
@@ -613,12 +613,12 @@ class EventsController extends AppController {
 		$this->redirect(array('action' => 'index'));
 	}
 
-/**
- * Uploads this specific event to all remote servers
- * TODO move this to a component
- *
- * @return bool true if success, false if, partly, failed
- */
+	/**
+	 * Uploads this specific event to all remote servers
+	 * TODO move this to a component
+	 *
+	 * @return bool true if success, false if, partly, failed
+	 */
 	private function __uploadEventToServers($id, $passAlong = null) {
 		// make sure we have all the data of the Event
 		$this->Event->id = $id;
@@ -659,10 +659,10 @@ class EventsController extends AppController {
 		}
 	}
 
-/**
- * Delets this specific event to all remote servers
- * TODO move this to a component(?)
- */
+	/**
+	 * Delets this specific event to all remote servers
+	 * TODO move this to a component(?)
+	 */
 	private function __deleteEventFromServers($uuid) {
 		// get a list of the servers
 		$this->loadModel('Server');
@@ -681,11 +681,11 @@ class EventsController extends AppController {
 		}
 	}
 
-/**
- * Performs all the actions required to publish an event
- *
- * @param unknown_type $id
- */
+	/**
+	 * Performs all the actions required to publish an event
+	 *
+	 * @param unknown_type $id
+	 */
 	private function __publish($id, $passAlong = null) {
 		$this->Event->id = $id;
 		$this->Event->recursive = 0;
@@ -705,11 +705,11 @@ class EventsController extends AppController {
 		return $uploaded;
 	}
 
-/**
- * Publishes the event without sending an alert email
- *
- * @throws NotFoundException
- */
+	/**
+	 * Publishes the event without sending an alert email
+	 *
+	 * @throws NotFoundException
+	 */
 	public function publish($id = null) {
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
@@ -733,12 +733,12 @@ class EventsController extends AppController {
 		}
 	}
 
-/**
- * Send out an alert email to all the users that wanted to be notified.
- * Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
- *
- * @throws NotFoundException
- */
+	/**
+	 * Send out an alert email to all the users that wanted to be notified.
+	 * Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
+	 *
+	 * @throws NotFoundException
+	 */
 	public function alert($id = null) {
 		$this->Event->id = $id;
 		$this->Event->recursive = 0;
@@ -923,12 +923,12 @@ class EventsController extends AppController {
 		return true;
 	}
 
-/**
- * Send out an contact email to the person who posted the event.
- * Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
- *
- * @throws NotFoundException
- */
+	/**
+	 * Send out an contact email to the person who posted the event.
+	 * Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
+	 *
+	 * @throws NotFoundException
+	 */
 	public function contact($id = null) {
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
@@ -953,22 +953,22 @@ class EventsController extends AppController {
 		}
 	}
 
-/**
- *
- * Sends out an email to all people within the same org
- * with the request to be contacted about a specific event.
- * @todo move __sendContactEmail($id, $message) to a better place. (components?)
- *
- * @param unknown_type $id The id of the event for wich you want to contact the org.
- * @param unknown_type $message The custom message that will be appended to the email.
- * @param unknown_type $all, true: send to org, false: send to person.
- *
- * @codingStandardsIgnoreStart
- * @throws \UnauthorizedException as well. // TODO Exception NotFoundException
- * @codingStandardsIgnoreEnd
- *
- * @return True if success, False if error
- */
+	/**
+	 *
+	 * Sends out an email to all people within the same org
+	 * with the request to be contacted about a specific event.
+	 * @todo move __sendContactEmail($id, $message) to a better place. (components?)
+	 *
+	 * @param unknown_type $id The id of the event for wich you want to contact the org.
+	 * @param unknown_type $message The custom message that will be appended to the email.
+	 * @param unknown_type $all, true: send to org, false: send to person.
+	 *
+	 * @codingStandardsIgnoreStart
+	 * @throws \UnauthorizedException as well. // TODO Exception NotFoundException
+	 * @codingStandardsIgnoreEnd
+	 *
+	 * @return True if success, False if error
+	 */
 	private function __sendContactEmail($id, $message, $all) {
 		// fetch the event
 		$event = $this->Event->read(null, $id);
@@ -1177,12 +1177,12 @@ class EventsController extends AppController {
 				'recursive' => 1,
 				'fields' => $fields,
 				'contain' => array(
-					'Attribute' => array(
-						'fields' => $fieldsAtt,
-						'conditions' => $conditionsAttributes,
+						'Attribute' => array(
+								'fields' => $fieldsAtt,
+								'conditions' => $conditionsAttributes,
 						),
-					)
-				);
+				)
+		);
 		$results = $this->Event->find('all', $params);
 		$this->set('results', $results);
 	}
@@ -1219,7 +1219,7 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->NidsExport->suricataRules($items, $user['User']['nids_sid']);
+		$rules = $this->NidsExport->export($items, $user['User']['nids_sid']);
 		print ("#<h1>This part might still contain bugs, use and your own risk and report any issues.</h1>\n");
 
 		print "#<pre> \n";
@@ -1262,7 +1262,7 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->HidsMd5Export->suricataRules($items);	// TODO NIDS_SID??
+		$rules = $this->HidsMd5Export->export($items);
 		if (count($rules) >= 4) {
 			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
 
@@ -1310,7 +1310,7 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->HidsSha1Export->suricataRules($items);	// TODO NIDS_SID??
+		$rules = $this->HidsSha1Export->export($items);
 		if (count($rules) >= 4) {
 			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
 
@@ -1427,9 +1427,9 @@ class EventsController extends AppController {
 
 	public function addGfiZip($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedfile']['size'] > 0 &&
-		is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
+				is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
 			$zipData = fread(fopen($this->data['Event']['submittedfile']['tmp_name'], "r"),
-			$this->data['Event']['submittedfile']['size']);
+					$this->data['Event']['submittedfile']['size']);
 
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
@@ -1549,11 +1549,11 @@ class EventsController extends AppController {
 			// add attribute..
 			$this->Attribute->read(null, 1);
 			$this->Attribute->save(array(
-			'event_id' => $id,
-			'category' => 'Network activity',
-			'type' => 'ip-dst',
-			'value' => $ip,
-			'to_ids' => false));
+					'event_id' => $id,
+					'category' => 'Network activity',
+					'type' => 'ip-dst',
+					'value' => $ip,
+					'to_ids' => false));
 		}
 
 		// Persistence mechanism -- regkey|value
@@ -1590,11 +1590,11 @@ class EventsController extends AppController {
 				}
 			}
 			$this->Attribute->save(array(
-				'event_id' => $id,
-				'category' => $itsCategory, // 'Persistence mechanism'
-				'type' => $itsType,
-				'value' => $itsValue,
-				'to_ids' => false));
+					'event_id' => $id,
+					'category' => $itsCategory, // 'Persistence mechanism'
+					'type' => $itsType,
+					'value' => $itsValue,
+					'to_ids' => false));
 		}
 	}
 
@@ -1608,9 +1608,9 @@ class EventsController extends AppController {
 		return $toReturn;
 	}
 
-/**
- * generateAllFor<FieldName>
- **/
+	/**
+	 * generateAllFor<FieldName>
+	 **/
 	public function generateAllFor($field) {
 		parent::generateAllFor($field);
 	}
@@ -1702,7 +1702,7 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->NidsExport->suricataRules($items, $this->Auth->user('nids_sid'));
+		$rules = $this->NidsExport->export($items, $this->Auth->user('nids_sid'));
 		print ("#<h1>This part might still contain bugs, use and your own risk and report any issues.</h1>\n");
 
 		print "#<pre> \n";
@@ -1741,7 +1741,7 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->HidsMd5Export->suricataRules($items);	// TODO NIDS_SID??
+		$rules = $this->HidsMd5Export->export($items);
 		if (count($rules) >= 4) {
 			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
 
@@ -1784,7 +1784,7 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->HidsSha1Export->suricataRules($items);	// TODO NIDS_SID??
+		$rules = $this->HidsSha1Export->export($items);
 		if (count($rules) >= 4) {
 			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
 
@@ -1917,14 +1917,14 @@ class EventsController extends AppController {
 		$final[] = '  <short_description>Event #' . $event['Event']['id'] . '</short_description>';
 		$final[] = '  <description>' . $event['Event']['info'] . '</description>';
 		$final[] = '  <keywords />';
-  		$final[] = '  <authored_by>' . $event['Event']['orgc'] . '</authored_by>';
-  		$final[] = '  <authored_date>' . $event['Event']['date'] . '</authored_date>';
-  		$final[] = '  <links />';
-  		$final[] = '  <definition>';
-  		// for now, since we don't have any logical links between attributes, we'll OR all of them
-  		$final[] = '    <Indicator operator="OR" id="' . $event['Event']['uuid'] . '">';
+		$final[] = '  <authored_by>' . $event['Event']['orgc'] . '</authored_by>';
+		$final[] = '  <authored_date>' . $event['Event']['date'] . '</authored_date>';
+		$final[] = '  <links />';
+		$final[] = '  <definition>';
+		// for now, since we don't have any logical links between attributes, we'll OR all of them
+		$final[] = '    <Indicator operator="OR" id="' . $event['Event']['uuid'] . '">';
 
-  		// start converting each attribute to its appropriate IOC entry
+		// start converting each attribute to its appropriate IOC entry
 		foreach ($event['Attribute'] as $attribute) {
 			// check whether the attribute is exportable by the user
 			if ($this->_isSiteAdmin || !$attribute['private'] || $attribute['cluster']) {
@@ -2051,4 +2051,3 @@ class EventsController extends AppController {
 		return true;
 	}
 }
-
