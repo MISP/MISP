@@ -351,13 +351,13 @@ class ShadowAttributesController extends AppController {
 			if ($this->request->data['ShadowAttribute']['malware']) {
 				$this->request->data['ShadowAttribute']['type'] = "malware-sample";
 				// Validate filename
-				if (!preg_match('@[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
+				if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
 				$this->request->data['ShadowAttribute']['value'] = $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
 				$this->request->data['ShadowAttribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 			} else {
 				$this->request->data['ShadowAttribute']['type'] = "attachment";
 				// Validate filename
-				if (!preg_match('@[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
+				if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
 				$this->request->data['ShadowAttribute']['value'] = $filename;
 				$this->request->data['ShadowAttribute']['to_ids'] = 0;
 			}

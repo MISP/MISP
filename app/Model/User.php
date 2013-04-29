@@ -74,7 +74,7 @@ class User extends AppModel {
 		'org_id' => array(
 			'notempty' => array(
 				'rule' => array('notempty'),
-				'message' => 'Please specify the organisation ID where you are working.',	// TODO ACL, org_id in Users
+				'message' => 'Please specify the organisation ID where you are working.',
 				//'allowEmpty' => false,
 				//'required' => false,
 				//'last' => false, // Stop validation after this rule
@@ -230,14 +230,7 @@ class User extends AppModel {
 		)
 	);
 
-/**
- * TODO ACL: 1: be requester to CakePHP ACL system
- */
 	public $actsAs = array(
-		'Acl' => array(	// TODO ACL, + 'enabled' => false
-			'type' => 'requester',
-			'enabled' => false
-		),
 		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
 			'userModel' => 'User',
 			'userKey' => 'user_id',
@@ -246,33 +239,6 @@ class User extends AppModel {
 		'Trim',
 		//'RemoveNewline' => array('fields' => array('gpgkey')),
 	);
-
-/**
- * TODO ACL: 2: hook User into CakePHP ACL system (so link to aros)
- */
-	public function parentNode() {
-		if (!$this->id && empty($this->data)) {
-			return null;
-		}
-		if (isset($this->data['User']['role_id'])) {
-			$roleId = $this->data['User']['role_id'];
-		} else {
-			$roleId = $this->field('role_id');
-		}
-		if (!$roleId) {
-			return null;
-		} else {
-			return array('Role' => array('id' => $roleId));
-		}
-	}
-
-/**
- * TODO ACL: 3: rights on Roles: http://stackoverflow.com/questions/6154285/aros-table-in-cakephp-is-still-including-users-even-after-bindnode
- */
-	public function bindNode($user) {
-		// return array('model' => 'Group', 'foreign_key' => $user['User']['role_id']);
-		return array('Role' => array('id' => $user['User']['role_id']));
-	}
 
 	public function beforeSave() {
 		if (isset($this->data[$this->alias]['password'])) {

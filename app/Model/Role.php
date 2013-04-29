@@ -47,14 +47,12 @@ class Role extends AppModel {
 	);
 
 /**
- * TODO ACL: 1: be requester to CakePHP ACL system
  *
  * @var unknown_type
  */
 	public $actsAs = array(
-			'Acl' => array('type' => 'requester'),
-			'MagicTools.OrphansProtectable',
 			'Trim',
+			'MagicTools.OrphansProtectable',
 			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
 					'roleModel' => 'Role',
 					'roleKey' => 'role_id',
@@ -62,12 +60,6 @@ class Role extends AppModel {
 			),
 	);
 
-/**
- * TODO ACL: 2: hook Role into CakePHP ACL system (so link to aros)
- */
-	public function parentNode() {
-		return null;
-	}
 
 /**
  * Virtual field
