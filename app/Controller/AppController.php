@@ -86,29 +86,19 @@ class AppController extends Controller {
 
 			// Authenticate user with authkey in Authorization HTTP header
 			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
-				if (!$this->checkAuthUser($_SERVER['HTTP_AUTHORIZATION'])) {
-					throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
-				}
-				$this->loadModel('User');
-				$params = array(
-						'conditions' => array('User.authkey' => $authkey),
-						'recursive' => 0,
-				);
-				$user = $this->User->find('first', $params);
-
+				$user = $this->checkAuthUser($_SERVER['HTTP_AUTHORIZATION']);
 				if ($user) {
-					// User found in the db, add the user info to the session
-					$this->Session->renew();
-					$this->Session->write(AuthComponent::$sessionKey, $user['User']);
-				} else {
+				    // User found in the db, add the user info to the session
+				    $this->Session->renew();
+				    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+				}
+				else {
 					// User not authenticated correctly
 					// reset the session information
 					$this->Session->destroy();
-					throw new ForbiddenException('Incorrect authentication key');
+					throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
 				}
 			}
-		} else {
-			//$this->Security->blackHoleCallback = 'blackhole'; // TODO needs more investigation
 		}
 
 		// We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
@@ -234,10 +224,9 @@ class AppController extends Controller {
 /**
  *
  * @param unknown $authkey
- * @return boolean
+ * @return boolean or user array
  */
 	public function checkAuthUser($authkey) {
-		$result = false;
 		$this->loadModel('User');
 		$this->User->recursive = -1;
 		$user = $this->User->findByAuthkey($authkey);
@@ -246,10 +235,10 @@ class AppController extends Controller {
 			$this->Role->recursive = -1;
 			$role = $this->Role->findById($user['User']['role_id']);
 			if ($role['Role']['perm_auth']) {
-				$result = true;
+				return $user;
 			}
 		}
-		return $result;
+		return false;
 	}
 
 	public function generatePrivate() {
