@@ -148,25 +148,8 @@ sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 # And export the public key to the webroot
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
 
-
-
-# Create the Role Based Access Control (RBAC) tables and content:
-cd /var/www/MISP/app
-export PATH="$PATH:/opt/cakephp/lib/Cake/Console"
-cake acl create aco root controllers
-cake AclExtras.AclExtras aco_sync    
-# You might get an 'Warning Error: Argument…'
-# however if it ends with 'Aco Update Complete' it should be OK
-
-
 Now log in using the webinterface:
 The default user/pass = admin@admin.test/admin 
-
-Execute the last installation script by entering the following url into your browser (watch out for capitalisation!):
-[MISP url]/events/generateArosAcos
-
-For example, if your MISP installation is located at "https://www.myveryownmisp.com",
-then this is what you need to enter: "https://www.myveryownmisp.com/events/generateArosAcos"
 
 Don't forget to change the email, password and authentication key after installation.
 
