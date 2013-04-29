@@ -399,7 +399,7 @@ class EventsController extends AppController {
 		}
 		$this->Event->read(null, $id);
 		// check for if private and user not authorised to edit, go away
-		if (!$this->isSiteAdmin() && !$this->checkAction('perm_sync') && $this->Event->data['Event']['distribution'] == 'Your organization only') {
+		if (!$this->_isSiteAdmin() && !$this->checkAction('perm_sync') && $this->Event->data['Event']['distribution'] == 'Your organization only') {
 			if (($this->Event->data['Event']['org'] != $this->_checkOrg()) || !($this->checkAction('perm_modify'))) {
 				$this->Session->setFlash(__('You are not authorised to do that.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -1148,7 +1148,7 @@ class EventsController extends AppController {
 			$conditions = array();
 		}
 		//restricting to non-private or same org if the user is not a site-admin.
-		if (!$this->isSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$temp2 = array();
 			$org = $this->_checkOrg();
@@ -1202,7 +1202,7 @@ class EventsController extends AppController {
 
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		if (!$this->isSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
 			array_push($distribution, array('Attribute.private =' => 0));
@@ -1245,7 +1245,7 @@ class EventsController extends AppController {
 
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		if (!$this->isSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
 			array_push($distribution, array('Attribute.private =' => 0));
@@ -1293,7 +1293,7 @@ class EventsController extends AppController {
 
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		if (!$this->isSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
 			array_push($distribution, array('Attribute.private =' => 0));
@@ -1341,7 +1341,7 @@ class EventsController extends AppController {
 
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.type' => $type);
-		if (!$this->isSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
 			array_push($distribution, array('Attribute.private =' => 0));
@@ -1635,7 +1635,7 @@ class EventsController extends AppController {
 			$conditions = array();
 		}
 		//restricting to non-private or same org if the user is not a site-admin.
-		if (!$this->isSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$temp2 = array();
 			$org = $this->_checkOrg();
@@ -1685,7 +1685,7 @@ class EventsController extends AppController {
 
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		if (!$this->isSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
 			array_push($distribution, array('Attribute.private =' => 0));
@@ -1724,7 +1724,7 @@ class EventsController extends AppController {
 
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		if (!$this->isSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
 			array_push($distribution, array('Attribute.private =' => 0));
@@ -1767,7 +1767,7 @@ class EventsController extends AppController {
 
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		if (!$this->isSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
 			array_push($distribution, array('Attribute.private =' => 0));
@@ -1809,7 +1809,7 @@ class EventsController extends AppController {
 
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.type' => $type);
-		if (!$this->isSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
 			array_push($distribution, array('Attribute.private =' => 0));
@@ -1845,7 +1845,7 @@ class EventsController extends AppController {
 		}
 		$conditions['AND'][] = $put;
 		// Restricting to non-private or same org if the user is not a site-admin.
-		if (!$this->isSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$temp2 = array();
 			$org = $this->_checkOrg();
@@ -1904,7 +1904,7 @@ class EventsController extends AppController {
 		$event = $this->Event->read(null, $eventid);
 
 		// check if the user has permission - attribute checked further down in loop
-		if (!$this->isSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			if ($this->Auth->User != $event['Event']['org'] && ($event['Event']['private'] && !$event['Event']['cluster'])) {
 				throw new Exception('Nothing to see here (not authorised)');
 			}
@@ -1927,7 +1927,7 @@ class EventsController extends AppController {
   		// start converting each attribute to its appropriate IOC entry
 		foreach ($event['Attribute'] as $attribute) {
 			// check whether the attribute is exportable by the user
-			if ($this->isSiteAdmin || !$attribute['private'] || $attribute['cluster']) {
+			if ($this->_isSiteAdmin || !$attribute['private'] || $attribute['cluster']) {
 				// check whether the attribute is sent for IOC export based on category/type
 				if (!$this->__checkValidTypeForIOC($attribute)) continue;
 				// Composite type regkey|value doesn\t need the leading and closing IndicatorItem, so taken outside of the switch
