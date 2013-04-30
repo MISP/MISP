@@ -141,7 +141,6 @@ class AttributesController extends AppController {
 
 					$this->Attribute->create();
 					$this->request->data['Attribute']['value'] = $attribute; // set the value as the content of the single line
-					$this->request->data = $this->Attribute->massageData($this->request->data);
 					// TODO loop-holes,
 					// there seems to be a loop-hole in misp here
 					// be it an create and not an update
@@ -191,7 +190,6 @@ class AttributesController extends AppController {
 				//
 				// create the attribute
 				$this->Attribute->create();
-				$this->request->data = $this->Attribute->massageData($this->request->data);
 
 				if ("i" == Configure::read('CyDefSIG.rest')) {
 					unset($this->request->data['Event']);
@@ -341,7 +339,6 @@ class AttributesController extends AppController {
 			}
 			$this->request->data['Attribute']['uuid'] = String::uuid();
 			$this->request->data['Attribute']['batch_import'] = 0;
-			$this->request->data = $this->Attribute->massageData($this->request->data);
 
 			if ($this->Attribute->save($this->request->data)) {
 				// attribute saved correctly in the db
@@ -497,7 +494,6 @@ class AttributesController extends AppController {
 			$this->set('attachment', false);
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
-			$this->request->data = $this->Attribute->massageData($this->request->data);
 
 			// reposition to get the attribute.id with given uuid
 			// Notice (8): Undefined index: uuid [APP/Controller/AttributesController.php, line 502]

@@ -308,52 +308,58 @@ class Event extends AppModel {
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
+
+		// distribution - setting correct vars
+		if (isset($this->data['Event']['distribution'])) {
+			switch ($this->data['Event']['distribution']) {
+			    case 'Your organization only':
+			        $this->data['Event']['private'] = true;
+			        $this->data['Event']['cluster'] = false;
+			        $this->data['Event']['communitie'] = false;
+			        break;
+			    case 'This server-only':
+			        $this->data['Event']['private'] = true;
+			        $this->data['Event']['cluster'] = true;
+			        $this->data['Event']['communitie'] = false;
+			        break;
+			    case 'This Community-only':
+			        $this->data['Event']['private'] = false;
+			        $this->data['Event']['cluster'] = true;
+			        $this->data['Event']['communitie'] = false;
+			        break;
+			    case 'Connected communities':
+			        $this->data['Event']['private'] = false;
+			        $this->data['Event']['cluster'] = false;
+			        $this->data['Event']['communitie'] = true;
+			        break;
+			    case 'All communities':
+			        $this->data['Event']['private'] = false;
+			        $this->data['Event']['cluster'] = false;
+			        $this->data['Event']['communitie'] = false;
+			        break;
+			}
+		}
+
+		// analysis - setting correct vars
+		// TODO refactor analysis into an Enum (in the database)
+		if (isset($this->data['Event']['analysis'])) {
+			switch($this->data['Event']['analysis']){
+			    case 'Initial':
+			        $this->data['Event']['analysis'] = 0;
+			        break;
+			    case 'Ongoing':
+			        $this->data['Event']['analysis'] = 1;
+			        break;
+			    case 'Completed':
+			        $this->data['Event']['analysis'] = 2;
+			        break;
+			}
+		}
+
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Event']['uuid'])) {
 			$this->data['Event']['uuid'] = String::uuid();
 		}
-	}
-
-	public function massageData(&$data) {
-		switch ($data['Event']['distribution']) {
-			case 'Your organization only':
-				$data['Event']['private'] = true;
-				$data['Event']['cluster'] = false;
-				$data['Event']['communitie'] = false;
-				break;
-			case 'This server-only': // TODO
-				$data['Event']['private'] = true;
-				$data['Event']['cluster'] = true;
-				$data['Event']['communitie'] = false;
-				break;
-			case 'This Community-only':
-				$data['Event']['private'] = false;
-				$data['Event']['cluster'] = true;
-				$data['Event']['communitie'] = false;
-				break;
-			case 'Connected communities': // TODO
-				$data['Event']['private'] = false;
-				$data['Event']['cluster'] = false;
-				$data['Event']['communitie'] = true;
-				break;
-			case 'All communities':
-				$data['Event']['private'] = false;
-				$data['Event']['cluster'] = false;
-				$data['Event']['communitie'] = false;
-				break;
-		}
-		switch($data['Event']['analysis']){
-			case 'Initial':
-				$data['Event']['analysis'] = 0;
-				break;
-			case 'Ongoing':
-				$data['Event']['analysis'] = 1;
-				break;
-			case 'Completed':
-				$data['Event']['analysis'] = 2;
-				break;
-		}
-		return $data;
 	}
 
 	public function isOwnedByOrg($eventid, $org) {

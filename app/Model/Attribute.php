@@ -438,43 +438,41 @@ class Attribute extends AppModel {
 
 	}
 
-	public function massageData(&$data) {
-		if(!isset($data['Attribute']['distribution'])) return $data;
-		switch ($data['Attribute']['distribution']) {
-			case 'Your organization only':
-				$data['Attribute']['private'] = true;
-				$data['Attribute']['cluster'] = false;
-				$data['Attribute']['communitie'] = false;
-				break;
-			case 'This server-only': // TODO
-				$data['Attribute']['private'] = true;
-				$data['Attribute']['cluster'] = true;
-				$data['Attribute']['communitie'] = false;
-				break;
-			case 'This Community-only':
-				$data['Attribute']['private'] = false;
-				$data['Attribute']['cluster'] = true;
-				$data['Attribute']['communitie'] = false;
-				break;
-			case 'Connected communities': // TODO
-				$data['Attribute']['private'] = false;
-				$data['Attribute']['cluster'] = false;
-				$data['Attribute']['communitie'] = true;
-				break;
-			case 'All communities':
-				$data['Attribute']['private'] = false;
-				$data['Attribute']['cluster'] = false;
-				$data['Attribute']['communitie'] = false;
-				break;
-		}
-		return $data;
-	}
-
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 
+		// distribution - setting correct vars
+		if(isset($this->data['Attribute']['distribution'])) {
+			switch ($this->data['Attribute']['distribution']) {
+			    case 'Your organization only':
+			        $this->data['Attribute']['private'] = true;
+			        $this->data['Attribute']['cluster'] = false;
+			        $this->data['Attribute']['communitie'] = false;
+			        break;
+			    case 'This server-only':
+			        $this->data['Attribute']['private'] = true;
+			        $this->data['Attribute']['cluster'] = true;
+			        $this->data['Attribute']['communitie'] = false;
+			        break;
+			    case 'This Community-only':
+			        $this->data['Attribute']['private'] = false;
+			        $this->data['Attribute']['cluster'] = true;
+			        $this->data['Attribute']['communitie'] = false;
+			        break;
+			    case 'Connected communities':
+			        $this->data['Attribute']['private'] = false;
+			        $this->data['Attribute']['cluster'] = false;
+			        $this->data['Attribute']['communitie'] = true;
+			        break;
+			    case 'All communities':
+			        $this->data['Attribute']['private'] = false;
+			        $this->data['Attribute']['cluster'] = false;
+			        $this->data['Attribute']['communitie'] = false;
+			        break;
+			}
+		}
+
 		// remove leading and trailing blanks
-		//$this->trimStringFields(); // TODO
 		$this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
 
 		if (!isset($this->data['Attribute']['type'])) {

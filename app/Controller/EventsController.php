@@ -233,12 +233,10 @@ class EventsController extends AppController {
 	 */
 	public function add() {
 		if ($this->request->is('post')) {
-			// TODO or massageData here
 			if ($this->_isRest()) {
 				// Distribution, reporter for the events pushed will be the owner of the authentication key
 				$this->request->data['Event']['user_id'] = $this->Auth->user('id');
 			}
-			$this->request->data = $this->Event->massageData($this->request->data);
 			if (!empty($this->data)) {
 				if (isset($this->data['Event']['submittedfile'])) {
 					App::uses('File', 'Utility');
@@ -252,7 +250,6 @@ class EventsController extends AppController {
 					//return false;
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
-					// TODO or massageData here
 					if ($this->_add($this->request->data, $this->Auth, $this->_isRest(),'')) {
 						if ($this->_isRest()) {
 							// REST users want to see the newly created event
@@ -362,7 +359,6 @@ class EventsController extends AppController {
 					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie', 'dist_change')
 			);
 		}
-		$data = $this->Event->massageData($data);
 
 		if ("i" == Configure::read('CyDefSIG.baseurl')) {
 			// this saveAssociated() function will save not only the event, but also the attributes
@@ -528,7 +524,6 @@ class EventsController extends AppController {
 					$this->request->data['Event']['dist_change'] = 1 + $this->Event->data['Event']['dist_change'];
 				}
 			}
-			$this->request->data = $this->Event->massageData($this->request->data);
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The event has been saved'));
 				$this->redirect(array('action' => 'view', $id));
