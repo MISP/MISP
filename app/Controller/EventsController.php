@@ -127,12 +127,19 @@ class EventsController extends AppController {
 	 * @throws NotFoundException
 	 */
 	public function view($id = null) {
-		$this->Event->id = $id;
+		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
+		if (strlen($id) == 36) {
+			$this->Event->recursive = -1;
+			$temp = $this->Event->findByUuid($id);
+			if ($temp == null) throw new NotFoundException(__('Invalid event'));
+			$id = $temp['Event']['id'];
+		}
 		$this->Event->recursive = 2;
+		$this->Event->contain('Attribute', 'Attribute.ShadowAttribute', 'User.email');
+		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-		$this->Event->contain('Attribute', 'Attribute.ShadowAttribute', 'User.email');
 		$this->Event->read(null, $id);
 		$userEmail = $this->Event->data['User']['email'];
 		unset ($this->Event->data['User']);

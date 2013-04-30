@@ -42,6 +42,11 @@ endif; ?>
 			<?php echo h($event['Event']['id']); ?>
 			&nbsp;
 		</dd>
+		<dt>Uuid</dt>
+		<dd>
+			<?php echo h($event['Event']['uuid']); ?>
+			&nbsp;
+		</dd>
 		<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 		<dt>Org</dt>
 		<dd>
