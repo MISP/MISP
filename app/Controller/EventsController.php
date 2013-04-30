@@ -1129,16 +1129,29 @@ class EventsController extends AppController {
 	}
 
 	public function xml($key, $eventid=null) {
-		// check if the key is valid -> search for users based on key
-		$user = $this->checkAuthUser($key);
-		if (!$user) {
-			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+		if ($key != 'download') {
+			// check if the key is valid -> search for users based on key
+			$user = $this->checkAuthUser($key);
+			if (!$user) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
+			// display the full xml
+			$this->response->type('xml');	// set the content type
+			$this->layout = 'xml/default';
+			$this->header('Content-Disposition: inline; filename="misp.xml"');
+		} else {
+			if (!$this->Auth->user('id')) {
+				throw new UnauthorizedException('You have to be logged in to do that.');
+			}
+			// display the full xml
+			$this->response->type('xml');	// set the content type
+			$this->layout = 'xml/default';
+			if ($eventid == null) {
+				$this->header('Content-Disposition: download; filename="misp.export.all.xml"');
+			} else {
+				$this->header('Content-Disposition: download; filename="misp.export.event' . $eventid . '.xml"');
+			}
 		}
-		// display the full xml
-		$this->response->type('xml');	// set the content type
-		$this->layout = 'xml/default';
-		$this->header('Content-Disposition: inline; filename="misp.xml"');
-
 		if (isset($eventid)) {
 			$this->Event->id = $eventid;
 			if (!$this->Event->exists()) {
@@ -1191,16 +1204,28 @@ class EventsController extends AppController {
 	}
 
 	public function nids($key) {
-		// check if the key is valid -> search for users based on key
-		$user = $this->checkAuthUser($key);
-		if (!$user) {
-			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+		if ($key != 'download') {
+			$this->response->type('txt');	// set the content type
+			$this->header('Content-Disposition: inline; filename="misp.rules"');
+			$this->layout = 'text/default';
+			// check if the key is valid -> search for users based on key
+			$user = $this->checkAuthUser($key);
+			if (!$user) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
+		} else {
+			//$this->autoRender = false;
+			$this->response->type('txt');	// set the content type
+			$this->header('Content-Disposition: download; filename="misp.nids.rules"');
+			$this->layout = 'text/default';
+			// check if there's a user logged in or not
+			if (!$this->Auth->user('id')) {
+				throw new UnauthorizedException('You have to be logged in to do that.');
+			}
+			$user = $this->Auth->user;
 		}
-		// display the full snort rulebase
-		$this->response->type('txt');	// set the content type
-		$this->header('Content-Disposition: inline; filename="misp.rules"');
-		$this->layout = 'text/default';
 
+		// display the full snort rulebase
 		$this->loadModel('Attribute');
 
 		//restricting to non-private or same org if the user is not a site-admin.
@@ -1223,26 +1248,35 @@ class EventsController extends AppController {
 		$items = $this->Attribute->find('all', $params);
 
 		$rules = $this->NidsExport->export($items, $user['User']['nids_sid']);
-		print ("#<h1>This part might still contain bugs, use and your own risk and report any issues.</h1>\n");
-
-		print "#<pre> \n";
-		foreach ($rules as &$rule)
-			print $rule . "\n";
-		print "#</pre>\n";
-
 		$this->set('rules', $rules);
 	}
 
-	public function hids_md5($key) {
-		// check if the key is valid -> search for users based on key
-		$user = $this->checkAuthUser($key);
-		if (!$user) {
-			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+	public function hids($type, $key) {
+
+		if ($key != 'download') {
+			// check if the key is valid -> search for users based on key
+			$user = $this->checkAuthUser($key);
+			if (!$user) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
+			$this->response->type('txt');	// set the content type
+			$this->header('Content-Disposition: inline; filename="misp.' . $type . '.rules"');
+			$this->layout = 'text/default';
+		} else {
+			// check if there's a user logged in or not
+			if (!$this->Auth->user('id')) {
+				throw new UnauthorizedException('You have to be logged in to do that.');
+			}
+			$this->response->type(array('txt' => 'text/html'));	// set the content type
+			$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
+			$this->layout = 'text/default';
+			$user = $this->Auth->user;
 		}
-		// display the full md5 set
-		$this->response->type(array('txt' => 'text/html'));	// set the content type
-		$this->header('Content-Disposition: inline; filename="misp.rules"');
-		$this->layout = 'text/default';
+
+		// check if it's a valid type
+		if ($type != 'md5' && $type != 'sha1') {
+			throw new UnauthorizedException('Invalid hash type.');
+		}
 
 		$this->loadModel('Attribute');
 
@@ -1265,80 +1299,30 @@ class EventsController extends AppController {
 		);
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->HidsMd5Export->export($items);
-		if (count($rules) >= 4) {
-			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
-
-			print "#<pre> \n";
-			foreach ($rules as &$rule)
-				print $rule . "\n";
-			print "#</pre>\n";
-
-			$this->set('rules', $rules);
-		} else {
-			print "Not any MD5 found to export\n";
-		}
-		$this->render('hids');
-	}
-
-	public function hids_sha1($key) {
-		// check if the key is valid -> search for users based on key
-		$user = $this->checkAuthUser($key);
-		if (!$user) {
-			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
-		}
-		// display the full SHA-1 set
-		$this->response->type(array('txt' => 'text/html'));	// set the content type
-		$this->header('Content-Disposition: inline; filename="misp.rules"');
-		$this->layout = 'text/default';
-
-		$this->loadModel('Attribute');
-
-		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		if (!$this->_isSiteAdmin()) {
-			$temp = array();
-			$distribution = array();
-			array_push($distribution, array('Attribute.private =' => 0));
-			array_push($distribution, array('Attribute.cluster =' => 1));
-			array_push($temp, array('OR' => $distribution));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
-			$conditions['OR'] = $temp;
-		}
-
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
-		);
-		$items = $this->Attribute->find('all', $params);
-
-		$rules = $this->HidsSha1Export->export($items);
-		if (count($rules) >= 4) {
-			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
-
-			print "#<pre> \n";
-			foreach ($rules as &$rule) {
-				print $rule . "\n";
-			}
-			print "#</pre>\n";
-
-			$this->set('rules', $rules);
-		} else {
-			print "No SHA-1 found to export\n";
-		}
-		$this->render('hids');
+		if ($type == 'md5') $rules = $this->HidsMd5Export->export($items);
+		if ($type == 'sha1') $rules = $this->HidsSha1Export->export($items);
+		$this->set('rules', $rules);
+		//$this->render('hids');
 	}
 
 	public function text($key, $type="") {
-		// check if the key is valid -> search for users based on key
-		$user = $this->checkAuthUser($key);
-		if (!$user) {
-			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+		if ($key != 'download') {
+			// check if the key is valid -> search for users based on key
+			$user = $this->checkAuthUser($key);
+			if (!$user) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
+			$this->response->type('txt');	// set the content type
+			$this->header('Content-Disposition: inline; filename="misp.' . $type . '.txt"');
+			$this->layout = 'text/default';
+		} else {
+			if (!$this->Auth->user('id')) {
+				throw new UnauthorizedException('You have to be logged in to do that.');
+			}
+			$this->response->type('txt');	// set the content type
+			$this->header('Content-Disposition: download; filename="misp.' . $type . '.txt"');
+			$this->layout = 'text/default';
 		}
-		$this->response->type('txt');	// set the content type
-		$this->header('Content-Disposition: inline; filename="misp.' . $type . '.txt"');
-		$this->layout = 'text/default';
 
 		$this->loadModel('Attribute');
 
@@ -1362,7 +1346,6 @@ class EventsController extends AppController {
 				'group' => array('Attribute.value'), //fields to GROUP BY
 		);
 		$attributes = $this->Attribute->find('all', $params);
-
 		$this->set('attributes', $attributes);
 	}
 
@@ -1618,225 +1601,6 @@ class EventsController extends AppController {
 		parent::generateAllFor($field);
 	}
 
-	public function downloadxml($eventid=null) {
-		// display the full xml
-		$this->response->type('xml');	// set the content type
-		$this->layout = 'xml/default';
-		if ($eventid == null) {
-			$this->header('Content-Disposition: download; filename="misp.export.all.xml"');
-		} else {
-			$this->header('Content-Disposition: download; filename="misp.export.event' . $eventid . '.xml"');
-		}
-
-		if (isset($eventid)) {
-			$this->Event->id = $eventid;
-			if (!$this->Event->exists()) {
-				throw new NotFoundException(__('Invalid event'));
-			}
-			$conditions = array("Event.id" => $eventid);
-		} else {
-			$conditions = array();
-		}
-		$conditionsAttributes = array();
-		//restricting to non-private or same org if the user is not a site-admin.
-		if (!$this->_isSiteAdmin()) {
-			$temp = array();
-			$temp2 = array();
-			$org = $this->_checkOrg();
-			$distribution = array();
-			array_push($distribution, array('Event.private =' => 0));
-			array_push($distribution, array('Event.cluster =' => 1));
-			array_push($temp, array('OR' => $distribution));
-			array_push($temp, array('Event.org LIKE' => $org));
-			$conditions['OR'] = $temp;
-			$distribution2 = array();
-			array_push($distribution2, array('Attribute.private =' => 0));
-			array_push($distribution2, array('Attribute.cluster =' => 1));
-			array_push($temp2, array('OR' => $distribution2));
-			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
-			$conditionsAttributes['OR'] = $temp2;
-			$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
-		}
-
-		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
-		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id');
-		if ('true' == Configure::read('CyDefSIG.showorg')) {
-			$fields[] = 'Event.org';
-		}
-
-		$params = array('conditions' => $conditions,
-				'recursive' => 1,
-				'fields' => $fields,
-				'contain' => array(
-						'Attribute' => array(
-								'fields' => $fieldsAtt,
-								'conditions' => $conditionsAttributes,
-						),
-				)
-		);
-		$results = $this->Event->find('all', $params);
-		$this->set('results', $results);
-		$this->render('xml');
-	}
-
-	public function downloadnids() {
-		// display the full snort rulebase
-		$this->response->type('txt');	// set the content type
-		$this->header('Content-Disposition: download; filename="misp.nids.rules"');
-		$this->layout = 'text/default';
-
-		$this->loadModel('Attribute');
-
-		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		if (!$this->_isSiteAdmin()) {
-			$temp = array();
-			$distribution = array();
-			array_push($distribution, array('Attribute.private =' => 0));
-			array_push($distribution, array('Attribute.cluster =' => 1));
-			array_push($temp, array('OR' => $distribution));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
-			$conditions['OR'] = $temp;
-		}
-
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
-		);
-		$items = $this->Attribute->find('all', $params);
-
-		$rules = $this->NidsExport->export($items, $this->Auth->user('nids_sid'));
-		print ("#<h1>This part might still contain bugs, use and your own risk and report any issues.</h1>\n");
-
-		print "#<pre> \n";
-		foreach ($rules as &$rule)
-			print $rule . "\n";
-		print "#</pre>\n";
-
-		$this->set('rules', $rules);
-		$this->render('nids');
-	}
-
-	public function downloadhids_md5() {
-		// display the full md5 set
-		$this->response->type(array('txt' => 'text/html'));	// set the content type
-		$this->header('Content-Disposition: download; filename="misp.md5.rules"');
-		$this->layout = 'text/default';
-
-		$this->loadModel('Attribute');
-
-		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		if (!$this->_isSiteAdmin()) {
-			$temp = array();
-			$distribution = array();
-			array_push($distribution, array('Attribute.private =' => 0));
-			array_push($distribution, array('Attribute.cluster =' => 1));
-			array_push($temp, array('OR' => $distribution));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
-			$conditions['OR'] = $temp;
-		}
-
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
-		);
-		$items = $this->Attribute->find('all', $params);
-
-		$rules = $this->HidsMd5Export->export($items);
-		if (count($rules) >= 4) {
-			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
-
-			print "#<pre> \n";
-			foreach ($rules as &$rule)
-				print $rule . "\n";
-			print "#</pre>\n";
-
-			$this->set('rules', $rules);
-		} else {
-			print "No MD5 found to export\n";
-		}
-		$this->render('hids');
-	}
-
-	public function downloadhids_sha1() {
-		// display the full SHA-1 set
-		$this->response->type(array('txt' => 'text/html'));	// set the content type
-		$this->header('Content-Disposition: download; filename="misp.sha1.rules"');
-		$this->layout = 'text/default';
-
-		$this->loadModel('Attribute');
-
-		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		if (!$this->_isSiteAdmin()) {
-			$temp = array();
-			$distribution = array();
-			array_push($distribution, array('Attribute.private =' => 0));
-			array_push($distribution, array('Attribute.cluster =' => 1));
-			array_push($temp, array('OR' => $distribution));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
-			$conditions['OR'] = $temp;
-		}
-
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
-		);
-		$items = $this->Attribute->find('all', $params);
-
-		$rules = $this->HidsSha1Export->export($items);
-		if (count($rules) >= 4) {
-			print ("#<h1>This part is not finished and might be buggy. Please report any issues.</h1>\n");
-
-			print "#<pre> \n";
-			foreach ($rules as &$rule) {
-				print $rule . "\n";
-			}
-			print "#</pre>\n";
-
-			$this->set('rules', $rules);
-		} else {
-			print "No SHA-1 found to export\n";
-		}
-		$this->render('hids');
-	}
-
-	public function downloadtext($type="") {
-		$this->response->type('txt');	// set the content type
-		$this->header('Content-Disposition: download; filename="misp.' . $type . '.txt"');
-		$this->layout = 'text/default';
-		$this->loadModel('Attribute');
-
-		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.type' => $type, 'Attribute.to_ids =' => 1);
-		if (!$this->_isSiteAdmin()) {
-			$temp = array();
-			$distribution = array();
-			array_push($distribution, array('Attribute.private =' => 0));
-			array_push($distribution, array('Attribute.cluster =' => 1));
-			array_push($temp, array('OR' => $distribution));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
-			$conditions['OR'] = $temp;
-		}
-
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'fields' => array('Attribute.value'), //array of field names
-				'order' => array('Attribute.value'), //string or array defining order
-				'group' => array('Attribute.value'), //fields to GROUP BY
-		);
-		$attributes = $this->Attribute->find('all', $params);
-
-		$this->set('attributes', $attributes);
-		$this->render('text');
-	}
-
 	public function downloadSearchResult() {
 		$idList = $this->Session->read('search_find_idlist');
 		$this->Session->write('search_find_idlist', '');
@@ -1896,7 +1660,8 @@ class EventsController extends AppController {
 		// display the full xml
 		$this->response->type('text');	// set the content type
 		if ($eventid == null) {
-			$this->header('Content-Disposition: download; filename="misp.openIOC.ioc"');
+			throw new Exception('Not yet implemented');
+			// $this->header('Content-Disposition: download; filename="misp.openIOC.ioc"');
 		} else {
 			$this->header('Content-Disposition: download; filename="misp.openIOC' . $eventid . '.ioc"');
 		}

@@ -29,7 +29,7 @@ endif; ?>
 	<?php
 endif; ?>
 	<br /><ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id'])); ?> </li></ul><br />
-	<ul><li><?php echo $this->Html->link(__('Download as XML', true), array('action' => 'downloadxml', $event['Event']['id'])); ?>
+	<ul><li><?php echo $this->Html->link(__('Download as XML', true), array('action' => 'xml', 'download', $event['Event']['id'])); ?>
 	<?php echo $this->Html->link(__('Download as IOC', true), array('action' => 'downloadOpenIOCEvent', $event['Event']['id'])); ?> </li></ul>
 </div>
 

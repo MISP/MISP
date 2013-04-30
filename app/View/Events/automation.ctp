@@ -28,9 +28,9 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <p>Automatic export of MD5/SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
 <p>You can configure your tools to automatically download the following files:</p>
 <h4>md5</h4>
-<pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/hids_md5/<?php echo $me['authkey']; ?></pre>
+<pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/hids/md5/<?php echo $me['authkey']; ?></pre>
 <h4>sha1</h4>
-<pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/hids_sha1/<?php echo $me['authkey']; ?></pre>
+<pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/hids/sha1/<?php echo $me['authkey']; ?></pre>
 <p></p>
 
 <h3>Text export</h3>
