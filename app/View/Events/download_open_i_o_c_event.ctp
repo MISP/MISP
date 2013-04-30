@@ -1,6 +1,5 @@
 <?php
 foreach ($final as $line) {
-	echo($line);
-	echo "\n";
+	echo $line . PHP_EOL;
 }
 ?>
