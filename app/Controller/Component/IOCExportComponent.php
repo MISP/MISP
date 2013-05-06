@@ -158,10 +158,10 @@ class IOCExportComponent extends Component {
 	// Simple check for valid categories and types for IOC generation
 	private function __checkValidTypeForIOC($attribute) {
 		// categories that should be included
-		$skipCategory = array('Payload delivery', 'Artifacts dropped', 'Payload installation', 'Persistence mechanism', 'Network activity');
+		$Category = array('Payload delivery', 'Artifacts dropped', 'Payload installation', 'Persistence mechanism', 'Network activity');
 		// types that should be excluded
 		$skipType = array('AS', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'comment', 'text', 'other');
-		if (!in_array($attribute['category'], $skipCategory)) return false;
+		if (!in_array($attribute['category'], $Category)) return false;
 		if (in_array($attribute['type'], $skipType)) return false;
 		return true;
 	}

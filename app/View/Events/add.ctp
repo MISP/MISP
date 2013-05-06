@@ -18,9 +18,14 @@ echo $this->Form->input('analysis', array(
 echo $this->Form->input('info');
 echo $this->Form->input('Event.submittedfile', array(
 		'label' => '<b>GFI sandbox</b>',
-		'between' => '<br />',
 		'type' => 'file',
 		'before' => $this->Html->div('forminfo', isset($eventDescriptions['submittedfile']['formdesc']) ? $eventDescriptions['submittedfile']['formdesc'] : $eventDescriptions['submittedfile']['desc'])));
+
+echo $this->Form->input('Event.submittedioc', array(
+		'label' => '<b>OpenIOC</b>',
+		'type' => 'file',
+));
+
 
 // link an onchange event to the form elements
 $this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');

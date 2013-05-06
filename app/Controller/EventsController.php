@@ -21,7 +21,8 @@ class EventsController extends AppController {
 			'HidsMd5Export',
 			'HidsSha1Export',
 			'NidsExport',
-			'IOCExport'
+			'IOCExport',
+			'IOCImport'
 	);
 
 	public $paginate = array(
@@ -246,14 +247,18 @@ class EventsController extends AppController {
 				$this->request->data['Event']['user_id'] = $this->Auth->user('id');
 			}
 			if (!empty($this->data)) {
+				$ext = '';
 				if (isset($this->data['Event']['submittedfile'])) {
 					App::uses('File', 'Utility');
 					$file = new File($this->data['Event']['submittedfile']['name']);
 					$ext = $file->ext();
-				} else {
-					$ext = '';
 				}
-				if (isset($this->data['Event']['submittedfile']) && $ext != 'zip' && $this->data['Event']['submittedfile']['size'] > 0 &&
+				if (isset($this->data['Event']['submittedioc'])) {
+					App::uses('File', 'Utility');
+					$file = new File($this->data['Event']['submittedfile']['name']);
+					$ext = $file->ext();
+				}
+				if (isset($this->data['Event']['submittedfile']) && ($ext != 'zip') && $this->data['Event']['submittedfile']['size'] > 0 &&
 						is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
 					//return false;
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
@@ -266,6 +271,7 @@ class EventsController extends AppController {
 						} else {
 							// TODO now save uploaded attributes using $this->Event->getId() ..
 							$this->addGfiZip($this->Event->getId());
+							$this->addIOCFile($this->Event->getId());
 
 							// redirect to the view of the newly created event
 							if (!CakeSession::read('Message.flash')) {
@@ -274,7 +280,11 @@ class EventsController extends AppController {
 								$existingFlash = CakeSession::read('Message.flash');
 								$this->Session->setFlash(__('The event has been saved. ' . $existingFlash['message']));
 							}
+							if (isset($this->data['Event']['submittedioc'])) {
+								$this->render('showIOCResults');
+							} else {
 							$this->redirect(array('action' => 'view', $this->Event->getId()));
+							}
 						}
 					} else {
 						if ($this->_isRest()) { // TODO return error if REST
@@ -1442,6 +1452,42 @@ class EventsController extends AppController {
 
 			// read XML
 			$this->readGfiXML($fileData, $id);
+		}
+	}
+
+	public function addIOCFile($id) {
+		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
+				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
+			$iocData = fread(fopen($this->data['Event']['submittedioc']['tmp_name'], "r"),
+					$this->data['Event']['submittedioc']['size']);
+
+			// write
+			$rootDir = APP . "files" . DS . $id . DS;
+			App::uses('Folder', 'Utility');
+			$dir = new Folder($rootDir . 'ioc', true);
+			$destpath = $rootDir . 'ioc';
+			$file = new File ($destpath);
+			if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedioc']['name'])) throw new Exception ('Filename not allowed');
+			$iocfile = new File ($destpath . DS . $this->data['Event']['submittedioc']['name']);
+			$result = $iocfile->write($iocData);
+			if (!$result) $this->Session->setFlash(__('Problem with writing the ioc file. Please report to administrator.'));
+
+			// now open the xml..
+			$xml = $rootDir . DS . 'Analysis' . DS . 'analysis.xml';
+			$fileData = fread(fopen($destpath . DS . $this->data['Event']['submittedioc']['name'], "r"), $this->data['Event']['submittedioc']['size']);
+
+			// read XML
+			$event = $this->IOCImport->readXML($fileData, $id);
+			$this->loadModel('Attribute');
+			foreach ($event['Attribute'] as $attribute) {
+				$this->Attribute->create();
+				$this->Attribute->save($attribute);
+			}
+			//$this->Session->setFlash(__('Import complete. Indicators successfully added: ' . count($event['Attribute']) . '. Indicators that could not be added: ' . count($event['Fails']) . '. To see a of the Uuids of the failed indicators, click here.'));
+			$this->set('attributes', $event['Attribute']);
+			$this->set('fails', $event['Fails']);
+			//$this->set('eventId', $this->);
+			$this->render('showIOCResults');
 		}
 	}
 
