@@ -129,6 +129,7 @@ class EventsController extends AppController {
 	 */
 	public function view($id = null) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
+		$perm_publish = $this->checkAction('perm_publish');
 		if (strlen($id) == 36) {
 			$this->Event->recursive = -1;
 			$temp = $this->Event->findByUuid($id);
@@ -180,7 +181,7 @@ class EventsController extends AppController {
 		if (!$this->_isRest()) {
 			foreach ($this->Event->data['Attribute'] as &$attribute) {
 				// if the user is of the same org as the event and has publishing rights, just show everything
-				if (($this->Auth->user('org') != $this->Event->data['Event']['org'] || !$this->checkAction('perm_publish')) && !$this->_isSiteAdmin()) {
+				if (($this->Auth->user('org') != $this->Event->data['Event']['org'] || !$perm_publish) && !$this->_isSiteAdmin()) {
 					$counter = 0;
 					foreach ($attribute['ShadowAttribute'] as &$shadow) {
 						if ($shadow['org'] != $this->Auth->user('org')) unset($attribute['ShadowAttribute'][$counter]);
@@ -1483,10 +1484,20 @@ class EventsController extends AppController {
 				$this->Attribute->create();
 				$this->Attribute->save($attribute);
 			}
+
+			$updateEvent = $this->Event->read(null, $id);
+			// update the DB to set the published flag
+			$fieldList = array('info', 'uuid');
+			$updateEvent['Event']['uuid'] = $event['uuid'];
+			//$updateEvent['Event']['date'] = $event['date'];
+			$updateEvent['Event']['info'] = $event['info'];
+			$this->Event->save($updateEvent, array('fieldList' => $fieldList));
+
 			//$this->Session->setFlash(__('Import complete. Indicators successfully added: ' . count($event['Attribute']) . '. Indicators that could not be added: ' . count($event['Fails']) . '. To see a of the Uuids of the failed indicators, click here.'));
+
 			$this->set('attributes', $event['Attribute']);
 			$this->set('fails', $event['Fails']);
-			//$this->set('eventId', $this->);
+			$this->set('eventId', $id);
 			$this->render('showIOCResults');
 		}
 	}

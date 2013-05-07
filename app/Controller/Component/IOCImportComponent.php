@@ -18,30 +18,35 @@ class IOCImportComponent extends Component {
 		$event = array();
 		$attributes = array();
 		$fails = array();
+
 		// import XML class
 		App::uses('Xml', 'Utility');
+
 		// now parse it
 		$xml = Xml::build($data);
 		$xmlArray = Xml::toArray($xml);
-		$event['info'] = $xmlArray['ioc']['short_description'] . PHP_EOL . $xmlArray['ioc']['description'] . PHP_EOL . PHP_EOL .'By ' . $xmlArray['ioc']['authored_by'];
+
+		// add an attribute that holds the full description of the imported report.
+		$attributes[] = array(
+				'event_id' => $id,
+				'value' => $xmlArray['ioc']['description'],
+				'to_ids' => false,
+				'uuid' => String::uuid(),
+				'category' => 'Other',
+				'type' => 'comment'
+				);
+		$event['info'] = $xmlArray['ioc']['short_description'] . PHP_EOL .'By ' . $xmlArray['ioc']['authored_by'];
 		$event['date'] = $xmlArray['ioc']['authored_date'];
 		$event['uuid'] = $xmlArray['ioc']['@id'];
-
 		foreach ($xmlArray['ioc']['definition'] as $current) {
 			if($current['@operator'] == 'OR') {
 				foreach ($current['IndicatorItem'] as $ii) {
 					$temp = $this->__analyseIndicator($ii, $id);
-					// if temp!
-					if (substr($temp['type'], 0, 3) == 'temp') {
-						$temp = $this->__convertToOther($temp);
-					}
 					$attributes[] = $temp;
 				}
 			} else {
-				//$this->recursiveGetFailedUuids($current);
 				$fails[] = $current;
 			}
-			// remove the temporary attributes created for possible pairing such as tempRegValue and add it to the fails.
 		}
 		// Check the logical operators, if there are exactly 2 indicators within an AND operator, check if they can be built into an accepted composite attribute type
 		foreach ($xmlArray['ioc']['definition'] as $current) {
@@ -60,10 +65,21 @@ class IOCImportComponent extends Component {
 				}
 			}
 		}
+		// remove all the temporary attribute types used for the pairing and turn them all into "other"
+		foreach ($attributes as &$att) {
+			if (substr($att['type'], 0, 3) == 'temp') {
+				$temp = $this->__convertToOther($temp);
+			}
+		}
+
+		// Add the attributes to the event that will be returned
 		$event['Attribute'] = $attributes;
+
+		// Add the failed indicators to the event that will be returned
 		if (!empty($fails)) {
 			$event['Fails'] = $this->__fetchFailedUuids($fails);
 		}
+		// return the event with the attributes and failed indicators
 		return $event;
 	}
 
@@ -199,7 +215,9 @@ class IOCImportComponent extends Component {
 			case 'RegistryItem/Text':
 				return array('Persistence mechanism', 'tempRegValue');
 				break;
+			// We don't keep the following, they are often used with AND and a filename. We'll only keep the filename in those cases.
 			case 'FileItem/PEInfo/DigitalSignature/CertificateSubject':
+			case 'FileItem/PEInfo/DigitalSignature/SignatureExists':
 				return array('Payload delivery', 'tempCertificateSubject');
 				break;
 		}
