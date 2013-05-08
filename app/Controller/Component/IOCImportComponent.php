@@ -14,7 +14,7 @@ class IOCImportComponent extends Component {
 		);
 
 	public function readXML($data, $id) {
-		ClassRegistry::init('Attribute');
+		//ClassRegistry::init('Attribute');
 		$event = array();
 		$attributes = array();
 		$fails = array();
@@ -23,9 +23,10 @@ class IOCImportComponent extends Component {
 		App::uses('Xml', 'Utility');
 
 		// now parse it
-		$xml = Xml::build($data);
-		$xmlArray = Xml::toArray($xml);
-
+		$xmlArray = json_decode(json_encode((array) simplexml_load_string($data)), 1);
+		$temp = $xmlArray;
+		$xmlArray = array();
+		$xmlArray['ioc'] = $temp;
 		// add an attribute that holds the full description of the imported report.
 		$attributes[] = array(
 				'event_id' => $id,
@@ -35,11 +36,13 @@ class IOCImportComponent extends Component {
 				'category' => 'Other',
 				'type' => 'comment'
 				);
+
+		// set the event info based on the import.
 		$event['info'] = $xmlArray['ioc']['short_description'] . PHP_EOL .'By ' . $xmlArray['ioc']['authored_by'];
 		$event['date'] = $xmlArray['ioc']['authored_date'];
-		$event['uuid'] = $xmlArray['ioc']['@id'];
+		$event['uuid'] = $xmlArray['ioc']['@attributes']['id'];
 		foreach ($xmlArray['ioc']['definition'] as $current) {
-			if($current['@operator'] == 'OR') {
+			if($current['@attributes']['operator'] == 'OR' && isset($current['IndicatorItem'])) {
 				foreach ($current['IndicatorItem'] as $ii) {
 					$temp = $this->__analyseIndicator($ii, $id);
 					$attributes[] = $temp;
@@ -48,26 +51,33 @@ class IOCImportComponent extends Component {
 				$fails[] = $current;
 			}
 		}
-		// Check the logical operators, if there are exactly 2 indicators within an AND operator, check if they can be built into an accepted composite attribute type
+
+		// Try to see if any of the AND-ed indicators can be salvaged and converted instead of being discarded
 		foreach ($xmlArray['ioc']['definition'] as $current) {
-			foreach ($current['Indicator'] as $ii) {
-				if (isset($ii['IndicatorItem']) && count($ii['IndicatorItem']) == 2) {
-					$att1 = $this->__analyseIndicator($ii['IndicatorItem'][0], $id);
-					$att2 = $this->__analyseIndicator($ii['IndicatorItem'][1], $id);
-					$attempt = $this->__convertToCompositeAttribute($att1, $att2, $ii['@id']);
+			foreach ($current['Indicator'] as $key => $value) {
+				// During the xml->array conversion, if there is only a single indicator, it will be build directly as a child of definition,
+				// instead of the first element of an array. Here we move the IndicatorItem one level down
+				if ($key === 'IndicatorItem') {
+					$key = 0;
+					$value = array ('IndicatorItem' => $value);
+				}
+				if (isset($value['IndicatorItem']) && count($value['IndicatorItem']) == 2) {
+					$att1 = $this->__analyseIndicator($value['IndicatorItem'][0], $id);
+					$att2 = $this->__analyseIndicator($value['IndicatorItem'][1], $id);
+					$attempt = $this->__convertToCompositeAttribute($att1, $att2, $current['@attributes']['id']);
 					if ($attempt) {
 						$attributes[] = $attempt;
-					} else {
-						$fails[] = $ii;
 					}
 				} else {
-					$fails[] = $ii;
+						$fails[] = $value;
 				}
+				// If it is the only indicator, jump straight to the IndicatorItem
 			}
 		}
+
 		// remove all the temporary attribute types used for the pairing and turn them all into "other"
 		foreach ($attributes as &$att) {
-			if (substr($att['type'], 0, 3) == 'temp') {
+			if (substr($att['type'], 0, 3) === 'temp') {
 				$temp = $this->__convertToOther($temp);
 			}
 		}
@@ -87,11 +97,11 @@ class IOCImportComponent extends Component {
 	private function __analyseIndicator($ii, $id) {
 		$attribute = array();
 		$attribute['event_id'] = $id;
-		$attribute['uuid'] = $ii['@id'];
-		$attribute['value'] = $ii['Content']['@'];
+		$attribute['uuid'] = $ii['@attributes']['id'];
+		$attribute['value'] = $ii['Content'];
 		$attribute['to_ids'] = false;
-		$attribute['search'] = $ii['Context']['@search'];
-		$temp = $this->__checkType($ii['Context']['@search']);
+		$attribute['search'] = $ii['Context']['@attributes']['search'];
+		$temp = $this->__checkType($ii['Context']['@attributes']['search']);
 		if (!$temp) return false;
 		$attribute['category'] = $temp[0];
 		$attribute['type'] = $temp[1];
@@ -127,7 +137,7 @@ class IOCImportComponent extends Component {
 					default:
 						$value = $att1['value'] . '|' . $att2['value'];
 				}
-				return array('type' => $pair[2], 'value' => $value, 'uuid' => $uuid, 'category' => $pair[3], 'event_id' => $att1['event_id']);
+				return array('type' => $pair[2], 'value' => $value, 'uuid' => $uuid, 'category' => $pair[3], 'event_id' => $att1['event_id'], 'to_ids' => false);
 			}
 			// Try the same thing above with the attributes reversed
 			if ($att2['type'] == $pair[0] && $att1['type'] == $pair[1]) {
@@ -142,7 +152,7 @@ class IOCImportComponent extends Component {
 					default:
 						$value = $att2['value'] . '|' . $att1['value'];
 				}
-				return array('type' => $pair[2], 'value' => $value, 'uuid' => $uuid, 'category' => $pair[3], 'event_id' => $att1['event_id']);
+				return array('type' => $pair[2], 'value' => $value, 'uuid' => $uuid, 'category' => $pair[3], 'event_id' => $att1['event_id'], 'to_ids' => false);
 			}
 		}
 		// If no match found, return false, it's not a valid composite attribute for MISP
@@ -234,10 +244,11 @@ class IOCImportComponent extends Component {
 	private function __saveFailedUuids($array, &$failedAttributes) {
 		foreach ($array as $current => $value) {
 			if (is_array($value)) {
-				if (isset($value['@id']) && isset($value['Context'])) {
+				if (isset($value['Context'])) {
 					array_push($failedAttributes, $value);
+				} else {
+					$this->__saveFailedUuids($value, $failedAttributes);
 				}
-				$this->__saveFailedUuids($value, $failedAttributes);
 			}
 		}
 	}

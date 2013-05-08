@@ -254,6 +254,10 @@ class EventsController extends AppController {
 					$file = new File($this->data['Event']['submittedfile']['name']);
 					$ext = $file->ext();
 				}
+				$ioc = false;
+				if($this->data['Event']['submittedioc']['error'] != 4) {
+					$ioc = true;
+				}
 				if (isset($this->data['Event']['submittedioc'])) {
 					App::uses('File', 'Utility');
 					$file = new File($this->data['Event']['submittedfile']['name']);
@@ -281,10 +285,8 @@ class EventsController extends AppController {
 								$existingFlash = CakeSession::read('Message.flash');
 								$this->Session->setFlash(__('The event has been saved. ' . $existingFlash['message']));
 							}
-							if (isset($this->data['Event']['submittedioc'])) {
-								$this->render('showIOCResults');
-							} else {
-							$this->redirect(array('action' => 'view', $this->Event->getId()));
+							if (!$ioc) {
+								$this->redirect(array('action' => 'view', $this->Event->getId()));
 							}
 						}
 					} else {
@@ -1479,24 +1481,29 @@ class EventsController extends AppController {
 
 			// read XML
 			$event = $this->IOCImport->readXML($fileData, $id);
-			$this->loadModel('Attribute');
-			foreach ($event['Attribute'] as $attribute) {
-				$this->Attribute->create();
-				$this->Attribute->save($attribute);
+
+			// make some changes to have $saveEvent in the format that is needed to save the event together with its attributes
+			$fails = $event['Fails'];
+			$saveEvent['Attribute'] = $event['Attribute'];
+			// we've already stored these elsewhere, unset them so we can extract the event related data
+			unset($event['Attribute']);
+			unset($event['Fails']);
+			// save the event related data into $saveEvent['Event']
+			$saveEvent['Event'] = $event;
+			$saveEvent['Event']['id'] = $id;
+			$fieldList = array(
+						'Event' => array('info', 'uuid'),
+						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid')
+						);
+
+			// Save it all
+			$saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
+
+			// set stuff for the view and render the showIOCResults view.
+			$this->set('attributes', $saveEvent['Attribute']);
+			if (isset($fails)) {
+				$this->set('fails', $fails);
 			}
-
-			$updateEvent = $this->Event->read(null, $id);
-			// update the DB to set the published flag
-			$fieldList = array('info', 'uuid');
-			$updateEvent['Event']['uuid'] = $event['uuid'];
-			//$updateEvent['Event']['date'] = $event['date'];
-			$updateEvent['Event']['info'] = $event['info'];
-			$this->Event->save($updateEvent, array('fieldList' => $fieldList));
-
-			//$this->Session->setFlash(__('Import complete. Indicators successfully added: ' . count($event['Attribute']) . '. Indicators that could not be added: ' . count($event['Fails']) . '. To see a of the Uuids of the failed indicators, click here.'));
-
-			$this->set('attributes', $event['Attribute']);
-			$this->set('fails', $event['Fails']);
 			$this->set('eventId', $id);
 			$this->render('showIOCResults');
 		}

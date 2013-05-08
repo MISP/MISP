@@ -1,4 +1,7 @@
 <div class="index">
+	<div class="actions" style="float:right;">
+		<ul><li><?php echo $this->Html->link(__('View the event', true), array('action' => 'view', $eventId)); ?> </li></ul>
+	</div>
 	<h2>Results of the import: </h2>
 	<h3><?php echo count($attributes); ?> attributes created successfully, <?php echo count($fails); ?> indicators could not be mapped and saved. </h3>
 	<br /><br />
@@ -24,7 +27,7 @@ endforeach; ?>
 <?php
 endif;?>
 <?php
-if (0 != count($fails)):?>
+if (isset($fails)):?>
 	<br /><br />
 	<h4>Failed indicators:</h4>
 	<table cellpadding="0" cellspacing="0">
@@ -35,9 +38,9 @@ if (0 != count($fails)):?>
 	</tr><?php
 foreach ($fails as $fail): ?>
 	<tr>
-		<td class="short"><?php echo h($fail['@id']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($fail['Context']['@search']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($fail['Content']['@']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($fail['@attributes']['id']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($fail['Context']['@attributes']['search']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($fail['Content']); ?>&nbsp;</td>
 	</tr><?php
 endforeach; ?>
 </table>
