@@ -292,10 +292,4 @@ VALUES ('3', 'User', NOW() , NOW() , '1', '1', '1' , '0' , '0' , '0' , '0' , '0'
 INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`)
 VALUES ('4', 'Sync user', NOW(), NOW(), '1', '1', '1', '1', '1', '0', '1', '0', '1');
 
-INSERT INTO `aros` (`id`, `parent_id`, `model`, `foreign_key`, `alias`, `lft`, `rght`) VALUES
-(1, NULL, 'Role', 1, NULL, 1, 2),
-(2, NULL, 'Role', 2, NULL, 3, 4),
-(3, NULL, 'Role', 3, NULL, 5, 6),
-(4, NULL, 'Role', 4, NULL, 7, 8);
-
 -- --------------------------------------------------------
