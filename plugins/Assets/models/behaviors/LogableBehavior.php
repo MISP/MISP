@@ -96,7 +96,7 @@ class LogableBehavior extends ModelBehavior {
 	 * @param Object $Model
 	 * @param array $config
 	 */
-	function setup(&$Model, $config = array()) {
+	function setup(Model $Model, $config = array()) {
 
 		if (!is_array($config)) {
 			$config = array();
@@ -104,9 +104,9 @@ class LogableBehavior extends ModelBehavior {
 		$this->settings[$Model->alias] = array_merge($this->defaults, $config);
 		$this->settings[$Model->alias]['ignore'][] = $Model->primaryKey;
 
-		$this->Log = & ClassRegistry::init('Log');
+		$this->Log = ClassRegistry::init('Log');
 		if ($this->settings[$Model->alias]['userModel'] != $Model->alias) {
-			$this->UserModel = & ClassRegistry::init($this->settings[$Model->alias]['userModel']);
+			$this->UserModel = ClassRegistry::init($this->settings[$Model->alias]['userModel']);
 		} else {
 			$this->UserModel = $Model;
 		}
@@ -302,7 +302,7 @@ class LogableBehavior extends ModelBehavior {
 	 * @param int $id  id of the logged item (ie model_id in logs table)
 	 * @param array $values optional other values for your logs table
 	 */
-	function customLog(&$Model, $action, $id, $values = array()) {
+	function customLog(Model $Model, $action, $id, $values = array()) {
 
 		$logData['Log'] = $values;
 		/** @todo clean up $logData */
@@ -318,7 +318,7 @@ class LogableBehavior extends ModelBehavior {
 		$this->_saveLog($Model, $logData, $title);
 	}
 
-	function clearUserData(&$Model) {
+	function clearUserData(Model $Model) {
 
 		$this->user = NULL;
 	}
@@ -328,7 +328,7 @@ class LogableBehavior extends ModelBehavior {
 		$this->userIP = $userIP;
 	}
 
-	function beforeDelete(&$Model) {
+	function beforeDelete(Model $Model, $cascade = true) {
 
 		if (!$this->settings[$Model->alias]['enabled']) {
 			return true;
@@ -341,7 +341,7 @@ class LogableBehavior extends ModelBehavior {
 		return true;
 	}
 
-	function afterDelete(&$Model) {
+	function afterDelete(Model $Model) {
 
 		if (!$this->settings[$Model->alias]['enabled']) {
 			return true;
@@ -364,7 +364,7 @@ class LogableBehavior extends ModelBehavior {
 		$this->_saveLog($Model, $logData);
 	}
 
-	function beforeSave(&$Model) {
+	function beforeSave(Model $Model) {
 
 		if (isset($this->schema['change']) && $Model->id) {
 			$this->old = $Model->find('first', array(
@@ -375,7 +375,7 @@ class LogableBehavior extends ModelBehavior {
 		return true;
 	}
 
-	function afterSave(&$Model, $created) {
+	function afterSave(Model $Model, $created) {
 
 		if (!$this->settings[$Model->alias]['enabled']) {
 			return true;

@@ -19,7 +19,7 @@ class OrphansProtectableBehavior extends ModelBehavior {
    * @param $model Model
    * @param $settings array
    */
-  function setup(&$Model, $settings) {
+  function setup(Model $Model, $settings = array()) {
     $Model->_deletionError = null; // Stores the deletion error message
     $Model->orphansProtectableOptions = array_merge(array(
 	    'listPossibleOrphans' => true,
@@ -34,7 +34,7 @@ class OrphansProtectableBehavior extends ModelBehavior {
    * @param $cascade boolean
    * @return boolean
    */
-  function beforeDelete(&$Model, $cascade) {
+  function beforeDelete(Model $model, $cascade = true) {
     if($cascade) return true;
     return !$Model->wouldLeaveOrphanedRecordsBehind();
   }

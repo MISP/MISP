@@ -1,5 +1,5 @@
 <div class="users form">
-<?php echo $this->Form->create('User');?>
+<?php echo $this->Form->create('User', array('novalidate' => true));?>
 	<fieldset>
 		<legend><?php echo __('Edit User'); ?></legend>
 	<?php
