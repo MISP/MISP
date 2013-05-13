@@ -193,6 +193,7 @@ class UsersController extends AppController {
 			// set invited by
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
 			$this->request->data['User']['change_pw'] = 1;
+			$this->request->data['User']['newsread'] = '2000-01-01';
 			if ($this->Auth->User('org') != 'ADMIN') $this->request->data['User']['org'] = $this->Auth->User('org');
 			if ($this->User->save($this->request->data)) {
 				$this->Session->setFlash(__('The user has been saved'));
