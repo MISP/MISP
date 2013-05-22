@@ -78,7 +78,6 @@ class AttributesController extends AppController {
  *
  * @return void
  *
- * @throws NotFoundException // TODO Exception
  */
 	public function index() {
 		$this->Attribute->recursive = 0;
@@ -91,15 +90,6 @@ class AttributesController extends AppController {
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
-	public function view($id = null) {
-		$this->Attribute->id = $id;
-		if (!$this->Attribute->exists()) {
-			throw new NotFoundException(__('Invalid attribute'));
-		}
-		$this->Attribute->read(null, $id);
-
-		$this->set('attribute', $this->Attribute->data);
-	}
 
 /**
  * add method

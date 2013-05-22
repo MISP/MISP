@@ -33,6 +33,8 @@ foreach ($event['Event']['Attribute'] as $key => $value) {
 
 	unset($event['Event']['Attribute'][$key]['value1']);
 	unset($event['Event']['Attribute'][$key]['value2']);
+
+	unset($event['Event']['Attribute'][$key]['category_order']);
 }
 foreach ($event['Event']['RelatedEvent'] as $key => $value) {
 	unset($event['Event']['RelatedEvent'][$key]['user_id']);
