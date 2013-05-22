@@ -793,19 +793,19 @@ class AttributesController extends AppController {
 					$conditions['Event.orgc ='] = $org;
 				}
 				$this->Attribute->recursive = 0;
-				$this->paginate = array(
-					'limit' => 60,
-					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
-					'conditions' => $conditions
-				);
 				if (!$this->_IsSiteAdmin()) {
 					// merge in private conditions
-					$this->paginate = Set::merge($this->paginate, array(
+					$this->paginate = array(
+						'limit' => 60,
 						'conditions' =>
+							array("AND" => $conditions,
 							array("OR" => array(
 							array('Event.org =' => $this->Auth->user('org')),
-							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1)))),
-						)
+							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1))))));
+				} else {
+					$this->paginate = array(
+							'limit' => 60,
+							'conditions' => $conditions
 					);
 				}
 				$idList = array();
