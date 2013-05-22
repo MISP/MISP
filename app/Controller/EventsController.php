@@ -238,10 +238,11 @@ class EventsController extends AppController {
 				$this->request->data['Event']['user_id'] = $this->Auth->user('id');
 			}
 			if (!empty($this->data)) {
+				// FIXME review this submittedgfi and submittedioc code to have the same behavior for both validations/imports
 				$ext = '';
-				if (isset($this->data['Event']['submittedfile'])) {
+				if (isset($this->data['Event']['submittedgfi'])) {
 					App::uses('File', 'Utility');
-					$file = new File($this->data['Event']['submittedfile']['name']);
+					$file = new File($this->data['Event']['submittedgfi']['name']);
 					$ext = $file->ext();
 				}
 				$ioc = false;
@@ -250,12 +251,11 @@ class EventsController extends AppController {
 				}
 				if (isset($this->data['Event']['submittedioc'])) {
 					App::uses('File', 'Utility');
-					$file = new File($this->data['Event']['submittedfile']['name']);
+					$file = new File($this->data['Event']['submittedgfi']['name']);
 					$ext = $file->ext();
 				}
-				if (isset($this->data['Event']['submittedfile']) && ($ext != 'zip') && $this->data['Event']['submittedfile']['size'] > 0 &&
-						is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
-					//return false;
+				if (isset($this->data['Event']['submittedgfi']) && ($ext != 'zip') && $this->data['Event']['submittedgfi']['size'] > 0 &&
+						is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
 					if ($this->_add($this->request->data, $this->_isRest(),'')) {
@@ -1416,10 +1416,10 @@ class EventsController extends AppController {
 	//}
 
 	public function addGfiZip($id) {
-		if (!empty($this->data) && $this->data['Event']['submittedfile']['size'] > 0 &&
-				is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
-			$zipData = fread(fopen($this->data['Event']['submittedfile']['tmp_name'], "r"),
-					$this->data['Event']['submittedfile']['size']);
+		if (!empty($this->data) && $this->data['Event']['submittedgfi']['size'] > 0 &&
+				is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
+			$zipData = fread(fopen($this->data['Event']['submittedgfi']['tmp_name'], "r"),
+					$this->data['Event']['submittedgfi']['size']);
 
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
@@ -1427,8 +1427,8 @@ class EventsController extends AppController {
 			$dir = new Folder($rootDir, true);
 			$destpath = $rootDir;
 			$file = new File ($destpath);
-			if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedfile']['name'])) throw new Exception ('Filename not allowed');
-			$zipfile = new File ($destpath . DS . $this->data['Event']['submittedfile']['name']);
+			if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedgfi']['name'])) throw new Exception ('Filename not allowed');
+			$zipfile = new File ($destpath . DS . $this->data['Event']['submittedgfi']['name']);
 			$result = $zipfile->write($zipData);
 			if (!$result) $this->Session->setFlash(__('Problem with writing the zip file. Please report to administrator.'));
 
@@ -1442,7 +1442,7 @@ class EventsController extends AppController {
 
 			// now open the xml..
 			$xml = $rootDir . DS . 'Analysis' . DS . 'analysis.xml';
-			$fileData = fread(fopen($xml, "r"), $this->data['Event']['submittedfile']['size']);
+			$fileData = fread(fopen($xml, "r"), $this->data['Event']['submittedgfi']['size']);
 
 			// read XML
 			$this->readGfiXML($fileData, $id);

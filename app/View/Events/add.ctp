@@ -16,10 +16,10 @@ echo $this->Form->input('analysis', array(
 		'before' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))
 		));
 echo $this->Form->input('info');
-echo $this->Form->input('Event.submittedfile', array(
+echo $this->Form->input('Event.submittedgfi', array(
 		'label' => '<b>GFI sandbox</b>',
 		'type' => 'file',
-		'before' => $this->Html->div('forminfo', isset($eventDescriptions['submittedfile']['formdesc']) ? $eventDescriptions['submittedfile']['formdesc'] : $eventDescriptions['submittedfile']['desc'])));
+		'before' => $this->Html->div('forminfo', isset($eventDescriptions['submittedgfi']['formdesc']) ? $eventDescriptions['submittedgfi']['formdesc'] : $eventDescriptions['submittedgfi']['desc'])));
 
 echo $this->Form->input('Event.submittedioc', array(
 		'label' => '<b>OpenIOC</b>',
