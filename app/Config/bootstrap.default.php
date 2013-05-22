@@ -121,10 +121,7 @@ Configure::write('CyDefSIG.logo', 'orgs/ORGNAME.png');     // used in Events::in
 Configure::write('CyDefSIG.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
 
 Configure::write('CyDefSIG.sync', 'true');                 // enable features related to syncing with other CyDefSIG instances - should be always on because of the current distribution model.
-Configure::write('CyDefSIG.private', 'true');                 // respect private to org or server.
-if ('true' == Configure::read('CyDefSIG.private')) {
-	Configure::write('CyDefSIG.sync', 'true');
-}
+
 Configure::write('CyDefSIG.email', 'email@address.com'); // email from for all the mails
 Configure::write('CyDefSIG.contact', 'email@address.com'); // contact address for this instance's support person / group
 

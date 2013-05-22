@@ -78,16 +78,6 @@ class EventsController extends AppController {
 			);
 		}
 
-		//// do not show cluster outside server
-		//if ('true' == Configure::read('CyDefSIG.private')) {
-		//	if ($this->_isRest()) {
-		//			$this->paginate = Set::merge($this->paginate,array(
-		//			'conditions' =>
-		//					array(array('Event.cluster !=' => true)),
-		//					//array("AND" => array(array('Event.private !=' => 2))),
-		//			));
-		//	}
-		//}
 	}
 
 	/**
@@ -268,7 +258,7 @@ class EventsController extends AppController {
 					//return false;
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
-					if ($this->_add($this->request->data, $this->Auth, $this->_isRest(),'')) {
+					if ($this->_add($this->request->data, $this->_isRest(),'')) {
 						if ($this->_isRest()) {
 							// REST users want to see the newly created event
 							$this->view($this->Event->getId());
@@ -333,8 +323,9 @@ class EventsController extends AppController {
 	 *
 	 * @return bool true if success
 	 */
-	public function _add(&$data, &$auth, $fromXml, $or='', $passAlong = null, $fromPull = false) {
+	public function _add(&$data, $fromXml, $or='', $passAlong = null, $fromPull = false) {
 		// force check userid and orgname to be from yourself
+		$auth = $this->Auth;
 		$data['Event']['user_id'] = $auth->user('id');
 		$data['Event']['org'] = $auth->user('org');
 		//$data['Event']['org'] = strlen($or) ? $or : $auth->user('org'); // FIXME security - org problem

@@ -10,7 +10,7 @@ foreach ($attributes as $key => $attribute) {
 	if ('true' != Configure::read('CyDefSIG.sync')) {
 		unset($attributes[$key]['private']);
 	}
-	unset($attributes[$key]['sharing']);
+
 	unset($attributes[$key]['cluster']);
 }
 

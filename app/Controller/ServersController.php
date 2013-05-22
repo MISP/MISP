@@ -241,7 +241,7 @@ class ServersController extends AppController {
 						$eventsController->constructClasses();
 						$passAlong = $this->Server->data['Server']['url'];
 						try {
-							$result = $eventsController->_add($event, $this->Auth, $fromXml = true, $this->Server->data['Server']['organization'], $passAlong, true);
+							$result = $eventsController->_add($event, $fromXml = true, $this->Server->data['Server']['organization'], $passAlong, true);
 						} catch (MethodNotAllowedException $e) {
 							if ($e->getMessage() == 'Event already exists') {
 								//$successes[] = $eventId;	// commented given it's in a catch..
