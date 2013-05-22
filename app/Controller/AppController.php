@@ -283,7 +283,6 @@ class AppController extends Controller {
 			$event['Event']['orgc'] = $event['Event']['org'];
 			$event['Event']['dist_change'] = 0;
 			$event['Event']['analysis'] = 2;
-			$event['Event']['hop_count'] = 0;
 			$this->Event->save($event);
 		}
 	}

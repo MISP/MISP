@@ -10,6 +10,10 @@ foreach ($event['Event']['Attribute'] as $key => $value) {
 	unset($event['Event']['Attribute'][$key]['value1']);
 	unset($event['Event']['Attribute'][$key]['value2']);
 	unset($event['Event']['Attribute'][$key]['category_order']);
+
+	unset($event['Event']['Attribute'][$key]['private']);
+	unset($event['Event']['Attribute'][$key]['communitie']);
+	unset($event['Event']['Attribute'][$key]['cluster']);
 }
 
 // hide the share fields is we are not in private mode
@@ -18,13 +22,7 @@ unset($event['Event']['sharing']);
 foreach ($event['Event']['Attribute'] as $key => $value) {
 	unset($event['Event']['Attribute'][$key]['sharing']);
 }
-// hide the private fields is we are not in sync mode
-if ('true' != Configure::read('CyDefSIG.sync')) {
-	unset($event['Event']['private']);
-	foreach ($event['Event']['Attribute'] as $key => $value) {
-		unset($event['Event']['Attribute'][$key]['private']);
-	}
-}
+
 // hide the org field is we are not in showorg mode
 if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
 	unset($event['Event']['org']);

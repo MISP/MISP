@@ -596,8 +596,6 @@ class Event extends AppModel {
 			$event['Event']['communitie'] = false;
 			$event['Event']['distribution'] = 'This Community-only';
 		}
-		// up the hop count
-		$event['Event']['hop_count']++;
 
 		// display the XML to the user
 		$xmlArray['Event'][] = $event['Event'];

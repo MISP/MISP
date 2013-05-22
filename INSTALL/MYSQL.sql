@@ -86,7 +86,6 @@ CREATE TABLE IF NOT EXISTS `events` (
   `cluster` tinyint(1) NOT NULL,
   `communitie` tinyint(1) NOT NULL,
   `attribute_count` int(11) NOT NULL,
-  `hop_count` int(11) NOT NULL DEFAULT '0',
   `published` tinyint(1) NOT NULL DEFAULT '0',
   `analysis` tinyint(4) NOT NULL,
   `orgc` varchar(255) COLLATE utf8_bin NOT NULL,
