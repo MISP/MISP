@@ -89,11 +89,11 @@ class AdminCrudComponent extends AuthComponent {
 
 	public $controller;
 
-	public function initialize(&$controller) {
-		$this->controller = &$controller;
+	public function initialize(Controller $controller) {
+		$this->controller = $controller;
 	}
 
-	public function startup(&$controller) {
-		$this->controller = &$controller;
+	public function startup(Controller $controller) {
+		$this->controller = $controller;
 	}
 }
