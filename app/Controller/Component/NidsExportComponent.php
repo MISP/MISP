@@ -132,7 +132,7 @@ class NidsExportComponent extends Component {
 	}
 
 	public function emailSrcRule($ruleFormat, $attribute, &$sid) {
-		$content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;';
+		$content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;' . ' content:”|0D 0A 0D 0A|”; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				(false) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
@@ -150,7 +150,7 @@ class NidsExportComponent extends Component {
 	}
 
 	public function emailDstRule($ruleFormat, $attribute, &$sid) {
-		$content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;';
+		$content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;'  . ' content:”|0D 0A 0D 0A|”; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				(false) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
