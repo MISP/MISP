@@ -103,16 +103,8 @@ class AttributesController extends AppController {
 	public function index() {
 		$this->Attribute->recursive = 0;
 		$this->set('isSearch', 0);
-
-		// Sanitize::clean
 		$paginated = $this->paginate();
-		foreach ($paginated as &$attribute) {
-			$attribute['Attribute']['value'] = $this->beforeSanitizeClean($attribute['Attribute']['value']); // TODO generic
-		}
-		$attributes = Sanitize::clean($paginated, array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
-		foreach ($attributes as &$attribute) {
-			$attribute['Attribute']['value'] = $this->counterSanitizeClean($attribute['Attribute']['value']); // TODO generic
-		}
+		$attributes = $paginated;
 		$this->set('attributes', $attributes);
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
@@ -170,7 +162,7 @@ class AttributesController extends AppController {
 					continue; // don't do anything for empty lines
 
 					$this->Attribute->create();
-					$this->request->data['Attribute']['value'] = Sanitize::clean($attribute); // set the value as the content of the single line
+					$this->request->data['Attribute']['value'] = $attribute; // set the value as the content of the single line
 					$this->request->data = $this->Attribute->massageData($this->request->data);
 					// TODO loop-holes,
 					// there seems to be a loop-hole in misp here
@@ -305,11 +297,11 @@ class AttributesController extends AppController {
 		$file = $this->Attribute->data['Attribute']['id'];
 		$filename = '';
 		if ('attachment' == $this->Attribute->data['Attribute']['type']) {
-			$filename = Sanitize::clean($this->Attribute->data['Attribute']['value']);
+			$filename = $this->Attribute->data['Attribute']['value'];
 			$fileExt = pathinfo($filename, PATHINFO_EXTENSION);
 			$filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
 		} elseif ('malware-sample' == $this->Attribute->data['Attribute']['type']) {
-			$filenameHash = explode('|', Sanitize::clean($this->Attribute->data['Attribute']['value']));
+			$filenameHash = explode('|', $this->Attribute->data['Attribute']['value']);
 			$filename = $filenameHash[0];
 			$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 			$fileExt = "zip";
@@ -591,7 +583,7 @@ class AttributesController extends AppController {
 			$this->request->data = $this->Attribute->read(null, $id);
 		}
 
-		$this->set('attribute', Sanitize::clean($this->request->data));
+		$this->set('attribute', $this->request->data);
 
 		// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
 		$this->loadModel('Event');
@@ -866,7 +858,7 @@ class AttributesController extends AppController {
 			// re-get pagination
 			$this->Attribute->recursive = 0;
 			$this->paginate = $this->Session->read('paginate_conditions');
-			$attributes = Sanitize::clean($this->paginate(), array('remove' => true, 'remove_html' => true, 'encode' => true, 'newline' => true));
+			$attributes = $this->paginate();
 			foreach ($attributes as &$attribute) {
 				$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
 			}

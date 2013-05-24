@@ -91,7 +91,7 @@ endif; ?>
 		</dd -->
 		<dt>Info</dt>
 		<dd>
-			<?php echo nl2br($event['Event']['info']); ?>
+			<?php echo nl2br(h($event['Event']['info'])); ?>
 			&nbsp;
 		</dd>
 	</dl><br />
@@ -104,7 +104,7 @@ if (!empty($relatedEvents)):?>
 	foreach ($relatedEvents as $relatedEvent): ?>
 		<li><?php
 		$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-		echo "<div \" title = \"".$relatedEvent['Event']['info']."\">";
+		echo "<div \" title = \"".h($relatedEvent['Event']['info'])."\">";
 		if ($relatedEvent['Event']['org'] == $me['org']) {
 			echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']), array('class' => 'SameOrgLink'));
 		} else {
@@ -152,9 +152,9 @@ if (!empty($event['Attribute'])):?>
 			echo $typeDefinitions[$attribute['type']]['desc'];?>"><?php
 			echo $attribute['type'];?></td>
 				<td><?php
-			$sigDisplay = nl2br($attribute['value']);
+			$sigDisplay = nl2br(h($attribute['value']));
 			if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
-				$filenameHash = explode('|', $attribute['value']);
+				$filenameHash = explode('|', nl2br(h($attribute['value'])));
 				if (strrpos($filenameHash[0], '\\')) {
 					$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
 					$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
@@ -181,7 +181,7 @@ if (!empty($event['Attribute'])):?>
 			$first = 0;
 			if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 				foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
-					echo "<span title = \"".$relatedAttribute['Attribute']['event_info']."\">";
+					echo "<span title = \"".h($relatedAttribute['Attribute']['event_info'])."\">";
 					if ($relatedAttribute['Attribute']['relatedOrg'] == $me['org']) {
 						echo $this->Html->link($relatedAttribute['Attribute']['event_id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['Attribute']['event_id']), array ('class' => 'SameOrgLink'));
 					} else {
