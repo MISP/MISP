@@ -411,6 +411,7 @@ class Attribute extends AppModel {
 		$this->__afterSaveCorrelation($this->data['Attribute']);
 
 		$result = true;
+
 		// if the 'data' field is set on the $this->data then save the data to the correct file
 		if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
 			$result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']); // TODO : is this correct?
@@ -819,6 +820,8 @@ class Attribute extends AppModel {
 	}
 
 	public function saveBase64EncodedAttachment($attribute) {
+print_r("###### saveBase64EncodedAttachment ######");
+print_r($attribute);
 		$rootDir = APP . DS . "files" . DS . $attribute['event_id'];
 		$dir = new Folder($rootDir, true);						// create directory structure
 		$destpath = $rootDir . DS . $attribute['id'];

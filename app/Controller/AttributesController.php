@@ -181,11 +181,6 @@ class AttributesController extends AppController {
 				// create the attribute
 				$this->Attribute->create();
 
-				if ("i" == Configure::read('CyDefSIG.rest')) {
-					unset($this->request->data['Event']);
-					$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
-					//$this->request->data['Attribute']['event_id'] = $eventId;
-				}
 				// Notice (8): Undefined index: id [APP/Controller/AttributesController.php, line 234]
 				// Should be fixed
 				$savedId = $this->Attribute->getId();
@@ -499,11 +494,6 @@ class AttributesController extends AppController {
 			}
 
 			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster', 'value');
-			if ("i" == Configure::read('CyDefSIG.rest')) {
-				unset($this->request->data['Event']);
-				$this->Attribute->unbindModel(array('belongsTo' => array('Event')));
-				$this->request->data['Attribute']['event_id'] = $eventId;
-			}
 
 			$this->loadModel('Event');
 			$this->Event->id = $eventId;

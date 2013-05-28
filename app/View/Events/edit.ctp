@@ -5,18 +5,19 @@
 <?php
 echo $this->Form->input('id');
 echo $this->Form->input('date');
+if ('true' == Configure::read('CyDefSIG.sync')) {
+    if ('true' == $canEditDist) {
+        echo $this->Form->input('distribution', array('label' => 'Distribution',
+                'between' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv'))
+        ));
+    }
+}
 echo $this->Form->input('risk', array(
 		'before' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv'))));
 echo $this->Form->input('analysis', array(
 		'options' => array($analysisLevels),
-		'before' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))));
-if ('true' == Configure::read('CyDefSIG.sync')) {
-	if ('true' == $canEditDist) {
-		echo $this->Form->input('distribution', array('label' => 'Distribution',
-			'between' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv'))
+		'before' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))
 		));
-	}
-}
 echo $this->Form->input('info');
 
 // link an onchange event to the form elements

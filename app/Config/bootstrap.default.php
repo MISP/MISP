@@ -133,23 +133,7 @@ Configure::write('GnuPG.homedir', '/path/to/your/.gnupg/');
 Configure::write('SecureAuth.amount', 5);              // the maximum amount of failed logins
 Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
 
-/**
- * Network activity, ip-src
- * 30 class-C network ip addresses
- * (time in ms)
- *
- *           default     db    sql
- * all         25366  16601  15941
- *             24839  16604  15611
- * paginated   16759   8447   6615
- *             17734   8639   8846
- */
 Configure::write('CyDefSIG.dns', 'false');				// there is a nameserver available to do resolution.
-
-Configure::write('CyDefSIG.rest', 'ii');				// i is unchecked, use ii
-														// RESTfull, possible values:
-														// - i, event without attributes
-														// - ii, event with attributes (more framework friendly and more RESTfull friendly)
 
 /**
  * The settings below can be used to set additional paths to models, views and controllers.

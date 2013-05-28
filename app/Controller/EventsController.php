@@ -130,7 +130,7 @@ class EventsController extends AppController {
 		$this->Event->contain('Attribute', 'Attribute.ShadowAttribute', 'User.email');
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
-			throw new NotFoundException(__('Invalid event'));
+			throw new NotFoundException(__('Invalid event, it already exists.'));
 		}
 		$this->Event->read(null, $id);
 		$userEmail = $this->Event->data['User']['email'];
@@ -246,10 +246,10 @@ class EventsController extends AppController {
 					$ext = $file->ext();
 				}
 				$ioc = false;
-				if($this->data['Event']['submittedioc']['error'] != 4) {
-					$ioc = true;
-				}
 				if (isset($this->data['Event']['submittedioc'])) {
+					if($this->data['Event']['submittedioc']['error'] != 4) {
+					    $ioc = true;
+					}
 					App::uses('File', 'Utility');
 					$file = new File($this->data['Event']['submittedgfi']['name']);
 					$ext = $file->ext();
@@ -324,18 +324,18 @@ class EventsController extends AppController {
 	 * @return bool true if success
 	 */
 	public function _add(&$data, $fromXml, $or='', $passAlong = null, $fromPull = false) {
+		$this->Event->create();
 		// force check userid and orgname to be from yourself
 		$auth = $this->Auth;
 		$data['Event']['user_id'] = $auth->user('id');
 		$data['Event']['org'] = $auth->user('org');
-		//$data['Event']['org'] = strlen($or) ? $or : $auth->user('org'); // FIXME security - org problem
 		if (!$fromXml) {
 			$data['Event']['orgc'] = $data['Event']['org'];
 		}
-		unset ($data['Event']['id']);
-		$this->Event->create();
-		//$this->Event->data = $data;
 		if ($fromXml) {
+			// FIXME FIXME chri: temporary workaround for unclear org, orgc, from
+			$data['Event']['orgc'] = $data['Event']['org'];
+			$data['Event']['from'] = $data['Event']['org'];
 			// Workaround for different structure in XML/array than what CakePHP expects
 			$this->Event->cleanupEventArrayFromXML($data);
 			// the event_id field is not set (normal) so make sure no validation errors are thrown
@@ -343,15 +343,13 @@ class EventsController extends AppController {
 			unset($this->Event->Attribute->validate['event_id']);
 			unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 		}
-		// upstream: false = distribution
-		// true = reverse distribution, back to origin
-		$upstream = false;
 
-		if (isset($data['Event']['uuid'])) {	// TODO here we start RESTful dialog
+		unset ($data['Event']['id']);
+		if (isset($data['Event']['uuid'])) {
 			// check if the uuid already exists
 			$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 			if ($existingEventCount > 0) {
-				// TODO RESTfull, set responce location header..so client can find right URL to edit
+				// RESTfull, set responce location header..so client can find right URL to edit
 				if ($fromPull) return false;
 				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 				$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $existingEvent['Event']['id']);
@@ -360,29 +358,20 @@ class EventsController extends AppController {
 			}
 		}
 
-		if ($upstream) {
-			$fieldList = array(
-					'Event' => array('orgc', 'date', 'risk', 'analysis', 'info', 'published', 'uuid'),
-					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision')
-			);
-		} else {
-			$fieldList = array(
-					'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'dist_change', 'from'),
-					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie', 'dist_change')
-			);
-		}
+		// FIXME chri: validate the necessity for all these fields...impact on security !
+		$fieldList = array(
+				'Event' => array('orgc', 'date', 'risk', 'analysis', 'info', 'published', 'uuid'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision')
+		);
+		$fieldList = array(
+				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'dist_change', 'from'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie', 'dist_change')
+		);
 
-		if ("i" == Configure::read('CyDefSIG.baseurl')) {
-			// this saveAssociated() function will save not only the event, but also the attributes
-			// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-			unset($data['Attribute']);
-			$this->Event->unbindModel(array('hasMany' => array('Attribute')));
-			$saveResult = $this->Event->save($data, array('validate' => true, 'fieldList' => $fieldList));
-		} else {
-			$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
-		}
+		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
+		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
 		if ($saveResult) {
-			if (!empty($data['Event']['published']) && 1 == $data['Event']['published'] && $data['Event']['private'] == false) {
+			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
 				$this->__publish($this->Event->getId(), $passAlong);
 			}
@@ -459,44 +448,35 @@ class EventsController extends AppController {
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie', 'cluster', 'dist_change')
 				);
 
-				if ("ii" == Configure::read('CyDefSIG.rest')) {
-					// reposition to get the attribute.id with given uuid
-					$c = 0;
-					if (isset($this->request->data['Attribute'])) {
-						foreach ($this->request->data['Attribute'] as $attribute) {
-							$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
-							if (count($existingAttribute)) {
-								$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
-								if (!($this->request->data['Attribute'][$c]['dist_change'] > $existingAttribute['Attribute']['dist_change'])) {
-									unset($this->request->data['Attribute'][$c]['private']);
-									unset($this->request->data['Attribute'][$c]['cluster']);
-									unset($this->request->data['Attribute'][$c]['communitie']);
-								}
+				// reposition to get the attribute.id with given uuid
+				$c = 0;
+				if (isset($this->request->data['Attribute'])) {
+					foreach ($this->request->data['Attribute'] as $attribute) {
+						$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
+						if (count($existingAttribute)) {
+							$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
+							if (!($this->request->data['Attribute'][$c]['dist_change'] > $existingAttribute['Attribute']['dist_change'])) {
+								unset($this->request->data['Attribute'][$c]['private']);
+								unset($this->request->data['Attribute'][$c]['cluster']);
+								unset($this->request->data['Attribute'][$c]['communitie']);
 							}
-							$c++;
 						}
+						$c++;
 					}
 				}
 
+				// unclear what this does, more documentation needed
 				if ($this->request->data['Event']['dist_change'] > $existingEvent['Event']['dist_change']) {
 					array_push($fieldList['Event'], 'private', 'communitie', 'cluster');
 				}
-				if ("i" == Configure::read('CyDefSIG.rest')) {
-					// this saveAssociated() function will save not only the event, but also the attributes
-					// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-					// the following 2 lines can be out-commented if we opt to save associated (Event.php:263-264)
-					unset($this->request->data['Attribute']);
-					$this->Event->unbindModel(array('hasMany' => array('Attribute')));
-					$saveResult = $this->Event->save($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
-				} else {
-					$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
-				}
+
+				// this saveAssociated() function will save not only the event, but also the attributes
+				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
+				$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
+
 				if ($saveResult) {
-
 					// TODO RESTfull: we now need to compare attributes, to see if we need to do a RESTfull attribute delete
-
 					$message = 'Saved';
-
 					$this->set('event', $this->Event->data);
 					//if published -> do the actual publishing
 					if ((!empty($this->request->data['Event']['published']) && 1 == $this->request->data['Event']['published'])) {
@@ -642,7 +622,7 @@ class EventsController extends AppController {
 		));
 		// iterate over the servers and upload the event
 		if(empty($servers))
-			return;
+			return true;
 
 		$uploaded = true;
 		$failedServers = array();
@@ -703,10 +683,9 @@ class EventsController extends AppController {
 		$this->Event->save($event, array('fieldList' => $fieldList));
 		$event['Event']['from'] = Configure::read('CyDefSIG.org');
 		$uploaded = false;
-		//if ($event['Event']['distribution'] == 'Your organization only' || $event['Event']['distribution'] == 'This server-only') return true;
 		if ('true' == Configure::read('CyDefSIG.sync')) {
 			$uploaded = $this->__uploadEventToServers($id, $passAlong);
-			if ((is_bool($uploaded) && !$uploaded) || (is_array($uploaded))) { // TODO remove bool
+			if (($uploaded == false) || (is_array($uploaded))) {
 				$this->Event->saveField('published', 0);
 			}
 		}
