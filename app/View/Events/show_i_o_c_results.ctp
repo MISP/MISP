@@ -38,14 +38,20 @@ if (isset($fails)):?>
 	</tr><?php
 foreach ($fails as $fail): ?>
 	<tr>
-		<td class="short"><?php echo h($fail['@attributes']['id']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($fail['Context']['@attributes']['search']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($fail['Content']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($fail['uuid']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($fail['search']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($fail['value']); ?>&nbsp;</td>
 	</tr><?php
 endforeach; ?>
-</table>
+</table><br /><br />
+<h4>Visualisation:</h4>
 <?php
-endif;?>
+endif;
+foreach ($graph as $line): ?>
+	<div style="white-space:pre-wrap; color: <?php echo ($line[1] ? 'green' : 'red'); ?>"><?php echo h($line[0]); ?>
+	</div>
+<?php
+endforeach; ?>
 </div>
 <div class="actions">
 	<ul>

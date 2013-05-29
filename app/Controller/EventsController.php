@@ -238,18 +238,8 @@ class EventsController extends AppController {
 				$this->request->data['Event']['user_id'] = $this->Auth->user('id');
 			}
 			if (!empty($this->data)) {
-				// FIXME review this submittedgfi and submittedioc code to have the same behavior for both validations/imports
 				$ext = '';
 				if (isset($this->data['Event']['submittedgfi'])) {
-					App::uses('File', 'Utility');
-					$file = new File($this->data['Event']['submittedgfi']['name']);
-					$ext = $file->ext();
-				}
-				$ioc = false;
-				if (isset($this->data['Event']['submittedioc'])) {
-					if($this->data['Event']['submittedioc']['error'] != 4) {
-					    $ioc = true;
-					}
 					App::uses('File', 'Utility');
 					$file = new File($this->data['Event']['submittedgfi']['name']);
 					$ext = $file->ext();
@@ -265,8 +255,7 @@ class EventsController extends AppController {
 							$this->render('view');
 						} else {
 							// TODO now save uploaded attributes using $this->Event->getId() ..
-							$this->addGfiZip($this->Event->getId());
-							$this->addIOCFile($this->Event->getId());
+							if (isset($this->data['Event']['submittedgfi'])) $this->addGfiZip($this->Event->getId());
 
 							// redirect to the view of the newly created event
 							if (!CakeSession::read('Message.flash')) {
@@ -275,9 +264,7 @@ class EventsController extends AppController {
 								$existingFlash = CakeSession::read('Message.flash');
 								$this->Session->setFlash(__('The event has been saved. ' . $existingFlash['message']));
 							}
-							if (!$ioc) {
-								$this->redirect(array('action' => 'view', $this->Event->getId()));
-							}
+							$this->redirect(array('action' => 'view', $this->Event->getId()));
 						}
 					} else {
 						if ($this->_isRest()) { // TODO return error if REST
@@ -304,6 +291,59 @@ class EventsController extends AppController {
 		$risks = $this->Event->validate['risk']['rule'][1];
 		$risks = $this->_arrayToValuesIndexArray($risks);
 		$this->set('risks',$risks);
+		// tooltip for risk
+		$this->set('riskDescriptions', $this->Event->riskDescriptions);
+
+		// combobox for analysis
+		$analysiss = $this->Event->validate['analysis']['rule'][1];
+		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
+		$this->set('analysiss',$analysiss);
+		// tooltip for analysis
+		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
+		$this->set('analysisLevels', $this->Event->analysisLevels);
+
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+	}
+
+	public function addIOC($id) {
+		if ($this->request->is('post')) {
+			if (!empty($this->data)) {
+				$ext = '';
+				if (isset($this->data['Event']['submittedioc'])) {
+					App::uses('File', 'Utility');
+					$file = new File($this->data['Event']['submittedioc']['name']);
+					$ext = $file->ext();
+				}
+				if (isset($this->data['Event']['submittedioc']) && ($ext != 'ioc') && $this->data['Event']['submittedioc']['size'] > 0 &&
+						is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
+					$this->Session->setFlash(__('You may only upload OpenIOC ioc files.'));
+				}
+				if (isset($this->data['Event']['submittedioc'])) $this->addIOCFile($id);
+
+				// redirect to the view of the newly created event
+				if (!CakeSession::read('Message.flash')) {
+					$this->Session->setFlash(__('The event has been saved'));
+				} else {
+					$existingFlash = CakeSession::read('Message.flash');
+					$this->Session->setFlash(__('The event has been saved. ' . $existingFlash['message']));
+				}
+			}
+		}
+		// combobox for distribution
+		$distributions = array_keys($this->Event->distributionDescriptions);
+		$distributions = $this->_arrayToValuesIndexArray($distributions);
+		$this->set('distributions', $distributions);
+		// tooltip for distribution
+		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
+
+		// combobox for risks
+		$risks = $this->Event->validate['risk']['rule'][1];
+		$risks = $this->_arrayToValuesIndexArray($risks);
+		$this->set('risks',$risks);
+
+		// set the id
+		$this->set('id', $id);
+
 		// tooltip for risk
 		$this->set('riskDescriptions', $this->Event->riskDescriptions);
 
@@ -702,7 +742,12 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-		$this->Event->saveField('from', Configure::read('CyDefSIG.org'));
+		// update the event and set the from field to the current instance's organisation from the bootstrap. We also need to save id and info for the logs.
+		$this->Event->recursive = -1;
+		$event = $this->Event->read(null, $id);
+		$fieldList = array('published', 'id', 'info');
+		$event['Event']['from'] = Configure::read('CyDefSIG.org');
+		$this->Event->save($event, array('fieldList' => $fieldList));
 
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
@@ -1449,8 +1494,18 @@ class EventsController extends AppController {
 			$xml = $rootDir . DS . 'Analysis' . DS . 'analysis.xml';
 			$fileData = fread(fopen($destpath . DS . $this->data['Event']['submittedioc']['name'], "r"), $this->data['Event']['submittedioc']['size']);
 
+			// Load event and populate the event data
+			$this->Event->id = $id;
+			$this->Event->recursive = -1;
+			if (!$this->Event->exists()) {
+				throw new NotFoundException(__('Invalid event'));
+			}
+			$this->Event->read(null, $id);
+			$saveEvent['Event'] = $this->Event->data['Event'];
+			$saveEvent['Event']['published'] = false;
+			$dist = array($this->Event->data['Event']['private'], $this->Event->data['Event']['cluster'], $this->Event->data['Event']['communitie']);
 			// read XML
-			$event = $this->IOCImport->readXML($fileData, $id);
+			$event = $this->IOCImport->readXML($fileData, $id, $dist);
 
 			// make some changes to have $saveEvent in the format that is needed to save the event together with its attributes
 			$fails = $event['Fails'];
@@ -1458,14 +1513,16 @@ class EventsController extends AppController {
 			// we've already stored these elsewhere, unset them so we can extract the event related data
 			unset($event['Attribute']);
 			unset($event['Fails']);
-			// save the event related data into $saveEvent['Event']
-			$saveEvent['Event'] = $event;
-			$saveEvent['Event']['id'] = $id;
-			$fieldList = array(
-						'Event' => array('info', 'uuid'),
-						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid')
-						);
 
+			// Keep this for later if we want to let an ioc create the event data automatically in a later version
+			// save the event related data into $saveEvent['Event']
+			//$saveEvent['Event'] = $event;
+			//$saveEvent['Event']['id'] = $id;
+
+			$fieldList = array(
+					'Event' => array('published'),
+					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'private', 'cluster', 'communitie')
+			);
 			// Save it all
 			$saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
 
@@ -1475,6 +1532,8 @@ class EventsController extends AppController {
 				$this->set('fails', $fails);
 			}
 			$this->set('eventId', $id);
+			$this->set('graph', $event['Graph']);
+			$this->set('saveEvent', $saveEvent);
 			$this->render('showIOCResults');
 		}
 	}

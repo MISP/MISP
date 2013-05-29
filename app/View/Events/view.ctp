@@ -7,7 +7,8 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	<?php
 		if ($isSiteAdmin || $mayModify): ?>
 	<ul><li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?>
-	<?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li></ul><br />
+	<?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?>
+	<?php echo $this->Html->link('Populate event from IOC', array('controller' => 'events', 'action' => 'addIOC', $event['Event']['id']));?> </li></li></ul><br />
 	<?php else: ?>
 	<ul><li><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $event['Event']['id']));?></li>
 	<li><?php echo $this->Html->link(__('Propose Attachment', true), array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li></ul>
@@ -111,7 +112,7 @@ if (!empty($relatedEvents)):?>
 	foreach ($relatedEvents as $relatedEvent): ?>
 		<li><?php
 		$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-		echo "<div \" title = \"".$relatedEvent['Event']['info']."\">";
+		echo "<div \" title = \"".h($relatedEvent['Event']['info'])."\">";
 		if ($relatedEvent['Event']['org'] == $me['org']) {
 			echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']), array('class' => 'SameOrgLink'));
 		} else {

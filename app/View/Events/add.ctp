@@ -16,16 +16,10 @@ echo $this->Form->input('analysis', array(
 		'before' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))
 		));
 echo $this->Form->input('info');
-echo $this->Form->input('Event.submittedgfi', array(
+echo $this->Form->input('Event.submittedfile', array(
 		'label' => '<b>GFI sandbox</b>',
 		'type' => 'file',
-		'before' => $this->Html->div('forminfo', isset($eventDescriptions['submittedgfi']['formdesc']) ? $eventDescriptions['submittedgfi']['formdesc'] : $eventDescriptions['submittedgfi']['desc'])));
-
-echo $this->Form->input('Event.submittedioc', array(
-		'label' => '<b>OpenIOC</b>',
-		'type' => 'file',
-));
-
+		'before' => $this->Html->div('forminfo', isset($eventDescriptions['submittedfile']['formdesc']) ? $eventDescriptions['submittedfile']['formdesc'] : $eventDescriptions['submittedfile']['desc'])));
 
 // link an onchange event to the form elements
 $this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');
