@@ -727,7 +727,8 @@ class AttributesController extends AppController {
 
 				// search on the value field
 				if (isset($keyword)) {
-					$keywordArray = preg_split("/\r\n|\n|\r/", $keyword);
+					$keywordArray = explode("\n", $keyword);
+					$this->set('keywordArray', $keywordArray);
 					$i = 1;
 					$temp = array();
 					foreach ($keywordArray as $keywordArrayElement) {
@@ -751,7 +752,7 @@ class AttributesController extends AppController {
 
 				// event IDs to be excluded
 				if (isset($keyword2)) {
-					$keywordArray2 = preg_split("/\r\n|\n|\r/", $keyword2);
+					$keywordArray2 = explode("\n", $keyword2);
 					$i = 1;
 					$temp = array();
 					foreach ($keywordArray2 as $keywordArrayElement) {
@@ -785,34 +786,27 @@ class AttributesController extends AppController {
 					$conditions['Event.orgc ='] = $org;
 				}
 				$this->Attribute->recursive = 0;
+				$this->paginate = array(
+					'limit' => 60,
+					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
+					'conditions' => $conditions
+				);
 				if (!$this->_IsSiteAdmin()) {
 					// merge in private conditions
-					$this->paginate = array(
-						'limit' => 60,
+					$this->paginate = Set::merge($this->paginate, array(
 						'conditions' =>
-							array("AND" => $conditions,
 							array("OR" => array(
 							array('Event.org =' => $this->Auth->user('org')),
-							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1))))));
-				} else {
-					$this->paginate = array(
-							'limit' => 60,
-							'conditions' => $conditions
+							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1)))),
+						)
 					);
 				}
+
 				$idList = array();
-				$attributes = h($this->paginate());
+				$attributes = $this->paginate();
 				foreach ($attributes as &$attribute) {
 					if (!in_array($attribute['Attribute']['event_id'], $idList)) {
 						$idList[] = $attribute['Attribute']['event_id'];
-					}
-					$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
-					foreach ($keywordArray as $keywordArrayElement) {
-						$keywordArrayElement = trim($keywordArrayElement);
-						if ($attribute['Attribute']['type'] == 'malware-sample' || $attribute['Attribute']['type'] == 'link' || $attribute['Attribute']['type'] == 'attachment') {
-							$attribute['Attribute']['valueNoScript'] = preg_replace('%' . $keywordArrayElement . '%i', $keywordArrayElement, $attribute['Attribute']['value']);
-						}
-						$attribute['Attribute']['value'] = preg_replace('%' . $keywordArrayElement . '%i', '<span style="color:red">' . $keywordArrayElement . '</span>', $attribute['Attribute']['value']);
 					}
 				}
 				$this->set('attributes', $attributes);
@@ -858,11 +852,7 @@ class AttributesController extends AppController {
 			// re-get pagination
 			$this->Attribute->recursive = 0;
 			$this->paginate = $this->Session->read('paginate_conditions');
-			$attributes = $this->paginate();
-			foreach ($attributes as &$attribute) {
-				$attribute['Attribute']['value'] = str_replace('\n', chr(10), $attribute['Attribute']['value']);
-			}
-			$this->set('attributes', $attributes);
+			$this->set('attributes', $this->paginate());
 
 			// set the same view as the index page
 			$this->render('index');

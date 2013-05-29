@@ -22,12 +22,24 @@ if ($isSearch == 1) {
 	</tr>
 	<?php
 	$currentCount = 0;
+	if ($isSearch == 1) {
+	    // build the $replacePairs variable used to highlight the keywords
+	    $replacementArray = array();
+	    foreach ($keywordArray as &$keywordArrayElement) {
+	        $keywordArrayElement = trim($keywordArrayElement);
+	        if ("" == $keywordArrayElement) continue;
+	        $replacementArray[] = '<span style="color:red">'.$keywordArrayElement.'</span>';
+	    }
+	    if (!empty($replacementArray))
+	      $replacePairs = array_combine($keywordArray, $replacementArray);
+	}
+
 foreach ($attributes as $attribute):
 	?>
 	<tr>
 		<td class="short">
+			<div id="<?php echo $attribute['Attribute']['id']?>" title="<?php echo h($attribute['Event']['info'])?>">
 			<?php
-				echo "<div id = \"" . $attribute['Attribute']['id'] . "\" title = \"".h($attribute['Event']['info'])."\">";
 				if ($attribute['Event']['orgc'] == $me['org']) {
 					echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id']), array('class' => 'SameOrgLink'));
 				} else {
@@ -35,6 +47,7 @@ foreach ($attributes as $attribute):
 				}
 				$currentCount++;
 			?>
+			</div>
 		</td>
 		<td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location ='
 		<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
@@ -45,14 +58,14 @@ foreach ($attributes as $attribute):
 		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 	<?php
 	$sigDisplay = nl2br(h($attribute['Attribute']['value']));
+	if ($isSearch == 1 && !empty($replacePairs)) {
+		// highlight the keywords if there are any
+		$sigDisplay = strtr($sigDisplay, $replacePairs);
+	}
 	if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
 		echo $this->Html->link($sigDisplay, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']), array('escape' => FALSE));
 	} elseif ('link' == $attribute['Attribute']['type']) {
-		if (isset($attribute['Attribute']['ValueNoScript'])) {
-			echo $this->Html->link($sigDisplay, nl2br(h($attribute['Attribute']['valueNoScript'])), array('escape' => FALSE));
-		} else {
-			echo $this->Html->link($sigDisplay, nl2br(h($attribute['Attribute']['value'])), array('escape' => FALSE));
-		}
+		echo $this->Html->link($sigDisplay, nl2br(h($attribute['Attribute']['value'])), array('escape' => FALSE));
 	} else {
 		echo $sigDisplay;
 	}
