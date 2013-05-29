@@ -116,7 +116,9 @@ class Attribute extends AppModel {
 			'link' => array('desc' => 'Link to an external information'),
 			'comment' => array('desc' => 'Comment or description in a human language', 'formdesc' => 'Comment or description in a human language. <br/> This will not be correlated with other attributes (NOT IMPLEMENTED YET)'),
 			'text' => array('desc' => 'Name, ID or a reference'),
-			'other' => array('desc' => 'Other attribute')
+			'other' => array('desc' => 'Other attribute'),
+			'named pipe' => array('desc' => 'Named pipe, use the format \\.\pipe\<PipeName>'),
+			'mutex' => array('desc' => 'Mutex, use the format \BaseNamedObjects\<Mutex>'),
 	);
 
 	// definitions of categories
@@ -137,7 +139,7 @@ class Attribute extends AppModel {
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
-					'types' => array('md5', 'sha1', 'filename', 'filename|md5', 'filename|sha1', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'yara', 'attachment', 'malware-sample', 'comment', 'text', 'other')
+					'types' => array('md5', 'sha1', 'filename', 'filename|md5', 'filename|sha1', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'yara', 'attachment', 'malware-sample', 'comment', 'text', 'other', 'named pipe', 'mutex')
 					),
 			'Payload installation' => array(
 					'desc' => 'Info on where the malware gets installed in the system',
@@ -669,6 +671,16 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Invalid format. Expected: CVE-xxxx-xxxx.';
+				}
+				break;
+			case 'named pipe':
+				if (preg_match('#^(\\\\\\\\.\\\\pipe\\\\)#', $value) && !preg_match("#\n#", $value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'mutex':
+				if (preg_match('#^(\\\\BaseNamedObjects\\\\)#', $value) && !preg_match("#\n#", $value)) {
+					$returnValue = true;
 				}
 				break;
 			case 'AS':
