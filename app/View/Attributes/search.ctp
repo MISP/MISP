@@ -12,6 +12,12 @@
 	</fieldset>
 <?php echo $this->Form->end(__('Search', true));?>
 </div>
+<div class="actions">
+	<ul>
+		<li><?php echo $this->Html->link('List Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'index'));?></li>
+		<li><?php echo $this->Html->link('Search Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'search'));?></li>
+	</ul>
+</div>
 <script type="text/javascript">
 //
 //Generate Category / Type filtering array

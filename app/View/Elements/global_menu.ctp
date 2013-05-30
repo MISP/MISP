@@ -1,5 +1,4 @@
 <div class="navbar-wrapper">
-
 	<div class="navbar navbar-inverse">
 		<div class="navbar-inner">
 			<div class="nav-collapse collapse">
@@ -104,6 +103,12 @@ if($isAclAudit): ?>
 					</li>
 					<?php
 endif;?>
+
+				</ul>
+			</div>
+			<div class="nav-collapse collapse" style="float:right">
+				<ul class="nav">
+					<li><?php echo $this->Html->link(__('Log out', true), array('controller' => 'users', 'action' => 'logout', 'plugin' => false)); ?> </li>
 				</ul>
 			</div>
 		</div>

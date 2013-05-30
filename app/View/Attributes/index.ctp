@@ -10,7 +10,7 @@ if ($isSearch == 1) {
 	if (isset($orgSearch) && $orgSearch != '' && $orgSearch != null) echo " created by the organisation \"<b>" . h($orgSearch) . "</b>\"";
 	echo ":</h4>";
 } ?>
-	<table cellpadding="0" cellspacing="0">
+	<table cellpadding="0" cellspacing="0" class="table table-striped table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('event_id');?></th>
 			<th><?php echo $this->Paginator->sort('category');?></th>
@@ -92,7 +92,7 @@ endforeach;
 	));
 	?>	</p>
 
-	<div class="pagingination">
+	<div class="pagination">
 	<?php
 		echo $this->Paginator->prev('< ' . __('previous'), array(), null, array('class' => 'prev disabled'));
 		echo $this->Paginator->numbers(array('separator' => ''));
@@ -102,6 +102,11 @@ endforeach;
 </div>
 <div class="actions">
 	<ul>
-		<li><?php if ($isSearch == 1) echo $this->Html->link(__('Download results as XML'), array('admin' => false, 'controller' => 'events', 'action' => 'downloadSearchResult'));?></li>
+	<?php if ($isSearch == 1): ?>
+		<li><?php echo $this->Html->link(__('Download results as XML'), array('admin' => false, 'controller' => 'events', 'action' => 'downloadSearchResult'));?></li>
+		<li></li>
+	<?php endif; ?>
+		<li><?php echo $this->Html->link('List Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'index'));?></li>
+		<li><?php echo $this->Html->link('Search Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'search'));?></li>
 	</ul>
 </div>
