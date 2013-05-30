@@ -155,7 +155,7 @@ endif; ?>
 		<h3>Attributes</h3>
 		<?php
 if (!empty($event['Attribute'])):?>
-		<table cellpadding = "0" cellspacing = "0">
+		<table cellpadding="0" cellspacing="0" class="table table-striped table-condensed">
 		<tr>
 			<th>Category</th>
 			<th>Type</th>

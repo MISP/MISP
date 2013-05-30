@@ -10,7 +10,7 @@ if ($isSearch == 1) {
 	if (isset($orgSearch) && $orgSearch != '' && $orgSearch != null) echo " created by the organisation \"<b>" . h($orgSearch) . "</b>\"";
 	echo ":</h4>";
 } ?>
-	<table cellpadding="0" cellspacing="0" class="table table-striped table-condensed">
+	<table cellpadding="0" cellspacing="0" class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('event_id');?></th>
 			<th><?php echo $this->Paginator->sort('category');?></th>

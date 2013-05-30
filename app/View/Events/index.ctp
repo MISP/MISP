@@ -1,6 +1,6 @@
 <div class="events index">
 	<h2>Events</h2>
-	<table cellpadding="0" cellspacing="0">
+	<table cellpadding="0" cellspacing="0" class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('published', 'Valid.');?></th>
 			<?php

@@ -8,11 +8,12 @@
 	<?php
 		echo $this->Html->meta('icon');
 
-		//echo $this->Html->css('cake.generic');
+// 		echo $this->Html->css('cake.generic');
 		echo $this->Html->css('roboto');
-		echo $this->Html->css('bootstrap.min');
+		echo $this->Html->css('bootstrap');
 		echo $this->Html->css('datepicker');
 		echo $this->Html->css('main');
+		echo $this->Html->css('misp');
 
 		// FIXME chri: re-add print stylesheet
 		//echo $this->Html->css(array('print'), 'stylesheet', array('media' => 'print'));
