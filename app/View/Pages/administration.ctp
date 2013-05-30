@@ -152,8 +152,3 @@ Another way to browse the logs is to search it by filtering the results accordin
 </ul>
 
 </div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
-</div>

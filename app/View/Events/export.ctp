@@ -43,9 +43,3 @@ endforeach;
 ?>
 </p>
 </div>
-
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
-</div>

@@ -55,6 +55,6 @@ endforeach; ?>
 </div>
 <div class="actions">
 	<ul>
-		<?php echo $this->element('actions_menu'); ?>
+		<li><?php echo $this->Html->link(__('View Event', true), array('controller' => 'events' ,'action' => 'view', $eventId)); ?> </li>
 	</ul>
 </div>

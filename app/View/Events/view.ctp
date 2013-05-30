@@ -2,14 +2,33 @@
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 ?>
-<div class="events view">
-<div class="actions" style="float:right;">
+<div class="actions">
+	<ul>
+			<?php
+				if ($isSiteAdmin || $mayModify) {
+			?>
+		<li><?php echo $this->Html->link(__('Add Attribute', true), array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?> </li>
+		<li><?php echo $this->Html->link(__('Add Attachment', true), array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
+		<li><?php echo $this->Html->link(__('Edit Event', true), array('action' => 'edit', $event['Event']['id'])); ?> </li>
+		<li><?php echo $this->Form->postLink(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
+		<li>&nbsp;</li>
+		<?php
+			} else {
+		?>
+		<li><?php echo $this->Html->link(__('Propose Attribute', true), array('controller' => 'shadow_attributes', 'action' => 'add', $event['Event']['id']));?> </li>
+		<li><?php echo $this->Html->link(__('Propose Attachment', true), array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
+		<li>&nbsp;</li>
+		<?php
+			}
+		?>
+	</ul>
+
 	<?php
-		if ($isSiteAdmin || $mayModify): ?>
+if ($isSiteAdmin || $mayModify): ?>
 	<ul><li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?>
 	<?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?>
 	<?php echo $this->Html->link('Populate event from IOC', array('controller' => 'events', 'action' => 'addIOC', $event['Event']['id']));?> </li></li></ul><br />
-	<?php else: ?>
+<?php else: ?>
 	<ul><li><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $event['Event']['id']));?></li>
 	<li><?php echo $this->Html->link(__('Propose Attachment', true), array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li></ul>
 		<?php
@@ -23,16 +42,22 @@ endif; ?>
 		echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!');
 	}
 	?> </li></ul>
-	<?php elseif (0 == $event['Event']['published']): ?>
+<?php elseif (0 == $event['Event']['published']): ?>
 		<ul><li>Not published</li></ul>
-	<?php else: ?>
+<?php else: ?>
 		<!-- ul><li>Alert already sent</li></ul -->
 	<?php
 endif; ?>
-	<br /><ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id'])); ?> </li></ul><br />
+	<br />
+	<ul><li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id'])); ?> </li></ul><br />
 	<ul><li><?php echo $this->Html->link(__('Download as XML', true), array('action' => 'xml', 'download', $event['Event']['id'])); ?>
 	<?php echo $this->Html->link(__('Download as IOC', true), array('action' => 'downloadOpenIOCEvent', $event['Event']['id'])); ?> </li></ul>
+
+
 </div>
+
+
+<div class="events view">
 
 <?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?><?php echo $this->element('img', array('id' => $event['Event']['orgc']));?><?php
 endif; ?>
@@ -206,10 +231,10 @@ if (!empty($event['Attribute'])):?>
 				<td class = "actions <?php echo $extra; if ($extra != '') echo ' highlightRight'; ?>">
 					<?php
 					if ($isSiteAdmin || $mayModify) {
-						echo $this->Html->link(__('Edit', true), array('controller' => 'attributes', 'action' => 'edit', $attribute['id']));
-						echo $this->Form->postLink(__('Delete'), array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), null, __('Are you sure you want to delete this attribute? Keep in mind that this will also delete this attribute on remote MISP instances.'));
+						echo $this->Html->link('', array('controller' => 'attributes', 'action' => 'edit', $attribute['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
+						echo $this->Form->postLink('', array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute? Keep in mind that this will also delete this attribute on remote MISP instances.'));
 					} else {
-						echo $this->Html->link(__('Propose edit', true), array('controller' => 'shadow_attributes', 'action' => 'edit', $attribute['id']));
+						echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'edit', $attribute['id']), array('class' => 'icon-edit', 'title' => 'Propose Edit'));
 					}
 					?>
 				</td>
@@ -275,9 +300,9 @@ if (!empty($event['Attribute'])):?>
 					<td class="actions highlightRight <?php echo $extra; ?> highlightRed">
 					<?php
 						if (($event['Event']['org'] == $me['org'] && $mayPublish) || $isSiteAdmin) {
-							echo $this->Html->link(__('Accept', true), array('controller' => 'shadow_attributes', 'action' => 'accept', $shadowAttribute['id']));
+							echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'accept', $shadowAttribute['id']), array('class' => 'icon-ok', 'title' => 'Accept'));
 						}
-						echo $this->Html->link(__('Discard', true), array('controller' => 'shadow_attributes', 'action' => 'discard', $shadowAttribute['id']));
+						echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'discard', $shadowAttribute['id']), array('class' => 'icon-trash', 'title' => 'Discard'));
 					?>
 				</td>
 				</tr>
@@ -349,9 +374,9 @@ if (!empty($event['Attribute'])):?>
 									<td class="actions highlightRight <?php echo $extra; ?>">
 									<?php
 										if (($event['Event']['org'] == $me['org'] && $mayPublish) || $isSiteAdmin) {
-											echo $this->Html->link(__('Accept', true), array('controller' => 'shadow_attributes', 'action' => 'accept', $remain['ShadowAttribute']['id']));
+											echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'accept', $remain['ShadowAttribute']['id']), array('class' => 'icon-ok', 'title' => 'Accept'));
 										}
-										echo $this->Html->link(__('Discard', true), array('controller' => 'shadow_attributes', 'action' => 'discard',$remain['ShadowAttribute']['id']));
+										echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'discard',$remain['ShadowAttribute']['id']), array('class' => 'icon-trash', 'title' => 'Discard'));
 									?>
 								</td>
 							</tr>
@@ -363,26 +388,3 @@ if (!empty($event['Attribute'])):?>
 				<?php
 				endif; ?>
 		</div>
-	</div>
-	<div class="actions">
-		<ul>
-			<?php
-				if ($isSiteAdmin || $mayModify) {
-			?>
-		<li><?php echo $this->Html->link(__('Add Attribute', true), array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link(__('Add Attachment', true), array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link(__('Edit Event', true), array('action' => 'edit', $event['Event']['id'])); ?> </li>
-		<li><?php echo $this->Form->postLink(__('Delete Event'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
-		<li>&nbsp;</li>
-		<?php
-			} else {
-		?>
-		<li><?php echo $this->Html->link(__('Propose Attribute', true), array('controller' => 'shadow_attributes', 'action' => 'add', $event['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link(__('Propose Attachment', true), array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
-		<li>&nbsp;</li>
-		<?php
-			}
-			echo $this->element('actions_menu');
-		?>
-	</ul>
-</div>

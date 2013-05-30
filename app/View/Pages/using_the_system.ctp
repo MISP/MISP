@@ -418,8 +418,3 @@ Content-Type: application/xml
 &lt;/response&gt;
 </pre>
 </div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
-</div>

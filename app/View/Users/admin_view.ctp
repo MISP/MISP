@@ -94,7 +94,6 @@ if ($isAclModify): ?>
 		<li>&nbsp;</li>
 		<?php
 endif; ?>
-		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
 <div class="related">

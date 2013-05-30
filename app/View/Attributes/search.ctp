@@ -12,11 +12,6 @@
 	</fieldset>
 <?php echo $this->Form->end(__('Search', true));?>
 </div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
-</div>
 <script type="text/javascript">
 //
 //Generate Category / Type filtering array

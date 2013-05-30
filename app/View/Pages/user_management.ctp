@@ -58,6 +58,3 @@ All the events and attributes that get entered into MISP will be run through a s
 </ul>
 </div>
 
-<div class="actions">
-	<ul><?php echo $this->element('actions_menu'); ?></ul>
-</div>

@@ -9,8 +9,3 @@ if (0 == count($fails)):?>
 	<?php
 endif;?>
 </div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
-</div>

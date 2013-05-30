@@ -52,8 +52,3 @@
 	<p><img src="/img/doc/bottom_bar.png" alt = "" style="float:left;" title = "Download your PGP/GPG key using the link on the bottom bar or log out."/></p><br />
 
 </div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
-</div>

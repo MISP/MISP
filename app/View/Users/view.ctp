@@ -77,7 +77,5 @@ if ($isAclAdmin && ($me['org'] == $user['User']['org'] || $me['org'] == 'ADMIN')
 }
 	?>
 
-		<li>&nbsp;</li>
-		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>

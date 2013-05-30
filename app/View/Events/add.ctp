@@ -29,12 +29,6 @@ $this->Js->get('#EventAnalysis')->event('change', 'showFormInfo("#EventAnalysis"
 	</fieldset>
 <?php echo $this->Form->end(__('Submit', true));?>
 </div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-
-	</ul>
-</div>
 
 <script type="text/javascript">
 //

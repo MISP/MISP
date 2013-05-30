@@ -38,7 +38,5 @@ endforeach;?>
 	<ul>
 		<li><?php echo $this->Html->link(__('Perform on existing'), array('admin' => true, 'action' => 'clean'));?></li>
 		<li><?php echo $this->Html->link(__('New Regexp'), array('admin' => true, 'action' => 'add'));?></li>
-		<li>&nbsp;</li>
-		<?php echo $this->element('actions_menu');?>
 	</ul>
 </div>

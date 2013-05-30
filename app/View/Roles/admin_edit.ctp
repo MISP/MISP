@@ -12,11 +12,6 @@
 	</fieldset>
 <?php echo $this->Form->end(__('Submit'));?>
 </div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
-</div>
 
 <?php
 $this->Js->get('#RolePermission0')->event('change', 'deactivateActions()');

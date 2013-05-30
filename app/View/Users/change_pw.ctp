@@ -10,8 +10,3 @@
 <?php echo $this->Form->end(__('Submit', true));?>
 </div>
 
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
-</div>

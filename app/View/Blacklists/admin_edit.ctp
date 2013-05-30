@@ -12,7 +12,5 @@
 <div class="actions">
 	<ul>
 		<li><?php echo $this->Form->postLink(__('Delete Blacklist'), array('admin' => true, 'action' => 'delete', $this->Form->value('Blacklist.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Blacklist.id')));?></li>
-		<li>&nbsp;</li>
-		<?php echo $this->element('actions_menu');?>
 	</ul>
 </div>

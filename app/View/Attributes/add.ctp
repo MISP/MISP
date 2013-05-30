@@ -1,4 +1,3 @@
-
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute');?>
 	<fieldset>
@@ -42,7 +41,7 @@ $this->Js->get('#AttributeDistribution')->event('change', 'showFormInfo("#Attrib
 </div>
 <div class="actions">
 	<ul>
-		<?php echo $this->element('actions_menu'); ?>
+		<li><?php echo $this->Html->link(__('View Event', true), array('controller' => 'events' ,'action' => 'view', $this->request->data['Attribute']['event_id'])); ?> </li>
 	</ul>
 </div>
 <script type="text/javascript">

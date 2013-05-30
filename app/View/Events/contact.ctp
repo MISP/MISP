@@ -18,7 +18,6 @@ echo $this->Form->input('person', array(
 </div>
 <div class="actions">
 	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-
+		<li><?php echo $this->Html->link(__('View Event', true), array('controller' => 'events' ,'action' => 'view', $this->request->data['Event']['id'])); ?> </li>
 	</ul>
 </div>

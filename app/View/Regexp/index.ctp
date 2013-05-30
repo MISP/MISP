@@ -29,9 +29,3 @@ endforeach;?>
 	?>
 	</div>
 </div>
-<div class="actions">
-	<ul>
-		<li>&nbsp;</li>
-		<?php echo $this->element('actions_menu');?>
-	</ul>
-</div>

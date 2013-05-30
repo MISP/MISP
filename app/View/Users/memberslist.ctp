@@ -105,11 +105,6 @@ endforeach; ?>
 
 </div>
 
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
-</div>
 
 <div class="users index">
 

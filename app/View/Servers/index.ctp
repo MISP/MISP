@@ -66,7 +66,5 @@ endforeach; ?>
 	<ul>
 		<li><?php if ($isAclAdd && $me['org'] == 'ADMIN') echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
 		<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>
-		<li>&nbsp;</li>
-		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>

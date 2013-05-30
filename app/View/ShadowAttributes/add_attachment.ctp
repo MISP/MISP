@@ -20,11 +20,6 @@ $this->Js->get('#ShadowAttributeCategory')->event('change', 'showFormInfo("#Shad
 	</fieldset>
 <?php echo $this->Form->end(__('Upload'));?>
 </div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
-</div>
 
 <script type="text/javascript">
 var formInfoValues = new Array();

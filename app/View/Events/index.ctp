@@ -88,15 +88,15 @@ foreach ($events as $event):?>
 		<td class="actions">
 			<?php
 			if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['org'] == $me['org'])))
-				echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), array('action' => 'alert', $event['Event']['id']), 'Are you sure this event is complete and everyone should be informed?');
+				echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => 'Publish Event'), 'Are you sure this event is complete and everyone should be informed?');
 			elseif (0 == $event['Event']['published']) echo 'Not published';
 			?>
 		<?php
 	if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org'])) {
-		echo $this->Html->link(__('Edit', true), array('action' => 'edit', $event['Event']['id']), null);
-		echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id']));
+		echo $this->Html->link('', array('action' => 'edit', $event['Event']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
+		echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $event['Event']['id']));
 	}?>
-			<?php echo $this->Html->link(__('View', true), array('controller' => 'events', 'action' => 'view', $event['Event']['id'])); ?>
+			<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'view', $event['Event']['id']), array('class' => 'icon-list-alt', 'title' => 'View')); ?>
 		</td>
 	</tr>
 	<?php
@@ -119,6 +119,6 @@ endforeach; ?>
 </div>
 <div class="actions">
 	<ul>
-		<?php echo $this->element('actions_menu'); ?>
+		<li><?php echo $this->Html->link(__('Add Event', true), array('controller' => 'events' ,'action' => 'add')); ?> </li>
 	</ul>
 </div>

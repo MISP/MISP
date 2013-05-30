@@ -53,11 +53,4 @@ This would enable you to export:</p>
 <li>...</li>
 </ul>
 
-
-
-</div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
 </div>

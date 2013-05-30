@@ -36,7 +36,5 @@ endforeach;?>
 	<ul>
 
 		<li><?php echo $this->Html->link(__('New Whitelist'), array('admin' => true, 'action' => 'add'));?></li>
-		<li>&nbsp;</li>
-		<?php echo $this->element('actions_menu');?>
 	</ul>
 </div>

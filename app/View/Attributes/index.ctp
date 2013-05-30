@@ -74,10 +74,10 @@ foreach ($attributes as $attribute):
 		<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td class="actions"><?php
 	if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org'] == $me['org'])) {
-		echo $this->Html->link(__('Edit'), array('action' => 'edit', $attribute['Attribute']['id']), null);
-		echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $attribute['Attribute']['id']), null, __('Are you sure you want to delete this attribute?'));
+		echo $this->Html->link('', array('action' => 'edit', $attribute['Attribute']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
+		echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
 	}
-	echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']));
+	echo $this->Html->link('', array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), array('class' => 'icon-list-alt', 'title' => 'View'));
 	?>
 		</td>
 	</tr>
@@ -92,7 +92,7 @@ endforeach;
 	));
 	?>	</p>
 
-	<div class="paging">
+	<div class="pagingination">
 	<?php
 		echo $this->Paginator->prev('< ' . __('previous'), array(), null, array('class' => 'prev disabled'));
 		echo $this->Paginator->numbers(array('separator' => ''));
@@ -103,6 +103,5 @@ endforeach;
 <div class="actions">
 	<ul>
 		<li><?php if ($isSearch == 1) echo $this->Html->link(__('Download results as XML'), array('admin' => false, 'controller' => 'events', 'action' => 'downloadSearchResult'));?></li>
-		<?php echo $this->element('actions_menu'); ?>
 	</ul>
 </div>
