@@ -7,6 +7,9 @@
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
 	?>
 	</fieldset>
-<?php echo $this->Form->end(__('Submit', true));?>
+<?php
+echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
+echo $this->Form->end();
+?>
 </div>
 

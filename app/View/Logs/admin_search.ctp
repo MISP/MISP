@@ -1,11 +1,11 @@
 <div class="logs form">
-<?php echo $this->Form->create('Log');?>
+<?php echo $this->Form->create('Log', array('novalidate'=>true));?>
 	<fieldset>
 		<legend>Search Logs</legend>
 	<?php
 		echo $this->Form->input('email', array( 'label' => 'Email'));
 		if ($orgRestriction == false) {
-			echo $this->Form->input('org', array( 'label' => 'Org'));
+			echo $this->Form->input('org', array( 'label' => 'Organisation'));
 		}
 		echo $this->Form->input('action', array(
 				'between' => $this->Html->div('forminfo', '', array('id' => 'LogActionDiv')),

@@ -56,20 +56,20 @@
 		<tr>
 			<td class="short"><?php echo h($item['Log']['id']); ?>&nbsp;</td>
 			<td class="short"><?php
-				if ($emailSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['email']), $emailSearchReplacePairs));
+				if (isset($emailSearch) && $emailSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['email']), $emailSearchReplacePairs));
 				else echo (h($item['Log']['email'])); ?>&nbsp;</td>
 			<td class="short"><?php
-				if ($orgSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['org']), $orgSearchReplacePairs));
+				if (isset($orgSearch) && $orgSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['org']), $orgSearchReplacePairs));
 				else echo (h($item['Log']['org'])); ?>&nbsp;</td>
 			<td class="short"><?php echo h($item['Log']['created']); ?>&nbsp;</td>
 			<td class="short"><?php
-				if ($actionSearch != "ALL") echo nl2br($this->Highlight->highlighter(h($item['Log']['action']), $actionSearchReplacePairs));
+				if (isset($actionSearch) && $actionSearch != "ALL") echo nl2br($this->Highlight->highlighter(h($item['Log']['action']), $actionSearchReplacePairs));
 				else echo (h($item['Log']['action'])); ?>&nbsp;</td>
 			<td class="short"><?php
-				if ($titleSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['title']), $titleSearchReplacePairs));
+				if (isset($titleSearch) && $titleSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['title']), $titleSearchReplacePairs));
 				else echo nl2br(h($item['Log']['title'])); ?>&nbsp;</td>
 			<td class="short"><?php
-				if ($changeSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['change']), $changeSearchReplacePairs));
+				if (isset($changeSearch) && $changeSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['change']), $changeSearchReplacePairs));
 				else echo nl2br(h($item['Log']['change']));
 			?>&nbsp;</td>
 		</tr>

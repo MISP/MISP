@@ -1,6 +1,6 @@
 <div class="users index">
 	<h2><?php echo __('Users');?></h2>
-	<table cellpadding="0" cellspacing="0">
+	<table cellpadding="0" cellspacing="0" class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
@@ -46,10 +46,10 @@ foreach ($users as $user): ?>
 		<td class="actions">
 			<?php
 	if (($isAclAdmin && (($user['User']['org'] == $me['org'])) || ('1' == $me['id'])) || ($me['org'] == 'ADMIN')) {
-				echo $this->Html->link(__('Edit'), array('admin' => true, 'action' => 'edit', $user['User']['id']), null);
-				echo $this->Form->postLink(__('Delete'), array('admin' => true, 'action' => 'delete', $user['User']['id']), null, __('Are you sure you want to delete # %s?', $user['User']['id']));
+				echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $user['User']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
+				echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $user['User']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $user['User']['id']));
 	}?>
-			<?php echo $this->Html->link(__('View'), array('admin' => true, 'action' => 'view', $user['User']['id'])); ?>
+			<?php echo $this->Html->link('', array('admin' => true, 'action' => 'view', $user['User']['id']), array('class' => 'icon-list-alt', 'title' => 'View')); ?>
 		</td>
 	</tr>
 	<?php
@@ -69,4 +69,15 @@ endforeach; ?>
 		echo $this->Paginator->next(__('next') . ' >', array(), null, array('class' => 'next disabled'));
 	?>
 	</div>
+</div>
+<div class="actions">
+	<ul>
+		<li><?php echo $this->Html->link(__('New User', true), array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
+		<li><?php echo $this->Html->link(__('List Users', true), array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
+		<br />
+		<li><?php echo $this->Html->link(__('New Role', true), array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+		<li><?php echo $this->Html->link(__('List Roles', true), array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
+		<br />
+		<li><?php echo $this->Html->link(__('Contact users', true), array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+	</ul>
 </div>

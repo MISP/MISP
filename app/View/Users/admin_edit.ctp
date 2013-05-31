@@ -9,18 +9,39 @@
 		if ($currentOrg == 'ADMIN') {
 			echo $this->Form->input('org', array('label' => 'Organisation'));
 		}
-		echo $this->Form->input('role_id', array('label' => 'Role'));	// TODO ACL, User edit role_id.
-		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published'));
-		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests'));
+		echo $this->Form->input('role_id', array('label' => 'Role', 'div' => 'input clear'));	// TODO ACL, User edit role_id.
 		echo $this->Form->input('authkey', array('disabled' => 'disabled', 'label' => 'Authentication key'));
-		echo $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $currentId));
-		echo ('<br><br>');
 		echo $this->Form->input('nids_sid');
+		echo $this->Form->input('newsread', array(
+				'label' => 'News read (date)',
+				'type' => 'text',
+				'class' => 'datepicker',
+		));
+		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
 		echo $this->Form->input('termsaccepted', array('label' => 'Terms accepted'));
 		echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => 'Change Password'));
-		echo $this->Form->input('newsread', array('label' => 'News read (date)'));
-		echo $this->Form->input('gpgkey', array('label' => 'GPG key'));
+		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published'));
+		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests'));
+
+		echo $this->Html->link('Reset Auth Key', array('controller' => 'users', 'action' => 'resetauthkey', $currentId));
 	?>
 	</fieldset>
-<?php echo $this->Form->end(__('Submit'));?>
+<?php
+	echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
+echo $this->Form->end();?>
+</div>
+<div class="actions">
+	<ul>
+		<li><?php echo $this->Html->link(__('New User', true), array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
+		<li><?php echo $this->Html->link(__('List Users', true), array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
+		<br />
+		<?php if ($isSiteAdmin) { ?>
+			<li><?php echo $this->Html->link(__('New Role', true), array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+		<?php }?>
+		<li><?php echo $this->Html->link(__('List Roles', true), array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
+		<br />
+		<?php if ($isSiteAdmin) { ?>
+			<li><?php echo $this->Html->link(__('Contact users', true), array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+		<?php }?>
+	</ul>
 </div>

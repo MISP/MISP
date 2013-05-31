@@ -4,13 +4,18 @@
 	<tr>
 			<th>Organisation</th>
 			<th># of members</th>
+			<th>Logo</th>
  	</tr>
 	<?php
 foreach ($orgs as $org):?>
 	<tr>
 		<td><?php echo h($org['User']['org']); ?>&nbsp;</td>
 		<td><?php echo h($org[0]['num_members']); ?>&nbsp;</td>
-
+		<?php
+			$imgRelativePath = 'orgs' . DS . h($org['User']['org']) . '.png';
+			$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
+		?>
+		<td><?php if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org['User']['org']) . '.png', array('alt' => h($org['User']['org']),'width' => '48','hight' => '48'));?>&nbsp</td>
 	</tr>
 	<?php
 endforeach; ?>
@@ -105,7 +110,12 @@ endforeach; ?>
 
 </div>
 
-
-<div class="users index">
-
+<div class="actions">
+	<ul>
+		<li><?php echo $this->Html->link(__('News', true), array('controller' => 'users', 'action' => 'news')); ?> </li>
+		<li><?php echo $this->Html->link(__('My Profile', true), array('controller' => 'users', 'action' => 'view', 'me')); ?> </li>
+		<li><?php echo $this->Html->link(__('Members List', true), array('controller' => 'users', 'action' => 'memberslist')); ?> </li>
+		<li><?php echo $this->Html->link(__('User Guide', true), array('controller' => 'pages', 'action' => 'display', 'documentation')); ?> </li>
+		<li><?php echo $this->Html->link(__('Terms & Conditions', true), array('controller' => 'users', 'action' => 'terms')); ?> </li>
+	</ul>
 </div>
