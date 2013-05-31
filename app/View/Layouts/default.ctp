@@ -10,7 +10,7 @@
 
 // 		echo $this->Html->css('cake.generic');
 		echo $this->Html->css('roboto');
-		echo $this->Html->css('bootstrap');
+		echo $this->Html->css('bootstrap'); // see http://twitter.github.io/bootstrap/base-css.html
 		echo $this->Html->css('datepicker');
 		echo $this->Html->css('main');
 		echo $this->Html->css('misp');
@@ -23,7 +23,8 @@
 		echo $this->fetch('script');
 
 		echo $this->Html->script('jquery-1.9.1.min'); // Include jQuery library
-		echo $this->Html->script('bootstrap.min');
+		echo $this->Html->script('bootstrap');
+		//echo $this->Html->script('bootstrap.min');
 		echo $this->Html->script('bootstrap-datepicker');
 		echo $this->Html->script('main');
 	?>
