@@ -7,4 +7,5 @@ echo $this->Form->inputs(array(
 	'password' => array('autocomplete' => 'off')
 ));
 
-echo $this->Form->end('Login');
+echo $this->Form->button(__('Login'), array('class' => 'btn btn-primary'));
+echo $this->Form->end();

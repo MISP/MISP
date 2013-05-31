@@ -19,37 +19,76 @@ function showMessage(){
 		// This choice will determine
 		$actionOptions = array('Custom message', 'Send temporary password');
 		$recipientOptions = array('All existing users', 'An existing user', 'New user');
-		echo '<div>';
+	?>
+		<div class = "row-fluid">
+	<?php
 		echo $this->Form->input('action', array('type' => 'select', 'options' => $actionOptions, 'id' => 'action'));
+	?>
+			<div id = "subject">
+			<?php
+				echo $this->Form->input('subject', array('type' => 'text', 'label' => 'Subject', 'style' => 'width:400px;'));
+			?>
+			</div>
+		</div>
+		<div class = "row-fluid">
+		<?php
 		echo $this->Form->input('recipient', array('type' => 'select', 'options' => $recipientOptions, 'id' => 'recipient'));
-		echo '</div>';
-		echo '<div id = "recipientEmail">';
-		echo $this->Form->input('recipientEmail', array('type' => 'text', 'label' => 'Recipient Email', 'style' => 'width:300px;'));
-		echo '</div>';
-		echo '<div id = "subject">';
-		echo $this->Form->input('subject', array('type' => 'text', 'label' => 'Subject', 'style' => 'width:400px;'));
-		echo '</div>';
-		echo '<div id = "recipientEmailList">';
-		echo $this->Form->input('recipientEmailList', array('type' => 'select', 'options' => $recipientEmail, 'label' => 'Recipient Email'));
-		echo '</div>';
-		echo '<div id = "gpg">';
+		?>
+			<div id = "recipientEmail">
+		<?php
+			echo $this->Form->input('recipientEmail', array('type' => 'text', 'label' => 'Recipient Email', 'style' => 'width:300px;'));
+		?>
+			</div>
+			<div id = "recipientEmailList">
+		<?php
+			echo $this->Form->input('recipientEmailList', array('type' => 'select', 'options' => $recipientEmail, 'label' => 'Recipient Email'));
+		?>
+			</div>
+		</div>
+
+		<div id = "gpg" class = "row-fluid">
+	<?php
 		echo $this->Form->input('gpg', array('type' => 'textarea'));
-		echo '</div>';
-		echo '<div id = "customMessage">';
-		echo $this->Form->input('customMessage', array(
+	?>
+		</div>
+		<div id = "customMessage" class = "row-fluid">
+		<?php
+			echo $this->Form->input('customMessage', array(
 				'label' => __('Enter a custom message', true),
 				'type' => 'checkbox',
 				'checked' => 'checked',
 				'id' => 'customMessageToggle'
-		));
-		echo '</div>';
+			));
+		?>
+		</div>
+		<div class = "row-fluid">
+		<?php
 		$str = $this->Form->input('message', array('type' => 'textarea'));
 		echo $this->Html->div('messageDiv', $str, array('id' => 'messageDiv'));
-	?>
-	<?php echo $this->Form->end(__('Submit', true));
-	// link an onchange event to the form elements
-	?>
+		?>
+		</div>
+		<div class = "row-fluid">
+		<?php
+		echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
+		echo $this->Form->end();
+		?>
+		</div>
 	</fieldset>
+</div>
+<div class="actions">
+	<ul>
+		<li><?php echo $this->Html->link(__('New User', true), array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
+		<li><?php echo $this->Html->link(__('List Users', true), array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
+		<br />
+		<?php if ($isSiteAdmin) { ?>
+			<li><?php echo $this->Html->link(__('New Role', true), array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+		<?php }?>
+		<li><?php echo $this->Html->link(__('List Roles', true), array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
+		<br />
+		<?php if ($isSiteAdmin) { ?>
+			<li><?php echo $this->Html->link(__('Contact users', true), array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+		<?php }?>
+	</ul>
 </div>
 <script>
 
