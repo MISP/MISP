@@ -1,18 +1,25 @@
 <div class="logs form">
-<?php echo $this->Form->create('Log');?>
+<?php echo $this->Form->create('Log', array('novalidate'=>true));?>
 	<fieldset>
 		<legend><?php echo __('Search Log'); ?></legend>
 	<?php
 		echo $this->Form->input('email', array( 'label' => 'Email'));
 		if ($orgRestriction == false) {
-			echo $this->Form->input('org', array( 'label' => 'Org'));
+			echo $this->Form->input('org', array( 'label' => 'Organisation'));
 		}
-		echo $this->Form->input('action', array('between' => $this->Html->div('forminfo', '', array('id' => 'LogActionDiv'))));
-		echo $this->Form->input('title', array( 'label' => 'Title'));
-		echo $this->Form->input('change', array( 'label' => 'Change'));
+		echo $this->Form->input('action');
+		echo $this->Form->input('title');
+		echo $this->Form->input('change');
 	?>
 	</fieldset>
-<?php echo $this->Form->end(__('Search', true));?>
+<?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
+echo $this->Form->end();?>
+</div>
+<div class="actions">
+	<ul>
+		<li><?php echo $this->Html->link(__('List Logs', true), array('controller' => 'logs', 'action' => 'index', 'admin' => true)); ?> </li>
+		<li><?php echo $this->Html->link(__('Search Logs', true), array('controller' => 'logs', 'action' => 'admin_search', 'admin' => true)); ?> </li>
+	</ul>
 </div>
 <script type="text/javascript">
 var formInfoValues = new Array();

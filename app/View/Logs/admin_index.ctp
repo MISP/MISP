@@ -11,7 +11,7 @@ if ($isSearch == 1) {
 	echo ":</h4>";
 }
 		?>
-	<table cellpadding="0" cellspacing="0">
+	<table cellpadding="0" cellspacing="0" class="table table-striped table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<!--th><?php echo $this->Paginator->sort('user_id');?></th-->
@@ -59,4 +59,10 @@ endforeach; ?>
 		echo $this->Paginator->next(__('next') . ' >', array(), null, array('class' => 'next disabled'));
 	?>
 	</div>
+</div>
+<div class="actions">
+	<ul>
+		<li><?php echo $this->Html->link(__('List Logs', true), array('controller' => 'logs', 'action' => 'index', 'admin' => true)); ?> </li>
+		<li><?php echo $this->Html->link(__('Search Logs', true), array('controller' => 'logs', 'action' => 'admin_search', 'admin' => true)); ?> </li>
+	</ul>
 </div>
