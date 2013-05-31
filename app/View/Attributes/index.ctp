@@ -1,5 +1,5 @@
 <div class="attributes index">
-	<h2><?php echo __('Attributes');?></h2>
+	<h2>Attributes</h2>
 		<?php
 if ($isSearch == 1) {
 	echo "<h4>Results for all attributes";
@@ -10,7 +10,23 @@ if ($isSearch == 1) {
 	if (isset($orgSearch) && $orgSearch != '' && $orgSearch != null) echo " created by the organisation \"<b>" . h($orgSearch) . "</b>\"";
 	echo ":</h4>";
 } ?>
-	<table cellpadding="0" cellspacing="0" class="table table-striped table-hover table-condensed">
+	<div class="pagination">
+        <ul>
+        <?php
+        $this->Paginator->options(array(
+            'update' => '.span12',
+            'evalScripts' => true,
+            'before' => '$(".progress").show()',
+            'complete' => '$(".progress").hide()',
+        ));
+
+            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+        ?>
+        </ul>
+    </div>
+	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('event_id');?></th>
 			<th><?php echo $this->Paginator->sort('category');?></th>
@@ -18,7 +34,7 @@ if ($isSearch == 1) {
 			<th><?php echo $this->Paginator->sort('value');?></th>
 			<th<?php echo ' title="' . $attrDescriptions['signature']['desc'] . '"';?>>
 			<?php echo $this->Paginator->sort('signature');?></th>
-			<th class="actions"><?php echo __('Actions');?></th>
+			<th class="actions">Actions</th>
 	</tr>
 	<?php
 	$currentCount = 0;
@@ -38,7 +54,8 @@ foreach ($attributes as $attribute):
 	?>
 	<tr>
 		<td class="short">
-			<div id="<?php echo $attribute['Attribute']['id']?>" title="<?php echo h($attribute['Event']['info'])?>">
+			<div id="<?php echo $attribute['Attribute']['id']?>" title="<?php echo h($attribute['Event']['info'])?>"
+			 onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 			<?php
 				if ($attribute['Event']['orgc'] == $me['org']) {
 					echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id']), array('class' => 'SameOrgLink'));
@@ -49,11 +66,9 @@ foreach ($attributes as $attribute):
 			?>
 			</div>
 		</td>
-		<td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location ='
-		<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
+		<td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 		<?php echo h($attribute['Attribute']['category']); ?>&nbsp;</td>
-		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location ='
-		<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
+		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 	<?php
@@ -85,28 +100,41 @@ foreach ($attributes as $attribute):
 endforeach;
 	?>
 	</table>
-	<p>
-	<?php
-	echo $this->Paginator->counter(array(
-	'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-	));
-	?>	</p>
 
-	<div class="pagination">
-	<?php
-		echo $this->Paginator->prev('< ' . __('previous'), array(), null, array('class' => 'prev disabled'));
-		echo $this->Paginator->numbers(array('separator' => ''));
-		echo $this->Paginator->next(__('next') . ' >', array(), null, array('class' => 'next disabled'));
-	?>
-	</div>
+	<p>
+    <?php
+    echo $this->Paginator->counter(array(
+    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
+    ));
+    ?>
+    </p>
+    <div class="pagination">
+        <ul>
+        <?php
+            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+        ?>
+        </ul>
+    </div>
+
 </div>
 <div class="actions">
-	<ul>
+	<ul class="nav nav-list">
+	<?php
+		if ($isSearch == 1){
+			$searchClass = 'class="active"';
+			$listClass = '';
+		} else {
+			$searchClass = '';
+			$listClass = 'class="active"';
+		}
+	?>
+		<li <?php echo $listClass;?>><?php echo $this->Html->link('List Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'index'));?></li>
+		<li <?php echo $searchClass;?>><?php echo $this->Html->link('Search Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'search'));?></li>
 	<?php if ($isSearch == 1): ?>
+		<li class="divider"></li>
 		<li><?php echo $this->Html->link(__('Download results as XML'), array('admin' => false, 'controller' => 'events', 'action' => 'downloadSearchResult'));?></li>
-		<li></li>
 	<?php endif; ?>
-		<li><?php echo $this->Html->link('List Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'index'));?></li>
-		<li><?php echo $this->Html->link('Search Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'search'));?></li>
 	</ul>
 </div>

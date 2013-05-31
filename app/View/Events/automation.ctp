@@ -36,10 +36,12 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <h3>Text export</h3>
 <p>An automatic export of all attributes of a specific type to a plain text file.</p>
 <p>You can configure your tools to automatically download the following files:</p>
-<pre><?php
-foreach ($sigTypes as $sigType):?>
-	<?php echo Configure::read('CyDefSIG.baseurl');?>/events/text/<?php echo $me['authkey']; ?>/<?php echo $sigType . "\n";?><?php
-endforeach;?>
+<pre>
+<?php
+foreach ($sigTypes as $sigType) {
+	echo Configure::read('CyDefSIG.baseurl').'/events/text/'.$me['authkey'].'/'.$sigType . "\n";
+}
+?>
 </pre>
 <p></p>
 
@@ -53,4 +55,12 @@ This would enable you to export:</p>
 <li>...</li>
 </ul>
 
+</div>
+<div class="actions">
+	<ul class="nav nav-list">
+		<li><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
+		<?php if ($isAclAuth): ?>
+		<li class="active"><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
+		<?php endif;?>
+	</ul>
 </div>

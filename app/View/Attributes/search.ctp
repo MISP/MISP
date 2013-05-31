@@ -1,22 +1,30 @@
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute');?>
 	<fieldset>
-		<legend><?php echo __('Search Attribute'); ?></legend>
-	<?php
+		<legend>Search Attribute</legend>
+		<?php
 		echo $this->Form->input('keyword', array('type' => 'textarea', 'label' => 'Containing the following expressions'));
 		echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Excluding the following events'));
-		echo $this->Form->input('org', array('type' => 'text', 'label' => 'From the following organisation'));
-		echo $this->Form->input('type', array('between' => $this->Html->div('forminfo', '', array('id' => 'AttributeTypeDiv'))));
+		?>
+		<?php
+		if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin)
+			echo $this->Form->input('org', array(
+					'type' => 'text',
+					'label' => 'From the following organisation',
+					'div' => 'input clear'));
+		?>
+		<?php
+		echo $this->Form->input('type', array(
+				'div' => 'input clear',
+				'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeTypeDiv'))
+				));
 		echo $this->Form->input('category', array('between' => $this->Html->div('forminfo', '', array('id' => 'AttributeCategoryDiv'))));
-	?>
+		?>
 	</fieldset>
-<?php echo $this->Form->end(__('Search', true));?>
-</div>
-<div class="actions">
-	<ul>
-		<li><?php echo $this->Html->link('List Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'index'));?></li>
-		<li><?php echo $this->Html->link('Search Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'search'));?></li>
-	</ul>
+<?php
+echo $this->Form->button('Search', array('class' => 'btn btn-primary'));
+echo $this->Form->end();
+?>
 </div>
 <script type="text/javascript">
 //
@@ -172,4 +180,10 @@ $('#AttributeTypeDiv').hide();
 $('#AttributeCategoryDiv').hide();
 
 </script>
-<?php echo $this->Js->writeBuffer(); // Write cached scripts
+<?php echo $this->Js->writeBuffer(); // Write cached scripts ?>
+<div class="actions">
+	<ul class="nav nav-list">
+		<li><?php echo $this->Html->link('List Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'index'));?></li>
+		<li class="active"><?php echo $this->Html->link('Search Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'search'));?></li>
+	</ul>
+</div>
