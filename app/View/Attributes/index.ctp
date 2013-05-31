@@ -39,15 +39,13 @@ if ($isSearch == 1) {
 	<?php
 	$currentCount = 0;
 	if ($isSearch == 1) {
-	    // build the $replacePairs variable used to highlight the keywords
-	    $replacementArray = array();
-	    foreach ($keywordArray as &$keywordArrayElement) {
-	        $keywordArrayElement = trim($keywordArrayElement);
-	        if ("" == $keywordArrayElement) continue;
-	        $replacementArray[] = '<span style="color:red">'.$keywordArrayElement.'</span>';
-	    }
-	    if (!empty($replacementArray))
-	      $replacePairs = array_combine($keywordArray, $replacementArray);
+
+		// sanitize data
+		foreach ($keywordArray as &$keywordArrayElement) {
+			$keywordArrayElement = h($keywordArrayElement);
+		}
+		// build the $replacePairs variable used to highlight the keywords
+		$replacePairs = $this->Highlight->build_replace_pairs($keywordArray);
 	}
 
 foreach ($attributes as $attribute):
@@ -75,7 +73,7 @@ foreach ($attributes as $attribute):
 	$sigDisplay = nl2br(h($attribute['Attribute']['value']));
 	if ($isSearch == 1 && !empty($replacePairs)) {
 		// highlight the keywords if there are any
-		$sigDisplay = strtr($sigDisplay, $replacePairs);
+		$sigDisplay = nl2br($this->Highlight->highlighter($sigDisplay, $replacePairs));
 	}
 	if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
 		echo $this->Html->link($sigDisplay, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']), array('escape' => FALSE));

@@ -50,8 +50,8 @@ class LogsController extends AppController {
 			$this->recursive = 0;
 			$this->paginate = array(
 					'limit' => 60,
-					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 logs(?)
-					'conditions' => $conditions
+					'conditions' => $conditions,
+					'order' => array('Log.id' => 'DESC')
 			);
 
 			$this->set('list', $this->paginate());
@@ -113,12 +113,11 @@ class LogsController extends AppController {
 				if (isset($change)) {
 					$conditions['LOWER(Log.change) LIKE'] = '%' . strtolower($change) . '%';
 				}
-				//$conditions['COLLATE'] = 'utf_general_ci';
 				$this->{$this->defaultModel}->recursive = 0;
 				$this->paginate = array(
 					'limit' => 60,
-					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 logs(?)
-					'conditions' => $conditions
+					'conditions' => $conditions,
+					'order' => array('Log.id' => 'DESC')
 				);
 				$this->set('list', $this->paginate());
 

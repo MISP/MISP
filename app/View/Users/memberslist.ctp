@@ -1,6 +1,6 @@
 <div class="users index">
 	<h2>Members</h2>
- 	<table cellpadding="0" cellspacing="0" style="width:300px;">
+ 	<table class="table table-striped table-condensed table-bordered" style="width:300px;">
 	<tr>
 			<th>Organisation</th>
 			<th># of members</th>
@@ -85,7 +85,7 @@ foreach ($graphData as $row) {
 	});
 	</script>
 
-	<!-- table cellpadding="0" cellspacing="0" style="width:400px;">
+	<!-- table class="table table-striped table-condensed table-bordered" style="width:400px;">
 	<tr>
 		<th>Org</th>
 		<th>Type</th>
