@@ -119,7 +119,12 @@ endforeach;
 </div>
 <div class="actions">
 	<ul class="nav nav-list">
-	<?php
+		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<?php if ($isAclAdd): ?>
+		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<?php endif; ?>
+		<li class="divider"></li>
+		<?php
 		if ($isSearch == 1){
 			$searchClass = 'class="active"';
 			$listClass = '';
@@ -127,12 +132,17 @@ endforeach;
 			$searchClass = '';
 			$listClass = 'class="active"';
 		}
-	?>
+		?>
 		<li <?php echo $listClass;?>><?php echo $this->Html->link('List Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'index'));?></li>
 		<li <?php echo $searchClass;?>><?php echo $this->Html->link('Search Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'search'));?></li>
-	<?php if ($isSearch == 1): ?>
+		<?php if ($isSearch == 1): ?>
 		<li class="divider"></li>
 		<li><?php echo $this->Html->link(__('Download results as XML'), array('admin' => false, 'controller' => 'events', 'action' => 'downloadSearchResult'));?></li>
-	<?php endif; ?>
+		<?php endif; ?>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
+		<?php if ($isAclAuth): ?>
+		<li><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
+		<?php endif;?>
 	</ul>
 </div>

@@ -55,6 +55,14 @@
 </div>
 <div class="actions">
 	<ul class="nav nav-list">
+		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<?php if ($isAclAdd): ?>
+		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<?php endif; ?>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('List Attributes', array('controller' => 'attributes', 'action' => 'index')); ?> </li>
+		<li><?php echo $this->Html->link('Search Attributes', array('controller' => 'attributes', 'action' => 'search')); ?> </li>
+		<li class="divider"></li>
 		<li class="active"><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
 		<?php if ($isAclAuth): ?>
 		<li><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
