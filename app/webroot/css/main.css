@@ -19,6 +19,18 @@ h3{
 	font-size: 18px;
 	line-height: 20px;
 }
+pre {
+	font-size: 11px;
+	
+}
+.nav-list {
+	padding-right: 5px;
+}
+
+.nav-list > li > a {
+	margin-right: -30px;
+}
+
 .navbar-lab .navbar-inner{
 	background: #FF9900;
 
@@ -78,7 +90,6 @@ div.view {
 div.actions {
   float:left;
   width:10%;
-  padding:10px 1%;
 }
 div.actions h3 {
   padding-top:0;
@@ -120,6 +131,11 @@ td.actions {
 	white-space: nowrap;
 }
 
+td.short {
+	width:5%;
+	white-space: nowrap;
+	text-align: left;
+}
 
 table.fullwidth {
 		 border:1px solid #f0f0f0;
@@ -151,6 +167,13 @@ table.fullwidth tr:hover{
 table.fullwidth th:hover{
  color:#fff;
 }
+
+.table-hover tbody tr:hover > td,
+.table-hover tbody tr:hover > th {
+	background-color: #CFEFFF;
+}
+
+
 /*
 .view_icon{
 		background-position: 0 0;

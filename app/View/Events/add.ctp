@@ -1,33 +1,69 @@
 <div class="events form">
 <?php echo $this->Form->create('Event', array('type' => 'file'));?>
 	<fieldset>
-		<legend><?php echo __('Add Event'); ?></legend>
-<?php
-echo $this->Form->input('date');
-if ('true' == Configure::read('CyDefSIG.sync')) {
-	echo $this->Form->input('distribution', array('label' => 'Distribution', 'selected' => 'All communities',
-		'between' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv'))
-	));
-}
-echo $this->Form->input('risk', array(
-		'before' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv'))));
-echo $this->Form->input('analysis', array(
-		'options' => array($analysisLevels),
-		'before' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))
+		<legend>Add Event</legend>
+		<?php
+		echo $this->Form->input('date', array(
+				'type' => 'text',
+				'class' => 'datepicker'
 		));
-echo $this->Form->input('info');
-echo $this->Form->input('Event.submittedfile', array(
-		'label' => '<b>GFI sandbox</b>',
-		'type' => 'file',
-		'before' => $this->Html->div('forminfo', isset($eventDescriptions['submittedfile']['formdesc']) ? $eventDescriptions['submittedfile']['formdesc'] : $eventDescriptions['submittedfile']['desc'])));
-
-// link an onchange event to the form elements
-$this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');
-$this->Js->get('#EventRisk')->event('change', 'showFormInfo("#EventRisk")');
-$this->Js->get('#EventAnalysis')->event('change', 'showFormInfo("#EventAnalysis")');
-?>
+		if ('true' == Configure::read('CyDefSIG.sync')) {
+			echo $this->Form->input('distribution', array(
+					'label' => 'Distribution',
+					'selected' => 'All communities',
+					'between' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv'))
+					));
+		}
+		echo $this->Form->input('risk', array(
+				'before' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv')),
+				'div' => 'input clear'
+				));
+		echo $this->Form->input('analysis', array(
+				'options' => array($analysisLevels),
+				'before' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))
+				));
+		echo $this->Form->input('info', array(
+				'div' => 'clear',
+				'class' => 'input-xxlarge'
+				));
+		echo $this->Form->input('Event.submittedgfi', array(
+				'label' => '<b>GFI sandbox</b>',
+				'type' => 'file',
+				'before' => $this->Html->div('forminfo', isset($eventDescriptions['submittedgfi']['formdesc']) ? $eventDescriptions['submittedgfi']['formdesc'] : $eventDescriptions['submittedgfi']['desc']),
+				'div' => 'clear'
+				));
+		echo $this->Form->input('Event.submittedioc', array(
+		        'label' => '<b>OpenIOC</b>',
+		        'type' => 'file',
+				'before' => $this->Html->div('forminfo', isset($eventDescriptions['submittedioc']['formdesc']) ? $eventDescriptions['submittedioc']['formdesc'] : $eventDescriptions['submittedioc']['desc']),
+				));
+		// link an onchange event to the form elements
+		$this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');
+		$this->Js->get('#EventRisk')->event('change', 'showFormInfo("#EventRisk")');
+		$this->Js->get('#EventAnalysis')->event('change', 'showFormInfo("#EventAnalysis")');
+		?>
 	</fieldset>
-<?php echo $this->Form->end(__('Submit', true));?>
+<?php
+echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
+echo $this->Form->end();
+?>
+</div>
+
+<div class="actions">
+	<ul class="nav nav-list">
+		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<?php if ($isAclAdd): ?>
+		<li class="active"><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<?php endif; ?>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('List Attributes', array('controller' => 'attributes', 'action' => 'index')); ?> </li>
+		<li><?php echo $this->Html->link('Search Attributes', array('controller' => 'attributes', 'action' => 'search')); ?> </li>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
+		<?php if ($isAclAuth): ?>
+		<li><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
+		<?php endif;?>
+	</ul>
 </div>
 
 <script type="text/javascript">

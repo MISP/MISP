@@ -40,6 +40,7 @@ class Event extends AppModel {
 		'private' => array('desc' => 'This field tells if the event should be shared with other CyDefSIG servers'),
 		'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
 		'submittedgfi' => array('desc' => 'GFI sandbox: export upload', 'formdesc' => 'GFI sandbox:<br/>export upload'),
+		'submittedioc' => array('desc' => '', 'formdesc' => ''),
 		'analysis' => array('desc' => 'Analysis Levels: *Initial* means the event has just been created, *Ongoing* means that the event is being populated, *Complete* means that the event\'s creation is complete', 'formdesc' => 'Analysis levels:<br />Initial: event has been started<br />Ongoing: event population is in progress<br />Complete: event creation has finished')
 	);
 

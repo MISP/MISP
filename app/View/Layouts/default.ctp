@@ -13,7 +13,6 @@
 		echo $this->Html->css('bootstrap'); // see http://twitter.github.io/bootstrap/base-css.html
 		echo $this->Html->css('datepicker');
 		echo $this->Html->css('main');
-		echo $this->Html->css('misp');
 
 		// FIXME chri: re-add print stylesheet
 		//echo $this->Html->css(array('print'), 'stylesheet', array('media' => 'print'));
@@ -23,10 +22,6 @@
 		echo $this->fetch('script');
 
 		echo $this->Html->script('jquery-1.9.1.min'); // Include jQuery library
-		echo $this->Html->script('bootstrap');
-		//echo $this->Html->script('bootstrap.min');
-		echo $this->Html->script('bootstrap-datepicker');
-		echo $this->Html->script('main');
 	?>
 
 <!--?php echo $scripts_for_layout; ?-->
@@ -62,6 +57,13 @@
 			<h1 style="text-align:center;"> <?php if (isset($me)) echo Configure::read('CyDefSIG.footerversion'); else echo Configure::read('CyDefSIG.footer')?></h1>
 		</div-->
 	</div>
-	<?php echo $this->element('sql_dump'); ?>
+	<?php
+	echo $this->element('sql_dump');
+
+	echo $this->Html->script('bootstrap');
+	//echo $this->Html->script('bootstrap.min');
+	echo $this->Html->script('bootstrap-datepicker');
+	echo $this->Html->script('main');
+	?>
 </body>
 </html>
