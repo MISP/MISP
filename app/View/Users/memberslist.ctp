@@ -15,7 +15,7 @@ foreach ($orgs as $org):?>
 			$imgRelativePath = 'orgs' . DS . h($org['User']['org']) . '.png';
 			$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 		?>
-		<td><?php if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org['User']['org']) . '.png', array('alt' => h($org['User']['org']),'width' => '48','hight' => '48'));?>&nbsp</td>
+		<td><?php if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org['User']['org']) . '.png', array('alt' => h($org['User']['org']),'width' => '48','hight' => '48'));?>&nbsp;</td>
 	</tr>
 	<?php
 endforeach; ?>

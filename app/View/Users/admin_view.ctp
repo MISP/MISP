@@ -92,7 +92,7 @@ if (h($user['User']['change_pw']) == 1) {
 	<div class="related table table-striped table-condensed">
 		<h3><?php echo __('Related Events');?></h3>
 		<?php if (!empty($user['Event'])):?>
-		<table cellpadding = "0" cellspacing = "0">
+		<table>
 		<tr>
 			<th><?php echo __('Published'); ?></th>
 			<th><?php echo __('Id'); ?></th>
@@ -107,11 +107,9 @@ if (h($user['User']['change_pw']) == 1) {
 		$i = 0;
 		foreach ($user['Event'] as $event): ?>
 		<tr>
-				<td><div class =
-				<?php
-					if ($event['published'] == 1) echo '\'icon-ok\'';
-					else echo '\'icon-remove\'';
-				?>php ></div></td>
+				<td>
+					<div class='<?php echo ($event['published'] == 1) ? 'icon-ok' : 'icon-remove';; ?>'></div>
+				</td>
 				<td><?php echo h($event['id']);?></td>
 				<td><?php echo h($event['date']);?></td>
 				<td><?php echo h($event['risk']);?></td>
@@ -134,25 +132,19 @@ if (h($user['User']['change_pw']) == 1) {
 	</div>
 </div>
 <div class="actions">
-	<ul>
-		<?php
-if ($isAdmin && ($me['org'] == $user['User']['org'] || $me['org'] == 'ADMIN')) { ?>
-		<li><?php echo $this->Html->link(__('Edit User', true), array('admin' => true, 'action' => 'edit', $user['User']['id'])); ?></li>
-		<br />
-		<li><?php echo $this->Html->link(__('New User', true), array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
-		<li><?php echo $this->Html->link(__('List Users', true), array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
-		<br />
-		<?php if ($isSiteAdmin) { ?>
-			<li><?php echo $this->Html->link(__('New Role', true), array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
-		<?php }?>
-		<li><?php echo $this->Html->link(__('List Roles', true), array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
-		<br />
-		<?php if ($isSiteAdmin) { ?>
-			<li><?php echo $this->Html->link(__('Contact users', true), array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
-		<?php }?>
-	</ul>
-	<?php
-}
-	?>
+	<ul class="nav nav-list">
+		<li><?php echo $this->Html->link('Edit User', array('admin' => true, 'action' => 'edit', $user['User']['id'])); ?></li>
+		<li class="divider"></li>
+		<li class="active"><?php echo $this->Html->link('New User', array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
+		<li><?php echo $this->Html->link('List Users', array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
+		<li class="divider"></li>
+		<?php if ($isSiteAdmin): ?>
+		<li><?php echo $this->Html->link('New Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+		<?php endif; ?>
+		<li><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
+		<?php if ($isSiteAdmin): ?>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('Contact users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+		<?php endif; ?>
 	</ul>
 </div>

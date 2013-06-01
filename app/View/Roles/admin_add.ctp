@@ -1,16 +1,37 @@
 <div class="roles form">
 <?php echo $this->Form->create('Role');?>
 	<fieldset>
-		<legend><?php echo __('Add Role'); ?></legend>
+		<legend>Add Role</legend>
 	<?php
 		echo $this->Form->input('name');?>
 		<?php echo $this->Form->radio('permission', $options, array('value' => '3'));?>
-		<?php echo $this->Form->input('perm_sync', array('type' => 'checkbox', 'checked' => false));?>
+		<?php echo $this->Form->input('perm_sync', array(
+				'type' => 'checkbox',
+				'checked' => false,
+				'div' => 'input clear'));?>
 		<?php echo $this->Form->input('perm_admin', array('type' => 'checkbox', 'checked' => false));?>
 		<?php echo $this->Form->input('perm_audit', array('type' => 'checkbox', 'checked' => false));?>
 		<?php echo $this->Form->input('perm_auth', array('type' => 'checkbox', 'checked' => false));?>
 	</fieldset>
-<?php echo $this->Form->end(__('Submit'));?>
+<?php
+echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
+echo $this->Form->end();
+?>
+</div>
+<div class="actions">
+	<ul class="nav nav-list">
+		<li><?php echo $this->Html->link('New User', array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
+		<li><?php echo $this->Html->link('List Users', array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
+		<li class="divider"></li>
+		<?php if ($isSiteAdmin): ?>
+		<li class="active"><?php echo $this->Html->link('New Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+		<?php endif; ?>
+		<li><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
+		<?php if ($isSiteAdmin): ?>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('Contact users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+		<?php endif; ?>
+	</ul>
 </div>
 
 <?php

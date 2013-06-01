@@ -1,6 +1,6 @@
 <div class="users index">
 	<h2><?php echo __('Users');?></h2>
-	<table cellpadding="0" cellspacing="0" class="table table-striped table-hover table-condensed">
+	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
@@ -71,13 +71,17 @@ endforeach; ?>
 	</div>
 </div>
 <div class="actions">
-	<ul>
-		<li><?php echo $this->Html->link(__('New User', true), array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
-		<li><?php echo $this->Html->link(__('List Users', true), array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
-		<br />
-		<li><?php echo $this->Html->link(__('New Role', true), array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
-		<li><?php echo $this->Html->link(__('List Roles', true), array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
-		<br />
-		<li><?php echo $this->Html->link(__('Contact users', true), array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+	<ul class="nav nav-list">
+		<li><?php echo $this->Html->link('New User', array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
+		<li class="active"><?php echo $this->Html->link('List Users', array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
+		<li class="divider"></li>
+		<?php if ($isSiteAdmin): ?>
+		<li><?php echo $this->Html->link('New Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+		<?php endif; ?>
+		<li><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
+		<?php if ($isSiteAdmin): ?>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('Contact users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+		<?php endif; ?>
 	</ul>
 </div>
