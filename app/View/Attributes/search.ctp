@@ -3,8 +3,8 @@
 	<fieldset>
 		<legend>Search Attribute</legend>
 		<?php
-		echo $this->Form->input('keyword', array('type' => 'textarea', 'label' => 'Containing the following expressions'));
-		echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Excluding the following events'));
+		echo $this->Form->input('keyword', array('type' => 'textarea', 'label' => 'Containing the following expressions', 'div' => 'clear', 'class' => 'input-xxlarge'));
+		echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Excluding the following events', 'div' => 'clear', 'class' => 'input-xxlarge'));
 		?>
 		<?php
 		if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin)
@@ -16,9 +16,9 @@
 		<?php
 		echo $this->Form->input('type', array(
 				'div' => 'input clear',
-				'between' => $this->Html->div('forminfo', '', array('id' => 'AttributeTypeDiv'))
+				'after' => $this->Html->div('forminfo', '', array('id' => 'AttributeTypeDiv'))
 				));
-		echo $this->Form->input('category', array('between' => $this->Html->div('forminfo', '', array('id' => 'AttributeCategoryDiv'))));
+		echo $this->Form->input('category', array('after' => $this->Html->div('forminfo', '', array('id' => 'AttributeCategoryDiv'))));
 		?>
 	</fieldset>
 <?php
