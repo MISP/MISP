@@ -38,7 +38,7 @@ function showMessage(){
 			</div>
 		</div>
 		<div id="gpg" class="row-fluid">
-			<?php echo $this->Form->input('gpg', array('type' => 'textarea')); ?>
+			<?php echo $this->Form->input('gpg', array('type' => 'textarea', 'class' => 'input-xxlarge')); ?>
 		</div>
 		<div id="customMessage" class="row-fluid">
 			<?php
@@ -52,7 +52,7 @@ function showMessage(){
 		</div>
 		<div class="row-fluid">
 			<?php
-			$str=$this->Form->input('message', array('type' => 'textarea'));
+			$str=$this->Form->input('message', array('type' => 'textarea', 'class' => 'input-xxlarge'));
 			echo $this->Html->div('messageDiv', $str, array('id' => 'messageDiv'));
 			?>
 		</div>

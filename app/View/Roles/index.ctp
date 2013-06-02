@@ -30,7 +30,7 @@ foreach ($list as $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['Role']['id']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['name']); ?>&nbsp;</td>
-		<td><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
+		<td class="short"><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_sync']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_admin']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_audit']); ?>&nbsp;</td>
