@@ -33,10 +33,16 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-
+							<?php if ($isSiteAdmin): ?>
+							<li><?php echo $this->Html->link(__('Import Blacklist', true), array('controller' => 'blacklists', 'action' => 'index', 'admin' => true)); ?> </li>
+							<li><?php echo $this->Html->link(__('Import Regexp', true), array('controller' => 'regexp', 'action' => 'index', 'admin' => true)); ?> </li>
+							<li><?php echo $this->Html->link(__('Signature Whitelist', true), array('controller' => 'whitelists', 'action' => 'index', 'admin' => true)); ?> </li>
+							<?php endif;?>
+							<?php if (!$isSiteAdmin): ?>
 							<li><?php echo $this->Html->link(__('Import Blacklist', true), array('controller' => 'blacklists', 'action' => 'index')); ?> </li>
 							<li><?php echo $this->Html->link(__('Import Regexp', true), array('controller' => 'regexp', 'action' => 'index')); ?> </li>
 							<li><?php echo $this->Html->link(__('Signature Whitelist', true), array('controller' => 'whitelists', 'action' => 'index')); ?> </li>
+							<?php endif;?>
 						</ul>
 					</li>
 
