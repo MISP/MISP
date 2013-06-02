@@ -3,22 +3,32 @@
 	<fieldset>
 		<legend><?php echo __('Edit Event'); ?></legend>
 <?php
-echo $this->Form->input('id');
-echo $this->Form->input('date');
+	echo $this->Form->input('id');
+	echo $this->Form->input('date', array(
+			'type' => 'text',
+			'class' => 'datepicker'
+	));
 if ('true' == Configure::read('CyDefSIG.sync')) {
     if ('true' == $canEditDist) {
-        echo $this->Form->input('distribution', array('label' => 'Distribution',
-                'between' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv'))
-        ));
+		echo $this->Form->input('distribution', array(
+			'label' => 'Distribution',
+			'selected' => 'All communities',
+			'after' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv')),
+		));
     }
 }
-echo $this->Form->input('risk', array(
-		'before' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv'))));
-echo $this->Form->input('analysis', array(
-		'options' => array($analysisLevels),
-		'before' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))
-		));
-echo $this->Form->input('info');
+	echo $this->Form->input('risk', array(
+			'after' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv')),
+			'div' => 'input clear'
+			));
+	echo $this->Form->input('analysis', array(
+			'options' => array($analysisLevels),
+			'after' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))
+			));
+	echo $this->Form->input('info', array(
+			'div' => 'clear',
+			'class' => 'input-xxlarge'
+			));
 
 // link an onchange event to the form elements
 if ('true' == $canEditDist) {
@@ -28,11 +38,27 @@ $this->Js->get('#EventRisk')->event('change', 'showFormInfo("#EventRisk")');
 $this->Js->get('#EventAnalysis')->event('change', 'showFormInfo("#EventAnalysis")');
 ?>
 	</fieldset>
-<?php echo $this->Form->end(__('Submit', true));?>
+<?php
+echo $this->Form->button('Edit', array('class' => 'btn btn-primary'));
+echo $this->Form->end();
+?>
 </div>
 <div class="actions">
-	<ul>
+	<ul class="nav nav-list">
 		<li><?php echo $this->Html->link(__('View Event', true), array('controller' => 'events' ,'action' => 'view', $this->request->data['Event']['id'])); ?> </li>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<?php if ($isAclAdd): ?>
+		<li class="active"><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<?php endif; ?>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('List Attributes', array('controller' => 'attributes', 'action' => 'index')); ?> </li>
+		<li><?php echo $this->Html->link('Search Attributes', array('controller' => 'attributes', 'action' => 'search')); ?> </li>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
+		<?php if ($isAclAuth): ?>
+		<li><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
+		<?php endif;?>
 	</ul>
 </div>
 

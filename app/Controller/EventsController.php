@@ -436,15 +436,9 @@ class EventsController extends AppController {
 		}
 		$this->Event->read(null, $id);
 		// check for if private and user not authorised to edit, go away
-		if (!$this->_isSiteAdmin() && !$this->checkAction('perm_sync') && $this->Event->data['Event']['distribution'] == 'Your organization only') {
+		if (!$this->_isSiteAdmin() && !$this->checkAction('perm_sync')) {
 			if (($this->Event->data['Event']['org'] != $this->_checkOrg()) || !($this->checkAction('perm_modify'))) {
 				$this->Session->setFlash(__('You are not authorised to do that.'));
-				$this->redirect(array('controller' => 'events', 'action' => 'index'));
-			}
-		}
-		if (!$this->_isRest()) {
-			if ($this->Event->data['Event']['org'] != $this->_checkOrg()) {
-				$this->Session->setFlash(__('Invalid event.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
