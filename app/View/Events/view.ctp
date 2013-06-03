@@ -39,103 +39,105 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 
 <div class="events view" style="width:83%">
 
-<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?><?php echo $this->element('img', array('id' => $event['Event']['orgc']));?><?php
-endif; ?>
-<h2>Event</h2>
-	<dl>
-		<dt>ID</dt>
-		<dd>
-			<?php echo h($event['Event']['id']); ?>
-			&nbsp;
-		</dd>
-		<dt>Uuid</dt>
-		<dd>
-			<?php echo h($event['Event']['uuid']); ?>
-			&nbsp;
-		</dd>
-		<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
-		<dt>Org</dt>
-		<dd>
-			<?php echo h($event['Event']['orgc']); ?>
-			&nbsp;
-		</dd>
-		<?php
-endif; ?>
-		<?php if ($isSiteAdmin): ?>
-		<dt>Owner org</dt>
-		<dd>
-			<?php echo h($event['Event']['org']); ?>
-			&nbsp;
-		</dd>
-		<?php
-endif; ?>
-		<?php if ($isSiteAdmin || ($isAdmin && $me['org'] == $event['Event']['org'])): ?>
-		<dt>Email</dt>
-		<dd>
-			<?php echo h($event['User']['email']); ?>
-			&nbsp;
-		</dd>
-		<?php
-endif; ?>
-		<dt>Date</dt>
-		<dd>
-			<?php echo h($event['Event']['date']); ?>
-			&nbsp;
-		</dd>
-		<dt<?php echo ' title="' . $eventDescriptions['risk']['desc'] . '"';?>>Risk</dt>
-		<dd>
-			<?php echo h($event['Event']['risk']); ?>
-			&nbsp;
-		</dd>
-		<dt<?php echo ' title="' . $eventDescriptions['analysis']['desc'] . '"';?>>Analysis</dt>
-		<dd>
-			<?php echo h($analysisLevels[$event['Event']['analysis']]); ?>
-			&nbsp;
-		</dd>
-		<dt>Distribution</dt>
-		<dd>
-			<?php echo h($event['Event']['distribution'] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
-			&nbsp;
-		</dd>
-		<dt>Info</dt>
-		<dd>
-			<?php echo nl2br(h($event['Event']['info'])); ?>
-			&nbsp;
-		</dd>
-		<dt>Published</dt>
-		<dd style = "color: red;">
-			<b><?php echo ($event['Event']['published'] == 1 ? 'Yes' : 'No');  ?></b>
-			&nbsp;
-		</dd>
-	</dl><br />
-<?php
-if (!empty($relatedEvents)):?>
-	<div class="related">
-		<h3>Related Events</h3>
-		<ul>
-		<?php
-	foreach ($relatedEvents as $relatedEvent): ?>
-		<li><?php
-		$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-		echo "<div \" title = \"".h($relatedEvent['Event']['info'])."\">";
-		if ($relatedEvent['Event']['org'] == $me['org']) {
-			echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']), array('class' => 'SameOrgLink'));
-		} else {
-			echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
-		}
-		?></div></li>
-		<?php
-	endforeach; ?>
-		</ul>
-	</div><br />
 	<?php
-endif; ?>
+	if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) {
+		echo $this->element('img', array('id' => $event['Event']['orgc']));
+	}
+	?>
+	<div class="row-fluid">
+		<div class="span8">
+			<h2>Event</h2>
+			<dl>
+				<dt>ID</dt>
+				<dd>
+					<?php echo h($event['Event']['id']); ?>
+					&nbsp;
+				</dd>
+				<dt>Uuid</dt>
+				<dd>
+					<?php echo h($event['Event']['uuid']); ?>
+					&nbsp;
+				</dd>
+				<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
+				<dt>Org</dt>
+				<dd>
+					<?php echo h($event['Event']['orgc']); ?>
+					&nbsp;
+				</dd>
+				<?php endif; ?>
+				<?php if ($isSiteAdmin): ?>
+				<dt>Owner org</dt>
+				<dd>
+					<?php echo h($event['Event']['org']); ?>
+					&nbsp;
+				</dd>
+				<?php endif; ?>
+				<?php if ($isSiteAdmin || ($isAdmin && $me['org'] == $event['Event']['org'])): ?>
+				<dt>Email</dt>
+				<dd>
+					<?php echo h($event['User']['email']); ?>
+					&nbsp;
+				</dd>
+				<?php endif; ?>
+				<dt>Date</dt>
+				<dd>
+					<?php echo h($event['Event']['date']); ?>
+					&nbsp;
+				</dd>
+				<dt<?php echo ' title="' . $eventDescriptions['risk']['desc'] . '"';?>>Risk</dt>
+				<dd>
+					<?php echo h($event['Event']['risk']); ?>
+					&nbsp;
+				</dd>
+				<dt<?php echo ' title="' . $eventDescriptions['analysis']['desc'] . '"';?>>Analysis</dt>
+				<dd>
+					<?php echo h($analysisLevels[$event['Event']['analysis']]); ?>
+					&nbsp;
+				</dd>
+				<dt>Distribution</dt>
+				<dd>
+					<?php echo h($event['Event']['distribution'] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
+					&nbsp;
+				</dd>
+				<dt>Info</dt>
+				<dd>
+					<?php echo nl2br(h($event['Event']['info'])); ?>
+					&nbsp;
+				</dd>
+				<dt>Published</dt>
+				<dd style = "color: red;">
+					<b><?php echo ($event['Event']['published'] == 1 ? 'Yes' : 'No');  ?></b>
+					&nbsp;
+				</dd>
+			</dl>
+		</div>
 
-	<div class="related">
+	<?php if (!empty($relatedEvents)):?>
+	<div class="related span4">
+		<h3>Related Events</h3>
+		<ul class="inline">
+			<?php foreach ($relatedEvents as $relatedEvent): ?>
+			<li>
+			<div title="<?php echo h($relatedEvent['Event']['info']); ?>">
+			<?php
+			$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
+			if ($relatedEvent['Event']['org'] == $me['org']) {
+				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']), array('class' => 'SameOrgLink'));
+			} else {
+				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
+			}
+			?>
+			</div></li>
+			<?php endforeach; ?>
+		</ul>
+	</div>
+	<?php endif; ?>
+	</div>
+	<div>
 		<h3>Attributes</h3>
 		<?php
 if (!empty($event['Attribute'])):?>
-		<table cellpadding="0" cellspacing="0" class="table table-striped table-condensed">
+		<table class="table table-striped table-condensed">
 		<tr>
 			<th>Category</th>
 			<th>Type</th>
@@ -368,3 +370,4 @@ if (!empty($event['Attribute'])):?>
 				<?php
 				endif; ?>
 		</div>
+</div>
