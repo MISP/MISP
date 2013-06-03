@@ -210,6 +210,13 @@ table.fullwidth th:hover{
 }
 
 
+th a.asc:after {
+	content: ' ⇣';
+}
+th a.desc:after {
+	content: ' ⇡';
+}
+
 /*
 .view_icon{
 		background-position: 0 0;
