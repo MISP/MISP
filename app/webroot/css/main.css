@@ -217,6 +217,10 @@ th a.desc:after {
 	content: ' ⇡';
 }
 
+td.action-links {
+	text-align: right;
+}
+
 /*
 .view_icon{
 		background-position: 0 0;

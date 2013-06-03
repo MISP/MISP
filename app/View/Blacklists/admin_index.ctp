@@ -26,7 +26,7 @@ foreach ($list as $item):?>
 	<tr>
 		<td class="short"><?php echo h($item['Blacklist']['id']);?>&nbsp;</td>
 		<td><?php echo h($item['Blacklist']['name']);?>&nbsp;</td>
-		<td class="actions short">
+		<td class="short action-links">
 			<?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Blacklist']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
 			<?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Blacklist']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete "%s"?', $item['Blacklist']['name']));?>
 		</td>

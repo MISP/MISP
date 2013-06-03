@@ -36,7 +36,7 @@ foreach ($list as $item): ?>
 		<td class="short"><?php echo h($item['Role']['perm_admin']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_audit']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_auth']); ?>&nbsp;</td>
-		<td class="actions short">
+		<td class="short action-links">
 			<?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Role']['id']), array('class' => 'icon-edit', 'title' => 'Edit')); ?>
 			<?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Role']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>
 		</td>

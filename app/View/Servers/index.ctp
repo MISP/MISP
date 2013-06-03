@@ -46,7 +46,7 @@ foreach ($servers as $server): ?>
 	endif; ?>
 		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
-		<td class="actions">
+		<td class="short action-links">
 			<?php
 			if ($server['Server']['pull'] && $me['org'] == 'ADMIN') echo $this->Form->postLink('', array('action' => 'pull', $server['Server']['id'], 'full'), array('class' => 'icon-download', 'title' => 'Pull all'));
 			if ($server['Server']['push'] && $me['org'] == 'ADMIN') echo $this->Form->postLink('', array('action' => 'push', $server['Server']['id'], 'full'), array('class' => 'icon-upload', 'title' => 'Push all') );

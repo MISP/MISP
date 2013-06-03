@@ -85,7 +85,7 @@ foreach ($attributes as $attribute):
 	?>&nbsp;</td>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 		<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;</td>
-		<td class="actions short"><?php
+		<td class="short action-links"><?php
 	if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org'] == $me['org'])) {
 		echo $this->Html->link('', array('action' => 'edit', $attribute['Attribute']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
 		echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
