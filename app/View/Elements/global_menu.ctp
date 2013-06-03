@@ -1,9 +1,11 @@
 <div class="navbar-wrapper">
 	<div class="navbar navbar-inverse">
 		<div class="navbar-inner">
+		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
 				<ul class="nav">
 					<li class="active"><?php echo $this->Html->link('home', '/');?></li>
+
 
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
@@ -62,8 +64,7 @@
 						</ul>
 					</li>
 
-					<?php
-if (('true' == Configure::read('CyDefSIG.sync')) && ($isAclSync || $isAdmin)): ?>
+					<?php if (('true' == Configure::read('CyDefSIG.sync')) && ($isAclSync || $isAdmin)): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Sync Actions
@@ -73,9 +74,9 @@ if (('true' == Configure::read('CyDefSIG.sync')) && ($isAclSync || $isAdmin)): ?
 							<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index', 'plugin' => false));?></li>
 						</ul>
 					</li>
-					<?php
-endif;
-if($isAdmin || $isSiteAdmin): ?>
+					<?php endif;?>
+
+					<?php if($isAdmin || $isSiteAdmin): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Administration
@@ -95,9 +96,9 @@ if($isAdmin || $isSiteAdmin): ?>
 							<?php endif; ?>
 						</ul>
 					</li>
-					<?php
-endif;
-if($isAclAudit): ?>
+					<?php endif; ?>
+
+					<?php if($isAclAudit): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Audit
@@ -108,8 +109,7 @@ if($isAclAudit): ?>
 							<li><?php echo $this->Html->link(__('Search Logs', true), array('controller' => 'logs', 'action' => 'admin_search', 'admin' => true, 'plugin' => false)); ?> </li>
 						</ul>
 					</li>
-					<?php
-endif;?>
+					<?php endif;?>
 
 				</ul>
 			</div>
@@ -118,6 +118,7 @@ endif;?>
 					<li><?php echo $this->Html->link(__('Log out', true), array('controller' => 'users', 'action' => 'logout', 'plugin' => false)); ?> </li>
 				</ul>
 			</div>
+		<?php endif;?>
 		</div>
 	</div>
 </div>
