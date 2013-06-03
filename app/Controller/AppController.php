@@ -118,6 +118,7 @@ class AppController extends Controller {
 			$this->set('isAclAudit', $role['perm_audit']);
 			$this->set('isAclAuth', $role['perm_auth']);
 		} else {
+			$this->set('me', false);
 			$this->set('isAdmin', false);
 			$this->set('isSiteAdmin', false);
 			$this->set('isAclAdd', false);
