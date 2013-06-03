@@ -1,3 +1,7 @@
+<?php
+$mayModify = (($isAclModify && $this->request->data['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $this->request->data['Event']['orgc'] == $me['org']));
+$mayPublish = ($isAclPublish && $this->request->data['Event']['orgc'] == $me['org']);
+?>
 <div class="events form">
 <?php echo $this->Form->create('Event');?>
 	<fieldset>

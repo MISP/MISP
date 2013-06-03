@@ -20,8 +20,6 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 		<?php if ( 0 == $event['Event']['published'] && ($isAdmin || $mayPublish)): ?>
 		<li><?php echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?'); ?></li>
 		<li><?php echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!'); ?></li>
-		<?php elseif (0 == $event['Event']['published']): ?>
-		<li>Not published</li>
 		<?php else: ?>
 		<!-- ul><li>Alert already sent</li></ul -->
 		<?php endif; ?>
@@ -94,19 +92,19 @@ endif; ?>
 			<?php echo h($analysisLevels[$event['Event']['analysis']]); ?>
 			&nbsp;
 		</dd>
-	<dt>Distribution</dt>
-	<dd>
-		<?php echo h($event['Event']['distribution'] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
-		&nbsp;
-	</dd>
-		<!-- dt>UUID</dt>
+		<dt>Distribution</dt>
 		<dd>
-			<?php echo h($event['Event']['uuid']); ?>
+			<?php echo h($event['Event']['distribution'] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
 			&nbsp;
-		</dd -->
+		</dd>
 		<dt>Info</dt>
 		<dd>
 			<?php echo nl2br(h($event['Event']['info'])); ?>
+			&nbsp;
+		</dd>
+		<dt>Published</dt>
+		<dd style = "color: red;">
+			<b><?php echo ($event['Event']['published'] == 1 ? 'Yes' : 'No');  ?></b>
 			&nbsp;
 		</dd>
 	</dl><br />
