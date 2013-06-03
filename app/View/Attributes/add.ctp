@@ -74,8 +74,7 @@ echo $this->Form->end();
 		<?php endif; ?>
 	</ul>
 </div>
-	</ul>
-</div>
+
 <script type="text/javascript">
 //
 //Generate Category / Type filtering array

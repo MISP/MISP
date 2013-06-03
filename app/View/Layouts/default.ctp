@@ -36,16 +36,16 @@
 		</div-->
 		<?php echo $this->element('global_menu');?>
 		<div class="container-fluid">
-                <div class="row-fluid">
-                    <div class="span12">
-						<?php echo $this->Session->flash('auth'); ?>
-			            <?php echo $this->Session->flash('error'); ?>
-		    			<?php echo $this->Session->flash('gpg'); ?>
-						<?php echo $this->Session->flash(); ?>
-						<?php echo $this->Session->flash('email'); ?>
-                    </div>
-                </div>
-            </div>
+			<div class="row-fluid">
+				<div class="span12">
+					<?php echo $this->Session->flash('auth'); ?>
+					<?php echo $this->Session->flash('error'); ?>
+		    		<?php echo $this->Session->flash('gpg'); ?>
+					<?php echo $this->Session->flash(); ?>
+					<?php echo $this->Session->flash('email'); ?>
+				</div>
+			</div>
+		</div>
 			<?php echo $this->fetch('content'); ?>
 
 		<!--div id="footer">

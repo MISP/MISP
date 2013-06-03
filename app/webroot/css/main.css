@@ -295,3 +295,26 @@ dd {
   text-align: left;
  }
 
+
+/** Debugging **/
+
+/* SQL log */
+.cake-sql-log {
+	display: block;
+	clear: both;
+	background: black;
+	color: #dddddd;
+}
+.cake-sql-log tr {
+	border: #dddddd solid 1px;
+}
+.cake-sql-log td {
+	padding: 4px 8px;
+	text-align: left;
+	
+}
+.cake-sql-log caption {
+	color:#fff;
+}
+
+	
