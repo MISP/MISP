@@ -173,6 +173,17 @@ td.short {
 	text-align: left;
 }
 
+td.highlight1 {
+	background-color: #0088cc;
+	color: #ffffff;
+}
+
+td.highlight2 {
+	background-color: #747170;
+	color: #ffffff;
+	
+}
+
 table.fullwidth {
 		 border:1px solid #f0f0f0;
 }

@@ -280,6 +280,14 @@ class ShadowAttribute extends AppModel {
 			'fields' => '',
 			'order' => '',
 			'counterCache' => true
+		),
+		'Event' => array(
+			'className' => 'Event',
+			'foreignKey' => 'id',
+			'conditions' => '',
+			'fields' => '',
+			'order' => '',
+			'counterCache' => true
 		)
 	);
 

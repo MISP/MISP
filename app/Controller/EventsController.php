@@ -127,12 +127,23 @@ class EventsController extends AppController {
 			$id = $temp['Event']['id'];
 		}
 		$this->Event->recursive = 2;
-		$this->Event->contain('Attribute', 'Attribute.ShadowAttribute', 'User.email');
+		$this->Event->contain('Attribute', 'ShadowAttribute', 'User.email');
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event, it already exists.'));
 		}
 		$this->Event->read(null, $id);
+
+		// rearrange the shadow attributes
+		foreach ($this->Event->data['Attribute'] as $key => &$attribute) {
+			if (!isset($attribute['ShadowAttribute'])) $attribute['ShadowAttribute'] = array();
+			foreach ($this->Event->data['ShadowAttribute'] as $k => &$sa) {
+				if ($sa['old_id'] == $attribute['id']) {
+					$this->Event->data['Attribute'][$key]['ShadowAttribute'][] = $sa;
+					unset($this->Event->data['ShadowAttribute'][$k]);
+				}
+			}
+		}
 		$userEmail = $this->Event->data['User']['email'];
 		unset ($this->Event->data['User']);
 		$this->Event->data['User']['email'] = $userEmail;

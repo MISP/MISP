@@ -277,6 +277,19 @@ class Event extends AppModel {
 			'exclusive' => '',
 			'finderQuery' => '',
 			'counterQuery' => ''
+		),
+		'ShadowAttribute' => array(
+				'className' => 'ShadowAttribute',
+				'foreignKey' => 'event_id',
+				'dependent' => true,	// cascade deletes
+				'conditions' => '',
+				'fields' => '',
+				'order' => array('ShadowAttribute.old_id DESC', 'ShadowAttribute.old_id DESC'),
+				'limit' => '',
+				'offset' => '',
+				'exclusive' => '',
+				'finderQuery' => '',
+				'counterQuery' => ''
 		)
 	);
 

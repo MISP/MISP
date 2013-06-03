@@ -137,7 +137,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 		<h3>Attributes</h3>
 		<?php
 if (!empty($event['Attribute'])):?>
-		<table class="table table-striped table-condensed">
+		<table class="table table-condensed">
 		<tr>
 			<th>Category</th>
 			<th>Type</th>
@@ -152,10 +152,10 @@ if (!empty($event['Attribute'])):?>
 		foreach ($event['Attribute'] as $attribute):
 			$extra = "";
 			if ($attribute['category'] != $category) continue;
-			if (count($attribute['ShadowAttribute'])) $extra .= 'highlightGreen highlightTop';
+			if (count($attribute['ShadowAttribute'])) $extra .= 'highlight1';
 		?>
-			<tr>
-				<td class= "short <?php echo $extra; if ($extra != "") echo ' highlightLeft'; ?>" title="<?php if('' != $attribute['category']) echo $categoryDefinitions[$attribute['category']]['desc'];?>"><?php
+			<tr class="<?php echo $extra;?>">
+				<td class= "short <?php echo $extra; ?>" title="<?php if('' != $attribute['category']) echo $categoryDefinitions[$attribute['category']]['desc'];?>"><?php
 			if ($first) {
 				if ('' == $attribute['category']) echo '(no category)';
 					echo h($attribute['category']);
@@ -210,7 +210,7 @@ if (!empty($event['Attribute'])):?>
 				</td>
 				<td class= "short <?php echo $extra; ?>"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
 				<td class= "short <?php echo $extra; ?>"><?php echo $attribute['distribution'] != 'All communities' ? $attribute['distribution'] : 'All';?></td>
-				<td class = "actions <?php echo $extra; if ($extra != '') echo ' highlightRight'; ?>">
+				<td class = "actions <?php echo $extra;?>">
 					<?php
 					if ($isSiteAdmin || $mayModify) {
 						echo $this->Html->link('', array('controller' => 'attributes', 'action' => 'edit', $attribute['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
@@ -225,16 +225,16 @@ if (!empty($event['Attribute'])):?>
 			// Create an entry for each shadow attribute right below the attribute that it proposes to edit
 			// $extra is used for extra style code added to cells that have a highlighting border around them.
 			$extra = null;
+			$extra = 'highlight2';
 				foreach ($attribute['ShadowAttribute'] as $shadowAttribute):
-				if ($shadowAttribute === end($attribute['ShadowAttribute'])) $extra = 'highlightBottom';
 				?>
-				<tr>
-					<td class="highlightLeft highlightRed <?php echo $extra; ?>" title="<?php if('' != $shadowAttribute['category']) echo $categoryDefinitions[$shadowAttribute['category']]['desc'];?>">
+				<tr class="highlight2">
+					<td class="short highlight2" title="<?php if('' != $shadowAttribute['category']) echo $categoryDefinitions[$shadowAttribute['category']]['desc'];?>">
 					<?php
 						if ($shadowAttribute['category'] != $attribute['category']) echo h($shadowAttribute['category']);
 ?>
 					</td>
-					<td class="short highlightRed <?php echo $extra; ?>" title="
+					<td class="short highlight2" title="
 						<?php
 							echo $typeDefinitions[$shadowAttribute['type']]['desc'];
 						?>
@@ -243,7 +243,7 @@ if (!empty($event['Attribute'])):?>
 							if ($shadowAttribute['type'] != $attribute['type']) echo h($shadowAttribute['type']);
 						?>
 					</td>
-					<td class = "<?php echo $extra; ?> highlightRed">
+					<td class = "highlight2">
 						<?php
 							if ($shadowAttribute['value'] != $attribute['value']) {
 								$sigDisplay = $shadowAttribute['value'];
@@ -272,14 +272,14 @@ if (!empty($event['Attribute'])):?>
 							}
 						?>
 					</td>
-					<td class="short <?php echo $extra; ?> highlightRed">
+					<td class="short highlight2">
 					</td>
-					<td class="short <?php echo $extra; ?> highlightRed">
+					<td class="short highlight2">
 					<?php
 						if ($shadowAttribute['to_ids'] != $attribute['to_ids']) echo $shadowAttribute['to_ids'] ? 'Yes' : 'No';
 					?></td>
-					<td class="short <?php echo $extra; ?> highlightRed"></td>
-					<td class="actions highlightRight <?php echo $extra; ?> highlightRed">
+					<td class="short highlight2"></td>
+					<td class="actions highlight2">
 					<?php
 						if (($event['Event']['org'] == $me['org'] && $mayPublish) || $isSiteAdmin) {
 							echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'accept', $shadowAttribute['id']), array('class' => 'icon-ok', 'title' => 'Accept'));
@@ -297,20 +297,20 @@ if (!empty($event['Attribute'])):?>
 						$first = true;
 						if (isset($remaining)):
 							foreach ($remaining as $remain):
-								$extra = 'highlightRed';
+								$extra = 'highlight2';
 								if ($first) {
-									$extra .= ' highlightTop';
+									//$extra .= ' highlightTop';
 									$first = false;
 								}
-								if ($remain === end($remaining)) $extra .= ' highlightBottom';
+								//if ($remain === end($remaining)) $extra .= ' highlightBottom';
 								?>
-							<tr>
-								<td class="highlightLeft <?php echo $extra; ?>" title="<?php if('' != $remain['ShadowAttribute']['category']) echo $categoryDefinitions[$remain['ShadowAttribute']['category']]['desc'];?>">
+							<tr class="highlight2">
+								<td class="highlight2" title="<?php if('' != $remain['ShadowAttribute']['category']) echo $categoryDefinitions[$remain['ShadowAttribute']['category']]['desc'];?>">
 								<?php
 									echo h($remain['ShadowAttribute']['category']);
 								?>
 								</td>
-								<td class="short <?php echo $extra; ?>" title="
+								<td class="short highlight2" title="
 									<?php
 										echo $typeDefinitions[$remain['ShadowAttribute']['type']]['desc'];
 									?>
@@ -319,7 +319,7 @@ if (!empty($event['Attribute'])):?>
 										echo h($remain['ShadowAttribute']['type']);
 									?>
 								</td>
-								<td class = "short <?php echo $extra; ?>">
+								<td class = "short highlight2">
 									<?php
 										$sigDisplay = nl2br(h($remain['ShadowAttribute']['value']));
 										if ('attachment' == $remain['ShadowAttribute']['type'] || 'malware-sample' == $remain['ShadowAttribute']['type'] ) {
@@ -346,14 +346,14 @@ if (!empty($event['Attribute'])):?>
 										}
 									?>
 								</td>
-								<td class="short <?php echo $extra; ?>">
+								<td class="short highlight2">
 								</td>
-								<td class="short <?php echo $extra; ?>">
+								<td class="short highlight2">
 									<?php
 										echo $remain['ShadowAttribute']['to_ids'] ? 'Yes' : 'No';
 									?></td>
-									<td class="short <?php echo $extra; ?>"></td>
-									<td class="actions highlightRight <?php echo $extra; ?>">
+									<td class="short highlight2"></td>
+									<td class="actions highlight2">
 									<?php
 										if (($event['Event']['org'] == $me['org'] && $mayPublish) || $isSiteAdmin) {
 											echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'accept', $remain['ShadowAttribute']['id']), array('class' => 'icon-ok', 'title' => 'Accept'));

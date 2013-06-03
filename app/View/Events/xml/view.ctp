@@ -3,6 +3,8 @@ $xmlArray = array();
 // rearrange things to be compatible with the Xml::fromArray()
 $event['Event']['Attribute'] = $event['Attribute'];
 unset($event['Attribute']);
+//$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
+//unset($event['ShadowAttribute']);
 
 // build up a list of the related events
 if (isset($relatedEvents)) {
