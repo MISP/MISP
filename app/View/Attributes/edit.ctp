@@ -59,7 +59,7 @@ echo $this->Form->end();
 		<li><?php echo $this->Html->link('Edit Event', array('controller' => 'events', 'action' => 'edit', $this->request->data['Attribute']['event_id'])); ?> </li>
 		<li><?php echo $this->Form->postLink('Delete Event', array('controller' => 'events', 'action' => 'delete', $this->request->data['Attribute']['event_id']), null, __('Are you sure you want to delete # %s?', $this->request->data['Attribute']['event_id'])); ?></li>
 		<li class="divider"></li>
-		<li class="active"><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $this->request->data['Attribute']['event_id']));?> </li>
+		<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $this->request->data['Attribute']['event_id']));?> </li>
 		<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $this->request->data['Attribute']['event_id']));?> </li>
 		<li><?php echo $this->Html->link('Populate event from IOC', array('controller' => 'events', 'action' => 'addIOC', $this->request->data['Attribute']['event_id']));?> </li>
 		<?php else:	?>
