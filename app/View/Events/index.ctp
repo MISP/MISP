@@ -50,9 +50,9 @@
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 				<?php
 				if ($event['Event']['published'] == 1) {
-						echo $this->Html->image('yes.png', array('title' => 'Validated', 'alt' => 'Validated', 'width' => '16', 'hight' => '16'));
+					echo $this->Html->link('', array('controller' => 'events', 'action' => 'view', $event['Event']['id']), array('class' => 'icon-ok', 'title' => 'View'));
 				} else {
-						echo $this->Html->image('no.png', array('title' => 'Not validated', 'alt' => 'Not Validated', 'width' => '16', 'hight' => '16'));
+					echo $this->Html->link('', array('controller' => 'events', 'action' => 'view', $event['Event']['id']), array('class' => 'icon-remove', 'title' => 'View'));
 				}?>&nbsp;
 			</td>
 			<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
@@ -60,7 +60,7 @@
 				$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['orgc']) . '.png', array('alt' => h($event['Event']['orgc']),'width' => '48','hight' => '48'));
-				else echo $this->Html->tag('span', h($event['Event']['orgc']), array('class' => 'welcome', 'style' => 'float:right;'));?><?php
+				else echo $this->Html->tag('span', h($event['Event']['orgc']), array('class' => 'welcome', 'style' => 'float:left;'));?><?php
 				?>
 				&nbsp;
 			</td>
@@ -71,7 +71,7 @@
 				$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']),'width' => '48','hight' => '48'));
-				else echo $this->Html->tag('span', h($event['Event']['org']), array('class' => 'welcome', 'style' => 'float:right;'));?><?php
+				else echo $this->Html->tag('span', h($event['Event']['org']), array('class' => 'welcome', 'style' => 'float:left;'));?><?php
 				?>&nbsp;
 			</td>
 			<?php endif; ?>
@@ -95,7 +95,7 @@
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 				<?php echo $analysisLevels[$event['Event']['analysis']]; ?>&nbsp;
 			</td>
-			<td onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 				<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
 			</td>
 			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
@@ -103,7 +103,7 @@
 				<?php echo $event['Event']['distribution'] != 'All communities' ? $event['Event']['distribution'] : 'All';?>
 			</td>
 			<?php endif; ?>
-			<td class="actions">
+			<td class="actions short">
 				<?php
 				if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['org'] == $me['org'])))
 					echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => 'Publish Event'), 'Are you sure this event is complete and everyone should be informed?');
