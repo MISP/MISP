@@ -45,20 +45,36 @@ echo $this->Form->end();
 </div>
 <div class="actions">
 	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link(__('View Event', true), array('controller' => 'events' ,'action' => 'view', $this->request->data['Event']['id'])); ?> </li>
+		<li><?php echo $this->Html->link('View Event', array('action' => 'view', $this->request->data['Event']['id'])); ?> </li>
+		<?php if ($isSiteAdmin || $mayModify): ?>
+		<li class="active"><?php echo $this->Html->link('Edit Event', array('action' => 'edit', $this->request->data['Event']['id'])); ?> </li>
+		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $this->request->data['Event']['id']), null, __('Are you sure you want to delete # %s?', $this->request->data['Event']['id'])); ?></li>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $this->request->data['Event']['id']));?> </li>
+		<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $this->request->data['Event']['id']));?> </li>
+		<li><?php echo $this->Html->link('Populate event from IOC', array('controller' => 'events', 'action' => 'addIOC', $this->request->data['Event']['id']));?> </li>
+		<?php else:	?>
+		<li><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $this->request->data['Event']['id']));?> </li>
+		<li><?php echo $this->Html->link('Propose Attachment', array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $this->request->data['Event']['id']));?> </li>
+		<?php endif; ?>
+		<li class="divider"></li>
+		<?php if ( 0 == $this->request->data['Event']['published'] && ($isAdmin || $mayPublish)): ?>
+		<li><?php echo $this->Form->postLink('Publish Event', array('action' => 'alert', $this->request->data['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?'); ?></li>
+		<li><?php echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $this->request->data['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!'); ?></li>
+		<?php elseif (0 == $this->request->data['Event']['published']): ?>
+		<li>Not published</li>
+		<?php else: ?>
+		<!-- ul><li>Alert already sent</li></ul -->
+		<?php endif; ?>
+		<li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $this->request->data['Event']['id'])); ?> </li>
+		<li><?php echo $this->Html->link(__('Download as XML', true), array('action' => 'xml', 'download', $this->request->data['Event']['id'])); ?></li>
+		<li><?php echo $this->Html->link(__('Download as IOC', true), array('action' => 'downloadOpenIOCEvent', $this->request->data['Event']['id'])); ?> </li>
+
 		<li class="divider"></li>
 		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
 		<?php if ($isAclAdd): ?>
-		<li class="active"><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
 		<?php endif; ?>
-		<li class="divider"></li>
-		<li><?php echo $this->Html->link('List Attributes', array('controller' => 'attributes', 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link('Search Attributes', array('controller' => 'attributes', 'action' => 'search')); ?> </li>
-		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
-		<?php if ($isAclAuth): ?>
-		<li><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
-		<?php endif;?>
 	</ul>
 </div>
 

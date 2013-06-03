@@ -68,7 +68,7 @@ foreach ($attributes as $attribute):
 		<?php echo h($attribute['Attribute']['category']); ?>&nbsp;</td>
 		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
-		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 	<?php
 	$sigDisplay = nl2br(h($attribute['Attribute']['value']));
 	if ($isSearch == 1 && !empty($replacePairs)) {
@@ -83,9 +83,9 @@ foreach ($attributes as $attribute):
 		echo $sigDisplay;
 	}
 	?>&nbsp;</td>
-		<td class="short" style="text-align: center;" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
+		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
 		<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;</td>
-		<td class="actions"><?php
+		<td class="actions short"><?php
 	if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org'] == $me['org'])) {
 		echo $this->Html->link('', array('action' => 'edit', $attribute['Attribute']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
 		echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));

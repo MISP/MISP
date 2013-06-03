@@ -4,6 +4,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 ?>
 <div class="actions" style="width:12%">
 	<ul class="nav nav-list">
+		<li class="active"><?php echo $this->Html->link('View Event', array('action' => 'view', $event['Event']['id'])); ?> </li>
 		<?php if ($isSiteAdmin || $mayModify): ?>
 		<li><?php echo $this->Html->link('Edit Event', array('action' => 'edit', $event['Event']['id'])); ?> </li>
 		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
