@@ -73,22 +73,6 @@ class Attribute extends AppModel {
 		'All communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
 	);
 
-	public $hasMany = array(
-			'ShadowAttribute' => array(
-					'className' => 'ShadowAttribute',
-					'foreignKey' => 'old_id',
-					'dependent' => true,	// cascade deletes
-					'conditions' => '',
-					'fields' => '',
-					'order' => array('ShadowAttribute.old_id DESC', 'ShadowAttribute.old_id DESC'),
-					'limit' => '',
-					'offset' => '',
-					'exclusive' => '',
-					'finderQuery' => '',
-					'counterQuery' => ''
-			)
-	);
-
 	// these are definition of possible types + their descriptions and maybe later other behaviors
 	// e.g. if the attribute should be correlated with others or not
 

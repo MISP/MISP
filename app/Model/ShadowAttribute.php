@@ -273,14 +273,6 @@ class ShadowAttribute extends AppModel {
  * @var array
  */
 	public $belongsTo = array(
-		'Attribute' => array(
-			'className' => 'Attribute',
-			'foreignKey' => 'id',
-			'conditions' => '',
-			'fields' => '',
-			'order' => '',
-			'counterCache' => true
-		),
 		'Event' => array(
 			'className' => 'Event',
 			'foreignKey' => 'id',

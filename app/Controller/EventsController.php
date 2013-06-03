@@ -126,43 +126,52 @@ class EventsController extends AppController {
 			if ($temp == null) throw new NotFoundException(__('Invalid event'));
 			$id = $temp['Event']['id'];
 		}
+		$isSiteAdmin = $this->_isSiteAdmin();
+
 		$this->Event->recursive = 2;
 		$this->Event->contain('Attribute', 'ShadowAttribute', 'User.email');
-		$this->Event->id = $id;
+		$this->Event->read(null, $id);
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event, it already exists.'));
 		}
-		$this->Event->read(null, $id);
-
-		// rearrange the shadow attributes
-		foreach ($this->Event->data['Attribute'] as $key => &$attribute) {
-			if (!isset($attribute['ShadowAttribute'])) $attribute['ShadowAttribute'] = array();
-			foreach ($this->Event->data['ShadowAttribute'] as $k => &$sa) {
-				if ($sa['old_id'] == $attribute['id']) {
-					$this->Event->data['Attribute'][$key]['ShadowAttribute'][] = $sa;
-					unset($this->Event->data['ShadowAttribute'][$k]);
-				}
-			}
-		}
-		$userEmail = $this->Event->data['User']['email'];
-		unset ($this->Event->data['User']);
-		$this->Event->data['User']['email'] = $userEmail;
-		if (!$this->_IsSiteAdmin()) {
-			// check for non-private and re-read
-			if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
-				$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1))); // TODO seems very dangerous for the correlation construction in afterSave!!!
-				$this->Event->read(null, $id);
-			}
-
+		$myEvent = true;
+		if (!$isSiteAdmin) {
 			// check private
 			if (($this->Event->data['Event']['private'] && !$this->Event->data['Event']['cluster']) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
 				$this->Session->setFlash(__('Invalid event.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
+		if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
+			$myEvent = false;
+		}
+
+		// Now that we're loaded the event and made sure that we can actually see it, let's do 2 thngs:
+		// run through each attribute and unset it if it's private and we're not an admin or from the owner org of the event
+		// if we didn't unset the attribute, rearrange the shadow attributes
+		foreach ($this->Event->data['Attribute'] as $key => &$attribute) {
+			if (!$isSiteAdmin && !$myEvent && $attribute['private'] == 1) {
+				unset($this->Event->data['Attribute'][$key]);
+			} else {
+				if (!isset($attribute['ShadowAttribute'])) $attribute['ShadowAttribute'] = array();
+				foreach ($this->Event->data['ShadowAttribute'] as $k => &$sa) {
+					if ($sa['old_id'] == $attribute['id']) {
+						$this->Event->data['Attribute'][$key]['ShadowAttribute'][] = $sa;
+						unset($this->Event->data['ShadowAttribute'][$k]);
+					}
+				}
+			}
+		}
+		// since we unset some attributes and shadowattributes, let's reindex them.
+		$this->Event->data['ShadowAttribute'] = array_values($this->Event->data['ShadowAttribute']);
+		$this->Event->data['Attribute'] = array_values($this->Event->data['Attribute']);
+
+		$userEmail = $this->Event->data['User']['email'];
+		unset ($this->Event->data['User']);
+		$this->Event->data['User']['email'] = $userEmail;
+
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 
-		$this->loadModel('Attribute');
 		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
 		$relatedAttributes = $this->Event->getRelatedAttributes($this->Auth->user());
 
@@ -196,14 +205,9 @@ class EventsController extends AppController {
 			} else {
 				$conditions = array('AND' => array('ShadowAttribute.event_id' => $this->Event->data['Event']['id'], 'ShadowAttribute.old_id' => '0', 'ShadowAttribute.org' => $this->Auth->user('org')));
 			}
-			$this->loadModel('ShadowAttribute');
-			// Only load the shadow attributes, nothing related
-			$this->ShadowAttribute->recursive = -1;
-			$remaining = $this->ShadowAttribute->find('all', array(
-					'conditions' => $conditions
-			));
+			$remaining = $this->Event->data['ShadowAttribute'];
 		}
-
+		$this->loadModel('Attribute');
 		// params for the jQuery RESTfull interface
 		$this->set('authkey', $this->Auth->user('authkey'));
 		$this->set('baseurl', Configure::read('CyDefSIG.baseurl'));
@@ -213,7 +217,6 @@ class EventsController extends AppController {
 		// passing decriptions for model fields
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-
 		$this->set('event', $this->Event->data);
 		if(isset($remaining)) {
 			$this->set('remaining', $remaining);

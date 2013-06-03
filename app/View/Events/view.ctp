@@ -305,41 +305,41 @@ if (!empty($event['Attribute'])):?>
 								//if ($remain === end($remaining)) $extra .= ' highlightBottom';
 								?>
 							<tr class="highlight2">
-								<td class="highlight2" title="<?php if('' != $remain['ShadowAttribute']['category']) echo $categoryDefinitions[$remain['ShadowAttribute']['category']]['desc'];?>">
+								<td class="highlight2" title="<?php if('' != $remain['category']) echo $categoryDefinitions[$remain['category']]['desc'];?>">
 								<?php
-									echo h($remain['ShadowAttribute']['category']);
+									echo h($remain['category']);
 								?>
 								</td>
 								<td class="short highlight2" title="
 									<?php
-										echo $typeDefinitions[$remain['ShadowAttribute']['type']]['desc'];
+										echo $typeDefinitions[$remain['type']]['desc'];
 									?>
 								">
 									<?php
-										echo h($remain['ShadowAttribute']['type']);
+										echo h($remain['type']);
 									?>
 								</td>
 								<td class = "short highlight2">
 									<?php
-										$sigDisplay = nl2br(h($remain['ShadowAttribute']['value']));
-										if ('attachment' == $remain['ShadowAttribute']['type'] || 'malware-sample' == $remain['ShadowAttribute']['type'] ) {
-											$filenameHash = explode('|', $remain['ShadowAttribute']['value']);
+										$sigDisplay = nl2br(h($remain['value']));
+										if ('attachment' == $remain['type'] || 'malware-sample' == $remain['type'] ) {
+											$filenameHash = explode('|', $remain['value']);
 											if (strrpos($filenameHash[0], '\\')) {
 												$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
 												$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 												echo $filepath;
-												echo $this->Html->link($filename, array('controller' => 'shadow_attributes', 'action' => 'download', $remain['ShadowAttribute']['id']));
+												echo $this->Html->link($filename, array('controller' => 'shadow_attributes', 'action' => 'download', $remain['id']));
 											} else {
-												echo $this->Html->link($filenameHash[0], array('controller' => 'shadow_attributes', 'action' => 'download', $remain['ShadowAttribute']['id']));
+												echo $this->Html->link($filenameHash[0], array('controller' => 'shadow_attributes', 'action' => 'download', $remain['id']));
 											}
 											if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-										} elseif (strpos($remain['ShadowAttribute']['type'], '|') !== false) {
-											$filenameHash = explode('|', $remain['ShadowAttribute']['value']);
+										} elseif (strpos($remain['type'], '|') !== false) {
+											$filenameHash = explode('|', $remain['value']);
 											echo h($filenameHash[0]);
 											if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-										} elseif ('vulnerability' == $remain['ShadowAttribute']['type']) {
+										} elseif ('vulnerability' == $remain['type']) {
 											echo $this->Html->link(h($sigDisplay), 'http://www.google.com/search?q=' . h($sigDisplay), array('target' => '_blank'));
-										} elseif ('link' == $remain['ShadowAttribute']['type']) {
+										} elseif ('link' == $remain['type']) {
 											echo $this->Html->link(h($sigDisplay), h($sigDisplay));
 										} else {
 											echo h($sigDisplay);
@@ -350,15 +350,15 @@ if (!empty($event['Attribute'])):?>
 								</td>
 								<td class="short highlight2">
 									<?php
-										echo $remain['ShadowAttribute']['to_ids'] ? 'Yes' : 'No';
+										echo $remain['to_ids'] ? 'Yes' : 'No';
 									?></td>
 									<td class="short highlight2"></td>
 									<td class="short action-links highlight2">
 									<?php
 										if (($event['Event']['org'] == $me['org'] && $mayPublish) || $isSiteAdmin) {
-											echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'accept', $remain['ShadowAttribute']['id']), array('class' => 'icon-ok', 'title' => 'Accept'));
+											echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'accept', $remain['id']), array('class' => 'icon-ok', 'title' => 'Accept'));
 										}
-										echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'discard',$remain['ShadowAttribute']['id']), array('class' => 'icon-trash', 'title' => 'Discard'));
+										echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'discard',$remain['id']), array('class' => 'icon-trash', 'title' => 'Discard'));
 									?>
 								</td>
 							</tr>
