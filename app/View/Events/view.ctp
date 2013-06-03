@@ -143,9 +143,9 @@ if (!empty($event['Attribute'])):?>
 			<th>Type</th>
 			<th>Value</th>
 			<th>Related Events</th>
-			<th <?php echo "title='" . $attrDescriptions['signature']['desc'] . "'";?>>IDS Signature</th>
-		<th <?php echo "title='" . $attrDescriptions['private']['desc'] . "'";?>>Distribution</th>
-		<th class="actions">Actions</th>
+			<th title="<?php echo $attrDescriptions['signature']['desc'];?>">IDS Signature</th>
+			<th title="<?php echo $attrDescriptions['private']['desc'];?>">Distribution</th>
+			<th class="actions">Actions</th>
 		</tr><?php
 	foreach ($categories as $category):
 		$first = 1;
@@ -154,18 +154,18 @@ if (!empty($event['Attribute'])):?>
 			if ($attribute['category'] != $category) continue;
 			if (count($attribute['ShadowAttribute'])) $extra .= 'highlight1';
 		?>
-			<tr class="<?php echo $extra;?>">
-				<td class= "short <?php echo $extra; ?>" title="<?php if('' != $attribute['category']) echo $categoryDefinitions[$attribute['category']]['desc'];?>"><?php
+		<tr>
+			<td class= "short <?php echo $extra; ?>" title="<?php if('' != $attribute['category']) echo $categoryDefinitions[$attribute['category']]['desc'];?>"><?php
 			if ($first) {
 				if ('' == $attribute['category']) echo '(no category)';
 					echo h($attribute['category']);
 			} else {
 				echo '&nbsp;';
 			}?></td>
-			<td class= "short <?php echo $extra; ?>" title="<?php
+			<td class="short <?php echo $extra; ?>" title="<?php
 			echo $typeDefinitions[$attribute['type']]['desc'];?>"><?php
 			echo h($attribute['type']);?></td>
-			<td class= "short <?php echo $extra; ?>"><?php
+			<td class="<?php echo $extra; ?>"><?php
 			$sigDisplay = $attribute['value'];
 			if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
 				$filenameHash = explode('|', $attribute['value']);
@@ -190,7 +190,7 @@ if (!empty($event['Attribute'])):?>
 				echo nl2br(h($sigDisplay));
 			}
 				?></td>
-				<td class= "short <?php echo $extra; ?>">
+				<td class="short <?php echo $extra; ?>">
 				<?php
 			$first = 0;
 			if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
@@ -208,9 +208,9 @@ if (!empty($event['Attribute'])):?>
 			}
 				?>&nbsp;
 				</td>
-				<td class= "short <?php echo $extra; ?>"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
-				<td class= "short <?php echo $extra; ?>"><?php echo $attribute['distribution'] != 'All communities' ? $attribute['distribution'] : 'All';?></td>
-				<td class = "actions <?php echo $extra;?>">
+				<td class="short <?php echo $extra; ?>"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
+				<td class="short <?php echo $extra; ?>"><?php echo $attribute['distribution'] != 'All communities' ? $attribute['distribution'] : 'All';?></td>
+				<td class="short action-links <?php echo $extra;?>">
 					<?php
 					if ($isSiteAdmin || $mayModify) {
 						echo $this->Html->link('', array('controller' => 'attributes', 'action' => 'edit', $attribute['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
@@ -279,7 +279,7 @@ if (!empty($event['Attribute'])):?>
 						if ($shadowAttribute['to_ids'] != $attribute['to_ids']) echo $shadowAttribute['to_ids'] ? 'Yes' : 'No';
 					?></td>
 					<td class="short highlight2"></td>
-					<td class="actions highlight2">
+					<td class="short action-links highlight2">
 					<?php
 						if (($event['Event']['org'] == $me['org'] && $mayPublish) || $isSiteAdmin) {
 							echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'accept', $shadowAttribute['id']), array('class' => 'icon-ok', 'title' => 'Accept'));
@@ -353,7 +353,7 @@ if (!empty($event['Attribute'])):?>
 										echo $remain['ShadowAttribute']['to_ids'] ? 'Yes' : 'No';
 									?></td>
 									<td class="short highlight2"></td>
-									<td class="actions highlight2">
+									<td class="short action-links highlight2">
 									<?php
 										if (($event['Event']['org'] == $me['org'] && $mayPublish) || $isSiteAdmin) {
 											echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'accept', $remain['ShadowAttribute']['id']), array('class' => 'icon-ok', 'title' => 'Accept'));

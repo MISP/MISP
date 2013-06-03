@@ -116,7 +116,7 @@ if (h($user['User']['change_pw']) == 1) {
 				<td><?php echo h($event['info']);?></td>
 				<td><?php echo h($event['uuid']);?></td>
 				<td><?php echo h($event['distribution']);?></td>
-				<td class="actions">
+				<td class="short action-links">
 					<?php if ($mayModify) echo $this->Html->link('', array('controller' => 'events', 'action' => 'edit', $event['id']), array('class' => 'icon-download-alt')); ?>
 					<?php
 					if ($mayModify) echo $this->Form->postLink('', array('controller' => 'events', 'action' => 'delete', $event['id']), array('class' => 'icon-trash'), __('Are you sure you want to delete # %s?', $event['id']));

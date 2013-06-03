@@ -95,7 +95,7 @@
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 				<?php echo $analysisLevels[$event['Event']['analysis']]; ?>&nbsp;
 			</td>
-			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+			<td onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 				<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
 			</td>
 			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
@@ -103,7 +103,7 @@
 				<?php echo $event['Event']['distribution'] != 'All communities' ? $event['Event']['distribution'] : 'All';?>
 			</td>
 			<?php endif; ?>
-			<td class="actions short">
+			<td class="short action-links">
 				<?php
 				if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['org'] == $me['org'])))
 					echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => 'Publish Event'), 'Are you sure this event is complete and everyone should be informed?');

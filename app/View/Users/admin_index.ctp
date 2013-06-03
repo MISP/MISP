@@ -23,7 +23,7 @@ foreach ($users as $user): ?>
 		<?php echo h($user['User']['org']); ?>&nbsp;</td>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])); ?></td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
+		<td onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['email']); ?>&nbsp;</td>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo $user['User']['autoalert']? 'Yes' : 'No'; ?>&nbsp;</td>
@@ -43,7 +43,7 @@ foreach ($users as $user): ?>
 		?>&nbsp;</td>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['newsread']); ?>&nbsp;</td>
-		<td class="actions">
+		<td class="short action-links">
 			<?php
 	if (($isAclAdmin && (($user['User']['org'] == $me['org'])) || ('1' == $me['id'])) || ($me['org'] == 'ADMIN')) {
 				echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $user['User']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
