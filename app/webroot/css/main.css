@@ -113,6 +113,18 @@ div.forminfo{
     -webkit-box-shadow: 0px 0px 6px #B2B2B2;
 }
 
+div.visualisation{
+	font-size: 80%;
+	display: inline-block;
+    opacity: 50;
+    margin-top: 0px;
+    margin-bottom: 10px;
+	float: top;
+    background-color: #F2F2F2;
+    -webkit-border-radius: 5px;
+    -webkit-box-shadow: 0px 0px 6px #B2B2B2;
+}
+
 .clear{
 	clear:both;
 }

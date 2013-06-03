@@ -41,6 +41,7 @@ foreach ($fails as $fail): ?>
 	</tr><?php
 endforeach; ?>
 </table><br /><br />
+<div class="visualisation">
 <h4>Visualisation:</h4>
 <?php
 endif;
@@ -50,21 +51,29 @@ foreach ($graph as $line): ?>
 <?php
 endforeach; ?>
 </div>
+</div>
 <div class="actions">
 	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link(__('View Event', true), array('controller' => 'events' ,'action' => 'view', $eventId)); ?> </li>
+		<li><?php echo $this->Html->link('View Event', array('controller' => 'events', 'action' => 'view', $eventId)); ?> </li>
+		<?php if ($isSiteAdmin || $mayModify): ?>
+		<li><?php echo $this->Html->link('Edit Event', array('controller' => 'events', 'action' => 'edit', $eventId)); ?> </li>
+		<li><?php echo $this->Form->postLink('Delete Event', array('controller' => 'events', 'action' => 'delete', $eventId), null, __('Are you sure you want to delete # %s?', $eventId)); ?></li>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $eventId));?> </li>
+		<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $eventId));?> </li>
+		<li class="active"><?php echo $this->Html->link('Populate event from IOC', array('controller' => 'events', 'action' => 'addIOC', $eventId));?> </li>
+		<?php else:	?>
+		<li><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $eventId));?> </li>
+		<li><?php echo $this->Html->link('Propose Attachment', array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $eventId));?> </li>
+		<?php endif; ?>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link(__('Contact reporter', true), array('controller' => 'events', 'action' => 'contact', $eventId)); ?> </li>
+		<li><?php echo $this->Html->link(__('Download as XML', true), array('controller' => 'events', 'action' => 'xml', 'download', $eventId)); ?></li>
+		<li><?php echo $this->Html->link(__('Download as IOC', true), array('controller' => 'events', 'action' => 'downloadOpenIOCEvent', $eventId)); ?> </li>
 		<li class="divider"></li>
 		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
 		<?php if ($isAclAdd): ?>
 		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
 		<?php endif; ?>
-		<li class="divider"></li>
-		<li><?php echo $this->Html->link('List Attributes', array('controller' => 'attributes', 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link('Search Attributes', array('controller' => 'attributes', 'action' => 'search')); ?> </li>
-		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
-		<?php if ($isAclAuth): ?>
-		<li><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
-		<?php endif;?>
 	</ul>
 </div>
