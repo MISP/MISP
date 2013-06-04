@@ -1,5 +1,5 @@
 <div class="events form">
-<?php echo $this->Form->create('Event', array('type' => 'file'));?>
+<?php echo $this->Form->create('', array('type' => 'file'));?>
 	<fieldset>
 		<legend>Add Event</legend>
 		<?php

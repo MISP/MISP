@@ -1,4 +1,30 @@
+
+
+<?php if(empty($this->passedArgs['searchinfo'])) $this->passedArgs['searchinfo'] = '';?>
+<?php if(empty($this->passedArgs['searchorgc'])) $this->passedArgs['searchorgc'] = '';?>
+<?php if(empty($this->passedArgs['searchpublished'])) $this->passedArgs['searchpublished'] = '';?>
+<?php //die(debug($events));?>
 <div class="events index">
+	<?php echo $this->Form->create('', array('action' => 'index')); ?>
+	<div class="input-append">
+		<div id = "searchinfo">
+		<?php
+			echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'div' => false, 'label' => 'Value', 'class' => 'input'));
+			echo $this->Form->button('Go', array('class' => 'btn', 'div' => false));
+		?>
+		</div><div id = "searchorgc">
+		<?php
+			echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'div' => false, 'label' => 'Org'));
+			echo $this->Form->button('Go', array('class' => 'btn', 'div' => false));
+		?>
+		</div><div id = "searchpublished">
+		<?php
+			echo $this->Form->input('searchpublished', array('options' => array('0' => 'No', '1' => 'Yes'), 'value' => $this->passedArgs['searchpublished'], 'div' => false, 'label' => 'Published'));
+			echo $this->Form->button('Go', array('class' => 'btn', 'div' => false));
+		?>
+		</div>
+	</div>
+
 	<h2>Events</h2>
 	<div class="pagination">
         <ul>
@@ -16,6 +42,30 @@
         ?>
         </ul>
     </div>
+	<?php
+	// Let's output a small label of each filter
+	$count = 0;
+	?>
+	<table><tr>
+		<?php
+		foreach ($this->passedArgs as $k => $v) {
+			if ($v && (substr($k, 0, 6) === 'search')) {
+			?>
+			<td class="<?php echo (($count < 1) ? 'searchLabelFirst' : 'searchLabel');?>"><?php echo substr($k, 6); ?> : <?php echo $v; ?></td>
+			<?php
+			$count++;
+			}
+		}
+		if ($count > 0) {
+	?>
+	<td class="searchLabelCancel"><?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?></td>
+	<?php
+	}
+	?>
+	</tr></table>
+	<?php
+		echo $this->Form->end();
+	?>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th><?php echo $this->Paginator->sort('published', 'Valid.');?></th>
@@ -23,7 +73,7 @@
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<?php endif; ?>
 			<?php if ($isSiteAdmin): ?>
-			<th><?php echo $this->Paginator->sort('owner org');?></th>
+			<th><?php echo $this->Paginator->sort('owner org');?><a href=# onClick='enableField("searchorgc")'><br /><div class="icon-search"></div></a></th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
@@ -37,7 +87,7 @@
 			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>">
 				<?php echo $this->Paginator->sort('analysis');?>
 			</th>
-			<th><?php echo $this->Paginator->sort('info');?></th>
+			<th><?php echo $this->Paginator->sort('info');?><a href=# onClick='enableField("searchinfo")'><br /><div class="icon-search"></div></a></th>
 			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 			<th title="<?php echo $eventDescriptions['distribution']['desc'];?>">
 				<?php echo $this->Paginator->sort('distribution');?>
@@ -152,3 +202,15 @@
 		<?php endif;?>
 	</ul>
 </div>
+<script>
+$(document).ready(disableField('searchinfo'));
+$(document).ready(disableField('searchorgc'));
+$(document).ready(disableField('searchpublished'));
+
+function disableField(field) {
+	document.getElementById(field).style.display="none";
+}
+function enableField(field) {
+	document.getElementById(field).style.display="";
+}
+</script>

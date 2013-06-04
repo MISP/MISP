@@ -87,8 +87,37 @@ class EventsController extends AppController {
 	 */
 	public function index() {
 		// list the events
-		$this->Event->recursive = 0;
 
+		//transform POST into GET
+		if($this->request->is("post")) {
+			$url = array('action'=>'index');
+			$filters = array();
+			/*
+			if(isset($this->data['Event']['searchValue']) && $this->data['Event']['searchValue']){
+				//maybe clean up user input here??? or urlencode??
+				$filters['searchValue'] = $this->data['Event']['searchValue'];
+			}
+			*/
+			if (isset($this->data['Event']) && ($this->data['Event']['searchinfo'] || $this->data['Event']['searchorgc'] || $this->data['Event']['searchpublished'])) {
+				$filters = $this->data['Event'];
+			}
+
+			//redirect user to the index page including the selected filters
+			$this->redirect(array_merge($url,$filters));
+		}
+
+		$this->Event->recursive = 0;
+		if (!empty($this->passedArgs["searchinfo"])) {
+			$this->paginate['conditions'][] = array('Event.info LIKE' => '%' . $this->passedArgs["searchinfo"] . '%');
+		}
+		if (!empty($this->passedArgs["searchorgc"])) {
+			$this->paginate['conditions'][] = array('Event.orgc LIKE' => '%' . $this->passedArgs["searchorgc"] . '%');
+		}
+		if (!empty($this->passedArgs["searchpublished"])) {
+			$this->paginate['conditions'][] = array('Event.published LIKE' => '%' . $this->passedArgs["searchpublished"] . '%');
+		}
+
+		//throw new Exception();
 		$this->set('events', $this->paginate());
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
