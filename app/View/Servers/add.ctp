@@ -14,9 +14,11 @@
 		echo $this->Form->input('authkey', array(
 				'after' => $this->Html->div('forminfo', 'You can find the authentication key on your profile on the external server.'),
 			));
+		?>
+		<div class = "input clear"></div>
+		<?php
 		echo $this->Form->input('push', array(
 				'after' => $this->Html->div('forminfo', 'Allow the <em>upload</em> of events and their attributes.'),
-				'div' => 'input clear',
 			));
 		echo $this->Form->input('pull', array(
 				'after' => $this->Html->div('forminfo', 'Allow the <em>download</em> of events and their attributes from the server.'),
