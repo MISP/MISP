@@ -352,7 +352,8 @@ class UsersController extends AppController {
 						'authkey' => $this->User->generateAuthKey(),
 						'nids_sid' => 4000000,
 						'date' => date('YYY-mm-dd'),
-						'role_id' => 1
+						'role_id' => 1,
+						'change_pw' => 1
 						));
 				$this->User->validator()->remove('password'); // password is to simple, remove validation
 				$this->User->save($admin);
