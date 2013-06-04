@@ -190,7 +190,7 @@ if (!empty($event['Attribute'])):?>
 				echo nl2br(h($sigDisplay));
 			}
 				?></td>
-				<td class="short <?php echo $extra; ?>">
+				<td class="<?php echo $extra; ?>" style="max-width:100px;">
 				<?php
 			$first = 0;
 			if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
