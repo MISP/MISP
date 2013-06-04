@@ -150,7 +150,7 @@ class EventsController extends AppController {
 		// run through each attribute and unset it if it's private and we're not an admin or from the owner org of the event
 		// if we didn't unset the attribute, rearrange the shadow attributes
 		foreach ($this->Event->data['Attribute'] as $key => &$attribute) {
-			if (!$isSiteAdmin && !$myEvent && $attribute['private'] == 1) {
+			if (!$isSiteAdmin && !$myEvent && ($attribute['private'] == 1 && $attribute['cluster'] == 0)) {
 				unset($this->Event->data['Attribute'][$key]);
 			} else {
 				if (!isset($attribute['ShadowAttribute'])) $attribute['ShadowAttribute'] = array();
