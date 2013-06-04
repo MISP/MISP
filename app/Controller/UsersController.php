@@ -338,8 +338,26 @@ class UsersController extends AppController {
 				$this->Session->delete('Message.auth');
 			}
 			// don't display "invalid user" before first login attempt
-			if($this->request->is('post')) $this->Session->setFlash(__('Invalid username or password, try again'));
+			if($this->request->is('post')) {
+				$this->Session->setFlash(__('Invalid username or password, try again'));
+			}
 
+			// populate the DB with the first user if it's empty
+			if ($this->User->find('count') == 0 ) {
+				$admin = array('User' => array(
+						'email' => 'admin@admin.test',
+						'org' => 'ADMIN',
+						'password' => 'admin',
+						'confirm_password' => 'admin',
+						'authkey' => $this->User->generateAuthKey(),
+						'nids_sid' => 4000000,
+						'date' => date('YYY-mm-dd'),
+						'role_id' => 1,
+						'change_pw' => 1
+						));
+				$this->User->validator()->remove('password'); // password is to simple, remove validation
+				$this->User->save($admin);
+			}
 		}
 	}
 
