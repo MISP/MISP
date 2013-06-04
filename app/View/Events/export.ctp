@@ -5,47 +5,43 @@
 	<br/>
 	<p>Simply click on any of the following buttons to download the appropriate data.</p>
 
-	<table>
-		<tr>
-			<td style="text-align: center;">
-				<?php echo $this->Html->link('Download all as XML', array('action' => 'xml', 'download'), array('class' => 'btn')); ?>
-			</td>
-			<td>Click this to download all events and attributes that you have
-				access to <small>(except file attachments)</small> in a custom XML
-				format.
-			</td>
-		</tr>
-		<tr>
-			<td style="text-align: center;">
-				<?php echo $this->Html->link('Download NIDS signatures', array('action' => 'nids', 'download'), array('class' => 'btn')); ?>
-			</td>
-			<td>Click this to download all network related attributes that you
+	<div class="row bottom-buffer">
+		<div class="span3">
+		<?php echo $this->Html->link('Download all as XML', array('action' => 'xml', 'download'), array('class' => 'btn btn-block full-width')); ?>
+		</div>
+		<div class="span9">Click this to download all events and attributes that you have access to <small>(except file attachments)</small> in a custom XML format.
+		</div>
+	</div>
+	<div class="row bottom-buffer">
+		<div class="span3">
+		<?php echo $this->Html->link('Download NIDS signatures', array('action' => 'nids', 'download'), array('class' => 'btn btn-block full-width')); ?>
+		</div>
+		<div class="span9">Click this to download all network related attributes that you
 				have access to under the Snort rule format. Only <em>published</em>
 				events and attributes marked as <em>IDS Signature</em> are exported.
 				Administration is able to maintain a whitelist containing host,
 				domain name and IP numbers to exclude from the NIDS export.
-			</td>
-		</tr>
-		<tr>
-			<td style="text-align: center;">
-				<?php echo $this->Html->link('Download all MD5 hashes', array('action' => 'hids', 'md5','download'), array('class' => 'btn')); ?>
-				<?php echo $this->Html->link('Download all SHA1 hashes', array('action' => 'hids', 'sha1','download'), array('class' => 'btn')); ?>
-
-			</td>
-			<td>Click on one of these two buttons to download all MD5 or SHA1
+		</div>
+	</div>
+	<div class="row bottom-buffer">
+		<div class="span3">
+			<?php echo $this->Html->link('Download all MD5 hashes', array('action' => 'hids', 'md5','download'), array('class' => 'btn btn-block full-width')); ?>
+			<?php echo $this->Html->link('Download all SHA1 hashes', array('action' => 'hids', 'sha1','download'), array('class' => 'btn btn-block full-width')); ?>
+		</div>
+		<div class="span9">Click on one of these two buttons to download all MD5 or SHA1
 				checksums contained in file-related attributes. This list can be
 				used to feed forensic software when searching for susipicious files.
 				Only <em>published</em> events and attributes marked as <em>IDS
 					Signature</em> are exported.
-			</td>
-		</tr>
-	</table>
+		</div>
+	</div>
 	<p>
 	Click on one of these buttons to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.
 	</p>
 
 	<ul class="inline">
-	<?php foreach ($sigTypes as $sigType): ?>
+	<?php
+	foreach ($sigTypes as $sigType): ?>
 		<li class="actions" style="text-align:center; width: auto; padding: 7px 2px;">
 		<?php echo $this->Html->link($sigType, array('action' => 'text', 'download' ,$sigType), array('class' => 'btn')) ?>
 		</li>

@@ -7,6 +7,15 @@ body{
 input, button, select, textarea{
 	font-family: "RobotoLight"
 }
+
+button .full-width{
+  width:100%;
+}
+
+.bottom-buffer { 
+	margin-bottom:10px; 
+}
+
 /*.close{
 	float:none;
 }*/
