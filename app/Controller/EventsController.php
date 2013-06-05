@@ -30,7 +30,7 @@ class EventsController extends AppController {
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
 			'order' => array(
 					'Event.id' => 'DESC'
-			)
+			),
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
@@ -77,7 +77,6 @@ class EventsController extends AppController {
 			)
 			);
 		}
-
 	}
 
 	/**
@@ -92,32 +91,37 @@ class EventsController extends AppController {
 		if($this->request->is("post")) {
 			$url = array('action'=>'index');
 			$filters = array();
-			/*
-			if(isset($this->data['Event']['searchValue']) && $this->data['Event']['searchValue']){
-				//maybe clean up user input here??? or urlencode??
-				$filters['searchValue'] = $this->data['Event']['searchValue'];
-			}
-			*/
-			if (isset($this->data['Event']) && ($this->data['Event']['searchinfo'] || $this->data['Event']['searchorgc'] || $this->data['Event']['searchpublished'])) {
+			if (isset($this->data['Event'])) {
 				$filters = $this->data['Event'];
 			}
 
 			//redirect user to the index page including the selected filters
 			$this->redirect(array_merge($url,$filters));
 		}
-
 		$this->Event->recursive = 0;
-		if (!empty($this->passedArgs["searchinfo"])) {
-			$this->paginate['conditions'][] = array('Event.info LIKE' => '%' . $this->passedArgs["searchinfo"] . '%');
+		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
+		foreach ($this->passedArgs as $k => $v) {
+			if (substr($k, 0, 6) === 'search') {
+				$searchTerm = substr($k, 6);
+				switch ($searchTerm) {
+					case 'published' :
+						if ($v == 2) continue 2;
+						else $this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' =' => $this->passedArgs["search" . $searchTerm]);
+						break;
+					case 'Datefrom' :
+						if (!$v) continue 2;
+						$this->paginate['conditions'][] = array('Event.date' . ' >' => $this->passedArgs["search" . $searchTerm]);
+						break;
+					case 'Dateuntil' :
+						if (!$v) continue 2;
+						$this->paginate['conditions'][] = array('Event.date' . ' <' => $this->passedArgs["search" . $searchTerm]);
+						break;
+					default:
+						$this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' LIKE' => '%' . $this->passedArgs["search" . $searchTerm] . '%');
+						break;
+				}
+			}
 		}
-		if (!empty($this->passedArgs["searchorgc"])) {
-			$this->paginate['conditions'][] = array('Event.orgc LIKE' => '%' . $this->passedArgs["searchorgc"] . '%');
-		}
-		if (!empty($this->passedArgs["searchpublished"])) {
-			$this->paginate['conditions'][] = array('Event.published LIKE' => '%' . $this->passedArgs["searchpublished"] . '%');
-		}
-
-		//throw new Exception();
 		$this->set('events', $this->paginate());
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
@@ -203,6 +207,7 @@ class EventsController extends AppController {
 
 		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
 		$relatedAttributes = $this->Event->getRelatedAttributes($this->Auth->user());
+		$this->loadModel('Attribute');
 
 		if ($this->_isRest()) {
 			foreach ($this->Event->data['Attribute'] as &$attribute) {
@@ -236,7 +241,6 @@ class EventsController extends AppController {
 			}
 			$remaining = $this->Event->data['ShadowAttribute'];
 		}
-		$this->loadModel('Attribute');
 		// params for the jQuery RESTfull interface
 		$this->set('authkey', $this->Auth->user('authkey'));
 		$this->set('baseurl', Configure::read('CyDefSIG.baseurl'));
@@ -411,14 +415,15 @@ class EventsController extends AppController {
 		// force check userid and orgname to be from yourself
 		$auth = $this->Auth;
 		$data['Event']['user_id'] = $auth->user('id');
-		$data['Event']['org'] = $auth->user('org');
+		if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('CyDefSIG.sync');
+		else $data['Event']['org'] = $auth->user('org');
 		if (!$fromXml) {
 			$data['Event']['orgc'] = $data['Event']['org'];
 		}
 		if ($fromXml) {
 			// FIXME FIXME chri: temporary workaround for unclear org, orgc, from
-			$data['Event']['orgc'] = $data['Event']['org'];
-			$data['Event']['from'] = $data['Event']['org'];
+			//$data['Event']['orgc'] = $data['Event']['org'];
+			//$data['Event']['from'] = $data['Event']['org'];
 			// Workaround for different structure in XML/array than what CakePHP expects
 			$this->Event->cleanupEventArrayFromXML($data);
 			// the event_id field is not set (normal) so make sure no validation errors are thrown

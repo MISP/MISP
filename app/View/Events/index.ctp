@@ -1,30 +1,7 @@
 
-
 <?php if(empty($this->passedArgs['searchinfo'])) $this->passedArgs['searchinfo'] = '';?>
 <?php if(empty($this->passedArgs['searchorgc'])) $this->passedArgs['searchorgc'] = '';?>
-<?php if(empty($this->passedArgs['searchpublished'])) $this->passedArgs['searchpublished'] = '';?>
-<?php //die(debug($events));?>
 <div class="events index">
-	<?php echo $this->Form->create('', array('action' => 'index')); ?>
-	<div class="input-append">
-		<div id = "searchinfo">
-		<?php
-			echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'div' => false, 'label' => 'Value', 'class' => 'input'));
-			echo $this->Form->button('Go', array('class' => 'btn', 'div' => false));
-		?>
-		</div><div id = "searchorgc">
-		<?php
-			echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'div' => false, 'label' => 'Org'));
-			echo $this->Form->button('Go', array('class' => 'btn', 'div' => false));
-		?>
-		</div><div id = "searchpublished">
-		<?php
-			echo $this->Form->input('searchpublished', array('options' => array('0' => 'No', '1' => 'Yes'), 'value' => $this->passedArgs['searchpublished'], 'div' => false, 'label' => 'Published'));
-			echo $this->Form->button('Go', array('class' => 'btn', 'div' => false));
-		?>
-		</div>
-	</div>
-
 	<h2>Events</h2>
 	<div class="pagination">
         <ul>
@@ -42,6 +19,37 @@
         ?>
         </ul>
     </div>
+	<?php echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px')); ?>
+	<div class="input-prepend input-append" style="margin-bottom:0px;">
+		<div id = "searchcancel" class="add-on span" style="margin-left:0px; margin-top:25px">
+			<div><a href=# onClick='resetForm()'><div class="icon-remove" style = "margin-top:3px"></div></a></div>
+		</div>
+		<div id = "searchinfo" class="span" style="width:220px; margin-left:0px">
+		<?php
+			echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'label' => 'Info'));
+		?>
+		</div><div id = "searchorgc" class="span" style="margin-left:0px; width:220px">
+		<?php
+			echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'label' => 'Org'));
+		?>
+		</div><div id = "searchpublished" class="span" style="margin-left:0px; width:220px">
+		<?php
+			echo $this->Form->input('searchpublished', array('options' => array('0' => 'No', '1' => 'Yes', '2' => 'Any'), 'default' => 2, 'label' => 'Published'));
+		?>
+		</div><div id = "searchfrom" class="span" style="margin-left:0px; width:110px">
+		<?php
+			echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchorgc'], 'label' => 'From', 'style' => 'width:96px; margin-top: 0px;', 'class' => 'datepicker'));
+		?>
+		</div><div id = "searchuntil" class="span" style="margin-left:0px; width:110px">
+		<?php
+			echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchorgc'], 'label' => 'Until', 'style' => 'width:96px; margin-top: 0px;', 'class' => 'datepicker'));
+		?>
+		</div><div id = "searchbutton" class="span" style="margin-left:0px; margin-top:25px">
+		<?php
+		echo $this->Form->button('Go', array('class' => 'btn'));
+		?>
+		</div>
+	</div>
 	<?php
 	// Let's output a small label of each filter
 	$count = 0;
@@ -49,9 +57,28 @@
 	<table><tr>
 		<?php
 		foreach ($this->passedArgs as $k => $v) {
-			if ($v && (substr($k, 0, 6) === 'search')) {
+			if ((substr($k, 0, 6) === 'search')) {
+				$searchTerm = substr($k, 6);
+				if ($searchTerm === 'published') {
+					switch ($v) {
+						case '0' :
+							$value = 'No';
+							break;
+						case '1' :
+							$value = 'Yes';
+							break;
+						case '2' :
+							continue 2;
+							break;
+					}
+ 				} else {
+					if (!$v) {
+						continue;
+					}
+					$value = $v;
+				}
 			?>
-			<td class="<?php echo (($count < 1) ? 'searchLabelFirst' : 'searchLabel');?>"><?php echo substr($k, 6); ?> : <?php echo $v; ?></td>
+			<td class="<?php echo (($count < 1) ? 'searchLabelFirst' : 'searchLabel');?>"><?php echo $searchTerm; ?> : <?php echo $value; ?></td>
 			<?php
 			$count++;
 			}
@@ -68,7 +95,7 @@
 	?>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
-			<th><?php echo $this->Paginator->sort('published', 'Valid.');?></th>
+			<th><?php echo $this->Paginator->sort('published', 'Valid.');?><a href=# onClick='enableField("searchpublished")'><br /><div class="icon-search"></div></a></th>
 			<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<?php endif; ?>
@@ -80,7 +107,7 @@
 			<?php if ($isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 			<?php endif; ?>
-			<th><?php echo $this->Paginator->sort('date');?></th>
+			<th><?php echo $this->Paginator->sort('date');?><a href=# onClick='enableDate()'><br /><div class="icon-search"></div></a></th>
 			<th title="<?php echo $eventDescriptions['risk']['desc'];?>">
 				<?php echo $this->Paginator->sort('risk');?>
 			</th>
@@ -203,14 +230,37 @@
 	</ul>
 </div>
 <script>
-$(document).ready(disableField('searchinfo'));
-$(document).ready(disableField('searchorgc'));
-$(document).ready(disableField('searchpublished'));
+$(document).ready(disableAll());
+
+function resetForm() {
+	document.getElementById('EventSearchinfo').value=null;
+	document.getElementById('EventSearchorgc').value=null;
+	document.getElementById('EventSearchpublished').value=2;
+	disableAll();
+}
+
+function disableAll() {
+	disableField('searchinfo');
+	disableField('searchorgc');
+	disableField('searchfrom');
+	disableField('searchuntil');
+	disableField('searchpublished');
+	disableField('searchbutton');
+	disableField('searchcancel');
+}
 
 function disableField(field) {
 	document.getElementById(field).style.display="none";
 }
 function enableField(field) {
 	document.getElementById(field).style.display="";
+	document.getElementById('searchbutton').style.display="";
+	document.getElementById('searchcancel').style.display="";
 }
+
+function enableDate() {
+	enableField('searchfrom');
+	enableField('searchuntil');
+}
+
 </script>

@@ -1,5 +1,5 @@
 <div class="servers form">
-<?php echo $this->Form->create('Server');?>
+<?php echo $this->Form->create('Server', array('novalidate'=>true));?>
 	<fieldset>
 		<legend>Edit Server</legend>
 	<?php
