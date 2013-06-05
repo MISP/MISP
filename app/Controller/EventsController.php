@@ -209,6 +209,8 @@ class EventsController extends AppController {
 		$relatedAttributes = $this->Event->getRelatedAttributes($this->Auth->user());
 		$this->loadModel('Attribute');
 
+		$this->loadModel('Attribute');
+
 		if ($this->_isRest()) {
 			foreach ($this->Event->data['Attribute'] as &$attribute) {
 				// 	for REST requests also add the encoded attachment
@@ -241,6 +243,7 @@ class EventsController extends AppController {
 			}
 			$remaining = $this->Event->data['ShadowAttribute'];
 		}
+
 		// params for the jQuery RESTfull interface
 		$this->set('authkey', $this->Auth->user('authkey'));
 		$this->set('baseurl', Configure::read('CyDefSIG.baseurl'));
