@@ -419,11 +419,15 @@ class EventsController extends AppController {
 		// force check userid and orgname to be from yourself
 		$auth = $this->Auth;
 		$data['Event']['user_id'] = $auth->user('id');
+		$date = new DateTime();
+
 		if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('CyDefSIG.org');
 		else $data['Event']['org'] = $auth->user('org');
-		if (!$fromXml) {
-			$data['Event']['orgc'] = $data['Event']['org'];
-		}
+
+		// set these fields if the event is freshly created and not pushed from another instance.
+		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
+		if (!isset ($data['Event']['timestamp'])) $data['Event']['timestamp'] = $date->getTimestamp();
+		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
 		if ($fromXml) {
 			// FIXME FIXME chri: temporary workaround for unclear org, orgc, from
 			//$data['Event']['orgc'] = $data['Event']['org'];
@@ -456,7 +460,7 @@ class EventsController extends AppController {
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision')
 		);
 		$fieldList = array(
-				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'dist_change', 'from'),
+				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'dist_change', 'from', 'timestamp'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie', 'dist_change')
 		);
 
@@ -530,7 +534,7 @@ class EventsController extends AppController {
 				}
 
 				$fieldList = array(
-						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'dist_change', 'from'),
+						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'dist_change', 'from', 'timestamp'),
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie', 'cluster', 'dist_change')
 				);
 
@@ -541,11 +545,19 @@ class EventsController extends AppController {
 						$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
 						if (count($existingAttribute)) {
 							$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
+							// Check if the attribute's timestamp is bigger than the one that already exists.
+							// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+							// Alternatively, we could unset this attribute from the request, but that could lead with issues if we want to start deleting attributes that don't exist in a pushed event.
+							if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['id']);
+							else $this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+
+							/* Should be obsolete with timestamps
 							if (!($this->request->data['Attribute'][$c]['dist_change'] > $existingAttribute['Attribute']['dist_change'])) {
 								unset($this->request->data['Attribute'][$c]['private']);
 								unset($this->request->data['Attribute'][$c]['cluster']);
 								unset($this->request->data['Attribute'][$c]['communitie']);
 							}
+							*/
 						}
 						$c++;
 					}
@@ -555,7 +567,9 @@ class EventsController extends AppController {
 				if ($this->request->data['Event']['dist_change'] > $existingEvent['Event']['dist_change']) {
 					array_push($fieldList['Event'], 'private', 'communitie', 'cluster');
 				}
-
+				// TODO (iglocska): right now this will always update, make sure that this doesn't happen if the edit was rejected (due to the timestamps being equal, shadow attributes created instead of normal attributes, etc)
+				$date = new DateTime();
+				$this->request->data['Event']['timestamp'] = $date->getTimestamp();
 				// this saveAssociated() function will save not only the event, but also the attributes
 				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
 				$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
@@ -583,7 +597,7 @@ class EventsController extends AppController {
 				}
 			}
 			// say what fields are to be updated
-			$fieldList = array('date', 'risk', 'analysis', 'info', 'published', 'private', 'cluster', 'communitie', 'dist_change');
+			$fieldList = array('date', 'risk', 'analysis', 'info', 'published', 'private', 'cluster', 'communitie', 'dist_change', 'timestamp');
 
 			//Moved this out of (if ($this->_isAdmin()) to use for the dist_change
 			$this->Event->read();
@@ -596,12 +610,16 @@ class EventsController extends AppController {
 			// we probably also want to remove the published flag
 			$this->request->data['Event']['published'] = 0;
 
+			/* we don't need this stuff anymore
 			// If the distribution has changed, up the dist_change count
 			if ($canEditDist) {
 				if ($this->request->data['Event']['distribution'] != $this->Event->data['Event']['distribution']) {
 					$this->request->data['Event']['dist_change'] = 1 + $this->Event->data['Event']['dist_change'];
 				}
 			}
+			*/
+			$date = new DateTime();
+			$this->request->data['Event']['timestamp'] = $date->getTimestamp();
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The event has been saved'));
 				$this->redirect(array('action' => 'view', $id));

@@ -101,7 +101,7 @@ class AttributesController extends AppController {
 	public function add($eventId = null) {
 		if ($this->request->is('post')) {
 			$this->loadModel('Event');
-
+			$date = new DateTime();
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
 			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
 			if (isset($this->request->data['Attribute']['type']) && $this->Attribute->typeIsAttachment($this->request->data['Attribute']['type'])) {
@@ -110,8 +110,11 @@ class AttributesController extends AppController {
 			}
 
 			// remove the published flag from the event
-			$this->Event->id = $this->request->data['Attribute']['event_id'];
-			$this->Event->saveField('published', 0);
+			$this->Event->recursive = -1;
+			$this->Event->read(null, $this->request->data['Attribute']['event_id']);
+			$this->Event->set('timestamp', $date->getTimestamp());
+			$this->Event->set('published', 0);
+			$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
 
 			//
 			// multiple attributes in batch import
@@ -162,16 +165,26 @@ class AttributesController extends AppController {
 
 			} else {
 				if (isset($this->request->data['Attribute']['uuid'])) {	// TODO here we should start RESTful dialog
-					// check if the uuid already exists
-					$existingAttributeCount = $this->Attribute->find('count', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
-					if ($existingAttributeCount > 0) {
+					// check if the uuid already exists and also save the existing attribute for further checks
+					$existingAttribute = null;
+					$existingAttribute = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
+					//$existingAttributeCount = $this->Attribute->find('count', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
+					if ($existingAttribute) {
 						// TODO RESTfull, set responce location header..so client can find right URL to edit
-						$existingAttribute = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
 						$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/attributes/' . $existingAttribute['Attribute']['id']);
 						$this->response->send();
 						$this->view($this->Attribute->getId());
 						$this->render('view');
 						return false;
+					} else {
+						// if the attribute doesn't exist yet, check whether it has a timestamp - if yes, it's from a push, keep the timestamp we had, if no create a timestamp
+						if (!isset($this->request->data['Attribute']['timestamp'])) {
+							$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
+						}
+					}
+				} else {
+					if (!isset($this->request->data['Attribute']['timestamp'])) {
+						$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
 					}
 				}
 
@@ -181,8 +194,6 @@ class AttributesController extends AppController {
 				// create the attribute
 				$this->Attribute->create();
 
-				// Notice (8): Undefined index: id [APP/Controller/AttributesController.php, line 234]
-				// Should be fixed
 				$savedId = $this->Attribute->getId();
 
 				if ($this->Attribute->save($this->request->data)) {
@@ -492,8 +503,18 @@ class AttributesController extends AppController {
 			if (count($existingAttribute)) {
 				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
 			}
+			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
+			if (isset($this->request->data['Attribute']['timestamp'])) {
+				// check which attribute is newer
+				if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+					// carry on with adding this attribute - Don't forget! if orgc!=user org, create shadow attribute, not attribute!
+				} else {
+					// the old one is newer or the same, replace the request's attribute with the old one
+					$this->request->data['Attribute'] = $existingAttribute['Attribute'];
+				}
+			}
 
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster', 'value');
+			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster', 'value', 'timestamp');
 
 			$this->loadModel('Event');
 			$this->Event->id = $eventId;
