@@ -106,18 +106,19 @@ class EventsController extends AppController {
 				switch ($searchTerm) {
 					case 'published' :
 						if ($v == 2) continue 2;
-						else $this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' =' => $this->passedArgs["search" . $searchTerm]);
+						else $this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' =' => $v);
 						break;
 					case 'Datefrom' :
 						if (!$v) continue 2;
-						$this->paginate['conditions'][] = array('Event.date' . ' >' => $this->passedArgs["search" . $searchTerm]);
+						$this->paginate['conditions'][] = array('Event.date' . ' >' => $v);
 						break;
 					case 'Dateuntil' :
 						if (!$v) continue 2;
-						$this->paginate['conditions'][] = array('Event.date' . ' <' => $this->passedArgs["search" . $searchTerm]);
+						$this->paginate['conditions'][] = array('Event.date' . ' <' => $v);
 						break;
 					default:
-						$this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' LIKE' => '%' . $this->passedArgs["search" . $searchTerm] . '%');
+						if (!$v) continue 2;
+						$this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' LIKE' => '%' . $v . '%');
 						break;
 				}
 			}

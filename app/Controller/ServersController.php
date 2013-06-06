@@ -265,7 +265,8 @@ class ServersController extends AppController {
 					$lastpulledid = count($successes) > 0 ? max($successes) : 0;
 				}
 				// increment lastid based on the highest ID seen
-				$this->Server->saveField('lastpulledid', $lastpulledid);
+				$this->Server->set('lastpulledid', $lastpulledid);
+				$this->Server->save($event, array('fieldList' => array('lastpulledid', 'url')));
 
 			}
 

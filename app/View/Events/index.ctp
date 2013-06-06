@@ -1,6 +1,7 @@
-
 <?php if(empty($this->passedArgs['searchinfo'])) $this->passedArgs['searchinfo'] = '';?>
 <?php if(empty($this->passedArgs['searchorgc'])) $this->passedArgs['searchorgc'] = '';?>
+<?php if(empty($this->passedArgs['searchDatefrom'])) $this->passedArgs['searchDatefrom'] = '';?>
+<?php if(empty($this->passedArgs['searchDateuntil'])) $this->passedArgs['searchDateuntil'] = '';?>
 <div class="events index">
 	<h2>Events</h2>
 	<div class="pagination">
@@ -38,11 +39,11 @@
 		?>
 		</div><div id = "searchfrom" class="span" style="margin-left:0px; width:110px">
 		<?php
-			echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchorgc'], 'label' => 'From', 'style' => 'width:96px; margin-top: 0px;', 'class' => 'datepicker'));
+			echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'label' => 'From', 'style' => 'width:96px; margin-top: 0px;', 'class' => 'datepicker'));
 		?>
 		</div><div id = "searchuntil" class="span" style="margin-left:0px; width:110px">
 		<?php
-			echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchorgc'], 'label' => 'Until', 'style' => 'width:96px; margin-top: 0px;', 'class' => 'datepicker'));
+			echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'label' => 'Until', 'style' => 'width:96px; margin-top: 0px;', 'class' => 'datepicker'));
 		?>
 		</div><div id = "searchbutton" class="span" style="margin-left:0px; margin-top:25px">
 		<?php
@@ -96,9 +97,17 @@
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th><?php echo $this->Paginator->sort('published', 'Valid.');?><a href=# onClick='enableField("searchpublished")'><br /><div class="icon-search"></div></a></th>
-			<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
-			<th><?php echo $this->Paginator->sort('org');?></th>
-			<?php endif; ?>
+			<?php
+				if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) {
+					if ($isSiteAdmin) { ?>
+			<th><?php echo $this->Paginator->sort('org'); ?></th>
+				<?php
+					} else { ?>
+			<th><?php echo $this->Paginator->sort('org'); ?><a href=# onClick='enableField("searchorgc")'><br /><div class="icon-search"></div></a></th></th>
+				<?php
+					}
+				}
+			?>
 			<?php if ($isSiteAdmin): ?>
 			<th><?php echo $this->Paginator->sort('owner org');?><a href=# onClick='enableField("searchorgc")'><br /><div class="icon-search"></div></a></th>
 			<?php endif; ?>
