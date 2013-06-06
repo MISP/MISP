@@ -516,7 +516,6 @@ class AttributesController extends AppController {
 			} else {
 				$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
 			}
-
 			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster', 'value', 'timestamp');
 
 			$this->loadModel('Event');
@@ -562,20 +561,12 @@ class AttributesController extends AppController {
 		} else {
 			$this->request->data = $this->Attribute->read(null, $id);
 		}
-
 		$this->set('attribute', $this->request->data);
 
 		// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
 		$this->loadModel('Event');
 		$this->Event->id = $eventId;
 		$this->Event->read();
-		$canEditDist = false;
-		if ($this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
-			$this->set('canEditDist', true);
-			$canEditDist = true;
-		} else {
-			$this->set('canEditDist', false);
-		}
 		// needed for RBAC
 		// combobox for types
 		$types = array_keys($this->Attribute->typeDefinitions);
@@ -587,29 +578,25 @@ class AttributesController extends AppController {
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', $categories);
 
-		if ($canEditDist) {
-			$this->loadModel('Event');
-			$events = $this->Event->findById($eventId);
-			$maxDist = $events['Event']['distribution'];
-			$this->set('maxDist', $maxDist);
-			// combobox for distribution
-			if (isset($maxDist)) {
-				$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
-				$count = 0;
-				foreach ($distributionsBeforeCut as $current) {
-					$distributions[$count] = $current;
-					if ($distributions[$count] == $maxDist)break;
-					$count++;
-				}
-			} else {
-				$distributions = array_keys($this->Attribute->distributionDescriptions);
+		$events = $this->Event->findById($eventId);
+		$maxDist = $events['Event']['distribution'];
+		$this->set('maxDist', $maxDist);
+		// combobox for distribution
+		if (isset($maxDist)) {
+			$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
+			$count = 0;
+			foreach ($distributionsBeforeCut as $current) {
+				$distributions[$count] = $current;
+				if ($distributions[$count] == $maxDist)break;
+				$count++;
 			}
-			$distributions = $this->_arrayToValuesIndexArray($distributions);
-			$this->set('distributions', $distributions);
-			// tooltip for distribution
-			$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
+		} else {
+			$distributions = array_keys($this->Attribute->distributionDescriptions);
 		}
-
+		$distributions = $this->_arrayToValuesIndexArray($distributions);
+		$this->set('distributions', $distributions);
+		// tooltip for distribution
+		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);

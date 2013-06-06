@@ -374,6 +374,12 @@ class Event extends AppModel {
 		if (empty($this->data['Event']['uuid'])) {
 			$this->data['Event']['uuid'] = String::uuid();
 		}
+		// generate timestamp if it doesn't exist
+		if (empty($this->data['Event']['timestamp'])) {
+			$date = new DateTime();
+			$this->data['Event']['timestamp'] = $date->getTimestamp();
+		}
+
 	}
 
 	public function isOwnedByOrg($eventid, $org) {

@@ -487,6 +487,7 @@ class EventsController extends AppController {
 	 */
 	public function edit($id = null) {
 		$this->Event->id = $id;
+		$date = new DateTime();
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
@@ -499,16 +500,9 @@ class EventsController extends AppController {
 			}
 		}
 
-		// check if the user is of the creating org, if not, don't let him/her change the distribution.
-		$canEditDist = false;
-		if ($this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
-			$canEditDist = true;
-			$this->set('canEditDist', true);
-		} else {
-			$this->set('canEditDist', false);
-		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
+				$saveEvent = true;
 				// Workaround for different structure in XML/array than what CakePHP expects
 				$this->Event->cleanupEventArrayFromXML($this->request->data);
 
@@ -526,7 +520,14 @@ class EventsController extends AppController {
 				$existingEvent = $this->Event->findByUuid($this->request->data['Event']['uuid']);
 				if (count($existingEvent)) {
 					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
+					if (isset($this->request->data['Event']['timestamp'])) {
+						if (!$this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+							return false;
+						}
+					}
 				}
+
+
 				if ($existingEvent['Event']['orgc'] == $this->_checkOrg()) {
 					$this->set('canEditDist', true);
 				} else {
@@ -534,8 +535,8 @@ class EventsController extends AppController {
 				}
 
 				$fieldList = array(
-						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'dist_change', 'from', 'timestamp'),
-						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie', 'cluster', 'dist_change')
+						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'dist_change', 'from', 'private', 'communitie', 'cluster', 'timestamp'),
+						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie', 'cluster', 'dist_change', 'timestamp')
 				);
 
 				// reposition to get the attribute.id with given uuid
@@ -548,8 +549,7 @@ class EventsController extends AppController {
 							// Check if the attribute's timestamp is bigger than the one that already exists.
 							// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
 							// Alternatively, we could unset this attribute from the request, but that could lead with issues if we want to start deleting attributes that don't exist in a pushed event.
-							if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['id']);
-							else $this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+							if ($this->request->data['Attribute'][$c]['timestamp'] <= $existingAttribute['Attribute']['id']) $this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
 
 							/* Should be obsolete with timestamps
 							if (!($this->request->data['Attribute'][$c]['dist_change'] > $existingAttribute['Attribute']['dist_change'])) {
@@ -562,14 +562,6 @@ class EventsController extends AppController {
 						$c++;
 					}
 				}
-
-				// unclear what this does, more documentation needed
-				if ($this->request->data['Event']['dist_change'] > $existingEvent['Event']['dist_change']) {
-					array_push($fieldList['Event'], 'private', 'communitie', 'cluster');
-				}
-				// TODO (iglocska): right now this will always update, make sure that this doesn't happen if the edit was rejected (due to the timestamps being equal, shadow attributes created instead of normal attributes, etc)
-				$date = new DateTime();
-				$this->request->data['Event']['timestamp'] = $date->getTimestamp();
 				// this saveAssociated() function will save not only the event, but also the attributes
 				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
 				$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
@@ -716,9 +708,6 @@ class EventsController extends AppController {
 		$this->Event->recursive = 1;
 		$this->Event->read();
 
-		//Save the from field of the event to know where it came from originally and then set the event's from field to the current server's host org
-		$from = $this->Event->data['Event']['from'];
-		$this->Event->data['Event']['from'] = Configure::read('CyDefSIG.org');
 		// get a list of the servers
 		$this->loadModel('Server');
 		$servers = $this->Server->find('all', array(
@@ -734,7 +723,7 @@ class EventsController extends AppController {
 		$HttpSocket = new HttpSocket();
 		foreach ($servers as &$server) {
 			//Skip servers where the event has come from.
-			if (($passAlong != $server && $server['Server']['organization'] != $from)) {
+			if (($passAlong != $server)) {
 				$thisUploaded = $this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
 				if (!$thisUploaded) {
 					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
