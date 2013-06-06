@@ -84,12 +84,12 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					<?php echo h($event['Event']['date']); ?>
 					&nbsp;
 				</dd>
-				<dt<?php echo ' title="' . $eventDescriptions['risk']['desc'] . '"';?>>Risk</dt>
+				<dt title="<?php echo $eventDescriptions['risk']['desc'];?>">Risk</dt>
 				<dd>
 					<?php echo h($event['Event']['risk']); ?>
 					&nbsp;
 				</dd>
-				<dt<?php echo ' title="' . $eventDescriptions['analysis']['desc'] . '"';?>>Analysis</dt>
+				<dt title="<?php echo $eventDescriptions['analysis']['desc'];?>">Analysis</dt>
 				<dd>
 					<?php echo h($analysisLevels[$event['Event']['analysis']]); ?>
 					&nbsp;
@@ -105,7 +105,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					&nbsp;
 				</dd>
 				<dt>Published</dt>
-				<dd style = "color: red;">
+				<dd style="color: red;">
 					<b><?php echo ($event['Event']['published'] == 1 ? 'Yes' : 'No');  ?></b>
 					&nbsp;
 				</dd>
@@ -155,16 +155,23 @@ if (!empty($event['Attribute'])):?>
 			if (count($attribute['ShadowAttribute'])) $extra .= 'highlight1';
 		?>
 		<tr>
-			<td class= "short <?php echo $extra; ?>" title="<?php if('' != $attribute['category']) echo $categoryDefinitions[$attribute['category']]['desc'];?>"><?php
-			if ($first) {
+			<?php if($first): ?>
+			<td class= "short <?php echo $extra; ?>" title="<?php if('' != $attribute['category']) echo $categoryDefinitions[$attribute['category']]['desc'];?>">
+				<?php
 				if ('' == $attribute['category']) echo '(no category)';
-					echo h($attribute['category']);
-			} else {
-				echo '&nbsp;';
-			}?></td>
-			<td class="short <?php echo $extra; ?>" title="<?php
-			echo $typeDefinitions[$attribute['type']]['desc'];?>"><?php
-			echo h($attribute['type']);?></td>
+				else echo h($attribute['category']);
+				?>
+			</td>
+			<?php else: ?>
+			<td class= "short <?php echo $extra; ?>">
+				&nbsp;
+			</td>
+			<?php endif; ?>
+			<td class="short <?php echo $extra; ?>" title="<?php echo $typeDefinitions[$attribute['type']]['desc'];?>">
+
+				<?php echo h($attribute['type']);?>
+
+			</td>
 			<td class="<?php echo $extra; ?>"><?php
 			$sigDisplay = $attribute['value'];
 			if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
@@ -371,3 +378,13 @@ if (!empty($event['Attribute'])):?>
 				endif; ?>
 		</div>
 </div>
+<script type="text/javascript">
+// tooltips
+$(document).ready(function () {
+	$("th, td, dt, div, span").tooltip({
+		'placement': 'top',
+		'container' : 'body',
+		delay: { show: 500, hide: 100 }
+		});
+});
+</script>

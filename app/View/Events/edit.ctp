@@ -13,29 +13,20 @@ if ('true' == Configure::read('CyDefSIG.sync')) {
 		echo $this->Form->input('distribution', array(
 			'label' => 'Distribution',
 			'selected' => 'All communities',
-			'after' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv')),
 		));
     }
 }
 	echo $this->Form->input('risk', array(
-			'after' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv')),
 			'div' => 'input clear'
 			));
 	echo $this->Form->input('analysis', array(
 			'options' => array($analysisLevels),
-			'after' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))
 			));
 	echo $this->Form->input('info', array(
 			'div' => 'clear',
 			'class' => 'input-xxlarge'
 			));
 
-// link an onchange event to the form elements
-if ('true' == $canEditDist) {
-	$this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');
-}
-$this->Js->get('#EventRisk')->event('change', 'showFormInfo("#EventRisk")');
-$this->Js->get('#EventAnalysis')->event('change', 'showFormInfo("#EventAnalysis")');
 ?>
 	</fieldset>
 <?php
@@ -46,17 +37,13 @@ echo $this->Form->end();
 <div class="actions">
 	<ul class="nav nav-list">
 		<li><?php echo $this->Html->link('View Event', array('action' => 'view', $this->request->data['Event']['id'])); ?> </li>
-		<?php if ($isSiteAdmin || $mayModify): ?>
+
 		<li class="active"><?php echo $this->Html->link('Edit Event', array('action' => 'edit', $this->request->data['Event']['id'])); ?> </li>
 		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $this->request->data['Event']['id']), null, __('Are you sure you want to delete # %s?', $this->request->data['Event']['id'])); ?></li>
 		<li class="divider"></li>
 		<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $this->request->data['Event']['id']));?> </li>
 		<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $this->request->data['Event']['id']));?> </li>
 		<li><?php echo $this->Html->link('Populate event from IOC', array('controller' => 'events', 'action' => 'addIOC', $this->request->data['Event']['id']));?> </li>
-		<?php else:	?>
-		<li><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $this->request->data['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link('Propose Attachment', array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $this->request->data['Event']['id']));?> </li>
-		<?php endif; ?>
 		<li class="divider"></li>
 		<?php if ( 0 == $this->request->data['Event']['published'] && ($isAdmin || $mayPublish)): ?>
 		<li><?php echo $this->Form->postLink('Publish Event', array('action' => 'alert', $this->request->data['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?'); ?></li>
@@ -101,22 +88,24 @@ foreach ($analysisDescriptions as $type => $def) {
 }
 ?>
 
-function showFormInfo(id) {
-	idDiv = id+'Div';
-	// LATER use nice animations
-	//$(idDiv).hide('fast');
-	// change the content
-	var value = $(id).val();    // get the selected value
-	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
-	// show it again
-	$(idDiv).fadeIn('slow');
-}
+$(document).ready(function() {
 
-// hide the formInfo things
-if ('true' == $canEditDist) {
-	$('#EventDistributionDiv').hide();
-}
-$('#EventRiskDiv').hide();
-$('#EventAnalysisDiv').hide();
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
+
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('mouseover', function(e) {
+	    var $e = $(e.target);
+	    if ($e.is('option')) {
+	        $('#'+e.currentTarget.id).popover('destroy');
+	        $('#'+e.currentTarget.id).popover({
+	            trigger: 'manual',
+	            placement: 'right',
+	            content: formInfoValues[$e.val()],
+	        }).popover('show');
+	    }
+	});
+});
+
 </script>
 <?php echo $this->Js->writeBuffer();

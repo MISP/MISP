@@ -113,7 +113,7 @@
 
 				</ul>
 			</div>
-			<div class="nav-collapse collapse" style="float:right">
+			<div class="nav-collapse collapse pull-right">
 				<ul class="nav">
 					<li><?php echo $this->Html->link(__('Log out', true), array('controller' => 'users', 'action' => 'logout', 'plugin' => false)); ?> </li>
 				</ul>

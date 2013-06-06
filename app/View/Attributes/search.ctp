@@ -16,9 +16,9 @@
 		<?php
 		echo $this->Form->input('type', array(
 				'div' => 'input clear',
-				'after' => $this->Html->div('forminfo', '', array('id' => 'AttributeTypeDiv'))
 				));
-		echo $this->Form->input('category', array('after' => $this->Html->div('forminfo', '', array('id' => 'AttributeCategoryDiv'))));
+		echo $this->Form->input('category', array(
+				));
 		?>
 	</fieldset>
 <?php
@@ -99,7 +99,6 @@ foreach ($typeDefinitions as $type => $def) {
 
 function formCategoryChanged(id) {
 	var alreadySelected = $('#AttributeType').val();
-	showFormInfo(id); // display the tooltip
 	// empty the types
 	document.getElementById("AttributeType").options.length = 1;
 	// add new items to options
@@ -112,15 +111,10 @@ function formCategoryChanged(id) {
 	});
 	// enable the form element
 	$('#AttributeType').prop('disabled', false);
-	if ("ALL" == $('#AttributeCategory').val()) {
-		//alert($('#AttributeCategory').val());
-		$('#AttributeCategoryDiv').hide();
-	}
 }
 
 function formTypeChanged(id) {
 	var alreadySelected = $('#AttributeCategory').val();
-	showFormInfo(id); // display the tooltip
 	// empty the categories
 	document.getElementById("AttributeCategory").options.length = 2;
 	// add new items to options
@@ -133,10 +127,6 @@ function formTypeChanged(id) {
 	});
 	// enable the form element
 	$('#AttributeCategory').prop('disabled', false);
-	if ("ALL" == $('#AttributeType').val()) {
-		//alert($('#AttributeType').val());
-		$('#AttributeTypeDiv').hide();
-	}
 }
 
 var formInfoValues = new Array();
@@ -151,33 +141,36 @@ foreach ($categoryDefinitions as $category => $def) {
 	echo "formInfoValues['$category'] = \"$info\";\n";
 }
 $this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
-$this->Js->get('#AttributeCategory')->event('change', 'showFormInfo("#AttributeCategory")');
 $this->Js->get('#AttributeType')->event('change', 'formTypeChanged("#AttributeType")');
-$this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');
 ?>
 
 formInfoValues['ALL'] = '';
 formInfoValues[''] = '';
 
-function showFormInfo(id) {
-	idDiv = id+'Div';
-	if (("ALL" != $(id).val()) && ("" != $(id).val())) {
-	// LATER use nice animations
-	//$(idDiv).hide('fast');
-	// change the content
-	var value = $(id).val();    // get the selected value
-	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
 
-	// show it again
-	$(idDiv).fadeIn('slow');
-	} else {
-		$(idDiv).hide();
-	}
-}
+$(document).ready(function() {
 
-// hide the formInfo things
-$('#AttributeTypeDiv').hide();
-$('#AttributeCategoryDiv').hide();
+	$("#AttributeType, #AttributeCategory").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
+
+	$("#AttributeType, #AttributeCategory").on('mouseover', function(e) {
+	    var $e = $(e.target);
+	    if ($e.is('option')) {
+	        $('#'+e.currentTarget.id).popover('destroy');
+	        $('#'+e.currentTarget.id).popover({
+	            trigger: 'manual',
+	            placement: 'right',
+	            content: formInfoValues[$e.val()],
+	        }).popover('show');
+	    }
+	});
+
+
+});
+
+
+
 
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts ?>

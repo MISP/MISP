@@ -10,17 +10,14 @@
 		if ('true' == Configure::read('CyDefSIG.sync')) {
 			echo $this->Form->input('distribution', array(
 					'label' => 'Distribution',
-					'selected' => 'All communities',
-					'after' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv')),
+					'selected' => 'All communities'
 					));
 		}
 		echo $this->Form->input('risk', array(
-				'after' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv')),
 				'div' => 'input clear'
 				));
 		echo $this->Form->input('analysis', array(
 				'options' => array($analysisLevels),
-				'after' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))
 				));
 		echo $this->Form->input('info', array(
 				'div' => 'clear',
@@ -29,13 +26,8 @@
 		echo $this->Form->input('Event.submittedgfi', array(
 				'label' => '<b>GFI sandbox</b>',
 				'type' => 'file',
-				// 'between' => $this->Html->div('forminfo', isset($eventDescriptions['submittedgfi']['formdesc']) ? $eventDescriptions['submittedgfi']['formdesc'] : $eventDescriptions['submittedgfi']['desc']),
 				'div' => 'clear'
 				));
-		// link an onchange event to the form elements
-		$this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');
-		$this->Js->get('#EventRisk')->event('change', 'showFormInfo("#EventRisk")');
-		$this->Js->get('#EventAnalysis')->event('change', 'showFormInfo("#EventAnalysis")');
 		?>
 	</fieldset>
 <?php
@@ -81,20 +73,24 @@ foreach ($analysisDescriptions as $type => $def) {
 }
 ?>
 
-function showFormInfo(id) {
-	idDiv = id+'Div';
-	// LATER use nice animations
-	//$(idDiv).hide('fast');
-	// change the content
-	var value = $(id).val();    // get the selected value
-	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
-	// show it again
-	$(idDiv).fadeIn('slow');
-}
+$(document).ready(function() {
 
-// hide the formInfo things
-$('#EventDistributionDiv').hide();
-$('#EventRiskDiv').hide();
-$('#EventAnalysisDiv').hide();
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
+
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('mouseover', function(e) {
+	    var $e = $(e.target);
+	    if ($e.is('option')) {
+	        $('#'+e.currentTarget.id).popover('destroy');
+	        $('#'+e.currentTarget.id).popover({
+	            trigger: 'manual',
+	            placement: 'right',
+	            content: formInfoValues[$e.val()],
+	        }).popover('show');
+	    }
+	});
+});
+
 </script>
 <?php echo $this->Js->writeBuffer();
