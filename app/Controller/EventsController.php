@@ -419,7 +419,7 @@ class EventsController extends AppController {
 		// force check userid and orgname to be from yourself
 		$auth = $this->Auth;
 		$data['Event']['user_id'] = $auth->user('id');
-		if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('CyDefSIG.sync');
+		if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('CyDefSIG.org');
 		else $data['Event']['org'] = $auth->user('org');
 		if (!$fromXml) {
 			$data['Event']['orgc'] = $data['Event']['org'];
