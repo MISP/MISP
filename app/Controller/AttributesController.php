@@ -463,6 +463,7 @@ class AttributesController extends AppController {
  */
 	public function edit($id = null) {
 		$this->Attribute->id = $id;
+		$date = new DateTime();
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
@@ -512,6 +513,8 @@ class AttributesController extends AppController {
 					// the old one is newer or the same, replace the request's attribute with the old one
 					$this->request->data['Attribute'] = $existingAttribute['Attribute'];
 				}
+			} else {
+				$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
 			}
 
 			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster', 'value', 'timestamp');
@@ -521,6 +524,7 @@ class AttributesController extends AppController {
 
 			// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
 			$this->Event->read();
+			/*
 			if (!$this->_isRest()) {
 				$canEditDist = false;
 				if ($this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
@@ -533,10 +537,13 @@ class AttributesController extends AppController {
 					$this->request->data['Attribute']['dist_change'] = 1 + $existingAttribute['Attribute']['dist_change'];
 				}
 			}
+			*/
 			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 				// remove the published flag from the event
-				$this->Event->saveField('published', 0);
+				$this->Event->set('timestamp', $date->getTimestamp());
+				$this->Event->set('published', 0);
+				$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
 
 				if ($this->_isRest()) {
 					// REST users want to see the newly created event
