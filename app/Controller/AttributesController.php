@@ -523,20 +523,6 @@ class AttributesController extends AppController {
 
 			// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
 			$this->Event->read();
-			/*
-			if (!$this->_isRest()) {
-				$canEditDist = false;
-				if ($this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
-					$this->set('canEditDist', true);
-					$canEditDist = true;
-				} else {
-					$this->set('canEditDist', false);
-				}
-				if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] != $existingAttribute['Attribute']['distribution']) {
-					$this->request->data['Attribute']['dist_change'] = 1 + $existingAttribute['Attribute']['dist_change'];
-				}
-			}
-			*/
 			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 				// remove the published flag from the event

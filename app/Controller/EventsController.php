@@ -460,8 +460,8 @@ class EventsController extends AppController {
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision')
 		);
 		$fieldList = array(
-				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'dist_change', 'from', 'timestamp'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie', 'dist_change', 'timestamp')
+				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'timestamp'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie', 'timestamp')
 		);
 
 		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
@@ -524,18 +524,17 @@ class EventsController extends AppController {
 						if ($this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
 
 						} else {
-							$saveEvent = false;							
+							$saveEvent = false;
 						}
 					}
 				}
 
 
 				$fieldList = array(
-						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'dist_change', 'from', 'private', 'communitie', 'cluster', 'timestamp'),
-						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie', 'cluster', 'dist_change', 'timestamp')
+						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'private', 'communitie', 'cluster', 'timestamp'),
+						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie', 'cluster', 'timestamp')
 				);
 
-				// reposition to get the attribute.id with given uuid
 				$c = 0;
 				if (isset($this->request->data['Attribute'])) {
 					foreach ($this->request->data['Attribute'] as $attribute) {
@@ -544,21 +543,13 @@ class EventsController extends AppController {
 							$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
 							// Check if the attribute's timestamp is bigger than the one that already exists.
 							// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-							// Alternatively, we could unset this attribute from the request, but that could lead with issues if we want to start deleting attributes that don't exist in a pushed event.
+							// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
 							if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['id']) {
 
 							} else {
 								unset($this->request->data['Attribute'][$c]);
 								//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
 							}
-
-							/* Should be obsolete with timestamps
-							if (!($this->request->data['Attribute'][$c]['dist_change'] > $existingAttribute['Attribute']['dist_change'])) {
-								unset($this->request->data['Attribute'][$c]['private']);
-								unset($this->request->data['Attribute'][$c]['cluster']);
-								unset($this->request->data['Attribute'][$c]['communitie']);
-							}
-							*/
 						}
 						$c++;
 					}
@@ -597,9 +588,8 @@ class EventsController extends AppController {
 				}
 			}
 			// say what fields are to be updated
-			$fieldList = array('date', 'risk', 'analysis', 'info', 'published', 'private', 'cluster', 'communitie', 'dist_change', 'timestamp');
+			$fieldList = array('date', 'risk', 'analysis', 'info', 'published', 'private', 'cluster', 'communitie', 'timestamp');
 
-			//Moved this out of (if ($this->_isAdmin()) to use for the dist_change
 			$this->Event->read();
 			// always force the org, but do not force it for admins
 			if (!$this->_isSiteAdmin()) {
@@ -608,15 +598,6 @@ class EventsController extends AppController {
 			}
 			// we probably also want to remove the published flag
 			$this->request->data['Event']['published'] = 0;
-
-			/* we don't need this stuff anymore
-			// If the distribution has changed, up the dist_change count
-			if ($canEditDist) {
-				if ($this->request->data['Event']['distribution'] != $this->Event->data['Event']['distribution']) {
-					$this->request->data['Event']['dist_change'] = 1 + $this->Event->data['Event']['dist_change'];
-				}
-			}
-			*/
 			$date = new DateTime();
 			$this->request->data['Event']['timestamp'] = $date->getTimestamp();
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
@@ -738,7 +719,6 @@ class EventsController extends AppController {
 				}
 			}
 		}
-		$this->Event->data['Event']['from'] = Configure::read('CyDefSIG.org');
 		if (!$uploaded) {
 			return $failedServers;
 		} else {
@@ -781,7 +761,6 @@ class EventsController extends AppController {
 		$fieldList = array('published', 'id', 'info');
 		$event['Event']['published'] = 1;
 		$this->Event->save($event, array('fieldList' => $fieldList));
-		$event['Event']['from'] = Configure::read('CyDefSIG.org');
 		$uploaded = false;
 		if ('true' == Configure::read('CyDefSIG.sync')) {
 			$uploaded = $this->__uploadEventToServers($id, $passAlong);
@@ -806,7 +785,6 @@ class EventsController extends AppController {
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(null, $id);
 		$fieldList = array('published', 'id', 'info');
-		$event['Event']['from'] = Configure::read('CyDefSIG.org');
 		$this->Event->save($event, array('fieldList' => $fieldList));
 
 		// only allow form submit CSRF protection.
@@ -837,7 +815,6 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-		$this->Event->saveField('from', Configure::read('CyDefSIG.org'));
 
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
