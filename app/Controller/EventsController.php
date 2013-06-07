@@ -520,7 +520,7 @@ class EventsController extends AppController {
 				$existingEvent = $this->Event->findByUuid($this->request->data['Event']['uuid']);
 				if (count($existingEvent)) {
 					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
-					if (isset($existingEvent['Event']['timestamp'])) {
+					if (isset($this->request->data['Event']['timestamp'])) {
 						if ($this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
 
 						} else {
