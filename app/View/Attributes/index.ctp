@@ -25,9 +25,12 @@ if ($isSearch == 1) {
 	if ($isSearch == 1) {
 	    // build the $replacePairs variable used to highlight the keywords
 	    $replacementArray = array();
-	    foreach ($keywordArray as &$keywordArrayElement) {
+	    foreach ($keywordArray as $k => &$keywordArrayElement) {
 	        $keywordArrayElement = trim($keywordArrayElement);
-	        if ("" == $keywordArrayElement) continue;
+	        if ("" == $keywordArrayElement) {
+				unset($keywordArray[$k]);
+				continue;
+			}
 	        $replacementArray[] = '<span style="color:red">'.$keywordArrayElement.'</span>';
 	    }
 	    if (!empty($replacementArray))
