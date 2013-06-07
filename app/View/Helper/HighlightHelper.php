@@ -26,8 +26,6 @@ App::uses('AppHelper', 'View/Helper');
 			    $replacementArray[] = '<span style="color:red">'.$keywordArrayElement.'</span>';
 			}
 			if (!empty($replacementArray))
-				debug ($keywordArray);
-			debug($replacementArray);
 			    return array_combine($keywordArray, $replacementArray);
 		}
 
