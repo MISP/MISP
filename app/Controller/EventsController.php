@@ -520,19 +520,15 @@ class EventsController extends AppController {
 				$existingEvent = $this->Event->findByUuid($this->request->data['Event']['uuid']);
 				if (count($existingEvent)) {
 					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
-					if (isset($this->request->data['Event']['timestamp'])) {
-						if (!$this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
-							return false;
+					if (isset($existingEvent['Event']['timestamp'])) {
+						if ($this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+
+						} else {
+							$saveEvent = false;							
 						}
 					}
 				}
 
-
-				if ($existingEvent['Event']['orgc'] == $this->_checkOrg()) {
-					$this->set('canEditDist', true);
-				} else {
-					$this->set('canEditDist', false);
-				}
 
 				$fieldList = array(
 						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'dist_change', 'from', 'private', 'communitie', 'cluster', 'timestamp'),
@@ -549,7 +545,12 @@ class EventsController extends AppController {
 							// Check if the attribute's timestamp is bigger than the one that already exists.
 							// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
 							// Alternatively, we could unset this attribute from the request, but that could lead with issues if we want to start deleting attributes that don't exist in a pushed event.
-							if ($this->request->data['Attribute'][$c]['timestamp'] <= $existingAttribute['Attribute']['id']) $this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+							if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['id']) {
+
+							} else {
+								unset($this->request->data['Attribute'][$c]);
+								//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+							}
 
 							/* Should be obsolete with timestamps
 							if (!($this->request->data['Attribute'][$c]['dist_change'] > $existingAttribute['Attribute']['dist_change'])) {
@@ -564,8 +565,15 @@ class EventsController extends AppController {
 				}
 				// this saveAssociated() function will save not only the event, but also the attributes
 				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-				$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
-
+				if ($saveEvent) {
+					$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
+				} else {
+					$message = 'This would be a downgrade...';
+					$this->set('event', $existingEvent);
+					$this->view($existingEvent['Event']['id']);
+					$this->render('view');
+					return true;
+				}
 				if ($saveResult) {
 					// TODO RESTfull: we now need to compare attributes, to see if we need to do a RESTfull attribute delete
 					$message = 'Saved';
@@ -593,7 +601,6 @@ class EventsController extends AppController {
 
 			//Moved this out of (if ($this->_isAdmin()) to use for the dist_change
 			$this->Event->read();
-
 			// always force the org, but do not force it for admins
 			if (!$this->_isSiteAdmin()) {
 				// set the same org as existed before

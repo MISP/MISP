@@ -9,13 +9,11 @@
 			'class' => 'datepicker'
 	));
 if ('true' == Configure::read('CyDefSIG.sync')) {
-    if ('true' == $canEditDist) {
-		echo $this->Form->input('distribution', array(
-			'label' => 'Distribution',
-			'selected' => 'All communities',
-			'after' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv')),
-		));
-    }
+	echo $this->Form->input('distribution', array(
+		'label' => 'Distribution',
+		'selected' => 'All communities',
+		'after' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv')),
+	));
 }
 	echo $this->Form->input('risk', array(
 			'after' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv')),
@@ -31,9 +29,7 @@ if ('true' == Configure::read('CyDefSIG.sync')) {
 			));
 
 // link an onchange event to the form elements
-if ('true' == $canEditDist) {
-	$this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');
-}
+$this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');
 $this->Js->get('#EventRisk')->event('change', 'showFormInfo("#EventRisk")');
 $this->Js->get('#EventAnalysis')->event('change', 'showFormInfo("#EventAnalysis")');
 ?>
@@ -84,13 +80,10 @@ echo $this->Form->end();
 //
 var formInfoValues = new Array();
 <?php
-if ('true' == $canEditDist) {
-	foreach ($distributionDescriptions as $type => $def) {
-		$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-		echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
-	}
+foreach ($distributionDescriptions as $type => $def) {
+	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
 }
-
 foreach ($riskDescriptions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
@@ -113,9 +106,7 @@ function showFormInfo(id) {
 }
 
 // hide the formInfo things
-if ('true' == $canEditDist) {
-	$('#EventDistributionDiv').hide();
-}
+$('#EventDistributionDiv').hide();
 $('#EventRiskDiv').hide();
 $('#EventAnalysisDiv').hide();
 </script>
