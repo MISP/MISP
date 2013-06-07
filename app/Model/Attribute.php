@@ -289,6 +289,16 @@ class Attribute extends AppModel {
 						//'on' => 'create', // Limit validation to 'create' or 'update' operations
 				),
 		),
+		'timestamp' => array(
+				'timestamp' => array(
+						'timestamp' => array('numeric'),
+						//'message' => 'Your custom message here',
+						//'allowEmpty' => false,
+						//'required' => false,
+						//'last' => false, // Stop validation after this rule
+						//'on' => 'create', // Limit validation to 'create' or 'update' operations
+				),
+		),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
@@ -385,7 +395,6 @@ class Attribute extends AppModel {
 				$this->data['Attribute']['value2'] = '';
 			}
 		}
-
 		// update correlation... (only needed here if there's an update)
  		$this->__beforeSaveCorrelation($this->data['Attribute']);
 		// always return true after a beforeSave()
@@ -485,6 +494,13 @@ class Attribute extends AppModel {
 		if (empty($this->data['Attribute']['uuid'])) {
 			$this->data['Attribute']['uuid'] = String::uuid();
 		}
+
+		// generate timestamp if it doesn't exist
+		if (empty($this->data['Attribute']['timestamp'])) {
+			$date = new DateTime();
+			$this->data['Attribute']['timestamp'] = $date->getTimestamp();
+		}
+
 
 		// always return true, otherwise the object cannot be saved
 		return true;

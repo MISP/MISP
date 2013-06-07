@@ -426,7 +426,6 @@ class EventsController extends AppController {
 
 		// set these fields if the event is freshly created and not pushed from another instance.
 		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
-		if (!isset ($data['Event']['timestamp'])) $data['Event']['timestamp'] = $date->getTimestamp();
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
 		if ($fromXml) {
 			// FIXME FIXME chri: temporary workaround for unclear org, orgc, from
@@ -522,7 +521,7 @@ class EventsController extends AppController {
 					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
 					if (isset($this->request->data['Event']['timestamp'])) {
 						if ($this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
-
+							// Consider shadow attributes?
 						} else {
 							$saveEvent = false;
 						}
@@ -1557,8 +1556,8 @@ class EventsController extends AppController {
 			//$saveEvent['Event']['id'] = $id;
 
 			$fieldList = array(
-					'Event' => array('published'),
-					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'private', 'cluster', 'communitie')
+					'Event' => array('published', 'timestamp'),
+					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'private', 'cluster', 'communitie', 'timestamp')
 			);
 			// Save it all
 			$saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
