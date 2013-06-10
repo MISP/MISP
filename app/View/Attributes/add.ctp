@@ -150,14 +150,12 @@ $(document).ready(function() {
 	// no solutions exist, except to generate the select completely using html.
 	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('change', function(e) {
 	    var $e = $(e.target);
-	    if ($e.is('option')) {
-	        $('#'+e.currentTarget.id).popover('destroy');
-	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'manual',
-	            placement: 'right',
-	            content: formInfoValues[$e.val()],
-	        }).popover('show');
-	    }
+        $('#'+e.currentTarget.id).popover('destroy');
+        $('#'+e.currentTarget.id).popover({
+            trigger: 'manual',
+            placement: 'right',
+            content: formInfoValues[$e.val()],
+        }).popover('show');
 	});
 
 });
