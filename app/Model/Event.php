@@ -506,7 +506,7 @@ class Event extends AppModel {
 				continue; // stop processing this
 			}
 			// Distribution, correct Connected Community to Community in Attribute
-			if (!$attribute['distribution'] == 2) {
+			if ($attribute['distribution'] == 2) {
 				$attribute['distribution'] = 1;
 			}
 			// remove value1 and value2 from the output

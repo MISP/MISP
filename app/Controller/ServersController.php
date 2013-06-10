@@ -175,19 +175,17 @@ class ServersController extends AppController {
 					if (null != $event) {
 						// we have an Event array
 						if (!isset($event['Event']['distribution'])) { // version 1
-							$event['Event']['distribution'] = 'This Community-only';
+							$event['Event']['distribution'] = 1;
 						}
 						// Distribution
 						switch($event['Event']['distribution']) {
-							case 'Your organization only': // Distribution, no Org only in Event
-							case 'This server-only':
-								continue 2; // to the next iteration of the outer loop
+							case 1:
+								// if community only, downgrade to org only after pull
+								$event['Event']['distribution'] = 0;
 								break;
-							case 'This Community-only': // Distribution, correct Community to Org only in Event
-								$event['Event']['distribution'] = 'Your organization only';
-								break;
-							case 'Connected communities': // Distribution, correct All to Community in Event
-								$event['Event']['distribution'] = 'This Community-only';
+							case 2: 
+								// if connected communities downgrade to community only
+								$event['Event']['distribution'] = 1;
 								break;
 						}
 
@@ -203,22 +201,16 @@ class ServersController extends AppController {
 							$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
 							for ($i = 0; $i < $size; $i++) {
 								if (!isset($event['Event']['Attribute'][$i]['distribution'])) { // version 1
-									$event['Event']['Attribute'][$i]['distribution'] = 'This Community-only';
+									$event['Event']['Attribute'][$i]['distribution'] = 1;
 								}
 								switch($event['Event']['Attribute'][$i]['distribution']) {
-									case 'Your organization only':
-									case 'This server-only':
-										$toRemove[] = $i;
+									case 1:
+										// if community only, downgrade to org only after pull
+										$event['Event']['Attribute'][$i]['distribution'] = 0;
 										break;
-									case 'This Community-only':
-										$event['Event']['Attribute'][$i]['private'] = true;
-										$event['Event']['Attribute'][$i]['cluster'] = false;
-										$event['Event']['Attribute'][$i]['communitie'] = false;
-										$event['Event']['Attribute'][$i]['distribution'] = 'Your organization only';
-										break;
-									case 'Connected communities':
-										$event['Event']['Attribute'][$i]['cluster'] = true;
-										$event['Event']['Attribute'][$i]['distribution'] = 'This Community-only';
+									case 2: 
+										// if connected communities downgrade to community only
+										$event['Event']['Attribute'][$i]['distribution'] = 1;
 										break;
 								}
 							}
