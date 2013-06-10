@@ -173,7 +173,7 @@ class EventsController extends AppController {
 		$myEvent = true;
 		if (!$isSiteAdmin) {
 			// check private
-			if (($this->Event->data['Event']['distribution'] > 0) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
+			if (($this->Event->data['Event']['distribution'] == 0) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
 				$this->Session->setFlash(__('Invalid event.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
@@ -448,7 +448,6 @@ class EventsController extends AppController {
 			$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 			if ($existingEventCount > 0) {
 				// RESTfull, set responce location header..so client can find right URL to edit
-				if ($fromPull) return false;
 				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 				$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $existingEvent['Event']['id']);
 				$this->response->send();

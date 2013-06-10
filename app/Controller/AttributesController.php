@@ -51,8 +51,8 @@ class AttributesController extends AppController {
 							array(
 								'Event.org =' => $this->Auth->user('org'),
 								'AND' => array(
-										'Attribute.distribution' > 0,
-										'Event.distribution' > 0,
+										'Attribute.distribution >' => 0,
+										'Event.distribution >' => 0,
 			)))));
 		}
 
