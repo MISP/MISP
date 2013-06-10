@@ -13,15 +13,14 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `to_ids` tinyint(1) NOT NULL DEFAULT '1',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `revision` int(10) NOT NULL DEFAULT '0',
-  `private` tinyint(1) NOT NULL,
-  `cluster` tinyint(1) NOT NULL,
-  `communitie` tinyint(1) NOT NULL,
   `value2` text COLLATE utf8_bin,
   `dist_change` int(11) NOT NULL DEFAULT '0',
+  `timestamp` int(11) NOT NULL DEFAULT '0',
+  `distribution` tinyint(4) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
   KEY `uuid` (`uuid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin
 
 -- --------------------------------------------------------
 
@@ -82,19 +81,18 @@ CREATE TABLE IF NOT EXISTS `events` (
   `user_id` int(11) NOT NULL,
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `revision` tinyint(1) NOT NULL,
-  `private` tinyint(1) NOT NULL,
-  `cluster` tinyint(1) NOT NULL,
-  `communitie` tinyint(1) NOT NULL,
   `attribute_count` int(11) NOT NULL,
+  `hop_count` int(11) NOT NULL DEFAULT '0',
   `published` tinyint(1) NOT NULL DEFAULT '0',
   `analysis` tinyint(4) NOT NULL,
   `orgc` varchar(255) COLLATE utf8_bin NOT NULL,
   `dist_change` int(11) NOT NULL DEFAULT '0',
-  `from` varchar(10) COLLATE utf8_bin NOT NULL,
+  `timestamp` int(11) NOT NULL DEFAULT '0',
+  `distribution` tinyint(4) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `uuid` (`uuid`),
   FULLTEXT KEY `info` (`info`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin
 
 -- --------------------------------------------------------
 
