@@ -173,7 +173,7 @@ class EventsController extends AppController {
 		$myEvent = true;
 		if (!$isSiteAdmin) {
 			// check private
-			if (($this->Event->data['Event']['distribution'] > 0) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
+			if (($this->Event->data['Event']['distribution'] == 0) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
 				$this->Session->setFlash(__('Invalid event.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
