@@ -2,19 +2,19 @@
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 ?>
-<div class="actions" style="width:12%">
+<div class="actions">
 	<ul class="nav nav-list">
-		<li class="active"><?php echo $this->Html->link('View Event', array('action' => 'view', $event['Event']['id'])); ?> </li>
+		<li class="active"><a href="/events/view/<?php echo $event['Event']['id'];?>">View Event</a></li>
 		<?php if ($isSiteAdmin || $mayModify): ?>
-		<li><?php echo $this->Html->link('Edit Event', array('action' => 'edit', $event['Event']['id'])); ?> </li>
+		<li><a href="/events/edit/<?php echo $event['Event']['id'];?>">Edit Event</a></li>
 		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link('Populate from IOC', array('controller' => 'events', 'action' => 'addIOC', $event['Event']['id']));?> </li>
+		<li><a href="/attributes/add/<?php echo $event['Event']['id'];?>">Add Attribute</a></li>
+		<li><a href="/attributes/add_attachment/<?php echo $event['Event']['id'];?>">Add Attachment</a></li>
+		<li><a href="/events/addIOC/<?php echo $event['Event']['id'];?>">Populate from IOC</a></li>
 		<?php else:	?>
-		<li><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $event['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link('Propose Attachment', array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
+		<li><a href="/shadow_attributes/add/<?php echo $event['Event']['id'];?>">Propose Attribute</a></li>
+		<li><a href="/shadow_attributes/add_attachment/<?php echo $event['Event']['id'];?>">Propose Attachment</a></li>
 		<?php endif; ?>
 		<li class="divider"></li>
 		<?php if ( 0 == $event['Event']['published'] && ($isAdmin || $mayPublish)): ?>
@@ -23,21 +23,19 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 		<?php else: ?>
 		<!-- ul><li>Alert already sent</li></ul -->
 		<?php endif; ?>
-		<li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $event['Event']['id'])); ?> </li>
-		<li><?php echo $this->Html->link(__('Download as XML', true), array('action' => 'xml', 'download', $event['Event']['id'])); ?></li>
-		<li><?php echo $this->Html->link(__('Download as IOC', true), array('action' => 'downloadOpenIOCEvent', $event['Event']['id'])); ?> </li>
-
+		<li><a href="/events/contact/<?php echo $event['Event']['id'];?>">Contact Reporter</a></li>
+		<li><a href="/events/xml/download/<?php echo $event['Event']['id'];?>">Download as XML</a></li>
+		<li><a href="/events/downloadOpenIOCEvent/<?php echo $event['Event']['id'];?>">Download as IOC</a></li>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<li><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>
-		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<li><a href="/events/add">Add Event</a></li>
 		<?php endif; ?>
 	</ul>
-
 </div>
 
 
-<div class="events view" style="width:83%">
+<div class="events view">
 
 	<?php
 	if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) {

@@ -21,43 +21,6 @@
     </div>
 	<?php
 	echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
-	?>
-	<!--  div class="input-prepend input-append" style="margin-bottom:0px;">
-		<div id="searchcancel" class="add-on span" style="margin-left:0px; margin-top:25px">
-			<div><a href="#" onClick='resetForm()'><div class="icon-remove" style = "margin-top:3px"></div></a></div>
-		</div>
-		<div id="searchinfo" class="span" style="width:220px; margin-left:0px">
-		<?php
-			//echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'label' => 'Info'));
-		?>
-		</div>
-		<div id="searchorgc" class="span" style="margin-left:0px; width:220px">
-		<?php
-			//echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'label' => 'Org'));
-		?>
-		</div>
-		<div id="searchpublished" class="span" style="margin-left:0px; width:220px">
-		<?php
-			//echo $this->Form->input('searchpublished', array('options' => array('0' => 'No', '1' => 'Yes', '2' => 'Any'), 'default' => 2, 'label' => 'Published'));
-		?>
-		</div>
-		<div id="searchfrom" class="span" style="margin-left:0px; width:110px">
-		<?php
-			//echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'label' => 'From', 'style' => 'width:96px; margin-top: 0px;', 'class' => 'datepicker'));
-		?>
-		</div>
-		<div id="searchuntil" class="span" style="margin-left:0px; width:110px">
-		<?php
-			//echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'label' => 'Until', 'style' => 'width:96px; margin-top: 0px;', 'class' => 'datepicker'));
-		?>
-		</div>
-		<div id="searchbutton">
-		<?php
-		//echo $this->Form->submit();
-		?>
-		</div>
-	</div -->
-	<?php
 	// Let's output a small label of each filter
 	$count = 0;
 	?>
@@ -300,20 +263,21 @@
 </div>
 <div class="actions">
 	<ul class="nav nav-list">
-		<li class="active"><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<li class="active"><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>
-		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<li><a href="/events/add">Add Event</a></li>
 		<?php endif; ?>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('List Attributes', array('controller' => 'attributes', 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link('Search Attributes', array('controller' => 'attributes', 'action' => 'search')); ?> </li>
+		<li><a href="/attributes/index">List Attributes</a></li>
+		<li><a href="/attributes/search">Search Attributes</a></li>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
+		<li><a href="/events/export">Export</a></li>
 		<?php if ($isAclAuth): ?>
-		<li><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
+		<li><a href="/events/automation">Automation</a></li>
 		<?php endif;?>
 	</ul>
 </div>
+
 <script>
 $(document).ready( function () {
 	// onload hide all buttons
