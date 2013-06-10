@@ -186,7 +186,7 @@
 			</td>
 			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
-				<?php echo $event['Event']['distribution'] != 'All communities' ? $event['Event']['distribution'] : 'All';?>
+				<?php echo $event['Event']['distribution'] != 3 ? $event['Event']['distribution'] : 'All';?>
 			</td>
 			<?php endif; ?>
 			<td class="short action-links">
