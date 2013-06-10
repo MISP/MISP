@@ -15,7 +15,7 @@
 </div>
 <div class="index" style="width:80%">
 	<h2>User Management and Global Actions</h2>
-	<a name="first_run"></a>
+	<a id="first_run"></a>
 	<h3>First run of the system:</h3>
 	When first logging into MISP with the username and password provided by your administrator, there are a number of things that need to be done, before you can start using the system.<br><br>
 	<ul>
@@ -29,7 +29,7 @@
 		<li><em>Reviewing the Terms &amp; Conditions:</em> To review the Terms &amp; Conditions or to read the User Guide, use the appropriate button on the left navigation menu.<br /><br /></li>
 		<li><em>Making sure that compatibility mode is turned off (IE9&amp;IE10):</em>Compatibility mode can cause some elements to appear differently than intended or not appear at all. Make sure you have this option turned off.</li></ul>
 <hr />
-<a name="manage"></a><h3>Managing your account:</h3>
+<a id="manage"></a><h3>Managing your account:</h3>
 To alter any details regarding your profile, use the "My Profile" menu button to bring up the profile overview and then click on "Edit Profile" in the right upper corner.<br>
 <ul>
 	<li style="list-style: none">
@@ -43,7 +43,7 @@ To alter any details regarding your profile, use the "My Profile" menu button to
 	<li><em>Requesting a new authentication key:</em> It is possible to make the system generate a new authentication key for you (for example if your previous one gets compromised. This can be accessed by clicking on the My Profile button and then clicking the reset key next to the currently active authentication code. The old key will become invalid when the new one is generated.<br /><br />
 	<p><img src="/img/doc/reset.png" alt = "" title="Clicking on reset will generate a new key for you and invalidate the old one, blocking it from being used."></p></li></ul>
 <hr />
- <a name="uptodate"></a><h3>Staying up to date:</h3>
+ <a id="uptodate"></a><h3>Staying up to date:</h3>
 MISP also provides its users with some information about itself and its users through the links provided in the Global Actions menu.<br><br>
 <ul>
 	<li><em>News:</em> To read about the news regarding the system itself, click on News on the left menu. This will bring up a list of news items concerning updates and changes to MISP itself.<br /><br /></li>
@@ -51,7 +51,7 @@ MISP also provides its users with some information about itself and its users th
 	<li><em>User Guide:</em> The user guide is also accessible via the Global Actions menu. You can find out more about how to use the system by reading this.<br /><br /></li>
 	<li><em>Terms &amp; Conditions:</em> It is possible to review the terms &amp; conditions that were shown during the first run of the system by clicking on the terms &amp; conditions link in the Global Actions menu.<br /><br /></li>
 </ul>
- <a name="filters"></a><h3>Inspecting the input filters:</h3>
+ <a id="filters"></a><h3>Inspecting the input filters:</h3>
 All the events and attributes that get entered into MISP will be run through a series of input filters. These are defined by the site administrators, but every user can take a look at the currently active lists.<br><br>
 <ul>
 	<li><em>Import Blacklist:</em> Events with the info field containing or Attributes with a value containing any of the items listed in the Import Blacklist will be blocked from being entered.<br /><br /></li>

@@ -20,37 +20,61 @@
 </div>
 <div class="index" style="width:80%">
 <h2>Using the system:</h2>
-<a name ="create"></a><h3>Creating an event:</h3>
-The process of entering an event can be split into 3 phases, the creation of the event itself, populating it with attributes and attachments and finally publishing it.<br /><br />
+<a id="create"></a><h3>Creating an event:</h3>
+The process of entering an event can be split into 3 phases, the creation of the event itself, populating it with attributes
+and attachments and finally publishing it.<br /><br />
 	During this first step, you will be create a basic event without any actual attributes, but storing general information such as a description, time and risk level of the incident. To start creating the event, click on the New Event button on the left and fill out the form you are presented with. The following fields need to be filled out:<br /><br />
 	<p><img src="/img/doc/add_event.png" alt = "" style="float:right;" title = "Fill this form out to create a skeleton event, before proceeding to populate it with attributes and attachments."/></p>
 	<ul>
 		<li><em>Date:</em> The date when the incident has happened.<br /><br /></li>
-		<li><em>Distribution:</em> This setting controls, who will be able to see this event once it becomes published. Apart from being able to set which users on this server are allowed to see the event, this also controls whether the event will be synchronised to other servers or not. The following options are available:<br /><br /></li>
+		<li><em>Distribution:</em>
+			<a id="distribution"></a>This setting controls, who will be able to see this event once it becomes published.
+			Apart from being able to set which users on this server are allowed to see the event, this also controls whether
+			the event will be synchronised to other servers or not. The distribution is inherited by attributes: the most restrictive setting wins.
+			The following options are available:<br /><br /></li>
+		<li style="list-style: none;">
+			<ul>
+			<li><i>Your organization only:</i> This setting will only allow members of your organisation on this server to see it.
+				Events with this setting will not be synchronised.<br />
+				Upon push: do not push. Upon pull : pull.
+				<br /><br /></li>
+			<li><i>This Community-only:</i> Users that are part of your MISP community will be able to see the event.
+				This includes your own organisation, organisations on this MISP server and organisations running MISP
+				servers that synchronise with this server. Any other organisations connected to such linked servers will
+				be restricted from seeing the event.<br />
+				Upon push: do not push. Upon pull: pull and downgrade to Your organization only.
+				<br /><br /></li>
+			<li><i>Connected communities:</i> Users that are part of your MISP community will be able to see the event.
+				This includes all organisations on this MISP server, all organisations on MISP servers synchronising
+				with this server and the hosting organisations of servers that connect to those afore mentioned servers
+				(so basically any server that is 2 hops away from this one). Any other organisations connected to linked
+				servers that are 2 hops away from this own will be restricted from seeing the event. For more information
+				on community-related distribution levels, click here.<br/>
+				Upon push: downgrade to This Community only and push. Upon pull: pull and downgrade to This Community only.
+				<br /><br /></li>
+			<li><i>All communities:</i> This will share the event with all MISP communities, allowing the event to be
+				freely propagated from one server to the next.<br/>
+				Upon push: push. Upon pull: pull.
+				<br /><br /></li>
+			</ul>
+		</li>
+		<li><em>Risk:</em> This field indicates the risk level of the event. Incidents can be categorised into three different threat categories (low, medium, high). This field can alternatively be left as undefined. The 3 options are:</li>
 		<li style="list-style: none;"><ul>
-			<li><i>Your organization only:</i> This setting will only allow members of your organisation on this server to see it. Events with this setting will not be synchronised.<br /><br /></li>
-			<li><i>This server-only:</i> This setting will allow members of any organisation on this server to see it. Events with this setting will not be synchronised. For more information on community-related distribution levels, click here.<br /><br /></li>
-			<li><i>This Community-only:</i> Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. For more information on community-related distribution levels, click here.<br /><br /></li>
-			<li><i>Connected communities:</i> Users that are part of your MISP community will be able to see the event. This includes all organisations on this MISP server, all organisations on MISP servers synchronising with this server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from this one). Any other organisations connected to linked servers that are 2 hops away from this own will be restricted from seeing the event. For more information on community-related distribution levels, click here.<br /><br /></li>
-			<li><i>All communities:</i> This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next.<br /><br /></li>
-		</ul></li>
-		<li><em>Risk:</em> This field indicates the risk level of the event. Incidents can be categorised into three different threat categories (low, medium, high). This field can alternatively be left as undefined. The 3 options are:<br /><br /></li>
-		<li style="list-style: none;"><ul>
-			<li><i>Low:</i> General mass malware.<br /><br /></li>
-			<li><i>Medium:</i> Advanced Persistent Threats (APT)<br /><br /></li>
+			<li><i>Low:</i> General mass malware.</li>
+			<li><i>Medium:</i> Advanced Persistent Threats (APT)</li>
 			<li><i>High:</i> Sophisticated APTs and 0day attacks.<br /><br /></li>
 		</ul></li>
-		<li><em>Analysis:</em> Indicates the current stage of the analysis for the event, with the following possible options:<br /><br /></li>
+		<li><em>Analysis:</em> Indicates the current stage of the analysis for the event, with the following possible options:</li>
 		<li style="list-style: none;"><ul>
-			<li><i>Initial:</i> The analysis is just beginning<br /><br /></li>
-			<li><i>Ongoing:</i> The analysis is in progress<br /><br /></li>
+			<li><i>Initial:</i> The analysis is just beginning</li>
+			<li><i>Ongoing:</i> The analysis is in progress</li>
 			<li><i>Completed:</i> The analysis is complete<br /><br /></li>
 		</ul></li>
 		<li><em>Info:</em> The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event's creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server's administrator(s). <br /><br /></li>
 		<li><em>GFI Sandbox:</em> It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event's creation, it is important to manually look over all the data that is being entered. <br /><br /></li>
 	</ul>
 <hr />
-<a name ="create_attribute"></a><h3>Add attributes to the event:</h3>
+<a id="create_attribute"></a><h3>Add attributes to the event:</h3>
 The second step of creating an event is to populate it with attributes and attachments. In addition to being able to import the attributes and attachments from GFI, it is also possible to manually add attributes and attachments to an event, by using the two appropriate buttons on the event's page. Let's look at adding attributes first.<br />
 When clicking on the add attribute button, you will have to fill out a form with all the data about the attribute.<br /><br />
 Keep in mind that the system searches for regular expressions in the value field of all attributes when entered, replacing detected strings within it as set up by the server's administrator (for example to enforce standardised capitalisation in paths for event correlation or to bring exact paths to a standardised format). The following fields need to be filled out:<br />
@@ -58,14 +82,10 @@ Keep in mind that the system searches for regular expressions in the value field
 <ul>
 	<li><em>Category:</em> This drop-down menu explains the category of the attribute, meaning what aspect of the malware this attribute is describing. This could mean the persistence mechanisms of the malware or network activity, etc. For a list of valid categories, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?><br /><br /></li>
 		<li><em>Type:</em> Whilst categories determine what aspect of an event they are describing, the Type explains by what means that aspect is being described. As an example, the source IP address of an attack, a source e-mail address or a file sent through an attachment can all describe the payload delivery of a malware. These would be the types of attributes with the category of payload deliver. For an explanation of what each of the types looks like together with the valid combinations of categories and types, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>.<br /><br /></li>
-		<li><em>Distribution:</em> This drop-down list allows you to control who will be able to see this attribute, independently from its event's distribution settings.<br /><br /></li>
-		<li style="list-style: none;"><ul>
-			<li><i>Your organisation only:</i> This setting will only allow members of your organisation on your server to see it.<br /><br /></li>
-			<li><i>This server-only:</i> This setting will only allow members of any organisation on your server to see it.<br /><br /></li>
-			<li><i>This Community-only:</i> Users that are part of your MISP community will be able to see the attribute. This includes your own organisation, organisations on your MISP server and organisations running MISP servers that synchronise with your server. Any other organisations connected to such linked servers will be restricted from seeing the attribute. Use this option if you are on the central hub of your community.<br /><br /></li>
-			<li><i>Connected communities:</i> Users that are part of your MISP community will be able to see the attribute. This includes all organisations on your own MISP server, all organisations on MISP servers synchronising with your server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from your own). Any other organisations connected to linked servers that are 2 hops away from your own will be restricted from seeing the attribute. Use this option if your server isn't the central MISP hub of the community but is connected to it.<br /><br /></li>
-			<li><i>All communities:</i> This will share the attribute with all MISP communities, allowing the attribute to be freely propagated from one server to the next.<br /><br /></li>
-		</ul></li>
+		<li><em>Distribution:</em> This drop-down list allows you to control who will be able to see this attribute.
+		The distribution is inherited by attributes: the most restrictive setting wins.
+		For more info <a href="#distribution">click here</a>.<br /><br /></li>
+
 		<li><em>IDS Signature:</em> This option allows the attribute to be used as an IDS signature when exporting the NIDS data, unless it is being overruled by the white-list. For more information about the whitelist, head over to the <?php echo $this->Html->link(__('administration', true), array('controller' => 'pages', 'action' => 'display', 'administration', '#' => 'whitelist')); ?> section.<br /><br /></li>
 		<li><em>Value:</em> The actual value of the attribute, enter data about the value based on what is valid for the chosen attribute type. For example, for an attribute of type ip-src (source IP address), 11.11.11.11 would be a valid value. For more information on types and values, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>.<br /><br /></li>
 		<li><em>Batch import:</em> If there are several attributes of the same type to enter (such as a list of IP addresses, it is possible to enter them all into the same value-field, separated by a line break between each line. This will allow the system to create separate lines for the each attribute. <br /><br /></li>
@@ -78,14 +98,9 @@ You can also upload attachments, such as the malware itself, report files from e
 	<li><em>Category:</em> The category is the same as with the attributes, it answers the question of what the uploaded file is meant to describe.<br /><br /></li>
 	<li><em>Upload field:</em> By hitting browse, you can browse your file system and point the uploader to the file that you want to attach to the attribute. This will then be uploaded when the upload button is pushed.<br /><br /></li>
 	<li><em>Malware:</em> This check-box marks the file as malware and as such it will be zipped and passworded, to protect the users of the system from accidentally downloading and executing the file. Make sure to tick this if you suspect that the filed is infected, before uploading it.<br /><br /></li>
-	<li><em>Distribution:</em> This drop-down menu controls who the attachment will be shared as.<br /><br /></li>
-	<li style="list-style: none;"><ul>
-		<li><i>Your organisation only:</i> This setting will only allow members of your organisation on your server to see it.<br /><br /></li>
-		<li><i>This server only:</i> This setting will only allow members of any organisation on your server to see it.<br /><br /></li>
-		<li><i>This community only:</i> Users that are part of your MISP community will be able to see the attachment. This includes your own organisation, organisations on your MISP server and organisations running MISP servers that synchronise with your server. Any other organisations connected to such linked servers will be restricted from seeing the attachment. Use this option if you are on the central hub of your community.<br /><br /></li>
-		<li><i>Connected communities:</i> Users that are part of your MISP community will be able to see the attachment. This includes all organisations on your own MISP server, all organisations on MISP servers synchronising with your server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from your own). Any other organisations connected to linked servers that are 2 hops away from your own will be restricted from seeing the attachment. Use this option if your server isn't the central MISP hub of the community but is connected to it.<br /><br /></li>
-		<li><i>All:</i> This will share the attachment with all MISP communities, allowing the attachment to be freely propagated from one server to the next.<br /><br /></li>
-	</ul></li>
+	<li><em>Distribution:</em> This drop-down list allows you to control who will be able to see this attachment.
+		The distribution is inherited by attributes: the most restrictive setting wins.
+		For more info <a href="#distribution">click here</a>.<br /><br /></li>
 </ul>
 <hr />
 <h3>Publish an event:</h3>
@@ -93,7 +108,7 @@ You can also upload attachments, such as the malware itself, report files from e
 Once all the attributes and attachments that you want to include with the event are uploaded / set, it is time to finalise its creation by publishing the event (click on publish event in the event view). This will alert the eligible users of it (based on the private-controls of the event and its attributes/attachments and whether they have auto-alert turned on), push the event to instances that your instance connects to and propagate it further based on the distribution rules. It also readies the network related attributes for NIDS signature creation (through the NIDS signature export feature, for more information, go to the export section.).<br /><br />
 There is an alternate way of publishing an event without alerting any other users, by using the "publish (no email)" button. This should only be used for minor edits (such as correcting a typo). <br />
 <hr />
-<a name ="browsing_events"></a><h2>Browsing past events:</h2>
+<a id="browsing_events"></a><h2>Browsing past events:</h2>
 The MISP interface allows the user to have an overview over or to search for events and attributes of events that are already stored in the system in various ways.<br /><br />
 <h3>To list all events:</h3>
 On the left menu bar, the option "List events" will generate a list of the last 60 events. While the attributes themselves aren't shown in this view, the following pieces of information can be seen:<br /><br />
@@ -120,7 +135,7 @@ On the left menu bar, the option "List events" will generate a list of the last 
 			<li><em>Completed:</em> The analysis is complete<br /><br /></li>
 		</ul></li>
 		<li><em>Info:</em> A short description of the event, starting with an internal reference number.<br /><br /></li>
-		<li><em>Distribution:</em> This field indicates what the sharing privileges of the event are. The selectable options are "This organisation only", "This server only", "This community only", "Connected communities", "All". For a detailed description of these settings read the section on <a href = #create>creating a new event</a>.<br /><br /></li>
+		<li><em>Distribution:</em> This field indicates what the sharing privileges of the event. The options are described <a href="#distribution">here</a>.<br /><br /></li>
 		<li><em>Actions:</em> The controls that the user has to view or modify the event. The possible actions that are available (depending on user privileges - <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'administration', '#' => 'roles')); ?> to find out more about privileges):<br /><br /></li>
 		<li style="list-style: none;"><ul>
 			<li><em>Publish:</em> Publishing an event will have several effects: The system will e-mail all eligible users that have auto-alert turned on (and having the needed privileges for the event, depending on its private classification) with a description of your newly published event, it will be flagged as published and it will be pushed to all eligible servers (to read more about synchronisation between servers, have a look at the <?php echo $this->Html->link(__('section on connecting servers', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system', '#' => 'connect')); ?>).</li>
@@ -153,18 +168,18 @@ This will bring up a form that lets you enter one or several search strings (sep
 The list generated by the search will look exactly the same as listing all attributes, except that only the attributes that matched the search criteria will be listed (to find out more about the list attributes view, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>.). The search parameters will be shown above the produced list and the search terms will be highlighted.<br />
 <br /><img src="/img/doc/search_attribute_result.png" alt = "" title = "You can view the event that an attribute belongs to with the view button, or you can edit/delete the attribute via the buttons on the right."/><br />
 <hr />
-<a name ="update_events"></a><h2>Updating and modifying events and attributes:</h2>
+<a id="update_events"></a><h2>Updating and modifying events and attributes:</h2>
 Every event and attribute can easily be edited. First of all it is important to find the event or attribute that is to be edited, using any of the methods mentioned in the section on <a href="#browsing_events">browsing past events</a>.<br /><br />
 Once it is found, the edit button (whether it be under actions when events/attributes get listed or simply on the event view) will bring up the same screen as what is used to create the entry of the same type (for an event it would be the event screen as <a href="#create">seen here</a>, for an attribute the attribute screen as <a href="#create_attribute">described here</a>).<br /><br />
 Keep in mind that editing any event (either directly or indirectly through an attribute) will unpublish it, meaning that you'll have to publish it (through the event view) again once you are done.<br /><br />
  <hr />
-<a name ="contact"></a><h2>Contacting the reporter:</h2>
+<a id="contact"></a><h2>Contacting the reporter:</h2>
 To get in touch with the reporter of a previously registered event, just find the event for which you would like to contact the reporter by either finding it on the list of events, by finding it through one of its attributes or by finding it through a related event.<br /><br />
 Once the event is found and the event view opened, click the button titled "Contact Reporter". This will bring up a view where you can enter your message that is to be e-mailed to all members of the reporting organisation that subscribe to receiving such reports or the reporting user himself. Along with your message, the detailed information about the event in question will be included in the e-mail.<br /><br />
 <br /><img src="/img/doc/contact_reporter.png" alt = "" title = "Enter your message to the reporter and choose whether his/her entire organisation should get the message or not by ticking the check-box."/><br /><br />
 By default, the message will be sent to every member of the organisation that posted the event in the first place, but if you tick the check-box below the message field before sending the mail, only the person that reported the event will get e-mailed. <br />
 <hr />
-<a name ="automation"></a><h2>Automation:</h2>
+<a id="automation"></a><h2>Automation:</h2>
 It is possible to quickly and conveniently export the data contained within the system using the automation features located in the main menu on the left (available to users with authentication key access only). There are various sets of data that can be exported, by using the authentication key provided by the system (also shown on the export page). If for whatever reason you would need to invalidate your current key and get a new one instead (for example due to the old one becoming compromised) just hit the reset link next to the authentication key in the export view or in your "my profile" view.<br /><br />
 The following types of export are possible:<br /><br />
 	<h3>XML export:</h3>
@@ -182,7 +197,7 @@ The following types of export are possible:<br /><br />
 		<i>&lt;server&gt;/events/text/&lt;authentication_key&gt;/&lt;type&gt;</i><br /><br />
 		Type could be any valid type (as according to the list of <?php echo $this->Html->link(__('categories and types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>), for example md5, ip-src or comment.<br />
 <hr />
-<a name ="export"></a><h2>Exporting data:</h2>
+<a id="export"></a><h2>Exporting data:</h2>
 For users that do not have authentication key access, an alternate export feature is available that relies on your interactive login to the site. To access these, just use the automation menu button to the left and you'll be presented with a list of export options. The results of the export will automatically be offered as a file download.<br /><br/>
 <br /><img src="/img/doc/export.png" alt = "" title = "Use the export features here to quickly download data in various formats"/><br /><br />
 Apart from that, it's also possible to export all events involved in a search attribute result table, by using the "Download results as XML" button on the left menu bar. <br /><br />
@@ -190,9 +205,9 @@ Apart from that, it's also possible to export all events involved in a search at
 Each event's view has its own export feature, both as an XML export and as a .ioc file. To reach these features, just navigate to an event and use the appropriate buttons on the right side.<br /><br />
 <br /><img src="/img/doc/export_event.png" alt = "" title = "Download a .xml or a .ioc of the event."/><br /><br />
 <hr />
-<h2><a name ="connect"></a>Connecting to other instances:</h2>
+<h2><a id="connect"></a>Connecting to other instances:</h2>
 Apart from being a self contained repository of attacks/malware, one of the main features of MISP is its ability to connect to other instances and share (parts of) its information. The following options allow you to set up and maintain such connections.<br /><br />
-<h3><a name ="new_server"></a>Setting up a connection to another server:</h3>
+<h3><a id="new_server"></a>Setting up a connection to another server:</h3>
 In order to share data with a remote server via pushes and pulls, you need to request a valid authentication key from the hosting organisation of the remote instance. When clicking on List Servers and then on New Server, a form comes up that needs to be filled out in order for your instance to connect to it. The following fields need to be filled out:<br /><br />
 <p><img src="/img/doc/add_server.png" alt ="Add server" title = "Make sure that you enter the authentication key that you have been given by the hosting organisation of the remote instance, instead of the one you have gotten from this one."/></p><br />
 <ul>
@@ -217,7 +232,7 @@ If you ever need to change the data about the linked servers or remove any conne
 	<li><em>Pull all:</em> By clicking this button, all events that are set to be pull-able or full access on the remote server will be copied to this instance. Existing events will not be updated.<br /><br /></li>
 </ul>
 <hr />
-<a name ="rest"></a><h2>Rest API:</h2>
+<a id="rest"></a><h2>Rest API:</h2>
 The platform is also <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTfull</a>, so this means that you can use structured format (XML) to access Events data.<br /><br />
 <h3>Requests</h3>
 Use any HTTP compliant library to perform requests. However to make clear you are doing a REST request you need to either specify the Accept type to application/xml, or append .xml to the url<br /><br />

@@ -20,26 +20,28 @@ $attr = new Attribute();
 		<th>Category</th>
 		<?php foreach ($attr->categoryDefinitions as $cat => $catDef):	?>
 		<th style="width:5%; text-align:center; white-space:normal">
-			<?php echo $cat; ?>
+			<a href="#<?php echo $cat; ?>"><?php echo $cat; ?></a>
 		</th>
 		<?php endforeach; ?>
 		<th>Category</th>
 	</tr>
 	<?php foreach ($attr->typeDefinitions as $type => $def): ?>
 	<tr>
-		<th><?php echo $type; ?></th>
+		<th><a href="#<?php echo $type; ?>"><?php echo $type; ?></a></th>
 		<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
 		<td style="text-align:center">
 			<?php echo in_array($type, $catDef['types'])? 'X' : ''; ?>
 		</td>
 		<?php endforeach; ?>
-		<th><?php echo $type; ?></th>
+		<th><a href="#<?php echo $type; ?>"><?php echo $type; ?></a></th>
 	<?php endforeach; ?>
 	</tr>
 <tr>
 	<th>Category</th>
 	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
-	<th style="width:5%; text-align:center; white-space:normal"><?php echo $cat; ?></th>
+	<th style="width:5%; text-align:center; white-space:normal">
+		<a href="#<?php echo $cat; ?>"><?php echo $cat; ?></a>
+	</th>
 	<?php endforeach; ?>
 	<th>Category</th>
 </tr>
@@ -52,7 +54,7 @@ $attr = new Attribute();
 	</tr>
 	<?php foreach ($attr->categoryDefinitions as $cat => $def): ?>
 	<tr>
-		<th>
+		<th><a id="<?php echo $cat; ?>"></a>
 			<?php echo $cat; ?>
 		</th>
 		<td>
@@ -69,7 +71,7 @@ $attr = new Attribute();
 	</tr>
 	<?php foreach ($attr->typeDefinitions as $type => $def): ?>
 	<tr>
-		<th>
+		<th><a id="<?php echo $type; ?>"></a>
 			<?php echo $type; ?>
 		</th>
 		<td>

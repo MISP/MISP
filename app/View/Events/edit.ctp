@@ -1,7 +1,7 @@
 <div class="events form">
 <?php echo $this->Form->create('Event');?>
 	<fieldset>
-		<legend><?php echo __('Edit Event'); ?></legend>
+		<legend>Edit Event</legend>
 <?php
 	echo $this->Form->input('id');
 	echo $this->Form->input('date', array(
@@ -71,22 +71,24 @@ echo $this->Form->end();
 //
 //Generate tooltip information
 //
-var formInfoValues = new Array();
-<?php
-if ('true' == $canEditDist) {
-	foreach ($distributionDescriptions as $type => $def) {
-		$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-		echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
-	}
-}
+var formInfoValues = {
+		'EventDistribution' : new Array(),
+		'EventRisk' : new Array(),
+		'EventAnalysis' : new Array()
+};
 
+<?php
+foreach ($distributionDescriptions as $type => $def) {
+	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+	echo "formInfoValues['EventDistribution']['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
+}
 foreach ($riskDescriptions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
+	echo "formInfoValues['EventRisk']['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
 }
 foreach ($analysisDescriptions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
+	echo "formInfoValues['EventAnalysis']['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
 }
 ?>
 
@@ -103,13 +105,24 @@ $(document).ready(function() {
 	        $('#'+e.currentTarget.id).popover({
 	            trigger: 'manual',
 	            placement: 'right',
-	            content: formInfoValues[$e.val()],
+	            content: formInfoValues[e.currentTarget.id][$e.val()],
 	        }).popover('show');
-}
+		}
+	});
 
-// hide the formInfo things
-$('#EventDistributionDiv').hide();
-$('#EventRiskDiv').hide();
-$('#EventAnalysisDiv').hide();
+	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
+	// disadvangate is that user needs to click on the item to see the tooltip.
+	// no solutions exist, except to generate the select completely using html.
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('change', function(e) {
+		var $e = $(e.target);
+        $('#'+e.currentTarget.id).popover('destroy');
+        $('#'+e.currentTarget.id).popover({
+            trigger: 'manual',
+            placement: 'right',
+            content: formInfoValues[e.currentTarget.id][$e.val()],
+        }).popover('show');
+	});
+});
+
 </script>
 <?php echo $this->Js->writeBuffer();

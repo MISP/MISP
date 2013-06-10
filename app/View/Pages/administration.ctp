@@ -18,12 +18,12 @@
 </div>
 
 <div class="index" style="width:80%">
-<h2><a name ="blacklist"></a>Import Blacklist</h2>
+<h2><a id="blacklist"></a>Import Blacklist</h2>
 It is possible to ban certain values from ever being entered into the system via an event info field or an attribute value. This is done by blacklisting the value in this section.<br />
 <h3>Adding and modifying entries</h3>
 Administrators can add, edit or delete blacklisted items by using the appropriate functions in the list's action menu and the menu on the left.<br />
 <hr />
-<h2><a name ="regexp"></a>Import Regexp</h2>
+<h2><a id="regexp"></a>Import Regexp</h2>
 The system allows administrators to set up rules for regular expressions that will automatically alter newly entered or imported events (from GFI Sandbox).<br />
 <h3>The purpose of Import Regexp entries</h3>
 They can be used for several things, such as unifying the capitalisation of file paths for more accurate event correlation or to automatically censor the usernames and use system path variable names (changing C:\Users\UserName\Appdata\Roaming\file.exe to %APPDATA%\file.exe).<br />
@@ -32,7 +32,7 @@ The second use is blocking, if a regular expression is entered with a blank repl
 Administrators can add, edit or delete regular expression rules, which are made up of a regex pattern that the system searches for and a replacement for the detected pattern.<br />
 <p><img src="/img/doc/regexp.png" alt = "" title = "Add, edit or remove Regexp entries that will affect all newly created attributes here."/></p><br />
 <hr />
-<h2><a name ="whitelist"></a>Managing the Signature whitelist</h2>
+<h2><a id="whitelist"></a>Managing the Signature whitelist</h2>
 The signature whitelist view, accessible through the administration menu on the left, allows administrators to create and maintain a list of addresses that are whitelisted from ever being added to the NIDS signatures. Addresses listed here will be commented out when exporting the NIDS list.<br />
 <h3>Whitelisting an address:</h3>
 	While in the whitelist view, click on New Whitelist on the left to bring up the add whitelist view to add a new address. <br />
@@ -40,7 +40,7 @@ The signature whitelist view, accessible through the administration menu on the 
 	When viewing the list of whitelisted addresses, the following pieces of information are shown: The ID of the whitelist entry (assigned automatically when a new address is added), the address itself that is being whitelisted and a set of controls allowing you to delete the entry or edit the address.<br />
 <img src="/img/doc/whitelist.png" alt = "Whitelist" title = "You can edit or delete currently white-listed addresses using the action buttons on this list."/><br />
 <hr />
-<h2><a name ="user"></a>Managing the users:</h2>
+<h2><a id="user"></a>Managing the users:</h2>
 As an admin, you can set up new accounts for users, edit the profiles of users, delete them, or just have a look at all the viewers' profiles. Organisation admins are restricted to executing the same actions on their organisation's users only.<br />
 <img src="/img/doc/add_user.png" alt = "Add user" style="float:right;" title = "Fill this form out to add a new user. Keep in mind that the drop-down menu titled Role controls the privileges the user will have."/>
 <h3>Adding a new user:</h3>
@@ -100,7 +100,7 @@ Site admins can use the "Contact users" feature to send all or an individual use
 </ul>
 Keep in mind that all e-mails sent through this system will, in addition to your own message, will be signed in the name of the instance's host organisation's support team, will include the e-mail address of the instance's support (if the contact field is set in the bootstrap file), and will include the instance's PGP signature for users that have a PGP key set (and thus are eligible for an encrypted e-mail).
 <hr />
-<h2><a name ="roles"></a>Managing the roles</h2>
+<h2><a id="roles"></a>Managing the roles</h2>
 Privileges are assigned to users by assigning them to rule groups, which use one of four options determining what they can do with events and four additional privilege elevating settings. The four options for event manipulation are: Read Only, Manage My Own Events, Manage Organisation Events, Manage &amp; Publish Organisation Events. The extra privileges are admin, sync, authentication key usage and audit permission<br />
 <em>Read Only:</em> This allows the user to browse events that his organisation has access to, but doesn't allow any changes to be made to the database. <br />
 <em>Manage My Own Events:</em> The second option, gives its users rights to create, modify or delete their own events, but they cannot publish them. <br />
@@ -116,7 +116,7 @@ When creating a new role, you will have to enter a name for the role to be creat
 By clicking on the List Roles button, you can view a list of all the currently registered roles and a list of the permission flags turned on for each. In addition, you can find buttons that allow you to edit and delete the roles. Keep in mind that you will need to first remove every member from a role before you can delete it.<br />
 <img src="/img/doc/list_groups.png" alt = "List roles" title = "You can View, Edit or Delete roles using the action buttons to the right in each row. Keep in mind that a role has to be devoid of members before it can be deleted."/><br />
 <hr />
-<h2><a name ="logs"></a>Using the logs of MISP</h2>
+<h2><a id="logs"></a>Using the logs of MISP</h2>
 Users with audit permissions are able to browse or search the logs that MISP automatically appends each time certain actions are taken (actions that modify data or if a user logs in and out).<br />
 Generally, the following actions are logged:<br />
 <ul>
