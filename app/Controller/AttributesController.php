@@ -228,25 +228,14 @@ class AttributesController extends AppController {
 		$this->set('categories', compact('categories'));
 		$this->loadModel('Event');
 		$events = $this->Event->findById($eventId);
-		$maxDist = $events['Event']['distribution'];
-		$this->set('maxDist', $maxDist);
+		$events = $this->Event->findById($eventId);
+		$this->set('maxDist', $events['Event']['distribution']);
 		// combobox for distribution
-		$count = 0;
-		$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
-		if (isset($maxDist)) {
-			foreach ($distributionsBeforeCut as $current) {
-				$distributions[$count] = $current;
-				if ($distributions[$count] == $maxDist) break;
-				$count++;
-			}
-		} else {
-			$distributions = array_keys($this->Attribute->distributionDescriptions);
-		}
-		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions', $distributions);
+		$distributionLevelsCut = array_slice($this->Event->distributionLevels, 0, $events['Event']['distribution']+1);
+		$this->set('distributionLevels', $distributionLevelsCut);
+		
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
-		$this->set('distributionLevels', $this->Attribute->distributionLevels);
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -561,23 +550,10 @@ class AttributesController extends AppController {
 		$this->set('categories', $categories);
 
 		$events = $this->Event->findById($eventId);
-		$maxDist = $events['Event']['distribution'];
-		$this->set('maxDist', $maxDist);
+		$this->set('maxDist', $events['Event']['distribution']);
 		// combobox for distribution
-		if (isset($maxDist)) {
-			$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
-			$count = 0;
-			foreach ($distributionsBeforeCut as $current) {
-				$distributions[$count] = $current;
-				if ($distributions[$count] == $maxDist)break;
-				$count++;
-			}
-		} else {
-			$distributions = array_keys($this->Attribute->distributionDescriptions);
-		}
-		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions', $distributions);
-		$this->set('distributionLevels', $this->Event->distributionLevels);
+		$distributionLevelsCut = array_slice($this->Event->distributionLevels, 0, $events['Event']['distribution']+1);
+		$this->set('distributionLevels', $distributionLevelsCut);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
