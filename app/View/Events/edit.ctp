@@ -105,6 +105,19 @@ $(document).ready(function() {
 	        }).popover('show');
 	    }
 	});
+
+	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
+	// disadvangate is that user needs to click on the item to see the tooltip.
+	// no solutions exist, except to generate the select completely using html.
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('change', function(e) {
+		var $e = $(e.target);
+        $('#'+e.currentTarget.id).popover('destroy');
+        $('#'+e.currentTarget.id).popover({
+            trigger: 'manual',
+            placement: 'right',
+            content: formInfoValues[$e.val()],
+        }).popover('show');
+	});
 });
 
 </script>
