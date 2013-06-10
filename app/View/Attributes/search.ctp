@@ -166,6 +166,18 @@ $(document).ready(function() {
 	    }
 	});
 
+	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
+	// disadvangate is that user needs to click on the item to see the tooltip.
+	// no solutions exist, except to generate the select completely using html.
+	$("#AttributeType, #AttributeCategory").on('change', function(e) {
+	    var $e = $(e.target);
+        $('#'+e.currentTarget.id).popover('destroy');
+        $('#'+e.currentTarget.id).popover({
+            trigger: 'manual',
+            placement: 'right',
+            content: formInfoValues[$e.val()],
+        }).popover('show');
+	});
 
 });
 
@@ -176,17 +188,17 @@ $(document).ready(function() {
 <?php echo $this->Js->writeBuffer(); // Write cached scripts ?>
 <div class="actions">
 	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<li><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>
-		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<li><a href="/events/add">Add Event</a></li>
 		<?php endif; ?>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('List Attributes', array('controller' => 'attributes', 'action' => 'index')); ?> </li>
-		<li class="active"><?php echo $this->Html->link('Search Attributes', array('controller' => 'attributes', 'action' => 'search')); ?> </li>
+		<li><a href="/attributes/index">List Attributes</a></li>
+		<li class="active"><a href="/attributes/search">Search Attributes</a></li>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
+		<li><a href="/events/export">Export</a></li>
 		<?php if ($isAclAuth): ?>
-		<li><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
+		<li><a href="/events/automation">Automation</a></li>
 		<?php endif;?>
 	</ul>
 </div>
