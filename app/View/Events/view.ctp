@@ -11,7 +11,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 		<li class="divider"></li>
 		<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']));?> </li>
 		<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link('Populate event from IOC', array('controller' => 'events', 'action' => 'addIOC', $event['Event']['id']));?> </li>
+		<li><?php echo $this->Html->link('Populate from IOC', array('controller' => 'events', 'action' => 'addIOC', $event['Event']['id']));?> </li>
 		<?php else:	?>
 		<li><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $event['Event']['id']));?> </li>
 		<li><?php echo $this->Html->link('Propose Attachment', array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $event['Event']['id']));?> </li>
