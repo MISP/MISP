@@ -289,16 +289,6 @@ class Attribute extends AppModel {
 						//'on' => 'create', // Limit validation to 'create' or 'update' operations
 				),
 		),
-		'timestamp' => array(
-				'timestamp' => array(
-						'timestamp' => array('numeric'),
-						//'message' => 'Your custom message here',
-						//'allowEmpty' => false,
-						//'required' => false,
-						//'last' => false, // Stop validation after this rule
-						//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-		),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
