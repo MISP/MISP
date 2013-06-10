@@ -53,45 +53,47 @@ foreach ($attributes as $attribute):
 	<tr>
 		<td class="short">
 			<div id="<?php echo $attribute['Attribute']['id']?>" title="<?php echo h($attribute['Event']['info'])?>"
-			 onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
+			 onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php
 				if ($attribute['Event']['orgc'] == $me['org']) {
-					echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id']), array('class' => 'SameOrgLink'));
+					$class='class="SameOrgLink"';
 				} else {
-					echo $this->Html->link($attribute['Event']['id'], array('controller' => 'events', 'action' => 'view', $attribute['Event']['id']));
+					$class='';
 				}
 				$currentCount++;
 			?>
+				<a href="/events/view/<?php echo $attribute['Event']['id'];?>" <?php echo $class;?>><?php echo $attribute['Event']['id'];?></a>
 			</div>
 		</td>
-		<td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
-		<?php echo h($attribute['Attribute']['category']); ?>&nbsp;</td>
-		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
-		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
-		<td onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
+		<td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
+		<?php echo $attribute['Attribute']['category']; ?>&nbsp;</td>
+		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
+		<?php echo $attribute['Attribute']['type']; ?>&nbsp;</td>
+		<td class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 	<?php
 	$sigDisplay = nl2br(h($attribute['Attribute']['value']));
 	if ($isSearch == 1 && !empty($replacePairs)) {
 		// highlight the keywords if there are any
-		$sigDisplay = nl2br($this->Highlight->highlighter($sigDisplay, $replacePairs));
+		$sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
 	}
 	if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
-		echo $this->Html->link($sigDisplay, array('controller' => 'attributes', 'action' => 'download', $attribute['Attribute']['id']), array('escape' => FALSE));
+		?><a href="/attributes/download/<?php echo $attribute['Attribute']['id'];?>"><?php echo $sigDisplay; ?></a><?php
 	} elseif ('link' == $attribute['Attribute']['type']) {
-		echo $this->Html->link($sigDisplay, nl2br(h($attribute['Attribute']['value'])), array('escape' => FALSE));
+		?><a href="<?php echo nl2br(h($attribute['Attribute']['value']));?>"><?php echo $sigDisplay; ?></a><?php
 	} else {
 		echo $sigDisplay;
 	}
 	?>&nbsp;</td>
-		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), true);?>';">
-		<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;</td>
+		<td class="short" onclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
+			<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;
+		</td>
 		<td class="short action-links"><?php
 	if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org'] == $me['org'])) {
-		echo $this->Html->link('', array('action' => 'edit', $attribute['Attribute']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
+				?><a href="/attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-edit" title="Edit"></a><?php
 		echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
 	}
-	echo $this->Html->link('', array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']), array('class' => 'icon-list-alt', 'title' => 'View'));
 	?>
+			<a href="/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="View"></a>
 		</td>
 	</tr>
 	<?php
@@ -119,9 +121,9 @@ endforeach;
 </div>
 <div class="actions">
 	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<li><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>
-		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<li><a href="/events/add">Add Event</a></li>
 		<?php endif; ?>
 		<li class="divider"></li>
 		<?php
@@ -133,16 +135,27 @@ endforeach;
 			$listClass = 'class="active"';
 		}
 		?>
-		<li <?php echo $listClass;?>><?php echo $this->Html->link('List Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'index'));?></li>
-		<li <?php echo $searchClass;?>><?php echo $this->Html->link('Search Attributes', array('admin' => false, 'controller' => 'attributes', 'action' => 'search'));?></li>
+		<li <?php echo $listClass;?>><a href="/attributes/index">List Attributes</a></li>
+		<li <?php echo $searchClass;?>><a href="/attributes/search">Search Attributes</a></li>
 		<?php if ($isSearch == 1): ?>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link(__('Download results as XML'), array('admin' => false, 'controller' => 'events', 'action' => 'downloadSearchResult'));?></li>
+		<li><a href="/events/downloadSearchResult">Download results as XML</a></li>
 		<?php endif; ?>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
+		<li><a href="/events/export">Export</a></li>
 		<?php if ($isAclAuth): ?>
-		<li><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
+		<li><a href="/events/automation">Automation</a></li>
 		<?php endif;?>
 	</ul>
 </div>
+<script type="text/javascript">
+// tooltips
+$(document).ready(function () {
+	$("td, div").tooltip({
+		'placement': 'top',
+		'container' : 'body',
+		delay: { show: 500, hide: 100 }
+		});
+
+});
+</script>

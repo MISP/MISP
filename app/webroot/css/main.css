@@ -83,6 +83,13 @@ ul.nav li.dropdown:hover ul.dropdown-menu{
 	display: block;
 }
 
+th.filter {
+	white-space:nowrap;
+}
+th.filter a {
+	cursor: pointer;
+}
+
 td.searchLabel{
     opacity: 50;
     height: 20px;

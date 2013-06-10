@@ -11,17 +11,14 @@
 			echo $this->Form->input('distribution', array(
 					'options' => array($distributionLevels),
 					'label' => 'Distribution',
-					'selected' => '3',
-					'after' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv')),
+					'selected' => '3'
 					));
 		}
 		echo $this->Form->input('risk', array(
-				'after' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv')),
 				'div' => 'input clear'
 				));
 		echo $this->Form->input('analysis', array(
 				'options' => array($analysisLevels),
-				'after' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))
 				));
 		echo $this->Form->input('info', array(
 				'div' => 'clear',
@@ -30,13 +27,8 @@
 		echo $this->Form->input('Event.submittedgfi', array(
 				'label' => '<b>GFI sandbox</b>',
 				'type' => 'file',
-				// 'between' => $this->Html->div('forminfo', isset($eventDescriptions['submittedgfi']['formdesc']) ? $eventDescriptions['submittedgfi']['formdesc'] : $eventDescriptions['submittedgfi']['desc']),
 				'div' => 'clear'
 				));
-		// link an onchange event to the form elements
-		$this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');
-		$this->Js->get('#EventRisk')->event('change', 'showFormInfo("#EventRisk")');
-		$this->Js->get('#EventAnalysis')->event('change', 'showFormInfo("#EventAnalysis")');
 		?>
 	</fieldset>
 <?php
@@ -47,17 +39,17 @@ echo $this->Form->end();
 
 <div class="actions">
 	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<li><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>
-		<li class="active"><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<li class="active"><a href="/events/add">Add Event</a></li>
 		<?php endif; ?>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('List Attributes', array('controller' => 'attributes', 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link('Search Attributes', array('controller' => 'attributes', 'action' => 'search')); ?> </li>
+		<li><a href="/attributes/index">List Attributes</a></li>
+		<li><a href="/attributes/search">Search Attributes</a></li>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
+		<li><a href="/events/export">Export</a></li>
 		<?php if ($isAclAuth): ?>
-		<li><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
+		<li><a href="/events/automation">Automation</a></li>
 		<?php endif;?>
 	</ul>
 </div>
@@ -82,20 +74,37 @@ foreach ($analysisDescriptions as $type => $def) {
 }
 ?>
 
-function showFormInfo(id) {
-	idDiv = id+'Div';
-	// LATER use nice animations
-	//$(idDiv).hide('fast');
-	// change the content
-	var value = $(id).val();    // get the selected value
-	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
-	// show it again
-	$(idDiv).fadeIn('slow');
-}
+$(document).ready(function() {
 
-// hide the formInfo things
-$('#EventDistributionDiv').hide();
-$('#EventRiskDiv').hide();
-$('#EventAnalysisDiv').hide();
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
+
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('mouseover', function(e) {
+	    var $e = $(e.target);
+	    if ($e.is('option')) {
+	        $('#'+e.currentTarget.id).popover('destroy');
+	        $('#'+e.currentTarget.id).popover({
+	            trigger: 'manual',
+	            placement: 'right',
+	            content: formInfoValues[$e.val()],
+	        }).popover('show');
+}
+	});
+
+	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
+	// disadvangate is that user needs to click on the item to see the tooltip.
+	// no solutions exist, except to generate the select completely using html.
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('change', function(e) {
+		var $e = $(e.target);
+        $('#'+e.currentTarget.id).popover('destroy');
+        $('#'+e.currentTarget.id).popover({
+            trigger: 'manual',
+            placement: 'right',
+            content: formInfoValues[$e.val()],
+        }).popover('show');
+	});
+});
+
 </script>
 <?php echo $this->Js->writeBuffer();

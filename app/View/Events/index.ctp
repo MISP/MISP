@@ -7,130 +7,169 @@
 	<div class="pagination">
         <ul>
         <?php
-        $this->Paginator->options(array(
-            'update' => '.span12',
-            'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
-        ));
-
+	        $this->Paginator->options(array(
+	            'update' => '.span12',
+	            'evalScripts' => true,
+	            'before' => '$(".progress").show()',
+	            'complete' => '$(".progress").hide()',
+	        ));
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
             echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
             echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
         ?>
         </ul>
     </div>
-	<?php echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px')); ?>
-	<div class="input-prepend input-append" style="margin-bottom:0px;">
-		<div id = "searchcancel" class="add-on span" style="margin-left:0px; margin-top:25px">
-			<div><a href=# onClick='resetForm()'><div class="icon-remove" style = "margin-top:3px"></div></a></div>
-		</div>
-		<div id = "searchinfo" class="span" style="width:220px; margin-left:0px">
-		<?php
-			echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'label' => 'Info'));
-		?>
-		</div><div id = "searchorgc" class="span" style="margin-left:0px; width:220px">
-		<?php
-			echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'label' => 'Org'));
-		?>
-		</div><div id = "searchpublished" class="span" style="margin-left:0px; width:220px">
-		<?php
-			echo $this->Form->input('searchpublished', array('options' => array('0' => 'No', '1' => 'Yes', '2' => 'Any'), 'default' => 2, 'label' => 'Published'));
-		?>
-		</div><div id = "searchfrom" class="span" style="margin-left:0px; width:110px">
-		<?php
-			echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'label' => 'From', 'style' => 'width:96px; margin-top: 0px;', 'class' => 'datepicker'));
-		?>
-		</div><div id = "searchuntil" class="span" style="margin-left:0px; width:110px">
-		<?php
-			echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'label' => 'Until', 'style' => 'width:96px; margin-top: 0px;', 'class' => 'datepicker'));
-		?>
-		</div><div id = "searchbutton" class="span" style="margin-left:0px; margin-top:25px">
-		<?php
-		echo $this->Form->button('Go', array('class' => 'btn'));
-		?>
-		</div>
-	</div>
 	<?php
+	echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
 	// Let's output a small label of each filter
 	$count = 0;
 	?>
-	<table><tr>
-		<?php
-		foreach ($this->passedArgs as $k => $v) {
-			if ((substr($k, 0, 6) === 'search')) {
-				$searchTerm = substr($k, 6);
-				if ($searchTerm === 'published') {
-					switch ($v) {
-						case '0' :
-							$value = 'No';
-							break;
-						case '1' :
-							$value = 'Yes';
-							break;
-						case '2' :
-							continue 2;
-							break;
-					}
- 				} else {
-					if (!$v) {
-						continue;
-					}
-					$value = $v;
-				}
-			?>
-			<td class="<?php echo (($count < 1) ? 'searchLabelFirst' : 'searchLabel');?>"><?php echo $searchTerm; ?> : <?php echo $value; ?></td>
+	<table>
+		<tr>
 			<?php
-			$count++;
+			foreach ($this->passedArgs as $k => $v) {
+				if ((substr($k, 0, 6) === 'search')) {
+					$searchTerm = substr($k, 6);
+					if ($searchTerm === 'published') {
+						switch ($v) {
+							case '0' :
+								$value = 'No';
+								break;
+							case '1' :
+								$value = 'Yes';
+								break;
+							case '2' :
+								continue 2;
+								break;
+						}
+	 				} else {
+						if (!$v) {
+							continue;
+						}
+						$value = $v;
+					}
+				?>
+				<td class="<?php echo (($count < 1) ? 'searchLabelFirst' : 'searchLabel');?>">
+					<?php echo $searchTerm; ?> : <?php echo $value; ?>
+				</td>
+				<?php
+				$count++;
+				}
 			}
-		}
-		if ($count > 0) {
-	?>
-	<td class="searchLabelCancel"><?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?></td>
-	<?php
-	}
-	?>
-	</tr></table>
-	<?php
-		echo $this->Form->end();
-	?>
+			if ($count > 0) {
+			?>
+			<td class="searchLabelCancel">
+				<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
+			</td>
+			<?php
+			}
+			?>
+		</tr>
+	</table>
+	<input type="submit" style="visibility:collapse;" />
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
-			<th><?php echo $this->Paginator->sort('published', 'Valid.');?><a href=# onClick='enableField("searchpublished")'><br /><div class="icon-search"></div></a></th>
+			<th class="filter">
+				<?php echo $this->Paginator->sort('published', 'Valid.');?>
+				<a onclick="$('#searchpublished').toggle();" class="icon-search"></a>
+				<span id="searchpublished"><br/>
+					<?php
+					// on change jquery will submit the form
+					echo $this->Form->input('searchpublished', array(
+							'options' => array('0' => 'No', '1' => 'Yes', '2' => 'Any'),
+							'default' => 2,
+							'label' => '',
+							'class' => 'input-mini',
+							'onchange' => "$('#EventIndexForm').submit()"
+							));
+					?>
+				</span>
+			</th>
 			<?php
-				if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) {
-					if ($isSiteAdmin) { ?>
+			if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) {
+				if ($isSiteAdmin) { ?>
 			<th><?php echo $this->Paginator->sort('org'); ?></th>
 				<?php
 					} else { ?>
-			<th><?php echo $this->Paginator->sort('org'); ?><a href=# onClick='enableField("searchorgc")'><br /><div class="icon-search"></div></a></th></th>
+			<th class="filter"><?php echo $this->Paginator->sort('org'); ?>
+				<a onclick="toggleField('#searchorg')" class="icon-search"></a>
+			</th>
 				<?php
 					}
 				}
 			?>
 			<?php if ($isSiteAdmin): ?>
-			<th><?php echo $this->Paginator->sort('owner org');?><a href=# onClick='enableField("searchorgc")'><br /><div class="icon-search"></div></a></th>
+			<th class="filter">
+				<?php echo $this->Paginator->sort('owner org');?>
+				<a onclick="toggleField('#searchorgc')" class="icon-search"></a>
+				<span id="searchorgc"><br/>
+				<?php
+					echo $this->Form->input('searchorgc', array(
+							'value' => $this->passedArgs['searchorgc'],
+							'label' => '',
+							'class' => 'input-mini'));
+				?>
+				</span>
+			</th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
 			<?php if ($isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 			<?php endif; ?>
-			<th><?php echo $this->Paginator->sort('date');?><a href=# onClick='enableDate()'><br /><div class="icon-search"></div></a></th>
+			<th class="filter">
+				<?php echo $this->Paginator->sort('date');?>
+				<a onclick="toggleField('#searchdate')" class="icon-search"></a>
+				<br/>
+				<div id="searchdate" class="input-append input-prepend">
+							<?php
+							echo $this->Form->input('searchDatefrom', array(
+									'value' => $this->passedArgs['searchDatefrom'],
+									'label' => false,
+									'div' => false,
+									'class' => 'span1 datepicker',
+									));
+							?>
+							<input type="submit" class="btn" value="&gt;"/>
+							<?php
+							echo $this->Form->input('searchDateuntil', array(
+									'value' => $this->passedArgs['searchDateuntil'],
+									'label' => false,
+									'class' => 'span1 datepicker',
+									'div' => false
+									));
+							?>
+				</div>
+			</th>
 			<th title="<?php echo $eventDescriptions['risk']['desc'];?>">
 				<?php echo $this->Paginator->sort('risk');?>
 			</th>
 			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>">
 				<?php echo $this->Paginator->sort('analysis');?>
 			</th>
-			<th><?php echo $this->Paginator->sort('info');?><a href=# onClick='enableField("searchinfo")'><br /><div class="icon-search"></div></a></th>
+			<th class="filter">
+				<?php echo $this->Paginator->sort('info');?>
+				<a onclick="toggleField('#searchinfo')" class="icon-search"></a>
+				<span id="searchinfo"><br/>
+				<?php
+					echo $this->Form->input('searchinfo', array(
+							'value' => $this->passedArgs['searchinfo'],
+							'label' => '',
+							'class' => 'input-large'));
+				?>
+				</span>
+			</th>
 			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 			<th title="<?php echo $eventDescriptions['distribution']['desc'];?>">
 				<?php echo $this->Paginator->sort('distribution');?>
 			</th>
 			<?php endif; ?>
-			<th class="actions"><?php echo __('Actions');?></th>
+			<th class="actions">Actions</th>
+
 		</tr>
+		<?php
+		echo $this->Form->end();
+		?>
 		<?php foreach ($events as $event):?>
 		<tr>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
@@ -224,52 +263,35 @@
 </div>
 <div class="actions">
 	<ul class="nav nav-list">
-		<li class="active"><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<li class="active"><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>
-		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<li><a href="/events/add">Add Event</a></li>
 		<?php endif; ?>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('List Attributes', array('controller' => 'attributes', 'action' => 'index')); ?> </li>
-		<li><?php echo $this->Html->link('Search Attributes', array('controller' => 'attributes', 'action' => 'search')); ?> </li>
+		<li><a href="/attributes/index">List Attributes</a></li>
+		<li><a href="/attributes/search">Search Attributes</a></li>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
+		<li><a href="/events/export">Export</a></li>
 		<?php if ($isAclAuth): ?>
-		<li><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
+		<li><a href="/events/automation">Automation</a></li>
 		<?php endif;?>
 	</ul>
 </div>
+
 <script>
-$(document).ready(disableAll());
+$(document).ready( function () {
+	// onload hide all buttons
+	$('#searchinfo').hide();
+	$('#searchorgc').hide();
+	$('#searchdate').hide();
+	$('#searchpublished').hide();
 
-function resetForm() {
-	document.getElementById('EventSearchinfo').value=null;
-	document.getElementById('EventSearchorgc').value=null;
-	document.getElementById('EventSearchpublished').value=2;
-	disableAll();
-}
+});
 
-function disableAll() {
-	disableField('searchinfo');
-	disableField('searchorgc');
-	disableField('searchfrom');
-	disableField('searchuntil');
-	disableField('searchpublished');
-	disableField('searchbutton');
-	disableField('searchcancel');
+function toggleField(field) {
+	$(field).toggle();
+	$(field +" input").focus();
 }
 
-function disableField(field) {
-	document.getElementById(field).style.display="none";
-}
-function enableField(field) {
-	document.getElementById(field).style.display="";
-	document.getElementById('searchbutton').style.display="";
-	document.getElementById('searchcancel').style.display="";
-}
-
-function enableDate() {
-	enableField('searchfrom');
-	enableField('searchuntil');
-}
 
 </script>

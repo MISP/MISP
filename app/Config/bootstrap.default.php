@@ -98,7 +98,6 @@
  */
 Cache::config('default', array('engine' => 'File'));
 
-//Configure::write('CyDefSIG.baseurl', 'https://sig.cyber-defence.be');
 Configure::write('CyDefSIG.baseurl', 'http://localhost:8888');
 if (!Configure::read('CyDefSIG.baseurl')) {
 	if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) {
@@ -108,8 +107,8 @@ if (!Configure::read('CyDefSIG.baseurl')) {
 	}
 }
 Configure::write('CyDefSIG.name', 'MISP');
-Configure::write('CyDefSIG.version', '2.0');
-Configure::write('CyDefSIG.header', 'CyDefSIG: Cyber Defence Signature Sharing Platform');
+Configure::write('CyDefSIG.version', 'devel2.1');
+Configure::write('CyDefSIG.header', 'MISP: Malware Information Sharing Platform');
 Configure::write('CyDefSIG.footerpart1', 'Powered by MISP');
 Configure::write('CyDefSIG.footerpart2', '&copy; Belgian Defense CERT & NCIRC');
 Configure::write('CyDefSIG.footer', Configure::read('CyDefSIG.footerpart1') . ' ' . Configure::read('CyDefSIG.footerpart2'));
@@ -186,6 +185,7 @@ CakePlugin::load('SysLog');
 CakePlugin::load('Assets'); // having Logable
 CakePlugin::load('SysLogLogable');
 CakePlugin::load('MagicTools'); // having OrphansProtectable
+CakePlugin::load('UrlCache');
 
 /**
  * You can attach event listeners to the request lifecyle as Dispatcher Filter . By Default CakePHP bundles two filters:

@@ -186,13 +186,9 @@ class AppController extends Controller {
  * @return void
  */
 	protected function _refreshAuth() {
-		if (isset($this->User)) {
-			$user = $this->User->read(false, $this->Auth->user('id'));
-		} else {
-			$this->loadModel('User');
-			$this->User->recursive = -1;
-			$user = $this->User->findById($this->Auth->user('id'));
-		}
+		$this->loadModel('User');
+		$this->User->recursive = -1;
+		$user = $this->User->findById($this->Auth->user('id'));
 		$this->Auth->login($user['User']);
 	}
 
