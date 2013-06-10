@@ -209,7 +209,7 @@ if (!empty($event['Attribute'])):?>
 				?>&nbsp;
 				</td>
 				<td class="short <?php echo $extra; ?>"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
-				<td class="short <?php echo $extra; ?>"><?php echo $attribute['distribution'] != 'All communities' ? $attribute['distribution'] : 'All';?></td>
+				<td class="short <?php echo $extra; ?>"><?php echo $attribute['distribution'] != 3 ? $distributionLevels[$attribute['distribution']] : 'All';?></td>
 				<td class="short action-links <?php echo $extra;?>">
 					<?php
 					if ($isSiteAdmin || $mayModify) {

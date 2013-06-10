@@ -246,6 +246,7 @@ class AttributesController extends AppController {
 		$this->set('distributions', $distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
+		$this->set('distributionLevels', $this->Attribute->distributionLevels);
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -446,6 +447,7 @@ class AttributesController extends AppController {
 		$this->set('distributions', $distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
 	}
 
 /**
@@ -575,6 +577,7 @@ class AttributesController extends AppController {
 		}
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
 		$this->set('distributions', $distributions);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);

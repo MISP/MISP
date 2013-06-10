@@ -67,10 +67,14 @@ class Attribute extends AppModel {
 	);
 
 	public $distributionDescriptions = array(
-		'Your organisation only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
-		'This community only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of this community."), // former Community
-		'Connected communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes all organisations on this MISP server, all organisations on MISP servers synchronising with this server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from this one). Any other organisations connected to linked servers that are 2 hops away from this will be restricted from seeing the event. Use this option if this server isn't the central MISP hub of the community but is connected to it."),
-		'All communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
+			0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
+			1 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of this community."), // former Community
+			2 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes all organisations on this MISP server, all organisations on MISP servers synchronising with this server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from this one). Any other organisations connected to linked servers that are 2 hops away from this will be restricted from seeing the event. Use this option if this server isn't the central MISP hub of the community but is connected to it."),
+			3 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
+	);
+	
+	public $distributionLevels = array(
+			0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities'
 	);
 
 	// these are definition of possible types + their descriptions and maybe later other behaviors
@@ -280,13 +284,14 @@ class Attribute extends AppModel {
 			),
 		),
 		'distribution' => array(
-				'rule' => array('inList', array('Your organisation only', 'This community only', 'Connected communities', 'All communities')),
-				'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
+			'numeric' => array(
+				'rule' => array('numeric'),
+				//'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
 				//'allowEmpty' => false,
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-		),
+		)),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {

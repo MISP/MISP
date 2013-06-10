@@ -14,6 +14,7 @@
 				));
 		if ('true' == Configure::read('CyDefSIG.sync')) {
 			echo $this->Form->input('distribution', array(
+				'options' => array($distributionLevels),
 				'label' => 'Distribution',
 				'selected' => $maxDist,
 				'after' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))

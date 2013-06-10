@@ -10,8 +10,9 @@
 	));
 if ('true' == Configure::read('CyDefSIG.sync')) {
 	echo $this->Form->input('distribution', array(
+		'options' => array($distributionLevels),
 		'label' => 'Distribution',
-		'selected' => 'All communities',
+		'selected' => '3',
 		'after' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv')),
 	));
 }

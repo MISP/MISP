@@ -127,6 +127,7 @@ class EventsController extends AppController {
 		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
 	}
 
 	/**
@@ -182,7 +183,7 @@ class EventsController extends AppController {
 		// run through each attribute and unset it if it's private and we're not an admin or from the owner org of the event
 		// if we didn't unset the attribute, rearrange the shadow attributes
 		foreach ($this->Event->data['Attribute'] as $key => &$attribute) {
-			if (!$isSiteAdmin && !$myEvent && ($attribute['distribution'] === 'Your organisation only')) {
+			if (!$isSiteAdmin && !$myEvent && ($attribute['distribution'] == 0)) {
 				unset($this->Event->data['Attribute'][$key]);
 			} else {
 				if (!isset($attribute['ShadowAttribute'])) $attribute['ShadowAttribute'] = array();
@@ -615,6 +616,7 @@ class EventsController extends AppController {
 
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
 
 		// combobox for types
 		$risks = $this->Event->validate['risk']['rule'][1];
