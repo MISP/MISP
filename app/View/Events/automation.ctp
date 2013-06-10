@@ -36,10 +36,12 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <h3>Text export</h3>
 <p>An automatic export of all attributes of a specific type to a plain text file.</p>
 <p>You can configure your tools to automatically download the following files:</p>
-<pre><?php
-foreach ($sigTypes as $sigType):?>
-	<?php echo Configure::read('CyDefSIG.baseurl');?>/events/text/<?php echo $me['authkey']; ?>/<?php echo $sigType . "\n";?><?php
-endforeach;?>
+<pre>
+<?php
+foreach ($sigTypes as $sigType) {
+	echo Configure::read('CyDefSIG.baseurl').'/events/text/'.$me['authkey'].'/'.$sigType . "\n";
+}
+?>
 </pre>
 <p></p>
 
@@ -53,11 +55,20 @@ This would enable you to export:</p>
 <li>...</li>
 </ul>
 
-
-
 </div>
 <div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
+	<ul class="nav nav-list">
+		<li><a href="/events/index">List Events</a></li>
+		<?php if ($isAclAdd): ?>
+		<li><a href="/events/add">Add Event</a></li>
+		<?php endif; ?>
+		<li class="divider"></li>
+		<li><a href="/attributes/index">List Attributes</a></li>
+		<li><a href="/attributes/search">Search Attributes</a></li>
+		<li class="divider"></li>
+		<li><a href="/events/export">Export</a></li>
+		<?php if ($isAclAuth): ?>
+		<li class="active"><a href="/events/automation">Automation</a></li>
+		<?php endif;?>
 	</ul>
 </div>

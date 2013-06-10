@@ -1,22 +1,14 @@
 <?php
 $buttonAddStatus = $isAclAdd ? 'button_on':'button_off';
-$mayModify = ($isAclModify || ($isAclModifyOrg && ($user['User']['org'] == $me['org'])));
+$mayModify = ($isSiteAdmin || ($isAdmin && ($user['User']['org'] == $me['org'])));
 $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 ?>
 <div class="users view">
-<div class="actions" style="float:right;">
-	<ul><li><?php echo $this->Html->link(__('Edit Profile', true), array('admin' => true, 'action' => 'edit', $user['User']['id']), array('class' => $buttonModifyStatus)); ?> </li></ul>
-</div>
 <h2><?php  echo __('User');?></h2>
-	<dl>
+	<dl style="width:600px;">
 		<dt><?php echo __('Id'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['id']); ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Password'); ?></dt>
-		<dd>
-			<?php echo h($user['User']['password']); ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Org'); ?></dt>
@@ -48,6 +40,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<dt><?php echo __('Authkey'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['authkey']); ?>
+			(<?php echo $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']));?>)
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Invited By'); ?></dt>
@@ -79,64 +72,79 @@ if (h($user['User']['termsaccepted']) == 1) {
 }?>
 			&nbsp;
 		</dd>
+				<dt><?php echo __('Password change'); ?></dt>
+		<dd>
+			<?php
+if (h($user['User']['change_pw']) == 1) {
+						echo "Yes";
+} else {
+						echo "No";
+}?>
+			&nbsp;
+		</dd>
 		<dt><?php echo __('Newsread'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['newsread']); ?>
 			&nbsp;
 		</dd>
 	</dl>
+	<br />
+	<div class="related table table-striped table-condensed">
+		<h3><?php echo __('Related Events');?></h3>
+		<?php if (!empty($user['Event'])):?>
+		<table>
+		<tr>
+			<th><?php echo __('Published'); ?></th>
+			<th><?php echo __('Id'); ?></th>
+			<th><?php echo __('Date'); ?></th>
+			<th><?php echo __('Risk'); ?></th>
+			<th><?php echo __('Info'); ?></th>
+			<th><?php echo __('Uuid'); ?></th>
+			<th><?php echo __('Distribution'); ?></th>
+			<th class="actions"><?php echo __('Actions');?></th>
+		</tr>
+		<?php
+		$i = 0;
+		foreach ($user['Event'] as $event): ?>
+		<tr>
+				<td>
+					<div class='<?php echo ($event['published'] == 1) ? 'icon-ok' : 'icon-remove';; ?>'></div>
+				</td>
+				<td><?php echo h($event['id']);?></td>
+				<td><?php echo h($event['date']);?></td>
+				<td><?php echo h($event['risk']);?></td>
+				<td><?php echo h($event['info']);?></td>
+				<td><?php echo h($event['uuid']);?></td>
+				<td><?php echo h($event['distribution']);?></td>
+				<td class="short action-links">
+					<?php if ($mayModify) echo $this->Html->link('', array('controller' => 'events', 'action' => 'edit', $event['id']), array('class' => 'icon-download-alt')); ?>
+					<?php
+					if ($mayModify) echo $this->Form->postLink('', array('controller' => 'events', 'action' => 'delete', $event['id']), array('class' => 'icon-trash'), __('Are you sure you want to delete # %s?', $event['id']));
+					?>
+					<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'view', $event['id']), array('class' => 'icon-list-alt')); ?>
+				</td>
+			</tr>
+		<?php
+		endforeach; ?>
+		</table>
+		<?php
+	endif; ?>
+	</div>
 </div>
 <div class="actions">
-	<ul>
-		<?php
-if ($isAclModify): ?>
-		<li><?php echo $this->Html->link(__('Edit User', true), array('admin' => 'true', 'action' => 'edit', $user['User']['id'])); ?></li>
-		<li>&nbsp;</li>
-		<?php
-endif; ?>
-		<?php echo $this->element('actions_menu'); ?>
+	<ul class="nav nav-list">
+		<li><?php echo $this->Html->link('Edit User', array('admin' => true, 'action' => 'edit', $user['User']['id'])); ?></li>
+		<li class="divider"></li>
+		<li class="active"><?php echo $this->Html->link('New User', array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
+		<li><?php echo $this->Html->link('List Users', array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
+		<li class="divider"></li>
+		<?php if ($isSiteAdmin): ?>
+		<li><?php echo $this->Html->link('New Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+		<?php endif; ?>
+		<li><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
+		<?php if ($isSiteAdmin): ?>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('Contact users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+		<?php endif; ?>
 	</ul>
-</div>
-<div class="related">
-	<h3><?php echo __('Related Events');?></h3>
-	<?php if (!empty($user['Event'])):?>
-	<table cellpadding = "0" cellspacing = "0">
-	<tr>
-		<th><?php echo __('Id'); ?></th>
-		<th><?php echo __('Org'); ?></th>
-		<th><?php echo __('Date'); ?></th>
-		<th><?php echo __('Risk'); ?></th>
-		<th><?php echo __('Info'); ?></th>
-		<th><?php echo __('User Id'); ?></th>
-		<th><?php echo __('Published'); ?></th>
-		<th><?php echo __('Uuid'); ?></th>
-		<th class="actions"><?php echo __('Actions');?></th>
-	</tr>
-	<?php
-	$i = 0;
-	foreach ($user['Event'] as $event): ?>
-		<tr>
-			<td><?php echo h($event['id']);?></td>
-			<td><?php echo h($event['org']);?></td>
-			<td><?php echo h($event['date']);?></td>
-			<td><?php echo h($event['risk']);?></td>
-			<td><?php echo h($event['info']);?></td>
-			<td><?php echo h($event['user_id']);?></td>
-			<td><?php echo h($event['published']);?></td>
-			<td><?php echo h($event['uuid']);?></td>
-			<td class="actions">
-				<?php echo $this->Html->link(__('Edit'), array('controller' => 'events', 'action' => 'edit', $event['id']), array('class' => $buttonModifyStatus)); ?>
-				<?php
-				if ($mayModify) echo $this->Form->postLink(__('Delete'), array('controller' => 'events', 'action' => 'delete', $event['id']), null, __('Are you sure you want to delete # %s?', $event['id']));
-				else echo $this->Html->link(__('Delete'), array('controller' => 'events', 'action' => 'delete', $event['id']), array('class' => $buttonModifyStatus));
-				?>
-				<?php echo $this->Html->link(__('View'), array('controller' => 'events', 'action' => 'view', $event['id'])); ?>
-			</td>
-		</tr>
-	<?php
-	endforeach; ?>
-	</table>
-	<?php
-endif; ?>
-
 </div>

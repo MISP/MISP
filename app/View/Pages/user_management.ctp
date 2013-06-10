@@ -1,18 +1,20 @@
-<div class="index">
-	<b>Table of contents</b><br>
-	1. <?php echo $this->Html->link(__('General Layout', true),array('controller' => 'pages', 'action' => 'display','documentation')); ?><br>
-	2. <?php echo $this->Html->link(__('User Management and Global Actions', true), array('controller' => 'pages', 'action' => 'display', 'user_management')); ?><br>
-	<ul>
-		<li>a. <a href="#first_run">First run of the system</a></li>
-		<li>b. <a href="#manage">Managing your account</a></li>
-		<li>c. <a href="#uptodate">Staying up to date</a></li>
-	</ul>
-	3. <?php echo $this->Html->link(__('Using the system', true),array('controller' => 'pages', 'action' => 'display','using_the_system')); ?><br>
-	4. <?php echo $this->Html->link(__('Administration', true),array('controller' => 'pages', 'action' => 'display','administration')); ?><br>
-	5. <?php echo $this->Html->link(__('Categories and Types', true),array('controller' => 'pages', 'action' => 'display','categories_and_types')); ?><br>
-	<br /><hr /><br />
+<div class="actions" style="width:15%">
+	<ol class="nav nav-list">
+		<li><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'documentation')); ?></li>
+		<li class="active"><?php echo $this->Html->link('User Management and Global actions', array('controller' => 'pages', 'action' => 'display', 'user_management')); ?>
+			<ul class="nav nav-list">
+				<li><a href="#first_run">First run of the system</a></li>
+				<li><a href="#manage">Managing your account</a></li>
+				<li><a href="#uptodate">Staying up to date</a></li>
+			</ul>
+		</li>
+		<li><?php echo $this->Html->link('Using the system', array('controller' => 'pages', 'action' => 'display', 'using_the_system')); ?></li>
+		<li><?php echo $this->Html->link('Administration', array('controller' => 'pages', 'action' => 'display', 'administration')); ?></li>
+		<li><?php echo $this->Html->link('Categories and Types', array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?></li>
+	</ol>
+</div>
+<div class="index" style="width:80%">
 	<h2>User Management and Global Actions</h2>
-
 	<a name="first_run"></a>
 	<h3>First run of the system:</h3>
 	When first logging into MISP with the username and password provided by your administrator, there are a number of things that need to be done, before you can start using the system.<br><br>
@@ -26,7 +28,7 @@
 		<li><em>Subscribing to e-mails sent via the "Contact Reporter" functionality:</em> This feature is turned on right below the autoalerts and will allow you to receive e-mails addressed to your organisation whenever a user tries to ask about an event that was posted by a user of your organisation. Keep in mind that you can still be addressed by such a request even when this setting is turned off, if someone tries to contact you as the event creator directly or your organisation for an event that you personally have created then you will be notified.<br /><br />
 		<li><em>Reviewing the Terms &amp; Conditions:</em> To review the Terms &amp; Conditions or to read the User Guide, use the appropriate button on the left navigation menu.<br /><br /></li>
 		<li><em>Making sure that compatibility mode is turned off (IE9&amp;IE10):</em>Compatibility mode can cause some elements to appear differently than intended or not appear at all. Make sure you have this option turned off.</li></ul>
-<br /><hr /><br />
+<hr />
 <a name="manage"></a><h3>Managing your account:</h3>
 To alter any details regarding your profile, use the "My Profile" menu button to bring up the profile overview and then click on "Edit Profile" in the right upper corner.<br>
 <ul>
@@ -40,7 +42,7 @@ To alter any details regarding your profile, use the "My Profile" menu button to
 	<li><em>Setting up the GPG Key:</em> In order for the system to be able to encrypt the messages that you send through it, it needs to know your GPG key. You can acquire this by clicking on the PGP/GPG key link at the bottom left of the screen. Copy the entirety of the key and navigate to the Edit profile view (My Profile on the left -&gt; Edit profile in the top right corner). Paste the key into the Gpgkey field and click submit.<br /><br /></li>
 	<li><em>Requesting a new authentication key:</em> It is possible to make the system generate a new authentication key for you (for example if your previous one gets compromised. This can be accessed by clicking on the My Profile button and then clicking the reset key next to the currently active authentication code. The old key will become invalid when the new one is generated.<br /><br />
 	<p><img src="/img/doc/reset.png" alt = "" title="Clicking on reset will generate a new key for you and invalidate the old one, blocking it from being used."></p></li></ul>
-<br /><hr /><br />
+<hr />
  <a name="uptodate"></a><h3>Staying up to date:</h3>
 MISP also provides its users with some information about itself and its users through the links provided in the Global Actions menu.<br><br>
 <ul>
@@ -58,6 +60,3 @@ All the events and attributes that get entered into MISP will be run through a s
 </ul>
 </div>
 
-<div class="actions">
-	<ul><?php echo $this->element('actions_menu'); ?></ul>
-</div>

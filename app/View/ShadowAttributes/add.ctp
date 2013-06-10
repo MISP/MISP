@@ -3,40 +3,61 @@
 <?php echo $this->Form->create('ShadowAttribute');?>
 	<fieldset>
 		<legend><?php echo __('Add ShadowAttribute'); ?></legend>
-<?php
-echo $this->Form->hidden('event_id');
-echo $this->Form->input('category', array(
-		'between' => $this->Html->div('forminfo', '', array('id' => 'ShadowAttributeCategoryDiv')),
-		'empty' => '(choose one)'
+	<?php
+		echo $this->Form->hidden('event_id');
+		echo $this->Form->input('category', array(
+				'after' => $this->Html->div('forminfo', '', array('id' => 'ShadowAttributeCategoryDiv')),
+				'empty' => '(choose one)',
+				'div' => 'input'
+				));
+		echo $this->Form->input('type', array(
+				'after' => $this->Html->div('forminfo', '', array('id' => 'ShadowAttributeTypeDiv')),
+				'empty' => '(first choose category)'
+				));
+		?>
+		<div class="input clear"></div>
+		<?php
+		echo $this->Form->input('value', array(
+				'type' => 'textarea',
+				'error' => array('escape' => false),
+				'class' => 'input-xxlarge clear'
 		));
-echo $this->Form->input('type', array(
-		'between' => $this->Html->div('forminfo', '', array('id' => 'ShadowAttributeTypeDiv')),
-		'empty' => '(first choose category)'
+		?>
+		<div class="input clear"></div>
+		<?php
+		echo $this->Form->input('batch_import', array(
+				'type' => 'checkbox',
+				'after' => $this->Html->div('forminfo', 'Create multiple attributes one per line'),
 		));
-echo $this->Form->input('to_ids', array(
-			'checked' => true,
-			'before' => $this->Html->div('forminfo', isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc']),
-			'label' => 'IDS Signature?'
-));
-echo $this->Form->input('batch_import', array(
-		'type' => 'checkbox',
-		'after' => $this->Html->div('forminfo', 'Create multiple attributes one per line'),
-));
-echo $this->Form->input('value', array(
-			'type' => 'textarea',
-			'error' => array('escape' => false),
-));
-
-// link an onchange event to the form elements
-$this->Js->get('#ShadowAttributeCategory')->event('change', 'formCategoryChanged("#ShadowAttributeCategory")');
-$this->Js->get('#ShadowAttributeType')->event('change', 'showFormInfo("#ShadowAttributeType")');
-?>
+		echo $this->Form->input('to_ids', array(
+				'checked' => true,
+				'after' => $this->Html->div('forminfo', isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc']),
+				'label' => 'IDS Signature?',
+		));
+		// link an onchange event to the form elements
+		$this->Js->get('#ShadowAttributeCategory')->event('change', 'formCategoryChanged("#ShadowAttributeCategory")');
+		$this->Js->get('#ShadowAttributeType')->event('change', 'showFormInfo("#ShadowAttributeType")');
+	?>
 	</fieldset>
-<?php echo $this->Form->end(__('Submit'));?>
+<?php
+	echo $this->Form->button('Propose', array('class' => 'btn btn-primary'));
+	echo $this->Form->end();
+?>
 </div>
 <div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
+	<ul class="nav nav-list">
+		<li><?php echo $this->Html->link('View Event', array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id'])); ?> </li>
+		<li class="active"><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $this->request->data['ShadowAttribute']['event_id']));?> </li>
+		<li><?php echo $this->Html->link('Propose Attachment', array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $this->request->data['ShadowAttribute']['event_id']));?> </li>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('Contact reporter', array('controller' => 'events', 'action' => 'contact', $this->request->data['ShadowAttribute']['event_id'])); ?> </li>
+		<li><?php echo $this->Html->link('Download as XML', array('controller' => 'events', 'action' => 'xml', 'download', $this->request->data['ShadowAttribute']['event_id'])); ?></li>
+		<li><?php echo $this->Html->link('Download as IOC', array('controller' => 'events', 'action' => 'downloadOpenIOCEvent', $this->request->data['ShadowAttribute']['event_id'])); ?> </li>
+		<li class="divider"></li>
+		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<?php if ($isAclAdd): ?>
+		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<?php endif; ?>
 	</ul>
 </div>
 <script type="text/javascript">

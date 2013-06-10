@@ -238,7 +238,6 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
 -- Default values for initial installation
 --
 
-INSERT INTO `users` (`id`,  `password`, `org`, `email`, `autoalert`, `authkey`, `invited_by`, `gpgkey`, `nids_sid`, `termsaccepted`, `newsread`, `role_id`, `change_pw`) VALUES(1, 'babc86e0869015b3f0b4d48ca48700d3a9d1b9d7', 'ADMIN', 'admin@admin.test', 0, 'vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb', 1, '', 4000000, 0, '2012-03-13', '1', '1');
 INSERT INTO `regexp` 
   (`regexp`, `replacement`)
 VALUES 

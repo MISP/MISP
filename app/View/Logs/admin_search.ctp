@@ -1,23 +1,25 @@
 <div class="logs form">
-<?php echo $this->Form->create('Log');?>
+<?php echo $this->Form->create('Log', array('novalidate'=>true));?>
 	<fieldset>
-		<legend><?php echo __('Search Log'); ?></legend>
+		<legend>Search Logs</legend>
 	<?php
 		echo $this->Form->input('email', array( 'label' => 'Email'));
 		if ($orgRestriction == false) {
-			echo $this->Form->input('org', array( 'label' => 'Org'));
+			echo $this->Form->input('org', array( 'label' => 'Organisation'));
 		}
-		echo $this->Form->input('action', array('between' => $this->Html->div('forminfo', '', array('id' => 'LogActionDiv'))));
-		echo $this->Form->input('title', array( 'label' => 'Title'));
-		echo $this->Form->input('change', array( 'label' => 'Change'));
+		echo $this->Form->input('action', array(
+				'between' => $this->Html->div('forminfo', '', array('id' => 'LogActionDiv')),
+				'div' => 'input clear'));
+		echo $this->Form->input('title', array(
+				'label' => 'Title',
+				'div' => 'input clear'));
+		echo $this->Form->input('change', array('label' => 'Change'));
 	?>
 	</fieldset>
-<?php echo $this->Form->end(__('Search', true));?>
-</div>
-<div class="actions">
-	<ul>
-        <?php echo $this->element('actions_menu'); ?>
-	</ul>
+<?php
+echo $this->Form->button('Search', array('class' => 'btn btn-primary'));
+echo $this->Form->end();
+?>
 </div>
 <script type="text/javascript">
 var formInfoValues = new Array();
@@ -47,4 +49,10 @@ function showFormInfo(id) {
 $('#LogActionDiv').hide();
 
 </script>
-<?php echo $this->Js->writeBuffer();
+<?php echo $this->Js->writeBuffer(); ?>
+<div class="actions">
+	<ul class="nav nav-list">
+		<li ><?php echo $this->Html->link('List Logs', array('admin' => true, 'action' => 'index'));?></li>
+		<li class="active"><?php echo $this->Html->link('Search Logs', array('admin' => true, 'action' => 'search'));?></li>
+	</ul>
+</div>

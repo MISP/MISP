@@ -1,8 +1,4 @@
 <div class="users view">
-<div class="actions" style="float:right;">
-	<ul><li><?php if ($isAclAdmin && ($me['org'] == $user['User']['org'] || $me['org'] == 'ADMIN')) echo $this->Html->link(__('Edit Profile', true), array('admin' => true, 'action' => 'edit', $user['User']['id'])); ?> </li></ul>
-	<ul><li><?php if ($me['id'] == $user['User']['id'] && (!$isAclAdmin)) echo $this->Html->link(__('Edit Profile', true), array('action' => 'edit', $user['User']['id'])); ?> </li></ul>
-</div>
 <h2><?php  echo __('User');?></h2>
 	<dl>
 		<dt><?php echo __('Id'); ?></dt>
@@ -65,19 +61,20 @@ if (h($user['User']['gpgkey']) != 0) {
 	</dl>
 </div>
 <div class="actions">
-	<ul>
+	<ul class="nav nav-list">
 		<?php
-if ($isAclAdmin && ($me['org'] == $user['User']['org'] || $me['org'] == 'ADMIN')) { ?>
-		<li><?php echo $this->Html->link(__('Edit User', true), array('admin' => true, 'action' => 'edit', $user['User']['id'])); ?></li>
-	<?php
-} else if ($me['id'] == $user['User']['id'] && $me['org'] != 'ADMIN') {
-	?>
-	<li><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
-	<?php
-}
-	?>
-
-		<li>&nbsp;</li>
-		<?php echo $this->element('actions_menu'); ?>
+			if ($me['id'] == $user['User']['id']) {
+		?>
+		<li><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
+		<li class="divider"></li>
+		<?php
+			}
+		?>
+		<li><?php echo $this->Html->link(__('News', true), array('controller' => 'users', 'action' => 'news')); ?> </li>
+		<li class="active"><?php echo $this->Html->link(__('My Profile', true), array('controller' => 'users', 'action' => 'view', 'me')); ?> </li>
+		<li><?php echo $this->Html->link(__('Members List', true), array('controller' => 'users', 'action' => 'memberslist')); ?> </li>
+		<li><?php echo $this->Html->link(__('User Guide', true), array('controller' => 'pages', 'action' => 'display', 'documentation')); ?> </li>
+		<li><?php echo $this->Html->link(__('Terms & Conditions', true), array('controller' => 'users', 'action' => 'terms')); ?> </li>
 	</ul>
 </div>
+

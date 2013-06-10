@@ -1,6 +1,6 @@
 <div class="users index">
 	<h2>Members</h2>
- 	<table cellpadding="0" cellspacing="0" style="width:300px;">
+ 	<table class="table table-striped table-condensed table-bordered" style="width:300px;">
 	<tr>
 			<th>Organisation</th>
 			<th># of members</th>
@@ -15,7 +15,7 @@ foreach ($orgs as $org):?>
 			$imgRelativePath = 'orgs' . DS . h($org['User']['org']) . '.png';
 			$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 		?>
-		<td><?php if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org['User']['org']) . '.png', array('alt' => h($org['User']['org']),'width' => '48','hight' => '48'));?>&nbsp</td>
+		<td><?php if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org['User']['org']) . '.png', array('alt' => h($org['User']['org']),'width' => '48','hight' => '48'));?>&nbsp;</td>
 	</tr>
 	<?php
 endforeach; ?>
@@ -90,7 +90,7 @@ foreach ($graphData as $row) {
 	});
 	</script>
 
-	<!-- table cellpadding="0" cellspacing="0" style="width:400px;">
+	<!-- table class="table table-striped table-condensed table-bordered" style="width:400px;">
 	<tr>
 		<th>Org</th>
 		<th>Type</th>
@@ -111,11 +111,11 @@ endforeach; ?>
 </div>
 
 <div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
+	<ul class="nav nav-list">
+		<li><?php echo $this->Html->link(__('News', true), array('controller' => 'users', 'action' => 'news')); ?> </li>
+		<li><?php echo $this->Html->link(__('My Profile', true), array('controller' => 'users', 'action' => 'view', 'me')); ?> </li>
+		<li class="active"><?php echo $this->Html->link(__('Members List', true), array('controller' => 'users', 'action' => 'memberslist')); ?> </li>
+		<li><?php echo $this->Html->link(__('User Guide', true), array('controller' => 'pages', 'action' => 'display', 'documentation')); ?> </li>
+		<li><?php echo $this->Html->link(__('Terms & Conditions', true), array('controller' => 'users', 'action' => 'terms')); ?> </li>
 	</ul>
-</div>
-
-<div class="users index">
-
 </div>

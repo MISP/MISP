@@ -30,7 +30,7 @@ class EventsController extends AppController {
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
 			'order' => array(
 					'Event.id' => 'DESC'
-			)
+			),
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
@@ -77,7 +77,6 @@ class EventsController extends AppController {
 			)
 			);
 		}
-
 	}
 
 	/**
@@ -87,8 +86,46 @@ class EventsController extends AppController {
 	 */
 	public function index() {
 		// list the events
-		$this->Event->recursive = 0;
 
+		// TODO information exposure vulnerability - as we don't limit the filter depending on the CyDefSIG.showorg parameter
+		// this filter will work if showorg=false and users will be able to perform the filtering and see what events were posted by what org.
+		// same goes for orgc in all cases
+		//transform POST into GET
+		if($this->request->is("post")) {
+			$url = array('action'=>'index');
+			$filters = array();
+			if (isset($this->data['Event'])) {
+				$filters = $this->data['Event'];
+			}
+
+			//redirect user to the index page including the selected filters
+			$this->redirect(array_merge($url,$filters));
+		}
+		$this->Event->recursive = 0;
+		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
+		foreach ($this->passedArgs as $k => $v) {
+			if (substr($k, 0, 6) === 'search') {
+				$searchTerm = substr($k, 6);
+				switch ($searchTerm) {
+					case 'published' :
+						if ($v == 2) continue 2;
+						else $this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' =' => $v);
+						break;
+					case 'Datefrom' :
+						if (!$v) continue 2;
+						$this->paginate['conditions'][] = array('Event.date' . ' >' => $v);
+						break;
+					case 'Dateuntil' :
+						if (!$v) continue 2;
+						$this->paginate['conditions'][] = array('Event.date' . ' <' => $v);
+						break;
+					default:
+						if (!$v) continue 2;
+						$this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' LIKE' => '%' . $v . '%');
+						break;
+				}
+			}
+		}
 		$this->set('events', $this->paginate());
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
@@ -126,34 +163,57 @@ class EventsController extends AppController {
 			if ($temp == null) throw new NotFoundException(__('Invalid event'));
 			$id = $temp['Event']['id'];
 		}
+		$isSiteAdmin = $this->_isSiteAdmin();
+
 		$this->Event->recursive = 2;
-		$this->Event->contain('Attribute', 'Attribute.ShadowAttribute', 'User.email');
-		$this->Event->id = $id;
+		$this->Event->contain('Attribute', 'ShadowAttribute', 'User.email');
+		$this->Event->read(null, $id);
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event, it already exists.'));
 		}
-		$this->Event->read(null, $id);
-		$userEmail = $this->Event->data['User']['email'];
-		unset ($this->Event->data['User']);
-		$this->Event->data['User']['email'] = $userEmail;
-		if (!$this->_IsSiteAdmin()) {
-			// check for non-private and re-read
-			if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
-				$this->Event->hasMany['Attribute']['conditions'] = array('OR' => array(array('Attribute.private !=' => 1), array('Attribute.private =' => 1, 'Attribute.cluster =' => 1))); // TODO seems very dangerous for the correlation construction in afterSave!!!
-				$this->Event->read(null, $id);
-			}
-
+		$myEvent = true;
+		if (!$isSiteAdmin) {
 			// check private
 			if (($this->Event->data['Event']['private'] && !$this->Event->data['Event']['cluster']) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
 				$this->Session->setFlash(__('Invalid event.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
+		if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
+			$myEvent = false;
+		}
+
+		// Now that we're loaded the event and made sure that we can actually see it, let's do 2 thngs:
+		// run through each attribute and unset it if it's private and we're not an admin or from the owner org of the event
+		// if we didn't unset the attribute, rearrange the shadow attributes
+		foreach ($this->Event->data['Attribute'] as $key => &$attribute) {
+			if (!$isSiteAdmin && !$myEvent && ($attribute['private'] == 1 && $attribute['cluster'] == 0)) {
+				unset($this->Event->data['Attribute'][$key]);
+			} else {
+				if (!isset($attribute['ShadowAttribute'])) $attribute['ShadowAttribute'] = array();
+				foreach ($this->Event->data['ShadowAttribute'] as $k => &$sa) {
+					if ($sa['old_id'] == $attribute['id']) {
+						$this->Event->data['Attribute'][$key]['ShadowAttribute'][] = $sa;
+						unset($this->Event->data['ShadowAttribute'][$k]);
+					}
+				}
+			}
+		}
+		// since we unset some attributes and shadowattributes, let's reindex them.
+		$this->Event->data['ShadowAttribute'] = array_values($this->Event->data['ShadowAttribute']);
+		$this->Event->data['Attribute'] = array_values($this->Event->data['Attribute']);
+
+		$userEmail = $this->Event->data['User']['email'];
+		unset ($this->Event->data['User']);
+		$this->Event->data['User']['email'] = $userEmail;
+
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 
-		$this->loadModel('Attribute');
 		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
 		$relatedAttributes = $this->Event->getRelatedAttributes($this->Auth->user());
+		$this->loadModel('Attribute');
+
+		$this->loadModel('Attribute');
 
 		if ($this->_isRest()) {
 			foreach ($this->Event->data['Attribute'] as &$attribute) {
@@ -185,12 +245,7 @@ class EventsController extends AppController {
 			} else {
 				$conditions = array('AND' => array('ShadowAttribute.event_id' => $this->Event->data['Event']['id'], 'ShadowAttribute.old_id' => '0', 'ShadowAttribute.org' => $this->Auth->user('org')));
 			}
-			$this->loadModel('ShadowAttribute');
-			// Only load the shadow attributes, nothing related
-			$this->ShadowAttribute->recursive = -1;
-			$remaining = $this->ShadowAttribute->find('all', array(
-					'conditions' => $conditions
-			));
+			$remaining = $this->Event->data['ShadowAttribute'];
 		}
 
 		// params for the jQuery RESTfull interface
@@ -202,7 +257,6 @@ class EventsController extends AppController {
 		// passing decriptions for model fields
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-
 		$this->set('event', $this->Event->data);
 		if(isset($remaining)) {
 			$this->set('remaining', $remaining);
@@ -368,14 +422,15 @@ class EventsController extends AppController {
 		// force check userid and orgname to be from yourself
 		$auth = $this->Auth;
 		$data['Event']['user_id'] = $auth->user('id');
-		$data['Event']['org'] = $auth->user('org');
+		if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('CyDefSIG.org');
+		else $data['Event']['org'] = $auth->user('org');
 		if (!$fromXml) {
 			$data['Event']['orgc'] = $data['Event']['org'];
 		}
 		if ($fromXml) {
 			// FIXME FIXME chri: temporary workaround for unclear org, orgc, from
-			$data['Event']['orgc'] = $data['Event']['org'];
-			$data['Event']['from'] = $data['Event']['org'];
+			//$data['Event']['orgc'] = $data['Event']['org'];
+			//$data['Event']['from'] = $data['Event']['org'];
 			// Workaround for different structure in XML/array than what CakePHP expects
 			$this->Event->cleanupEventArrayFromXML($data);
 			// the event_id field is not set (normal) so make sure no validation errors are thrown
@@ -436,15 +491,9 @@ class EventsController extends AppController {
 		}
 		$this->Event->read(null, $id);
 		// check for if private and user not authorised to edit, go away
-		if (!$this->_isSiteAdmin() && !$this->checkAction('perm_sync') && $this->Event->data['Event']['distribution'] == 'Your organization only') {
+		if (!$this->_isSiteAdmin() && !$this->checkAction('perm_sync')) {
 			if (($this->Event->data['Event']['org'] != $this->_checkOrg()) || !($this->checkAction('perm_modify'))) {
 				$this->Session->setFlash(__('You are not authorised to do that.'));
-				$this->redirect(array('controller' => 'events', 'action' => 'index'));
-			}
-		}
-		if (!$this->_isRest()) {
-			if ($this->Event->data['Event']['org'] != $this->_checkOrg()) {
-				$this->Session->setFlash(__('Invalid event.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}

@@ -1,21 +1,24 @@
-<div class="index">
-<b>Table of contents</b><br />
-1. <?php echo $this->Html->link(__('General Layout', true), array('controller' => 'pages', 'action' => 'display', 'documentation')); ?><br />
-2. <?php echo $this->Html->link(__('User Management and Global actions', true), array('controller' => 'pages', 'action' => 'display', 'user_management')); ?><br />
-3. <?php echo $this->Html->link(__('Using the system', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system')); ?><br />
-<ul>
-	<li>a. <a href="#create">Creating an event</a></li>
-	<li>b. <a href="#browsing_events">Browsing past events</a></li>
-	<li>c. <a href="#update_events">Updating and modifying events</a></li>
-	<li>d. <a href="#contact">Contacting the publisher</a></li>
-	<li>e. <a href="#automation">Automation</a></li>
-	<li>f. <a href="#export">Exporting data</a></li>
-	<li>g. <a href="#connect">Connecting to other servers</a></li>
-	<li>h. <a href="#rest">Rest API</a></li>
-</ul>
-4. <?php echo $this->Html->link(__('Administration', true), array('controller' => 'pages', 'action' => 'display', 'administration')); ?><br />
-5. <?php echo $this->Html->link(__('Categories and Types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?><br />
-<br /><hr /><br />
+<div class="actions" style="width:15%">
+	<ol class="nav nav-list">
+		<li><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'documentation')); ?></li>
+		<li><?php echo $this->Html->link('User Management and Global actions', array('controller' => 'pages', 'action' => 'display', 'user_management')); ?></li>
+		<li class="active"><?php echo $this->Html->link('Using the system', array('controller' => 'pages', 'action' => 'display', 'using_the_system')); ?>
+			<ul class="nav nav-list">
+				<li><a href="#create">Creating an event</a></li>
+				<li><a href="#browsing_events">Browsing past events</a></li>
+				<li><a href="#update_events">Updating and modifying events</a></li>
+				<li><a href="#contact">Contacting the publisher</a></li>
+				<li><a href="#automation">Automation</a></li>
+				<li><a href="#export">Exporting data</a></li>
+				<li><a href="#connect">Connecting to other servers</a></li>
+				<li><a href="#rest">Rest API</a></li>
+			</ul>
+		</li>
+		<li><?php echo $this->Html->link('Administration', array('controller' => 'pages', 'action' => 'display', 'administration')); ?></li>
+		<li><?php echo $this->Html->link('Categories and Types', array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?></li>
+	</ol>
+</div>
+<div class="index" style="width:80%">
 <h2>Using the system:</h2>
 <a name ="create"></a><h3>Creating an event:</h3>
 The process of entering an event can be split into 3 phases, the creation of the event itself, populating it with attributes and attachments and finally publishing it.<br /><br />
@@ -46,7 +49,7 @@ The process of entering an event can be split into 3 phases, the creation of the
 		<li><em>Info:</em> The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event's creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server's administrator(s). <br /><br /></li>
 		<li><em>GFI Sandbox:</em> It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event's creation, it is important to manually look over all the data that is being entered. <br /><br /></li>
 	</ul>
-<br /><hr /><br />
+<hr />
 <a name ="create_attribute"></a><h3>Add attributes to the event:</h3>
 The second step of creating an event is to populate it with attributes and attachments. In addition to being able to import the attributes and attachments from GFI, it is also possible to manually add attributes and attachments to an event, by using the two appropriate buttons on the event's page. Let's look at adding attributes first.<br />
 When clicking on the add attribute button, you will have to fill out a form with all the data about the attribute.<br /><br />
@@ -67,7 +70,7 @@ Keep in mind that the system searches for regular expressions in the value field
 		<li><em>Value:</em> The actual value of the attribute, enter data about the value based on what is valid for the chosen attribute type. For example, for an attribute of type ip-src (source IP address), 11.11.11.11 would be a valid value. For more information on types and values, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>.<br /><br /></li>
 		<li><em>Batch import:</em> If there are several attributes of the same type to enter (such as a list of IP addresses, it is possible to enter them all into the same value-field, separated by a line break between each line. This will allow the system to create separate lines for the each attribute. <br /><br /></li>
 </ul>
-<br /><hr /><br />
+<hr />
 <h3>Add attachments to the event:</h3>
 You can also upload attachments, such as the malware itself, report files from external analysis or simply artifacts dropped by the malware. Clicking on the add attachment button brings up a form that allows you to quickly attach a file to the event. The following fields need to be filled out:<br /><br />
 <p><img src="/img/doc/add_attachment.png" alt = "Add attachment" title = "Point the uploader to the file you want to upload. Make sure to mark it as malware if the uploaded file is harmful, that way it will be neutralised."/></p><br />
@@ -84,12 +87,12 @@ You can also upload attachments, such as the malware itself, report files from e
 		<li><i>All:</i> This will share the attachment with all MISP communities, allowing the attachment to be freely propagated from one server to the next.<br /><br /></li>
 	</ul></li>
 </ul>
-<br /><hr /><br />
+<hr />
 <h3>Publish an event:</h3>
 <p><img src="/img/doc/publish.png" alt = "Publish" style="float:right;" title = "Only use publish (no email) for minor changes such as the correction of typos."/></p><br />
 Once all the attributes and attachments that you want to include with the event are uploaded / set, it is time to finalise its creation by publishing the event (click on publish event in the event view). This will alert the eligible users of it (based on the private-controls of the event and its attributes/attachments and whether they have auto-alert turned on), push the event to instances that your instance connects to and propagate it further based on the distribution rules. It also readies the network related attributes for NIDS signature creation (through the NIDS signature export feature, for more information, go to the export section.).<br /><br />
 There is an alternate way of publishing an event without alerting any other users, by using the "publish (no email)" button. This should only be used for minor edits (such as correcting a typo). <br />
-<br /><hr /><br />
+<hr />
 <a name ="browsing_events"></a><h2>Browsing past events:</h2>
 The MISP interface allows the user to have an overview over or to search for events and attributes of events that are already stored in the system in various ways.<br /><br />
 <h3>To list all events:</h3>
@@ -130,7 +133,7 @@ On the left menu bar, the option "List events" will generate a list of the last 
 		<li><em>Attributes:</em> A list of all attributes attached to the event, including its category, type, value, whether the attribute in itself is related to another event, whether the flag signalling that the attribute can be turned into an IDS signature is on, and a field showing the current privacy setting of the attribute.Attributes can also be modified or deleted via the 3 buttons at the end of each line.<br /><br />
 		Using the modify button will bring up the attribute creation view, with all data filled out with the attribute's currently stored data.<br /><br /></li>
 	</ul>
-<br /><hr /><br />
+<hr />
 <h3>Listing all attributes:</h3>
 	Apart from having a list of all the events, it is also possible to get a list of all the stored attributes in the system by clicking on the list attributes button. The produced list of attributes will include the followings fields:<br /><br />
 	<img src="/img/doc/list_attributes2.png" alt = "" title = "Use the buttons to the right to view the event that this attribute belongs to or to modify/delete the attribute."/><br /><br />
@@ -142,25 +145,25 @@ On the left menu bar, the option "List events" will generate a list of the last 
 		<li><em>Signature:</em> Shows whether the attribute has been flagged for NIDS signature generation or not.<br /><br /></li>
 		<li><em>Actions:</em> A set of buttons that allow you to view the event that the attribute is tied to, to edit the attribute (using the same view as what is used to set up attributes, but filled out with the attribute's current data) and a delete button. <br /><br /></li>
 	</ul>
-<br /><hr /><br />
+<hr />
 <h3>Searching for attributes:</h3>
 Apart from being able to list all events, it is also possible to search for data contained in the value field of an attribute, by clicking on the "Search Attributes" button.<br /><br />
 <img src="/img/doc/search_attribute.png" alt = "Search attribute" title = "You can search for attributes by searching for a phrase contained in its value. Narrow your search down by selecting a type and/or a category which the event has to belong to."/><br /><br />
 This will bring up a form that lets you enter one or several search strings (separate search strings with line breaks) that will be compared to the values of all attributes, along with options to narrow down the search based on category and type. The entered search string has to be an exact match with (the sub-string of) a value. A second text field makes it possible to enter event IDs for events that should be excluded from the search (again, each line represents an event ID to be excluded).<br /><br />
 The list generated by the search will look exactly the same as listing all attributes, except that only the attributes that matched the search criteria will be listed (to find out more about the list attributes view, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>.). The search parameters will be shown above the produced list and the search terms will be highlighted.<br />
 <br /><img src="/img/doc/search_attribute_result.png" alt = "" title = "You can view the event that an attribute belongs to with the view button, or you can edit/delete the attribute via the buttons on the right."/><br />
-<br /><hr /><br />
+<hr />
 <a name ="update_events"></a><h2>Updating and modifying events and attributes:</h2>
 Every event and attribute can easily be edited. First of all it is important to find the event or attribute that is to be edited, using any of the methods mentioned in the section on <a href="#browsing_events">browsing past events</a>.<br /><br />
 Once it is found, the edit button (whether it be under actions when events/attributes get listed or simply on the event view) will bring up the same screen as what is used to create the entry of the same type (for an event it would be the event screen as <a href="#create">seen here</a>, for an attribute the attribute screen as <a href="#create_attribute">described here</a>).<br /><br />
 Keep in mind that editing any event (either directly or indirectly through an attribute) will unpublish it, meaning that you'll have to publish it (through the event view) again once you are done.<br /><br />
- <br /><hr /><br />
+ <hr />
 <a name ="contact"></a><h2>Contacting the reporter:</h2>
 To get in touch with the reporter of a previously registered event, just find the event for which you would like to contact the reporter by either finding it on the list of events, by finding it through one of its attributes or by finding it through a related event.<br /><br />
 Once the event is found and the event view opened, click the button titled "Contact Reporter". This will bring up a view where you can enter your message that is to be e-mailed to all members of the reporting organisation that subscribe to receiving such reports or the reporting user himself. Along with your message, the detailed information about the event in question will be included in the e-mail.<br /><br />
 <br /><img src="/img/doc/contact_reporter.png" alt = "" title = "Enter your message to the reporter and choose whether his/her entire organisation should get the message or not by ticking the check-box."/><br /><br />
 By default, the message will be sent to every member of the organisation that posted the event in the first place, but if you tick the check-box below the message field before sending the mail, only the person that reported the event will get e-mailed. <br />
-<br /><hr /><br />
+<hr />
 <a name ="automation"></a><h2>Automation:</h2>
 It is possible to quickly and conveniently export the data contained within the system using the automation features located in the main menu on the left (available to users with authentication key access only). There are various sets of data that can be exported, by using the authentication key provided by the system (also shown on the export page). If for whatever reason you would need to invalidate your current key and get a new one instead (for example due to the old one becoming compromised) just hit the reset link next to the authentication key in the export view or in your "my profile" view.<br /><br />
 The following types of export are possible:<br /><br />
@@ -178,7 +181,7 @@ The following types of export are possible:<br /><br />
 		It is also possible to export a list of all eligible attributes that match a specific type into a plain text file. The format to do this is:<br /><br />
 		<i>&lt;server&gt;/events/text/&lt;authentication_key&gt;/&lt;type&gt;</i><br /><br />
 		Type could be any valid type (as according to the list of <?php echo $this->Html->link(__('categories and types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>), for example md5, ip-src or comment.<br />
-<br /><hr /><br />
+<hr />
 <a name ="export"></a><h2>Exporting data:</h2>
 For users that do not have authentication key access, an alternate export feature is available that relies on your interactive login to the site. To access these, just use the automation menu button to the left and you'll be presented with a list of export options. The results of the export will automatically be offered as a file download.<br /><br/>
 <br /><img src="/img/doc/export.png" alt = "" title = "Use the export features here to quickly download data in various formats"/><br /><br />
@@ -186,7 +189,7 @@ Apart from that, it's also possible to export all events involved in a search at
 <br /><img src="/img/doc/export_search.png" alt = "" title = "Download a .xml from all the events that are shown through an attribute in the search results."/><br /><br />
 Each event's view has its own export feature, both as an XML export and as a .ioc file. To reach these features, just navigate to an event and use the appropriate buttons on the right side.<br /><br />
 <br /><img src="/img/doc/export_event.png" alt = "" title = "Download a .xml or a .ioc of the event."/><br /><br />
-<br /><hr /><br />
+<hr />
 <h2><a name ="connect"></a>Connecting to other instances:</h2>
 Apart from being a self contained repository of attacks/malware, one of the main features of MISP is its ability to connect to other instances and share (parts of) its information. The following options allow you to set up and maintain such connections.<br /><br />
 <h3><a name ="new_server"></a>Setting up a connection to another server:</h3>
@@ -213,7 +216,7 @@ If you ever need to change the data about the linked servers or remove any conne
 	<li><em>Push all:</em> By clicking this button, all events that are eligible to be pushed on the instance you are on will start to be pushed to the remote instance. Events and attributes that exist on the far end will be updated.<br /><br /></li>
 	<li><em>Pull all:</em> By clicking this button, all events that are set to be pull-able or full access on the remote server will be copied to this instance. Existing events will not be updated.<br /><br /></li>
 </ul>
-<br /><hr /><br />
+<hr />
 <a name ="rest"></a><h2>Rest API:</h2>
 The platform is also <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTfull</a>, so this means that you can use structured format (XML) to access Events data.<br /><br />
 <h3>Requests</h3>
@@ -417,9 +420,4 @@ Content-Type: application/xml
 	&lt;url&gt;/Waldo/&lt;/url&gt;
 &lt;/response&gt;
 </pre>
-</div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
 </div>

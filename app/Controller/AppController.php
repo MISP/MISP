@@ -117,6 +117,18 @@ class AppController extends Controller {
 			$this->set('isAclAdmin', $role['perm_admin']);
 			$this->set('isAclAudit', $role['perm_audit']);
 			$this->set('isAclAuth', $role['perm_auth']);
+		} else {
+			$this->set('me', false);
+			$this->set('isAdmin', false);
+			$this->set('isSiteAdmin', false);
+			$this->set('isAclAdd', false);
+			$this->set('isAclModify', false);
+			$this->set('isAclModifyOrg', false);
+			$this->set('isAclPublish', false);
+			$this->set('isAclSync', false);
+			$this->set('isAclAdmin', false);
+			$this->set('isAclAudit', false);
+			$this->set('isAclAuth', false);
 		}
 	}
 
@@ -171,13 +183,9 @@ class AppController extends Controller {
  * @return void
  */
 	protected function _refreshAuth() {
-		if (isset($this->User)) {
-			$user = $this->User->read(false, $this->Auth->user('id'));
-		} else {
-			$this->loadModel('User');
-			$this->User->recursive = -1;
-			$user = $this->User->findById($this->Auth->user('id'));
-		}
+		$this->loadModel('User');
+		$this->User->recursive = -1;
+		$user = $this->User->findById($this->Auth->user('id'));
 		$this->Auth->login($user['User']);
 	}
 

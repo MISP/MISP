@@ -73,10 +73,13 @@ The authkey generation algorithm has also been improved.</p>
 A bug in the DNS attributes has been corrected.</p>
 
 </div>
-
 <div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
+	<ul class="nav nav-list">
+		<li class="active"><?php echo $this->Html->link(__('News', true), array('controller' => 'users', 'action' => 'news')); ?> </li>
+		<li><?php echo $this->Html->link(__('My Profile', true), array('controller' => 'users', 'action' => 'view', 'me')); ?> </li>
+		<li><?php echo $this->Html->link(__('Members List', true), array('controller' => 'users', 'action' => 'memberslist')); ?> </li>
+		<li><?php echo $this->Html->link(__('User Guide', true), array('controller' => 'pages', 'action' => 'display', 'documentation')); ?> </li>
+		<li><?php echo $this->Html->link(__('Terms & Conditions', true), array('controller' => 'users', 'action' => 'terms')); ?> </li>
 	</ul>
 </div>
 

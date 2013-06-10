@@ -1,21 +1,30 @@
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute');?>
 	<fieldset>
-		<legend><?php echo __('Search Attribute'); ?></legend>
-	<?php
-		echo $this->Form->input('keyword', array('type' => 'textarea', 'label' => 'Containing the following expressions'));
-		echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Excluding the following events'));
-		echo $this->Form->input('org', array('type' => 'text', 'label' => 'From the following organisation'));
-		echo $this->Form->input('type', array('between' => $this->Html->div('forminfo', '', array('id' => 'AttributeTypeDiv'))));
-		echo $this->Form->input('category', array('between' => $this->Html->div('forminfo', '', array('id' => 'AttributeCategoryDiv'))));
-	?>
+		<legend>Search Attribute</legend>
+		<?php
+		echo $this->Form->input('keyword', array('type' => 'textarea', 'label' => 'Containing the following expressions', 'div' => 'clear', 'class' => 'input-xxlarge'));
+		echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Excluding the following events', 'div' => 'clear', 'class' => 'input-xxlarge'));
+		?>
+		<?php
+		if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin)
+			echo $this->Form->input('org', array(
+					'type' => 'text',
+					'label' => 'From the following organisation',
+					'div' => 'input clear'));
+		?>
+		<?php
+		echo $this->Form->input('type', array(
+				'div' => 'input clear',
+				));
+		echo $this->Form->input('category', array(
+				));
+		?>
 	</fieldset>
-<?php echo $this->Form->end(__('Search', true));?>
-</div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
-	</ul>
+<?php
+echo $this->Form->button('Search', array('class' => 'btn btn-primary'));
+echo $this->Form->end();
+?>
 </div>
 <script type="text/javascript">
 //
@@ -90,7 +99,6 @@ foreach ($typeDefinitions as $type => $def) {
 
 function formCategoryChanged(id) {
 	var alreadySelected = $('#AttributeType').val();
-	showFormInfo(id); // display the tooltip
 	// empty the types
 	document.getElementById("AttributeType").options.length = 1;
 	// add new items to options
@@ -103,15 +111,10 @@ function formCategoryChanged(id) {
 	});
 	// enable the form element
 	$('#AttributeType').prop('disabled', false);
-	if ("ALL" == $('#AttributeCategory').val()) {
-		//alert($('#AttributeCategory').val());
-		$('#AttributeCategoryDiv').hide();
-	}
 }
 
 function formTypeChanged(id) {
 	var alreadySelected = $('#AttributeCategory').val();
-	showFormInfo(id); // display the tooltip
 	// empty the categories
 	document.getElementById("AttributeCategory").options.length = 2;
 	// add new items to options
@@ -124,10 +127,6 @@ function formTypeChanged(id) {
 	});
 	// enable the form element
 	$('#AttributeCategory').prop('disabled', false);
-	if ("ALL" == $('#AttributeType').val()) {
-		//alert($('#AttributeType').val());
-		$('#AttributeTypeDiv').hide();
-	}
 }
 
 var formInfoValues = new Array();
@@ -142,33 +141,64 @@ foreach ($categoryDefinitions as $category => $def) {
 	echo "formInfoValues['$category'] = \"$info\";\n";
 }
 $this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
-$this->Js->get('#AttributeCategory')->event('change', 'showFormInfo("#AttributeCategory")');
 $this->Js->get('#AttributeType')->event('change', 'formTypeChanged("#AttributeType")');
-$this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');
 ?>
 
 formInfoValues['ALL'] = '';
 formInfoValues[''] = '';
 
-function showFormInfo(id) {
-	idDiv = id+'Div';
-	if (("ALL" != $(id).val()) && ("" != $(id).val())) {
-	// LATER use nice animations
-	//$(idDiv).hide('fast');
-	// change the content
-	var value = $(id).val();    // get the selected value
-	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
 
-	// show it again
-	$(idDiv).fadeIn('slow');
-	} else {
-		$(idDiv).hide();
-	}
-}
+$(document).ready(function() {
 
-// hide the formInfo things
-$('#AttributeTypeDiv').hide();
-$('#AttributeCategoryDiv').hide();
+	$("#AttributeType, #AttributeCategory").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
+
+	$("#AttributeType, #AttributeCategory").on('mouseover', function(e) {
+	    var $e = $(e.target);
+	    if ($e.is('option')) {
+	        $('#'+e.currentTarget.id).popover('destroy');
+	        $('#'+e.currentTarget.id).popover({
+	            trigger: 'manual',
+	            placement: 'right',
+	            content: formInfoValues[$e.val()],
+	        }).popover('show');
+	    }
+	});
+
+	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
+	// disadvangate is that user needs to click on the item to see the tooltip.
+	// no solutions exist, except to generate the select completely using html.
+	$("#AttributeType, #AttributeCategory").on('change', function(e) {
+	    var $e = $(e.target);
+        $('#'+e.currentTarget.id).popover('destroy');
+        $('#'+e.currentTarget.id).popover({
+            trigger: 'manual',
+            placement: 'right',
+            content: formInfoValues[$e.val()],
+        }).popover('show');
+	});
+
+});
+
+
+
 
 </script>
-<?php echo $this->Js->writeBuffer(); // Write cached scripts
+<?php echo $this->Js->writeBuffer(); // Write cached scripts ?>
+<div class="actions">
+	<ul class="nav nav-list">
+		<li><a href="/events/index">List Events</a></li>
+		<?php if ($isAclAdd): ?>
+		<li><a href="/events/add">Add Event</a></li>
+		<?php endif; ?>
+		<li class="divider"></li>
+		<li><a href="/attributes/index">List Attributes</a></li>
+		<li class="active"><a href="/attributes/search">Search Attributes</a></li>
+		<li class="divider"></li>
+		<li><a href="/events/export">Export</a></li>
+		<?php if ($isAclAuth): ?>
+		<li><a href="/events/automation">Automation</a></li>
+		<?php endif;?>
+	</ul>
+</div>

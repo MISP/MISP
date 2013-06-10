@@ -1,3 +1,4 @@
+<div class="container">
 <?php
 echo $this->Session->flash('auth');
 echo $this->Form->create('User', array('action' => 'login'));
@@ -7,4 +8,7 @@ echo $this->Form->inputs(array(
 	'password' => array('autocomplete' => 'off')
 ));
 
-echo $this->Form->end('Login');
+echo $this->Form->button('Login', array('class' => 'btn btn-primary'));
+echo $this->Form->end();
+?>
+</div>
