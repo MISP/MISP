@@ -228,12 +228,9 @@ class AttributesController extends AppController {
 		$this->set('categories', compact('categories'));
 		$this->loadModel('Event');
 		$events = $this->Event->findById($eventId);
-		$events = $this->Event->findById($eventId);
-		$this->set('maxDist', $events['Event']['distribution']);
 		// combobox for distribution
-		$distributionLevelsCut = array_slice($this->Event->distributionLevels, 0, $events['Event']['distribution']+1);
-		$this->set('distributionLevels', $distributionLevelsCut);
-		
+		$this->set('distributionLevels', $this->Attribute->distributionLevels);
+		$this->set('currentDist', $events['Event']['distribution']);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 
@@ -388,8 +385,7 @@ class AttributesController extends AppController {
 			$this->request->data['Attribute']['event_id'] = $eventId;
 			$this->loadModel('Event');
 			$events = $this->Event->findById($eventId);
-			$maxDist = $events['Event']['distribution'];
-			$this->set('maxDist', $maxDist);
+			$this->set('currentDist', $events['Event']['distribution']);
 		}
 
 		// combobos for categories
@@ -421,22 +417,10 @@ class AttributesController extends AppController {
 		$this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
 
 		// combobox for distribution
-		if (isset($maxDist)) {
-			$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
-			$count = 0;
-			foreach ($distributionsBeforeCut as $current) {
-				$distributions[$count] = $current;
-				if ($distributions[$count] == $maxDist)break;
-				$count++;
-			}
-		} else {
-			$distributions = array_keys($this->Attribute->distributionDescriptions);
-		}
-		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions', $distributions);
-		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
+		$events = $this->Event->findById($eventId);
+		$this->set('currentDist', $events['Event']['distribution']);
 	}
 
 /**
@@ -548,12 +532,9 @@ class AttributesController extends AppController {
 		array_pop($categories); // remove that last empty/space option
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', $categories);
-
-		$events = $this->Event->findById($eventId);
-		$this->set('maxDist', $events['Event']['distribution']);
+		$this->set('currentDist', $this->Event->data['Event']['distribution']);
 		// combobox for distribution
-		$distributionLevelsCut = array_slice($this->Event->distributionLevels, 0, $events['Event']['distribution']+1);
-		$this->set('distributionLevels', $distributionLevelsCut);
+		$this->set('distributionLevels', $this->Attribute->distributionLevels);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
