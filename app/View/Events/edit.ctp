@@ -13,26 +13,19 @@ if ('true' == Configure::read('CyDefSIG.sync')) {
 		'options' => array($distributionLevels),
 		'label' => 'Distribution',
 		'selected' => '3',
-		'after' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv')),
 	));
 }
 	echo $this->Form->input('risk', array(
-			'after' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv')),
 			'div' => 'input clear'
 			));
 	echo $this->Form->input('analysis', array(
 			'options' => array($analysisLevels),
-			'after' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))
 			));
 	echo $this->Form->input('info', array(
 			'div' => 'clear',
 			'class' => 'input-xxlarge'
 			));
 
-// link an onchange event to the form elements
-$this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');
-$this->Js->get('#EventRisk')->event('change', 'showFormInfo("#EventRisk")');
-$this->Js->get('#EventAnalysis')->event('change', 'showFormInfo("#EventAnalysis")');
 ?>
 	</fieldset>
 <?php
@@ -42,17 +35,17 @@ echo $this->Form->end();
 </div>
 <div class="actions">
 	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link('View Event', array('action' => 'view', $this->request->data['Event']['id'])); ?> </li>
+		<li><a href="/events/view/<?php echo $this->request->data['Event']['id'];?>">View Event</a></li>
 		<?php if ($isSiteAdmin || $mayModify): ?>
-		<li class="active"><?php echo $this->Html->link('Edit Event', array('action' => 'edit', $this->request->data['Event']['id'])); ?> </li>
+		<li class="active"><a href="/events/edit/<?php echo $this->request->data['Event']['id'];?>">Edit Event</a></li>
 		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $this->request->data['Event']['id']), null, __('Are you sure you want to delete # %s?', $this->request->data['Event']['id'])); ?></li>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $this->request->data['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $this->request->data['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link('Populate event from IOC', array('controller' => 'events', 'action' => 'addIOC', $this->request->data['Event']['id']));?> </li>
+		<li><a href="/attributes/add/<?php echo $this->request->data['Event']['id'];?>">Add Attribute</a></li>
+		<li><a href="/attributes/add_attachment/<?php echo $this->request->data['Event']['id'];?>">Add Attachment</a></li>
+		<li><a href="/events/addIOC/<?php echo $this->request->data['Event']['id'];?>">Populate from IOC</a></li>
 		<?php else:	?>
-		<li><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $this->request->data['Event']['id']));?> </li>
-		<li><?php echo $this->Html->link('Propose Attachment', array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $this->request->data['Event']['id']));?> </li>
+		<li><a href="/shadow_attributes/add/<?php echo $this->request->data['Event']['id'];?>">Propose Attribute</a></li>
+		<li><a href="/shadow_attributes/add_attachment/<?php echo $this->request->data['Event']['id'];?>">Propose Attachment</a></li>
 		<?php endif; ?>
 		<li class="divider"></li>
 		<?php if ( 0 == $this->request->data['Event']['published'] && ($isAdmin || $mayPublish)): ?>
@@ -63,14 +56,13 @@ echo $this->Form->end();
 		<?php else: ?>
 		<!-- ul><li>Alert already sent</li></ul -->
 		<?php endif; ?>
-		<li><?php echo $this->Html->link(__('Contact reporter', true), array('action' => 'contact', $this->request->data['Event']['id'])); ?> </li>
-		<li><?php echo $this->Html->link(__('Download as XML', true), array('action' => 'xml', 'download', $this->request->data['Event']['id'])); ?></li>
-		<li><?php echo $this->Html->link(__('Download as IOC', true), array('action' => 'downloadOpenIOCEvent', $this->request->data['Event']['id'])); ?> </li>
-
+		<li><a href="/events/contact/<?php echo $this->request->data['Event']['id'];?>">Contact Reporter</a></li>
+		<li><a href="/events/xml/download/<?php echo $this->request->data['Event']['id'];?>">Download as XML</a></li>
+		<li><a href="/events/downloadOpenIOCEvent/<?php echo $this->request->data['Event']['id'];?>">Download as IOC</a></li>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<li><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>
-		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<li><a href="/events/add">Add Event</a></li>
 		<?php endif; ?>
 	</ul>
 </div>
@@ -81,10 +73,13 @@ echo $this->Form->end();
 //
 var formInfoValues = new Array();
 <?php
-foreach ($distributionDescriptions as $type => $def) {
-	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
+if ('true' == $canEditDist) {
+	foreach ($distributionDescriptions as $type => $def) {
+		$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+		echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
+	}
 }
+
 foreach ($riskDescriptions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
@@ -95,15 +90,21 @@ foreach ($analysisDescriptions as $type => $def) {
 }
 ?>
 
-function showFormInfo(id) {
-	idDiv = id+'Div';
-	// LATER use nice animations
-	//$(idDiv).hide('fast');
-	// change the content
-	var value = $(id).val();    // get the selected value
-	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
-	// show it again
-	$(idDiv).fadeIn('slow');
+$(document).ready(function() {
+
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
+
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('mouseover', function(e) {
+	    var $e = $(e.target);
+	    if ($e.is('option')) {
+	        $('#'+e.currentTarget.id).popover('destroy');
+	        $('#'+e.currentTarget.id).popover({
+	            trigger: 'manual',
+	            placement: 'right',
+	            content: formInfoValues[$e.val()],
+	        }).popover('show');
 }
 
 // hide the formInfo things

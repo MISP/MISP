@@ -181,7 +181,7 @@ class Attribute extends AppModel {
 					)
 	);
 
-	public $order = array("Attribute.event_id" => "DESC", "Attribute.type" => "ASC");
+	public $order = array("Attribute.event_id" => "DESC");
 
 /**
  * Validation rules

@@ -4,7 +4,7 @@
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
 				<ul class="nav">
-					<li class="active"><?php echo $this->Html->link('home', '/');?></li>
+					<li class="active"><a href="/">home</a></li>
 
 
 					<li class="dropdown">
@@ -13,17 +13,17 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+							<li><a href="/events/index">List Events</a></li>
 							<?php if ($isAclAdd): ?>
-							<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+							<li><a href="/events/add">Add Event</a></li>
 							<?php endif; ?>
 							<li class="divider"></li>
-							<li><?php echo $this->Html->link('List Attributes', array('controller' => 'attributes', 'action' => 'index')); ?> </li>
-							<li><?php echo $this->Html->link('Search Attributes', array('controller' => 'attributes', 'action' => 'search')); ?> </li>
+							<li><a href="/attributes/index">List Attributes</a></li>
+							<li><a href="/attributes/search">Search Attributes</a></li>
 							<li class="divider"></li>
-							<li><?php echo $this->Html->link('Export', array('controller' => 'events', 'action' => 'export')); ?> </li>
+							<li><a href="/events/export">Export</a></li>
 							<?php if ($isAclAuth): ?>
-							<li><?php echo $this->Html->link('Automation', array('controller' => 'events', 'action' => 'automation')); ?></li>
+							<li><a href="/events/automation">Automation</a></li>
 							<?php endif;?>
 
 						</ul>
@@ -36,14 +36,14 @@
 						</a>
 						<ul class="dropdown-menu">
 							<?php if ($isSiteAdmin): ?>
-							<li><?php echo $this->Html->link(__('Import Blacklist', true), array('controller' => 'blacklists', 'action' => 'index', 'admin' => true)); ?> </li>
-							<li><?php echo $this->Html->link(__('Import Regexp', true), array('controller' => 'regexp', 'action' => 'index', 'admin' => true)); ?> </li>
-							<li><?php echo $this->Html->link(__('Signature Whitelist', true), array('controller' => 'whitelists', 'action' => 'index', 'admin' => true)); ?> </li>
+							<li><a href="/admin/blacklists/index">Import Blacklist</a></li>
+							<li><a href="/admin/regexp/index">Import Regexp</a></li>
+							<li><a href="/admin/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
 							<?php if (!$isSiteAdmin): ?>
-							<li><?php echo $this->Html->link(__('Import Blacklist', true), array('controller' => 'blacklists', 'action' => 'index')); ?> </li>
-							<li><?php echo $this->Html->link(__('Import Regexp', true), array('controller' => 'regexp', 'action' => 'index')); ?> </li>
-							<li><?php echo $this->Html->link(__('Signature Whitelist', true), array('controller' => 'whitelists', 'action' => 'index')); ?> </li>
+							<li><a href="/blacklists/index">Import Blacklist</a></li>
+							<li><a href="/regexp/index">Import Regexp</a></li>
+							<li><a href="/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
 						</ul>
 					</li>
@@ -54,13 +54,13 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<li><?php echo $this->Html->link(__('News', true), array('controller' => 'users', 'action' => 'news', 'plugin' => false)); ?> </li>
-							<li><?php echo $this->Html->link(__('My Profile', true), array('controller' => 'users', 'action' => 'view', 'me', 'plugin' => false)); ?> </li>
-							<li><?php echo $this->Html->link(__('Members List', true), array('controller' => 'users', 'action' => 'memberslist', 'plugin' => false)); ?> </li>
-							<li><?php echo $this->Html->link(__('User Guide', true), array('controller' => 'pages', 'action' => 'display', 'documentation', 'plugin' => false)); ?> </li>
-							<li><?php echo $this->Html->link(__('Terms & Conditions', true), array('controller' => 'users', 'action' => 'terms', 'plugin' => false)); ?> </li>
+							<li><a href="/users/news">News</a></li>
+							<li><a href="/users/view/me">My Profile</a></li>
+							<li><a href="/users/memberslist">Members List</a></li>
+							<li><a href="/pages/display/documentation">User Guide</a></li>
+							<li><a href="/users/terms">Terms &amp; Conditions</a></li>
 							<li class="divider"></li>
-							<li><?php echo $this->Html->link(__('Log out', true), array('controller' => 'users', 'action' => 'logout', 'plugin' => false)); ?> </li>
+							<li><a href="/users/logout">Log out</a></li>
 						</ul>
 					</li>
 
@@ -71,7 +71,7 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<li><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index', 'plugin' => false));?></li>
+							<li><a href="/servers/index">List Servers</a></li>
 						</ul>
 					</li>
 					<?php endif;?>
@@ -83,16 +83,16 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<li><?php echo $this->Html->link(__('New User', true), array('controller' => 'users', 'action' => 'add', 'admin' => true, 'plugin' => false)); ?> </li>
-							<li><?php echo $this->Html->link(__('List Users', true), array('controller' => 'users', 'action' => 'index', 'admin' => true, 'plugin' => false)); ?> </li>
+							<li><a href="/admin/users/add">New User</a></li>
+							<li><a href="/admin/users/index">List Users</a></li>
 							<li class="divider"></li>
 							<?php if($isSiteAdmin): ?>
-							<li><?php echo $this->Html->link(__('New Role', true), array('controller' => 'roles', 'action' => 'add', 'admin' => true, 'plugin' => false)); ?> </li>
+							<li><a href="/admin/roles/add">New Role</a></li>
 							<?php endif; ?>
-							<li><?php echo $this->Html->link(__('List Roles', true), array('controller' => 'roles', 'action' => 'index', 'admin' => true, 'plugin' => false)); ?> </li>
+							<li><a href="/admin/roles/index">List Roles</a></li>
 							<?php if($isSiteAdmin): ?>
 							<li class="divider"></li>
-							<li><?php echo $this->Html->link(__('Contact users', true), array('controller' => 'users', 'action' => 'email', 'admin' => true, 'plugin' => false)); ?> </li>
+							<li><a href="/admin/users/email">Contact Users</a></li>
 							<?php endif; ?>
 						</ul>
 					</li>
@@ -105,17 +105,17 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<li><?php echo $this->Html->link(__('List Logs', true), array('controller' => 'logs', 'action' => 'index', 'admin' => true, 'plugin' => false)); ?> </li>
-							<li><?php echo $this->Html->link(__('Search Logs', true), array('controller' => 'logs', 'action' => 'admin_search', 'admin' => true, 'plugin' => false)); ?> </li>
+							<li><a href="/admin/logs/index">List Logs</a></li>
+							<li><a href="/admin/logs/search">Search Logs</a></li>
 						</ul>
 					</li>
 					<?php endif;?>
 
 				</ul>
 			</div>
-			<div class="nav-collapse collapse" style="float:right">
+			<div class="nav-collapse collapse pull-right">
 				<ul class="nav">
-					<li><?php echo $this->Html->link(__('Log out', true), array('controller' => 'users', 'action' => 'logout', 'plugin' => false)); ?> </li>
+					<li><a href="/users/logout">Log out</a></li>
 				</ul>
 			</div>
 		<?php endif;?>

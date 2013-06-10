@@ -5,11 +5,9 @@
 		<?php
 		echo $this->Form->hidden('event_id');
 		echo $this->Form->input('category', array(
-				'after' => $this->Html->div('forminfo', '', array('id' => 'AttributeCategoryDiv')),
 				'empty' => '(choose one)'
 				));
 		echo $this->Form->input('type', array(
-				'after' => $this->Html->div('forminfo', '', array('id' => 'AttributeTypeDiv')),
 				'empty' => '(first choose category)'
 				));
 		if ('true' == Configure::read('CyDefSIG.sync')) {
@@ -17,7 +15,6 @@
 				'options' => array($distributionLevels),
 				'label' => 'Distribution',
 				'selected' => $maxDist,
-				'after' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv'))
 			));
 		}
 		echo $this->Form->input('value', array(
@@ -31,18 +28,16 @@
 		<?php
 		echo $this->Form->input('to_ids', array(
 					'checked' => true,
-					'after' => $this->Html->div('forminfo', isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc']),
+					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
 					'label' => 'IDS Signature?',
 		));
 		echo $this->Form->input('batch_import', array(
 				'type' => 'checkbox',
-				'after' => $this->Html->div('forminfo', 'Create multiple attributes one per line'),
+				'data-content' => 'Create multiple attributes one per line',
 		));
 
 		// link an onchange event to the form elements
 		$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
-		$this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');
-		$this->Js->get('#AttributeDistribution')->event('change', 'showFormInfo("#AttributeDistribution")');
 		?>
 	</fieldset>
 <?php
@@ -52,26 +47,21 @@ echo $this->Form->end();
 </div>
 <div class="actions">
 	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link('View Event', array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id'])); ?> </li>
-		<?php if ($isSiteAdmin || $mayModify): ?>
-		<li><?php echo $this->Html->link('Edit Event', array('controller' => 'events', 'action' => 'edit', $this->request->data['Attribute']['event_id'])); ?> </li>
+		<li><a href="/events/view/<?php echo $this->request->data['Attribute']['event_id']; ?>">View Event</a></li>
+		<li><a href="/events/edit/<?php echo $this->request->data['Attribute']['event_id']; ?>">Edit Event</a></li>
 		<li><?php echo $this->Form->postLink('Delete Event', array('controller' => 'events', 'action' => 'delete', $this->request->data['Attribute']['event_id']), null, __('Are you sure you want to delete # %s?', $this->request->data['Attribute']['event_id'])); ?></li>
 		<li class="divider"></li>
-		<li class="active"><?php echo $this->Html->link('Add Attribute', array('controller' => 'attributes', 'action' => 'add', $this->request->data['Attribute']['event_id']));?> </li>
-		<li><?php echo $this->Html->link('Add Attachment', array('controller' => 'attributes', 'action' => 'add_attachment', $this->request->data['Attribute']['event_id']));?> </li>
-		<li><?php echo $this->Html->link('Populate event from IOC', array('controller' => 'events', 'action' => 'addIOC', $this->request->data['Attribute']['event_id']));?> </li>
-		<?php else:	?>
-		<li><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $this->request->data['Attribute']['event_id']));?> </li>
-		<li><?php echo $this->Html->link('Propose Attachment', array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $this->request->data['Attribute']['event_id']));?> </li>
-		<?php endif; ?>
+		<li class="active"><a href="/attributes/add/<?php echo $this->request->data['Attribute']['event_id']; ?>">Add Attribute</a></li>
+		<li><a href="/attributes/add_attachment/<?php echo $this->request->data['Attribute']['event_id']; ?>">Add Attachment</a></li>
+		<li><a href="/events/addIOC/<?php echo $this->request->data['Attribute']['event_id']; ?>">Populate from IOC</a></li>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link(__('Contact reporter', true), array('controller' => 'events', 'action' => 'contact', $this->request->data['Attribute']['event_id'])); ?> </li>
-		<li><?php echo $this->Html->link(__('Download as XML', true), array('controller' => 'events', 'action' => 'xml', 'download', $this->request->data['Attribute']['event_id'])); ?></li>
-		<li><?php echo $this->Html->link(__('Download as IOC', true), array('controller' => 'events', 'action' => 'downloadOpenIOCEvent', $this->request->data['Attribute']['event_id'])); ?> </li>
+		<li><a href="/events/contact/<?php echo $this->request->data['Attribute']['event_id']; ?>">Contact Reporter</a></li>
+		<li><a href="/events/xml/download/<?php echo $this->request->data['Attribute']['event_id']; ?>">Download as XML</a></li>
+		<li><a href="/events/downloadOpenIOCEvent/<?php echo $this->request->data['Attribute']['event_id']; ?>">Download as IOC</a></li>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
+		<li><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>
-		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
+		<li><a href="/events/add">Add Event</a></li>
 		<?php endif; ?>
 	</ul>
 </div>
@@ -95,7 +85,6 @@ foreach ($categoryDefinitions as $category => $def) {
 ?>
 
 function formCategoryChanged(id) {
-	showFormInfo(id); // display the tooltip
 	// fill in the types
 	var options = $('#AttributeType').prop('options');
 	$('option', $('#AttributeType')).remove();
@@ -126,23 +115,52 @@ foreach ($distributionDescriptions as $type => $def) {
 }
 ?>
 
-function showFormInfo(id) {
-	idDiv = id+'Div';
-	// LATER use nice animations
-	//$(idDiv).hide('fast');
-	// change the content
-	var value = $(id).val();    // get the selected value
-	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
+$(document).ready(function() {
 
-	// show it again
-	$(idDiv).fadeIn('slow');
-}
+	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
 
-// hide the formInfo things
-$('#AttributeTypeDiv').hide();
-$('#AttributeCategoryDiv').hide();
-$('#AttributeType').prop('disabled', true);
-$('#AttributeDistributionDiv').hide();
+	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('mouseover', function(e) {
+	    var $e = $(e.target);
+	    if ($e.is('option')) {
+	        $('#'+e.currentTarget.id).popover('destroy');
+	        $('#'+e.currentTarget.id).popover({
+	            trigger: 'manual',
+	            placement: 'right',
+	            content: formInfoValues[$e.val()],
+	        }).popover('show');
+	    }
+	});
+
+	$("input, label").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
+
+	$("input, label").on('mouseover', function(e) {
+		var $e = $(e.target);
+		$('#'+e.currentTarget.id).popover('destroy');
+        $('#'+e.currentTarget.id).popover({
+            trigger: 'manual',
+            placement: 'right',
+        }).popover('show');
+	});
+
+	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
+	// disadvangate is that user needs to click on the item to see the tooltip.
+	// no solutions exist, except to generate the select completely using html.
+	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('change', function(e) {
+	    var $e = $(e.target);
+        $('#'+e.currentTarget.id).popover('destroy');
+        $('#'+e.currentTarget.id).popover({
+            trigger: 'manual',
+            placement: 'right',
+            content: formInfoValues[$e.val()],
+        }).popover('show');
+	});
+
+});
+
 
 
 </script>

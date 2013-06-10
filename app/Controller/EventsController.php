@@ -85,6 +85,9 @@ class EventsController extends AppController {
 	public function index() {
 		// list the events
 
+		// TODO information exposure vulnerability - as we don't limit the filter depending on the CyDefSIG.showorg parameter
+		// this filter will work if showorg=false and users will be able to perform the filtering and see what events were posted by what org.
+		// same goes for orgc in all cases
 		//transform POST into GET
 		if($this->request->is("post")) {
 			$url = array('action'=>'index');
