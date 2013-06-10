@@ -62,13 +62,13 @@ class Attribute extends AppModel {
  */
 	public $fieldDescriptions = array(
 			'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
-			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
+			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private'),
+			'distribution' => array('desc' => 'Describes who will have access to the event.')
 	);
 
 	public $distributionDescriptions = array(
-		'Your organization only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
-		'This server-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of any organisation on this server to see it."),
-		'This Community-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of this community."), // former Community
+		'Your organisation only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
+		'This community only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of this community."), // former Community
 		'Connected communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes all organisations on this MISP server, all organisations on MISP servers synchronising with this server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from this one). Any other organisations connected to linked servers that are 2 hops away from this will be restricted from seeing the event. Use this option if this server isn't the central MISP hub of the community but is connected to it."),
 		'All communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
 	);
@@ -279,61 +279,20 @@ class Attribute extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'private' => array(
-				'boolean' => array(
-						'rule' => array('boolean'),
-						//'message' => 'Your custom message here',
-						'allowEmpty' => true,
-						'required' => false,
-						//'last' => false, // Stop validation after this rule
-						//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
+		'distribution' => array(
+				'rule' => array('inList', array('Your organisation only', 'This community only', 'Connected communities', 'All communities')),
+				'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
+				//'allowEmpty' => false,
+				'required' => true,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 		),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
 
-		$this->virtualFields = Set::merge($this->virtualFields,array(
-			//'distribution' => 'IF (Attribute.private=true, "Your organization only", IF (Attribute.cluster=true, "This Community-only", "All communities"))',
-			'distribution' => 'IF (Attribute.private=true AND Attribute.cluster=false, "Your organization only", IF (Attribute.private=true AND Attribute.cluster=true, "This server-only", IF (Attribute.private=false AND Attribute.cluster=true, "This Community-only", IF (Attribute.communitie=true, "Connected communities" , "All communities"))))',
-		));
-
-		$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
-			'distribution' => array('desc' => 'This fields indicates the intended distribution of the attribute (same as when adding an event, see Add Event)'),
-		));
-
-		$this->validate = Set::merge($this->validate,array(
-			'cluster' => array(
-				'boolean' => array(
-					'rule' => array('boolean'),
-					//'message' => 'Your custom message here',
-					//'allowEmpty' => false,
-					'required' => false,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-			),
-			'communitie' => array(
-				'boolean' => array(
-					'rule' => array('boolean'),
-					//'message' => 'Your custom message here',
-					//'allowEmpty' => false,
-					'required' => false,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-			),
-			'distribution' => array(
-				'rule' => array('inList', array("Your organization only", "This server-only", "This Community-only", "Connected communities", "All communities")),
-					//'message' => 'Your custom message here',
-					'allowEmpty' => false,
-					'required' => false,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-			));
-	}
+}
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
@@ -360,12 +319,6 @@ class Attribute extends AppModel {
  * @return bool always true
  */
 	public function beforeSave($options = array()) {
-		// increment the revision number
-		if (empty($this->data['Attribute']['revision'])) {
-			$this->data['Attribute']['revision'] = 0;
-		}
-		$this->data['Attribute']['revision'] = 1 + $this->data['Attribute']['revision'];
-
 		// explode value of composite type in value1 and value2
 		// or copy value to value1 if not composite type
 		if (!empty($this->data['Attribute']['type'])) {
@@ -426,37 +379,6 @@ class Attribute extends AppModel {
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-
-		// distribution - setting correct vars
-		if(isset($this->data['Attribute']['distribution'])) {
-			switch ($this->data['Attribute']['distribution']) {
-			    case 'Your organization only':
-			        $this->data['Attribute']['private'] = true;
-			        $this->data['Attribute']['cluster'] = false;
-			        $this->data['Attribute']['communitie'] = false;
-			        break;
-			    case 'This server-only':
-			        $this->data['Attribute']['private'] = true;
-			        $this->data['Attribute']['cluster'] = true;
-			        $this->data['Attribute']['communitie'] = false;
-			        break;
-			    case 'This Community-only':
-			        $this->data['Attribute']['private'] = false;
-			        $this->data['Attribute']['cluster'] = true;
-			        $this->data['Attribute']['communitie'] = false;
-			        break;
-			    case 'Connected communities':
-			        $this->data['Attribute']['private'] = false;
-			        $this->data['Attribute']['cluster'] = false;
-			        $this->data['Attribute']['communitie'] = true;
-			        break;
-			    case 'All communities':
-			        $this->data['Attribute']['private'] = false;
-			        $this->data['Attribute']['cluster'] = false;
-			        $this->data['Attribute']['communitie'] = false;
-			        break;
-			}
-		}
 
 		// remove leading and trailing blanks
 		$this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
@@ -822,8 +744,6 @@ class Attribute extends AppModel {
 	}
 
 	public function saveBase64EncodedAttachment($attribute) {
-print_r("###### saveBase64EncodedAttachment ######");
-print_r($attribute);
 		$rootDir = APP . DS . "files" . DS . $attribute['event_id'];
 		$dir = new Folder($rootDir, true);						// create directory structure
 		$destpath = $rootDir . DS . $attribute['id'];
@@ -956,7 +876,7 @@ print_r($attribute);
 		                // or attributes from the same event
 		                continue;
 		            }
-		            $is_private = $attribute_right['Event']['private'] || $attribute_right['Attribute']['private'];
+		            $is_private = ($attribute_right['Event']['distribution'] == 0) || ($attribute_right['Attribute']['distribution'] == 0);
 		            $correlations[] = array(
 		                    'value' => $a[$value_name],
 		                    '1_event_id' => $attribute['Attribute']['event_id'],

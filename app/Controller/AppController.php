@@ -117,6 +117,7 @@ class AppController extends Controller {
 			$this->set('isAclAdmin', $role['perm_admin']);
 			$this->set('isAclAudit', $role['perm_audit']);
 			$this->set('isAclAuth', $role['perm_auth']);
+			$this->userRole = $role;
 		} else {
 			$this->set('me', false);
 			$this->set('isAdmin', false);
@@ -131,6 +132,8 @@ class AppController extends Controller {
 			$this->set('isAclAuth', false);
 		}
 	}
+
+	public $userRole = null;
 
 	//public function blackhole($type) {
 	//	// handle errors.

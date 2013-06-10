@@ -51,18 +51,12 @@ class AttributesController extends AppController {
 							array(
 								'Event.org =' => $this->Auth->user('org'),
 								'AND' => array(
-									array('OR' => array(
-											array('Attribute.private !=' => 1),
-											array('Attribute.cluster =' => 1),
-										)),
-									array('OR' => array(
-											array('Event.private !=' => 1),
-											array('Event.cluster =' => 1),
-										)),
+										'Attribute.distribution' > 0,
+										'Event.distribution' > 0,
 			)))));
 		}
 
-
+/* We want to show this outside now as discussed with Christophe. Still not pushable, but anything should be pullable that's visible
 		// do not show cluster outside server
 		if ($this->_isRest()) {
 				$this->paginate = Set::merge($this->paginate,array(
@@ -71,6 +65,7 @@ class AttributesController extends AppController {
 						//array("AND" => array(array('Event.private !=' => 2))),
 				));
 		}
+		*/
 	}
 
 /**
@@ -89,7 +84,6 @@ class AttributesController extends AppController {
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
-
 
 /**
  * add method
@@ -750,7 +744,7 @@ class AttributesController extends AppController {
 						'conditions' =>
 							array("OR" => array(
 							array('Event.org =' => $this->Auth->user('org')),
-							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1)))),
+							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Attribute.distribution !=' => 0)))),
 						)
 					);
 				}
@@ -828,9 +822,7 @@ class AttributesController extends AppController {
 			//	restricting to non-private or same org if the user is not a site-admin.
 			if (!$this->_isSiteAdmin()) {
 				$temp = array();
-				$distribution = array();
-				array_push($distribution, array('Attribute.private =' => 0));
-				array_push($distribution, array('Attribute.cluster =' => 1));
+				array_push($temp, array('Attribute.distribution >' => 0));
 				array_push($temp, array('OR' => $distribution));
 				array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
 				$put2['OR'][] = $temp;

@@ -96,7 +96,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 				</dd>
 				<dt>Distribution</dt>
 				<dd>
-					<?php echo h($event['Event']['distribution'] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
+					<?php echo h($distributionLevels[$event['Event']['distribution']] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
 					&nbsp;
 				</dd>
 				<dt>Info</dt>

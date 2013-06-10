@@ -72,10 +72,8 @@ class EventsController extends AppController {
 					'conditions' =>
 					array("OR" => array(
 							array('Event.org =' => $this->Auth->user('org')),
-							array('Event.private !=' => 1),
-							array('Event.cluster =' => 1))),
-			)
-			);
+							array('Event.distribution >' => 0),
+			))));
 		}
 	}
 
@@ -171,7 +169,7 @@ class EventsController extends AppController {
 		$myEvent = true;
 		if (!$isSiteAdmin) {
 			// check private
-			if (($this->Event->data['Event']['private'] && !$this->Event->data['Event']['cluster']) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
+			if (($this->Event->data['Event']['distribution'] > 0) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
 				$this->Session->setFlash(__('Invalid event.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
@@ -184,7 +182,7 @@ class EventsController extends AppController {
 		// run through each attribute and unset it if it's private and we're not an admin or from the owner org of the event
 		// if we didn't unset the attribute, rearrange the shadow attributes
 		foreach ($this->Event->data['Attribute'] as $key => &$attribute) {
-			if (!$isSiteAdmin && !$myEvent && ($attribute['private'] == 1 && $attribute['cluster'] == 0)) {
+			if (!$isSiteAdmin && !$myEvent && ($attribute['distribution'] === 'Your organisation only')) {
 				unset($this->Event->data['Attribute'][$key]);
 			} else {
 				if (!isset($attribute['ShadowAttribute'])) $attribute['ShadowAttribute'] = array();
@@ -209,9 +207,6 @@ class EventsController extends AppController {
 		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
 		$relatedAttributes = $this->Event->getRelatedAttributes($this->Auth->user());
 		$this->loadModel('Attribute');
-
-		$this->loadModel('Attribute');
-
 		if ($this->_isRest()) {
 			foreach ($this->Event->data['Attribute'] as &$attribute) {
 				// 	for REST requests also add the encoded attachment
@@ -266,7 +261,9 @@ class EventsController extends AppController {
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 
+		// combobox for analysis
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
 
 		// combobox for analysis
 		$analysiss = $this->Event->validate['analysis']['rule'][1];
@@ -337,6 +334,7 @@ class EventsController extends AppController {
 		$this->set('distributions', $distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
 
 		// combobox for risks
 		$risks = $this->Event->validate['risk']['rule'][1];
@@ -386,6 +384,7 @@ class EventsController extends AppController {
 		$this->set('distributions', $distributions);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
 
 		// combobox for risks
 		$risks = $this->Event->validate['risk']['rule'][1];
@@ -421,9 +420,9 @@ class EventsController extends AppController {
 		$data['Event']['user_id'] = $auth->user('id');
 		$date = new DateTime();
 
-		if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('CyDefSIG.org');
-		else $data['Event']['org'] = $auth->user('org');
-
+		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('CyDefSIG.org');
+		//else $data['Event']['org'] = $auth->user('org');
+		$data['Event']['org'] = $auth->user('org');
 		// set these fields if the event is freshly created and not pushed from another instance.
 		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
@@ -459,10 +458,9 @@ class EventsController extends AppController {
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision')
 		);
 		$fieldList = array(
-				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'private', 'cluster', 'communitie', 'timestamp'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'cluster', 'communitie', 'timestamp')
+				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
 		);
-
 		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
 		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
 		if ($saveResult) {
@@ -530,8 +528,8 @@ class EventsController extends AppController {
 
 
 				$fieldList = array(
-						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'private', 'communitie', 'cluster', 'timestamp'),
-						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'private', 'communitie', 'cluster', 'timestamp')
+						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
+						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
 				);
 
 				$c = 0;
@@ -587,7 +585,7 @@ class EventsController extends AppController {
 				}
 			}
 			// say what fields are to be updated
-			$fieldList = array('date', 'risk', 'analysis', 'info', 'published', 'private', 'cluster', 'communitie', 'timestamp');
+			$fieldList = array('date', 'risk', 'analysis', 'info', 'published', 'distribution', 'timestamp');
 
 			$this->Event->read();
 			// always force the org, but do not force it for admins
@@ -890,7 +888,7 @@ class EventsController extends AppController {
 		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 
 		// find out whether the event is private, to limit the alerted user's list to the org only
-		if ($event['Event']['private'] && !$event['Event']['cluster']) {
+		if ($event['Event']['distribution'] == 0) {
 			$eventIsPrivate = true;
 		} else {
 			$eventIsPrivate = false;
@@ -1234,14 +1232,12 @@ class EventsController extends AppController {
 			$temp2 = array();
 			$org = $this->_checkOrg();
 			$distribution = array();
-			array_push($distribution, array('Event.private =' => 0));
-			array_push($distribution, array('Event.cluster =' => 1));
+			array_push($distribution, array('Event.distribution >' => 0));
 			array_push($temp, array('OR' => $distribution));
 			array_push($temp, array('Event.org LIKE' => $org));
 			$conditions['OR'] = $temp;
 			$distribution2 = array();
-			array_push($distribution2, array('Attribute.private =' => 0));
-			array_push($distribution2, array('Attribute.cluster =' => 1));
+			array_push($distribution2, array('Attribute.distribution >' => 0));
 			array_push($temp2, array('OR' => $distribution2));
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
@@ -1299,9 +1295,7 @@ class EventsController extends AppController {
 		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
-			array_push($distribution, array('Attribute.private =' => 0));
-			array_push($distribution, array('Attribute.cluster =' => 1));
-			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('Attribute.distribution >' => 0));
 			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
 			$conditions['OR'] = $temp;
 		}
@@ -1350,9 +1344,7 @@ class EventsController extends AppController {
 		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
-			array_push($distribution, array('Attribute.private =' => 0));
-			array_push($distribution, array('Attribute.cluster =' => 1));
-			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('Attribute.distribution >' => 0));
 			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
 			$conditions['OR'] = $temp;
 		}
@@ -1395,9 +1387,7 @@ class EventsController extends AppController {
 		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
-			array_push($distribution, array('Attribute.private =' => 0));
-			array_push($distribution, array('Attribute.cluster =' => 1));
-			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('Attribute.distribution >' => 0));
 			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
 			$conditions['OR'] = $temp;
 		}
@@ -1539,7 +1529,7 @@ class EventsController extends AppController {
 			$this->Event->read(null, $id);
 			$saveEvent['Event'] = $this->Event->data['Event'];
 			$saveEvent['Event']['published'] = false;
-			$dist = array($this->Event->data['Event']['private'], $this->Event->data['Event']['cluster'], $this->Event->data['Event']['communitie']);
+			$dist = $this->Event->data['Event']['distribution'];
 			// read XML
 			$event = $this->IOCImport->readXML($fileData, $id, $dist);
 
@@ -1557,7 +1547,7 @@ class EventsController extends AppController {
 
 			$fieldList = array(
 					'Event' => array('published', 'timestamp'),
-					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'private', 'cluster', 'communitie', 'timestamp')
+					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp')
 			);
 			// Save it all
 			$saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
@@ -1747,17 +1737,11 @@ class EventsController extends AppController {
 			$temp = array();
 			$temp2 = array();
 			$org = $this->_checkOrg();
-			$distribution = array();
-			array_push($distribution, array('Event.private =' => 0));
-			array_push($distribution, array('Event.cluster =' => 1));
-			array_push($temp, array('OR' => $distribution));
+			array_push($temp, array('Event.private >' => 0));
 			array_push($temp, array('Event.org LIKE' => $org));
 			$put2['OR'] = $temp;
 			$conditions['AND'][] = $put2;
-			$distribution2 = array();
-			array_push($distribution2, array('Attribute.private =' => 0));
-			array_push($distribution2, array('Attribute.cluster =' => 1));
-			array_push($temp2, array('OR' => $distribution2));
+			array_push($temp2, array('Attribute.private >' => 0));
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
 			$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
