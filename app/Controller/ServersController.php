@@ -224,27 +224,29 @@ class ServersController extends AppController {
 						// Distribution, set reporter of the event, being the admin that initiated the pull
 						$event['Event']['user_id'] = $this->Auth->user('id');
 						// check if the event already exist (using the uuid)
-						$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
-						if ($existingEventCount == 0) {
-							// add data for newly imported events
-							$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
-						}
+						$existingEvent = null;
+						$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
 						$eventsController = new EventsController();
 						$eventsController->constructClasses();
-						$passAlong = $this->Server->data['Server']['url'];
-						try {
-							$result = $eventsController->_add($event, $fromXml = true, $this->Server->data['Server']['organization'], $passAlong, true);
-						} catch (MethodNotAllowedException $e) {
-							if ($e->getMessage() == 'Event already exists') {
-								debug($result);
-								throw new Exception();
-								//$successes[] = $eventId;	// commented given it's in a catch..
-								continue;
+						if (!$existingEvent) {
+							// add data for newly imported events
+							$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
+							$passAlong = $this->Server->data['Server']['url'];
+							try {
+								$result = $eventsController->_add($event, $fromXml = true, $this->Server->data['Server']['organization'], $passAlong, true);
+							} catch (MethodNotAllowedException $e) {
+								if ($e->getMessage() == 'Event already exists') {
+									//$successes[] = $eventId;	// commented given it's in a catch..
+									continue;
+								}
 							}
+							if ($result) $successes[] = $eventId;
+							else $fails[$eventId] = 'failed';
+						} else {
+							$result = $eventsController->_edit($event, $existingEvent['Event']['id']);
+							if ($result === 'success') $successes[] = $eventId;
+							else $fails[$eventId] = $result;
 						}
-						$successes[] = $eventId;			// ..moved, so $successes does keep administration.
-						//$result = $this->_importEvent($event);
-						// TODO error handling
 					} else {
 						// error
 						$fails[$eventId] = 'failed';

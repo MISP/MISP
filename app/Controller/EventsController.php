@@ -448,6 +448,7 @@ class EventsController extends AppController {
 			$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 			if ($existingEventCount > 0) {
 				// RESTfull, set responce location header..so client can find right URL to edit
+				if ($fromPull) return false;
 				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 				$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $existingEvent['Event']['id']);
 				$this->response->send();
@@ -478,6 +479,40 @@ class EventsController extends AppController {
 		}
 	}
 
+	public function _edit(&$data, $id) {
+		$this->Event->read(null, $id);
+		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
+		if ($this->Event->data['Event']['timestamp'] < $data['Event']['timestamp']) {
+			
+		} else {
+			return 'Event exists and is the same or newer.';
+		}
+		$fieldList = array(
+				'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
+		);
+		if (isset($data['Event']['Attribute'])) {
+			foreach ($data['Event']['Attribute'] as $k => &$attribute) {
+				$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
+				if (count($existingAttribute)) {
+					$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
+					// Check if the attribute's timestamp is bigger than the one that already exists.
+					// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+					// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+					if ($data['Event']['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+		
+					} else {
+						unset($data['Event']['Attribute'][$k]);
+					}
+				}
+			}
+		}
+		$this->Event->cleanupEventArrayFromXML($data);
+		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
+		if ($saveResult) return 'success';
+		else return 'Saving the event has failed.';
+	}
+	
 	/**
 	 * edit method
 	 *
