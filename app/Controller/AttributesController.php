@@ -265,7 +265,7 @@ class AttributesController extends AppController {
 		$this->viewClass = 'Media';
 		$params = array(
 					'id'		=> $file,
-					'name'		=> $filename,
+					'name'		=> $filename.".".$fileExt,
 					'extension' => $fileExt,
 					'download'	=> true,
 					'path'		=> $path
