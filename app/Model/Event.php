@@ -345,6 +345,7 @@ class Event extends AppModel {
 		foreach ($correlations as $correlation) {
 			$relatedEventIds[] = $correlation['Correlation']['event_id'];
 		}
+		$relatedEventIds = array_unique($relatedEventIds);
 		// now look up the event data for these attributes
 		$conditions = array("Event.id" => $relatedEventIds);
 		$relatedEvents = $this->find('all',
