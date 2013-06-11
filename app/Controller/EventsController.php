@@ -483,7 +483,7 @@ class EventsController extends AppController {
 		$this->Event->read(null, $id);
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
 		if ($this->Event->data['Event']['timestamp'] < $data['Event']['timestamp']) {
-			
+
 		} else {
 			return 'Event exists and is the same or newer.';
 		}
@@ -500,7 +500,7 @@ class EventsController extends AppController {
 					// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
 					// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
 					if ($data['Event']['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-		
+
 					} else {
 						unset($data['Event']['Attribute'][$k]);
 					}
@@ -512,7 +512,7 @@ class EventsController extends AppController {
 		if ($saveResult) return 'success';
 		else return 'Saving the event has failed.';
 	}
-	
+
 	/**
 	 * edit method
 	 *
@@ -798,11 +798,13 @@ class EventsController extends AppController {
 		$event['Event']['published'] = 1;
 		$this->Event->save($event, array('fieldList' => $fieldList));
 		$uploaded = false;
-		if ('true' == Configure::read('CyDefSIG.sync')) {
+		if ('true' == Configure::read('CyDefSIG.sync') && $event['Event']['distribution'] > 1) {
 			$uploaded = $this->__uploadEventToServers($id, $passAlong);
 			if (($uploaded == false) || (is_array($uploaded))) {
 				$this->Event->saveField('published', 0);
 			}
+		} else {
+			return true;
 		}
 		return $uploaded;
 	}
