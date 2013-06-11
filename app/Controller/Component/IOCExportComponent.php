@@ -7,13 +7,13 @@ class IOCExportComponent extends Component {
 	public function buildAll($event, $isSiteAdmin, $isMyEvent) {
 		$temp = array();
 		if (!$isSiteAdmin) {
-			if ($event['Event']['private'] && !$event['Event']['cluster'] && !$isMyEvent && !isSiteAdmin) {
+			if ($event['Event']['distribution'] == 1 && !$isMyEvent && !isSiteAdmin) {
 				throw new Exception('Nothing to see here (not authorised)');
 			}
 		}
 		$this->__buildTop($event);
 		foreach ($event['Attribute'] as &$attribute) {
-			if ($isSiteAdmin || $isMyEvent || !$attribute['private'] || $attribute['cluster']) {
+			if ($isSiteAdmin || $isMyEvent || $attribute['distribution'] > 0) {
 				$this->__buildAttribute($attribute);
 			}
 		}

@@ -221,7 +221,7 @@ if (!empty($event['Attribute'])):?>
 						echo $this->Html->link('', array('controller' => 'attributes', 'action' => 'edit', $attribute['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
 						echo $this->Form->postLink('', array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute? Keep in mind that this will also delete this attribute on remote MISP instances.'));
 					} else {
-						echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'edit', $attribute['id']), array('class' => 'icon-edit', 'title' => 'Propose Edit'));
+						echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'add', $attribute['id']), array('class' => 'icon-edit', 'title' => 'Propose Edit'));
 					}
 					?>
 				</td>

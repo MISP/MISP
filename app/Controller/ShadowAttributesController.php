@@ -48,15 +48,11 @@ class ShadowAttributesController extends AppController {
 							array(
 								'Event.org =' => $this->Auth->user('org'),
 								'AND' => array(
-									array('OR' => array(
-											array('ShadowAttribute.private !=' => 1),
-											array('ShadowAttribute.cluster =' => 1),
-										)),
-									array('OR' => array(
-											array('Event.private !=' => 1),
-											array('Event.cluster =' => 1),
-										)),
-			)))));
+									'ShadowAttribute.org =' => $this->Auth->user('org'),
+									'Event.distribution >' => 0,
+								),
+							)
+			)));
 		}
 	}
 
@@ -120,9 +116,7 @@ class ShadowAttributesController extends AppController {
 			$attribute = $shadow;
 
 			// set the distribution equal to that of the event
-			$attribute['private'] = $event['private'];
-			$attribute['cluster'] = $event['cluster'];
-			$attribute['communitie'] = $event['communitie'];
+			$attribute['distribution'] = $event['distribution'];
 			$this->Attribute->create();
 			$this->Attribute->save($attribute);
 			if ($this->ShadowAttribute->typeIsAttachment($shadow['type'])) {
@@ -486,7 +480,7 @@ class ShadowAttributesController extends AppController {
 		$uuid = $this->Attribute->data['Attribute']['uuid'];
 		if (!$this->_IsSiteAdmin()) {
 			// check for non-private and re-read CHANGE THIS TO NON-PRIVATE AND OTHER ORG
-			if (($this->Attribute->data['Attribute']['private'] == 1 && $this->Attribute->data['Attribute']['Cluster'] == 0) || ($this->Attribute->data['Event']['org'] == $this->Auth->user('org'))) {
+			if (($this->Attribute->data['Attribute']['distribution'] == 0) || ($this->Attribute->data['Event']['org'] == $this->Auth->user('org'))) {
 				$this->Session->setFlash(__('Invalid Attribute.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}

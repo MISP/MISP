@@ -8,7 +8,10 @@
 				'after' => $this->Html->div('forminfo', '', array('id' => 'AttributeCategoryDiv')),
 				));
 		if ('true' == Configure::read('CyDefSIG.sync')) {
-			echo $this->Form->input('distribution', array('label' => 'Distribution', 'selected' => $maxDist,
+			echo $this->Form->input('distribution', array(
+					'options' => $distributionLevels,
+					'label' => 'Distribution', 
+					'selected' => $currentDist,
 					'after' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv')),
 			));
 			//'before' => $this->Html->div('forminfo', isset($attrDescriptions['distribution']['formdesc']) ? $attrDescriptions['distribution']['formdesc'] : $attrDescriptions['distribution']['desc']),));
