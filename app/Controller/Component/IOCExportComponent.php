@@ -55,7 +55,6 @@ class IOCExportComponent extends Component {
 			$this->final[] = '            <Content type="string">' . $attribute['value2'] . '</Content>';
 			$this->final[] = '          </IndicatorItem>';
 			$this->final[] = '        </Indicator>';
-			continue;
 		} else {
 			// for all other types
 			$this->final[] = '      <IndicatorItem id="' . $attribute['uuid'] . '" condition="is">';
