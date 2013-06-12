@@ -280,6 +280,9 @@ class AttributesController extends AppController {
  * @throws InternalErrorException
  */
 	public function add_attachment($eventId = null) {
+		$sha256 = null;
+		$sha1 = null;
+		//$ssdeep = null;
 		if ($this->request->is('post')) {
 			$this->loadModel('Event');
 			// Check if there were problems with the file upload
@@ -306,6 +309,8 @@ class AttributesController extends AppController {
 				// Validate filename
 				if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
 				$this->request->data['Attribute']['value'] = $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
+				$sha256 = (hash_file('sha256', $tmpfile->path));
+				$sha1 = (hash_file('sha1', $tmpfile->path));
 				$this->request->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 			} else {
 				$this->request->data['Attribute']['type'] = "attachment";
@@ -375,6 +380,19 @@ class AttributesController extends AppController {
 				$fileInZip->delete();	// delete the original not-zipped-file
 				rename($zipfile->path, $file->path); // rename the .zip to .nothing
 			}
+			if ($this->request->data['Attribute']['malware']) {
+				$temp = $this->request->data;
+				$this->Attribute->create();
+				$temp['Attribute']['type'] = 'filename|sha256';
+				$temp['Attribute']['value'] = $filename . '|' .$sha256;
+				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids')));
+				$this->Attribute->create();
+				$temp['Attribute']['type'] = 'filename|sha1';
+				$temp['Attribute']['value'] = $filename . '|' .$sha1;
+				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids')));
+			}
+
+
 
 			// everything is done, now redirect to event view
 			$this->Session->setFlash(__('The attachment has been uploaded'));
