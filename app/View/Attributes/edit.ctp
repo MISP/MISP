@@ -14,7 +14,7 @@
 			echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
 				'label' => 'Distribution',
-				'selected' => $maxDist,
+				'selected' => $currentDist,
 			));
 		}
 		echo $this->Form->input('value', array(
