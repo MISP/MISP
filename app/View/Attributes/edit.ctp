@@ -10,11 +10,11 @@
 		echo $this->Form->input('type', array(
 				'empty' => '(first choose category)'
 				));
-		if ('true' == Configure::read('CyDefSIG.sync') && $canEditDist) {
+		if ('true' == Configure::read('CyDefSIG.sync')) {
 			echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
 				'label' => 'Distribution',
-				'selected' => $maxDist,
+				'selected' => $currentDist,
 			));
 		}
 		echo $this->Form->input('value', array(
@@ -108,11 +108,9 @@ foreach ($categoryDefinitions as $category => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
 	echo "formInfoValues['" . addslashes($category) . "'] = \"" . addslashes($info) . "\";\n"; // as we output JS code we need to add slashes
 }
-if ($canEditDist) {
-	foreach ($distributionDescriptions as $type => $def) {
-		$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-		echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
-	}
+foreach ($distributionDescriptions as $type => $def) {
+	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
 }
 ?>
 

@@ -455,10 +455,11 @@ class EventsController extends AppController {
 				return false;
 			}
 		}
-		foreach ($data['Attribute'] as &$attribute) {
-			unset ($attribute['id']);
+		if (isset($data['Attribute'])) {
+			foreach ($data['Attribute'] as &$attribute) {
+				unset ($attribute['id']);
+			}
 		}
-
 		// FIXME chri: validate the necessity for all these fields...impact on security !
 		$fieldList = array(
 				'Event' => array('orgc', 'date', 'risk', 'analysis', 'info', 'published', 'uuid'),
