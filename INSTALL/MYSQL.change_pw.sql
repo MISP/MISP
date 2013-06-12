@@ -1,1 +1,0 @@
-alter table users add column change_pw tinyint(1) UNSIGNED DEFAULT NULL;
