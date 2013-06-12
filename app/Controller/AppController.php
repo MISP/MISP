@@ -67,18 +67,7 @@ class AppController extends Controller {
 	);
 
 	public function beforeFilter() {
-		// user must accept terms
-		//
-		// TODO $this->Session->check('Auth.User') (16:32:45) andras.iklody@gmail.com: think this was documented as check('Auth')
-
-		if ($this->Session->check('Auth.User') && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
-			$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
-		}
-		if ($this->Session->check('Auth.User') && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
-			$this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
-		}
-
-		// REST things
+		// REST authentication
 		if ($this->_isRest()) {
 			// disable CSRF for REST access
 			if (array_key_exists('Security', $this->components))
@@ -99,6 +88,14 @@ class AppController extends Controller {
 					throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
 				}
 			}
+		}
+		// user must accept terms
+		//
+		if ($this->Session->check('Auth.User') && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
+		    $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
+		}
+		if ($this->Session->check('Auth.User') && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
+		    $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
 		}
 
 		// We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
