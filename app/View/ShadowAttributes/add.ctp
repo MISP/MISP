@@ -6,12 +6,10 @@
 	<?php
 		echo $this->Form->hidden('event_id');
 		echo $this->Form->input('category', array(
-				'after' => $this->Html->div('forminfo', '', array('id' => 'ShadowAttributeCategoryDiv')),
 				'empty' => '(choose one)',
 				'div' => 'input'
 				));
 		echo $this->Form->input('type', array(
-				'after' => $this->Html->div('forminfo', '', array('id' => 'ShadowAttributeTypeDiv')),
 				'empty' => '(first choose category)'
 				));
 		?>
@@ -27,11 +25,9 @@
 		<?php
 		echo $this->Form->input('batch_import', array(
 				'type' => 'checkbox',
-				'after' => $this->Html->div('forminfo', 'Create multiple attributes one per line'),
 		));
 		echo $this->Form->input('to_ids', array(
 				'checked' => true,
-				'after' => $this->Html->div('forminfo', isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc']),
 				'label' => 'IDS Signature?',
 		));
 		// link an onchange event to the form elements
@@ -90,6 +86,51 @@ function formCategoryChanged(id) {
 	$('#ShadowAttributeType').prop('disabled', false);
 }
 
+$(document).ready(function() {
+
+	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute, #ShadowAttributeDistribution").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
+
+	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute, #ShadowAttributeDistribution").on('mouseover', function(e) {
+	    var $e = $(e.target);
+	    if ($e.is('option')) {
+	        $('#'+e.currentTarget.id).popover('destroy');
+	        $('#'+e.currentTarget.id).popover({
+	            trigger: 'manual',
+	            placement: 'right',
+	            content: formInfoValues[$e.val()],
+	        }).popover('show');
+	    }
+	});
+
+	$("input, label").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
+
+	$("input, label").on('mouseover', function(e) {
+		var $e = $(e.target);
+		$('#'+e.currentTarget.id).popover('destroy');
+        $('#'+e.currentTarget.id).popover({
+            trigger: 'manual',
+            placement: 'right',
+        }).popover('show');
+	});
+
+	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
+	// disadvangate is that user needs to click on the item to see the tooltip.
+	// no solutions exist, except to generate the select completely using html.
+	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute, #ShadowAttributeDistribution").on('change', function(e) {
+	    var $e = $(e.target);
+        $('#'+e.currentTarget.id).popover('destroy');
+        $('#'+e.currentTarget.id).popover({
+            trigger: 'manual',
+            placement: 'right',
+            content: formInfoValues[$e.val()],
+        }).popover('show');
+	});
+
+});
 
 //
 // Generate tooltip information

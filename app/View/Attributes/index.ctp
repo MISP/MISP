@@ -69,7 +69,7 @@ foreach ($attributes as $attribute):
 		<?php echo $attribute['Attribute']['category']; ?>&nbsp;</td>
 		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 		<?php echo $attribute['Attribute']['type']; ?>&nbsp;</td>
-		<td class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
+		<td onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 	<?php
 	$sigDisplay = nl2br(h($attribute['Attribute']['value']));
 	if ($isSearch == 1 && !empty($replacePairs)) {

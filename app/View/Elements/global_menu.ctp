@@ -3,7 +3,7 @@
 		<div class="navbar-inner">
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
-				<ul class="nav">
+				<ul class="nav" style="position:fixed; width:100%; background:black;">
 					<li class="active"><a href="/">home</a></li>
 
 
