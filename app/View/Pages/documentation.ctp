@@ -12,8 +12,8 @@
 <div class="index" style="width:80%">
 <h2>General Layout</h2>
 <h3>The top bar</h3>
+	<p><img src="/img/doc/menu_image.png" alt = "" title = "This is the main menu that will be accessible from all of the views. In some instances, some additional buttons that will appear on top of these when a view provides it."/></p>
 	<p>This menu contains all of the main functions of the site as a series of dropdown menues. These contains all (from the current user's perspective) accessible functions sorted into several groups.</p>
-	<p><img src="/img/doc/menu_image.png" alt = "" style="float:right;" title = "This is the main menu that will be accessible from all of the views. In some instances, some additional buttons that will appear on top of these when a view provides it."/></p>
 	<ul>
 		<li><b>Home button:</b> This button will return you to the start screen of the application, which is the event index page (more about this later).</li>
 		<li><b>Event Actions:</b> All the malware data entered into MISP is made up of an event object that is described by its connected attributes. The Event actions menu gives access to all the functionality that has to do with the creation, modification, deletion, publishing, searching and listing of events and attributes.</li>

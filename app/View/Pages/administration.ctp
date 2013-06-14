@@ -43,9 +43,9 @@ The signature whitelist view, accessible through the administration menu on the 
 <hr />
 <h2><a id="user"></a>Managing the users:</h2>
 As an admin, you can set up new accounts for users, edit the profiles of users, delete them, or just have a look at all the viewers' profiles. Organisation admins are restricted to executing the same actions on their organisation's users only.<br />
-<img src="/img/doc/add_user.png" alt = "Add user" style="float:right;" title = "Fill this form out to add a new user. Keep in mind that the drop-down menu titled Role controls the privileges the user will have."/>
 <h3>Adding a new user:</h3>
 To add a new user, click on the New User button in the administration menu to the left and fill out the following fields in the view that is loaded:<br />
+<img src="/img/doc/add_user.png" alt = "Add user" title = "Fill this form out to add a new user. Keep in mind that the drop-down menu titled Role controls the privileges the user will have."/>
 <ul>
 	<li><em>Email:</em> The user's e-mail address, this will be used as his/her login name and as an address to send all the automatic e-mails and e-mails sent by contacting the user as the reporter of an event.<br /></li>
 	<li><em>Password:</em> A temporary password for the user that he/she should change after the first login. Make sure that it is at least 6 characters long, includes a digit or a special character and contains at least one upper-case and at least one lower-case character.<br /></li>
