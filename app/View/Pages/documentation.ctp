@@ -55,22 +55,22 @@
 
 	<h5>Sync Actions</h5>
 	<ul>
-		<li><em>List Servers:</em> Connect your MISP instance to other instances, or view and modify the currently established connections.</li>
+		<li><b>List Servers:</b> Connect your MISP instance to other instances, or view and modify the currently established connections.</li>
 	</ul>
 
 	<h5>Administration</h5>
 	<ul>
-		<li><em>New User:</em> Create an account for a new user for your organisation. Site administrators can create users for any organisation.</li>
-		<li><em>List Users:</em> View, modify or delete the currently registered users.</li>
-		<li><em>New Role:</em> Create a new role group for the users of this instance, controlling their privileges to create, modify, delete and to publish events and to access certain features such as the logs or automation.</li>
-		<li><em>List Roles:</em> List, modify or delete currently existing roles.</li>
-		<li><em>Contact Users:</em> You can use this view to send messages to your current or future users or send them a new temporary password.</li>
+		<li><b>New User:</b> Create an account for a new user for your organisation. Site administrators can create users for any organisation.</li>
+		<li><b>List Users:</b> View, modify or delete the currently registered users.</li>
+		<li><b>New Role:</b> Create a new role group for the users of this instance, controlling their privileges to create, modify, delete and to publish events and to access certain features such as the logs or automation.</li>
+		<li><b>List Roles:</b> List, modify or delete currently existing roles.</li>
+		<li><b>Contact Users:</b> You can use this view to send messages to your current or future users or send them a new temporary password.</li>
 	</ul>
 
 	<h5>Audit</h5>
 	<ul>
-		<li><em>List Logs:</em> View the logs of the instance.</li>
-		<li><em>Search Logs:</em> Search the logs by various attributes.</li>
+		<li><b>List Logs:</b> View the logs of the instance.</li>
+		<li><b>Search Logs:</b> Search the logs by various attributes.</li>
 	</ul>
 <h3>The left bar</h3>
 	<p>This bar changes based on each page-group. The blue selection shows you what page you are on.</p>

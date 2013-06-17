@@ -1,5 +1,6 @@
 <?php if(empty($this->passedArgs['searchinfo'])) $this->passedArgs['searchinfo'] = '';?>
 <?php if(empty($this->passedArgs['searchorgc'])) $this->passedArgs['searchorgc'] = '';?>
+<?php if(empty($this->passedArgs['searchorg'])) $this->passedArgs['searchorg'] = '';?>
 <?php if(empty($this->passedArgs['searchDatefrom'])) $this->passedArgs['searchDatefrom'] = '';?>
 <?php if(empty($this->passedArgs['searchDateuntil'])) $this->passedArgs['searchDateuntil'] = '';?>
 <div class="events index">
@@ -93,6 +94,14 @@
 					} else { ?>
 			<th class="filter"><?php echo $this->Paginator->sort('org'); ?>
 				<a onclick="toggleField('#searchorg')" class="icon-search"></a>
+				<span id="searchorg"><br/>
+				<?php
+					echo $this->Form->input('searchorg', array(
+							'value' => $this->passedArgs['searchorg'],
+							'label' => '',
+							'class' => 'input-mini'));
+				?>
+				</span>
 			</th>
 				<?php
 					}
@@ -283,6 +292,7 @@ $(document).ready( function () {
 	// onload hide all buttons
 	$('#searchinfo').hide();
 	$('#searchorgc').hide();
+	$('#searchorg').hide();
 	$('#searchdate').hide();
 	$('#searchpublished').hide();
 
