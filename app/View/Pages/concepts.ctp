@@ -1,4 +1,4 @@
-<div class="actions" style="width:15%;">
+<div class="actions">
 	<ol class="nav nav-list">
 		<li><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'documentation')); ?></li>
 		<li class="active"><?php echo $this->Html->link('General Concepts', array('controller' => 'pages', 'action' => 'display', 'concepts')); ?></li>
@@ -9,7 +9,7 @@
 	</ol>
 </div>
 
-<div class="index" style="width:80%">
+<div class="index">
 <h2><a id="general"></a>General Concepts</h2>
 <h3>Organisation administrators and Site administrators</h3>
 We have two types of administrators, site and organisation admins. The former has access to every administrator feature for all the data located on the system including global features such as the creation and modification of user roles and instance links, whilst organisation admins can administer users, events and logs of their own respective organisations.<br />

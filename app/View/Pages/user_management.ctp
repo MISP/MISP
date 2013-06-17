@@ -1,4 +1,4 @@
-<div class="actions" style="width:15%">
+<div class="actions">
 	<ol class="nav nav-list">
 		<li><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'documentation')); ?></li>
 		<li><?php echo $this->Html->link('General Concepts', array('controller' => 'pages', 'action' => 'display', 'concepts')); ?></li>
@@ -14,7 +14,7 @@
 		<li><?php echo $this->Html->link('Categories and Types', array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?></li>
 	</ol>
 </div>
-<div class="index" style="width:80%">
+<div class="index">
 	<h2>User Management and Global Actions</h2>
 	<a id="first_run"></a>
 	<h3>First run of the system:</h3>

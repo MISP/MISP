@@ -99,7 +99,8 @@ class EventsController extends AppController {
 			//redirect user to the index page including the selected filters
 			$this->redirect(array_merge($url,$filters));
 		}
-		$this->Event->recursive = 0;
+		$this->Event->recursive = -1;
+		$this->Event->contain('User.email');
 		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
 		foreach ($this->passedArgs as $k => $v) {
 			if (substr($k, 0, 6) === 'search') {

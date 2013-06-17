@@ -1,4 +1,4 @@
-<div class="actions" style="width:15%">
+<div class="actions">
 	<ol class="nav nav-list">
 		<li><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'documentation')); ?></li>
 		<li><?php echo $this->Html->link('General Concepts', array('controller' => 'pages', 'action' => 'display', 'concepts')); ?></li>
@@ -18,7 +18,7 @@
 	</ol>
 </div>
 
-<div class="index" style="width:80%">
+<div class="index">
 <h2><a id="blacklist"></a>Import Blacklist</h2>
 It is possible to ban certain values from ever being entered into the system via an event info field or an attribute value. This is done by blacklisting the value in this section.<br />
 <h3>Adding and modifying entries</h3>

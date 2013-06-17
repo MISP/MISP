@@ -1,4 +1,4 @@
-<div class="actions" style="width:15%">
+<div class="actions">
 	<ol class="nav nav-list">
 		<li><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'documentation')); ?></li>
 		<li><?php echo $this->Html->link('General Concepts', array('controller' => 'pages', 'action' => 'display', 'concepts')); ?></li>
@@ -19,7 +19,7 @@
 		<li><?php echo $this->Html->link('Categories and Types', array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?></li>
 	</ol>
 </div>
-<div class="index" style="width:80%">
+<div class="index">
 <h2>Using the system:</h2>
 <a id="create"></a><h3>Creating an event:</h3>
 The process of entering an event can be split into 3 phases, the creation of the event itself, populating it with attributes

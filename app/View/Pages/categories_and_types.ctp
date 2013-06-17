@@ -1,4 +1,4 @@
-<div class="actions" style="width:15%">
+<div class="actions">
 	<ol class="nav nav-list">
 		<li><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'documentation')); ?></li>
 		<li><?php echo $this->Html->link('General Concepts', array('controller' => 'pages', 'action' => 'display', 'concepts')); ?></li>
@@ -8,7 +8,7 @@
 		<li class="active"><?php echo $this->Html->link('Categories and Types', array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?></li>
 	</ol>
 </div>
-<div class="index" style="width:80%">
+<div class="index">
 <?php
 // Load the Attribute model to extract the documentation from the defintions
 App::import('Model', 'Attribute');
