@@ -665,10 +665,8 @@ class Event extends AppModel {
 				)
 		);
 		$uri = $url . '/events/index/sort:id/direction:desc/limit:999'; // LATER verify if events are missing because we only selected the last 999
-		$this->Dns = ClassRegistry::init('Dns');
-		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+		try {
 			$response = $HttpSocket->get($uri, $data = '', $request);
-
 			if ($response->isOk()) {
 				//debug($response->body);
 				$xml = Xml::build($response->body);
@@ -700,6 +698,9 @@ class Event extends AppModel {
 			if ($response->code == '403') {
 				return 403;
 			}
+		} catch (SocketException $e){
+			// FIXME refactor this with clean try catch over all http functions
+			return $e->getMessage();
 		}
 		// error, so return null
 		return null;

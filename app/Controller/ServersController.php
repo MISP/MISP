@@ -158,10 +158,15 @@ class ServersController extends AppController {
 		if ("full" == $full) {
 			// get a list of the event_ids on the server
 			$eventIds = $this->Event->getEventIdsFromServer($this->Server->data);
+			// FIXME this is not clean at all ! needs to be refactored with try catch error handling/communication
 			if ($eventIds === 403) {
 				$this->Session->setFlash(__('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server.'));
 				$this->redirect(array('action' => 'index'));
+			} else if (is_string($eventIds)) {
+				$this->Session->setFlash($eventIds);
+				$this->redirect(array('action' => 'index'));
 			}
+
 			$successes = array();
 			$fails = array();
 			// download each event
@@ -183,7 +188,7 @@ class ServersController extends AppController {
 								// if community only, downgrade to org only after pull
 								$event['Event']['distribution'] = 0;
 								break;
-							case 2: 
+							case 2:
 								// if connected communities downgrade to community only
 								$event['Event']['distribution'] = 1;
 								break;
@@ -208,7 +213,7 @@ class ServersController extends AppController {
 										// if community only, downgrade to org only after pull
 										$event['Event']['Attribute'][$i]['distribution'] = 0;
 										break;
-									case 2: 
+									case 2:
 										// if connected communities downgrade to community only
 										$event['Event']['Attribute'][$i]['distribution'] = 1;
 										break;
