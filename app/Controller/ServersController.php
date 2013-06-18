@@ -167,6 +167,8 @@ class ServersController extends AppController {
 				$this->redirect(array('action' => 'index'));
 			}
 
+			// reverse array of events, to first get the old ones, and then the new ones
+			$eventIds = array_reverse($eventIds);
 			$successes = array();
 			$fails = array();
 			// download each event
@@ -185,12 +187,20 @@ class ServersController extends AppController {
 						// Distribution
 						switch($event['Event']['distribution']) {
 							case 1:
+							case 'This community only': // backwards compatibility
 								// if community only, downgrade to org only after pull
 								$event['Event']['distribution'] = 0;
 								break;
 							case 2:
+							case 'Connected communities': // backwards compatibility
 								// if connected communities downgrade to community only
 								$event['Event']['distribution'] = 1;
+								break;
+							case 'All communities': // backwards compatibility
+								$event['Event']['distribution'] = 3;
+								break;
+							case 'Your organisation only': // backwards compatibility
+								$event['Event']['distribution'] = 0;
 								break;
 						}
 
@@ -210,13 +220,21 @@ class ServersController extends AppController {
 								}
 								switch($event['Event']['Attribute'][$i]['distribution']) {
 									case 1:
+									case 'This community only': // backwards compatibility
 										// if community only, downgrade to org only after pull
 										$event['Event']['Attribute'][$i]['distribution'] = 0;
 										break;
 									case 2:
+									case 'Connected communities': // backwards compatibility
 										// if connected communities downgrade to community only
 										$event['Event']['Attribute'][$i]['distribution'] = 1;
 										break;
+									case 'All communities': // backwards compatibility
+									    $event['Event']['Attribute'][$i]['distribution'] = 3;
+									    break;
+									case 'Your organisation only': // backwards compatibility
+									    $event['Event']['Attribute'][$i]['distribution'] = 0;
+									    break;
 								}
 							}
 							foreach ($toRemove as $thisRemove) {
@@ -256,7 +274,6 @@ class ServersController extends AppController {
 						// error
 						$fails[$eventId] = 'failed';
 					}
-
 				}
 				if (count($fails) > 0) {
 					// there are fails, take the lowest fail
