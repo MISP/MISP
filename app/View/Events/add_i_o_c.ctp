@@ -17,6 +17,7 @@ echo $this->Form->end();
 <div class="actions">
 	<ul class="nav nav-list">
 		<li><a href="/events/view/<?php echo $id;?>">View Event</a></li>
+		<li><a href="/logs/event_index/<?php echo $id;?>">View Event History</a></li>
 		<?php if ($isSiteAdmin || $mayModify): ?>
 		<li><a href="/events/edit/<?php echo $id;?>">Edit Event</a></li>
 		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $id), null, __('Are you sure you want to delete # %s?', $id)); ?></li>

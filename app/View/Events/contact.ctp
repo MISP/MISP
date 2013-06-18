@@ -36,6 +36,7 @@ $mayPublish = ($isAclPublish && $this->request->data['Event']['orgc'] == $me['or
 <div class="actions">
 	<ul class="nav nav-list">
 		<li><a href="/events/view/<?php echo $this->data['Event']['id'];?>">View Event</a></li>
+		<li><a href="/logs/event_index/<?php echo $this->data['Event']['id'];?>">View Event History</a></li>
 		<?php if ($isSiteAdmin || $mayModify): ?>
 		<li><a href="/events/edit/<?php echo $this->data['Event']['id'];?>">Edit Event</a></li>
 		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $this->data['Event']['id']), null, __('Are you sure you want to delete # %s?', $this->data['Event']['id'])); ?></li>
