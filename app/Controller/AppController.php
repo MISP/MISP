@@ -363,4 +363,54 @@ class AppController extends Controller {
 		//}
 		return false;
 	}
+
+
+	public function reportValidationIssuesEvents() {
+		// search for validation problems in the events
+		if (!self::_isAdmin()) throw new NotFoundException();
+		print ("<h2>Listing invalid event validations</h2>");
+		$this->loadModel('Event');
+		// get all events..
+		$events = $this->Event->find('all',array('recursive' => -1));
+		debug($events);
+		// for all events..
+		foreach ($events as $event) {
+		    $this->Event->set($event);
+		    if ($this->Event->validates()) {
+		        // validates
+		    } else {
+		        $errors = $this->Event->validationErrors;
+		        print ("<h3>Validation errors for event: " . $event['Event']['id'] . "</h3><pre>");
+		        print_r($errors);
+		        print ("</pre><p>Event details:</p><pre>");
+		        print_r($event);
+		        print ("</pre><br/>");
+		    }
+		}
+	}
+
+	public function reportValidationIssuesAttributes() {
+		// search for validation problems in the attributes
+		if (!self::_isAdmin()) throw new NotFoundException();
+		print ("<h2>Listing invalid attribute validations</h2>");
+		$this->loadModel('Attribute');
+		// get all attributes..
+		// FIXME fetch attributes by batch of 1000 or so
+		$attributes = $this->Attribute->find('all',array('recursive' => -1));
+		// for all attributes..
+		foreach ($attributes as $attribute) {
+		    $this->Attribute->set($attribute);
+		    if ($this->Attribute->validates()) {
+		        // validates
+		    } else {
+		        $errors = $this->Attribute->validationErrors;
+		        print ("<h3>Validation errors for attribute: " . $attribute['Attribute']['id'] . "</h3><pre>");
+		        print_r($errors);
+		        print ("</pre><p>Attribute details:</p><pre>");
+		        print_r($attribute);
+		        print ("</pre><br/>");
+		    }
+		}
+	}
+
 }
