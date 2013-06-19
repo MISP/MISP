@@ -1,9 +1,9 @@
 <div class="navbar-wrapper">
-	<div class="navbar navbar-inverse">
+	<div class="navbar navbar-inverse navbar-fixed-top">
 		<div class="navbar-inner">
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
-				<ul class="nav" style="position:fixed; width:100%; background:black;">
+				<ul class="nav">
 					<li class="active"><a href="/">home</a></li>
 
 
