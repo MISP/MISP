@@ -370,9 +370,11 @@ class AppController extends Controller {
 		if (!self::_isAdmin()) throw new NotFoundException();
 		print ("<h2>Listing invalid event validations</h2>");
 		$this->loadModel('Event');
+		// first remove executing some Behaviors because of Noud's crappy code
+		$this->Event->Behaviors->detach('Regexp');
+		$this->Event->Behaviors->detach('Blacklist');
 		// get all events..
-		$events = $this->Event->find('all',array('recursive' => -1));
-		debug($events);
+		$events = $this->Event->find('all', array('recursive' => -1));
 		// for all events..
 		foreach ($events as $event) {
 		    $this->Event->set($event);
@@ -390,13 +392,20 @@ class AppController extends Controller {
 	}
 
 	public function reportValidationIssuesAttributes() {
+		// TODO improve performance of this function by eliminating the additional SQL query per attribute
 		// search for validation problems in the attributes
 		if (!self::_isAdmin()) throw new NotFoundException();
 		print ("<h2>Listing invalid attribute validations</h2>");
 		$this->loadModel('Attribute');
+
+		// first remove executing some Behaviors because of Noud's crappy code
+		$this->Attribute->Behaviors->detach('Regexp');
+		$this->Attribute->Behaviors->detach('Blacklist');
+		// for efficiency reasons remove the unique requirement
+		$this->Attribute->validator()->remove('value', 'unique');
+
 		// get all attributes..
-		// FIXME fetch attributes by batch of 1000 or so
-		$attributes = $this->Attribute->find('all',array('recursive' => -1));
+		$attributes = $this->Attribute->find('all', array('recursive' => -1));
 		// for all attributes..
 		foreach ($attributes as $attribute) {
 		    $this->Attribute->set($attribute);
