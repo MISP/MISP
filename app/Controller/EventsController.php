@@ -436,9 +436,6 @@ class EventsController extends AppController {
 		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
 		if ($fromXml) {
-			// FIXME FIXME chri: temporary workaround for unclear org, orgc, from
-			//$data['Event']['orgc'] = $data['Event']['org'];
-			//$data['Event']['from'] = $data['Event']['org'];
 			// Workaround for different structure in XML/array than what CakePHP expects
 			$this->Event->cleanupEventArrayFromXML($data);
 			// the event_id field is not set (normal) so make sure no validation errors are thrown
@@ -1763,13 +1760,6 @@ class EventsController extends AppController {
 			}
 		}
 		return $toReturn;
-	}
-
-	/**
-	 * generateAllFor<FieldName>
-	 **/
-	public function generateAllFor($field) {
-		parent::generateAllFor($field);
 	}
 
 	public function downloadSearchResult() {
