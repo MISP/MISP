@@ -152,9 +152,6 @@ class ServersController extends AppController {
 	public function pull($id = null, $technique=false) {
 		// TODO should we de-activate data validation for type and category / and or mapping? Maybe other instances have other configurations that are incompatible.
 		if (!$this->_IsSiteAdmin() && !($this->Server->organization == $this->Auth->user('org') && $this->checkAction('perm_sync'))) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
-// 		if (!$this->request->is('post')) {
-// 			throw new MethodNotAllowedException();
-// 		}
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
@@ -184,10 +181,8 @@ class ServersController extends AppController {
 			$eventIds = array_reverse($eventIds);
 		} elseif ("incremental" == $technique) {
 		    // TODO incremental pull
-		    // lastpulledid
 		    throw new NotFoundException('Sorry, this is not yet implemented');
 
-		    // increment lastid based on the highest ID seen
 		} elseif (true == $technique) {
 			$eventIds[] = intval($technique);
 		}
