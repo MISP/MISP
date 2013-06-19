@@ -2030,11 +2030,11 @@ class EventsController extends AppController {
 					$final[] = '    	<Indicator operator="AND" id="' . $attribute['uuid'] . '">';
 					$final[] = '          <IndicatorItem id="' . $attribute['uuid'] . '" condition="is">';
 					$final[] = '            <Context document="Network" search="RegistryItem/KeyPath" type="mir" />';
-					$final[] = '            <Content type="string">' . $attribute['value1'] . '</Content>';
+					$final[] = '            <Content type="string">' . h($attribute['value1']) . '</Content>';
 					$final[] = '          </IndicatorItem>';
 					$final[] = '          <IndicatorItem id="' . $attribute['uuid'] . '" condition="is">';
 					$final[] = '            <Context document="Network" search="RegistryItem/Value" type="mir" />';
-					$final[] = '            <Content type="string">' . $attribute['value2'] . '</Content>';
+					$final[] = '            <Content type="string">' . h($attribute['value2']) . '</Content>';
 					$final[] = '          </IndicatorItem>';
 					$final[] = '        </Indicator>';
 					continue;
@@ -2046,83 +2046,83 @@ class EventsController extends AppController {
 				switch ($attribute['type']) {
 					case 'md5':
 						$final[] = '        <Context document="FileItem" search="FileItem/Md5sum" type="mir" />';
-						$final[] = '        <Content type="md5">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="md5">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'sha1':
 						$final[] = '        <Context document="TaskItem" search="TaskItem/sha1sum" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'filename':
 						$final[] = '        <Context document="FileItem" search="FileItem/FileName" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'filename|md5':
 						$final[] = '        <Context document="FileItem" search="FileItem/Md5sum" type="mir" />';
-						$final[] = '        <Content type="md5">' . $attribute['value2'] . '</Content>';
+						$final[] = '        <Content type="md5">' . h($attribute['value2']) . '</Content>';
 						break;
 					case 'filename|sha1':
 						$final[] = '        <Context document="TaskItem" search="TaskItem/sha1sum" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value2'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value2']) . '</Content>';
 						break;
 					case 'ip-src':
 						$final[] = '        <Context document="PortItem" search="PortItem/remoteIP" type="mir" />';
-						$final[] = '        <Content type="IP">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="IP">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'ip-dst':
 						$final[] = '        <Context document="RouteEntryItem" search="RouteEntryItem/Destination" type="mir" />';
-						$final[] = '        <Content type="IP">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="IP">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'hostname':
 						$final[] = '        <Context document="RouteEntryItem" search="RouteEntryItem/Destination" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'domain':
 						$final[] = '        <Context document="SystemInfoItem" search="SystemInfoItem/domain" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'email-src':
 						$final[] = '        <Context document="Email" search="Email/From" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'email-dst':
 						$final[] = '        <Context document="Email" search="Email/To" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'email-subject':
 						$final[] = '        <Context document="Email" search="Email/Subject" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'email-attachment':
 						$final[] = '        <Context document="Email" search="Email/Attachment/Name" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'url':
 						$final[] = '        <Context document="UrlHistoryItem" search="UrlHistoryItem/URL" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'user-agent':
 						$final[] = '        <Context document="Network" search="Network/UserAgent" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'regkey':
 						$final[] = '        <Context document="Network" search="RegistryItem/KeyPath" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'snort':
 						$final[] = '        <Context document="Snort" search="Snort/Snort" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'attachment':
 						$final[] = '        <Context document="FileItem" search="FileItem/FileName" type="mir" />';
-						$final[] = '        <Content type="string">' . $attribute['value'] . '</Content>';
+						$final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 						break;
 					case 'malware-sample':
 						$final[] = '        <Context document="FileItem" search="FileItem/Md5sum" type="mir" />';
-						$final[] = '        <Content type="md5">' . $attribute['value2'] . '</Content>';
+						$final[] = '        <Content type="md5">' . h($attribute['value2']) . '</Content>';
 						break;
 					case 'link':
 						$final[] = '        <Context document="URL" search="UrlHistoryItem/URL" type="mir" />';
-						$final[] = '        <Content type="md5">' . $attribute['value2'] . '</Content>';
+						$final[] = '        <Content type="md5">' . h($attribute['value2']) . '</Content>';
 				}
 				if ($attribute['type'] != 'regkey|value') {
 					$final[] = '      </IndicatorItem>';
