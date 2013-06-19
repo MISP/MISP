@@ -69,21 +69,20 @@ foreach ($attributes as $attribute):
 		<?php echo $attribute['Attribute']['category']; ?>&nbsp;</td>
 		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 		<?php echo $attribute['Attribute']['type']; ?>&nbsp;</td>
-		<td onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
-	<?php
-	$sigDisplay = nl2br(h($attribute['Attribute']['value']));
-	if ($isSearch == 1 && !empty($replacePairs)) {
-		// highlight the keywords if there are any
-		$sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
-	}
-	if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
-		?><a href="/attributes/download/<?php echo $attribute['Attribute']['id'];?>"><?php echo $sigDisplay; ?></a><?php
-	} elseif ('link' == $attribute['Attribute']['type']) {
-		?><a href="<?php echo nl2br(h($attribute['Attribute']['value']));?>"><?php echo $sigDisplay; ?></a><?php
-	} else {
-		echo $sigDisplay;
-	}
-	?>&nbsp;</td>
+		<td class="showspaces" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';"><?php
+			$sigDisplay = nl2br(h($attribute['Attribute']['value']));
+			if ($isSearch == 1 && !empty($replacePairs)) {
+				// highlight the keywords if there are any
+				$sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
+			}
+			if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
+				?><a href="/attributes/download/<?php echo $attribute['Attribute']['id'];?>"><?php echo $sigDisplay; ?></a><?php
+			} elseif ('link' == $attribute['Attribute']['type']) {
+				?><a href="<?php echo nl2br(h($attribute['Attribute']['value']));?>"><?php echo $sigDisplay; ?></a><?php
+			} else {
+				echo $sigDisplay;
+			}
+			?></td>
 		<td class="short" onclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;
 		</td>

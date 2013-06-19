@@ -284,29 +284,9 @@ td.action-links {
 	text-align: right;
 }
 
-/*
-.view_icon{
-		background-position: 0 0;
- }
-.edit_icon{
-		 background-position: -17px 0;
+.showspaces {
+	white-space: pre-wrap;
 }
-.delete_icon{
-		 background-position: -34px 0;
-}
-.tick_icon{
-		width: 16px;
-		height: 16px;
-		display: block;
-		background: url('../img/icons/icons-trans.png') -51px 0 no-repeat;
-}
-.cross_icon{
-		width: 16px;
-		height: 16px;
-		display: block;
-		background: url('../img/icons/icons-trans.png') -67px 0 no-repeat;
-}
-*/
 
 /** Scaffold View **/
 dl {
