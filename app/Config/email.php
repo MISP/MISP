@@ -43,25 +43,20 @@
 class EmailConfig {
 
 	public $default = array(
-		'transport' => 'Smtp',
-		'from' => 'iglocskamisp@gmail.com',
-		'host' => 'ssl://smtp.gmail.com',
-		'port' => 465,
-		'timeout' => 30,
-		'username' => 'iglocskamisp',
-		'password' => 'MISP1234',
-		'client' => null,
-		'log' => false,
+		'transport' => 'Mail',
+		//'from' => 'you@localhost',
+		'charset' => 'utf-8',
+		//'headerCharset' => 'utf-8',
 	);
 
 	public $smtp = array(
 		'transport' => 'Smtp',
-		'from' => 'iglocskamisp@gmail.com',
-		'host' => 'ssl://smtp.gmail.com',
-		'port' => 465,
+		'from' => array('site@localhost' => 'My Site'),
+		'host' => 'localhost',
+		'port' => 25,
 		'timeout' => 30,
-		'username' => 'iglocskamisp',
-		'password' => 'MISP1234',
+		'username' => 'user',
+		'password' => 'secret',
 		'client' => null,
 		'log' => false,
 		//'charset' => 'utf-8',
