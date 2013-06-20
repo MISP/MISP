@@ -44,7 +44,6 @@ ALTER TABLE `events` DROP `dist_change`;
 ALTER TABLE `events` DROP `private`;
 ALTER TABLE `events` DROP `cluster`;
 ALTER TABLE `events` DROP `communitie`;
-ALTER TABLE `events` DROP `revision`;
 ALTER TABLE `events` DROP `hop_count`;
 
 -- --------------------------------------------------------
