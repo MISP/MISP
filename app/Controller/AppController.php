@@ -367,7 +367,7 @@ class AppController extends Controller {
 
 	public function reportValidationIssuesEvents() {
 		// search for validation problems in the events
-		if (!self::_isAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		print ("<h2>Listing invalid event validations</h2>");
 		$this->loadModel('Event');
 		// first remove executing some Behaviors because of Noud's crappy code
@@ -394,7 +394,7 @@ class AppController extends Controller {
 	public function reportValidationIssuesAttributes() {
 		// TODO improve performance of this function by eliminating the additional SQL query per attribute
 		// search for validation problems in the attributes
-		if (!self::_isAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		print ("<h2>Listing invalid attribute validations</h2>");
 		$this->loadModel('Attribute');
 
