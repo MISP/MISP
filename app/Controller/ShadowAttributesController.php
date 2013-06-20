@@ -12,7 +12,7 @@ App::uses('File', 'Utility');
  */
 class ShadowAttributesController extends AppController {
 
-	public $components = array('Acl', 'Security', 'RequestHandler');
+	public $components = array('Acl', 'Security', 'RequestHandler', 'Email');
 
 	public $paginate = array(
 			'limit' => 60,
@@ -41,7 +41,7 @@ class ShadowAttributesController extends AppController {
 		}
 
 		// if not admin or own org, check private as well..
-		if (!$this->_IsSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$this->paginate = Set::merge($this->paginate,array(
 			'conditions' =>
 					array('OR' =>
@@ -79,7 +79,7 @@ class ShadowAttributesController extends AppController {
 			$activeAttribute = $this->Attribute->findByUuid($this->ShadowAttribute->data['ShadowAttribute']['uuid']);
 
 			// Send those away that shouldn't be able to see this
-			if (!$this->_IsSiteAdmin()) {
+			if (!$this->_isSiteAdmin()) {
 				if (($activeAttribute['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org']) || (!$this->checkAcl('edit') || !$this->checkAcl('publish'))) {
 					$this->Session->setFlash(__('Invalid attribute.'));
 					$this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -96,9 +96,12 @@ class ShadowAttributesController extends AppController {
 			$this->ShadowAttribute->delete($id, $cascade = false);
 			$this->loadModel('Event');
 			$this->Event->recursive = -1;
-			$this->Event->id = $activeAttribute['Attribute']['event_id'];
-			// Unpublish the event, accepting a proposal is modifying the event after all
-			$this->Event->saveField('published', 0);
+			// Unpublish the event, accepting a proposal is modifying the event after all. Also, reset the lock.
+			$event = $this->Event->read(null, $activeAttribute['Attribute']['event_id']);
+			$fieldList = array('proposal_email_lock', 'id', 'info', 'published');
+			$event['Event']['proposal_email_lock'] = 0;
+			$event['Event']['published'] = 0;
+			$this->Event->save($event, array('fieldList' => $fieldList));
 			$this->Session->setFlash(__('Proposed change accepted', true), 'default', array());
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $activeAttribute['Attribute']['event_id']));
 			return;
@@ -110,13 +113,13 @@ class ShadowAttributesController extends AppController {
 
 			// Stuff that we won't use in its current form for the attribute
 			unset($shadow['email'], $shadow['org'], $shadow['id'], $shadow['old_id']);
+			$this->loadModel('Event');
 			$this->Event->recursive = -1;
-			$this->Event->read(null, $shadow['event_id']);
-			$event = $this->Event->data['Event'];
+			$event = $this->Event->read(null, $shadow['event_id']);
 			$attribute = $shadow;
 
 			// set the distribution equal to that of the event
-			$attribute['distribution'] = $event['distribution'];
+			$attribute['distribution'] = $event['Event']['distribution'];
 			$this->Attribute->create();
 			$this->Attribute->save($attribute);
 			if ($this->ShadowAttribute->typeIsAttachment($shadow['type'])) {
@@ -124,10 +127,12 @@ class ShadowAttributesController extends AppController {
 			}
 			$this->ShadowAttribute->delete($toDeleteId, $cascade = false);
 
-			// unpublish the event, since adding an attribute modified it
-			$this->Event->saveField('published', 0);
+			$fieldList = array('proposal_email_lock', 'id', 'info', 'published');
+			$event['Event']['proposal_email_lock'] = 0;
+			$event['Event']['published'] = 0;
+			$this->Event->save($event, array('fieldList' => $fieldList));
 			$this->Session->setFlash(__('Proposed attribute accepted', true), 'default', array());
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $event['id']));
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $shadow['event_id']));
 		}
 	}
 
@@ -162,7 +167,7 @@ class ShadowAttributesController extends AppController {
 		$this->Event->id = $eventId;
 		$this->Event->read();
 		// Send those away that shouldn't be able to see this
-		if (!$this->_IsSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			if (($this->Event->data['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org']) && (!$this->checkAction('perm_modify') || !$this->checkAction('perm_publish'))) {
 				$this->Session->setFlash(__('Invalid attribute.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -182,7 +187,6 @@ class ShadowAttributesController extends AppController {
  */
 	public function add($eventId = null) {
 		if ($this->request->is('post')) {
-			$this->loadModel('Event');
 
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
 			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
@@ -231,6 +235,7 @@ class ShadowAttributesController extends AppController {
 				if ($successes) {
 					// list the ones that succeeded
 					$this->Session->setFlash(__('The lines' . $successes . ' have been saved', true));
+					$this->_setProposalLock($eventId, 1);
 				}
 
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
@@ -249,8 +254,9 @@ class ShadowAttributesController extends AppController {
 				$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 				$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
 				if ($this->ShadowAttribute->save($this->request->data)) {
+					$this->_setProposalLock($eventId, 1);
 					// inform the user and redirect
-					$this->Session->setFlash(__('The attribute has been saved'));
+					$this->Session->setFlash(__('The proposal has been saved'));
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
 				} else {
 					if (!CakeSession::read('Message.flash')) {
@@ -360,7 +366,7 @@ class ShadowAttributesController extends AppController {
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 			$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
 			if ($this->ShadowAttribute->save($this->request->data)) {
-				// ShadowAttribute saved correctly in the db
+				$this->_setProposalLock($eventId, 1);
 			} else {
 				$this->Session->setFlash(__('The ShadowAttribute could not be saved. Did you already upload this file?'));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
@@ -478,7 +484,7 @@ class ShadowAttributesController extends AppController {
 			throw new Exception ('Proposing a change to an attribute can only be done via the interactive interface.');
 		}
 		$uuid = $this->Attribute->data['Attribute']['uuid'];
-		if (!$this->_IsSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			if (($this->Attribute->data['Attribute']['distribution'] == 0) || ($this->Attribute->data['Event']['org'] == $this->Auth->user('org'))) {
 				$this->Session->setFlash(__('Invalid Attribute.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -506,6 +512,7 @@ class ShadowAttributesController extends AppController {
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'value', 'org');
 			if ($this->ShadowAttribute->save($this->request->data)) {
+				$this->_setProposalLock($this->request->data['ShadowAttribute']['event_id'], 1);
 				$this->Session->setFlash(__('The proposed Attribute has been saved'));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 			} else {
@@ -534,5 +541,111 @@ class ShadowAttributesController extends AppController {
 		$this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
+	}
+	private function _setProposalLock($id, $setting) {
+		// This method is used to change the proposalLock to the opposite of the passed argument setting if the current setting doesn't match and save the event
+		$this->loadModel('Event');
+		$this->Event->recursive = -1;
+		$event = $this->Event->read(null, $id);
+		if ($setting == 1) {
+			if ($event['Event']['proposal_email_lock'] == 0) {
+				$fieldList = array('proposal_email_lock', 'id', 'info');
+				$event['Event']['proposal_email_lock'] = 1;
+				$this->Event->save($event, array('fieldList' => $fieldList));
+				$this->__sendProposalAlertEmail($id);
+			}
+		} else {
+			if ($event['Event']['proposal_email_lock'] == 1) {
+				$fieldList = array('proposal_email_lock', 'id', 'info');
+				$event['Event']['proposal_email_lock'] = 0;
+				$this->Event->save($event, array('fieldList' => $fieldList));
+			}
+		}
+	}
+	private function __sendProposalAlertEmail($id) {
+		$this->loadModel('Event');
+		$this->Event->recursive = -1;
+		$event = $this->Event->read(null, $id);
+		$this->loadModel('User');
+		$this->User->recursive = -1;
+		$orgMembers = array();
+		$temp = $this->User->findAllByOrg($event['Event']['orgc'], array('email', 'gpgkey', 'contactalert', 'id'));
+		foreach ($temp as $tempElement) {
+			if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
+				array_push($orgMembers, $tempElement);
+			}
+		}
+		$body = "";
+		$body .= "Hello, \n";
+		$body .= "\n";
+		$body .= "A user of another organisation has proposed a change to an event created by you or your organisations. \n";
+		$body .= "\n";
+		$body .= "To view the event in question, follow this link:";
+		$body .= ' ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $id . "\n";
+		$body .= "\n";
+		$body .= "You can reach the user at " . $this->Auth->user('email');
+		$body .= "\n";
+
+		// sign the body
+		require_once 'Crypt/GPG.php';
+		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
+		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+		$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+		// Add the GPG key of the user as attachment
+		// LATER sign the attached GPG key
+		if (null != ($this->Auth->user('gpgkey'))) {
+			// save the gpg key to a temporary file
+			$tmpfname = tempnam(TMP, "GPGkey");
+			$handle = fopen($tmpfname, "w");
+			fwrite($handle, $this->Auth->user('gpgkey'));
+			fclose($handle);
+			// attach it
+			$this->Email->attachments = array(
+					'gpgkey.asc' => $tmpfname
+			);
+		}
+
+		foreach ($orgMembers as &$reporter) {
+			if (!empty($reporter['User']['gpgkey'])) {
+				// import the key of the user into the keyring
+				// this isn't really necessary, but it gives it the fingerprint necessary for the next step
+				$keyImportOutput = $gpg->importKey($reporter['User']['gpgkey']);
+				// say what key should be used to encrypt
+				try {
+					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
+					$bodyEncSig = $gpg->encrypt($bodySigned, true);
+				} catch (Exception $e){
+					// catch errors like expired PGP keys
+					$this->log($e->getMessage());
+					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
+				}
+			} else {
+				$bodyEncSig = $bodySigned;
+				// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
+			}
+
+			// prepare the email
+			$this->Email->from = Configure::read('CyDefSIG.email');
+			$this->Email->to = $reporter['User']['email'];
+			$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Proposal to event #" . $id;
+			$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
+			$this->Email->template = 'body';
+			$this->Email->sendAs = 'text';		// both text or html
+			$this->set('body', $bodyEncSig);
+			// Add the GPG key of the user as attachment
+			// LATER sign the attached GPG key
+			if (null != ($this->Auth->user('gpgkey'))) {
+				// attach the gpg key
+				$this->Email->attachments = array(
+					'gpgkey.asc' => $tmpfname
+				);
+			}
+			// send it
+			$result = $this->Email->send();
+			// If you wish to send multiple emails using a loop, you'll need
+			// to reset the email fields using the reset method of the Email component.
+			$this->Email->reset();
+		}
 	}
 }

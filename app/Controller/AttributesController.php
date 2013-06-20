@@ -44,7 +44,7 @@ class AttributesController extends AppController {
 
 	// do not show private to other orgs
 		// if not admin or own org, check private as well..
-		if (!$this->_IsSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$this->paginate = Set::merge($this->paginate,array(
 			'conditions' =>
 					array('OR' =>
@@ -459,7 +459,7 @@ class AttributesController extends AppController {
 		if (!$this->_isRest()) {
 			$uuid = $this->Attribute->data['Attribute']['uuid'];
 		}
-		if (!$this->_IsSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			// check for non-private and re-read
 			if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAction('prem_modify') || !$this->checkRole() || !$this->checkAction('perm_publish')))) {
 				$this->Session->setFlash(__('Invalid attribute.'));
@@ -716,7 +716,7 @@ class AttributesController extends AppController {
 					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
 					'conditions' => $conditions
 				);
-				if (!$this->_IsSiteAdmin()) {
+				if (!$this->_isSiteAdmin()) {
 					// merge in private conditions
 					$this->paginate = Set::merge($this->paginate, array(
 						'conditions' =>

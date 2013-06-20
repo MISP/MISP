@@ -1,5 +1,5 @@
 <div class="navbar-wrapper">
-	<div class="navbar navbar-inverse navbar-fixed-top">
+	<div class="navbar navbar-inverse">
 		<div class="navbar-inner">
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">

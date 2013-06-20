@@ -44,7 +44,6 @@ class EventsController extends AppController {
 		$this->Auth->allow('hids_md5');
 		$this->Auth->allow('hids_sha1');
 		$this->Auth->allow('text');
-
 		$this->Auth->allow('dot');
 
 		// TODO Audit, activate logable in a Controller
@@ -1161,7 +1160,7 @@ class EventsController extends AppController {
 
 		// Add the GPG key of the user as attachment
 		// LATER sign the attached GPG key
-		if (!empty($meUser['gpgkey'])) {
+		if ($this->Auth->user('gpgkey') != null) {
 			// save the gpg key to a temporary file
 			$tmpfname = tempnam(TMP, "GPGkey");
 			$handle = fopen($tmpfname, "w");
@@ -1204,7 +1203,7 @@ class EventsController extends AppController {
 			$this->set('body', $bodyEncSig);
 			// Add the GPG key of the user as attachment
 			// LATER sign the attached GPG key
-			if (!empty($meUser['gpgkey'])) {
+			if ($this->Auth->user('gpgkey') != null) {
 				// attach the gpg key
 				$this->Email->attachments = array(
 						'gpgkey.asc' => $tmpfname
@@ -1218,7 +1217,7 @@ class EventsController extends AppController {
 		}
 
 		// remove the temporary gpg file
-		if (!empty($meUser['gpgkey']))
+		if ($this->Auth->user('gpgkey') != null)
 			unlink($tmpfname);
 
 		return $result;
