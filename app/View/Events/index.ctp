@@ -3,6 +3,7 @@
 <?php if(empty($this->passedArgs['searchorg'])) $this->passedArgs['searchorg'] = '';?>
 <?php if(empty($this->passedArgs['searchDatefrom'])) $this->passedArgs['searchDatefrom'] = '';?>
 <?php if(empty($this->passedArgs['searchDateuntil'])) $this->passedArgs['searchDateuntil'] = '';?>
+<?php if(empty($this->passedArgs['searchpublished'])) $this->passedArgs['searchpublished'] = '2';?>
 <div class="events index">
 	<h2>Events</h2>
 	<div class="pagination">
@@ -21,7 +22,6 @@
         </ul>
     </div>
 	<?php
-	echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
 	// Let's output a small label of each filter
 	$count = 0;
 	?>
@@ -67,7 +67,6 @@
 			?>
 		</tr>
 	</table>
-	<input type="submit" style="visibility:collapse;" />
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th class="filter">
@@ -76,6 +75,12 @@
 				<span id="searchpublished"><br/>
 					<?php
 					// on change jquery will submit the form
+					echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
+					echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden'));
+					echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'type' => 'hidden'));
+					echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden'));
+					echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden'));
+					echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden'));
 					echo $this->Form->input('searchpublished', array(
 							'options' => array('0' => 'No', '1' => 'Yes', '2' => 'Any'),
 							'default' => 2,
@@ -83,6 +88,10 @@
 							'class' => 'input-mini',
 							'onchange' => "$('#EventIndexForm').submit()"
 							));
+					?>
+						<input type="submit" style="visibility:collapse;" />
+					<?php 
+						echo $this->Form->end();
 					?>
 				</span>
 			</th>
@@ -96,10 +105,20 @@
 				<a onclick="toggleField('#searchorg')" class="icon-search"></a>
 				<span id="searchorg"><br/>
 				<?php
-					echo $this->Form->input('searchorg', array(
-							'value' => $this->passedArgs['searchorg'],
-							'label' => '',
-							'class' => 'input-mini'));
+				echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
+				echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'type' => 'hidden'));
+				echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden'));
+				echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden'));
+				echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden'));
+				echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden'));
+				echo $this->Form->input('searchorg', array(
+					'value' => $this->passedArgs['searchorg'],
+					'label' => '',
+					'class' => 'input-mini'));
+				?>
+					<input type="submit" style="visibility:collapse;" />
+				<?php 
+					echo $this->Form->end();
 				?>
 				</span>
 			</th>
@@ -113,10 +132,20 @@
 				<a onclick="toggleField('#searchorgc')" class="icon-search"></a>
 				<span id="searchorgc"><br/>
 				<?php
-					echo $this->Form->input('searchorgc', array(
-							'value' => $this->passedArgs['searchorgc'],
-							'label' => '',
-							'class' => 'input-mini'));
+				echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
+				echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden'));
+				echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden'));
+				echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden'));
+				echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden'));
+				echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden'));
+				echo $this->Form->input('searchorgc', array(
+					'value' => $this->passedArgs['searchorgc'],
+					'label' => '',
+					'class' => 'input-mini'));
+				?>
+					<input type="submit" style="visibility:collapse;" />
+				<?php 
+					echo $this->Form->end();
 				?>
 				</span>
 			</th>
@@ -132,6 +161,11 @@
 				<br/>
 				<div id="searchdate" class="input-append input-prepend">
 							<?php
+							echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
+							echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden'));
+							echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'type' => 'hidden'));
+							echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden'));
+							echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden'));
 							echo $this->Form->input('searchDatefrom', array(
 									'value' => $this->passedArgs['searchDatefrom'],
 									'label' => false,
@@ -148,6 +182,10 @@
 									'div' => false
 									));
 							?>
+								<input type="submit" style="visibility:collapse;" />
+							<?php 
+								echo $this->Form->end();
+							?>
 				</div>
 			</th>
 			<th title="<?php echo $eventDescriptions['risk']['desc'];?>">
@@ -161,10 +199,20 @@
 				<a onclick="toggleField('#searchinfo')" class="icon-search"></a>
 				<span id="searchinfo"><br/>
 				<?php
+					echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
+					echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden'));
+					echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'type' => 'hidden'));
+					echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden'));
+					echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden'));
+					echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden'));
 					echo $this->Form->input('searchinfo', array(
 							'value' => $this->passedArgs['searchinfo'],
 							'label' => '',
 							'class' => 'input-large'));
+				?>
+					<input type="submit" style="visibility:collapse;" />
+				<?php 
+					echo $this->Form->end();
 				?>
 				</span>
 			</th>
@@ -176,9 +224,6 @@
 			<th class="actions">Actions</th>
 
 		</tr>
-		<?php
-		echo $this->Form->end();
-		?>
 		<?php foreach ($events as $event):?>
 		<tr>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
