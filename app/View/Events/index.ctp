@@ -262,7 +262,7 @@
 			</td>
 			<?php if ($isAdmin): ?>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
-				<?php if($isSiteAdmin || $event['Event']['org'] == $me['org']) echo h($event['User']['email']); ?>&nbsp;
+				<?php if($isSiteAdmin || $event['Event']['orgc'] == $me['org']) echo h($event['User']['email']); ?>&nbsp;
 			</td>
 			<?php endif; ?>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">

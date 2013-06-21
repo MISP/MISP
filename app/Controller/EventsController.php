@@ -1289,8 +1289,8 @@ class EventsController extends AppController {
 			array_push($temp2, array('OR' => $distribution2));
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
-			$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 		}
+		$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
