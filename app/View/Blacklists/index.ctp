@@ -24,7 +24,7 @@
 foreach ($list as $item):?>
 	<tr>
 		<td class="short"><?php echo h($item['Blacklist']['id']);?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Blacklist']['name']);?>&nbsp;</td>
+		<td><?php echo h($item['Blacklist']['name']);?>&nbsp;</td>
 	</tr><?php
 endforeach;?>
 	</table>

@@ -44,25 +44,19 @@ class AttributesController extends AppController {
 
 	// do not show private to other orgs
 		// if not admin or own org, check private as well..
-		if (!$this->_IsSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			$this->paginate = Set::merge($this->paginate,array(
 			'conditions' =>
 					array('OR' =>
 							array(
 								'Event.org =' => $this->Auth->user('org'),
 								'AND' => array(
-									array('OR' => array(
-											array('Attribute.private !=' => 1),
-											array('Attribute.cluster =' => 1),
-										)),
-									array('OR' => array(
-											array('Event.private !=' => 1),
-											array('Event.cluster =' => 1),
-										)),
+										'Attribute.distribution >' => 0,
+										'Event.distribution >' => 0,
 			)))));
 		}
 
-
+/* We want to show this outside now as discussed with Christophe. Still not pushable, but anything should be pullable that's visible
 		// do not show cluster outside server
 		if ($this->_isRest()) {
 				$this->paginate = Set::merge($this->paginate,array(
@@ -71,6 +65,7 @@ class AttributesController extends AppController {
 						//array("AND" => array(array('Event.private !=' => 2))),
 				));
 		}
+		*/
 	}
 
 /**
@@ -90,7 +85,6 @@ class AttributesController extends AppController {
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
-
 /**
  * add method
  *
@@ -101,7 +95,7 @@ class AttributesController extends AppController {
 	public function add($eventId = null) {
 		if ($this->request->is('post')) {
 			$this->loadModel('Event');
-
+			$date = new DateTime();
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
 			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
 			if (isset($this->request->data['Attribute']['type']) && $this->Attribute->typeIsAttachment($this->request->data['Attribute']['type'])) {
@@ -110,8 +104,11 @@ class AttributesController extends AppController {
 			}
 
 			// remove the published flag from the event
-			$this->Event->id = $this->request->data['Attribute']['event_id'];
-			$this->Event->saveField('published', 0);
+			$this->Event->recursive = -1;
+			$this->Event->read(null, $this->request->data['Attribute']['event_id']);
+			$this->Event->set('timestamp', $date->getTimestamp());
+			$this->Event->set('published', 0);
+			$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
 
 			//
 			// multiple attributes in batch import
@@ -162,16 +159,26 @@ class AttributesController extends AppController {
 
 			} else {
 				if (isset($this->request->data['Attribute']['uuid'])) {	// TODO here we should start RESTful dialog
-					// check if the uuid already exists
-					$existingAttributeCount = $this->Attribute->find('count', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
-					if ($existingAttributeCount > 0) {
+					// check if the uuid already exists and also save the existing attribute for further checks
+					$existingAttribute = null;
+					$existingAttribute = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
+					//$existingAttributeCount = $this->Attribute->find('count', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
+					if ($existingAttribute) {
 						// TODO RESTfull, set responce location header..so client can find right URL to edit
-						$existingAttribute = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
 						$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/attributes/' . $existingAttribute['Attribute']['id']);
 						$this->response->send();
 						$this->view($this->Attribute->getId());
 						$this->render('view');
 						return false;
+					} else {
+						// if the attribute doesn't exist yet, check whether it has a timestamp - if yes, it's from a push, keep the timestamp we had, if no create a timestamp
+						if (!isset($this->request->data['Attribute']['timestamp'])) {
+							$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
+						}
+					}
+				} else {
+					if (!isset($this->request->data['Attribute']['timestamp'])) {
+						$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
 					}
 				}
 
@@ -181,8 +188,6 @@ class AttributesController extends AppController {
 				// create the attribute
 				$this->Attribute->create();
 
-				// Notice (8): Undefined index: id [APP/Controller/AttributesController.php, line 234]
-				// Should be fixed
 				$savedId = $this->Attribute->getId();
 
 				if ($this->Attribute->save($this->request->data)) {
@@ -223,22 +228,9 @@ class AttributesController extends AppController {
 		$this->set('categories', compact('categories'));
 		$this->loadModel('Event');
 		$events = $this->Event->findById($eventId);
-		$maxDist = $events['Event']['distribution'];
-		$this->set('maxDist', $maxDist);
 		// combobox for distribution
-		$count = 0;
-		$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
-		if (isset($maxDist)) {
-			foreach ($distributionsBeforeCut as $current) {
-				$distributions[$count] = $current;
-				if ($distributions[$count] == $maxDist) break;
-				$count++;
-			}
-		} else {
-			$distributions = array_keys($this->Attribute->distributionDescriptions);
-		}
-		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions', $distributions);
+		$this->set('distributionLevels', $this->Attribute->distributionLevels);
+		$this->set('currentDist', $events['Event']['distribution']);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 
@@ -273,7 +265,7 @@ class AttributesController extends AppController {
 		$this->viewClass = 'Media';
 		$params = array(
 					'id'		=> $file,
-					'name'		=> $filename,
+					'name'		=> $filename.".".$fileExt,
 					'extension' => $fileExt,
 					'download'	=> true,
 					'path'		=> $path
@@ -288,6 +280,9 @@ class AttributesController extends AppController {
  * @throws InternalErrorException
  */
 	public function add_attachment($eventId = null) {
+		$sha256 = null;
+		$sha1 = null;
+		//$ssdeep = null;
 		if ($this->request->is('post')) {
 			$this->loadModel('Event');
 			// Check if there were problems with the file upload
@@ -314,6 +309,8 @@ class AttributesController extends AppController {
 				// Validate filename
 				if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
 				$this->request->data['Attribute']['value'] = $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
+				$sha256 = (hash_file('sha256', $tmpfile->path));
+				$sha1 = (hash_file('sha1', $tmpfile->path));
 				$this->request->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
 			} else {
 				$this->request->data['Attribute']['type'] = "attachment";
@@ -383,6 +380,19 @@ class AttributesController extends AppController {
 				$fileInZip->delete();	// delete the original not-zipped-file
 				rename($zipfile->path, $file->path); // rename the .zip to .nothing
 			}
+			if ($this->request->data['Attribute']['malware']) {
+				$temp = $this->request->data;
+				$this->Attribute->create();
+				$temp['Attribute']['type'] = 'filename|sha256';
+				$temp['Attribute']['value'] = $filename . '|' .$sha256;
+				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids')));
+				$this->Attribute->create();
+				$temp['Attribute']['type'] = 'filename|sha1';
+				$temp['Attribute']['value'] = $filename . '|' .$sha1;
+				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids')));
+			}
+
+
 
 			// everything is done, now redirect to event view
 			$this->Session->setFlash(__('The attachment has been uploaded'));
@@ -393,8 +403,7 @@ class AttributesController extends AppController {
 			$this->request->data['Attribute']['event_id'] = $eventId;
 			$this->loadModel('Event');
 			$events = $this->Event->findById($eventId);
-			$maxDist = $events['Event']['distribution'];
-			$this->set('maxDist', $maxDist);
+			$this->set('currentDist', $events['Event']['distribution']);
 		}
 
 		// combobos for categories
@@ -426,21 +435,10 @@ class AttributesController extends AppController {
 		$this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
 
 		// combobox for distribution
-		if (isset($maxDist)) {
-			$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
-			$count = 0;
-			foreach ($distributionsBeforeCut as $current) {
-				$distributions[$count] = $current;
-				if ($distributions[$count] == $maxDist)break;
-				$count++;
-			}
-		} else {
-			$distributions = array_keys($this->Attribute->distributionDescriptions);
-		}
-		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions', $distributions);
-		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
+		$events = $this->Event->findById($eventId);
+		$this->set('currentDist', $events['Event']['distribution']);
 	}
 
 /**
@@ -452,6 +450,7 @@ class AttributesController extends AppController {
  */
 	public function edit($id = null) {
 		$this->Attribute->id = $id;
+		$date = new DateTime();
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
@@ -460,7 +459,7 @@ class AttributesController extends AppController {
 		if (!$this->_isRest()) {
 			$uuid = $this->Attribute->data['Attribute']['uuid'];
 		}
-		if (!$this->_IsSiteAdmin()) {
+		if (!$this->_isSiteAdmin()) {
 			// check for non-private and re-read
 			if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAction('prem_modify') || !$this->checkRole() || !$this->checkAction('perm_publish')))) {
 				$this->Session->setFlash(__('Invalid attribute.'));
@@ -492,30 +491,31 @@ class AttributesController extends AppController {
 			if (count($existingAttribute)) {
 				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
 			}
-
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster', 'value');
+			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
+			if (isset($this->request->data['Attribute']['timestamp'])) {
+				// check which attribute is newer
+				if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+					// carry on with adding this attribute - Don't forget! if orgc!=user org, create shadow attribute, not attribute!
+				} else {
+					// the old one is newer or the same, replace the request's attribute with the old one
+					$this->request->data['Attribute'] = $existingAttribute['Attribute'];
+				}
+			} else {
+				$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
+			}
+			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster', 'value', 'timestamp');
 
 			$this->loadModel('Event');
 			$this->Event->id = $eventId;
 
 			// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
 			$this->Event->read();
-			if (!$this->_isRest()) {
-				$canEditDist = false;
-				if ($this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
-					$this->set('canEditDist', true);
-					$canEditDist = true;
-				} else {
-					$this->set('canEditDist', false);
-				}
-				if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] != $existingAttribute['Attribute']['distribution']) {
-					$this->request->data['Attribute']['dist_change'] = 1 + $existingAttribute['Attribute']['dist_change'];
-				}
-			}
 			if ($this->Attribute->save($this->request->data)) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 				// remove the published flag from the event
-				$this->Event->saveField('published', 0);
+				$this->Event->set('timestamp', $date->getTimestamp());
+				$this->Event->set('published', 0);
+				$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
 
 				if ($this->_isRest()) {
 					// REST users want to see the newly created event
@@ -534,20 +534,12 @@ class AttributesController extends AppController {
 		} else {
 			$this->request->data = $this->Attribute->read(null, $id);
 		}
-
 		$this->set('attribute', $this->request->data);
 
 		// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
 		$this->loadModel('Event');
 		$this->Event->id = $eventId;
 		$this->Event->read();
-		$canEditDist = false;
-		if ($this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
-			$this->set('canEditDist', true);
-			$canEditDist = true;
-		} else {
-			$this->set('canEditDist', false);
-		}
 		// needed for RBAC
 		// combobox for types
 		$types = array_keys($this->Attribute->typeDefinitions);
@@ -558,30 +550,11 @@ class AttributesController extends AppController {
 		array_pop($categories); // remove that last empty/space option
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', $categories);
-
-		if ($canEditDist) {
-			$this->loadModel('Event');
-			$events = $this->Event->findById($eventId);
-			$maxDist = $events['Event']['distribution'];
-			$this->set('maxDist', $maxDist);
-			// combobox for distribution
-			if (isset($maxDist)) {
-				$distributionsBeforeCut = array_keys($this->Attribute->distributionDescriptions);
-				$count = 0;
-				foreach ($distributionsBeforeCut as $current) {
-					$distributions[$count] = $current;
-					if ($distributions[$count] == $maxDist)break;
-					$count++;
-				}
-			} else {
-				$distributions = array_keys($this->Attribute->distributionDescriptions);
-			}
-			$distributions = $this->_arrayToValuesIndexArray($distributions);
-			$this->set('distributions', $distributions);
-			// tooltip for distribution
-			$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
-		}
-
+		$this->set('currentDist', $this->Event->data['Event']['distribution']);
+		// combobox for distribution
+		$this->set('distributionLevels', $this->Attribute->distributionLevels);
+		// tooltip for distribution
+		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
@@ -671,6 +644,7 @@ class AttributesController extends AppController {
 				$this->set('keywordSearch', $keyword);
 				$keyWordText = null;
 				$keyWordText2 = null;
+				$keyWordText3 = null;
 				$this->set('typeSearch', $type);
 				$this->set('isSearch', 1);
 				$this->set('categorySearch', $category);
@@ -683,10 +657,17 @@ class AttributesController extends AppController {
 					$this->set('keywordArray', $keywordArray);
 					$i = 1;
 					$temp = array();
+					$temp2 = array();
 					foreach ($keywordArray as $keywordArrayElement) {
 						$saveWord = trim($keywordArrayElement);
 						$keywordArrayElement = '%' . trim($keywordArrayElement) . '%';
-						if ($keywordArrayElement != '%%') array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+						if ($keywordArrayElement != '%%') {
+							if ($keywordArrayElement[1] == '!') {
+								array_push($temp2, array('Attribute.value NOT LIKE' => '%' . substr($keywordArrayElement, 2)));
+							} else {
+								array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+							}
+						}
 						if ($i == 1 && $saveWord != '') $keyWordText = $saveWord;
 						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText = $keyWordText . ', ' . $saveWord;
 						else if ($i == 10 && $saveWord != '') $keyWordText = $keyWordText . ' and several other keywords';
@@ -694,12 +675,12 @@ class AttributesController extends AppController {
 					}
 					$this->set('keywordSearch', $keyWordText);
 					if (!empty($temp)) {
-						if (count($temp) == 1) {
-							$conditions['Attribute.value LIKE'] = '%' . $keyWordText . '%';
-						} else {
-							$conditions['OR'] = $temp;
-						}
+						$conditions['AND']['OR'] = $temp;
 					}
+					if (!empty($temp2)) {
+						$conditions['AND'][] = $temp2;
+					}
+
 				}
 
 				// event IDs to be excluded
@@ -709,8 +690,12 @@ class AttributesController extends AppController {
 					$temp = array();
 					foreach ($keywordArray2 as $keywordArrayElement) {
 						$saveWord = trim($keywordArrayElement);
-						if (!is_numeric($saveWord) || $saveWord < 1) continue;
-						array_push($temp, array('Attribute.event_id !=' => $keywordArrayElement));
+						if (empty($saveWord)) continue;
+						if ($saveWord[0] == '!') {
+							$temp[] = array('Attribute.event_id !=' => substr($saveWord, 1));
+						} else {
+							$temp['OR'][] = array('Attribute.event_id =' => $saveWord);
+						}
 						if ($i == 1 && $saveWord != '') $keyWordText2 = $saveWord;
 						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText2 = $keyWordText2 . ', ' . $saveWord;
 						else if ($i == 10 && $saveWord != '') $keyWordText2 = $keyWordText2 . ' and several other events';
@@ -718,11 +703,7 @@ class AttributesController extends AppController {
 					}
 					$this->set('keywordSearch2', $keyWordText2);
 					if (!empty($temp)) {
-						if (count($temp) == 1) {
-							$conditions['Attribute.event_id !='] = $keyWordText2;
-						} else {
-							$conditions['AND'] = $temp;
-						}
+						$conditions['AND'][] = $temp;
 					}
 				}
 				if ($type != 'ALL') {
@@ -732,10 +713,27 @@ class AttributesController extends AppController {
 					$conditions['Attribute.category ='] = $category;
 				}
 				// organisation search field
-				if (isset($org) && $org != '') {
-					$org = trim($org);
-					$this->set('orgSearch', $org);
-					$conditions['Event.orgc ='] = $org;
+				$i = 0;
+				$temp = array();
+				if (isset($org)) {
+					$orgArray = explode("\n", $org);
+					foreach ($orgArray as $orgArrayElement) {
+						$saveWord = trim($orgArrayElement);
+						if (empty($saveWord)) continue;
+						if ($saveWord[0] == '!') {
+							$temp[] = array('Event.orgc NOT LIKE ' => '%' . substr($saveWord, 1) . '%');
+						} else {
+							$temp['OR'][] = array('Event.orgc LIKE ' => '%' . $saveWord . '%');
+						}
+					}
+					if ($i == 1 && $saveWord != '') $keyWordText3 = $saveWord;
+					else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText3 = $keyWordText3 . ', ' . $saveWord;
+					else if ($i == 10 && $saveWord != '') $keyWordText3 = $keyWordText3 . ' and several other organisations';
+					$i++;
+					$this->set('orgSearch', $keyWordText3);
+					if (!empty($temp)) {
+						$conditions['AND'][] = $temp;
+					}
 				}
 				$this->Attribute->recursive = 0;
 				$this->paginate = array(
@@ -743,13 +741,13 @@ class AttributesController extends AppController {
 					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
 					'conditions' => $conditions
 				);
-				if (!$this->_IsSiteAdmin()) {
+				if (!$this->_isSiteAdmin()) {
 					// merge in private conditions
 					$this->paginate = Set::merge($this->paginate, array(
 						'conditions' =>
 							array("OR" => array(
 							array('Event.org =' => $this->Auth->user('org')),
-							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.private !=' => 1), array('Attribute.private !=' => 1)))),
+							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Attribute.distribution !=' => 0)))),
 						)
 					);
 				}
@@ -827,9 +825,7 @@ class AttributesController extends AppController {
 			//	restricting to non-private or same org if the user is not a site-admin.
 			if (!$this->_isSiteAdmin()) {
 				$temp = array();
-				$distribution = array();
-				array_push($distribution, array('Attribute.private =' => 0));
-				array_push($distribution, array('Attribute.cluster =' => 1));
+				array_push($temp, array('Attribute.distribution >' => 0));
 				array_push($temp, array('OR' => $distribution));
 				array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
 				$put2['OR'][] = $temp;

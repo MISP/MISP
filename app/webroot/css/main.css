@@ -129,6 +129,14 @@ td.searchLabelCancel{
 	top: 90%;
 }
 
+form .error-message {
+	border-color: #b94a48;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+     -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    background-color: #f2dede;
+}
+
 
 /* Form */
 div.form,
@@ -284,29 +292,9 @@ td.action-links {
 	text-align: right;
 }
 
-/*
-.view_icon{
-		background-position: 0 0;
- }
-.edit_icon{
-		 background-position: -17px 0;
+.showspaces {
+	white-space: pre-wrap;
 }
-.delete_icon{
-		 background-position: -34px 0;
-}
-.tick_icon{
-		width: 16px;
-		height: 16px;
-		display: block;
-		background: url('../img/icons/icons-trans.png') -51px 0 no-repeat;
-}
-.cross_icon{
-		width: 16px;
-		height: 16px;
-		display: block;
-		background: url('../img/icons/icons-trans.png') -67px 0 no-repeat;
-}
-*/
 
 /** Scaffold View **/
 dl {

@@ -5,6 +5,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 <div class="actions">
 	<ul class="nav nav-list">
 		<li class="active"><a href="/events/view/<?php echo $event['Event']['id'];?>">View Event</a></li>
+		<li><a href="/logs/event_index/<?php echo $event['Event']['id'];?>">View Event History</a></li>
 		<?php if ($isSiteAdmin || $mayModify): ?>
 		<li><a href="/events/edit/<?php echo $event['Event']['id'];?>">Edit Event</a></li>
 		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
@@ -94,7 +95,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 				</dd>
 				<dt>Distribution</dt>
 				<dd>
-					<?php echo h($event['Event']['distribution'] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
+					<?php echo h($distributionLevels[$event['Event']['distribution']] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
 					&nbsp;
 				</dd>
 				<dt>Info</dt>
@@ -170,7 +171,7 @@ if (!empty($event['Attribute'])):?>
 				<?php echo h($attribute['type']);?>
 
 			</td>
-			<td class="<?php echo $extra; ?>"><?php
+			<td class="showspaces <?php echo $extra; ?>"><?php
 			$sigDisplay = $attribute['value'];
 			if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
 				$filenameHash = explode('|', $attribute['value']);
@@ -214,7 +215,7 @@ if (!empty($event['Attribute'])):?>
 				?>&nbsp;
 				</td>
 				<td class="short <?php echo $extra; ?>"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
-				<td class="short <?php echo $extra; ?>"><?php echo $attribute['distribution'] != 'All communities' ? $attribute['distribution'] : 'All';?></td>
+				<td class="short <?php echo $extra; ?>"><?php echo $attribute['distribution'] != 3 ? $distributionLevels[$attribute['distribution']] : 'All';?></td>
 				<td class="short action-links <?php echo $extra;?>">
 					<?php
 					if ($isSiteAdmin || $mayModify) {
@@ -248,8 +249,7 @@ if (!empty($event['Attribute'])):?>
 							if ($shadowAttribute['type'] != $attribute['type']) echo h($shadowAttribute['type']);
 						?>
 					</td>
-					<td class = "highlight2">
-						<?php
+					<td class="showspaces highlight2"><?php
 							if ($shadowAttribute['value'] != $attribute['value']) {
 								$sigDisplay = $shadowAttribute['value'];
 								if ('attachment' == $shadowAttribute['type'] || 'malware-sample' == $shadowAttribute['type'] ) {
@@ -275,8 +275,7 @@ if (!empty($event['Attribute'])):?>
 									echo h($sigDisplay);
 								}
 							}
-						?>
-					</td>
+						?></td>
 					<td class="short highlight2">
 					</td>
 					<td class="short highlight2">
@@ -324,8 +323,7 @@ if (!empty($event['Attribute'])):?>
 										echo h($remain['type']);
 									?>
 								</td>
-								<td class = "short highlight2">
-									<?php
+								<td class="showspaces short highlight2"><?php
 										$sigDisplay = nl2br(h($remain['value']));
 										if ('attachment' == $remain['type'] || 'malware-sample' == $remain['type'] ) {
 											$filenameHash = explode('|', $remain['value']);
@@ -349,8 +347,7 @@ if (!empty($event['Attribute'])):?>
 										} else {
 											echo h($sigDisplay);
 										}
-									?>
-								</td>
+									?></td>
 								<td class="short highlight2">
 								</td>
 								<td class="short highlight2">

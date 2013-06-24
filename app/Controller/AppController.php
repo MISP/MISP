@@ -67,18 +67,7 @@ class AppController extends Controller {
 	);
 
 	public function beforeFilter() {
-		// user must accept terms
-		//
-		// TODO $this->Session->check('Auth.User') (16:32:45) andras.iklody@gmail.com: think this was documented as check('Auth')
-
-		if ($this->Session->check('Auth.User') && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
-			$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
-		}
-		if ($this->Session->check('Auth.User') && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
-			$this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
-		}
-
-		// REST things
+		// REST authentication
 		if ($this->_isRest()) {
 			// disable CSRF for REST access
 			if (array_key_exists('Security', $this->components))
@@ -100,6 +89,14 @@ class AppController extends Controller {
 				}
 			}
 		}
+		// user must accept terms
+		//
+		if ($this->Session->check('Auth.User') && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
+		    $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
+		}
+		if ($this->Session->check('Auth.User') && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
+		    $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
+		}
 
 		// We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
 		// instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
@@ -117,6 +114,7 @@ class AppController extends Controller {
 			$this->set('isAclAdmin', $role['perm_admin']);
 			$this->set('isAclAudit', $role['perm_audit']);
 			$this->set('isAclAuth', $role['perm_auth']);
+			$this->userRole = $role;
 		} else {
 			$this->set('me', false);
 			$this->set('isAdmin', false);
@@ -131,6 +129,8 @@ class AppController extends Controller {
 			$this->set('isAclAuth', false);
 		}
 	}
+
+	public $userRole = null;
 
 	//public function blackhole($type) {
 	//	// handle errors.
@@ -363,4 +363,63 @@ class AppController extends Controller {
 		//}
 		return false;
 	}
+
+
+	public function reportValidationIssuesEvents() {
+		// search for validation problems in the events
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		print ("<h2>Listing invalid event validations</h2>");
+		$this->loadModel('Event');
+		// first remove executing some Behaviors because of Noud's crappy code
+		$this->Event->Behaviors->detach('Regexp');
+		$this->Event->Behaviors->detach('Blacklist');
+		// get all events..
+		$events = $this->Event->find('all', array('recursive' => -1));
+		// for all events..
+		foreach ($events as $event) {
+		    $this->Event->set($event);
+		    if ($this->Event->validates()) {
+		        // validates
+		    } else {
+		        $errors = $this->Event->validationErrors;
+		        print ("<h3>Validation errors for event: " . $event['Event']['id'] . "</h3><pre>");
+		        print_r($errors);
+		        print ("</pre><p>Event details:</p><pre>");
+		        print_r($event);
+		        print ("</pre><br/>");
+		    }
+		}
+	}
+
+	public function reportValidationIssuesAttributes() {
+		// TODO improve performance of this function by eliminating the additional SQL query per attribute
+		// search for validation problems in the attributes
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		print ("<h2>Listing invalid attribute validations</h2>");
+		$this->loadModel('Attribute');
+
+		// first remove executing some Behaviors because of Noud's crappy code
+		$this->Attribute->Behaviors->detach('Regexp');
+		$this->Attribute->Behaviors->detach('Blacklist');
+		// for efficiency reasons remove the unique requirement
+		$this->Attribute->validator()->remove('value', 'unique');
+
+		// get all attributes..
+		$attributes = $this->Attribute->find('all', array('recursive' => -1));
+		// for all attributes..
+		foreach ($attributes as $attribute) {
+		    $this->Attribute->set($attribute);
+		    if ($this->Attribute->validates()) {
+		        // validates
+		    } else {
+		        $errors = $this->Attribute->validationErrors;
+		        print ("<h3>Validation errors for attribute: " . $attribute['Attribute']['id'] . "</h3><pre>");
+		        print_r($errors);
+		        print ("</pre><p>Attribute details:</p><pre>");
+		        print_r($attribute);
+		        print ("</pre><br/>");
+		    }
+		}
+	}
+
 }

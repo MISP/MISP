@@ -9,8 +9,9 @@
 		));
 		if ('true' == Configure::read('CyDefSIG.sync')) {
 			echo $this->Form->input('distribution', array(
+					'options' => array($distributionLevels),
 					'label' => 'Distribution',
-					'selected' => 'All communities'
+		'selected' => '3',
 					));
 		}
 		echo $this->Form->input('risk', array(
@@ -57,19 +58,24 @@ echo $this->Form->end();
 //
 //Generate tooltip information
 //
-var formInfoValues = new Array();
+var formInfoValues = {
+		'EventDistribution' : new Array(),
+		'EventRisk' : new Array(),
+		'EventAnalysis' : new Array()
+};
+
 <?php
 foreach ($distributionDescriptions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
+	echo "formInfoValues['EventDistribution']['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
 }
 foreach ($riskDescriptions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
+	echo "formInfoValues['EventRisk']['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
 }
 foreach ($analysisDescriptions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
+	echo "formInfoValues['EventAnalysis']['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
 }
 ?>
 
@@ -86,9 +92,9 @@ $(document).ready(function() {
 	        $('#'+e.currentTarget.id).popover({
 	            trigger: 'manual',
 	            placement: 'right',
-	            content: formInfoValues[$e.val()],
+	            content: formInfoValues[e.currentTarget.id][$e.val()],
 	        }).popover('show');
-	    }
+		}
 	});
 
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
@@ -100,7 +106,7 @@ $(document).ready(function() {
         $('#'+e.currentTarget.id).popover({
             trigger: 'manual',
             placement: 'right',
-            content: formInfoValues[$e.val()],
+            content: formInfoValues[e.currentTarget.id][$e.val()],
         }).popover('show');
 	});
 });

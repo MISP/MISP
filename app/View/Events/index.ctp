@@ -1,7 +1,8 @@
 <?php if(empty($this->passedArgs['searchinfo'])) $this->passedArgs['searchinfo'] = '';?>
-<?php if(empty($this->passedArgs['searchorgc'])) $this->passedArgs['searchorgc'] = '';?>
+<?php if(empty($this->passedArgs['searchorg'])) $this->passedArgs['searchorg'] = '';?>
 <?php if(empty($this->passedArgs['searchDatefrom'])) $this->passedArgs['searchDatefrom'] = '';?>
 <?php if(empty($this->passedArgs['searchDateuntil'])) $this->passedArgs['searchDateuntil'] = '';?>
+<?php if(empty($this->passedArgs['searchpublished'])) $this->passedArgs['searchpublished'] = '2';?>
 <div class="events index">
 	<h2>Events</h2>
 	<div class="pagination">
@@ -20,7 +21,6 @@
         </ul>
     </div>
 	<?php
-	echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
 	// Let's output a small label of each filter
 	$count = 0;
 	?>
@@ -66,7 +66,6 @@
 			?>
 		</tr>
 	</table>
-	<input type="submit" style="visibility:collapse;" />
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th class="filter">
@@ -75,6 +74,11 @@
 				<span id="searchpublished"><br/>
 					<?php
 					// on change jquery will submit the form
+					echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
+					echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden'));
+					echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden'));
+					echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden'));
+					echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden'));
 					echo $this->Form->input('searchpublished', array(
 							'options' => array('0' => 'No', '1' => 'Yes', '2' => 'Any'),
 							'default' => 2,
@@ -83,46 +87,55 @@
 							'onchange' => "$('#EventIndexForm').submit()"
 							));
 					?>
+						<input type="submit" style="visibility:collapse;" />
+					<?php
+						echo $this->Form->end();
+					?>
 				</span>
 			</th>
 			<?php
-			if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) {
-				if ($isSiteAdmin) { ?>
-			<th><?php echo $this->Paginator->sort('org'); ?></th>
-				<?php
-					} else { ?>
+			if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) { ?>
 			<th class="filter"><?php echo $this->Paginator->sort('org'); ?>
 				<a onclick="toggleField('#searchorg')" class="icon-search"></a>
+				<span id="searchorg"><br/>
+				<?php
+				echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
+				echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden'));
+				echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden'));
+				echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden'));
+				echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden'));
+				echo $this->Form->input('searchorg', array(
+					'value' => $this->passedArgs['searchorg'],
+					'label' => '',
+					'class' => 'input-mini'));
+				?>
+					<input type="submit" style="visibility:collapse;" />
+				<?php
+					echo $this->Form->end();
+				?>
+				</span>
 			</th>
 				<?php
-					}
 				}
 			?>
 			<?php if ($isSiteAdmin): ?>
 			<th class="filter">
 				<?php echo $this->Paginator->sort('owner org');?>
-				<a onclick="toggleField('#searchorgc')" class="icon-search"></a>
-				<span id="searchorgc"><br/>
-				<?php
-					echo $this->Form->input('searchorgc', array(
-							'value' => $this->passedArgs['searchorgc'],
-							'label' => '',
-							'class' => 'input-mini'));
-				?>
-				</span>
 			</th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
-			<?php if ($isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
-			<?php endif; ?>
 			<th class="filter">
 				<?php echo $this->Paginator->sort('date');?>
 				<a onclick="toggleField('#searchdate')" class="icon-search"></a>
 				<br/>
 				<div id="searchdate" class="input-append input-prepend">
 							<?php
+							echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
+							echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden'));
+							echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden'));
+							echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden'));
 							echo $this->Form->input('searchDatefrom', array(
 									'value' => $this->passedArgs['searchDatefrom'],
 									'label' => false,
@@ -130,7 +143,7 @@
 									'class' => 'span1 datepicker',
 									));
 							?>
-							<input type="submit" class="btn" value="&gt;"/>
+							<input type="submit" class="btn" value="&gt;"/ style="margin-top:1px;">
 							<?php
 							echo $this->Form->input('searchDateuntil', array(
 									'value' => $this->passedArgs['searchDateuntil'],
@@ -138,6 +151,10 @@
 									'class' => 'span1 datepicker',
 									'div' => false
 									));
+							?>
+								<input type="submit" style="visibility:collapse;" />
+							<?php
+								echo $this->Form->end();
 							?>
 				</div>
 			</th>
@@ -152,10 +169,19 @@
 				<a onclick="toggleField('#searchinfo')" class="icon-search"></a>
 				<span id="searchinfo"><br/>
 				<?php
+					echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
+					echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden'));
+					echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden'));
+					echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden'));
+					echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden'));
 					echo $this->Form->input('searchinfo', array(
 							'value' => $this->passedArgs['searchinfo'],
 							'label' => '',
 							'class' => 'input-large'));
+				?>
+					<input type="submit" style="visibility:collapse;" />
+				<?php
+					echo $this->Form->end();
 				?>
 				</span>
 			</th>
@@ -167,9 +193,6 @@
 			<th class="actions">Actions</th>
 
 		</tr>
-		<?php
-		echo $this->Form->end();
-		?>
 		<?php foreach ($events as $event):?>
 		<tr>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
@@ -206,11 +229,9 @@
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 				<?php echo $event['Event']['attribute_count']; ?>&nbsp;
 			</td>
-			<?php if ($isAdmin): ?>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
-				<?php if($isSiteAdmin || $event['Event']['org'] == $me['org']) echo h($event['User']['email']); ?>&nbsp;
+				<?php if($isSiteAdmin || $event['Event']['orgc'] == $me['org']) echo h($event['User']['email']); ?>&nbsp;
 			</td>
-			<?php endif; ?>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
@@ -225,7 +246,7 @@
 			</td>
 			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
-				<?php echo $event['Event']['distribution'] != 'All communities' ? $event['Event']['distribution'] : 'All';?>
+				<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>
 			</td>
 			<?php endif; ?>
 			<td class="short action-links">
@@ -282,7 +303,7 @@
 $(document).ready( function () {
 	// onload hide all buttons
 	$('#searchinfo').hide();
-	$('#searchorgc').hide();
+	$('#searchorg').hide();
 	$('#searchdate').hide();
 	$('#searchpublished').hide();
 

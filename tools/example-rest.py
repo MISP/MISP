@@ -3,7 +3,7 @@
 import httplib2
 import urllib
 
-api_key = 'ADD6qRRO95hkh6Rfoe5cmEcdcDCXkHWUkz0KqSzA'
+api_key = '3xoBdRRCjr3dLS0WyqETzWZrMhmpK5iNCGpQxgsR'
 base_url = 'http://localhost:8888'
 
 http = httplib2.Http()
@@ -219,7 +219,7 @@ def add(model, xml_body) :
 
 
 #response, content = index('event')
-response, content = view('event', 82)
+response, content = view('event', 672)
 #response, content = add('event', xml_body_add_attachment)
 # get last EventID
 #response, content = index('events/index/sort:id/direction:desc/limit:1')

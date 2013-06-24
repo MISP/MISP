@@ -1,2 +1,2 @@
-curl -H "Accept: application/xml" -H "Authorization: vlf4o42bYSVVWLm28jLB85my4HBZWXTri8vGdySb" \
--X GET http://localhost/events/$1
+curl -H "Accept: application/xml" -H "Authorization: 3xoBdRRCjr3dLS0WyqETzWZrMhmpK5iNCGpQxgsR" \
+-X GET http://localhost:8888/events/$1

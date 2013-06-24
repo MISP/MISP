@@ -41,7 +41,8 @@ class Event extends AppModel {
 		'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
 		'submittedgfi' => array('desc' => 'GFI sandbox: export upload', 'formdesc' => 'GFI sandbox:<br/>export upload'),
 		'submittedioc' => array('desc' => '', 'formdesc' => ''),
-		'analysis' => array('desc' => 'Analysis Levels: *Initial* means the event has just been created, *Ongoing* means that the event is being populated, *Complete* means that the event\'s creation is complete', 'formdesc' => 'Analysis levels:<br />Initial: event has been started<br />Ongoing: event population is in progress<br />Complete: event creation has finished')
+		'analysis' => array('desc' => 'Analysis Levels: *Initial* means the event has just been created, *Ongoing* means that the event is being populated, *Complete* means that the event\'s creation is complete', 'formdesc' => 'Analysis levels:<br />Initial: event has been started<br />Ongoing: event population is in progress<br />Complete: event creation has finished'),
+		'distribution' => array('desc' => 'Describes who will have access to the event.')
 	);
 
 	public $riskDescriptions = array(
@@ -58,15 +59,18 @@ class Event extends AppModel {
 	);
 
 	public $distributionDescriptions = array(
-		'Your organization only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
-		'This server-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of any organisation on this server to see it."),
-		'This Community-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of this community."), // former Community
-		'Connected communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes all organisations on this MISP server, all organisations on MISP servers synchronising with this server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from this one). Any other organisations connected to linked servers that are 2 hops away from this will be restricted from seeing the event. Use this option if this server isn't the central MISP hub of the community but is connected to it."),
-		'All communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
+		0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
+		1 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of this community."), // former Community
+		2 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes all organisations on this MISP server, all organisations on MISP servers synchronising with this server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from this one). Any other organisations connected to linked servers that are 2 hops away from this will be restricted from seeing the event. Use this option if this server isn't the central MISP hub of the community but is connected to it."),
+		3 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
 	);
 
 	public $analysisLevels = array(
 		0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'
+	);
+
+	public $distributionLevels = array(
+		0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities'
 	);
 
 /**
@@ -112,6 +116,15 @@ class Event extends AppModel {
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+		),
+		'distribution' => array(
+			'rule' => array('inList', array('0', '1', '2', '3')),
+			'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
+			//'allowEmpty' => false,
+			'required' => true,
+			//'last' => false, // Stop validation after this rule
+			//'on' => 'create', // Limit validation to 'create' or 'update' operations
+
 		),
 		'analysis' => array(
 			'rule' => array('inList', array('0', '1', '2')),
@@ -171,16 +184,6 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'private' => array(
-				'boolean' => array(
-						'rule' => array('boolean'),
-						//'message' => 'Your custom message here',
-						//'allowEmpty' => false,
-						'required' => false,
-						//'last' => false, // Stop validation after this rule
-						//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-		),
 		//'classification' => array(
 		//		'rule' => array('inList', array('TLP:AMBER', 'TLP:GREEN:NeedToKnow', 'TLP:GREEN')),
 		//		//'message' => 'Your custom message here',
@@ -193,44 +196,9 @@ class Event extends AppModel {
 
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
-		$this->virtualFields = Set::merge($this->virtualFields, array(
-			'distribution' => 'IF (Event.private=true AND Event.cluster=false, "Your organization only", IF (Event.private=true AND Event.cluster=true, "This server-only", IF (Event.private=false AND Event.cluster=true, "This Community-only", IF (Event.communitie=true, "Connected communities" , "All communities"))))',
-		));
-
-		$this->fieldDescriptions = Set::merge($this->fieldDescriptions, array(
-			'distribution' => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => 'This field determines the current distribution of the event:<br/>Org - only organization memebers will see the event<br/>Community - event visible to all on this CyDefSIG instance but will not be shared past it</br>All - to be distributed to other connected CyDefSIG servers'),
-		));
-
-		$this->validate = Set::merge($this->validate,array(
-			'cluster' => array(
-				'boolean' => array(
-					'rule' => array('boolean'),
-					//'message' => 'Your custom message here',
-					//'allowEmpty' => false,
-					'required' => false,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-			),
-			'communitie' => array(
-				'boolean' => array(
-					'rule' => array('boolean'),
-					//'message' => 'Your custom message here',
-					//'allowEmpty' => false,
-					'required' => false,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-			),
-			'distribution' => array(
-				'rule' => array('inList', array("Your organization only", "This server-only", "This Community-only", "Connected communities", "All communities")),
-					//'message' => 'Your custom message here',
-					'allowEmpty' => false,
-					'required' => false,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
-		));
+		//$this->virtualFields = Set::merge($this->virtualFields, array(
+//			'distribution' => 'IF (Event.private=true AND Event.cluster=false, "Your organization only", IF (Event.private=true AND Event.cluster=true, "This server-only", IF (Event.private=false AND Event.cluster=true, "This Community-only", IF (Event.communitie=true, "Connected communities" , "All communities"))))',
+	//	));
 	}
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
@@ -322,38 +290,6 @@ class Event extends AppModel {
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-
-		// distribution - setting correct vars
-		if (isset($this->data['Event']['distribution'])) {
-			switch ($this->data['Event']['distribution']) {
-			    case 'Your organization only':
-			        $this->data['Event']['private'] = true;
-			        $this->data['Event']['cluster'] = false;
-			        $this->data['Event']['communitie'] = false;
-			        break;
-			    case 'This server-only':
-			        $this->data['Event']['private'] = true;
-			        $this->data['Event']['cluster'] = true;
-			        $this->data['Event']['communitie'] = false;
-			        break;
-			    case 'This Community-only':
-			        $this->data['Event']['private'] = false;
-			        $this->data['Event']['cluster'] = true;
-			        $this->data['Event']['communitie'] = false;
-			        break;
-			    case 'Connected communities':
-			        $this->data['Event']['private'] = false;
-			        $this->data['Event']['cluster'] = false;
-			        $this->data['Event']['communitie'] = true;
-			        break;
-			    case 'All communities':
-			        $this->data['Event']['private'] = false;
-			        $this->data['Event']['cluster'] = false;
-			        $this->data['Event']['communitie'] = false;
-			        break;
-			}
-		}
-
 		// analysis - setting correct vars
 		// TODO refactor analysis into an Enum (in the database)
 		if (isset($this->data['Event']['analysis'])) {
@@ -374,6 +310,12 @@ class Event extends AppModel {
 		if (empty($this->data['Event']['uuid'])) {
 			$this->data['Event']['uuid'] = String::uuid();
 		}
+		// generate timestamp if it doesn't exist
+		if (empty($this->data['Event']['timestamp'])) {
+			$date = new DateTime();
+			$this->data['Event']['timestamp'] = $date->getTimestamp();
+		}
+
 	}
 
 	public function isOwnedByOrg($eventid, $org) {
@@ -403,6 +345,7 @@ class Event extends AppModel {
 		foreach ($correlations as $correlation) {
 			$relatedEventIds[] = $correlation['Correlation']['event_id'];
 		}
+		$relatedEventIds = array_unique($relatedEventIds);
 		// now look up the event data for these attributes
 		$conditions = array("Event.id" => $relatedEventIds);
 		$relatedEvents = $this->find('all',
@@ -529,7 +472,7 @@ class Event extends AppModel {
  * @return bool true if success, false or error message if failed
  */
 	public function restfullEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
-		if (true == $event['Event']['private']) { // never upload private events
+		if ($event['Event']['distribution'] < 2) { // never upload private events
 			return "Event is private and non exportable";
 		}
 
@@ -559,21 +502,13 @@ class Event extends AppModel {
 		// remove value1 and value2 from the output
 		foreach ($event['Event']['Attribute'] as $key => &$attribute) {
 			// do not keep attributes that are private, nor cluster
-			if (($attribute['private'] && !$attribute['cluster'] && !$attribute['communitie']) || ($attribute['private'] && $attribute['cluster'] && !$attribute['communitie'])) {
+			if ($attribute['distribution'] < 2) {
 				unset($event['Event']['Attribute'][$key]);
 				continue; // stop processing this
 			}
-			// Distribution, correct Community to Org only in Attribute
-			if ($attribute['cluster'] && !$attribute['private']) {
-				$attribute['private'] = true;
-				$attribute['cluster'] = false;
-				//$attribute['communitie'] = false;
-				$attribute['distribution'] = 'Your organization only';
-			}
-			// Distribution, correct All to Community in Attribute
-			if (!$attribute['cluster'] && !$attribute['private'] && $attribute['communitie']) {
-				$attribute['cluster'] = true;
-				$attribute['distribution'] = 'This Community-only';
+			// Distribution, correct Connected Community to Community in Attribute
+			if ($attribute['distribution'] == 2) {
+				$attribute['distribution'] = 1;
 			}
 			// remove value1 and value2 from the output
 			unset($attribute['value1']);
@@ -589,19 +524,9 @@ class Event extends AppModel {
 			// solves the issue and a new attribute is always created.
 			unset($attribute['id']);
 		}
-		// Distribution, correct Community to Org only in Event
-		if ($event['Event']['cluster'] && !$event['Event']['private']) {
-			$event['Event']['private'] = true;
-			$event['Event']['cluster'] = false;
-			//$event['Event']['communitie'] = false;
-			$event['Event']['distribution'] = 'Your organization only';
-		}
 		// Distribution, correct All to Community in Event
-		// Potential problem here -> setting cluster gives 0-1-1 (pr/cl/co) settings that don't exist. Adding switch from comm true to false
-		if (!$event['Event']['cluster'] && !$event['Event']['private'] && $event['Event']['communitie']) {
-			$event['Event']['cluster'] = true;
-			$event['Event']['communitie'] = false;
-			$event['Event']['distribution'] = 'This Community-only';
+		if ($event['Event']['distribution'] == 2) {
+			$event['Event']['distribution'] = 1;
 		}
 
 		// display the XML to the user
@@ -696,6 +621,9 @@ class Event extends AppModel {
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
 			App::uses('HttpSocket', 'Network/Http');
+			//$HttpSocket = new HttpSocket(array(
+			//		'ssl_verify_peer' => false
+			//		));
 			$HttpSocket = new HttpSocket();
 		}
 		$request = array(
@@ -729,6 +657,9 @@ class Event extends AppModel {
 
 		if (null == $HttpSocket) {
 			App::uses('HttpSocket', 'Network/Http');
+			//$HttpSocket = new HttpSocket(array(
+			//		'ssl_verify_peer' => false
+			//		));
 			$HttpSocket = new HttpSocket();
 		}
 		$request = array(
@@ -740,15 +671,12 @@ class Event extends AppModel {
 				)
 		);
 		$uri = $url . '/events/index/sort:id/direction:desc/limit:999'; // LATER verify if events are missing because we only selected the last 999
-		$this->Dns = ClassRegistry::init('Dns');
-		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
+		try {
 			$response = $HttpSocket->get($uri, $data = '', $request);
-
 			if ($response->isOk()) {
 				//debug($response->body);
 				$xml = Xml::build($response->body);
 				$eventArray = Xml::toArray($xml);
-
 				// correct $eventArray if just one event
 				if (is_array($eventArray['response']['Event']) && isset($eventArray['response']['Event']['id'])) {
 					$tmp = $eventArray['response']['Event'];
@@ -775,6 +703,9 @@ class Event extends AppModel {
 			if ($response->code == '403') {
 				return 403;
 			}
+		} catch (SocketException $e){
+			// FIXME refactor this with clean try catch over all http functions
+			return $e->getMessage();
 		}
 		// error, so return null
 		return null;

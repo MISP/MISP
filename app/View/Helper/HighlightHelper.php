@@ -17,9 +17,12 @@ App::uses('AppHelper', 'View/Helper');
 			if (!is_array($keywordArray)) {
 				$keywordArray = array($keywordArray);
 			}
-			foreach ($keywordArray as &$keywordArrayElement) {
+			foreach ($keywordArray as $k => &$keywordArrayElement) {
 			    $keywordArrayElement = trim($keywordArrayElement);
-			    if ("" == $keywordArrayElement) continue;
+			    if ("" == $keywordArrayElement) {
+			    	unset($keywordArray[$k]);
+			    	continue;
+			    }
 			    $replacementArray[] = '<span style="color:red">'.$keywordArrayElement.'</span>';
 			}
 			if (!empty($replacementArray))

@@ -62,15 +62,19 @@ class Attribute extends AppModel {
  */
 	public $fieldDescriptions = array(
 			'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
-			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
+			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private'),
+			'distribution' => array('desc' => 'Describes who will have access to the event.')
 	);
 
 	public $distributionDescriptions = array(
-		'Your organization only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
-		'This server-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This setting will only allow members of any organisation on this server to see it."),
-		'This Community-only' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of this community."), // former Community
-		'Connected communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes all organisations on this MISP server, all organisations on MISP servers synchronising with this server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from this one). Any other organisations connected to linked servers that are 2 hops away from this will be restricted from seeing the event. Use this option if this server isn't the central MISP hub of the community but is connected to it."),
-		'All communities' => array('desc' => 'This field determines the current distribution of the even', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
+			0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
+			1 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of this community."), // former Community
+			2 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes all organisations on this MISP server, all organisations on MISP servers synchronising with this server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from this one). Any other organisations connected to linked servers that are 2 hops away from this will be restricted from seeing the event. Use this option if this server isn't the central MISP hub of the community but is connected to it."),
+			3 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
+	);
+
+	public $distributionLevels = array(
+			0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities'
 	);
 
 	// these are definition of possible types + their descriptions and maybe later other behaviors
@@ -89,15 +93,17 @@ class Attribute extends AppModel {
 	);
 
 	public $typeDefinitions = array(
-			'md5' => array('desc' => 'A checksum in md5 format', 'formdesc' => "You are encouraged to use filename|md5 instead. <br/>A checksum in md5 format, only use this if you don't know the correct filename"),
-			'sha1' => array('desc' => 'A checksum in sha1 format', 'formdesc' => "You are encouraged to use filename|sha1 instead. <br/>A checksum in sha1 format, only use this if you don't know the correct filename"),
+			'md5' => array('desc' => 'A checksum in md5 format', 'formdesc' => "You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename"),
+			'sha1' => array('desc' => 'A checksum in sha1 format', 'formdesc' => "You are encouraged to use filename|sha1 instead. A checksum in sha1 format, only use this if you don't know the correct filename"),
+			'sha256' => array('desc' => 'A checksum in sha256 format', 'formdesc' => "You are encouraged to use filename|sha256 instead. A checksum in sha256 format, only use this if you don't know the correct filename"),
 			'filename' => array('desc' => 'Filename'),
 			'filename|md5' => array('desc' => 'A filename and an md5 hash separated by a |', 'formdesc' => "A filename and an md5 hash separated by a | (no spaces)"),
 			'filename|sha1' => array('desc' => 'A filename and an sha1 hash separated by a |', 'formdesc' => "A filename and an sha1 hash separated by a | (no spaces)"),
+			'filename|sha256' => array('desc' => 'A filename and an sha256 hash separated by a |', 'formdesc' => "A filename and an sha256 hash separated by a | (no spaces)"),
 			'ip-src' => array('desc' => "A source IP address of the attacker"),
-			'ip-dst' => array('desc' => 'A destination IP address of the attacker or C&C server', 'formdesc' => "A destination IP address of the attacker or C&C server. <br/>Also set the IDS flag on when this IP is hardcoded in malware"),
-			'hostname' => array('desc' => 'A full host/dnsname of an attacker', 'formdesc' => "A full host/dnsname of an attacker. <br/>Also set the IDS flag on when this hostname is hardcoded in malware"),
-			'domain' => array('desc' => 'A domain name used in the malware', 'formdesc' => "A domain name used in the malware. <br/>Use this instead of hostname when the upper domain is <br/>important or can be used to create links between events."),
+			'ip-dst' => array('desc' => 'A destination IP address of the attacker or C&C server', 'formdesc' => "A destination IP address of the attacker or C&C server. Also set the IDS flag on when this IP is hardcoded in malware"),
+			'hostname' => array('desc' => 'A full host/dnsname of an attacker', 'formdesc' => "A full host/dnsname of an attacker. Also set the IDS flag on when this hostname is hardcoded in malware"),
+			'domain' => array('desc' => 'A domain name used in the malware', 'formdesc' => "A domain name used in the malware. Use this instead of hostname when the upper domain is important or can be used to create links between events."),
 			'email-src' => array('desc' => "The email address (or domainname) used to send the malware."),
 			'email-dst' => array('desc' => "A recipient email address", 'formdesc' => "A recipient email address that is not related to your constituency."),
 			'email-subject' => array('desc' => "The subject of the email"),
@@ -107,7 +113,7 @@ class Attribute extends AppModel {
 			'regkey' => array('desc' => "Registry key or value"),
 			'regkey|value' => array('desc' => "Registry value + data separated by |"),
 			'AS' => array('desc' => 'Autonomous system'),
-			'snort' => array('desc' => 'An IDS rule in Snort rule-format', 'formdesc' => "An IDS rule in Snort rule-format. <br/>This rule will be automatically rewritten in the NIDS exports."),
+			'snort' => array('desc' => 'An IDS rule in Snort rule-format', 'formdesc' => "An IDS rule in Snort rule-format. This rule will be automatically rewritten in the NIDS exports."),
 			'pattern-in-file' => array('desc' => 'Pattern in file that identifies the malware'),
 			'pattern-in-traffic' => array('desc' => 'Pattern in network traffic that identifies the malware'),
 			'pattern-in-memory' => array('desc' => 'Pattern in memory dump that identifies the malware'),
@@ -116,7 +122,7 @@ class Attribute extends AppModel {
 			'attachment' => array('desc' => 'Attachment with external information', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button."),
 			'malware-sample' => array('desc' => 'Attachment containing encrypted malware sample', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button."),
 			'link' => array('desc' => 'Link to an external information'),
-			'comment' => array('desc' => 'Comment or description in a human language', 'formdesc' => 'Comment or description in a human language. <br/> This will not be correlated with other attributes (NOT IMPLEMENTED YET)'),
+			'comment' => array('desc' => 'Comment or description in a human language', 'formdesc' => 'Comment or description in a human language.  This will not be correlated with other attributes (NOT IMPLEMENTED YET)'),
 			'text' => array('desc' => 'Name, ID or a reference'),
 			'other' => array('desc' => 'Other attribute'),
 			'named pipe' => array('desc' => 'Named pipe, use the format \\.\pipe\<PipeName>'),
@@ -136,17 +142,17 @@ class Attribute extends AppModel {
 					),
 			'Payload delivery' => array(
 					'desc' => 'Information about how the malware is delivered',
-					'formdesc' => 'Information about the way the malware payload is initially delivered, <br/>for example information about the email or web-site, vulnerability used, originating IP etc. <br/>Malware sample itself should be attached here.',
-					'types' => array('md5', 'sha1', 'filename', 'filename|md5', 'filename|sha1', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'ip-dst', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'vulnerability', 'other')
+					'formdesc' => 'Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.',
+					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'ip-dst', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'vulnerability', 'other')
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
-					'types' => array('md5', 'sha1', 'filename', 'filename|md5', 'filename|sha1', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'yara', 'attachment', 'malware-sample', 'comment', 'text', 'other', 'named pipe', 'mutex')
+					'types' => array('md5', 'sha1', 'sha256', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'yara', 'attachment', 'malware-sample', 'comment', 'text', 'other', 'named pipe', 'mutex')
 					),
 			'Payload installation' => array(
 					'desc' => 'Info on where the malware gets installed in the system',
 					'formdesc' => 'Location where the payload was placed in the system and the way it was installed.<br/>For example, a filename|md5 type attribute can be added here like this:<br/>c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.',
-					'types' => array('md5', 'sha1', 'filename', 'filename|md5', 'filename|sha1', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'attachment', 'malware-sample', 'comment', 'text', 'other')
+					'types' => array('md5', 'sha1', 'sha256', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'attachment', 'malware-sample', 'comment', 'text', 'other')
 					),
 			'Persistence mechanism' => array(
 					'desc' => 'Mechanisms used by the malware to start at boot',
@@ -169,7 +175,7 @@ class Attribute extends AppModel {
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
 					'formdesc' => 'Any other result from additional analysis of the malware like tools output<br/>Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.',
-					'types' => array('md5', 'sha1', 'filename', 'filename|md5', 'filename|sha1', 'ip-src', 'ip-dst', 'hostname', 'domain', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'other')
+					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'other')
 					),
 			'Other' => array(
 					'desc' => 'Attributes that are not part of any other category',
@@ -279,61 +285,21 @@ class Attribute extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'private' => array(
-				'boolean' => array(
-						'rule' => array('boolean'),
-						//'message' => 'Your custom message here',
-						'allowEmpty' => true,
-						'required' => false,
-						//'last' => false, // Stop validation after this rule
-						//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-		),
+		'distribution' => array(
+			'numeric' => array(
+				'rule' => array('numeric'),
+				//'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
+				//'allowEmpty' => false,
+				'required' => true,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+		)),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
 
-		$this->virtualFields = Set::merge($this->virtualFields,array(
-			//'distribution' => 'IF (Attribute.private=true, "Your organization only", IF (Attribute.cluster=true, "This Community-only", "All communities"))',
-			'distribution' => 'IF (Attribute.private=true AND Attribute.cluster=false, "Your organization only", IF (Attribute.private=true AND Attribute.cluster=true, "This server-only", IF (Attribute.private=false AND Attribute.cluster=true, "This Community-only", IF (Attribute.communitie=true, "Connected communities" , "All communities"))))',
-		));
-
-		$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
-			'distribution' => array('desc' => 'This fields indicates the intended distribution of the attribute (same as when adding an event, see Add Event)'),
-		));
-
-		$this->validate = Set::merge($this->validate,array(
-			'cluster' => array(
-				'boolean' => array(
-					'rule' => array('boolean'),
-					//'message' => 'Your custom message here',
-					//'allowEmpty' => false,
-					'required' => false,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-			),
-			'communitie' => array(
-				'boolean' => array(
-					'rule' => array('boolean'),
-					//'message' => 'Your custom message here',
-					//'allowEmpty' => false,
-					'required' => false,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-			),
-			'distribution' => array(
-				'rule' => array('inList', array("Your organization only", "This server-only", "This Community-only", "Connected communities", "All communities")),
-					//'message' => 'Your custom message here',
-					'allowEmpty' => false,
-					'required' => false,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
-				),
-			));
-	}
+}
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
@@ -360,12 +326,6 @@ class Attribute extends AppModel {
  * @return bool always true
  */
 	public function beforeSave($options = array()) {
-		// increment the revision number
-		if (empty($this->data['Attribute']['revision'])) {
-			$this->data['Attribute']['revision'] = 0;
-		}
-		$this->data['Attribute']['revision'] = 1 + $this->data['Attribute']['revision'];
-
 		// explode value of composite type in value1 and value2
 		// or copy value to value1 if not composite type
 		if (!empty($this->data['Attribute']['type'])) {
@@ -385,7 +345,6 @@ class Attribute extends AppModel {
 				$this->data['Attribute']['value2'] = '';
 			}
 		}
-
 		// update correlation... (only needed here if there's an update)
  		$this->__beforeSaveCorrelation($this->data['Attribute']);
 		// always return true after a beforeSave()
@@ -428,37 +387,6 @@ class Attribute extends AppModel {
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 
-		// distribution - setting correct vars
-		if(isset($this->data['Attribute']['distribution'])) {
-			switch ($this->data['Attribute']['distribution']) {
-			    case 'Your organization only':
-			        $this->data['Attribute']['private'] = true;
-			        $this->data['Attribute']['cluster'] = false;
-			        $this->data['Attribute']['communitie'] = false;
-			        break;
-			    case 'This server-only':
-			        $this->data['Attribute']['private'] = true;
-			        $this->data['Attribute']['cluster'] = true;
-			        $this->data['Attribute']['communitie'] = false;
-			        break;
-			    case 'This Community-only':
-			        $this->data['Attribute']['private'] = false;
-			        $this->data['Attribute']['cluster'] = true;
-			        $this->data['Attribute']['communitie'] = false;
-			        break;
-			    case 'Connected communities':
-			        $this->data['Attribute']['private'] = false;
-			        $this->data['Attribute']['cluster'] = false;
-			        $this->data['Attribute']['communitie'] = true;
-			        break;
-			    case 'All communities':
-			        $this->data['Attribute']['private'] = false;
-			        $this->data['Attribute']['cluster'] = false;
-			        $this->data['Attribute']['communitie'] = false;
-			        break;
-			}
-		}
-
 		// remove leading and trailing blanks
 		$this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
 
@@ -470,12 +398,14 @@ class Attribute extends AppModel {
 			// lowercase these things
 			case 'md5':
 			case 'sha1':
+			case 'sha256':
 			case 'domain':
 			case 'hostname':
 				$this->data['Attribute']['value'] = strtolower($this->data['Attribute']['value']);
 				break;
 			case 'filename|md5':
 			case 'filename|sha1':
+			case 'filename|sha256':
 				$pieces = explode('|', $this->data['Attribute']['value']);
 				$this->data['Attribute']['value'] = $pieces[0] . '|' . strtolower($pieces[1]);
 				break;
@@ -485,6 +415,13 @@ class Attribute extends AppModel {
 		if (empty($this->data['Attribute']['uuid'])) {
 			$this->data['Attribute']['uuid'] = String::uuid();
 		}
+
+		// generate timestamp if it doesn't exist
+		if (empty($this->data['Attribute']['timestamp'])) {
+			$date = new DateTime();
+			$this->data['Attribute']['timestamp'] = $date->getTimestamp();
+		}
+
 
 		// always return true, otherwise the object cannot be saved
 		return true;
@@ -546,6 +483,13 @@ class Attribute extends AppModel {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
 				break;
+			case 'sha256':
+				if (preg_match("#^[0-9a-f]{64}$#", $value)) {
+					$returnValue = true;
+				} else {
+					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
+				}
+				break;
 			case 'filename':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
@@ -563,6 +507,14 @@ class Attribute extends AppModel {
 			case 'filename|sha1':
 				// no newline
 				if (preg_match("#^.+\|[0-9a-f]{40}$#", $value)) {
+					$returnValue = true;
+				} else {
+					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
+				}
+				break;
+			case 'filename|sha256':
+				// no newline
+				if (preg_match("#^.+\|[0-9a-f]{64}$#", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
@@ -816,8 +768,6 @@ class Attribute extends AppModel {
 	}
 
 	public function saveBase64EncodedAttachment($attribute) {
-print_r("###### saveBase64EncodedAttachment ######");
-print_r($attribute);
 		$rootDir = APP . DS . "files" . DS . $attribute['event_id'];
 		$dir = new Folder($rootDir, true);						// create directory structure
 		$destpath = $rootDir . DS . $attribute['id'];
@@ -950,7 +900,7 @@ print_r($attribute);
 		                // or attributes from the same event
 		                continue;
 		            }
-		            $is_private = $attribute_right['Event']['private'] || $attribute_right['Attribute']['private'];
+		            $is_private = ($attribute_right['Event']['distribution'] == 0) || ($attribute_right['Attribute']['distribution'] == 0);
 		            $correlations[] = array(
 		                    'value' => $a[$value_name],
 		                    '1_event_id' => $attribute['Attribute']['event_id'],

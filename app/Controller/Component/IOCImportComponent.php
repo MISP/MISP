@@ -106,7 +106,7 @@ class IOCImportComponent extends Component {
 		// Add a special attribute that captures the basic data about the .ioc such as the ioc-s uuid, info, long info, author, etc.
 		// Define the fields used in the global iocinfo variable.
 		foreach ($this->iocinfo as $k => $v) {
-			$event['Attribute'][] = array('uuid' => String::uuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => false, 'private' => $this->distribution[0], 'cluster' => $this->distribution[1], 'communitie' => $this->distribution[2]);
+			$event['Attribute'][] = array('uuid' => String::uuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => false, 'distribution' => $this->distribution);
 		}
 
 		// attach the graph to the event
@@ -149,9 +149,7 @@ class IOCImportComponent extends Component {
 	// dissect the indicator and convert it into an attribute
 	private function __analyseIndicator($attribute) {
 		$attribute['to_ids'] = false;
-		$attribute['private'] = $this->distribution[0];
-		$attribute['cluster'] = $this->distribution[1];
-		$attribute['communitie'] = $this->distribution[2];
+		$attribute['distribution'] = $this->distribution;
 		$temp = $this->__checkType($attribute['search']);
 		if ($attribute['condition'] !== 'containsnot') {
 			if (!$temp) return false;
@@ -512,7 +510,7 @@ class IOCImportComponent extends Component {
 					default:
 						$value = $att1['value'] . '|' . $att2['value'];
 				}
-				return array('type' => $pair[2], 'value' => $value, 'uuid' => String::uuid(), 'category' => $pair[3], 'to_ids' => false, 'private' => $this->distribution[0], 'cluster' => $this->distribution[1], 'communitie' => $this->distribution[2]);
+				return array('type' => $pair[2], 'value' => $value, 'uuid' => String::uuid(), 'category' => $pair[3], 'to_ids' => false, 'distribution' => $this->distribution);
 			}
 			// Try the same thing above with the attributes reversed
 			if ($att2['type'] == $pair[0] && $att1['type'] == $pair[1]) {
@@ -530,7 +528,7 @@ class IOCImportComponent extends Component {
 					default:
 						$value = $att2['value'] . '|' . $att1['value'];
 				}
-				return array('type' => $pair[2], 'value' => $value, 'uuid' => String::uuid(), 'category' => $pair[3], 'to_ids' => false, 'private' => $this->distribution[0], 'cluster' => $this->distribution[1], 'communitie' => $this->distribution[2]);
+				return array('type' => $pair[2], 'value' => $value, 'uuid' => String::uuid(), 'category' => $pair[3], 'to_ids' => false, 'distribution' => $this->distribution);
 			}
 		}
 		// If no match found, return false, it's not a valid composite attribute for MISP

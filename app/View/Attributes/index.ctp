@@ -4,7 +4,7 @@
 if ($isSearch == 1) {
 	echo "<h4>Results for all attributes";
 	if ($keywordSearch != null) echo " with the value containing \"<b>" . h($keywordSearch) . "</b>\"";
-	if ($keywordSearch2 != null) echo " excluding the events \"<b>" . h($keywordSearch2) . "</b>\"";
+	if ($keywordSearch2 != null) echo " from the events \"<b>" . h($keywordSearch2) . "</b>\"";
 	if ($categorySearch != "ALL") echo " of category \"<b>" . h($categorySearch) . "</b>\"";
 	if ($typeSearch != "ALL") echo " of type \"<b>" . h($typeSearch) . "</b>\"";
 	if (isset($orgSearch) && $orgSearch != '' && $orgSearch != null) echo " created by the organisation \"<b>" . h($orgSearch) . "</b>\"";
@@ -21,7 +21,7 @@ if ($isSearch == 1) {
         ));
 
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            //echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
             echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
         ?>
         </ul>
@@ -69,30 +69,29 @@ foreach ($attributes as $attribute):
 		<?php echo $attribute['Attribute']['category']; ?>&nbsp;</td>
 		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 		<?php echo $attribute['Attribute']['type']; ?>&nbsp;</td>
-		<td class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
-	<?php
-	$sigDisplay = nl2br(h($attribute['Attribute']['value']));
-	if ($isSearch == 1 && !empty($replacePairs)) {
-		// highlight the keywords if there are any
-		$sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
-	}
-	if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
-		?><a href="/attributes/download/<?php echo $attribute['Attribute']['id'];?>"><?php echo $sigDisplay; ?></a><?php
-	} elseif ('link' == $attribute['Attribute']['type']) {
-		?><a href="<?php echo nl2br(h($attribute['Attribute']['value']));?>"><?php echo $sigDisplay; ?></a><?php
-	} else {
-		echo $sigDisplay;
-	}
-	?>&nbsp;</td>
+		<td class="showspaces" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';"><?php
+			$sigDisplay = nl2br(h($attribute['Attribute']['value']));
+			if ($isSearch == 1 && !empty($replacePairs)) {
+				// highlight the keywords if there are any
+				$sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
+			}
+			if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
+				?><a href="/attributes/download/<?php echo $attribute['Attribute']['id'];?>"><?php echo $sigDisplay; ?></a><?php
+			} elseif ('link' == $attribute['Attribute']['type']) {
+				?><a href="<?php echo nl2br(h($attribute['Attribute']['value']));?>"><?php echo $sigDisplay; ?></a><?php
+			} else {
+				echo $sigDisplay;
+			}
+			?></td>
 		<td class="short" onclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;
 		</td>
 		<td class="short action-links"><?php
-			if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org'] == $me['org'])) {
+	if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org'] == $me['org'])) {
 				?><a href="/attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-edit" title="Edit"></a><?php
-				echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
-			}
-			?>
+		echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
+	}
+	?>
 			<a href="/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="View"></a>
 		</td>
 	</tr>

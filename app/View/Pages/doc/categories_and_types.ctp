@@ -1,13 +1,14 @@
-<div class="actions" style="width:15%">
+<div class="actions">
 	<ol class="nav nav-list">
-		<li><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'documentation')); ?></li>
-		<li><?php echo $this->Html->link('User Management and Global actions', array('controller' => 'pages', 'action' => 'display', 'user_management')); ?></li>
-		<li><?php echo $this->Html->link('Using the system', array('controller' => 'pages', 'action' => 'display', 'using_the_system')); ?></li>
-		<li><?php echo $this->Html->link('Administration', array('controller' => 'pages', 'action' => 'display', 'administration')); ?></li>
-		<li class="active"><?php echo $this->Html->link('Categories and Types', array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?></li>
+			<li><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'doc', 'general')); ?></li>
+			<li><?php echo $this->Html->link('General Concepts', array('controller' => 'pages', 'action' => 'display', 'doc', 'concepts')); ?></li>
+			<li><?php echo $this->Html->link('User Management and Global actions', array('controller' => 'pages', 'action' => 'display', 'doc', 'user_management')); ?></li>
+			<li><?php echo $this->Html->link('Using the system', array('controller' => 'pages', 'action' => 'display', 'doc', 'using_the_system')); ?></li>
+			<li><?php echo $this->Html->link('Administration', array('controller' => 'pages', 'action' => 'display', 'doc', 'administration')); ?></li>
+			<li class="active"><?php echo $this->Html->link('Categories and Types', array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?></li>
 	</ol>
 </div>
-<div class="index" style="width:80%">
+<div class="index">
 <?php
 // Load the Attribute model to extract the documentation from the defintions
 App::import('Model', 'Attribute');
@@ -20,26 +21,28 @@ $attr = new Attribute();
 		<th>Category</th>
 		<?php foreach ($attr->categoryDefinitions as $cat => $catDef):	?>
 		<th style="width:5%; text-align:center; white-space:normal">
-			<?php echo $cat; ?>
+			<a href="#<?php echo $cat; ?>"><?php echo $cat; ?></a>
 		</th>
 		<?php endforeach; ?>
 		<th>Category</th>
 	</tr>
 	<?php foreach ($attr->typeDefinitions as $type => $def): ?>
 	<tr>
-		<th><?php echo $type; ?></th>
+		<th><a href="#<?php echo $type; ?>"><?php echo $type; ?></a></th>
 		<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
 		<td style="text-align:center">
 			<?php echo in_array($type, $catDef['types'])? 'X' : ''; ?>
 		</td>
 		<?php endforeach; ?>
-		<th><?php echo $type; ?></th>
+		<th><a href="#<?php echo $type; ?>"><?php echo $type; ?></a></th>
 	<?php endforeach; ?>
 	</tr>
 <tr>
 	<th>Category</th>
 	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
-	<th style="width:5%; text-align:center; white-space:normal"><?php echo $cat; ?></th>
+	<th style="width:5%; text-align:center; white-space:normal">
+		<a href="#<?php echo $cat; ?>"><?php echo $cat; ?></a>
+	</th>
 	<?php endforeach; ?>
 	<th>Category</th>
 </tr>
@@ -52,7 +55,7 @@ $attr = new Attribute();
 	</tr>
 	<?php foreach ($attr->categoryDefinitions as $cat => $def): ?>
 	<tr>
-		<th>
+		<th><a id="<?php echo $cat; ?>"></a>
 			<?php echo $cat; ?>
 		</th>
 		<td>
@@ -69,7 +72,7 @@ $attr = new Attribute();
 	</tr>
 	<?php foreach ($attr->typeDefinitions as $type => $def): ?>
 	<tr>
-		<th>
+		<th><a id="<?php echo $type; ?>"></a>
 			<?php echo $type; ?>
 		</th>
 		<td>
