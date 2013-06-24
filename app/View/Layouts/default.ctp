@@ -46,6 +46,7 @@
 				</div>
 			</div>
 		</div>
+		<br/><br/>
 			<?php echo $this->fetch('content'); ?>
 
 		<!--div id="footer">

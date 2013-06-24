@@ -1,9 +1,9 @@
 <div class="actions">
 	<ol class="nav nav-list">
-		<li><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'documentation')); ?></li>
-		<li><?php echo $this->Html->link('General Concepts', array('controller' => 'pages', 'action' => 'display', 'concepts')); ?></li>
-		<li><?php echo $this->Html->link('User Management and Global actions', array('controller' => 'pages', 'action' => 'display', 'user_management')); ?></li>
-		<li class="active"><?php echo $this->Html->link('Using the system', array('controller' => 'pages', 'action' => 'display', 'using_the_system')); ?>
+			<li><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'doc', 'general')); ?></li>
+			<li><?php echo $this->Html->link('General Concepts', array('controller' => 'pages', 'action' => 'display', 'doc', 'concepts')); ?></li>
+			<li><?php echo $this->Html->link('User Management and Global actions', array('controller' => 'pages', 'action' => 'display', 'doc', 'user_management')); ?></li>
+			<li class="active"><?php echo $this->Html->link('Using the system', array('controller' => 'pages', 'action' => 'display', 'doc', 'using_the_system')); ?>
 			<ul class="nav nav-list">
 				<li><a href="#create">Creating an event</a></li>
 				<li><a href="#browsing_events">Browsing past events</a></li>
@@ -15,8 +15,8 @@
 				<li><a href="#rest">Rest API</a></li>
 			</ul>
 		</li>
-		<li><?php echo $this->Html->link('Administration', array('controller' => 'pages', 'action' => 'display', 'administration')); ?></li>
-		<li><?php echo $this->Html->link('Categories and Types', array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?></li>
+		<li><?php echo $this->Html->link('Administration', array('controller' => 'pages', 'action' => 'display', 'doc', 'administration')); ?></li>
+		<li><?php echo $this->Html->link('Categories and Types', array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?></li>
 	</ol>
 </div>
 <div class="index">
@@ -81,13 +81,13 @@ When clicking on the add attribute button, you will have to fill out a form with
 Keep in mind that the system searches for regular expressions in the value field of all attributes when entered, replacing detected strings within it as set up by the server's administrator (for example to enforce standardised capitalisation in paths for event correlation or to bring exact paths to a standardised format). The following fields need to be filled out:<br />
 <p><img src="/img/doc/add_attribute.png" alt = "Add attribute" style="float:right;" title = "This form allows you to add attributes."/></p><br />
 <ul>
-	<li><b>Category:</b> This drop-down menu explains the category of the attribute, meaning what aspect of the malware this attribute is describing. This could mean the persistence mechanisms of the malware or network activity, etc. For a list of valid categories, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?><br /><br /></li>
-		<li><b>Type:</b> Whilst categories determine what aspect of an event they are describing, the Type explains by what means that aspect is being described. As an example, the source IP address of an attack, a source e-mail address or a file sent through an attachment can all describe the payload delivery of a malware. These would be the types of attributes with the category of payload deliver. For an explanation of what each of the types looks like together with the valid combinations of categories and types, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>.<br /><br /></li>
+	<li><b>Category:</b> This drop-down menu explains the category of the attribute, meaning what aspect of the malware this attribute is describing. This could mean the persistence mechanisms of the malware or network activity, etc. For a list of valid categories, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?><br /><br /></li>
+		<li><b>Type:</b> Whilst categories determine what aspect of an event they are describing, the Type explains by what means that aspect is being described. As an example, the source IP address of an attack, a source e-mail address or a file sent through an attachment can all describe the payload delivery of a malware. These would be the types of attributes with the category of payload deliver. For an explanation of what each of the types looks like together with the valid combinations of categories and types, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?>.<br /><br /></li>
 		<li><b>Distribution:</b> This drop-down list allows you to control who will be able to see this attribute.
 		The distribution is inherited by attributes: the most restrictive setting wins.
 		For more info <a href="#distribution">click here</a>.<br /><br /></li>
-		<li><b>IDS Signature:</b> This option allows the attribute to be used as an IDS signature when exporting the NIDS data, unless it is being overruled by the white-list. For more information about the whitelist, head over to the <?php echo $this->Html->link(__('administration', true), array('controller' => 'pages', 'action' => 'display', 'administration', '#' => 'whitelist')); ?> section.<br /><br /></li>
-		<li><b>Value:</b> The actual value of the attribute, enter data about the value based on what is valid for the chosen attribute type. For example, for an attribute of type ip-src (source IP address), 11.11.11.11 would be a valid value. For more information on types and values, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>.<br /><br /></li>
+		<li><b>IDS Signature:</b> This option allows the attribute to be used as an IDS signature when exporting the NIDS data, unless it is being overruled by the white-list. For more information about the whitelist, head over to the <?php echo $this->Html->link(__('administration', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration', '#' => 'whitelist')); ?> section.<br /><br /></li>
+		<li><b>Value:</b> The actual value of the attribute, enter data about the value based on what is valid for the chosen attribute type. For example, for an attribute of type ip-src (source IP address), 11.11.11.11 would be a valid value. For more information on types and values, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?>.<br /><br /></li>
 		<li><b>Batch import:</b> If there are several attributes of the same type to enter (such as a list of IP addresses, it is possible to enter them all into the same value-field, separated by a line break between each line. This will allow the system to create separate lines for the each attribute. <br /><br /></li>
 </ul>
 <hr />
@@ -145,9 +145,9 @@ On the left menu bar, the option "List events" will generate a list of the last 
 		</ul></li>
 		<li><b>Info:</b> A short description of the event, starting with an internal reference number.<br /><br /></li>
 		<li><b>Distribution:</b> This field indicates what the sharing privileges of the event. The options are described <a href="#distribution">here</a>.<br /><br /></li>
-		<li><b>Actions:</b> The controls that the user has to view or modify the event. The possible actions that are available (depending on user privileges - <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'administration', '#' => 'roles')); ?> to find out more about privileges):<br /><br /></li>
+		<li><b>Actions:</b> The controls that the user has to view or modify the event. The possible actions that are available (depending on user privileges - <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration', '#' => 'roles')); ?> to find out more about privileges):<br /><br /></li>
 		<li style="list-style: none;"><ul>
-			<li><b>Publish:</b> Publishing an event will have several effects: The system will e-mail all eligible users that have auto-alert turned on (and having the needed privileges for the event, depending on its private classification) with a description of your newly published event, it will be flagged as published and it will be pushed to all eligible servers (to read more about synchronisation between servers, have a look at the <?php echo $this->Html->link(__('section on connecting servers', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system', '#' => 'connect')); ?>).</li>
+			<li><b>Publish:</b> Publishing an event will have several effects: The system will e-mail all eligible users that have auto-alert turned on (and having the needed privileges for the event, depending on its private classification) with a description of your newly published event, it will be flagged as published and it will be pushed to all eligible servers (to read more about synchronisation between servers, have a look at the <?php echo $this->Html->link(__('section on connecting servers', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'using_the_system', '#' => 'connect')); ?>).</li>
 			<li><b>Edit:</b> Clicking on the edit button will bring up the same same screen as the one used for creating new events, with the exception that all fields come filled out with the data of the event that is being edited. The distribution of an event can only be edited if you are a user of the creating organisation of the event. For more information on this view, refer to the section on <a href="#create">creating an event</a>.</li>
 			<li><b>Delete:</b> The system will prompt you before erasing the unwanted event.</li>
 			<li><b>View:</b> Will bring up the event view, which besides the basic information contained in the event list, will also include the following:<br /><br />
@@ -176,7 +176,7 @@ On the left menu bar, the option "List events" will generate a list of the last 
 Apart from being able to list all events, it is also possible to search for data contained in the value field of an attribute, by clicking on the "Search Attributes" button.<br /><br />
 <img src="/img/doc/search_attribute.png" alt = "Search attribute" title = "You can search for attributes by searching for a phrase contained in its value. Narrow your search down by selecting a type and/or a category which the event has to belong to."/><br /><br />
 This will bring up a form that lets you enter one or several search strings (separate search strings with line breaks) that will be compared to the values of all attributes, along with options to narrow down the search based on category and type. The entered search string has to be an exact match with (the sub-string of) a value. A second text field makes it possible to enter event IDs for events that should be excluded from the search (again, each line represents an event ID to be excluded).<br /><br />
-The list generated by the search will look exactly the same as listing all attributes, except that only the attributes that matched the search criteria will be listed (to find out more about the list attributes view, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>.). The search parameters will be shown above the produced list and the search terms will be highlighted.<br />
+The list generated by the search will look exactly the same as listing all attributes, except that only the attributes that matched the search criteria will be listed (to find out more about the list attributes view, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?>.). The search parameters will be shown above the produced list and the search terms will be highlighted.<br />
 <br /><img src="/img/doc/search_attribute_result.png" alt = "" title = "You can view the event that an attribute belongs to with the view button, or you can edit/delete the attribute via the buttons on the right."/><br />
 <hr />
 <a id="update_events"></a><h2>Updating and modifying events and attributes:</h2>
@@ -206,7 +206,7 @@ The following types of export are possible:<br /><br />
 	<h3>Text export:</h3>
 		It is also possible to export a list of all eligible attributes that match a specific type into a plain text file. The format to do this is:<br /><br />
 		<i>&lt;server&gt;/events/text/&lt;authentication_key&gt;/&lt;type&gt;</i><br /><br />
-		Type could be any valid type (as according to the list of <?php echo $this->Html->link(__('categories and types', true), array('controller' => 'pages', 'action' => 'display', 'categories_and_types')); ?>), for example md5, ip-src or comment.<br />
+		Type could be any valid type (as according to the list of <?php echo $this->Html->link(__('categories and types', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?>), for example md5, ip-src or comment.<br />
 <hr />
 <a id="export"></a><h2>Exporting data:</h2>
 For users that do not have authentication key access, an alternate export feature is available that relies on your interactive login to the site. To access these, just use the automation menu button to the left and you'll be presented with a list of export options. The results of the export will automatically be offered as a file download.<br /><br/>
