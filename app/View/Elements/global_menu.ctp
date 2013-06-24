@@ -93,6 +93,8 @@
 							<?php if($isSiteAdmin): ?>
 							<li class="divider"></li>
 							<li><a href="/admin/users/email">Contact Users</a></li>
+							<li class="divider"></li>
+							<li><a href="/pages/display/administration">Administrative tools</a></li>
 							<?php endif; ?>
 						</ul>
 					</li>
