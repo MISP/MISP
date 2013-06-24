@@ -120,11 +120,27 @@ class EventsController extends AppController {
 					case 'org' :
 						if (!$v) continue 2;
 						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
-						if ($v[0] == '!') {
-							$this->paginate['conditions'][] = array('Event.orgc' . ' NOT LIKE' => '%' . substr($v, 1) . '%');
-						} else {
-							$this->paginate['conditions'][] = array('Event.orgc' . ' LIKE' => '%' . $v . '%');
+						$pieces = explode('|', $v);
+						foreach ($pieces as $piece) {
+							if ($piece[0] == '!') {
+								$this->paginate['conditions']['AND'][] = array('Event.orgc' . ' NOT LIKE' => '%' . substr($piece, 1) . '%');
+							} else {
+								$this->paginate['conditions']['AND']['OR'][] = array('Event.orgc' . ' LIKE' => '%' . $piece . '%');
+							}
 						}
+						break;
+					case 'info' :
+						if (!$v) continue 2;
+						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
+						$pieces = explode('|', $v);
+						foreach ($pieces as $piece) {
+							if ($piece[0] == '!') {
+								$this->paginate['conditions']['AND'][] = array('Event.info' . ' NOT LIKE' => '%' . substr($piece, 1) . '%');
+							} else {
+								$this->paginate['conditions']['AND']['OR'][] = array('Event.info' . ' LIKE' => '%' . $piece . '%');
+							}
+						}
+						break;
 						break;
 					default:
 						if (!$v) continue 2;
