@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS `bruteforces` (
 -- Table structure for table `correlations`
 --
 
-CREATE TABLE `correlations` (
+CREATE TABLE IF NOT EXISTS `correlations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `value` text COLLATE utf8_bin NOT NULL,
   `1_event_id` int(11) NOT NULL,
@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS `roles` (
   `perm_full` tinyint(1) DEFAULT NULL,
   `perm_auth` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   KEY `event_id` (`event_id`),
   KEY `uuid` (`uuid`),
   KEY `old_id` (`old_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=11 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 -- --------------------------------------------------------
 
 --
@@ -225,6 +225,20 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
   `name` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `cake_sessions`
+--
+
+CREATE TABLE IF NOT EXISTS `cake_sessions` (
+  `id` varchar(255) NOT NULL DEFAULT '',
+  `data` text NOT NULL,
+  `expires` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
 
 -- --------------------------------------------------------
 
