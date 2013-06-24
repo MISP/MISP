@@ -1,5 +1,4 @@
 <?php if(empty($this->passedArgs['searchinfo'])) $this->passedArgs['searchinfo'] = '';?>
-<?php if(empty($this->passedArgs['searchorgc'])) $this->passedArgs['searchorgc'] = '';?>
 <?php if(empty($this->passedArgs['searchorg'])) $this->passedArgs['searchorg'] = '';?>
 <?php if(empty($this->passedArgs['searchDatefrom'])) $this->passedArgs['searchDatefrom'] = '';?>
 <?php if(empty($this->passedArgs['searchDateuntil'])) $this->passedArgs['searchDateuntil'] = '';?>
@@ -77,7 +76,6 @@
 					// on change jquery will submit the form
 					echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
 					echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden'));
-					echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'type' => 'hidden'));
 					echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden'));
 					echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden'));
 					echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden'));
@@ -90,23 +88,18 @@
 							));
 					?>
 						<input type="submit" style="visibility:collapse;" />
-					<?php 
+					<?php
 						echo $this->Form->end();
 					?>
 				</span>
 			</th>
 			<?php
-			if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) {
-				if ($isSiteAdmin) { ?>
-			<th><?php echo $this->Paginator->sort('org'); ?></th>
-				<?php
-					} else { ?>
+			if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) { ?>
 			<th class="filter"><?php echo $this->Paginator->sort('org'); ?>
 				<a onclick="toggleField('#searchorg')" class="icon-search"></a>
 				<span id="searchorg"><br/>
 				<?php
 				echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
-				echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'type' => 'hidden'));
 				echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden'));
 				echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden'));
 				echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden'));
@@ -117,37 +110,17 @@
 					'class' => 'input-mini'));
 				?>
 					<input type="submit" style="visibility:collapse;" />
-				<?php 
+				<?php
 					echo $this->Form->end();
 				?>
 				</span>
 			</th>
 				<?php
-					}
 				}
 			?>
 			<?php if ($isSiteAdmin): ?>
 			<th class="filter">
 				<?php echo $this->Paginator->sort('owner org');?>
-				<a onclick="toggleField('#searchorgc')" class="icon-search"></a>
-				<span id="searchorgc"><br/>
-				<?php
-				echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
-				echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden'));
-				echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden'));
-				echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden'));
-				echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden'));
-				echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden'));
-				echo $this->Form->input('searchorgc', array(
-					'value' => $this->passedArgs['searchorgc'],
-					'label' => '',
-					'class' => 'input-mini'));
-				?>
-					<input type="submit" style="visibility:collapse;" />
-				<?php 
-					echo $this->Form->end();
-				?>
-				</span>
 			</th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
@@ -163,7 +136,6 @@
 							<?php
 							echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
 							echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden'));
-							echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'type' => 'hidden'));
 							echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden'));
 							echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden'));
 							echo $this->Form->input('searchDatefrom', array(
@@ -183,7 +155,7 @@
 									));
 							?>
 								<input type="submit" style="visibility:collapse;" />
-							<?php 
+							<?php
 								echo $this->Form->end();
 							?>
 				</div>
@@ -201,7 +173,6 @@
 				<?php
 					echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
 					echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden'));
-					echo $this->Form->input('searchorgc', array('value' => $this->passedArgs['searchorgc'], 'type' => 'hidden'));
 					echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden'));
 					echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden'));
 					echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden'));
@@ -211,7 +182,7 @@
 							'class' => 'input-large'));
 				?>
 					<input type="submit" style="visibility:collapse;" />
-				<?php 
+				<?php
 					echo $this->Form->end();
 				?>
 				</span>
@@ -336,7 +307,6 @@
 $(document).ready( function () {
 	// onload hide all buttons
 	$('#searchinfo').hide();
-	$('#searchorgc').hide();
 	$('#searchorg').hide();
 	$('#searchdate').hide();
 	$('#searchpublished').hide();

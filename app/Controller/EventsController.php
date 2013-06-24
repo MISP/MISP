@@ -119,7 +119,7 @@ class EventsController extends AppController {
 						break;
 					case 'org' :
 						if (!$v) continue 2;
-						$this->paginate['conditions'][] = array('Event.orgc' . ' =' => $v);
+						$this->paginate['conditions'][] = array('Event.orgc' . ' LIKE' => '%' . $v . '%');
 						break;
 					default:
 						if (!$v) continue 2;
