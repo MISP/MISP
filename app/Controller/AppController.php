@@ -197,7 +197,7 @@ class AppController extends Controller {
 		$this->loadModel('Attribute');
 		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Attribute.cluster', 'Event.date', 'Event.org');
 		// get all attributes..
-		$attributes = $this->Attribute->find('all',array('recursive' => 0));
+		$attributes = $this->Attribute->find('all', array('recursive' => -1));
 		// for all attributes..
 		foreach ($attributes as $attribute) {
 			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
