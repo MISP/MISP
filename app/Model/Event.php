@@ -118,14 +118,14 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 		),
 		'distribution' => array(
-			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
-				//'allowEmpty' => false,
-				'required' => true,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-		)),
+			'rule' => array('inList', array('0', '1', '2', '3')),
+			'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
+			//'allowEmpty' => false,
+			'required' => true,
+			//'last' => false, // Stop validation after this rule
+			//'on' => 'create', // Limit validation to 'create' or 'update' operations
+
+		),
 		'analysis' => array(
 			'rule' => array('inList', array('0', '1', '2')),
 				'message' => 'Options : 0, 1, 2',
@@ -621,6 +621,9 @@ class Event extends AppModel {
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
 			App::uses('HttpSocket', 'Network/Http');
+			//$HttpSocket = new HttpSocket(array(
+			//		'ssl_verify_peer' => false
+			//		));
 			$HttpSocket = new HttpSocket();
 		}
 		$request = array(
@@ -654,6 +657,9 @@ class Event extends AppModel {
 
 		if (null == $HttpSocket) {
 			App::uses('HttpSocket', 'Network/Http');
+			//$HttpSocket = new HttpSocket(array(
+			//		'ssl_verify_peer' => false
+			//		));
 			$HttpSocket = new HttpSocket();
 		}
 		$request = array(
@@ -671,7 +677,6 @@ class Event extends AppModel {
 				//debug($response->body);
 				$xml = Xml::build($response->body);
 				$eventArray = Xml::toArray($xml);
-
 				// correct $eventArray if just one event
 				if (is_array($eventArray['response']['Event']) && isset($eventArray['response']['Event']['id'])) {
 					$tmp = $eventArray['response']['Event'];
