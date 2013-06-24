@@ -125,9 +125,7 @@
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
-			<?php if ($isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
-			<?php endif; ?>
 			<th class="filter">
 				<?php echo $this->Paginator->sort('date');?>
 				<a onclick="toggleField('#searchdate')" class="icon-search"></a>
@@ -231,11 +229,9 @@
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 				<?php echo $event['Event']['attribute_count']; ?>&nbsp;
 			</td>
-			<?php if ($isAdmin): ?>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 				<?php if($isSiteAdmin || $event['Event']['orgc'] == $me['org']) echo h($event['User']['email']); ?>&nbsp;
 			</td>
-			<?php endif; ?>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
