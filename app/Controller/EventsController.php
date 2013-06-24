@@ -119,7 +119,12 @@ class EventsController extends AppController {
 						break;
 					case 'org' :
 						if (!$v) continue 2;
-						$this->paginate['conditions'][] = array('Event.orgc' . ' LIKE' => '%' . $v . '%');
+						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
+						if ($v[0] == '!') {
+							$this->paginate['conditions'][] = array('Event.orgc' . ' NOT LIKE' => '%' . substr($v, 1) . '%');
+						} else {
+							$this->paginate['conditions'][] = array('Event.orgc' . ' LIKE' => '%' . $v . '%');
+						}
 						break;
 					default:
 						if (!$v) continue 2;
