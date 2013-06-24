@@ -644,6 +644,7 @@ class AttributesController extends AppController {
 				$this->set('keywordSearch', $keyword);
 				$keyWordText = null;
 				$keyWordText2 = null;
+				$keyWordText3 = null;
 				$this->set('typeSearch', $type);
 				$this->set('isSearch', 1);
 				$this->set('categorySearch', $category);
@@ -656,10 +657,17 @@ class AttributesController extends AppController {
 					$this->set('keywordArray', $keywordArray);
 					$i = 1;
 					$temp = array();
+					$temp2 = array();
 					foreach ($keywordArray as $keywordArrayElement) {
 						$saveWord = trim($keywordArrayElement);
 						$keywordArrayElement = '%' . trim($keywordArrayElement) . '%';
-						if ($keywordArrayElement != '%%') array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+						if ($keywordArrayElement != '%%') {
+							if ($keywordArrayElement[1] == '!') {
+								array_push($temp2, array('Attribute.value NOT LIKE' => '%' . substr($keywordArrayElement, 2)));
+							} else {
+								array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+							}
+						}
 						if ($i == 1 && $saveWord != '') $keyWordText = $saveWord;
 						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText = $keyWordText . ', ' . $saveWord;
 						else if ($i == 10 && $saveWord != '') $keyWordText = $keyWordText . ' and several other keywords';
@@ -667,12 +675,12 @@ class AttributesController extends AppController {
 					}
 					$this->set('keywordSearch', $keyWordText);
 					if (!empty($temp)) {
-						if (count($temp) == 1) {
-							$conditions['Attribute.value LIKE'] = '%' . $keyWordText . '%';
-						} else {
-							$conditions['OR'] = $temp;
-						}
+						$conditions['AND']['OR'] = $temp;
 					}
+					if (!empty($temp2)) {
+						$conditions['AND'][] = $temp2;
+					}
+
 				}
 
 				// event IDs to be excluded
@@ -682,8 +690,12 @@ class AttributesController extends AppController {
 					$temp = array();
 					foreach ($keywordArray2 as $keywordArrayElement) {
 						$saveWord = trim($keywordArrayElement);
-						if (!is_numeric($saveWord) || $saveWord < 1) continue;
-						array_push($temp, array('Attribute.event_id !=' => $keywordArrayElement));
+						if (empty($saveWord)) continue;
+						if ($saveWord[0] == '!') {
+							$temp[] = array('Attribute.event_id !=' => substr($saveWord, 1));
+						} else {
+							$temp['OR'][] = array('Attribute.event_id =' => $saveWord);
+						}
 						if ($i == 1 && $saveWord != '') $keyWordText2 = $saveWord;
 						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText2 = $keyWordText2 . ', ' . $saveWord;
 						else if ($i == 10 && $saveWord != '') $keyWordText2 = $keyWordText2 . ' and several other events';
@@ -691,11 +703,7 @@ class AttributesController extends AppController {
 					}
 					$this->set('keywordSearch2', $keyWordText2);
 					if (!empty($temp)) {
-						if (count($temp) == 1) {
-							$conditions['Attribute.event_id !='] = $keyWordText2;
-						} else {
-							$conditions['AND'] = $temp;
-						}
+						$conditions['AND'][] = $temp;
 					}
 				}
 				if ($type != 'ALL') {
@@ -705,10 +713,27 @@ class AttributesController extends AppController {
 					$conditions['Attribute.category ='] = $category;
 				}
 				// organisation search field
-				if (isset($org) && $org != '') {
-					$org = trim($org);
-					$this->set('orgSearch', $org);
-					$conditions['Event.orgc ='] = $org;
+				$i = 0;
+				$temp = array();
+				if (isset($org)) {
+					$orgArray = explode("\n", $org);
+					foreach ($orgArray as $orgArrayElement) {
+						$saveWord = trim($orgArrayElement);
+						if (empty($saveWord)) continue;
+						if ($saveWord[0] == '!') {
+							$temp[] = array('Event.orgc NOT LIKE ' => '%' . substr($saveWord, 1) . '%');
+						} else {
+							$temp['OR'][] = array('Event.orgc LIKE ' => '%' . $saveWord . '%');
+						}
+					}
+					if ($i == 1 && $saveWord != '') $keyWordText3 = $saveWord;
+					else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText3 = $keyWordText3 . ', ' . $saveWord;
+					else if ($i == 10 && $saveWord != '') $keyWordText3 = $keyWordText3 . ' and several other organisations';
+					$i++;
+					$this->set('orgSearch', $keyWordText3);
+					if (!empty($temp)) {
+						$conditions['AND'][] = $temp;
+					}
 				}
 				$this->Attribute->recursive = 0;
 				$this->paginate = array(

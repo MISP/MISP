@@ -2,16 +2,18 @@
 <?php echo $this->Form->create('Attribute');?>
 	<fieldset>
 		<legend>Search Attribute</legend>
+		You can search for attributes based on contained expression within the value, event ID, submiting organisation, category and type. <br />For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) infront of the term.<br/><br />
 		<?php
 		echo $this->Form->input('keyword', array('type' => 'textarea', 'label' => 'Containing the following expressions', 'div' => 'clear', 'class' => 'input-xxlarge'));
-		echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Excluding the following events', 'div' => 'clear', 'class' => 'input-xxlarge'));
+		echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Being attributes of the following event IDs', 'div' => 'clear', 'class' => 'input-xxlarge'));
 		?>
 		<?php
 		if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin)
 			echo $this->Form->input('org', array(
-					'type' => 'text',
-					'label' => 'From the following organisation',
-					'div' => 'input clear'));
+					'type' => 'textarea',
+					'label' => 'From the following organisation(s)',
+					'div' => 'input clear',
+					'class' => 'input-xxlarge'));
 		?>
 		<?php
 		echo $this->Form->input('type', array(
