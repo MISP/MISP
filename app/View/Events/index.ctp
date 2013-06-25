@@ -209,7 +209,7 @@
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';"><?php
 				$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['orgc']) . '.png', array('alt' => h($event['Event']['orgc']), 'title' => h($event['Event']['orgc']), 'style' => array('width:24px', 'height:24px')));
+				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['orgc']) . '.png', array('alt' => h($event['Event']['orgc']), 'title' => h($event['Event']['orgc']), 'style' => 'width:24px; height:24px'));
 				else echo $this->Html->tag('span', h($event['Event']['orgc']), array('class' => 'welcome', 'style' => 'float:left;'));?><?php
 				?>
 				&nbsp;
@@ -220,7 +220,7 @@
 				<?php
 				$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']), 'title' => h($event['Event']['org']), 'style' => array('width:24px', 'height:24px')));
+				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']), 'title' => h($event['Event']['org']), 'style' => 'width:24px; height:24px'));
 				else echo $this->Html->tag('span', h($event['Event']['org']), array('class' => 'welcome', 'style' => 'float:left;'));?><?php
 				?>&nbsp;
 			</td>
