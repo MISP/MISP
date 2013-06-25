@@ -125,7 +125,9 @@
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
+			<?php if ($isSiteAdmin): ?>
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
+			<?php endif; ?>
 			<th class="filter">
 				<?php echo $this->Paginator->sort('date');?>
 				<a onclick="toggleField('#searchdate')" class="icon-search"></a>
@@ -207,7 +209,7 @@
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';"><?php
 				$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['orgc']) . '.png', array('alt' => h($event['Event']['orgc']),'width' => '48','hight' => '48'));
+				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['orgc']) . '.png', array('alt' => h($event['Event']['orgc']),'width' => '24','hight' => '24', 'title' => h($event['Event']['orgc'])));
 				else echo $this->Html->tag('span', h($event['Event']['orgc']), array('class' => 'welcome', 'style' => 'float:left;'));?><?php
 				?>
 				&nbsp;
@@ -218,7 +220,7 @@
 				<?php
 				$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']),'width' => '48','hight' => '48'));
+				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']),'width' => '24','hight' => '24', 'title' => h($event['Event']['orgc'])));
 				else echo $this->Html->tag('span', h($event['Event']['org']), array('class' => 'welcome', 'style' => 'float:left;'));?><?php
 				?>&nbsp;
 			</td>
@@ -229,9 +231,11 @@
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 				<?php echo $event['Event']['attribute_count']; ?>&nbsp;
 			</td>
+			<?php if ('true' == $isSiteAdmin): ?>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
-				<?php if($isSiteAdmin || $event['Event']['orgc'] == $me['org']) echo h($event['User']['email']); ?>&nbsp;
+				<?php echo h($event['User']['email']); ?>&nbsp;
 			</td>
+			<?php endif; ?>
 			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
