@@ -220,7 +220,7 @@
 				<?php
 				$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']),'width' => '24','height' => '24', 'title' => h($event['Event']['orgc'])));
+				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']), 'title' => h($event['Event']['orgc']), 'style' => array('width:24px', 'height:24px')));
 				else echo $this->Html->tag('span', h($event['Event']['org']), array('class' => 'welcome', 'style' => 'float:left;'));?><?php
 				?>&nbsp;
 			</td>
