@@ -386,10 +386,12 @@ class AttributesController extends AppController {
 				$this->Attribute->create();
 				$temp['Attribute']['type'] = 'filename|sha256';
 				$temp['Attribute']['value'] = $filename . '|' .$sha256;
+				$temp['Attribute']['uuid'] = String::uuid();
 				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids')));
 				$this->Attribute->create();
 				$temp['Attribute']['type'] = 'filename|sha1';
 				$temp['Attribute']['value'] = $filename . '|' .$sha1;
+				$temp['Attribute']['uuid'] = String::uuid();
 				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids')));
 			}
 
