@@ -1316,7 +1316,11 @@ class EventsController extends AppController {
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
 		}
-		$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
+		// removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
+		// $conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
+		// Same idea for the published. Just adjust the tools to check for this
+		// TODO: It is important to make sure that this is documented
+		// $conditions['AND'][] = array('Event.published =' => 1);
 
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
@@ -1338,17 +1342,7 @@ class EventsController extends AppController {
 		$results = $this->Event->find('all', $params);
 		// Whitelist check
 		$this->loadModel('Whitelist');
-		// Let's get all of the values that will be blocked by the whitelist
-		$whitelists = $this->Whitelist->getBlockedValues();
-		foreach ($results as $ke => $event) {
-			foreach ($event['Attribute'] as $k => $attribute) {
-				foreach ($whitelists as $wlitem) {
-					if (preg_match($wlitem, $attribute['value'])) {
-						unset($results[$ke]['Attribute'][$k]);
-					}
-				}
-			}
-		}
+		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
 		$this->set('results', $results);
 	}
 
@@ -1544,7 +1538,7 @@ class EventsController extends AppController {
 		);
 		$attributes = $this->Attribute->find('all', $params);
 		$this->loadModel('Whitelist');
-		$attributes = $this->Whitelist->removeWhitelistedFromAttributeArray($attributes);
+		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
 			$attribute['Attribute']['value'] = str_replace("\r", "", $attribute['Attribute']['value']);
 			$attribute['Attribute']['value'] = str_replace("\n", "", $attribute['Attribute']['value']);
@@ -1576,7 +1570,7 @@ class EventsController extends AppController {
 		$this->loadModel('Attribute');
 
 		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.type' => $type, 'Attribute.to_ids =' => 1);
+		$conditions['AND'] = array('Attribute.type' => $type, 'Attribute.to_ids =' => 1, 'Event.published =' => 1);
 		if (!$this->_isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
@@ -1591,10 +1585,11 @@ class EventsController extends AppController {
 				'fields' => array('Attribute.value'), //array of field names
 				'order' => array('Attribute.value'), //string or array defining order
 				'group' => array('Attribute.value'), //fields to GROUP BY
+				'contain' => array('Event.id', 'Event.published'),
 		);
 		$attributes = $this->Attribute->find('all', $params);
 		$this->loadModel('Whitelist');
-		$attributes = $this->Whitelist->removeWhitelistedFromAttributeArray($attributes);
+		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		$this->set('attributes', $attributes);
 	}
 
@@ -1955,17 +1950,7 @@ class EventsController extends AppController {
 		$results = $this->Event->find('all', $params);
 		// Whitelist check
 		$this->loadModel('Whitelist');
-		// Let's get all of the values that will be blocked by the whitelist
-		$whitelists = $this->Whitelist->getBlockedValues();
-		foreach ($results as $ke => $event) {
-			foreach ($event['Attribute'] as $k => $attribute) {
-				foreach ($whitelists as $wlitem) {
-					if (preg_match($wlitem, $attribute['value'])) {
-						unset($results[$ke]['Attribute'][$k]);
-					}
-				}
-			}
-		}
+		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
 		$this->set('results', $results);
 		$this->render('xml');
 	}
@@ -1988,25 +1973,15 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-		$this->Event->recursive = 1;
+		$this->Event->contain('Attribute');
 		$event = $this->Event->read(null, $eventid);
-
-		$this->loadModel('Whitelist');
-		// Let's get all of the values that will be blocked by the whitelist
-		$whitelists = $this->Whitelist->getBlockedValues();
-		// if we don't have any whitelist items in the db, don't loop through each attribute
-		if (!empty($whitelists)) {
-			// loop through each attribute and unset the ones that are whitelisted
-			foreach ($event['Attribute'] as $k => $attribute) {
-				// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
-				foreach ($whitelists as $wlitem) {
-					if (preg_match($wlitem, $attribute['value'])) {
-						unset($event['Attribute'][$k]);
-					}
-				}
-			}
+		foreach ($event['Attribute'] as $k => $attribute) {
+			if (!$attribute['to_ids']) unset($event['Attribute'][$k]);
 		}
-
+		$this->loadModel('Whitelist');
+		$temp = $this->Whitelist->removeWhitelistedFromArray(array($event), false);
+		$event = $temp[0];
+		//$event['Attribute'] = $this->Whitelist->removeWhitelistedFromArray($event['Attribute'], false);
 		// set up helper variables for the authorisation check in the component
 		$isMyEvent = false;
 		if ($this->Auth->User == $event['Event']['org']) $isMyEvent = true;

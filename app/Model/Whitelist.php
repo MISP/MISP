@@ -84,33 +84,6 @@ class Whitelist extends AppModel {
 		return true;
 	}
 
-/**
- * get the Whitelist as an array
- *
- * @return array whitelistCheck names
- *
- * TODO: WTF IS THIS ****?
- *
- */
-	public function populateWhitelist() {
-		$whitelistCheck = array();
-
-		$whitelist = $this->find('all', array('recursive' => 0,'fields' => 'name'));
-
-		// loop through whitelist table,
-		foreach ($whitelist as $whitelistItem) {
-			$ipl = array();
-			$ipl[] = $whitelistItem['Whitelist']['name'];
-			$whitelistCheck = array_merge($whitelistCheck,$ipl);
-			if (count($ipl) > 0 && $whitelistItem != $ipl[0]) {
-				$dummyArray = array();
-				$dummyArray[] = $whitelistItem['Whitelist']['name'];
-				$whitelistCheck = array_merge($whitelistCheck,$dummyArray);
-			}
-		}
-		return $whitelistCheck;
-	}
-
 	public function getBlockedValues() {
 		$Whitelists = $this->find('all', array('fields' => array('name')));
 		$toReturn = array();
@@ -120,21 +93,37 @@ class Whitelist extends AppModel {
 		return $toReturn;
 	}
 
-	public function removeWhitelistedFromAttributeArray($attributes) {
+	public function removeWhitelistedFromArray($data, $isAttributeArray) {
 		// Let's get all of the values that will be blocked by the whitelist
 		$whitelists = $this->getBlockedValues();
 		// if we don't have any whitelist items in the db, don't loop through each attribute
 		if (!empty($whitelists)) {
-			// loop through each attribute and unset the ones that are whitelisted
-			foreach ($attributes as $k => $attribute) {
-				// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
-				foreach ($whitelists as $wlitem) {
-					if (preg_match($wlitem, $attribute['Attribute']['value'])) {
-						unset($attributes[$k]);
+			// if $isAttributeArray, we know that we have just an array of attributes
+			if ($isAttributeArray) {
+				// loop through each attribute and unset the ones that are whitelisted
+				foreach ($data as $k => $attribute) {
+					// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
+					foreach ($whitelists as $wlitem) {
+						if (preg_match($wlitem, $attribute['Attribute']['value'])) {
+							unset($data[$k]);
+						}
+					}
+				}
+			} else {
+			// if !$isAttributeArray, we know that we have an array of events that we need to parse through
+				foreach ($data as $ke => $event) {
+					// loop through each attribute and unset the ones that are whitelisted
+					foreach ($event['Attribute'] as $k => $attribute) {
+						// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
+						foreach ($whitelists as $wlitem) {
+							if (preg_match($wlitem, $attribute['value'])) {
+								unset($data[$ke]['Attribute'][$k]);
+							}
+						}
 					}
 				}
 			}
 		}
-		return $attributes;
+		return $data;
 	}
 }
