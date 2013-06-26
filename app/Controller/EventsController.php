@@ -1543,7 +1543,8 @@ class EventsController extends AppController {
 				'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid'),
 		);
 		$attributes = $this->Attribute->find('all', $params);
-		$attributes = $this->__removeWhitelistedFromAttributeArray($attributes);
+		$this->loadModel('Whitelist');
+		$attributes = $this->Whitelist->removeWhitelistedFromAttributeArray($attributes);
 		foreach ($attributes as $attribute) {
 			$attribute['Attribute']['value'] = str_replace("\r", "", $attribute['Attribute']['value']);
 			$attribute['Attribute']['value'] = str_replace("\n", "", $attribute['Attribute']['value']);
@@ -1592,7 +1593,8 @@ class EventsController extends AppController {
 				'group' => array('Attribute.value'), //fields to GROUP BY
 		);
 		$attributes = $this->Attribute->find('all', $params);
-		$attributes = $this->__removeWhitelistedFromAttributeArray($attributes);
+		$this->loadModel('Whitelist');
+		$attributes = $this->Whitelist->removeWhitelistedFromAttributeArray($attributes);
 		$this->set('attributes', $attributes);
 	}
 
@@ -1951,6 +1953,19 @@ class EventsController extends AppController {
 				)
 		);
 		$results = $this->Event->find('all', $params);
+		// Whitelist check
+		$this->loadModel('Whitelist');
+		// Let's get all of the values that will be blocked by the whitelist
+		$whitelists = $this->Whitelist->getBlockedValues();
+		foreach ($results as $ke => $event) {
+			foreach ($event['Attribute'] as $k => $attribute) {
+				foreach ($whitelists as $wlitem) {
+					if (preg_match($wlitem, $attribute['value'])) {
+						unset($results[$ke]['Attribute'][$k]);
+					}
+				}
+			}
+		}
 		$this->set('results', $results);
 		$this->render('xml');
 	}
@@ -2000,24 +2015,5 @@ class EventsController extends AppController {
 		// send the event and the vars needed to check authorisation to the Component
 		$final = $this->IOCExport->buildAll($event, $isMyEvent, $isSiteAdmin);
 		$this->set('final', $final);
-	}
-
-	private function __removeWhitelistedFromAttributeArray($attributes) {
-		$this->loadModel('Whitelist');
-		// Let's get all of the values that will be blocked by the whitelist
-		$whitelists = $this->Whitelist->getBlockedValues();
-		// if we don't have any whitelist items in the db, don't loop through each attribute
-		if (!empty($whitelists)) {
-			// loop through each attribute and unset the ones that are whitelisted
-			foreach ($attributes as $k => $attribute) {
-				// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
-				foreach ($whitelists as $wlitem) {
-					if (preg_match($wlitem, $attribute['Attribute']['value'])) {
-						unset($attributes[$k]);
-					}
-				}
-			}
-		}
-		return $attributes;
 	}
 }

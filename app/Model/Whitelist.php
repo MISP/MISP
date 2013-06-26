@@ -119,4 +119,22 @@ class Whitelist extends AppModel {
 		}
 		return $toReturn;
 	}
+
+	public function removeWhitelistedFromAttributeArray($attributes) {
+		// Let's get all of the values that will be blocked by the whitelist
+		$whitelists = $this->getBlockedValues();
+		// if we don't have any whitelist items in the db, don't loop through each attribute
+		if (!empty($whitelists)) {
+			// loop through each attribute and unset the ones that are whitelisted
+			foreach ($attributes as $k => $attribute) {
+				// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
+				foreach ($whitelists as $wlitem) {
+					if (preg_match($wlitem, $attribute['Attribute']['value'])) {
+						unset($attributes[$k]);
+					}
+				}
+			}
+		}
+		return $attributes;
+	}
 }

@@ -4,23 +4,30 @@
 		<legend>Search Attribute</legend>
 		You can search for attributes based on contained expression within the value, event ID, submiting organisation, category and type. <br />For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) infront of the term.<br/><br />
 		<?php
-		echo $this->Form->input('keyword', array('type' => 'textarea', 'label' => 'Containing the following expressions', 'div' => 'clear', 'class' => 'input-xxlarge'));
-		echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Being attributes of the following event IDs', 'div' => 'clear', 'class' => 'input-xxlarge'));
+			echo $this->Form->input('keyword', array('type' => 'textarea', 'label' => 'Containing the following expressions', 'div' => 'clear', 'class' => 'input-xxlarge'));
+			echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Being attributes of the following event IDs', 'div' => 'clear', 'class' => 'input-xxlarge'));
 		?>
 		<?php
-		if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin)
-			echo $this->Form->input('org', array(
-					'type' => 'textarea',
-					'label' => 'From the following organisation(s)',
+			if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin)
+				echo $this->Form->input('org', array(
+						'type' => 'textarea',
+						'label' => 'From the following organisation(s)',
+						'div' => 'input clear',
+						'class' => 'input-xxlarge'));
+		?>
+		<?php
+			echo $this->Form->input('type', array(
 					'div' => 'input clear',
-					'class' => 'input-xxlarge'));
+					));
+			echo $this->Form->input('category', array(
+					));
 		?>
+			<div class="input clear"></div>
 		<?php
-		echo $this->Form->input('type', array(
-				'div' => 'input clear',
-				));
-		echo $this->Form->input('category', array(
-				));
+			echo $this->Form->input('ioc', array(
+				'type' => 'checkbox',
+				'label' => 'Only find valid IOCs',
+			));
 		?>
 	</fieldset>
 <?php

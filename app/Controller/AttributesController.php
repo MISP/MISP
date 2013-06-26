@@ -640,6 +640,8 @@ class AttributesController extends AppController {
 				$keyword2 = $this->request->data['Attribute']['keyword2'];
 				$org = $this->request->data['Attribute']['org'];
 				$type = $this->request->data['Attribute']['type'];
+				$ioc = $this->request->data['Attribute']['ioc'];
+				$this->set('ioc', $ioc);
 				$category = $this->request->data['Attribute']['category'];
 				$this->set('keywordSearch', $keyword);
 				$keyWordText = null;
@@ -650,7 +652,10 @@ class AttributesController extends AppController {
 				$this->set('categorySearch', $category);
 				// search the db
 				$conditions = array();
-
+				if ($ioc) {
+					$conditions['AND'][] = array('Attribute.to_ids =' => 1);
+					$conditions['AND'][] = array('Event.published =' => 1);
+				}
 				// search on the value field
 				if (isset($keyword)) {
 					$keywordArray = explode("\n", $keyword);
@@ -755,6 +760,12 @@ class AttributesController extends AppController {
 				$idList = array();
 				$attributeIdList = array();
 				$attributes = $this->paginate();
+				// if we searched for IOCs only, apply the whitelist to the search result!
+				if ($ioc) {
+					$this->loadModel('Whitelist');
+					$attributes = $this->Whitelist->removeWhitelistedFromAttributeArray($attributes);
+				}
+
 				foreach ($attributes as &$attribute) {
 					$attributeIdList[] = $attribute['Attribute']['id'];
 					if (!in_array($attribute['Attribute']['event_id'], $idList)) {
