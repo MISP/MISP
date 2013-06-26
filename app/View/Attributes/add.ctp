@@ -27,7 +27,7 @@
 		<div class="input clear"></div>
 		<?php
 		echo $this->Form->input('to_ids', array(
-					'checked' => true,
+					'checked' => false,
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
 					'label' => 'IDS Signature?',
 		));
