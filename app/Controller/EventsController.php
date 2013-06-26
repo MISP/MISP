@@ -1475,32 +1475,30 @@ class EventsController extends AppController {
 			$this->layout = 'text/default';
 		}
 
-		$eventIDList = array();
 		$attributeList = array();
 		$conditions = array();
+		$econditions = array();
 		$this->loadModel('Attribute');
 		$this->Attribute->recursive = -1;
 		// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
 		if ($eventid !== 'search') {
 			// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
 			if(!$this->_isSiteAdmin()) {
-				$conditions['AND']['OR'] = array('event.distribution >' => 0, 'event.org =' => $this->Auth->user('org'));
+				$econditions['AND']['OR'] = array('event.distribution >' => 0, 'event.org =' => $this->Auth->user('org'));
+			}
+			if ($eventid == null) {
+				$econditions['AND'][] = array('event.published =' => 1);
 			}
 			// If it's a full download (eventid == null) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
-			if (!$this->_isSiteAdmin() && $eventid == null) {
+			if ($eventid == null) {
 				$this->Event->recursive = -1;
 				// let's add the conditions if we're dealing with a non-siteadmin user
 				$params = array(
-						'conditions' => $conditions,
-						'fields' => array('id', 'distribution', 'org'),
+						'conditions' => $econditions,
+						'fields' => array('id', 'distribution', 'org', 'published'),
 						);
 				$events = $this->Event->find('all', $params);
-				$eventIDList = array();
-				foreach ($events as $event) {
-					$eventIDList[] = $event['Event']['id'];
-				}
 			}
-			$this->Attribute->contain = array('Event.org', 'Event.distribution', 'Event.id');
 			// if we have items in events, add their IDs to the conditions. If we're a site admin, or we have a single event selected for download, this should be empty
 			if (isset($events)) {
 				foreach ($events as $event) {
