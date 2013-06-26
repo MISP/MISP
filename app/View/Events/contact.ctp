@@ -51,7 +51,10 @@ $mayPublish = ($isAclPublish && $this->request->data['Event']['orgc'] == $me['or
 		<li class="divider"></li>
 		<li class="active"><a href="/events/contact/<?php echo $this->data['Event']['id'];?>">Contact Reporter</a></li>
 		<li><a href="/events/xml/download/<?php echo $this->data['Event']['id'];?>">Download as XML</a></li>
+		<?php if ($this->data['Event']['published']): ?>
 		<li><a href="/events/downloadOpenIOCEvent/<?php echo $this->data['Event']['id'];?>">Download as IOC</a></li>
+		<li><a href="/events/csv/download/<?php echo $this->data['Event']['id'];?>">Download as CSV</a></li>
+		<?php endif; ?>
 		<li class="divider"></li>
 		<li><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>

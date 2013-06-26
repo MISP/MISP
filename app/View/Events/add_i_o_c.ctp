@@ -32,7 +32,10 @@ echo $this->Form->end();
 		<li class="divider"></li>
 		<li><a href="/events/contact/<?php echo $id;?>">Contact Reporter</a></li>
 		<li><a href="/events/xml/download/<?php echo $id;?>">Download as XML</a></li>
+		<?php if ($published): ?>
 		<li><a href="/events/downloadOpenIOCEvent/<?php echo $id;?>">Download as IOC</a></li>
+		<li><a href="/events/csv/download/<?php echo $id;?>">Download as CSV</a></li>
+		<?php endif; ?>
 		<li class="divider"></li>
 		<li><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>

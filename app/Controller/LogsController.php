@@ -63,11 +63,11 @@ class LogsController extends AppController {
 		// check if the user has access to this event...
 		$mayModify = false;
 		$mineOrAdmin = false;
+		$this->loadModel('Event');
+		$this->Event->recursive = -1;
+		$this->Event->read(null, $id);
 		// send unauthorised people away. Only site admins and users of the same org may see events that are "your org only". Everyone else can proceed for all other levels of distribution
 		if ($this->Auth->user('org') != 'ADMIN') {
-			$this->loadModel('Event');
-			$this->Event->recursive = -1;
-			$this->Event->read(null, $id);
 			if ($this->Event->data['Event']['distribution'] == 0) {
 				if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
 					$this->Session->setFlash(__('You don\'t have access to view this event.'));
@@ -79,6 +79,7 @@ class LogsController extends AppController {
 		} else {
 			$mineOrAdmin = true;
 		}
+		$this->set('published', $this->Event->data['Event']['published']);
 		if ($mineOrAdmin && $this->checkAction('perm_modify')) $mayModify = true;
 		// get a list of the attributes that belong to the event
 		$this->loadModel('Attribute');

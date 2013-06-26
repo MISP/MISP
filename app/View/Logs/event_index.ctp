@@ -67,7 +67,10 @@
 		<li class="divider"></li>
 		<li><a href="/events/contact/<?php echo $eventId;?>">Contact reporter</a></li>
 		<li><a href="/events/xml/download/<?php echo $eventId;?>">Download as XML</a></li>
+		<?php if ($published): ?>
 		<li><a href="/events/downloadOpenIOCEvent/<?php echo $eventId;?>">Download as IOC</a></li>
+		<li><a href="/events/csv/download/<?php echo $eventId;?>">Download as CSV</a></li>
+		<?php endif; ?>
 		<li class="divider"></li>
 		<li><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>

@@ -237,6 +237,7 @@ class AttributesController extends AppController {
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+		$this->set('published', $events['Event']['published']);
 	}
 
 	public function download($id = null) {
@@ -439,6 +440,7 @@ class AttributesController extends AppController {
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 		$events = $this->Event->findById($eventId);
 		$this->set('currentDist', $events['Event']['distribution']);
+		$this->set('published', $events['Event']['published']);
 	}
 
 /**

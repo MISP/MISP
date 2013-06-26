@@ -26,7 +26,10 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 		<?php endif; ?>
 		<li><a href="/events/contact/<?php echo $event['Event']['id'];?>">Contact Reporter</a></li>
 		<li><a href="/events/xml/download/<?php echo $event['Event']['id'];?>">Download as XML</a></li>
+		<?php if ($event['Event']['published']): ?>
 		<li><a href="/events/downloadOpenIOCEvent/<?php echo $event['Event']['id'];?>">Download as IOC</a></li>
+		<li><a href="/events/csv/download/<?php echo $event['Event']['id'];?>">Download as CSV</a></li>
+		<?php endif; ?>
 		<li class="divider"></li>
 		<li><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>

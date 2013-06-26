@@ -422,6 +422,10 @@ class EventsController extends AppController {
 
 		// set the id
 		$this->set('id', $id);
+		$this->Event->recursive = -1;
+		$this->Event->read(null, $id);
+		// set whether it is published or not
+		$this->set('published', $this->Event->data['Event']['published']);
 
 		// tooltip for risk
 		$this->set('riskDescriptions', $this->Event->riskDescriptions);
