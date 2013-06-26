@@ -923,6 +923,7 @@ class EventsController extends AppController {
 
 		// The mail body, h() is NOT needed as we are sending plain-text mails.
 		$body = "";
+		$body .= '----------------------------------------------' . "\n";
 		$appendlen = 20;
 		$body .= 'URL         : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
 		$body .= 'Event       : ' . $event['Event']['id'] . "\n";
@@ -931,17 +932,19 @@ class EventsController extends AppController {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
 		$body .= 'Risk        : ' . $event['Event']['risk'] . "\n";
-		$body .= 'Analysis    : ' . $event['Event']['analysis'] . "\n";
-		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
-		if (!empty($relatedEvents)) {
-			foreach ($relatedEvents as &$relatedEvent) {
-				$body .= 'Related to  : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
-
-			}
-		}
+		$body .= 'Analysis    : ' . $this->Event->analysisLevels[$event['Event']['analysis']] . "\n";
 		$body .= 'Info  : ' . "\n";
 		$body .= $event['Event']['info'] . "\n";
-		$body .= "\n";
+		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
+		if (!empty($relatedEvents)) {
+			$body .= '----------------------------------------------' . "\n";
+			$body .= 'Related to : '. "\n";
+			foreach ($relatedEvents as &$relatedEvent) {
+				$body .= Configure::read('CyDefSIG.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
+
+			}
+			$body .= '----------------------------------------------' . "\n";
+		}
 		$body .= 'Attributes  :' . "\n";
 		$bodyTempOther = "";
 
@@ -953,16 +956,17 @@ class EventsController extends AppController {
 				else $body .= $line;
 			}
 		}
-		$body .= "\n";
+		if (!empty($bodyTempOther)) {
+			$body .= "\n";
+		}
 		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
-
+		$body .= '----------------------------------------------' . "\n";
 		// find out whether the event is private, to limit the alerted user's list to the org only
 		if ($event['Event']['distribution'] == 0) {
 			$eventIsPrivate = true;
 		} else {
 			$eventIsPrivate = false;
 		}
-
 		// sign the body
 		require_once 'Crypt/GPG.php';
 		try {
@@ -1261,6 +1265,7 @@ class EventsController extends AppController {
 		$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
 	}
 
+
 	public function xml($key, $eventid=null) {
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
@@ -1331,6 +1336,19 @@ class EventsController extends AppController {
 				)
 		);
 		$results = $this->Event->find('all', $params);
+		// Whitelist check
+		$this->loadModel('Whitelist');
+		// Let's get all of the values that will be blocked by the whitelist
+		$whitelists = $this->Whitelist->getBlockedValues();
+		foreach ($results as $ke => $event) {
+			foreach ($event['Attribute'] as $k => $attribute) {
+				foreach ($whitelists as $wlitem) {
+					if (preg_match($wlitem, $attribute['value'])) {
+						unset($results[$ke]['Attribute'][$k]);
+					}
+				}
+			}
+		}
 		$this->set('results', $results);
 	}
 
@@ -1430,6 +1448,111 @@ class EventsController extends AppController {
 		$this->set('rules', $rules);
 	}
 
+	// csv function
+	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
+	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
+	public function csv($key, $eventid=null) {
+		$final = array();
+		if ($key != 'download') {
+			// check if the key is valid -> search for users based on key
+			$user = $this->checkAuthUser($key);
+			if (!$user) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
+			$this->response->type('csv');	// set the content type
+			if ($eventid == null) {
+				$this->header('Content-Disposition: inline; filename="misp.all_attributes.csv"');
+			} else if ($eventid === 'search') {
+				$this->header('Content-Disposition: inline; filename="misp.search_result.csv"');
+			} else {
+				$this->header('Content-Disposition: inline; filename="misp.event_' . $eventid . '.csv"');
+			}
+			$this->layout = 'text/default';
+		} else {
+			if (!$this->Auth->user('id')) {
+				throw new UnauthorizedException('You have to be logged in to do that.');
+			}
+			$this->response->type('csv');	// set the content type
+			if ($eventid == null) {
+				$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
+			} else {
+				$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
+			}
+			$this->layout = 'text/default';
+		}
+
+		$eventIDList = array();
+		$attributeList = array();
+		$conditions = array();
+		$this->loadModel('Attribute');
+		$this->Attribute->recursive = -1;
+		// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
+		if ($eventid !== 'search') {
+			// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
+			if(!$this->_isSiteAdmin()) {
+				$conditions['AND']['OR'] = array('event.distribution >' => 0, 'event.org =' => $this->Auth->user('org'));
+			}
+			// If it's a full download (eventid == null) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
+			if (!$this->_isSiteAdmin() && $eventid == null) {
+				$this->Event->recursive = -1;
+				// let's add the conditions if we're dealing with a non-siteadmin user
+				$params = array(
+						'conditions' => $conditions,
+						'fields' => array('id', 'distribution', 'org'),
+						);
+				$events = $this->Event->find('all', $params);
+				$eventIDList = array();
+				foreach ($events as $event) {
+					$eventIDList[] = $event['Event']['id'];
+				}
+			}
+			$this->Attribute->contain = array('Event.org', 'Event.distribution', 'Event.id');
+			// if we have items in events, add their IDs to the conditions. If we're a site admin, or we have a single event selected for download, this should be empty
+			if (isset($events)) {
+				foreach ($events as $event) {
+					$conditions['AND']['OR'][] = array('Attribute.event_id' => $event['Event']['id']);
+				}
+			}
+			// if we're downloading a single event, set it as a condition
+			if (isset($eventid)) {
+				$conditions['AND'][] = array('Attribute.event_id' => $eventid);
+			}
+			//restricting to non-private or same org if the user is not a site-admin.
+			$conditions['AND'][] = array('Attribute.to_ids =' => 1);
+			if (!$this->_isSiteAdmin()) {
+				$temp = array();
+				$distribution = array();
+				array_push($temp, array('Attribute.distribution >' => 0));
+				array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
+				$conditions['OR'] = $temp;
+			}
+		}
+		// if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
+		// We don't need to look out for permissions since that's filtered by the search itself
+		// We just want all the attributes found by the search
+		if (isset($eventid) && $eventid === 'search') {
+			$attributeIDList = $this->Session->read('search_find_attributeidlist');
+			foreach ($attributeIDList as $aID) {
+				$conditions['AND']['OR'][] = array('Attribute.id' => $aID);
+			}
+			$conditions['AND'][] = array('Attribute.to_ids =' => 1);
+		}
+
+		$params = array(
+				'conditions' => $conditions, //array of conditions
+				'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid'),
+		);
+		$attributes = $this->Attribute->find('all', $params);
+		$attributes = $this->__removeWhitelistedFromAttributeArray($attributes);
+		foreach ($attributes as $attribute) {
+			$attribute['Attribute']['value'] = str_replace("\r", "", $attribute['Attribute']['value']);
+			$attribute['Attribute']['value'] = str_replace("\n", "", $attribute['Attribute']['value']);
+			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ', "' . $attribute['Attribute']['value'] . '"';
+		}
+		$this->set('final', $final);
+	}
+
+
 	public function text($key, $type="") {
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
@@ -1469,6 +1592,7 @@ class EventsController extends AppController {
 				'group' => array('Attribute.value'), //fields to GROUP BY
 		);
 		$attributes = $this->Attribute->find('all', $params);
+		$attributes = $this->__removeWhitelistedFromAttributeArray($attributes);
 		$this->set('attributes', $attributes);
 	}
 
@@ -1806,8 +1930,8 @@ class EventsController extends AppController {
 			array_push($temp2, array('Attribute.private >' => 0));
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
-			$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 		}
+		$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
@@ -1852,6 +1976,22 @@ class EventsController extends AppController {
 		$this->Event->recursive = 1;
 		$event = $this->Event->read(null, $eventid);
 
+		$this->loadModel('Whitelist');
+		// Let's get all of the values that will be blocked by the whitelist
+		$whitelists = $this->Whitelist->getBlockedValues();
+		// if we don't have any whitelist items in the db, don't loop through each attribute
+		if (!empty($whitelists)) {
+			// loop through each attribute and unset the ones that are whitelisted
+			foreach ($event['Attribute'] as $k => $attribute) {
+				// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
+				foreach ($whitelists as $wlitem) {
+					if (preg_match($wlitem, $attribute['value'])) {
+						unset($event['Attribute'][$k]);
+					}
+				}
+			}
+		}
+
 		// set up helper variables for the authorisation check in the component
 		$isMyEvent = false;
 		if ($this->Auth->User == $event['Event']['org']) $isMyEvent = true;
@@ -1860,5 +2000,24 @@ class EventsController extends AppController {
 		// send the event and the vars needed to check authorisation to the Component
 		$final = $this->IOCExport->buildAll($event, $isMyEvent, $isSiteAdmin);
 		$this->set('final', $final);
+	}
+
+	private function __removeWhitelistedFromAttributeArray($attributes) {
+		$this->loadModel('Whitelist');
+		// Let's get all of the values that will be blocked by the whitelist
+		$whitelists = $this->Whitelist->getBlockedValues();
+		// if we don't have any whitelist items in the db, don't loop through each attribute
+		if (!empty($whitelists)) {
+			// loop through each attribute and unset the ones that are whitelisted
+			foreach ($attributes as $k => $attribute) {
+				// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
+				foreach ($whitelists as $wlitem) {
+					if (preg_match($wlitem, $attribute['Attribute']['value'])) {
+						unset($attributes[$k]);
+					}
+				}
+			}
+		}
+		return $attributes;
 	}
 }

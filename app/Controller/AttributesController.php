@@ -753,8 +753,10 @@ class AttributesController extends AppController {
 				}
 
 				$idList = array();
+				$attributeIdList = array();
 				$attributes = $this->paginate();
 				foreach ($attributes as &$attribute) {
+					$attributeIdList[] = $attribute['Attribute']['id'];
 					if (!in_array($attribute['Attribute']['event_id'], $idList)) {
 						$idList[] = $attribute['Attribute']['event_id'];
 					}
@@ -767,6 +769,7 @@ class AttributesController extends AppController {
 				$this->Session->write('paginate_conditions_type', $type);
 				$this->Session->write('paginate_conditions_category', $category);
 				$this->Session->write('search_find_idlist', $idList);
+				$this->Session->write('search_find_attributeidlist', $attributeIdList);
 
 				// set the same view as the index page
 				$this->render('index');

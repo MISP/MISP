@@ -65,29 +65,10 @@ class Whitelist extends AppModel {
 		),
 	);
 
+	// regexp validation
 	public function validateValue ($fields) {
-		$value = $fields['name'];
-
-		// check data validation
-		// host domainname maybe..
-		if(preg_match("#^[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value))
+		if (preg_match($fields['name'], 'test') === false) return false;
 		return true;
-
-		// IP maybe..
-		$parts = explode("/", $value);
-		// [0] = the ip
-		// [1] = the network address
-		if (count($parts) <= 2 ) {
-			// ipv4 and ipv6 matching
-			if (filter_var($parts[0],FILTER_VALIDATE_IP)) {
-				// ip is validated, now check if we have a valid network mask
-				if (empty($parts[1]))
-				return true;
-				else if(is_numeric($parts[1]) && $parts[1] < 129)
-				return true;
-			}
-		}
-		return false;
 	}
 
 	public function valueIsUnique ($fields) {
@@ -107,6 +88,9 @@ class Whitelist extends AppModel {
  * get the Whitelist as an array
  *
  * @return array whitelistCheck names
+ *
+ * TODO: WTF IS THIS ****?
+ *
  */
 	public function populateWhitelist() {
 		$whitelistCheck = array();
@@ -125,5 +109,14 @@ class Whitelist extends AppModel {
 			}
 		}
 		return $whitelistCheck;
+	}
+
+	public function getBlockedValues() {
+		$Whitelists = $this->find('all', array('fields' => array('name')));
+		$toReturn = array();
+		foreach ($Whitelists as $item) {
+			$toReturn[] = $item['Whitelist']['name'];
+		}
+		return $toReturn;
 	}
 }

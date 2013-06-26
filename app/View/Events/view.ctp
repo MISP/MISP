@@ -193,7 +193,8 @@ if (!empty($event['Attribute'])):?>
 			} elseif ('link' == $attribute['type']) {
 				echo $this->Html->link(h($sigDisplay), h($sigDisplay));
 			} else {
-				echo nl2br(h($sigDisplay));
+				$sigDisplay = str_replace("\r", '', $sigDisplay);
+				echo (h($sigDisplay));
 			}
 				?></td>
 				<td class="<?php echo $extra; ?>" style="max-width:100px;">
