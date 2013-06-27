@@ -1234,6 +1234,7 @@ class EventsController extends AppController {
 			array_push($temp2, array('OR' => $distribution2));
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
+			$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 		}
 
 		// do not expose all the data ...
@@ -1436,7 +1437,7 @@ class EventsController extends AppController {
 		$this->loadModel('Attribute');
 
 		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.type' => $type);
+		$conditions['AND'] = array('Attribute.type' => $type, 'Attribute.to_ids =' => 1);
 		if (!$this->isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
@@ -1904,7 +1905,7 @@ class EventsController extends AppController {
 		$this->loadModel('Attribute');
 
 		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.type' => $type);
+		$conditions['AND'] = array('Attribute.type' => $type, 'Attribute.to_ids =' => 1);
 		if (!$this->isSiteAdmin()) {
 			$temp = array();
 			$distribution = array();
@@ -1959,6 +1960,7 @@ class EventsController extends AppController {
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
 		}
+		$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
@@ -2018,11 +2020,11 @@ class EventsController extends AppController {
   		$final[] = '  <definition>';
   		// for now, since we don't have any logical links between attributes, we'll OR all of them
   		$final[] = '    <Indicator operator="OR" id="' . $event['Event']['uuid'] . '">';
-
+		$isSiteAdmin = $this->_isSiteAdmin();
   		// start converting each attribute to its appropriate IOC entry
 		foreach ($event['Attribute'] as $attribute) {
 			// check whether the attribute is exportable by the user
-			if ($this->isSiteAdmin || !$attribute['private'] || $attribute['cluster']) {
+			if (($isSiteAdmin || !$attribute['private'] || $attribute['cluster']) && $attribute['to_ids']) {
 				// check whether the attribute is sent for IOC export based on category/type
 				if (!$this->__checkValidTypeForIOC($attribute)) continue;
 				// Composite type regkey|value doesn\t need the leading and closing IndicatorItem, so taken outside of the switch
