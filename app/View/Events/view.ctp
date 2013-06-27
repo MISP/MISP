@@ -145,7 +145,7 @@ if (!empty($event['Attribute'])):?>
 			<th>Type</th>
 			<th>Value</th>
 			<th>Related Events</th>
-			<th title="<?php echo $attrDescriptions['signature']['desc'];?>">IDS Signature</th>
+			<th title="<?php echo $attrDescriptions['signature']['desc'];?>">IOC</th>
 			<th title="<?php echo $attrDescriptions['private']['desc'];?>">Distribution</th>
 			<th class="actions">Actions</th>
 		</tr><?php

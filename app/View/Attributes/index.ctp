@@ -33,7 +33,7 @@ if ($isSearch == 1) {
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
 			<th<?php echo ' title="' . $attrDescriptions['signature']['desc'] . '"';?>>
-			<?php echo $this->Paginator->sort('signature');?></th>
+			<?php echo $this->Paginator->sort('IOC');?></th>
 			<th class="actions">Actions</th>
 	</tr>
 	<?php

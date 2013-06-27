@@ -29,7 +29,7 @@
 		echo $this->Form->input('to_ids', array(
 					'checked' => true,
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
-					'label' => 'IDS Signature?',
+					'label' => 'IOC',
 		));
 		echo $this->Form->input('batch_import', array(
 				'type' => 'checkbox',
