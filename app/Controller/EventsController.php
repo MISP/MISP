@@ -1531,7 +1531,6 @@ class EventsController extends AppController {
 			foreach ($attributeIDList as $aID) {
 				$conditions['AND']['OR'][] = array('Attribute.id' => $aID);
 			}
-			$conditions['AND'][] = array('Attribute.to_ids =' => 1);
 		}
 
 		$params = array(

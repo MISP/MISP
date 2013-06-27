@@ -139,6 +139,7 @@ endforeach;
 		<?php if ($isSearch == 1): ?>
 		<li class="divider"></li>
 		<li><a href="/events/downloadSearchResult">Download results as XML</a></li>
+		<li><a href="/events/csv/download/search">Download results as CSV</a></li>
 		<?php endif; ?>
 		<li class="divider"></li>
 		<li><a href="/events/export">Export</a></li>
