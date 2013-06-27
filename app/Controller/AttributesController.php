@@ -465,7 +465,7 @@ class AttributesController extends AppController {
 		}
 		if (!$this->_isSiteAdmin()) {
 			// check for non-private and re-read
-			if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAction('prem_modify') || !$this->checkRole() || !$this->checkAction('perm_publish')))) {
+			if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->checkAction('prem_modify') || !$this->checkRole()))) {
 				$this->Session->setFlash(__('Invalid attribute.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
