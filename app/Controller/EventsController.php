@@ -1916,6 +1916,7 @@ class EventsController extends AppController {
 			$put['OR'][] = array('Event.id' => $listElement);
 		}
 		$conditions['AND'][] = $put;
+		$conditionsAttributes = array();
 		// Restricting to non-private or same org if the user is not a site-admin.
 		if (!$this->_isSiteAdmin()) {
 			$temp = array();
@@ -1929,7 +1930,6 @@ class EventsController extends AppController {
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
 		}
-		$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
