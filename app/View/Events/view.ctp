@@ -124,7 +124,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 			<?php
 			$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
 			if ($relatedEvent['Event']['org'] == $me['org']) {
-				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']), array('class' => 'SameOrgLink'));
+				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']), array('style' => 'color:red;'));
 			} else {
 				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
 			}
@@ -207,7 +207,7 @@ if (!empty($event['Attribute'])):?>
 				foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
 					echo '<span title="'.h($relatedAttribute['info']).'">';
 					if ($relatedAttribute['org'] == $me['org']) {
-						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id']), array ('class' => 'SameOrgLink'));
+						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id']), array ('style' => 'color:red;'));
 					} else {
 						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id']));
 					}
