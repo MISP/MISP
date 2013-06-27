@@ -80,7 +80,7 @@ class ShadowAttributesController extends AppController {
 
 			// Send those away that shouldn't be able to see this
 			if (!$this->_isSiteAdmin()) {
-				if (($activeAttribute['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org']) || (!$this->checkAcl('edit') || !$this->checkAcl('publish'))) {
+				if (($activeAttribute['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org']) || (!$this->userRole['perm_modify'] || !$this->userRole['perm_publish'])) {
 					$this->Session->setFlash(__('Invalid attribute.'));
 					$this->redirect(array('controller' => 'events', 'action' => 'index'));
 				}
@@ -168,7 +168,7 @@ class ShadowAttributesController extends AppController {
 		$this->Event->read();
 		// Send those away that shouldn't be able to see this
 		if (!$this->_isSiteAdmin()) {
-			if (($this->Event->data['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org']) && (!$this->checkAction('perm_modify') || !$this->checkAction('perm_publish'))) {
+			if (($this->Event->data['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org']) && (!$this->userRole['perm_modify'] || !$this->userRole['perm_publish'])) {
 				$this->Session->setFlash(__('Invalid attribute.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}

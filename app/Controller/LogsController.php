@@ -39,7 +39,7 @@ class LogsController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		if(!$this->checkAction('perm_audit')) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+		if(!$this->this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$this->set('isSearch', 0);
 		if ($this->Auth->user('org') == 'ADMIN') {
 			$this->AdminCrud->adminIndex();
@@ -80,7 +80,7 @@ class LogsController extends AppController {
 			$mineOrAdmin = true;
 		}
 		$this->set('published', $this->Event->data['Event']['published']);
-		if ($mineOrAdmin && $this->checkAction('perm_modify')) $mayModify = true;
+		if ($mineOrAdmin && $this->this->userRole['perm_modify']) $mayModify = true;
 		// get a list of the attributes that belong to the event
 		$this->loadModel('Attribute');
 		$this->Attribute->recursive = -1;
@@ -115,7 +115,7 @@ class LogsController extends AppController {
 	public $helpers = array('Js' => array('Jquery'), 'Highlight');
 
 	public function admin_search() {
-		if(!$this->checkAction('perm_audit')) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+		if(!$this->this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$fullAddress = array('/admin/logs/search', '/logs/admin_search'); // FIXME remove this crap check
 		$orgRestriction = null;
 		if ($this->Auth->user('org') == 'ADMIN') {

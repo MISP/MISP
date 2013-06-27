@@ -157,7 +157,7 @@ class AppController extends Controller {
  */
 	protected function _isAdmin() {
 		$org = $this->Auth->user('org');
-		if ((isset($org) && $org === 'ADMIN') || $this->checkAction('perm_admin')) {
+		if ((isset($org) && $org === 'ADMIN') || $this->userRole['perm_admin']) {
 			return true;
 		}
 		return false;

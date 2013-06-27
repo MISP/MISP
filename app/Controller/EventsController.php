@@ -180,7 +180,7 @@ class EventsController extends AppController {
 	 */
 	public function view($id = null) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
-		$perm_publish = $this->checkAction('perm_publish');
+		$perm_publish = $this->userRole['perm_publish'];
 		if (strlen($id) == 36) {
 			$this->Event->recursive = -1;
 			$temp = $this->Event->findByUuid($id);
@@ -261,7 +261,7 @@ class EventsController extends AppController {
 				}
 			}
 			// Grab the shadow attributes that do not have an old_id - these are not proposals to edit an attribute but instead proposals to add a new one
-			if ($this->Auth->user('org') == $this->Event->data['Event']['orgc'] && $this->checkAction('perm_publish')) {
+			if ($this->Auth->user('org') == $this->Event->data['Event']['orgc'] && $this->userRole['perm_publish']) {
 				$conditions = array('AND' => array('ShadowAttribute.event_id' => $this->Event->data['Event']['id'], 'ShadowAttribute.old_id' => '0'));
 			} else {
 				$conditions = array('AND' => array('ShadowAttribute.event_id' => $this->Event->data['Event']['id'], 'ShadowAttribute.old_id' => '0', 'ShadowAttribute.org' => $this->Auth->user('org')));
@@ -560,8 +560,8 @@ class EventsController extends AppController {
 		}
 		$this->Event->read(null, $id);
 		// check for if private and user not authorised to edit, go away
-		if (!$this->_isSiteAdmin() && !$this->checkAction('perm_sync')) {
-			if (($this->Event->data['Event']['org'] != $this->_checkOrg()) || !($this->checkAction('perm_modify'))) {
+		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
+			if (($this->Event->data['Event']['org'] != $this->_checkOrg()) || !($this->userRole['perm_modify'])) {
 				$this->Session->setFlash(__('You are not authorised to do that.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
@@ -674,7 +674,7 @@ class EventsController extends AppController {
 				$this->Session->setFlash(__('The event could not be saved. Please, try again.'));
 			}
 		} else {
-			if(!$this->checkAction('perm_modify')) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+			if(!$this->this->userRole['perm_modify']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 			$this->request->data = $this->Event->read(null, $id);
 		}
 
@@ -1254,7 +1254,7 @@ class EventsController extends AppController {
 
 	public function automation() {
 		// Simply display a static view
-		if (!$this->checkAction('perm_auth')) {
+		if (!$this->this->userRole['perm_auth']) {
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
 		// generate the list of Attribute types
