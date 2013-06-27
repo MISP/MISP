@@ -50,7 +50,7 @@ class ServersController extends AppController {
 							'conditions' => array(),
 			);
 		} else {
-			if (!$this->this->userRole['perm_sync']) $this->redirect(array('controller' => 'events', 'action' => 'index'));
+			if (!$this->userRole['perm_sync']) $this->redirect(array('controller' => 'events', 'action' => 'index'));
 			$conditions['Server.org LIKE'] = $this->Auth->user('org');
 			$this->paginate = array(
 					'conditions' => array($conditions),
@@ -65,7 +65,7 @@ class ServersController extends AppController {
  * @return void
  */
 	public function add() {
-		if ((!$this->_IsSiteAdmin()) && !($this->Server->organization == $this->Auth->user('org') && $$this->this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if ((!$this->_IsSiteAdmin()) && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post')) {
 			// force check userid and orgname to be from yourself
 			$this->request->data['Server']['org'] = $this->Auth->user('org');
@@ -88,7 +88,7 @@ class ServersController extends AppController {
  * @throws NotFoundException
  */
 	public function edit($id = null) {
-		if (!$this->_IsSiteAdmin() && !($this->Server->organization == $this->Auth->user('org') && $this->this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_IsSiteAdmin() && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
@@ -121,7 +121,7 @@ class ServersController extends AppController {
  * @throws NotFoundException
  */
 	public function delete($id = null) {
-		if(!$this->_IsSiteAdmin() && !($this->Server->id == $this->Auth->user('org') && $this->this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if(!$this->_IsSiteAdmin() && !($this->Server->id == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
 		}
@@ -151,7 +151,7 @@ class ServersController extends AppController {
 	 */
 	public function pull($id = null, $technique=false) {
 		// TODO should we de-activate data validation for type and category / and or mapping? Maybe other instances have other configurations that are incompatible.
-		if (!$this->_IsSiteAdmin() && !($this->Server->organization == $this->Auth->user('org') && $this->this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_IsSiteAdmin() && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
@@ -309,7 +309,7 @@ class ServersController extends AppController {
 	}
 
 	public function push($id = null, $technique=false) {
-		if ($this->Auth->user('org') != 'ADMIN' && !($this->Server->organization == $this->Auth->user('org') && $this->this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if ($this->Auth->user('org') != 'ADMIN' && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
 		}
