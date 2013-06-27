@@ -29,7 +29,7 @@
 		echo $this->Form->input('malware', array(
 				'type' => 'checkbox',
 				'checked' => false,
-				'after' => $this->Html->div('forminfo', 'Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"', ''),
+				// 'after' => $this->Html->div('forminfo', 'Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"', ''),
 				//'after' => '<br>Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"',
 		));
 		// link an onchange event to the form elements

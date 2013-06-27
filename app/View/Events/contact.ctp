@@ -18,10 +18,10 @@ $mayPublish = ($isAclPublish && $this->request->data['Event']['orgc'] == $me['or
 		<div class="input clear"></div>
 	<?php
 		echo $this->Form->input('person', array(
-			'label' => __('Submit only to person', true),
+			'label' => __('Submit only to the person that created the event', true),
 			'type' => 'checkbox',
 			'class' => 'clear',
-			'after' => $this->Html->div('forminfo', __('By selecting this box you will contact the creator of the event only.', true)),
+			// 'after' => $this->Html->div('forminfo', __('By selecting this box you will contact the creator of the event only.', true)),
 		));
 	?>
 		<div class="input clear">
