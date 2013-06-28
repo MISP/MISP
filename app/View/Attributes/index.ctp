@@ -41,11 +41,13 @@ if ($isSearch == 1) {
 	if ($isSearch == 1) {
 
 		// sanitize data
-		foreach ($keywordArray as &$keywordArrayElement) {
-			$keywordArrayElement = h($keywordArrayElement);
-		}
+		if (isset($keywordArray)) {
+			foreach ($keywordArray as &$keywordArrayElement) {
+				$keywordArrayElement = h($keywordArrayElement);
+			}
 		// build the $replacePairs variable used to highlight the keywords
 		$replacePairs = $this->Highlight->build_replace_pairs($keywordArray);
+		}
 	}
 
 foreach ($attributes as $attribute):

@@ -112,10 +112,10 @@ endforeach; ?>
 
 <div class="actions">
 	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link(__('News', true), array('controller' => 'users', 'action' => 'news')); ?> </li>
-		<li><?php echo $this->Html->link(__('My Profile', true), array('controller' => 'users', 'action' => 'view', 'me')); ?> </li>
-		<li class="active"><?php echo $this->Html->link(__('Members List', true), array('controller' => 'users', 'action' => 'memberslist')); ?> </li>
-		<li><?php echo $this->Html->link(__('User Guide', true), array('controller' => 'pages', 'action' => 'display', 'documentation')); ?> </li>
-		<li><?php echo $this->Html->link(__('Terms & Conditions', true), array('controller' => 'users', 'action' => 'terms')); ?> </li>
+		<li><a href="/users/news">News</a></li>
+		<li><a href="/users/view/me">My Profile</a></li>
+		<li><a href="/users/memberslist">Members List</a></li>
+		<li><a href="/pages/display/doc/general">User Guide</a></li>
+		<li><a href="/users/terms">Terms & Conditions</a></li>
 	</ul>
 </div>

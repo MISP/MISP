@@ -638,7 +638,6 @@ class AttributesController extends AppController {
 			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions',array());
-
 			if ($this->request->is('post') && ($this->request->here == $fullAddress)) {
 				$keyword = $this->request->data['Attribute']['keyword'];
 				$keyword2 = $this->request->data['Attribute']['keyword2'];
@@ -722,7 +721,7 @@ class AttributesController extends AppController {
 					$conditions['Attribute.category ='] = $category;
 				}
 				// organisation search field
-				$i = 0;
+				$i = 1;
 				$temp = array();
 				if (isset($org)) {
 					$orgArray = explode("\n", $org);
@@ -765,9 +764,10 @@ class AttributesController extends AppController {
 				$attributeIdList = array();
 				$attributes = $this->paginate();
 				// if we searched for IOCs only, apply the whitelist to the search result!
+
 				if ($ioc) {
 					$this->loadModel('Whitelist');
-					$attributes = $this->Whitelist->removeWhitelistedFromAttributeArray($attributes);
+					$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 				}
 
 				foreach ($attributes as &$attribute) {
@@ -781,6 +781,8 @@ class AttributesController extends AppController {
 				// and store into session
 				$this->Session->write('paginate_conditions', $this->paginate);
 				$this->Session->write('paginate_conditions_keyword', $keyword);
+				$this->Session->write('paginate_conditions_keyword2', $keyword2);
+				$this->Session->write('paginate_conditions_org', $org);
 				$this->Session->write('paginate_conditions_type', $type);
 				$this->Session->write('paginate_conditions_category', $category);
 				$this->Session->write('search_find_idlist', $idList);
@@ -810,9 +812,13 @@ class AttributesController extends AppController {
 
 			// get from Session
 			$keyword = $this->Session->read('paginate_conditions_keyword');
+			$keyword2 = $this->Session->read('paginate_conditions_keyword2');
+			$org = $this->Session->read('paginate_conditions_org');
 			$type = $this->Session->read('paginate_conditions_type');
 			$category = $this->Session->read('paginate_conditions_category');
 			$this->set('keywordSearch', $keyword);
+			$this->set('keywordSearch2', $keyword2);
+			$this->set('orgSearch', $org);
 			$this->set('typeSearch', $type);
 			$this->set('isSearch', 1);
 			$this->set('categorySearch', $category);

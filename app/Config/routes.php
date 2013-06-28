@@ -37,6 +37,7 @@
 
 	Router::connect('/users/admin_index/*', array('controller' => 'users', 'action' => 'index', 'admin' => true));
 	Router::connect('/roles/admin_index/*', array('controller' => 'roles', 'action' => 'index', 'admin' => true));
+	Router::connect('/logs/admin_search/*', array('controller' => 'logs', 'action' => 'search', 'admin' => true));
 //	Router::connect('/roles/admin_add/*', array('controller' => 'roles', 'action' => 'add', 'admin' => true));
 //	Router::connect('/roles/admin_edit/*', array('controller' => 'roles', 'action' => 'edit', 'admin' => true));
 	Router::connect('/logs/admin_index/*', array('controller' => 'logs', 'action' => 'index', 'admin' => true));

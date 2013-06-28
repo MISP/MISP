@@ -23,16 +23,16 @@
 </div>
 <div class="actions">
 	<ul class="nav nav-list">
-		<li class="active"><?php echo $this->Html->link('New User', array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
-		<li><?php echo $this->Html->link('List Users', array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
+		<li class="active"><a href="/admin/users/add">New User</a></li>
+		<li><a href="/admin/users/index">List Users</a></li>
 		<li class="divider"></li>
 		<?php if ($isSiteAdmin): ?>
-		<li><?php echo $this->Html->link('New Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+		<li><a href="/admin/roles/add">New Role</a></li>
 		<?php endif; ?>
-		<li><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
+		<li><a href="/admin/roles/index">List Role</a></li>
 		<?php if ($isSiteAdmin): ?>
 		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Contact users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+		<li><a href="/admin/users/email">Contact Users</a></li>
 		<?php endif; ?>
 	</ul>
 </div>
