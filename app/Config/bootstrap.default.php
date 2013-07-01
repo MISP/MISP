@@ -134,6 +134,12 @@ Configure::write('SecureAuth.expire', 300);            // the time-window for th
 
 Configure::write('CyDefSIG.dns', 'false');				// there is a nameserver available to do resolution.
 
+// The following 3 fields are not mandatory:
+
+//Configure::write('MISP.welcome_text_top', 'Welcome to the Organisation community\'s');     // used in Events::login before the MISP logo
+//Configure::write('MISP.welcome_text_bottom', 'instance');     // used in Events::login after the MISP logo
+//Configure::write('MISP.welcome_logo', 'organisation');     // used in Events::login to the left of the MISP logo, place a .png file in app/webroot/img with the name specified here. In this case it would be organisation.png
+
 /**
  * The settings below can be used to set additional paths to models, views and controllers.
  *
