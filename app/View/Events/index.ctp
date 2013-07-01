@@ -197,59 +197,65 @@
 		</tr>
 		<?php foreach ($events as $event):?>
 		<tr>
-			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php
 				if ($event['Event']['published'] == 1) {
-					echo $this->Html->link('', array('controller' => 'events', 'action' => 'view', $event['Event']['id']), array('class' => 'icon-ok', 'title' => 'View'));
+				?>
+					<a href="/events/view/<?php echo $event['Event']['id'] ?>" class = "icon-ok" title = "View"></a>
+				<?php
 				} else {
-					echo $this->Html->link('', array('controller' => 'events', 'action' => 'view', $event['Event']['id']), array('class' => 'icon-remove', 'title' => 'View'));
+				?>
+					<a href="/events/view/<?php echo $event['Event']['id'] ?>" class = "icon-remove" title = "View"></a>
+				<?php
 				}?>&nbsp;
 			</td>
 			<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
-			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';"><?php
-				$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
-				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['orgc']) . '.png', array('alt' => h($event['Event']['orgc']), 'title' => h($event['Event']['orgc']), 'style' => 'width:24px; height:24px'));
-				else echo $this->Html->tag('span', h($event['Event']['orgc']), array('class' => 'welcome', 'style' => 'float:left;'));?><?php
+			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+				<?php
+					$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
+					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
+					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['orgc']) . '.png', array('alt' => h($event['Event']['orgc']), 'title' => h($event['Event']['orgc']), 'style' => 'width:24px; height:24px'));
+					else echo $this->Html->tag('span', h($event['Event']['orgc']), array('class' => 'welcome', 'style' => 'float:left;'));
 				?>
 				&nbsp;
 			</td>
 			<?php endif;?>
 			<?php if ('true' == $isSiteAdmin): ?>
-			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php
-				$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
-				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']), 'title' => h($event['Event']['org']), 'style' => 'width:24px; height:24px'));
-				else echo $this->Html->tag('span', h($event['Event']['org']), array('class' => 'welcome', 'style' => 'float:left;'));?><?php
-				?>&nbsp;
+					$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
+					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
+					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']), 'title' => h($event['Event']['org']), 'style' => 'width:24px; height:24px'));
+					else echo $this->Html->tag('span', h($event['Event']['org']), array('class' => 'welcome', 'style' => 'float:left;'));
+				?>
+				&nbsp;
 			</td>
 			<?php endif; ?>
 			<td class="short">
-				<?php echo $this->Html->link($event['Event']['id'], array('controller' => 'events', 'action' => 'view', $event['Event']['id'])); ?>&nbsp;
+				<a href="/events/view/<?php echo $event['Event']['id'] ?>"><?php echo $event['Event']['id'];?></a>
 			</td>
-			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $event['Event']['attribute_count']; ?>&nbsp;
 			</td>
 			<?php if ('true' == $isSiteAdmin): ?>
-			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo h($event['User']['email']); ?>&nbsp;
 			</td>
 			<?php endif; ?>
-			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
-			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $event['Event']['risk']; ?>&nbsp;
 			</td>
-			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $analysisLevels[$event['Event']['analysis']]; ?>&nbsp;
 			</td>
-			<td onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+			<td onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
 			</td>
 			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
-			<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('action' => 'view', $event['Event']['id']), true);?>';">
+			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>
 			</td>
 			<?php endif; ?>
@@ -260,11 +266,13 @@
 				elseif (0 == $event['Event']['published']) echo 'Not published';
 
 				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org'])) {
-					echo $this->Html->link('', array('action' => 'edit', $event['Event']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
+				?>
+					<a href='/events/view/<?php echo $event['Event']['id'];?>' class = "icon-edit" title = "Edit"></a>
+				<?php
 					echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $event['Event']['id']));
 				}
-				echo $this->Html->link('', array('controller' => 'events', 'action' => 'view', $event['Event']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));
 				?>
+				<a href='/events/view/<?php echo $event['Event']['id'];?>' class = "icon-list-alt" title = "View"></a>
 			</td>
 		</tr>
 		<?php endforeach; ?>
