@@ -55,6 +55,7 @@ pre {
 	top: 0;
 	visibility: hidden;
 	margin-top: -1px;
+	z-index: 2;
 }
 
 .dropdown-menu li:hover .sub-menu {
@@ -146,10 +147,12 @@ div.view {
   width:85%;
   border-left:1px solid #666;
   padding:10px 1%;
+  padding-bottom:40px;
 }
 div.actions {
   float:left;
   width:10%;
+  position:fixed;
 }
 div.actions h3 {
   padding-top:0;
@@ -368,4 +371,12 @@ dd {
 	color:#fff;
 }
 
-	
+/* footer */
+.footer {
+	clear: both;
+	float: bottom;
+	position:fixed;
+	width:100%;
+	bottom:0px;
+	height:42px;
+}

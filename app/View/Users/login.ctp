@@ -1,18 +1,20 @@
-<div class="row">
-	<div class="span4">
-		<?php
-			if (true == Configure::read('MISP.welcome_logo')) {
-				?>
+<div style="width:100%;">
+<div class="row" style="margin: 0 auto;display:table;">
+
+	<?php
+		if (true == Configure::read('MISP.welcome_logo')) {
+	?>
+		<div class="span4">
 		<img src="
 				<?php
 				echo Configure::read('CyDefSig.url') . '/img/';
 				echo Configure::read('MISP.welcome_logo');
 				?>
 		.png">
-				<?php
-			}
-		?>
-	</div>
+		</div>
+	<?php
+		}
+	?>
 	<div class="span8">
 		<span style="font-size:18px;">
 		<?php
@@ -48,4 +50,5 @@
 			echo $this->Form->end();
 		?>
 	</div>
+</div>
 </div>

@@ -1,4 +1,4 @@
-<div class="navbar-wrapper">
+<div class="navbar-wrapper" style="position:fixed;width:100%;z-index: 1;">
 	<div class="navbar navbar-inverse">
 		<div class="navbar-inner">
 		<?php if ($me != false ):?>

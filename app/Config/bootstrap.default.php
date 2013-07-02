@@ -113,6 +113,8 @@ Configure::write('CyDefSIG.footerpart1', 'Powered by MISP');
 Configure::write('CyDefSIG.footerpart2', '&copy; Belgian Defense CERT & NCIRC');
 Configure::write('CyDefSIG.footer', Configure::read('CyDefSIG.footerpart1') . ' ' . Configure::read('CyDefSIG.footerpart2'));
 Configure::write('CyDefSIG.footerversion', Configure::read('CyDefSIG.footerpart1') . ' version ' . Configure::read('CyDefSIG.version') . ' ' . Configure::read('CyDefSIG.footerpart2'));
+// The following field is optional
+// Configure::write('MISP.footer_logo', 'imagename');     // Logo for the bottom right corner of the screen
 Configure::write('CyDefSIG.org', 'ORGNAME');                // if sync this will be Event.org content on the peer side
 Configure::write('CyDefSIG.logo', 'orgs/ORGNAME.png');     // used in Events::index for owned events
 
@@ -134,7 +136,7 @@ Configure::write('SecureAuth.expire', 300);            // the time-window for th
 
 Configure::write('CyDefSIG.dns', 'false');				// there is a nameserver available to do resolution.
 
-// The following 3 fields are not mandatory:
+// The following 3 fields are optional
 
 //Configure::write('MISP.welcome_text_top', 'Welcome to the Organisation community\'s');     // used in Events::login before the MISP logo
 //Configure::write('MISP.welcome_text_bottom', 'instance');     // used in Events::login after the MISP logo

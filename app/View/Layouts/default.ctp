@@ -35,7 +35,7 @@
 			}?></h1>
 		</div-->
 		<?php echo $this->element('global_menu');?>
-		<div class="container-fluid">
+		<div class="container-fluid" style="padding-top:50px;">
 			<div class="row-fluid">
 				<div class="span12">
 					<?php echo $this->Session->flash('auth'); ?>
@@ -46,9 +46,8 @@
 				</div>
 			</div>
 		</div>
-		<br/><br/>
+		<br/><br />
 			<?php echo $this->fetch('content'); ?>
-
 		<!--div id="footer">
 			<div class="noprint">
 			    <h1 style="float:left;">Download: <?php echo $this->Html->link('PGP/GPG key', '/gpg.asc');?></h1>
@@ -57,14 +56,14 @@
 
 			<h1 style="text-align:center;"> <?php if (isset($me)) echo Configure::read('CyDefSIG.footerversion'); else echo Configure::read('CyDefSIG.footer')?></h1>
 		</div-->
-	</div>
 	<?php
+	echo $this->element('footer');
 	echo $this->element('sql_dump');
-
 	echo $this->Html->script('bootstrap');
-	//echo $this->Html->script('bootstrap.min');
+	// echo $this->Html->script('bootstrap.min');
 	echo $this->Html->script('bootstrap-datepicker');
 	echo $this->Html->script('main');
 	?>
+	</div>
 </body>
 </html>
