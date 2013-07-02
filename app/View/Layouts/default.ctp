@@ -35,19 +35,17 @@
 			}?></h1>
 		</div-->
 		<?php echo $this->element('global_menu');?>
-		<div class="container-fluid" style="padding-top:50px;">
-			<div class="row-fluid">
-				<div class="span12">
-					<?php echo $this->Session->flash('auth'); ?>
-					<?php echo $this->Session->flash('error'); ?>
-		    		<?php echo $this->Session->flash('gpg'); ?>
-					<?php echo $this->Session->flash(); ?>
-					<?php echo $this->Session->flash('email'); ?>
-				</div>
-			</div>
+		<div class="container-fluid" style="padding-top:50px;position:fixed;width:98%;">
+			<?php echo $this->Session->flash('auth'); ?>
+			<?php echo $this->Session->flash('error'); ?>
+    		<?php echo $this->Session->flash('gpg'); ?>
+			<?php echo $this->Session->flash(); ?>
+			<?php echo $this->Session->flash('email'); ?>
 		</div>
 		<br/><br />
+		<div style="margin-top:50px;">
 			<?php echo $this->fetch('content'); ?>
+		</div>
 		<!--div id="footer">
 			<div class="noprint">
 			    <h1 style="float:left;">Download: <?php echo $this->Html->link('PGP/GPG key', '/gpg.asc');?></h1>
