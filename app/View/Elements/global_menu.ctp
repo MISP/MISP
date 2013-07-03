@@ -123,12 +123,12 @@
 			</div>
 
 			<div class="nav-collapse collapse pull-right" style="margin-top:10px">
-				<ul class="nav" style="font-weight:bold">
+				<div class="nav" style="font-weight:bold">
 					<span style="color: #0088cc;">M</span><span style="color: #999999;">alware</span>
 					<span style="color: #0088cc;">I</span><span style="color: #999999;">nformation </span>
 					<span style="color: #0088cc;">S</span><span style="color: #999999;">haring</span>
 					<span style="color: #0088cc;">P</span><span style="color: #999999;">latform</span>
-				</ul>
+				</div>
 			</div>
 		<?php endif;?>
 		</div>
