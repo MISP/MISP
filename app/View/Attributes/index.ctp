@@ -71,7 +71,7 @@ foreach ($attributes as $attribute):
 		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 		<?php echo $attribute['Attribute']['type']; ?>&nbsp;</td>
 		<td class="showspaces" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';"><?php
-			$sigDisplay = nl2br(h($attribute['Attribute']['value']));
+			$sigDisplay = h($attribute['Attribute']['value']);
 			if ($isSearch == 1 && !empty($replacePairs)) {
 				// highlight the keywords if there are any
 				$sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
@@ -79,7 +79,7 @@ foreach ($attributes as $attribute):
 			if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
 				?><a href="/attributes/download/<?php echo $attribute['Attribute']['id'];?>"><?php echo $sigDisplay; ?></a><?php
 			} elseif ('link' == $attribute['Attribute']['type']) {
-				?><a href="<?php echo nl2br(h($attribute['Attribute']['value']));?>"><?php echo $sigDisplay; ?></a><?php
+				?><a href="<?php echo h($attribute['Attribute']['value']);?>"><?php echo $sigDisplay; ?></a><?php
 			} else {
 				echo $sigDisplay;
 			}

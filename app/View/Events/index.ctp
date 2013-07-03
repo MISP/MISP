@@ -145,7 +145,7 @@
 									'class' => 'span1 datepicker',
 									));
 							?>
-							<input type="submit" class="btn" value="&gt;"/ style="margin-top:1px;">
+							<input type="submit" class="btn" value="&gt;" style="margin-top:1px;" />
 							<?php
 							echo $this->Form->input('searchDateuntil', array(
 									'value' => $this->passedArgs['searchDateuntil'],
@@ -311,7 +311,7 @@
 	</ul>
 </div>
 
-<script>
+<script type="text/javascript">
 $(document).ready( function () {
 	// onload hide all buttons
 	$('#searchinfo').hide();
