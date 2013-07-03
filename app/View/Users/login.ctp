@@ -1,7 +1,7 @@
 <div style="width:100%;">
 <div class="row" style="margin: 0 auto;display:table;">
-
 	<?php
+		echo $this->Session->flash('auth');
 		if (true == Configure::read('MISP.welcome_logo')) {
 	?>
 		<div class="span4">
@@ -39,7 +39,6 @@
 		</ul>
 		<?php
 			}
-			echo $this->Session->flash('auth');
 			echo $this->Form->create('User', array('action' => 'login'));
 			echo $this->Form->inputs(array(
 				'legend' => __('Login', true),
