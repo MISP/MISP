@@ -2,9 +2,9 @@
 	<div class="navbar navbar-inverse" style="padding-left:20px;">
 		<div class="navbar-inner row">
 			<div class="pull-left">
-				<span style="float:left;color:#999999;padding-top:12px;">Download: <?php echo $this->Html->link('PGP/GPG key', '/gpg.asc');?></span>
+				<span style="float:left;color:#999999;padding-top:12px;z-index: 2;position:absolute;">Download: <?php echo $this->Html->link('PGP/GPG key', '/gpg.asc');?></span>
 			</div>
-			<div style="padding-top:12px;position: absolute;width:100%;text-align:center;color: #999999;">
+			<div style="padding-top:12px;position: absolute;width:100%;text-align:center;color: #999999;z-index: 1;">
 				<span> <?php if (isset($me)) echo Configure::read('CyDefSIG.footerversion'); else echo Configure::read('CyDefSIG.footer')?></span>
 			</div>
 			<div class="pull-right">
