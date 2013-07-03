@@ -10,7 +10,7 @@
 			<div class="pull-right">
 				<?php if (Configure::read('MISP.footer_logo')): ?>
 					<span style="color: #999999;padding-right:20px;padding-top:12px;">Powered by: </span>
-					<img src="/img/<?php echo Configure::read('MISP.footer_logo')?>.png" style="height:40px">
+					<img src="/img/<?php echo Configure::read('MISP.footer_logo')?>.png" style="height:40px" alt="" />
 				<?php endif;?>
 			</div>
 		</div>

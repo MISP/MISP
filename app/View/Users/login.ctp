@@ -10,7 +10,7 @@
 				echo Configure::read('CyDefSig.url') . '/img/';
 				echo Configure::read('MISP.welcome_logo');
 				?>
-		.png">
+		.png" alt=""></img>
 		</div>
 	<?php
 		}
@@ -23,20 +23,20 @@
 			}
 		?>
 		</span><br /><br />
-		<ul class="nav" style="font-weight:bold; font-size:30px;text-align:center;">
+		<div class="nav" style="font-weight:bold; font-size:30px;text-align:center;">
 			<span style="color: #0088cc;">M</span><span style="color: #000000;">alware</span>
 			<span style="color: #0088cc;">I</span><span style="color: #000000;">nformation </span>
 			<span style="color: #0088cc;">S</span><span style="color: #000000;">haring</span>
 			<span style="color: #0088cc;">P</span><span style="color: #000000;">latform</span>
-		</ul>
+		</div>
 		<?php
 			if (true == Configure::read('MISP.welcome_text_bottom')) {
 		?>
-		<ul style="text-align:right;font-size:18px;">
+		<div style="text-align:right;font-size:18px;">
 		<?php
 				echo Configure::read('MISP.welcome_text_bottom');
 		?>
-		</ul>
+		</div>
 		<?php
 			}
 			echo $this->Form->create('User', array('action' => 'login'));
