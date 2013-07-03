@@ -54,8 +54,7 @@ foreach ($attributes as $attribute):
 	?>
 	<tr>
 		<td class="short">
-			<div id="<?php echo $attribute['Attribute']['id']?>" title="<?php echo h($attribute['Event']['info'])?>"
-			 onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
+			<div onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php
 				if ($attribute['Event']['orgc'] == $me['org']) {
 					$class='class="SameOrgLink"';
