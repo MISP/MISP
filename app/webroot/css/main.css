@@ -152,7 +152,6 @@ div.view {
 div.actions {
   float:left;
   width:10%;
-  position:fixed;
 }
 div.actions h3 {
   padding-top:0;

@@ -77,9 +77,7 @@ class AttributesController extends AppController {
 	public function index() {
 		$this->Attribute->recursive = 0;
 		$this->set('isSearch', 0);
-
 		$this->set('attributes', $this->paginate());
-
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);

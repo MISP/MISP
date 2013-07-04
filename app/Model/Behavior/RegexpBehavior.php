@@ -5,8 +5,6 @@ App::uses('Regexp', 'Model');
 /**
  * Behavior to regexp all string fields in a model
  *
- * @author noud
- *
  */
 class RegexpBehavior extends ModelBehavior {
 
@@ -30,8 +28,6 @@ class RegexpBehavior extends ModelBehavior {
  * @param $options
  */
 	public function beforeValidate(Model $Model, $options = array()) {
-		$returnValue = true;
-		// process some..
 		$returnValue = $this->regexpStringFields($Model);
 		return $returnValue;
 	}
@@ -44,14 +40,20 @@ class RegexpBehavior extends ModelBehavior {
  */
 	public function regexpStringFields(Model $Model) {
 		$returnValue = true;
+		$regexp = new Regexp();
+		$allRegexp = $regexp->find('all');
+		// Go through all the fields from the validated model
 		foreach ($Model->data[$Model->name] as $key => $field) {
-			if (in_array($key, $this->settings[$Model->alias]['fields']) && is_string($field)) {
-				$returnValue = $this->replaceWindowsSpecific($Model, $field);
+			// if a field is marked for regexp checks, do a regexp check
+			if (in_array($key, $this->settings[$Model->alias]['fields'])) {
+				$returnValue = $this->__replaceWindowsSpecific($Model, $field, $allRegexp);
+				// if replaceWindowsSpecific returns false, it means that we ran into a blacklisted value. Return false to let the validation fail.
+				if (!$returnValue) return false;
+				// if it wasn't false, change the value to the replacement
 				$Model->data[$Model->name][$key] = $returnValue;
 			}
 		}
-		if ($returnValue != false) $returnValue = true;
-		return $returnValue;
+		return true;
 	}
 
 /**
@@ -61,21 +63,17 @@ class RegexpBehavior extends ModelBehavior {
  *
  * @return string
  */
-	public function replaceWindowsSpecific(Model $Model, $string) {
-		$returnValue = $string;
-		$regexp = new Regexp();
-		$allRegexp = $regexp->find('all'); // TODO INIT LOAD ARRAY
+	private function __replaceWindowsSpecific(Model $Model, $string, $allRegexp) {
 		foreach ($allRegexp as $regexp) {
-			if (strlen($regexp['Regexp']['replacement'] && strlen($regexp['Regexp']['regexp']))) {
+			if (isset($regexp['Regexp']['replacement']) && isset($regexp['Regexp']['regexp'])) {
 				$string = preg_replace($regexp['Regexp']['regexp'], $regexp['Regexp']['replacement'], $string);
-				$returnValue = $string;
 			}
-			if (!strlen($regexp['Regexp']['replacement']) && preg_match($regexp['Regexp']['regexp'], $string)) {
+			if (!isset($regexp['Regexp']['replacement']) && preg_match($regexp['Regexp']['regexp'], $string)) {
 				App::uses('SessionComponent', 'Controller/Component');
-				SessionComponent::setFlash('Blacklisted value!');
+				SessionComponent::setFlash('Blacklisted value (blocked through a regular expression entry)!');
 				return false;
 			}
 		}
-		return $returnValue;
+		return $string;
 	}
 }

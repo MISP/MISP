@@ -40,6 +40,8 @@ class AppController extends Controller {
 
 	public $defaultModel = '';
 
+	public $debugMode = false;
+
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
 
@@ -128,6 +130,12 @@ class AppController extends Controller {
 			$this->set('isAclAudit', false);
 			$this->set('isAclAuth', false);
 		}
+		if (Configure::read('debug')) {
+			$this->debugMode = 'debugOn';
+		} else {
+			$this->debugMode = 'debugOff';
+		}
+		$this->set('debugMode', $this->debugMode);
 	}
 
 	public $userRole = null;

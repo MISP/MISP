@@ -22,7 +22,7 @@ class Attribute extends AppModel {
 			'change' => 'full'),
 		'Trim',
 		'Containable',
-		'Regexp' => array('fields' => array('value', 'value2')),
+		'Regexp' => array('fields' => array('value')),
 		'Blacklist' => array('fields' => array('value'))
 	);
 

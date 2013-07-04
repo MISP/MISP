@@ -83,19 +83,20 @@ class RegexpController extends AppController {
  */
 	public function admin_clean() {
 		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
-		$this->regexpAll('Attribute', 'value');
-		$this->regexpAll('Event', 'info');
+		$allRegexp = $this->Regexp->find('all');
+		$this->regexpAll('Attribute', 'value', $allRegexp);
+		$this->regexpAll('Event', 'info', $allRegexp);
 
 		$this->redirect(array('action' => 'index'));
 	}
 
-	public function regexpAll($Model, $Field) {
+	public function regexpAll($Model, $Field, $allRegexp) {
 		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$deletable = array();
 		$this->loadModel($Model);
 		$all = $this->{$Model}->find('all', array('recursive' => -1));
 		foreach ($all as $item) {
-			$result = $this->replaceSpecific($item[$Model][$Field]);
+			$result = $this->__replaceSpecific($item[$Model][$Field], $allRegexp);
 			if (!$result) {
 				$deletable[] = $item[$Model]['id'];
 			} else {
@@ -109,10 +110,9 @@ class RegexpController extends AppController {
 		}
 	}
 
-	public function replaceSpecific($origString) {
+	private function __replaceSpecific($origString, $allRegexp = null) {
 		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$returnValue = true;
-		$allRegexp = $this->Regexp->find('all'); // TODO REGEXP INIT LOAD ARRAY
 		foreach ($allRegexp as $regexp) {
 			if (strlen($regexp['Regexp']['replacement']) && strlen($regexp['Regexp']['regexp'])) {
 				$origString = preg_replace($regexp['Regexp']['regexp'], $regexp['Regexp']['replacement'], $origString);
@@ -120,10 +120,9 @@ class RegexpController extends AppController {
 			if (!strlen($regexp['Regexp']['replacement']) && preg_match($regexp['Regexp']['regexp'], $origString)) {
 				App::uses('SessionComponent', 'Controller/Component');
 				SessionComponent::setFlash('Blacklisted value!');
-				$returnValue = false;
+				return false;
 			}
 		}
 		return $returnValue;
 	}
-
 }

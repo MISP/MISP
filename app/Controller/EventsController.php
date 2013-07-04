@@ -1186,7 +1186,7 @@ class EventsController extends AppController {
 		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 		$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-
+		$bodySigned = $body;
 		// Add the GPG key of the user as attachment
 		// LATER sign the attached GPG key
 		if ($this->Auth->user('gpgkey') != null) {
@@ -1224,6 +1224,7 @@ class EventsController extends AppController {
 
 			// prepare the email
 			$this->Email->from = Configure::read('CyDefSIG.email');
+			$this->Email->replyTo = $this->Auth->user('email');
 			$this->Email->to = $reporter['User']['email'];
 			$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Need info about event " . $id . " - TLP Amber";
 			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
