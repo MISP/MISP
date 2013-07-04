@@ -119,7 +119,7 @@ endforeach;
     </div>
 
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>
