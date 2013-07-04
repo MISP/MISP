@@ -29,7 +29,7 @@
 <body>
 	<div id="container">
 		<?php echo $this->element('global_menu');
-			if (Configure::read('debug') == 0) {
+			if (!$debugMode) {
 				?>
 					<div class="container-fluid debugOff" style="padding-top:50px;width:98%;">
 				<?php

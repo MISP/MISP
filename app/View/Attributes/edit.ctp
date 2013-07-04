@@ -45,7 +45,7 @@ echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li><a href="/events/view/<?php echo $this->request->data['Attribute']['event_id']; ?>">View Event</a></li>
 		<li><a href="/events/edit/<?php echo $this->request->data['Attribute']['event_id']; ?>">Edit Event</a></li>

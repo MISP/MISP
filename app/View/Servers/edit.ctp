@@ -29,7 +29,7 @@ echo $this->Form->button('Edit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li><?php echo $this->Html->link('List Servers', array('controller' => 'servers', 'action' => 'index'));?></li>
 		<li><?php if ($isAclAdd && $me['org'] == 'ADMIN') echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>

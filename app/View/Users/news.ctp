@@ -73,7 +73,7 @@ The authkey generation algorithm has also been improved.</p>
 A bug in the DNS attributes has been corrected.</p>
 
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li><a href="/users/news">News</a></li>
 		<li><a href="/users/view/me">My Profile</a></li>

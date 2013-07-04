@@ -19,7 +19,7 @@
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();?>
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li><?php echo $this->Html->link(__('News', true), array('controller' => 'users', 'action' => 'news')); ?> </li>
 		<li><?php echo $this->Html->link(__('My Profile', true), array('controller' => 'users', 'action' => 'view', 'me')); ?> </li>

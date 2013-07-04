@@ -49,7 +49,7 @@
 		</ul>
 	</div>
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li><a href="/events/view/<?php echo $eventId;?>">View Event</a></li>
 		<li class="active"><a href="/logs/event_index/<?php echo $eventId;?>">View Event History</a></li>

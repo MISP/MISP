@@ -33,7 +33,7 @@ $mayPublish = ($isAclPublish && $this->request->data['Event']['orgc'] == $me['or
 	</fieldset>
 
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li><a href="/events/view/<?php echo $this->data['Event']['id'];?>">View Event</a></li>
 		<li><a href="/logs/event_index/<?php echo $this->data['Event']['id'];?>">View Event History</a></li>

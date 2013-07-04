@@ -1,12 +1,4 @@
-<div class="navbar-wrapper header
-<?php
-	if (Configure::read('debug') == 0) {
-		echo "debugOff";
-	} else {
-		echo "debugOn";
-	}
-?>
-">
+<div class="navbar-wrapper header <?php echo $debugMode;?>">
 	<div class="navbar navbar-inverse">
 		<div class="navbar-inner">
 		<?php if ($me != false ):?>

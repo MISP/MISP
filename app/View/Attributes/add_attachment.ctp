@@ -43,7 +43,7 @@ echo $this->Form->button('Upload', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<div class="actions">
+<div class="actions  <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li><a href="/events/view/<?php echo $this->request->data['Attribute']['event_id']; ?>">View Event</a></li>
 		<li><a href="/logs/event_index/<?php echo $this->request->data['Attribute']['event_id'];?>">View Event History</a></li>

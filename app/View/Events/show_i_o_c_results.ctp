@@ -52,7 +52,7 @@ foreach ($graph as $line): ?>
 endforeach; ?>
 </div>
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li><?php echo $this->Html->link('View Event', array('controller' => 'events', 'action' => 'view', $eventId)); ?> </li>
 		<?php if ($isSiteAdmin || $mayModify): ?>

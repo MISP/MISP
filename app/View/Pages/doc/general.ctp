@@ -1,4 +1,4 @@
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ol class="nav nav-list">
 		<li class="active"><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'doc', 'general')); ?></li>
 		<li><?php echo $this->Html->link('General Concepts', array('controller' => 'pages', 'action' => 'display', 'doc', 'concepts')); ?></li>

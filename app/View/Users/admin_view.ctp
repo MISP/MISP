@@ -131,7 +131,7 @@ if (h($user['User']['change_pw']) == 1) {
 	endif; ?>
 	</div>
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li><?php echo $this->Html->link('Edit User', array('admin' => true, 'action' => 'edit', $user['User']['id'])); ?></li>
 		<li class="divider"></li>

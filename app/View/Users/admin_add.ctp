@@ -21,7 +21,7 @@
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();?>
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li class="active"><a href="/admin/users/add">New User</a></li>
 		<li><a href="/admin/users/index">List Users</a></li>

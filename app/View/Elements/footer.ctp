@@ -1,14 +1,4 @@
-<?php
-	if (Configure::read('debug') == 0) {
-		?>
-<div class="footer debugOff">
-		<?php
-	} else {
-		?>
-<div class="footer debugOn">
-		<?php
-	}
-?>
+<div class="footer <?php echo $debugMode;?>">
 	<div class="navbar navbar-inverse" style="padding-left:20px;">
 		<div class="navbar-inner row">
 			<div class="pull-left footerText" style="float:left;position:absolute;padding-top:12px;z-index:2;">

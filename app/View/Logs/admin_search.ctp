@@ -50,7 +50,7 @@ $('#LogActionDiv').hide();
 
 </script>
 <?php echo $this->Js->writeBuffer(); ?>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li ><?php echo $this->Html->link('List Logs', array('admin' => true, 'action' => 'index'));?></li>
 		<li class="active"><?php echo $this->Html->link('Search Logs', array('admin' => true, 'action' => 'search'));?></li>

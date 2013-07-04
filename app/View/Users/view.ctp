@@ -60,7 +60,7 @@ if (h($user['User']['gpgkey']) != 0) {
 		</dd>
 	</dl>
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<?php
 			if ($me['id'] == $user['User']['id']) {

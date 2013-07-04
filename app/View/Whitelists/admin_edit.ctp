@@ -9,7 +9,7 @@
 	</fieldset>
 <?php echo $this->Form->end(__('Submit'));?>
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li><?php echo $this->Html->link('List Whitelist', array('admin' => true, 'action' => 'index'));?></li>
 		<li><?php echo $this->Html->link('New Whitelist', array('admin' => true, 'action' => 'add'));?></li>

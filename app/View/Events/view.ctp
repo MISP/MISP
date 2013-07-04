@@ -2,7 +2,7 @@
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 ?>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li class="active"><a href="/events/view/<?php echo $event['Event']['id'];?>">View Event</a></li>
 		<li><a href="/logs/event_index/<?php echo $event['Event']['id'];?>">View Event History</a></li>

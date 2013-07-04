@@ -40,7 +40,7 @@
 	echo $this->Form->end();
 ?>
 </div>
-<div class="actions">
+<div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
 		<li><?php echo $this->Html->link('View Event', array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id'])); ?> </li>
 		<li class="active"><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $this->request->data['ShadowAttribute']['event_id']));?> </li>
