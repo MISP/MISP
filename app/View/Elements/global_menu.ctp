@@ -1,4 +1,12 @@
-<div class="navbar-wrapper" style="position:fixed;width:100%;z-index: 1;">
+<div class="navbar-wrapper header
+<?php
+	if (Configure::read('debug') == 0) {
+		echo "debugOff";
+	} else {
+		echo "debugOn";
+	}
+?>
+">
 	<div class="navbar navbar-inverse">
 		<div class="navbar-inner">
 		<?php if ($me != false ):?>
@@ -6,7 +14,6 @@
 				<ul class="nav">
 					<li class="active"><a href="/">home
 					</a></li>
-
 
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
@@ -124,10 +131,10 @@
 
 			<div class="nav-collapse collapse pull-right" style="margin-top:10px">
 				<div class="nav" style="font-weight:bold">
-					<span style="color: #0088cc;">M</span><span style="color: #999999;">alware</span>
-					<span style="color: #0088cc;">I</span><span style="color: #999999;">nformation </span>
-					<span style="color: #0088cc;">S</span><span style="color: #999999;">haring</span>
-					<span style="color: #0088cc;">P</span><span style="color: #999999;">latform</span>
+					<span class="logoBlue">M</span><span class="logoGray">alware</span>
+					<span class="logoBlue">I</span><span class="logoGray">nformation </span>
+					<span class="logoBlue">S</span><span class="logoGray">haring</span>
+					<span class="logoBlue">P</span><span class="logoGray">latform</span>
 				</div>
 			</div>
 		<?php endif;?>

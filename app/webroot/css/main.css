@@ -375,8 +375,54 @@ dd {
 .footer {
 	clear: both;
 	float: bottom;
-	position:fixed;
 	width:100%;
 	bottom:0px;
 	height:42px;
 }
+
+.debugOff {
+	position:fixed;
+}
+
+.debugOn {
+	position:relative;
+}
+
+/* header */
+.header {
+	width:100%;
+	z-index: 1;
+}
+
+/* fonts for logo */
+
+.logoBlue {
+	color: #0088cc;
+}
+
+.logoGray {
+	color: #999999;
+}
+
+.footerText {
+	color: #999999;
+}
+.footerRightText {
+	padding-right:20px;
+	padding-top:12px;
+}
+
+.footerLeftText {
+	float:left;
+	z-index: 2;
+	padding-top:12px;
+}
+
+.footerCenterText {
+	padding-top:12px;
+	position: absolute;
+	width:100%;
+	text-align:center;
+	z-index:1;
+}
+

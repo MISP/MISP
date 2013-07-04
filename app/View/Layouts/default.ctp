@@ -28,32 +28,30 @@
 </head>
 <body>
 	<div id="container">
-		<!--div id="header">
-			<h1><?php echo $this->Html->link(Configure::read('CyDefSIG.header'), array('controller' => 'events', 'action' => 'index')); ?>
-			<?php if ($logo = Configure::read('CyDefSIG.logo')) {
-				echo $this->Html->image($logo, array('alt' => h(Configure::read('CyDefSIG.header')), 'align' => 'right', 'height' => '30'));
-			}?></h1>
-		</div-->
-		<?php echo $this->element('global_menu');?>
-		<div class="container-fluid" style="padding-top:50px;position:fixed;width:98%;">
-			<?php echo $this->Session->flash('auth'); ?>
-			<?php echo $this->Session->flash('error'); ?>
-    		<?php echo $this->Session->flash('gpg'); ?>
-			<?php echo $this->Session->flash(); ?>
-			<?php echo $this->Session->flash('email'); ?>
+		<?php echo $this->element('global_menu');
+			if (Configure::read('debug') == 0) {
+				?>
+					<div class="container-fluid debugOff" style="padding-top:50px;width:98%;">
+				<?php
+			} else {
+				?>
+					<div class="container-fluid debugOn" style="width:98%;">
+				<?php
+			}
+			echo $this->Session->flash('auth');
+			echo $this->Session->flash('error');
+    		echo $this->Session->flash('gpg');
+			echo $this->Session->flash();
+			echo $this->Session->flash('email'); ?>
 		</div>
 		<br/><br />
-		<div style="margin-top:50px;">
+		<div
+			<?php
+				if (Configure::read('debug') == 0) echo "style=\"margin-top:50px;\"";
+			?>
+		>
 			<?php echo $this->fetch('content'); ?>
 		</div>
-		<!--div id="footer">
-			<div class="noprint">
-			    <h1 style="float:left;">Download: <?php echo $this->Html->link('PGP/GPG key', '/gpg.asc');?></h1>
-			    <h1 style="float:right;"> <?php echo $this->Html->link(__('Log out', true), array('controller' => 'users', 'action' => 'logout'));?></h1>
-			</div>
-
-			<h1 style="text-align:center;"> <?php if (isset($me)) echo Configure::read('CyDefSIG.footerversion'); else echo Configure::read('CyDefSIG.footer')?></h1>
-		</div-->
 	<?php
 	echo $this->element('footer');
 	echo $this->element('sql_dump');
