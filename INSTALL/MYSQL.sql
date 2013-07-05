@@ -23,18 +23,6 @@ CREATE TABLE IF NOT EXISTS `attributes` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `blacklist`
---
-
-CREATE TABLE IF NOT EXISTS `blacklist` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(254) COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `bruteforces`
 --
 

@@ -23,7 +23,6 @@ class ShadowAttribute extends AppModel {
 		'Trim',
 		'Containable',
 		'Regexp' => array('fields' => array('value', 'value2')),
-		'Blacklist' => array('fields' => array('value'))
 	);
 
 	/**

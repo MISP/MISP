@@ -65,10 +65,10 @@ class RegexpBehavior extends ModelBehavior {
  */
 	private function __replaceWindowsSpecific(Model $Model, $string, $allRegexp) {
 		foreach ($allRegexp as $regexp) {
-			if (isset($regexp['Regexp']['replacement']) && isset($regexp['Regexp']['regexp'])) {
+			if (!empty($regexp['Regexp']['replacement']) && !empty($regexp['Regexp']['regexp'])) {
 				$string = preg_replace($regexp['Regexp']['regexp'], $regexp['Regexp']['replacement'], $string);
 			}
-			if (!isset($regexp['Regexp']['replacement']) && preg_match($regexp['Regexp']['regexp'], $string)) {
+			if (empty($regexp['Regexp']['replacement']) && preg_match($regexp['Regexp']['regexp'], $string)) {
 				App::uses('SessionComponent', 'Controller/Component');
 				SessionComponent::setFlash('Blacklisted value (blocked through a regular expression entry)!');
 				return false;

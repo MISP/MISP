@@ -55,7 +55,7 @@ class WhitelistsController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
-		if(!$this->_IsSiteAdmin()) $this->redirect(array('controller' => 'blacklists', 'action' => 'index', 'admin' => false));
+		if(!$this->_IsSiteAdmin()) $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminEdit($id);
 	}
 
@@ -68,7 +68,7 @@ class WhitelistsController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_delete($id = null) {
-		if(!$this->_IsSiteAdmin()) $this->redirect(array('controller' => 'blacklists', 'action' => 'index', 'admin' => false));
+		if(!$this->_IsSiteAdmin()) $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminDelete($id);
 	}
 

@@ -36,12 +36,10 @@
 						</a>
 						<ul class="dropdown-menu">
 							<?php if ($isSiteAdmin): ?>
-							<li><a href="/admin/blacklists/index">Import Blacklist</a></li>
 							<li><a href="/admin/regexp/index">Import Regexp</a></li>
 							<li><a href="/admin/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
 							<?php if (!$isSiteAdmin): ?>
-							<li><a href="/blacklists/index">Import Blacklist</a></li>
 							<li><a href="/regexp/index">Import Regexp</a></li>
 							<li><a href="/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>

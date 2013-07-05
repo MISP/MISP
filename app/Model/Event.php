@@ -18,7 +18,6 @@ class Event extends AppModel {
 		'Trim',
 		'Containable',
 		'Regexp' => array('fields' => array('info')),
-		'Blacklist' => array('fields' => array('info')),
 	);
 
 /**

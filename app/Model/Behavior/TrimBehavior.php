@@ -28,11 +28,7 @@ class TrimBehavior extends ModelBehavior {
  * @param $options
  */
 	public function beforeValidate(Model $Model, $options = array()) {
-		//parent::beforeValidate();
-
-		// process some..
 		$this->trimStringFields($Model);
-
 		return true;
 	}
 

@@ -216,12 +216,6 @@ class SysLogLogableBehavior extends LogableBehavior {
 					$title = 'Whitelist ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
 					$logData['Log']['title'] = $title;
 					break;
-				case "Blacklist":
-					$this->Blacklists = new BlacklistsController();
-					$this->Blacklists->constructClasses();
-					$title = 'Blacklists ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
-					$logData['Log']['title'] = $title;
-					break;
 				case "Regexp":
 						$this->Regexp = new RegexpController();
 						$this->Regexp->constructClasses();
