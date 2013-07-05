@@ -1186,7 +1186,6 @@ class EventsController extends AppController {
 		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 		$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-		$bodySigned = $body;
 		// Add the GPG key of the user as attachment
 		// LATER sign the attached GPG key
 		if ($this->Auth->user('gpgkey') != null) {
