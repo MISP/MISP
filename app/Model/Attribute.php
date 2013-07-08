@@ -420,8 +420,12 @@ class Attribute extends AppModel {
 			$date = new DateTime();
 			$this->data['Attribute']['timestamp'] = $date->getTimestamp();
 		}
-
-
+		$result = $this->runRegexp($this->data['Attribute']['type'], $this->data['Attribute']['value']);
+		if (!$result) {
+			$this->invalidate('value', 'This value is blocked by a regular expression in the import filters.');
+		} else {
+			$this->data['Attribute']['value'] = $result;
+		}
 		// always return true, otherwise the object cannot be saved
 		return true;
 	}
@@ -449,7 +453,6 @@ class Attribute extends AppModel {
 		if (0 != $this->find('count', $params)) {
 			return false;
 		}
-
 		// Say everything is fine
 		return true;
 	}
@@ -659,13 +662,6 @@ class Attribute extends AppModel {
 				$returnValue = true;
 				break;
 		}
-
-		// default action is to return false
-		/*
-		if (!$returnValue) {
-			$returnValue = true;
-		}
-		*/
 		return $returnValue;
 	}
 

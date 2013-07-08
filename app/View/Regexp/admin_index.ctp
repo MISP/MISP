@@ -21,6 +21,7 @@
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('regexp');?></th>
 			<th><?php echo $this->Paginator->sort('replacement');?></th>
+			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th class="actions">Actions</th>
 	</tr><?php
 foreach ($list as $item):?>
@@ -28,6 +29,7 @@ foreach ($list as $item):?>
 		<td class="short"><?php echo h($item['Regexp']['id']);?>&nbsp;</td>
 		<td><?php echo h($item['Regexp']['regexp']);?>&nbsp;</td>
 		<td><?php echo h($item['Regexp']['replacement']);?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Regexp']['type']);?>&nbsp;</td>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Regexp']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
 			<?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Regexp']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', h($item['Regexp']['regexp'])));?>

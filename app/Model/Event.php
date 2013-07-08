@@ -17,7 +17,6 @@ class Event extends AppModel {
 			'change' => 'full'),
 		'Trim',
 		'Containable',
-		'Regexp' => array('fields' => array('info')),
 	);
 
 /**
@@ -314,7 +313,6 @@ class Event extends AppModel {
 			$date = new DateTime();
 			$this->data['Event']['timestamp'] = $date->getTimestamp();
 		}
-
 	}
 
 	public function isOwnedByOrg($eventid, $org) {
