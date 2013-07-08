@@ -21,12 +21,14 @@
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('regexp');?></th>
 			<th><?php echo $this->Paginator->sort('replacement');?></th>
+			<th><?php echo $this->Paginator->sort('type');?></th>
 	</tr><?php
 foreach ($list as $item):?>
 	<tr>
 		<td class="short"><?php echo h($item['Regexp']['id']);?>&nbsp;</td>
 		<td><?php echo h($item['Regexp']['regexp']);?>&nbsp;</td>
 		<td><?php echo h($item['Regexp']['replacement']);?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Regexp']['type']);?>&nbsp;</td>
 	</tr><?php
 endforeach;?>
 	</table>
