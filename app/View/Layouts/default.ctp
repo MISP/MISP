@@ -29,7 +29,7 @@
 <body>
 	<div id="container">
 		<?php echo $this->element('global_menu');
-			if (!$debugMode) {
+			if ($debugMode == 'debugOff') {
 				?>
 					<div class="container-fluid debugOff" style="padding-top:50px;width:98%;">
 				<?php
@@ -44,10 +44,9 @@
 			echo $this->Session->flash();
 			echo $this->Session->flash('email'); ?>
 		</div>
-		<br/><br />
 		<div
 			<?php
-				if (Configure::read('debug') == 0) echo "style=\"margin-top:50px;\"";
+				if (Configure::read('debug') == 0) echo "style=\"padding-top:100px;\"";
 			?>
 		>
 			<?php echo $this->fetch('content'); ?>

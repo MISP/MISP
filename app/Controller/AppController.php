@@ -130,7 +130,7 @@ class AppController extends Controller {
 			$this->set('isAclAudit', false);
 			$this->set('isAclAuth', false);
 		}
-		if (Configure::read('debug')) {
+		if (Configure::read('debug') > 0) {
 			$this->debugMode = 'debugOn';
 		} else {
 			$this->debugMode = 'debugOff';
