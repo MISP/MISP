@@ -310,16 +310,9 @@ class ShadowAttributesController extends AppController {
 		} else {
 			throw new NotFoundException(__('ShadowAttribute not an attachment or malware-sample'));
 		}
-
-		$this->viewClass = 'Media';
-		$params = array(
-					'id'		=> $file,
-					'name'		=> $filename,
-					'extension' => $fileExt,
-					'download'	=> true,
-					'path'		=> $path
-		);
-		$this->set($params);
+		$this->autoRender = false;
+		$this->response->type($fileExt);
+		$this->response->file($path . $file, array('download' => true, 'name' => $filename . '.' . $fileExt));
 	}
 
 /**

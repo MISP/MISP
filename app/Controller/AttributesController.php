@@ -245,7 +245,7 @@ class AttributesController extends AppController {
 		}
 
 		$this->Attribute->read();
-		$path = APP . "files" . DS . $this->Attribute->data['Attribute']['event_id'] . DS;
+		$path = "files" . DS . $this->Attribute->data['Attribute']['event_id'] . DS;
 		$file = $this->Attribute->data['Attribute']['id'];
 		$filename = '';
 		if ('attachment' == $this->Attribute->data['Attribute']['type']) {
@@ -260,16 +260,9 @@ class AttributesController extends AppController {
 		} else {
 			throw new NotFoundException(__('Attribute not an attachment or malware-sample'));
 		}
-
-		$this->viewClass = 'Media';
-		$params = array(
-					'id'		=> $file,
-					'name'		=> $filename.".".$fileExt,
-					'extension' => $fileExt,
-					'download'	=> true,
-					'path'		=> $path
-		);
-		$this->set($params);
+		$this->autoRender = false;
+		$this->response->type($fileExt);
+		$this->response->file($path . $file, array('download' => true, 'name' => $filename . '.' . $fileExt));
 	}
 
 /**

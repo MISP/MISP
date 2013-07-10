@@ -1669,20 +1669,29 @@ class EventsController extends AppController {
 			$destpath = $rootDir;
 			$file = new File ($destpath);
 			if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedgfi']['name'])) throw new Exception ('Filename not allowed');
-			$zipfile = new File ($destpath . DS . $this->data['Event']['submittedgfi']['name']);
+			if (PHP_OS == 'WINNT') {
+				$zipfile = new File ($destpath . DS . $this->data['Event']['submittedgfi']['name']);
+			} else {
+				$zipfile = new File ($destpath . $this->data['Event']['submittedgfi']['name']);
+			}
+
 			$result = $zipfile->write($zipData);
 			if (!$result) $this->Session->setFlash(__('Problem with writing the zip file. Please report to administrator.'));
-
 			// extract zip..
 			$execRetval = '';
-			exec("unzip " . $zipfile->path . ' -d "' . $rootDir . '"', $execOutput, $execRetval);
 			$execOutput = array();
+			exec("unzip " . $zipfile->path . ' -d ' . $rootDir, $execOutput, $execRetval);
 			if ($execRetval != 0) {	// not EXIT_SUCCESS
 				// do some?
+				throw new Exception('An error has occured while attempting to unzip the GFI sandbox .zip file. We apologise for the inconvenience.');
 			}
 
 			// now open the xml..
-			$xml = $rootDir . DS . 'Analysis' . DS . 'analysis.xml';
+			if (PHP_OS == 'WINNT') {
+				$xml = $rootDir . 'Analysis' . DS . 'analysis.xml';
+			} else {
+				$xml = $rootDir . DS . 'Analysis' . DS . 'analysis.xml';
+			}
 			$fileData = fread(fopen($xml, "r"), $this->data['Event']['submittedgfi']['size']);
 
 			// read XML
@@ -1761,7 +1770,7 @@ class EventsController extends AppController {
 		// import XML class
 		App::uses('Xml', 'Utility');
 		// now parse it
-		$parsedXml =& Xml::build($data, array('return' => 'simplexml'));
+		$parsedXml = Xml::build($data, array('return' => 'simplexml'));
 
 		// xpath..
 
@@ -1793,17 +1802,18 @@ class EventsController extends AppController {
 			foreach ($result[0]->attributes() as $key => $val) {
 				if ($key == 'filename') $arrayItemKey = (string)$val;
 				if ($key == 'md5') $arrayItemValue = (string)$val;
+				if ($key == 'filesize') $arrayItemSize = $val;
 			}
-
-			$files[$arrayItemKey] = $arrayItemValue;
+			//$files[$arrayItemKey] = $arrayItemValue;
+			if ($arrayItemSize > 0) {
+				$files[] = array('key' => $arrayItemKey, 'val' => $arrayItemValue);
+			}
 		}
 		//$files = array_unique($files);
-
 		// write content..
-		foreach ($files as $key => $val) {
-			$keyName = $key;
-
-			if (!strpos($key, $realMalware)) {
+		foreach ($files as $file) {
+			$keyName = $file['key'];
+			if (!strpos($file['key'], $realMalware)) {
 				$itsType = 'malware-sample';
 			} else {
 				$itsType = 'filename|md5';
@@ -1811,13 +1821,14 @@ class EventsController extends AppController {
 
 			// the actual files..
 			// seek $val in dirs and add..
-			$ext = substr($key, strrpos($key, '.'));
-			$actualFileName = $val . $ext;
-			$actualFileNameBase = str_replace('\\', '/', $key);
+			$ext = substr($file['key'], strrpos($file['key'], '.'));
+			$actualFileName = $file['val'] . $ext;
+			$actualFileNameBase = str_replace('\\', '/', $file['key']);
 			$actualFileNameArray[] = basename($actualFileNameBase);
-			$realFileName = end(explode('\\', $key));
+			$tempExplode = explode('\\', $file['key']);
+			$realFileName = end($tempExplode);
 			// have the filename, now look at parents parent for the process number
-			$express = "/analysis/processes/process/stored_files/stored_created_file[@md5='" . $val . "']/../..";
+			$express = "/analysis/processes/process/stored_files/stored_created_file[@md5='" . $file['val'] . "']/../..";
 			$results = $parsedXml->xpath($express);
 			foreach ($results as $result) {
 				foreach ($result[0]->attributes() as $key => $val) {
@@ -1829,21 +1840,25 @@ class EventsController extends AppController {
 			$file = new File($actualFile);
 			if ($file->exists()) { // TODO put in array for test later
 				$this->Event->Attribute->uploadAttachment($actualFile, $realFileName, true, $id, null, $extraPath, $keyName); // TODO was false
+			} else {
 			}
 		}
 
 		//Network activity -- ip-dst
 		$ips = array();
+		$hostnames = array();
 		$results = $parsedXml->xpath('/analysis/processes/process/networkpacket_section/connect_to_computer');
 		foreach ($results as $result) {
 			foreach ($result[0]->attributes() as $key => $val) {
 				if ($key == 'remote_ip') $ips[] = (string)$val;
+				if ($key == 'remote_hostname') $hostnames[] = (string)$val;
 			}
 		}
 		// write content..
+		// ip-s
 		foreach ($ips as $ip) {
 			// add attribute..
-			$this->Attribute->read(null, 1);
+			$this->Attribute->create();
 			$this->Attribute->save(array(
 					'event_id' => $id,
 					'category' => 'Network activity',
@@ -1851,7 +1866,16 @@ class EventsController extends AppController {
 					'value' => $ip,
 					'to_ids' => false));
 		}
-
+		foreach ($hostnames as $hostname) {
+			// add attribute..
+			$this->Attribute->create();
+			$this->Attribute->save(array(
+					'event_id' => $id,
+					'category' => 'Network activity',
+					'type' => 'hostname',
+					'value' => $hostname,
+					'to_ids' => false));
+		}
 		// Persistence mechanism -- regkey|value
 		$regs = array();
 		$results = $parsedXml->xpath('/analysis/processes/process/registry_section/set_value');
@@ -1869,9 +1893,9 @@ class EventsController extends AppController {
 		// write content..
 		foreach ($regs as $key => $val) {
 			// add attribute..
-			$this->Attribute->read(null, 1);
+			$this->Attribute->create();
 			if ($val == '[binary_data]') {
-				$itsCategory = 'Persistence mechanism';
+				$itsCategory = 'Artifacts dropped';
 				$itsType = 'regkey';
 				$itsValue = $key;
 			} else {
