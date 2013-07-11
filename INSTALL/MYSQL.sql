@@ -122,6 +122,7 @@ CREATE TABLE IF NOT EXISTS `regexp` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `regexp` varchar(255) COLLATE utf8_bin NOT NULL,
   `replacement` varchar(255) COLLATE utf8_bin NOT NULL,
+  `type` varchar(32) COLLATE utf8_bin NOT NULL DEFAULT 'ALL',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
