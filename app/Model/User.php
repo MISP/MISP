@@ -326,7 +326,7 @@ class User extends AppModel {
 		return $key;
 	}
 
-	private function generateRandomPassword() {
+	public function generateRandomPassword() {
 	    $length = 12;
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-+=!@#$%&*()<>/?';
 		$charLen = strlen($characters) - 1;
