@@ -1,26 +1,3 @@
-                                                                     
-TODOs v0.2.3 to v2.0.0
------
-
-DB Update
-- UpdateShell with in/out
-
-Auth
-- Prevent bruteforce auth attempts
-
-Acl
-- clean-up to first cut.
-	- saveAcl, from GroupsController to AppController and inherit to *Controllers.
-
-auditing/logging system
-- logins
-	- add source IP (headers,...);
-	- failed logins.
-
-Security
-- force cookie reset after login
-
-
 INSTALLATION INSTRUCTIONS
 ------------------------- for ubuntu 12.04-server
 
@@ -135,6 +112,8 @@ chmod -R 750 /var/www/MISP/app/Config
 
 # Let MISP know where the CakePHP libraries are located by editing the file app/webroot/index.php and setting (on line 59):
 	define('CAKE_CORE_INCLUDE_PATH', '/opt/cakephp/lib');
+# OR create a symlink
+ln -s /opt/cakephp/lib /var/www/MISP/lib 
 
 
 # Generate a GPG encryption key.
