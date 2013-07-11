@@ -624,7 +624,7 @@ class UsersController extends AppController {
 				$recipients[0] = $emails[$this->request->data['User']['recipientEmailList']];
 				$recipientGPG[0] = $gpgKeys[$this->request->data['User']['recipientEmailList']];
 				if ($this->request->data['User']['action'] == '1') {
-					$password = $this->__randomPassword();
+					$password = $this->User->generateRandomPassword();
 					$message[0] = $message1 . "\n\nYour temporary password: " . $password . $message2;
 					$recipientPass[0] = $password;
 				} else {
@@ -637,7 +637,7 @@ class UsersController extends AppController {
 				$recipients[0] = $this->request->data['User']['recipientEmail'];
 				$recipientGPG[0] = $this->request->data['User']['gpg'];
 				if ($this->request->data['User']['action'] == '1') {
-					$password = $this->__randomPassword();
+					$password = $this->User->generateRandomPassword();
 					$message[0] = $message1 . "\n\nYour temporary password: " . $password . $message2;
 					$recipientPass[0] = $password;
 				} else {
@@ -695,17 +695,6 @@ class UsersController extends AppController {
 			$this->Session->setFlash(__('E-mails sent.'));
 		}
 		// User didn't see the contact form yet. Present it to him.
-	}
-
-	private function __randomPassword() {
-		$alphabet = "abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ0123456789";
-		$pass = array();
-		$alphaLength = strlen($alphabet) - 1;
-		for ($i = 0; $i < 8; $i++) {
-			$n = rand(0, $alphaLength);
-			$pass[] = $alphabet[$n];
-		}
-		return implode($pass);
 	}
 
 }

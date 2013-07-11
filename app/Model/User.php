@@ -316,7 +316,6 @@ class User extends AppModel {
  * Generates an authentication key for each user
  */
 	public function generateAuthKey() {
-		//$key = sha1(mt_rand(30, 30).time());
 		$length = 40;
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		$charLen = strlen($characters) - 1;
@@ -324,9 +323,20 @@ class User extends AppModel {
 		for ($p = 0; $p < $length; $p++) {
 			$key .= $characters[rand(0, $charLen)];
 		}
-
 		return $key;
 	}
+
+	private function generateRandomPassword() {
+	    $length = 12;
+		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-+=!@#$%&*()<>/?';
+		$charLen = strlen($characters) - 1;
+		$key = '';
+		for ($p = 0; $p < $length; $p++) {
+			$key .= $characters[rand(0, $charLen)];
+		}
+		return $key;
+	}
+
 
 	public function checkAndCorrectPgps() {
 		$fails = array();
