@@ -604,7 +604,7 @@ class UsersController extends AppController {
 				if ($this->request->data['User']['action'] == '1') {
 					$i = 0;
 					foreach ($recipients as $rec) {
-						$password = $this->__randomPassword();
+						$password = $this->User->generateRandomPassword();
 						$messageP = "\n\nYour temporary password: " . $password;
 						$message[$i] = $message1 . $messageP . $message2;
 						$recipientPass[$i] = $password;
