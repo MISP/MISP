@@ -380,7 +380,6 @@ class AppController extends Controller {
 		$this->loadModel('Event');
 		// first remove executing some Behaviors because of Noud's crappy code
 		$this->Event->Behaviors->detach('Regexp');
-		$this->Event->Behaviors->detach('Blacklist');
 		// get all events..
 		$events = $this->Event->find('all', array('recursive' => -1));
 		// for all events..
@@ -408,7 +407,6 @@ class AppController extends Controller {
 
 		// first remove executing some Behaviors because of Noud's crappy code
 		$this->Attribute->Behaviors->detach('Regexp');
-		$this->Attribute->Behaviors->detach('Blacklist');
 		// for efficiency reasons remove the unique requirement
 		$this->Attribute->validator()->remove('value', 'unique');
 
