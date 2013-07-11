@@ -196,7 +196,7 @@
 
 		</tr>
 		<?php foreach ($events as $event):?>
-		<tr>
+		<tr <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
 			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php
 				if ($event['Event']['published'] == 1) {
@@ -255,7 +255,7 @@
 				<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
 			</td>
 			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>
 			</td>
 			<?php endif; ?>

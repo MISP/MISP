@@ -424,4 +424,16 @@ dd {
 	text-align:center;
 	z-index:1;
 }
+.table-striped tbody > tr:nth-child(odd).privateRed > td, .table-striped tbody > tr:nth-child(odd).privateRed > th {
+	background-color: #FFDDDD !important;
+}
+
+.table-striped tbody > tr:nth-child(even).privateRed > td, .table-striped tbody > tr:nth-child(even).privateRed > th {
+	background-color: #FFCCCC !important;
+}
+
+.privateRedText {
+	color: #FF0000 !important;
+	font-weight:bold !important;
+}
 

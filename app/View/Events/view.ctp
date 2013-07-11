@@ -97,7 +97,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					&nbsp;
 				</dd>
 				<dt>Distribution</dt>
-				<dd>
+				<dd <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?>>
 					<?php echo h($distributionLevels[$event['Event']['distribution']] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
 					&nbsp;
 				</dd>
@@ -219,15 +219,24 @@ if (!empty($event['Attribute'])):?>
 				?>&nbsp;
 				</td>
 				<td class="short <?php echo $extra; ?>"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
-				<td class="short <?php echo $extra; ?>"><?php echo $attribute['distribution'] != 3 ? $distributionLevels[$attribute['distribution']] : 'All';?></td>
-				<td class="short action-links <?php echo $extra;?>">
+				<td class="short
 					<?php
-					if ($isSiteAdmin || $mayModify) {
-						echo $this->Html->link('', array('controller' => 'attributes', 'action' => 'edit', $attribute['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
-						echo $this->Form->postLink('', array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute? Keep in mind that this will also delete this attribute on remote MISP instances.'));
-					} else {
-						echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'edit', $attribute['id']), array('class' => 'icon-edit', 'title' => 'Propose Edit'));
-					}
+						echo $extra;
+						if ($attribute['distribution'] == 0) echo 'privateRedText';
+					?>
+				">
+					<?php echo $attribute['distribution'] != 3 ? $distributionLevels[$attribute['distribution']] : 'All';?>
+				</td>
+				<td class="short action-links
+					<?php echo $extra;?>
+				">
+					<?php
+						if ($isSiteAdmin || $mayModify) {
+							echo $this->Html->link('', array('controller' => 'attributes', 'action' => 'edit', $attribute['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
+							echo $this->Form->postLink('', array('controller' => 'attributes', 'action' => 'delete', $attribute['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute? Keep in mind that this will also delete this attribute on remote MISP instances.'));
+						} else {
+							echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'edit', $attribute['id']), array('class' => 'icon-edit', 'title' => 'Propose Edit'));
+						}
 					?>
 				</td>
 			</tr>
@@ -236,13 +245,14 @@ if (!empty($event['Attribute'])):?>
 			// $extra is used for extra style code added to cells that have a highlighting border around them.
 			$extra = null;
 			$extra = 'highlight2';
-				foreach ($attribute['ShadowAttribute'] as $shadowAttribute):
-				?>
+			foreach ($attribute['ShadowAttribute'] as $shadowAttribute): ?>
 				<tr class="highlight2">
-					<td class="short highlight2" title="<?php if('' != $shadowAttribute['category']) echo $categoryDefinitions[$shadowAttribute['category']]['desc'];?>">
-					<?php
-						if ($shadowAttribute['category'] != $attribute['category']) echo h($shadowAttribute['category']);
-?>
+					<td class="short highlight2" title="
+						<?php if('' != $shadowAttribute['category']) echo $categoryDefinitions[$shadowAttribute['category']]['desc'];?>
+					">
+						<?php
+							if ($shadowAttribute['category'] != $attribute['category']) echo h($shadowAttribute['category']);
+						?>
 					</td>
 					<td class="short highlight2" title="
 						<?php
@@ -253,7 +263,8 @@ if (!empty($event['Attribute'])):?>
 							if ($shadowAttribute['type'] != $attribute['type']) echo h($shadowAttribute['type']);
 						?>
 					</td>
-					<td class="showspaces highlight2"><?php
+					<td class="showspaces highlight2">
+						<?php
 							if ($shadowAttribute['value'] != $attribute['value']) {
 								$sigDisplay = $shadowAttribute['value'];
 								if ('attachment' == $shadowAttribute['type'] || 'malware-sample' == $shadowAttribute['type'] ) {
@@ -279,13 +290,15 @@ if (!empty($event['Attribute'])):?>
 									echo h($sigDisplay);
 								}
 							}
-						?></td>
+						?>
+					</td>
 					<td class="short highlight2">
 					</td>
 					<td class="short highlight2">
 					<?php
 						if ($shadowAttribute['to_ids'] != $attribute['to_ids']) echo $shadowAttribute['to_ids'] ? 'Yes' : 'No';
-					?></td>
+					?>
+					</td>
 					<td class="short highlight2"></td>
 					<td class="short action-links highlight2">
 					<?php
@@ -294,7 +307,7 @@ if (!empty($event['Attribute'])):?>
 						}
 						echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'discard', $shadowAttribute['id']), array('class' => 'icon-trash', 'title' => 'Discard'));
 					?>
-				</td>
+					</td>
 				</tr>
 					<?php
 						endforeach;

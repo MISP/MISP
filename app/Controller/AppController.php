@@ -404,10 +404,6 @@ class AppController extends Controller {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		print ("<h2>Listing invalid attribute validations</h2>");
 		$this->loadModel('Attribute');
-
-		// first remove executing some Behaviors because of Noud's crappy code
-		$this->Attribute->Behaviors->detach('Regexp');
-		$this->Attribute->Behaviors->detach('Blacklist');
 		// for efficiency reasons remove the unique requirement
 		$this->Attribute->validator()->remove('value', 'unique');
 
