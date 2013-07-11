@@ -407,6 +407,7 @@ class AppController extends Controller {
 
 		// first remove executing some Behaviors because of Noud's crappy code
 		$this->Attribute->Behaviors->detach('Regexp');
+		$this->Attribute->Behaviors->detach('Blacklist');
 		// for efficiency reasons remove the unique requirement
 		$this->Attribute->validator()->remove('value', 'unique');
 
@@ -420,9 +421,12 @@ class AppController extends Controller {
 		    } else {
 		        $errors = $this->Attribute->validationErrors;
 		        print ("<h3>Validation errors for attribute: " . $attribute['Attribute']['id'] . "</h3><pre>");
-		        print_r($errors);
+		        print_r($errors['value'][0]);
 		        print ("</pre><p>Attribute details:</p><pre>");
-		        print_r($attribute);
+		        print($attribute['Attribute']['event_id']."\n");
+		        print($attribute['Attribute']['category']."\n");
+		        print($attribute['Attribute']['type']."\n");
+		        print($attribute['Attribute']['value']."\n");
 		        print ("</pre><br/>");
 		    }
 		}
