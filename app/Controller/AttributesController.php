@@ -498,7 +498,7 @@ class AttributesController extends AppController {
 			} else {
 				$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
 			}
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'private', 'cluster', 'value', 'timestamp');
+			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'distribution', 'value', 'timestamp');
 
 			$this->loadModel('Event');
 			$this->Event->id = $eventId;

@@ -203,7 +203,7 @@ class AppController extends Controller {
 		$this->loadModel('Correlation');
 		$this->Correlation->deleteAll(array('id !=' => ''), false);
 		$this->loadModel('Attribute');
-		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.private', 'Attribute.cluster', 'Event.date', 'Event.org');
+		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.cluster', 'Event.date', 'Event.org');
 		// get all attributes..
 		$attributes = $this->Attribute->find('all', array('recursive' => -1));
 		// for all attributes..

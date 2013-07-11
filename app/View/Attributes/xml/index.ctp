@@ -7,10 +7,6 @@ foreach ($attributes as $key => $attribute) {
 	// cleanup the array from things we do not want to expose
 	unset($attributes[$key]['Event']);
 
-	unset($attributes[$key]['private']);
-	unset($attributes[$key]['communitie']);
-	unset($attributes[$key]['cluster']);
-
 	unset($attributes[$key]['value1']);
 	unset($attributes[$key]['value2']);
 

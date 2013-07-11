@@ -61,7 +61,6 @@ class Attribute extends AppModel {
  */
 	public $fieldDescriptions = array(
 			'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
-			'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private'),
 			'distribution' => array('desc' => 'Describes who will have access to the event.')
 	);
 
@@ -941,7 +940,7 @@ class Attribute extends AppModel {
  */
 	public function restfullAttributeToServer($attribute, $server, $urlPath, $HttpSocket=null) {
 		// do not keep attributes that are private
-		if (true == $attribute['private']) { // never upload private events
+		if (0 == $attribute['distribution']) { // never upload private events
 			return "Attribute is private and non exportable";
 		}
 

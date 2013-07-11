@@ -146,7 +146,7 @@ if (!empty($event['Attribute'])):?>
 			<th>Value</th>
 			<th>Related Events</th>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>">IOC</th>
-			<th title="<?php echo $attrDescriptions['private']['desc'];?>">Distribution</th>
+			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>">Distribution</th>
 			<th class="actions">Actions</th>
 		</tr><?php
 	foreach ($categories as $category):
