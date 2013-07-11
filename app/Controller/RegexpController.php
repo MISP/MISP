@@ -43,26 +43,15 @@ class RegexpController extends AppController {
 					}
 				}
 			} else {
-				$fails = "Failed types: ";
-				$failcount = 0;
 				foreach ($types as $key => $type) {
 					if ($this->request->data['Regexp'][$key] == 1) {
 						$this->Regexp->create();
 						$this->request->data['Regexp']['type'] = $type;
-						if (!$this->Regexp->save($this->request->data)) {
-							if ($failcount == 0) $fails .= $type;
-							else $fails .= ', ' . $type;
-							$failcount++;
-						}
+						$this->Regexp->save($this->request->data);
 					}
 				}
-				if ($failcount == 0) {
-					$this->Session->setFlash(__('The Regular expressions have been saved.'));
-					$this->redirect(array('action' => 'index'));
-				} else {
-					$this->Session->setFlash(__('The regular expression could not be saved for one or more of the chosen types. ' . $fails));
-					$this->redirect(array('action' => 'index'));
-				}
+				$this->Session->setFlash(__('The Regular expressions have been saved.'));
+				$this->redirect(array('action' => 'index'));
 			}
 		}
 		$this->set('types', $types);
@@ -104,7 +93,7 @@ class RegexpController extends AppController {
 				$this->Regexp->create();
 				$this->request->data['Regexp']['type'] = 'ALL';
 				if ($this->Regexp->save($this->request->data)) {
-					$this->__find_similar($id, true);
+					$this->Regexp->find_similar($id, true);
 					$this->Session->setFlash('The Regexp has been saved');
 					$this->redirect(array('action' => 'index'));
 				} else {
@@ -114,9 +103,8 @@ class RegexpController extends AppController {
 				}
 			} else {
 				// Keep track of which types could not be entered
-				$fails = "Failed types: ";
 				$failcount = 0;
-				$oldArray = $this->__find_similar($id);
+				$oldArray = $this->Regexp->find_similar($id);
 				foreach ($types as $key => $type) {
 					// If the checkbox for this type was ticked, create an entry for it
 					if ($this->request->data['Regexp'][$key] == 1) {
@@ -138,7 +126,6 @@ class RegexpController extends AppController {
 				} else {
 					// Since some insertions failed, don't delete the old entries. It's an edit that failed after all
 					$this->Session->setFlash('There were issues saving all of the regexp entries, therefore the old entries were not deleted.');
-					$this->redirect(array('action' => 'index'));
 				}
 			}
 		} else {
@@ -146,7 +133,7 @@ class RegexpController extends AppController {
 			// Similar meaning entries with the same 'regexp' and 'replacement' fields but different types
 			$this->request->data['Regexp']['id'] = $id;
 			$this->request->data = $this->Regexp->read(null, $id);
-			$similarArray = $this->__find_similar($id);
+			$similarArray = $this->Regexp->find_similar($id);
 			$values = array();
 			// all is set separately from the other check-boxes
 			if ($this->request->data['Regexp']['type'] === 'ALL') $this->set('all', true);
@@ -161,37 +148,6 @@ class RegexpController extends AppController {
 			$this->set('types', $types);
 			$this->set('value', $values);
 		}
-	}
-
-
-	// find all the similar Regular expressions and return them. If $delete is true, delete them instead of returning them.
-	private function __find_similar ($id, $delete = false) {
-		$allRegexp = $this->Regexp->find('all');
-		$original = null;
-		$finalArray = array();
-		// Let's find and read the original so we know what to look for:
-		foreach ($allRegexp as $k => $v) {
-			if ($v['Regexp']['id'] == $id) {
-				$original = $v;
-			}
-		}
-		// if we found the original, let's try to find all of the regexp values that match the original in the regexp and replacement fields.
-		// We should get a list of all the IDs (and their respective types) of regular expression entries that are duplicates created for various types.
-		// ip-src /127.0.0.1/ -> '' and ip-dst /127.0.0.1/ -> '' (entries that blacklists the ip-source and ip-destination addresses 127.0.0.1) will be returned when editing
-		// ip-src /127.0.0.1/ -> '', but other /127.0.0.1/ -> 'localhost' will not
-		if ($original != null) {
-			foreach ($allRegexp as $k => $v) {
-				if ($original['Regexp']['regexp'] === $v['Regexp']['regexp'] && $original['Regexp']['replacement'] === $v['Regexp']['replacement']) {
-					if ($delete) {
-						// if the delete parameter is set to true, delete the regular expression. This is used for edits
-						$this->Regexp->delete($v['Regexp']['id']);
-					} else {
-						$finalArray[] = array($v['Regexp']['id'], $v['Regexp']['type']);
-					}
-				}
-			}
-		}
-		return $finalArray;
 	}
 
 /**
@@ -229,7 +185,7 @@ class RegexpController extends AppController {
 		$this->loadModel('Attribute');
 		$all = $this->Attribute->find('all', array('recursive' => -1));
 		foreach ($all as $item) {
-			$result = $this->__replaceSpecific($item['Attribute']['value'], $allRegexp, $item['Attribute']['type']);
+			$result = $this->Regexp->replaceSpecific($item['Attribute']['value'], $allRegexp, $item['Attribute']['type']);
 			// 0 = delete it, it is a blocked regexp; 1 = ran regexp check, made changes, resave this attribute with the new value; 2 = ran regexp check, no changes made, go on
 			if ($result == 0) $deletable[] = $item['Attribute']['id'];
 			else {
@@ -247,20 +203,5 @@ class RegexpController extends AppController {
 		}
 		$this->Session->setFlash(__('All done! Number of changed attributes: ' . $modifications . ' Number of deletions: ' . count($deletable)));
 		$this->redirect(array('action' => 'index'));
-	}
-
-	private function __replaceSpecific($string, $allRegexp = null, $type) {
-		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
-		$orig = $string;
-		foreach ($allRegexp as $regexp) {
-			if (strlen($regexp['Regexp']['replacement']) && strlen($regexp['Regexp']['regexp']) && ($regexp['Regexp']['type'] === 'ALL' || $regexp['Regexp']['type'] === $type)) {
-				$string = preg_replace($regexp['Regexp']['regexp'], $regexp['Regexp']['replacement'], $string);
-			}
-			if (!strlen($regexp['Regexp']['replacement']) && preg_match($regexp['Regexp']['regexp'], $string) && ($regexp['Regexp']['type'] === 'ALL' || $regexp['Regexp']['type'] === $type)) {
-				return 0;
-			}
-		}
-		if ($orig === $string) return 2;
-		return 1;
 	}
 }
