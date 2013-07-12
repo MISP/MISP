@@ -63,7 +63,10 @@ CREATE TABLE IF NOT EXISTS `correlations` (
   `private` tinyint(1) NOT NULL,
   `date` date NOT NULL,
   `info` text COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `1_event_id` (`1_event_id`),
+  KEY `1_attribute_id` (`1_attribute_id`),
+  KEY `attribute_id` (`attribute_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 -- --------------------------------------------------------
 
