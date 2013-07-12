@@ -305,11 +305,14 @@ class AppController extends Controller {
 
 	public function generateCount() {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		$this->loadModel('Event');
-		$events = $this->Event->find('all', array('recursive' => 1));
+		// do one SQL query with the counts
+		// loop over events, update in db
+		$this->loadModel('Attribute');
+		$events = $this->Attribute->query('SELECT event_id, count(event_id) as attribute_count FROM attributes GROUP BY event_id');
 		foreach ($events as $event) {
-			$event['Event']['attribute_count'] = sizeof($event['Attribute']);
-			$this->Event->save($event);
+			$this->Event->read(null, $event['attributes']['event_id']);
+			$this->Event->set('attribute_count', $event[0]['attribute_count']);
+			$this->Event->save();
 		}
 		$this->Session->setFlash(__('All done.'));
 		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
