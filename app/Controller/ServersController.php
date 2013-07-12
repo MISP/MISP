@@ -273,7 +273,6 @@ class ServersController extends AppController {
 						$eventsController->constructClasses();
 						if (!$existingEvent) {
 							// add data for newly imported events
-							$event['Event']['info'] .= "\n Imported from " . $this->Server->data['Server']['url'];
 							$passAlong = $this->Server->data['Server']['url'];
 							$result = $eventsController->_add($event, $fromXml = true, $this->Server->data['Server']['organization'], $passAlong, true);
 							if ($result) $successes[] = $eventId;
