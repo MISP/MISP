@@ -746,7 +746,7 @@ class EventsController extends AppController {
 			//}
 
 			$this->Session->setFlash(__('Event deleted'));
-			$this->redirect(array('action' => 'index'));
+			$this->redirect($this->referer(array('action' => 'index')));
 		}
 		$this->Session->setFlash(__('Event was not deleted'));
 		$this->redirect(array('action' => 'index'));
