@@ -139,7 +139,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 		<h3>Attributes</h3>
 		<?php
 if (!empty($event['Attribute'])):?>
-		<table class="table table-condensed">
+		<table class="table table-striped table-condensed">
 		<tr>
 			<th>Category</th>
 			<th>Type</th>

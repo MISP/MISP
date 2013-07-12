@@ -424,13 +424,6 @@ dd {
 	text-align:center;
 	z-index:1;
 }
-.table-striped tbody > tr:nth-child(odd).privateRed > td, .table-striped tbody > tr:nth-child(odd).privateRed > th {
-	background-color: #FFD0D0 !important;
-}
-
-.table-striped tbody > tr:nth-child(even).privateRed > td, .table-striped tbody > tr:nth-child(even).privateRed > th {
-	background-color: #FFDDDD !important;
-}
 
 .privateRedText {
 	color: #FF0000 !important;
