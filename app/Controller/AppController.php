@@ -314,8 +314,8 @@ class AppController extends Controller {
 			$this->Event->set('attribute_count', $event[0]['attribute_count']);
 			$this->Event->save();
 		}
-		$this->Session->setFlash(__('All done.'));
-		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+		$this->Session->setFlash(__('All done. attribute_count generated from scratch.'));
+		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 
 /**
