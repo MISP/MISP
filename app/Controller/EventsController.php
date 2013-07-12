@@ -746,7 +746,13 @@ class EventsController extends AppController {
 			//}
 
 			$this->Session->setFlash(__('Event deleted'));
-			$this->redirect($this->referer(array('action' => 'index')));
+
+			// if coming from index, redirect to referer (to have the filter working)
+			// else redirect to index
+			if (strpos($this->referer(), '/view') !== FALSE)
+				$this->redirect(array('action' => 'index'));
+			else
+				$this->redirect($this->referer(array('action' => 'index')));
 		}
 		$this->Session->setFlash(__('Event was not deleted'));
 		$this->redirect(array('action' => 'index'));
