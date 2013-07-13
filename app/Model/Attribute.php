@@ -409,6 +409,11 @@ class Attribute extends AppModel {
 				break;
 		}
 
+		// set to_ids if it doesn't exist
+		if (empty($this->data['Attribute']['to_ids'])) {
+		    $this->data['Attribute']['to_ids'] = 0;
+		}
+
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Attribute']['uuid'])) {
 			$this->data['Attribute']['uuid'] = String::uuid();
@@ -600,8 +605,7 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'url':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
+				if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $value) && !preg_match("#\n#", $value)) {
 					$returnValue = true;
 				}
 				break;
