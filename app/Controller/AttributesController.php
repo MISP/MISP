@@ -228,7 +228,7 @@ class AttributesController extends AppController {
 		$events = $this->Event->findById($eventId);
 		// combobox for distribution
 		$this->set('distributionLevels', $this->Attribute->distributionLevels);
-		$this->set('currentDist', $events['Event']['distribution']);
+		$this->set('currentDist', $events['Event']['distribution']); // TODO default distribution
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 
@@ -436,6 +436,65 @@ class AttributesController extends AppController {
 		$this->set('published', $events['Event']['published']);
 	}
 
+	/**
+	 * Imports the CSV threatConnect file to multiple attributes
+	 * @param int $id  The id of the event
+	 */
+	public function add_threatconnect($eventId = null) {
+	    // FIXME make standard checks for post and co
+	    $filename = '/Users/chri/Downloads/ThreatConnectExport2.csv';
+	    $header = NULL;
+	    $entries = array();
+	    if (($handle = fopen($filename, 'r')) !== FALSE) {
+	        while (($row = fgetcsv($handle, 0, ',', '"')) !== FALSE) {
+	            if(!$header)
+	                $header = $row;
+	            else
+	                $entries[] = array_combine($header, $row);
+	        }
+	        fclose($handle);
+	    }
+	    // Type:
+	    // Category='External Analysis'
+	    // - Address: 'ip-dst'
+	    // - Host: 'domain'
+	    // - EmailAddress: 'email-src'
+	    // - File: detect length -> 'md5', 'sha1', 'sha256', ...
+	    // - URL: 'url'
+
+	    // Value:
+
+	    // Source:
+	    // 1/ iterate over all the sources,
+	    // 2/ unique
+	    // 3/ add uniques as 'Internal reference'
+	    // 4/ if url format -> 'link'
+	    //    else 'comment'
+	    $references = array();
+	    foreach($entries as $entry) {
+	        $references[$entry['Source']] = true;
+	    }
+	    $references = array_keys($references);
+	    // generate the Attributes
+	    $attributes = array();
+	    foreach($references as $reference) {
+			$attribute['event_id'] = $eventId;
+			$attribute['category'] = 'Internal reference';
+			$attribute['type'] = 'comment';
+			$attribute['value'] = $reference;
+			$attribute['distribution'] = 3; // 'All communities' TODO csvThreatConnect: default distribution
+			$attributes[] = $attribute;
+	    }
+	    // save all the attributes at once
+		$this->Attribute->saveMany($attributes);
+
+
+	    debug($data);
+
+
+	}
+
+
 /**
  * edit method
  *
@@ -604,9 +663,9 @@ class AttributesController extends AppController {
  */
 	private function __deleteAttributeFromServers($uuid) {
 
-		// get a list of the servers
+		// get a list of the servers with push active
 		$this->loadModel('Server');
-		$servers = $this->Server->find('all', array());
+		$servers = $this->Server->find('all', array('conditions' => array('push' => 1)));
 
 		// iterate over the servers and upload the attribute
 		if (empty($servers))
