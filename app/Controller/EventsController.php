@@ -159,19 +159,6 @@ class EventsController extends AppController {
 	}
 
 	/**
-	 * Compare Related Events, first sort on date then on id
-	 *
-	 * @param unknown_type $a
-	 * @param unknown_type $b
-	 */
-	public function compareRelatedEvents($a, $b) {
-		$retval = strnatcmp($b['Event']['date'], $a['Event']['date']);
-		if (!$retval)
-			return strnatcmp($b['Event']['id'], $a['Event']['id']);
-		return $retval;
-	}
-
-	/**
 	 * view method
 	 *
 	 * @param int $id
@@ -332,7 +319,7 @@ class EventsController extends AppController {
 							$this->render('view');
 						} else {
 							// TODO now save uploaded attributes using $this->Event->getId() ..
-							if (isset($this->data['Event']['submittedgfi'])) $this->addGfiZip($this->Event->getId());
+							if (isset($this->data['Event']['submittedgfi'])) $this->_addGfiZip($this->Event->getId());
 
 							// redirect to the view of the newly created event
 							if (!CakeSession::read('Message.flash')) {
@@ -396,7 +383,7 @@ class EventsController extends AppController {
 						is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
 					$this->Session->setFlash(__('You may only upload OpenIOC ioc files.'));
 				}
-				if (isset($this->data['Event']['submittedioc'])) $this->addIOCFile($id);
+				if (isset($this->data['Event']['submittedioc'])) $this->_addIOCFile($id);
 
 				// redirect to the view of the newly created event
 				if (!CakeSession::read('Message.flash')) {
@@ -442,7 +429,7 @@ class EventsController extends AppController {
 	}
 
 	/**
-	 * Low level functino to add an Event based on an Event $data array
+	 * Low level function to add an Event based on an Event $data array
 	 *
 	 * @return bool true if success
 	 */
@@ -1662,7 +1649,7 @@ class EventsController extends AppController {
 	//	$gv->image();
 	//}
 
-	public function addGfiZip($id) {
+	public function _addGfiZip($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedgfi']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
 			$zipData = fread(fopen($this->data['Event']['submittedgfi']['tmp_name'], "r"),
@@ -1701,11 +1688,11 @@ class EventsController extends AppController {
 			$fileData = fread(fopen($xml, "r"), $this->data['Event']['submittedgfi']['size']);
 
 			// read XML
-			$this->readGfiXML($fileData, $id);
+			$this->_readGfiXML($fileData, $id);
 		}
 	}
 
-	public function addIOCFile($id) {
+	public function _addIOCFile($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
 			$iocData = fread(fopen($this->data['Event']['submittedioc']['tmp_name'], "r"),
@@ -1770,7 +1757,7 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function readGfiXML($data, $id) {
+	public function _readGfiXML($data, $id) {
 		$this->loadModel('Attribute');
 
 		// import XML class
