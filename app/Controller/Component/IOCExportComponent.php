@@ -93,10 +93,6 @@ class IOCExportComponent extends Component {
 				$this->final[] = '        <Context document="RouteEntryItem" search="RouteEntryItem/Destination" type="mir" />';
 				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 				break;
-			case 'domain':
-				$this->final[] = '        <Context document="SystemInfoItem" search="SystemInfoItem/domain" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
 			case 'email-src':
 				$this->final[] = '        <Context document="Email" search="Email/From" type="mir" />';
 				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
@@ -113,6 +109,7 @@ class IOCExportComponent extends Component {
 				$this->final[] = '        <Context document="Email" search="Email/Attachment/Name" type="mir" />';
 				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 				break;
+			case 'domain':
 			case 'url':
 				$this->final[] = '        <Context document="UrlHistoryItem" search="UrlHistoryItem/URL" type="mir" />';
 				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
