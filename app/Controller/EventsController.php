@@ -1536,7 +1536,7 @@ class EventsController extends AppController {
 		foreach ($attributes as $attribute) {
 			$attribute['Attribute']['value'] = str_replace("\r", "", $attribute['Attribute']['value']);
 			$attribute['Attribute']['value'] = str_replace("\n", "", $attribute['Attribute']['value']);
-			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ', "' . $attribute['Attribute']['value'] . '"';
+			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'];
 		}
 		$this->set('final', $final);
 	}
