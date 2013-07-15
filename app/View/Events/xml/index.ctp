@@ -9,9 +9,6 @@ foreach ($events as $key => $event) {
 
 	// cleanup the array from things we do not want to expose
 	unset($events[$key]['user_id']);
-	unset($events[$key]['cluster']);
-	unset($events[$key]['private']);
-	unset($events[$key]['communitie']);
 	// hide the org field is we are not in showorg mode
 	if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
 		unset($events[$key]['org']);

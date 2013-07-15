@@ -17,9 +17,6 @@ if (isset($relatedEvents)) {
 // cleanup the array from things we do not want to expose
 //
 unset($event['Event']['user_id']);
-unset($event['Event']['cluster']);
-unset($event['Event']['private']);
-unset($event['Event']['communitie']);
 // hide the org field is we are not in showorg mode
 if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
     unset($event['Event']['org']);
@@ -29,10 +26,6 @@ if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
 
 // remove value1 and value2 from the output
 foreach ($event['Event']['Attribute'] as $key => $value) {
-	unset($event['Event']['Attribute'][$key]['private']);
-	unset($event['Event']['Attribute'][$key]['communitie']);
-	unset($event['Event']['Attribute'][$key]['cluster']);
-
 	unset($event['Event']['Attribute'][$key]['value1']);
 	unset($event['Event']['Attribute'][$key]['value2']);
 
@@ -41,13 +34,9 @@ foreach ($event['Event']['Attribute'] as $key => $value) {
 if (isset($event['Event']['RelatedEvent'])) {
 	foreach ($event['Event']['RelatedEvent'] as $key => $value) {
 		unset($event['Event']['RelatedEvent'][$key]['user_id']);
-		unset($event['Event']['RelatedEvent'][$key]['private']);
-		unset($event['Event']['RelatedEvent'][$key]['communitie']);
-		unset($event['Event']['RelatedEvent'][$key]['cluster']);
 		if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
 		    unset($event['Event']['RelatedEvent'][$key]['org']);
 		    unset($event['Event']['RelatedEvent'][$key]['orgc']);
-		    unset($event['Event']['RelatedEvent'][$key]['from']);
 		}
 	}
 }
