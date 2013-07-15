@@ -38,6 +38,9 @@ class UsersController extends AppController {
  */
 	public function view($id = null) {
 		if ("me" == $id) $id = $this->Auth->user('id');
+		if (!$this->_isSiteAdmin() && $this->Auth->user('id') != $id) {
+			throw new NotFoundException(__('Invalid user or not authorised.'));
+		}
 		$this->User->id = $id;
 		$this->User->recursive = 0;
 		if (!$this->User->exists()) {
@@ -79,6 +82,9 @@ class UsersController extends AppController {
 		} else {
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
+			if (!$this->User->exists() || (!$this->_isSiteAdmin() && $this->Auth->user('org') != $this->User->data['User']['org'])) {
+				throw new NotFoundException(__('Invalid user or not authorised.'));
+			}
 			$this->User->set('password', '');
 			$this->request->data = $this->User->data;
 		}
@@ -391,11 +397,11 @@ class UsersController extends AppController {
 			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
 			$this->redirect(array('action' => 'index'));
 		}
-		if ('me' == $id ) $id = $this->Auth->user('id');
-		else if (!$this->_isAdmin()) throw new MethodNotAllowedException();
-
 		// reset the key
 		$this->User->id = $id;
+		$this->User->read();
+		if ('me' == $id ) $id = $this->Auth->user('id');
+		else if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org') == $this->User->data['User']['org'])) throw new MethodNotAllowedException();
 		$newkey = $this->User->generateAuthKey();
 		$this->User->saveField('authkey', $newkey);
 		$this->Session->setFlash(__('New authkey generated.', true));
