@@ -40,17 +40,6 @@ echo $this->Form->end();
 		<li class="active"><a href="/events/edit/<?php echo $this->request->data['Event']['id'];?>">Edit Event</a></li>
 		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $this->request->data['Event']['id']), null, __('Are you sure you want to delete # %s?', $this->request->data['Event']['id'])); ?></li>
 		<li class="divider"></li>
-		<li><a href="/attributes/add/<?php echo $this->request->data['Event']['id'];?>">Add Attribute</a></li>
-		<li><a href="/attributes/add_attachment/<?php echo $this->request->data['Event']['id'];?>">Add Attachment</a></li>
-		<li><a href="/events/addIOC/<?php echo $this->request->data['Event']['id'];?>">Populate from IOC</a></li>
-		<li class="divider"></li>
-		<li><a href="/events/contact/<?php echo $this->request->data['Event']['id'];?>">Contact Reporter</a></li>
-		<li><a href="/events/xml/download/<?php echo $this->request->data['Event']['id'];?>">Download as XML</a></li>
-		<?php if ($this->request->data['Event']['published']): ?>
-		<li><a href="/events/downloadOpenIOCEvent/<?php echo $this->request->data['Event']['id'];?>">Download as IOC</a></li>
-		<li><a href="/events/csv/download/<?php echo $this->request->data['Event']['id'];?>">Download as CSV</a></li>
-		<?php endif; ?>
-		<li class="divider"></li>
 		<li><a href="/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>
 		<li><a href="/events/add">Add Event</a></li>

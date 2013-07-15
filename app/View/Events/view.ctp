@@ -13,6 +13,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 		<li><a href="/attributes/add/<?php echo $event['Event']['id'];?>">Add Attribute</a></li>
 		<li><a href="/attributes/add_attachment/<?php echo $event['Event']['id'];?>">Add Attachment</a></li>
 		<li><a href="/events/addIOC/<?php echo $event['Event']['id'];?>">Populate from IOC</a></li>
+		<li><a href="/attributes/add_threatconnect/<?php echo $event['Event']['id']; ?>">Populate from ThreatConnect</a></li>
 		<?php else:	?>
 		<li><a href="/shadow_attributes/add/<?php echo $event['Event']['id'];?>">Propose Attribute</a></li>
 		<li><a href="/shadow_attributes/add_attachment/<?php echo $event['Event']['id'];?>">Propose Attachment</a></li>

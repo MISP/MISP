@@ -59,13 +59,14 @@
 		<li class="divider"></li>
 		<li><a href="/attributes/add/<?php echo $eventId;?>">Add Attribute</a></li>
 		<li><a href="/attributes/add_attachment/<?php echo $eventId;?>">Add Attachment</a></li>
-		<li><a href="/events/addIOC/<?php echo $eventId;?>">Populate event from IOC</a></li>
+		<li><a href="/events/addIOC/<?php echo $eventId;?>">Populate from IOC</a></li>
+		<li><a href="/attributes/add_threatconnect/<?php echo $eventId; ?>">Populate from ThreatConnect</a></li>
 		<?php else:	?>
 		<li><a href="/shadow_attributes/add/<?php echo $eventId;?>">Propose Attribute</a></li>
 		<li><a href="/shadow_attributes/add_attachment/<?php echo $eventId;?>">Propose Attachment</a></li>
 		<?php endif; ?>
 		<li class="divider"></li>
-		<li><a href="/events/contact/<?php echo $eventId;?>">Contact reporter</a></li>
+		<li><a href="/events/contact/<?php echo $eventId;?>">Contact Reporter</a></li>
 		<li><a href="/events/xml/download/<?php echo $eventId;?>">Download as XML</a></li>
 		<?php if ($published): ?>
 		<li><a href="/events/downloadOpenIOCEvent/<?php echo $eventId;?>">Download as IOC</a></li>

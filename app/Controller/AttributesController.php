@@ -228,7 +228,7 @@ class AttributesController extends AppController {
 		$events = $this->Event->findById($eventId);
 		// combobox for distribution
 		$this->set('distributionLevels', $this->Attribute->distributionLevels);
-		$this->set('currentDist', $events['Event']['distribution']);
+		$this->set('currentDist', $events['Event']['distribution']); // TODO default distribution
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 
@@ -291,9 +291,6 @@ class AttributesController extends AppController {
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 			}
 
-			// remove the published flag from the event
-			$this->Event->id = $this->request->data['Attribute']['event_id'];
-			$this->Event->saveField('published', 0);
 			// save the file-info in the database
 			$this->Attribute->create();
 			if ($this->request->data['Attribute']['malware']) {
@@ -316,6 +313,9 @@ class AttributesController extends AppController {
 
 			if ($this->Attribute->save($this->request->data)) {
 				// attribute saved correctly in the db
+				// remove the published flag from the event
+				$this->Event->id = $this->request->data['Attribute']['event_id'];
+				$this->Event->saveField('published', 0);
 			} else {
 				$this->Session->setFlash(__('The attribute could not be saved. Did you already upload this file?'));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
@@ -395,9 +395,6 @@ class AttributesController extends AppController {
 		} else {
 			// set the event_id in the form
 			$this->request->data['Attribute']['event_id'] = $eventId;
-			$this->loadModel('Event');
-			$events = $this->Event->findById($eventId);
-			$this->set('currentDist', $events['Event']['distribution']);
 		}
 
 		// combobos for categories
@@ -429,12 +426,165 @@ class AttributesController extends AppController {
 		$this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
 
 		// combobox for distribution
+		$this->loadModel('Event');
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 		$events = $this->Event->findById($eventId);
 		$this->set('currentDist', $events['Event']['distribution']);
 		$this->set('published', $events['Event']['published']);
 	}
+
+	/**
+	 * Imports the CSV threatConnect file to multiple attributes
+	 * @param int $id  The id of the event
+	 */
+	public function add_threatconnect($eventId = null) {
+		if ($this->request->is('post')) {
+			//
+			// File upload
+			//
+			// Check if there were problems with the file upload
+			$tmpfile = new File($this->request->data['Attribute']['value']['tmp_name']);
+			if ((isset($this->request->data['Attribute']['value']['error']) && $this->request->data['Attribute']['value']['error'] == 0) ||
+			        (!empty( $this->request->data['Attribute']['value']['tmp_name']) && $this->request->data['Attribute']['value']['tmp_name'] != 'none')
+			) {
+			    if (!is_uploaded_file($tmpfile->path))
+			        throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
+			} else {
+			    $this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
+			    $this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
+			}
+			// verify mime type
+			$file_info = $tmpfile->info();
+			if ($file_info['mime'] != 'text/plain') {
+				$this->Session->setFlash('File not in CSV format.', 'default', array(), 'error');
+				$this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
+			}
+
+			// parse uploaded csv file
+			$filename = '/Users/chri/Downloads/ThreatConnectExport2.csv';
+			$filename = $tmpfile->path;
+			$header = NULL;
+			$entries = array();
+			if (($handle = fopen($filename, 'r')) !== FALSE) {
+				while (($row = fgetcsv($handle, 0, ',', '"')) !== FALSE) {
+					if(!$header)
+						$header = $row;
+					else
+						$entries[] = array_combine($header, $row);
+				}
+				fclose($handle);
+			}
+
+			// verify header of the file (first row)
+			$expected_header = array(
+					'Type', 'Value', 'Rating', 'Confidence', 'DateAdded',
+					'Description', 'Source', 'DNS', 'Whois');
+			if ($header != $expected_header) {
+				$this->Session->setFlash('Incorrect ThreatConnect headers. Expecting: '.implode(',', $expected_header), 'default', array(), 'error');
+				$this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
+			}
+
+			//
+			// import attributes
+			//
+			$attributes = array();  // array with all the attributes we're going to save
+			foreach($entries as $entry) {
+				$attribute = array();
+				$attribute['event_id'] = $this->request->data['Attribute']['event_id'];
+				$attribute['value'] = $entry['Value'];
+				$attribute['to_ids'] = ($entry['Confidence'] > 51) ? 1 : 0; // To IDS if high confidence
+				$attribute['distribution'] = 3; // 'All communities'
+				switch($entry['Type']) {
+					case 'Address':
+						$attribute['category'] = 'Network activity';
+						$attribute['type'] = 'ip-dst';
+						break;
+					case 'Host':
+						$attribute['category'] = 'Network activity';
+						$attribute['type'] = 'domain';
+						break;
+					case 'EmailAddress':
+						$attribute['category'] = 'Payload delivery';
+						$attribute['type'] = 'email-src';
+						break;
+					case 'File':
+						$attribute['category'] = 'Artifacts dropped';
+						$attribute['value'] = strtolower($attribute['value']);
+						if (preg_match("#^[0-9a-f]{32}$#", $attribute['value']))
+							$attribute['type'] = 'md5';
+						else if (preg_match("#^[0-9a-f]{40}$#", $attribute['value']))
+						    $attribute['type'] = 'sha1';
+						else if (preg_match("#^[0-9a-f]{64}$#", $attribute['value']))
+						    $attribute['type'] = 'sha256';
+						else
+							// do not keep attributes that do not have a match
+							$attribute=NULL;
+						break;
+					case 'URL':
+						$attribute['category'] = 'Network activity';
+						$attribute['type'] = 'url';
+						break;
+					default:
+						// do not keep attributes that do not have a match
+						$attribute=NULL;
+				}
+				// add attribute to the array that will be saved
+				if ($attribute) $attributes[] = $attribute;
+			}
+
+			//
+			// import source info:
+			//
+			// 1/ iterate over all the sources, unique
+			// 2/ add uniques as 'Internal reference'
+			// 3/ if url format -> 'link'
+			//	else 'comment'
+			$references = array();
+			foreach($entries as $entry) {
+				$references[$entry['Source']] = true;
+			}
+			$references = array_keys($references);
+			// generate the Attributes
+			foreach($references as $reference) {
+				$attribute = array();
+				$attribute['event_id'] = $this->request->data['Attribute']['event_id'];
+				$attribute['category'] = 'Internal reference';
+				if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $reference))
+					$attribute['type'] = 'link';
+				else
+					$attribute['type'] = 'comment';
+				$attribute['value'] = $reference;
+				$attribute['distribution'] = 3; // 'All communities'
+				// add attribute to the array that will be saved
+				$attributes[] = $attribute;
+			}
+
+			//
+			// finally save all the attributes at once, and continue if there are validation errors
+			//
+			$this->Attribute->saveMany($attributes, array('validate' => true));
+			// data imported (with or without errors)
+			// remove the published flag from the event
+			$this->loadModel('Event');
+			$this->Event->id = $this->request->data['Attribute']['event_id'];
+			$this->Event->saveField('published', 0);
+
+			// everything is done, now redirect to event view
+			$this->Session->setFlash(__('The ThreatConnect data has been imported'));
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
+
+		} else {
+			// set the event_id in the form
+			$this->request->data['Attribute']['event_id'] = $eventId;
+		}
+
+		// form not submitted, show page
+		$this->loadModel('Event');
+		$events = $this->Event->findById($eventId);
+		$this->set('published', $events['Event']['published']);
+	}
+
 
 /**
  * edit method
@@ -604,9 +754,9 @@ class AttributesController extends AppController {
  */
 	private function __deleteAttributeFromServers($uuid) {
 
-		// get a list of the servers
+		// get a list of the servers with push active
 		$this->loadModel('Server');
-		$servers = $this->Server->find('all', array());
+		$servers = $this->Server->find('all', array('conditions' => array('push' => 1)));
 
 		// iterate over the servers and upload the attribute
 		if (empty($servers))

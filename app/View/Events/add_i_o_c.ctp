@@ -25,6 +25,7 @@ echo $this->Form->end();
 		<li><a href="/attributes/add/<?php echo $id;?>">Add Attribute</a></li>
 		<li><a href="/attributes/add_attachment/<?php echo $id;?>">Add Attachment</a></li>
 		<li class="active"><a href="/events/addIOC/<?php echo $id;?>">Populate from IOC</a></li>
+		<li><a href="/attributes/add_threatconnect/<?php echo $id; ?>">Populate from ThreatConnect</a></li>
 		<?php else:	?>
 		<li><a href="/shadow_attributes/add/<?php echo $id;?>">Propose Attribute</a></li>
 		<li><a href="/shadow_attributes/add_attachment/<?php echo $id;?>">Propose Attachment</a></li>
