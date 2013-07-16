@@ -604,7 +604,8 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'url':
-				if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $value) && !preg_match("#\n#", $value)) {
+				// no newline
+				if (!preg_match("#\n#", $value)) {
 					$returnValue = true;
 				}
 				break;
