@@ -110,6 +110,9 @@ class IOCExportComponent extends Component {
 				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 				break;
 			case 'domain':
+				$this->final[] = '        <Context document="Network" search="Network/DNS" type="mir" />';
+				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
+				break;
 			case 'url':
 				$this->final[] = '        <Context document="UrlHistoryItem" search="UrlHistoryItem/URL" type="mir" />';
 				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
