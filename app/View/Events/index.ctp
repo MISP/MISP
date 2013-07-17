@@ -50,7 +50,7 @@
 					}
 				?>
 				<td class="<?php echo (($count < 1) ? 'searchLabelFirst' : 'searchLabel');?>">
-					<?php echo $searchTerm; ?> : <?php echo $value; ?>
+					<?php echo $searchTerm; ?> : <?php echo h($value); ?>
 				</td>
 				<?php
 				$count++;
