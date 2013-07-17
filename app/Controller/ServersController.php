@@ -326,22 +326,23 @@ class ServersController extends AppController {
 			$eventid_conditions_key = 'Event.id >';
 			$eventid_conditions_value = $this->Server->data['Server']['lastpushedid'];
 		} elseif (true == $technique) {
-			$eventid_conditions_key = 'Event.id';
-			$eventid_conditions_value = intval($technique);
+			$eventIds[] = array('Event' => array ('id' => intval($technique)));
 		} else {
 			$this->redirect(array('action' => 'index'));
 		}
-		$findParams = array(
-		        'conditions' => array(
-		                $eventid_conditions_key => $eventid_conditions_value,
-		                'Event.distribution >' => 0,
-		                'Event.published' => 1,
-		        		'Event.attribute_count >' => 0
-		        ), //array of conditions
-		        'recursive' => -1, //int
-		        'fields' => array('Event.id'), //array of field names
-		);
-		$eventIds = $this->Event->find('all', $findParams);
+		if (!$eventIds) {
+			$findParams = array(
+			        'conditions' => array(
+			                $eventid_conditions_key => $eventid_conditions_value,
+			                'Event.distribution >' => 0,
+			                'Event.published' => 1,
+			        		'Event.attribute_count >' => 0
+			        ), //array of conditions
+			        'recursive' => -1, //int
+			        'fields' => array('Event.id'), //array of field names
+			);
+			$eventIds = $this->Event->find('all', $findParams);
+		}
 		// now process the $eventIds to pull each of the events sequentially
 		if (!empty($eventIds)) {
 			$successes = array();
