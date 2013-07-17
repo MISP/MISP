@@ -51,7 +51,7 @@ foreach ($servers as $server): ?>
 			if ($server['Server']['pull'] && $me['org'] == 'ADMIN')
 				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'full'), array('class' => 'icon-download', 'title' => 'Pull all'));
 			if ($server['Server']['push'] && $me['org'] == 'ADMIN')
-				echo $this->Form->postLink('', array('action' => 'push', $server['Server']['id'], 'full'), array('class' => 'icon-upload', 'title' => 'Push all') );
+				echo $this->Html->link('', array('action' => 'push', $server['Server']['id'], 'full'), array('class' => 'icon-upload', 'title' => 'Push all'));
 			?>
 			&nbsp;
 			<?php
