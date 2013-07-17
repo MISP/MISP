@@ -338,7 +338,7 @@ if (!empty($event['Attribute'])):?>
 										echo h($remain['type']);
 									?>
 								</td>
-								<td class="showspaces short highlight2"><?php
+								<td class="showspaces highlight2"><?php
 										$sigDisplay = nl2br(h($remain['value']));
 										if ('attachment' == $remain['type'] || 'malware-sample' == $remain['type'] ) {
 											$filenameHash = explode('|', $remain['value']);
