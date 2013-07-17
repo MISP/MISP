@@ -236,13 +236,13 @@ td.short {
 }
 
 td.highlight1 {
-	background-color: #0088cc;
-	color: #ffffff;
+	background-color: #0088cc !important;
+	color: #ffffff !important;
 }
 
 td.highlight2 {
-	background-color: #747170;
-	color: #ffffff;
+	background-color: #747170 !important;
+	color: #ffffff !important;
 	
 }
 
