@@ -175,8 +175,7 @@ if (!empty($event['Attribute'])):?>
 				<?php echo h($attribute['type']);?>
 
 			</td>
-			<td class="showspaces <?php echo $extra; ?>"><?php
-			$sigDisplay = $attribute['value'];
+			<td class="showspaces <?php echo $extra; ?>"><?php $sigDisplay = $attribute['value'];
 			if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
 				$filenameHash = explode('|', $attribute['value']);
 				if (strrpos($filenameHash[0], '\\')) {
@@ -264,8 +263,7 @@ if (!empty($event['Attribute'])):?>
 							if ($shadowAttribute['type'] != $attribute['type']) echo h($shadowAttribute['type']);
 						?>
 					</td>
-					<td class="showspaces highlight2">
-						<?php
+					<td class="showspaces highlight2"><?php
 							if ($shadowAttribute['value'] != $attribute['value']) {
 								$sigDisplay = $shadowAttribute['value'];
 								if ('attachment' == $shadowAttribute['type'] || 'malware-sample' == $shadowAttribute['type'] ) {
@@ -291,8 +289,7 @@ if (!empty($event['Attribute'])):?>
 									echo h($sigDisplay);
 								}
 							}
-						?>
-					</td>
+						?></td>
 					<td class="short highlight2">
 					</td>
 					<td class="short highlight2">
@@ -341,7 +338,7 @@ if (!empty($event['Attribute'])):?>
 										echo h($remain['type']);
 									?>
 								</td>
-								<td class="showspaces short highlight2"><?php
+								<td class="showspaces highlight2"><?php
 										$sigDisplay = nl2br(h($remain['value']));
 										if ('attachment' == $remain['type'] || 'malware-sample' == $remain['type'] ) {
 											$filenameHash = explode('|', $remain['value']);
