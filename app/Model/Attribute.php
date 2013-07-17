@@ -284,14 +284,13 @@ class Attribute extends AppModel {
 			),
 		),
 		'distribution' => array(
-			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
+				'rule' => array('inList', array('0', '1', '2', '3')),
+				'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
 				//'allowEmpty' => false,
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-		)),
+		),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
@@ -605,7 +604,8 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'url':
-				if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $value) && !preg_match("#\n#", $value)) {
+				// no newline
+				if (!preg_match("#\n#", $value)) {
 					$returnValue = true;
 				}
 				break;

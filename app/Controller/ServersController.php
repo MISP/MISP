@@ -202,25 +202,25 @@ class ServersController extends AppController {
 					if (null != $event) {
 						// we have an Event array
 						if (!isset($event['Event']['distribution'])) { // version 1
-							$event['Event']['distribution'] = 1;
+							$event['Event']['distribution'] = '1';
 						}
 						// Distribution
 						switch($event['Event']['distribution']) {
 							case 1:
 							case 'This community only': // backwards compatibility
 								// if community only, downgrade to org only after pull
-								$event['Event']['distribution'] = 0;
+								$event['Event']['distribution'] = '0';
 								break;
 							case 2:
 							case 'Connected communities': // backwards compatibility
 								// if connected communities downgrade to community only
-								$event['Event']['distribution'] = 1;
+								$event['Event']['distribution'] = '1';
 								break;
 							case 'All communities': // backwards compatibility
-								$event['Event']['distribution'] = 3;
+								$event['Event']['distribution'] = '3';
 								break;
 							case 'Your organisation only': // backwards compatibility
-								$event['Event']['distribution'] = 0;
+								$event['Event']['distribution'] = '0';
 								break;
 						}
 
@@ -232,7 +232,6 @@ class ServersController extends AppController {
 						}
 
 						if (is_array($event['Event']['Attribute'])) {
-							$toRemove = array();
 							$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
 							for ($i = 0; $i < $size; $i++) {
 								if (!isset($event['Event']['Attribute'][$i]['distribution'])) { // version 1
@@ -242,23 +241,20 @@ class ServersController extends AppController {
 									case 1:
 									case 'This community only': // backwards compatibility
 										// if community only, downgrade to org only after pull
-										$event['Event']['Attribute'][$i]['distribution'] = 0;
+										$event['Event']['Attribute'][$i]['distribution'] = '0';
 										break;
 									case 2:
 									case 'Connected communities': // backwards compatibility
 										// if connected communities downgrade to community only
-										$event['Event']['Attribute'][$i]['distribution'] = 1;
+										$event['Event']['Attribute'][$i]['distribution'] = '1';
 										break;
 									case 'All communities': // backwards compatibility
-									    $event['Event']['Attribute'][$i]['distribution'] = 3;
+									    $event['Event']['Attribute'][$i]['distribution'] = '3';
 									    break;
 									case 'Your organisation only': // backwards compatibility
-									    $event['Event']['Attribute'][$i]['distribution'] = 0;
+									    $event['Event']['Attribute'][$i]['distribution'] = '0';
 									    break;
 								}
-							}
-							foreach ($toRemove as $thisRemove) {
-								unset($event['Event']['Attribute'][$thisRemove]);
 							}
 							$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 						} else {

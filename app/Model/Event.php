@@ -631,7 +631,6 @@ class Event extends AppModel {
 				)
 		);
 		$uri = $url . '/events/' . $eventId;
-		// LATER validate HTTPS SSL certificate
 		$response = $HttpSocket->get($uri, $data = '', $request);
 		if ($response->isOk()) {
 			$xmlArray = Xml::toArray(Xml::build($response->body));
