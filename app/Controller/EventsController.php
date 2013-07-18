@@ -1468,6 +1468,7 @@ class EventsController extends AppController {
 				'recursive' => 0, //int
 				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
 		);
+		unset($this->Attribute->virtualFields['category_order']);  // not needed for IDS export and speeds things up
 		$items = $this->Attribute->find('all', $params);
 
 		$rules = $this->NidsExport->export($items, $user['User']['nids_sid']);
