@@ -425,11 +425,11 @@ class UsersController extends AppController {
 
 		// What org posted what type of attribute
 		$this->loadModel('Attribute');
-		$fields = array('Event.org', 'Attribute.type', 'count(Attribute.type) as `num_types`');
+		$fields = array('Event.orgc', 'Attribute.type', 'count(Attribute.type) as `num_types`');
 		$params = array('recursive' => 0,
 							'fields' => $fields,
 							'group' => array('Attribute.type', 'Event.org'),
-							'order' => array('Event.org', 'num_types DESC'),
+							'order' => array('Event.orgc', 'num_types DESC'),
 		);
 		$typesHistogram = $this->Attribute->find('all', $params);
 		$this->set('typesHistogram', $typesHistogram);
@@ -450,11 +450,11 @@ class UsersController extends AppController {
 		$prevRowOrg = "";
 		$i = -1;
 		foreach ($typesHistogram as &$row) {
-			if ($prevRowOrg != $row['Event']['org']) {
+			if ($prevRowOrg != $row['Event']['orgc']) {
 				$i++;
 				$graphData[] = "";
-				$prevRowOrg = $row['Event']['org'];
-				$graphData[$i] .= "org: '" . $row['Event']['org'] . "'";
+				$prevRowOrg = $row['Event']['orgc'];
+				$graphData[$i] .= "org: '" . $row['Event']['orgc'] . "'";
 			}
 			$graphData[$i] .= ', ' . str_replace($replace, "_", $row['Attribute']['type']) . ': ' . $row[0]['num_types'];
 		}
