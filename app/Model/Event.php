@@ -471,7 +471,7 @@ class Event extends AppModel {
  */
 	public function restfullEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
 		if ($event['Event']['distribution'] < 2) { // never upload private events
-			return "Event is private and non exportable";
+			return 403; //"Event is private and non exportable";
 		}
 
 		$url = $server['Server']['url'];

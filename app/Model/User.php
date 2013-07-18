@@ -278,10 +278,12 @@ class User extends AppModel {
 				}
 			} catch (Exception $e) {
 				//debug($e);
+				$this->log($e->getMessage());
 				return false;
 			}
 		} catch (Exception $e) {
 			//debug($e);
+			$this->log($e->getMessage());
 			return true; // TODO was false
 		}
 	}

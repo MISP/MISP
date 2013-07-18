@@ -150,7 +150,6 @@ class ServersController extends AppController {
 	 * @throws NotFoundException
 	 */
 	public function pull($id = null, $technique=false) {
-		// TODO should we de-activate data validation for type and category / and or mapping? Maybe other instances have other configurations that are incompatible.
 		if (!$this->_IsSiteAdmin() && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
@@ -185,6 +184,8 @@ class ServersController extends AppController {
 
 		} elseif (true == $technique) {
 			$eventIds[] = intval($technique);
+		} else {
+			$this->redirect(array('action' => 'index'));
 		}
 
 		// now process the $eventIds to pull each of the events sequentially
@@ -305,9 +306,6 @@ class ServersController extends AppController {
 
 	public function push($id = null, $technique=false) {
 		if ($this->Auth->user('org') != 'ADMIN' && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
-		if (!$this->request->is('post')) {
-			throw new MethodNotAllowedException();
-		}
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
@@ -321,48 +319,56 @@ class ServersController extends AppController {
 			$this->redirect(array('action' => 'index'));
 		}
 
-		if ("full" == $technique) $lastpushedid = 0;
-		else $lastpushedid = $this->Server->data['Server']['lastpushedid'];
-
-		$findParams = array(
-				'conditions' => array(
-						'Event.id >' => $lastpushedid, // TODO think about this one!!
-						'Event.distribution >' => 0,
-						'Event.published' => 1
-						), //array of conditions
-				'recursive' => 1, //int
-				'fields' => array('Event.*'), //array of field names
-		);
-		$events = $this->Event->find('all', $findParams);
-
-		// FIXME now all events are uploaded, even if they exist on the remote server. No merging is done
-
-		$successes = array();
-		$fails = array();
-		$lowestfailedid = null;
-
-		if (!empty($events)) { // do nothing if there are no events to push
+		if ("full" == $technique) {
+			$eventid_conditions_key = 'Event.id >';
+			$eventid_conditions_value = 0;
+		} elseif ("incremental" == $technique) {
+			$eventid_conditions_key = 'Event.id >';
+			$eventid_conditions_value = $this->Server->data['Server']['lastpushedid'];
+		} elseif (true == $technique) {
+			$eventIds[] = array('Event' => array ('id' => intval($technique)));
+		} else {
+			$this->redirect(array('action' => 'index'));
+		}
+		if (!$eventIds) {
+			$findParams = array(
+			        'conditions' => array(
+			                $eventid_conditions_key => $eventid_conditions_value,
+			                'Event.distribution >' => 0,
+			                'Event.published' => 1,
+			        		'Event.attribute_count >' => 0
+			        ), //array of conditions
+			        'recursive' => -1, //int
+			        'fields' => array('Event.id'), //array of field names
+			);
+			$eventIds = $this->Event->find('all', $findParams);
+		}
+		// now process the $eventIds to pull each of the events sequentially
+		if (!empty($eventIds)) {
+			$successes = array();
+			$fails = array();
+			$lowestfailedid = null;
 			$HttpSocket = new HttpSocket();
-
-			$this->loadModel('Attribute');
-			// upload each event separately and keep the results in the $successes and $fails arrays
-			foreach ($events as &$event) {
+			foreach ($eventIds as $eventId) {
+				$this->Event->recursive=1;
+				$event = $this->Event->findById($eventId['Event']['id']);
+				unset($event['User']);
 				$result = $this->Event->uploadEventToServer(
-						$event,
-						$this->Server->data,
-						$HttpSocket);
+				        $event,
+				        $this->Server->data,
+				        $HttpSocket);
 				if (true == $result) {
-					$successes[] = $event['Event']['id'];
+				    $successes[] = $event['Event']['id'];
 				} else {
-					$fails[$event['Event']['id']] = $result;
+				    $fails[$event['Event']['id']] = $result;
 				}
 			}
 			if (count($fails) > 0) {
-				// there are fails, take the lowest fail
-				$lastpushedid = min(array_keys($fails));
+			    // there are fails, take the lowest fail
+			    $lastpushedid = min(array_keys($fails));
 			} else {
-				// no fails, take the highest success
-				$lastpushedid = max($successes);
+			    // no fails, take the highest success
+			    $lastpushedid = max($successes);
 			}
 			// increment lastid based on the highest ID seen
 			$this->Server->saveField('lastpushedid', $lastpushedid);
