@@ -337,7 +337,9 @@ class UsersController extends AppController {
 	public function login() {
 		if ($this->Auth->login()) {
 			$this->extraLog("login");	// TODO Audit, extraLog, check: customLog i.s.o. extraLog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
-			$this->redirect($this->Auth->redirect());
+			// TODO removed the auto redirect for now, due to security concerns - will look more into this
+			// $this->redirect($this->Auth->redirectUrl());
+			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		} else {
 			// don't display authError before first login attempt
 			if (str_replace("//","/",$this->webroot . $this->Session->read('Auth.redirect')) == $this->webroot && $this->Session->read('Message.auth.message') == $this->Auth->authError) {
@@ -395,10 +397,14 @@ class UsersController extends AppController {
 	public function resetauthkey($id = null) {
 		if (!$id) {
 			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
-			$this->redirect(array('action' => 'index'));
+			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
 		}
 		// reset the key
 		$this->User->id = $id;
+		if (!$this->User->exists($id)) {
+			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
+			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
+		}
 		$this->User->read();
 		if ('me' == $id ) $id = $this->Auth->user('id');
 		else if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org') == $this->User->data['User']['org'])) throw new MethodNotAllowedException();
