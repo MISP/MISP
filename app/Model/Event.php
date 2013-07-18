@@ -318,18 +318,19 @@ class Event extends AppModel {
 		return $this->field('id', array('id' => $eventid, 'org' => $org)) === $eventid;
 	}
 
-	public function getRelatedEvents($me) {
+	public function getRelatedEvents($me, $eventId = null) {
+		if ($eventId == null) $eventId = $this->data['Event']['id'];
 		$this->Correlation = ClassRegistry::init('Correlation');
 		// search the correlation table for the event ids of the related events
 		if ('ADMIN' != $me['org']) {
 		    $conditionsCorrelation = array('AND' =>
-		            array('Correlation.1_event_id' => $this->data['Event']['id']),
+		            array('Correlation.1_event_id' => $eventId),
 		            array("OR" => array(
 		                    'Correlation.org' => $me['org'],
 		                    'Correlation.private' => 0),
 		            ));
 		} else {
-		    $conditionsCorrelation = array('Correlation.1_event_id' => $this->data['Event']['id']);
+		    $conditionsCorrelation = array('Correlation.1_event_id' => $eventId);
 		}
 		$correlations = $this->Correlation->find('all',array(
 		        'fields' => 'Correlation.event_id',
@@ -354,18 +355,19 @@ class Event extends AppModel {
 		return $relatedEvents;
 	}
 
-	public function getRelatedAttributes($me) {
+	public function getRelatedAttributes($me, $id = null) {
+		if ($id == null) $id = $this->data['Event']['id'];
 		$this->Correlation = ClassRegistry::init('Correlation');
 		// search the correlation table for the event ids of the related attributes
 		if ('ADMIN' != $me['org']) {
 		    $conditionsCorrelation = array('AND' =>
-		            array('Correlation.1_event_id' => $this->data['Event']['id']),
+		            array('Correlation.1_event_id' => $id),
 		            array("OR" => array(
 		                    'Correlation.org' => $me['org'],
 		                    'Correlation.private' => 0),
 		            ));
 		} else {
-		    $conditionsCorrelation = array('Correlation.1_event_id' => $this->data['Event']['id']);
+		    $conditionsCorrelation = array('Correlation.1_event_id' => $id);
 		}
 		$correlations = $this->Correlation->find('all',array(
 		        'fields' => 'Correlation.*',

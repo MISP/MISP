@@ -158,6 +158,7 @@ class EventsController extends AppController {
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 	}
 
+
 	/**
 	 * view method
 	 *
@@ -165,6 +166,7 @@ class EventsController extends AppController {
 	 * @return void
 	 * @throws NotFoundException
 	 */
+
 	public function view($id = null) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		$perm_publish = $this->userRole['perm_publish'];
@@ -176,12 +178,70 @@ class EventsController extends AppController {
 		}
 		$isSiteAdmin = $this->_isSiteAdmin();
 
-		$this->Event->recursive = 2;
-		$this->Event->contain('Attribute', 'ShadowAttribute', 'User.email');
-		$this->Event->read(null, $id);
-		if (!$this->Event->exists()) {
+		$this->Event->id = $id;
+		if(!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event, it already exists.'));
 		}
+		$results = $this->__fetchEvent($id);
+		if (!isset($results[0])) {
+			$this->Session->setFlash(__('Invalid event.'));
+			$this->redirect(array('controller' => 'events', 'action' => 'index'));
+		}
+		$result = $results[0];
+		$this->loadModel('Attribute');
+
+		$this->set('authkey', $this->Auth->user('authkey'));
+		$this->set('baseurl', Configure::read('CyDefSIG.baseurl'));
+
+		$this->set('relatedAttributes', $result['RelatedAttribute']);
+		// passing decriptions for model fields
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+		$this->set('event', $result);
+		if(isset($result['ShadowAttribute'])) {
+			$this->set('remaining', $result['ShadowAttribute']);
+		}
+		$this->set('relatedEvents', $result['RelatedEvent']);
+
+		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
+
+		// passing type and category definitions (explanations)
+		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+
+		// combobox for analysis
+		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
+
+		// combobox for analysis
+		$analysiss = $this->Event->validate['analysis']['rule'][1];
+		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
+		$this->set('analysiss', $analysiss);
+		// tooltip for analysis
+		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
+		$this->set('analysisLevels', $this->Event->analysisLevels);
+	}
+
+	/*
+	public function view($id = null) {
+		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
+		$perm_publish = $this->userRole['perm_publish'];
+		if (strlen($id) == 36) {
+			$this->Event->recursive = -1;
+			$temp = $this->Event->findByUuid($id);
+			if ($temp == null) throw new NotFoundException(__('Invalid event'));
+			$id = $temp['Event']['id'];
+		}
+		$isSiteAdmin = $this->_isSiteAdmin();
+
+		$this->Event->id = $id;
+		if(!$this->Event->exists()) {
+			throw new NotFoundException(__('Invalid event, it already exists.'));
+		}
+
+		$this->Event->recursive = 2;
+		$this->Event->contain('Attribute', 'ShadowAttribute', 'User.email');
+		$this->Event->read();
 		$myEvent = true;
 		if (!$isSiteAdmin) {
 			// check private
@@ -214,10 +274,6 @@ class EventsController extends AppController {
 		$this->Event->data['ShadowAttribute'] = array_values($this->Event->data['ShadowAttribute']);
 		$this->Event->data['Attribute'] = array_values($this->Event->data['Attribute']);
 
-		$userEmail = $this->Event->data['User']['email'];
-		unset ($this->Event->data['User']);
-		$this->Event->data['User']['email'] = $userEmail;
-
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 
 		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
@@ -247,27 +303,18 @@ class EventsController extends AppController {
 					}
 				}
 			}
-			// Grab the shadow attributes that do not have an old_id - these are not proposals to edit an attribute but instead proposals to add a new one
-			if ($this->Auth->user('org') == $this->Event->data['Event']['orgc'] && $this->userRole['perm_publish']) {
-				$conditions = array('AND' => array('ShadowAttribute.event_id' => $this->Event->data['Event']['id'], 'ShadowAttribute.old_id' => '0'));
-			} else {
-				$conditions = array('AND' => array('ShadowAttribute.event_id' => $this->Event->data['Event']['id'], 'ShadowAttribute.old_id' => '0', 'ShadowAttribute.org' => $this->Auth->user('org')));
-			}
-			$remaining = $this->Event->data['ShadowAttribute'];
 		}
-
 		// params for the jQuery RESTfull interface
 		$this->set('authkey', $this->Auth->user('authkey'));
 		$this->set('baseurl', Configure::read('CyDefSIG.baseurl'));
 
 		$this->set('relatedAttributes', $relatedAttributes);
-
 		// passing decriptions for model fields
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('event', $this->Event->data);
-		if(isset($remaining)) {
-			$this->set('remaining', $remaining);
+		if(isset($this->Event->data['ShadowAttribute'])) {
+			$this->set('remaining', $this->Event->data['ShadowAttribute']);
 		}
 		$this->set('relatedEvents', $relatedEvents);
 
@@ -284,11 +331,13 @@ class EventsController extends AppController {
 		// combobox for analysis
 		$analysiss = $this->Event->validate['analysis']['rule'][1];
 		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
-		$this->set('analysiss',$analysiss);
+		$this->set('analysiss', $analysiss);
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 	}
+
+	*/
 
 	/**
 	 * add method
@@ -1287,6 +1336,16 @@ class EventsController extends AppController {
 				$this->header('Content-Disposition: download; filename="misp.export.event' . $eventid . '.xml"');
 			}
 		}
+		$results = $this->__fetchEvent($eventid);
+		// Whitelist check
+		$this->loadModel('Whitelist');
+		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
+		$this->set('results', $results);
+	}
+
+	// Grab an event or a list of events for the event view or any of the XML exports. The returned object includes an array of events (or an array that only includes a single event if an ID was given)
+	// Included with the event are the attached attributes, shadow attributes, related events, related attribute information for the event view and the creating user's email address where appropriate
+	private function __fetchEvent($eventid = null) {
 		if (isset($eventid)) {
 			$this->Event->id = $eventid;
 			if (!$this->Event->exists()) {
@@ -1297,21 +1356,27 @@ class EventsController extends AppController {
 			$conditions = array();
 		}
 		$conditionsAttributes = array();
+		$conditionsShadowAttributes = array();
 		//restricting to non-private or same org if the user is not a site-admin.
 		if (!$this->_isSiteAdmin()) {
-			$temp = array();
-			$temp2 = array();
 			$org = $this->_checkOrg();
-			$distribution = array();
-			array_push($distribution, array('Event.distribution >' => 0));
-			array_push($temp, array('OR' => $distribution));
-			array_push($temp, array('Event.org LIKE' => $org));
-			$conditions['OR'] = $temp;
-			$distribution2 = array();
-			array_push($distribution2, array('Attribute.distribution >' => 0));
-			array_push($temp2, array('OR' => $distribution2));
-			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
-			$conditionsAttributes['OR'] = $temp2;
+			$conditions['OR'] = array(
+						'Event.distribution >' => 0,
+						'Event.org LIKE' => $org
+					);
+			$conditionsAttributes['OR'] = array(
+						'Attribute.distribution >' => 0,
+						'(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org
+					);
+			$conditionsShadowAttributes['OR'] = array(
+					// We are currently looking at events.org matching the user's org, but later on, once we start syncing shadow attributes, we may want to change this to orgc
+					// Right now the org that currently owns the event on an instance can see, accept and decline these requests, but in the long run once we can distribute
+					// the requests back to the creator, we may want to leave these decisions up to them.
+					array('(SELECT events.org FROM events WHERE events.id = ShadowAttribute.event_id) LIKE' => $org),
+					array('ShadowAttribute.org LIKE' => $org),
+				);
+
+
 		}
 		// removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
 		// $conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
@@ -1320,27 +1385,47 @@ class EventsController extends AppController {
 		// $conditions['AND'][] = array('Event.published =' => 1);
 
 		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
-		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id');
-		if ('true' == Configure::read('CyDefSIG.showorg')) {
-			$fields[] = 'Event.org';
-		}
+		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id');
+		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution');
+		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id');
 
 		$params = array('conditions' => $conditions,
-				'recursive' => 1,
+				'recursive' => 0,
 				'fields' => $fields,
 				'contain' => array(
 						'Attribute' => array(
 								'fields' => $fieldsAtt,
 								'conditions' => $conditionsAttributes,
 						),
+						'ShadowAttribute' => array(
+								'fields' => $fieldsShadowAtt,
+								'conditions' => $conditionsShadowAttributes,
+						),
 				)
 		);
+		if ($this->_isAdmin()) $params['contain']['User'] = array('fields' => 'email');
 		$results = $this->Event->find('all', $params);
-		// Whitelist check
-		$this->loadModel('Whitelist');
-		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
-		$this->set('results', $results);
+		// Do some refactoring with the event
+		foreach ($results as $eventKey => &$event) {
+			// Let's find all the related events and attach it to the event itself
+			$results[$eventKey]['RelatedEvent'] = $this->Event->getRelatedEvents($this->Auth->user(), $event['Event']['id']);
+			// Let's also find all the relations for the attributes - this won't be in the xml export though
+			$results[$eventKey]['RelatedAttribute'] = $this->Event->getRelatedAttributes($this->Auth->user(), $event['Event']['id']);
+			foreach ($event['Attribute'] as $key => &$attribute) {
+				$attribute['ShadowAttribute'] = array();
+				// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
+				// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
+				foreach ($event['ShadowAttribute'] as $k => &$sa) {
+					if(!empty($sa['old_id'])) {
+						if ($sa['old_id'] == $attribute['id']) {
+							$results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
+							unset($results[$eventKey]['ShadowAttribute'][$k]);
+						}
+					}
+				}
+			}
+		}
+		return $results;
 	}
 
 	public function nids($key) {

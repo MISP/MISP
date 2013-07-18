@@ -28,7 +28,6 @@ if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
 foreach ($event['Event']['Attribute'] as $key => $value) {
 	unset($event['Event']['Attribute'][$key]['value1']);
 	unset($event['Event']['Attribute'][$key]['value2']);
-
 	unset($event['Event']['Attribute'][$key]['category_order']);
 }
 if (isset($event['Event']['RelatedEvent'])) {
