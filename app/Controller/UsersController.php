@@ -434,7 +434,7 @@ class UsersController extends AppController {
 		$fields = array('Event.orgc', 'Attribute.type', 'count(Attribute.type) as `num_types`');
 		$params = array('recursive' => 0,
 							'fields' => $fields,
-							'group' => array('Attribute.type', 'Event.org'),
+							'group' => array('Attribute.type', 'Event.orgc'),
 							'order' => array('Event.orgc', 'num_types DESC'),
 		);
 		$typesHistogram = $this->Attribute->find('all', $params);
