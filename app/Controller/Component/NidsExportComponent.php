@@ -405,7 +405,7 @@ class NidsExportComponent extends Component {
 		foreach ($explodedNames as &$explodedName) {
 			// count the lenght of the part, and add |length| before
 			$length = strlen($explodedName);
-			if ($length > 255) exit('ERROR: dns name is to long for RFC'); // LATER log correctly without dying
+			if ($length > 255) $this->log('WARNING: dns name is to long for RFC: '.$name);
 			$hexLength = dechex($length);
 			if (1 == strlen($hexLength)) $hexLength = '0' . $hexLength;
 			$rawName .= '|' . $hexLength . '|' . $explodedName;
