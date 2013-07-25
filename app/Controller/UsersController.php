@@ -608,6 +608,13 @@ class UsersController extends AppController {
 			}
 			$message2 .= "\n\nBest Regards,\n" . Configure::read('CyDefSIG.org') . ' MISP support';
 
+			// Return an error message if the action is a password reset for a new user
+			
+			if ($this->request->data['User']['recipient'] == 2 && $this->request->data['User']['action'] == '1') {
+				$this->Session->setFlash(__('Cannot reset the password of a user that doesn\'t exist.'));
+				$this->redirect(array('action' => 'email', 'admin' => true));
+			}
+			
 			// Setting up the list of recipient(s) based on the setting and creating the final message for each user, including the password
 			// If the recipient is all users, and the action to create a password, create it and for each user and squeeze it between the main message and the signature
 			if ($this->request->data['User']['recipient'] == 0) {
