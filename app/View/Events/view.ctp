@@ -303,7 +303,7 @@ if (!empty($event['Attribute'])):?>
 						if (($event['Event']['org'] == $me['org'] && $mayPublish) || $isSiteAdmin) {
 							echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'accept', $shadowAttribute['id']), array('class' => 'icon-ok', 'title' => 'Accept'));
 						}
-						echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'discard', $shadowAttribute['id']), array('class' => 'icon-trash', 'title' => 'Discard'));
+						echo $this->Form->postLink('', array('controller' => 'shadow_attributes', 'action' => 'discard', $shadowAttribute['id']), array('class' => 'icon-trash', 'title' => 'Discard'), 'Are you sure you want to discard this proposal?');
 					?>
 					</td>
 				</tr>
@@ -375,7 +375,7 @@ if (!empty($event['Attribute'])):?>
 										if (($event['Event']['org'] == $me['org'] && $mayPublish) || $isSiteAdmin) {
 											echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'accept', $remain['id']), array('class' => 'icon-ok', 'title' => 'Accept'));
 										}
-										echo $this->Html->link('', array('controller' => 'shadow_attributes', 'action' => 'discard',$remain['id']), array('class' => 'icon-trash', 'title' => 'Discard'));
+										echo $this->Form->postLink('', array('controller' => 'shadow_attributes', 'action' => 'discard', $remain['id']), array('class' => 'icon-trash', 'title' => 'Discard'), 'Are you sure you want to discard this proposal?');
 									?>
 								</td>
 							</tr>
