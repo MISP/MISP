@@ -394,14 +394,13 @@ class AppController extends Controller {
 		$this->loadModel('Role');
 		$roles = $this->Role->find('all',array('recursive' => 0));
 		foreach ($roles as $role) {
-			$this->generateACL($role);
+			$this->_generateACL($role);
 		}
 		$this->Session->setFlash(__('All done.'));
 		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 	}
 
-	public function generateACL($inc) {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
+	public function _generateACL($inc) {
 		if (!isset($inc['Role']['permission'])) $inc['Role']['permission'] = 0;
 		switch ($inc['Role']['permission']) {
 			case '0':
