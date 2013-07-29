@@ -1,0 +1,54 @@
+<!-- ............................................................... -->
+<!-- MISP Malware Information Sharing Platform ..................... -->
+<!-- XML DTD for MISP XML .......................................... -->
+<!-- ............................................................... -->
+<!-- version 1.0 - commit 84b552fb7441bf2beb0c711acde3b0af336afba8 . -->
+<!-- ............................................................... -->
+
+<!ELEMENT Attribute ( id?, type?, category?, to_ids?, uuid?, event_id?, distribution?, value?, ShadowAttribute? ) >
+
+<!ELEMENT Event ( Attribute | RelatedEvent | ShadowAttribute | analysis | attribute_count | date | distribution | id | info | org | orgc | proposal_email_lock | published | risk | timestamp | user_id | uuid )* >
+
+<!ELEMENT RelatedEvent ( Event? ) >
+
+<!ELEMENT ShadowAttribute EMPTY >
+
+<!ELEMENT analysis ( #PCDATA ) >
+
+<!ELEMENT attribute_count ( #PCDATA ) >
+
+<!ELEMENT category ( #PCDATA ) >
+
+<!ELEMENT date ( #PCDATA ) >
+
+<!ELEMENT distribution ( #PCDATA ) >
+
+<!ELEMENT event_id ( #PCDATA ) >
+
+<!ELEMENT id ( #PCDATA ) >
+
+<!ELEMENT info ( #PCDATA ) >
+
+<!ELEMENT org ( #PCDATA ) >
+
+<!ELEMENT orgc ( #PCDATA ) >
+
+<!ELEMENT proposal_email_lock ( #PCDATA ) >
+
+<!ELEMENT published ( #PCDATA ) >
+
+<!ELEMENT response ( Event+ ) >
+
+<!ELEMENT risk ( #PCDATA ) >
+
+<!ELEMENT timestamp ( #PCDATA ) >
+
+<!ELEMENT to_ids ( #PCDATA ) >
+
+<!ELEMENT type ( #PCDATA ) >
+
+<!ELEMENT user_id ( #PCDATA ) >
+
+<!ELEMENT uuid ( #PCDATA ) >
+
+<!ELEMENT value ( #PCDATA ) >
