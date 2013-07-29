@@ -1747,7 +1747,7 @@ class EventsController extends AppController {
 			$dir = new Folder($rootDir, true);
 			$destpath = $rootDir;
 			$file = new File ($destpath);
-			if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedgfi']['name'])) throw new Exception ('Filename not allowed');
+			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedgfi']['name'])) throw new Exception ('Filename not allowed');
 			if (PHP_OS == 'WINNT') {
 				$zipfile = new File ($destpath . DS . $this->data['Event']['submittedgfi']['name']);
 			} else {

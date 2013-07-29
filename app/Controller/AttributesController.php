@@ -296,7 +296,7 @@ class AttributesController extends AppController {
 			if ($this->request->data['Attribute']['malware']) {
 				$this->request->data['Attribute']['type'] = "malware-sample";
 				// Validate filename
-				if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
+				if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
 				$this->request->data['Attribute']['value'] = $filename . '|' . hash_file('md5', $tmpfile->path); // TODO gives problems with bigger files
 				$sha256 = (hash_file('sha256', $tmpfile->path));
 				$sha1 = (hash_file('sha1', $tmpfile->path));
@@ -304,7 +304,7 @@ class AttributesController extends AppController {
 			} else {
 				$this->request->data['Attribute']['type'] = "attachment";
 				// Validate filename
-				if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
+				if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
 				$this->request->data['Attribute']['value'] = $filename;
 				$this->request->data['Attribute']['to_ids'] = 0;
 			}
