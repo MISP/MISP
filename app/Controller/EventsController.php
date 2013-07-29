@@ -1783,14 +1783,13 @@ class EventsController extends AppController {
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
 			$iocData = fread(fopen($this->data['Event']['submittedioc']['tmp_name'], "r"),
 					$this->data['Event']['submittedioc']['size']);
-
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir . 'ioc', true);
 			$destpath = $rootDir . 'ioc';
 			$file = new File ($destpath);
-			if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedioc']['name'])) throw new Exception ('Filename not allowed');
+			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedioc']['name'])) throw new Exception ('Filename not allowed');
 			$iocfile = new File ($destpath . DS . $this->data['Event']['submittedioc']['name']);
 			$result = $iocfile->write($iocData);
 			if (!$result) $this->Session->setFlash(__('Problem with writing the ioc file. Please report to administrator.'));
@@ -1798,7 +1797,6 @@ class EventsController extends AppController {
 			// now open the xml..
 			$xml = $rootDir . DS . 'Analysis' . DS . 'analysis.xml';
 			$fileData = fread(fopen($destpath . DS . $this->data['Event']['submittedioc']['name'], "r"), $this->data['Event']['submittedioc']['size']);
-
 			// Load event and populate the event data
 			$this->Event->id = $id;
 			$this->Event->recursive = -1;
