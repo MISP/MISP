@@ -91,3 +91,10 @@ CREATE TABLE `correlations` (
   `info` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+-- --------------------------------------------------------
+
+--
+-- Change to the table structure for table `regexp`
+--
+
+ALTER TABLE `regexp` ADD `type` varchar(100) COLLATE utf8_bin NOT NULL DEFAULT 'ALL';
