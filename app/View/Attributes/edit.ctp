@@ -14,7 +14,6 @@
 			echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
 				'label' => 'Distribution',
-				'selected' => $currentDist,
 			));
 		}
 		echo $this->Form->input('value', array(
@@ -27,7 +26,6 @@
 		<div class="input clear"></div>
 		<?php
 		echo $this->Form->input('to_ids', array(
-					'checked' => true,
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
 					'label' => 'for Intrusion Detection System',
 		));
