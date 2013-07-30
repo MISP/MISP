@@ -83,9 +83,10 @@ class IOCImportComponent extends Component {
 		$oldTree = $tree;
 		// Let's start analysing and altering the tree so that we can keep as much data as possible
 		$tree = $this->__traverseAndAnalyse($tree);
-		$tree = $this->__resolveBranch($tree, $tree['uuid'], 'OR', $tree['leaves']);
+		$tree = $this->__resolveBranch($tree, $tree['uuid'], 'OR', $tree['leaves'], true);
 		$attributes = null;
 		if (isset($tree['branches'][0]['leaves'])) $attributes = $tree['branches'][0]['leaves'];
+		if (isset($tree['leaves'])) $attributes = $tree['leaves'];
 		unset ($tree['branches'], $tree['leaves'], $tree['type']);
 		// set the basic info the event in case we want to populate the uuid, info and date fields
 		$event = $tree;
@@ -240,7 +241,7 @@ class IOCImportComponent extends Component {
 			case 'RouteEntryItem/Destination':
 				return array('Network activity', 'ip-dst');
 				break;
-			case 'SystemInfoItem/domain':
+			case 'Network/DNS':
 				return array('Network activity', 'domain');
 				break;
 			case 'Email/To':
@@ -312,7 +313,7 @@ class IOCImportComponent extends Component {
 		}
 	}
 
-	private function __resolveBranch($branch, $uuid, $type, &$leaves) {
+	private function __resolveBranch($branch, $uuid, $type, &$leaves, $root = false) {
 		$toBeOmitted = $branch;
 		$toReindex = false;
 		// Resolve any deeper branching before we attempt to resolve this, as we might be able to turn it into a single attribute
@@ -383,13 +384,6 @@ class IOCImportComponent extends Component {
 					}
 				}
 			}
-
-			// Check if resolving the AND lead to an OR nested within
-			if (($branch['type'] == 'OR') && count($branch['branches']) == 0 && count($branch['leaves']) != 0) {
-				$this->tempLeaves = $branch['leaves'];
-				$this->saved_uuids[] = $uuid;
-				return 'getFromTemp';
-			}
 		}
 
 
@@ -406,6 +400,14 @@ class IOCImportComponent extends Component {
 		if (isset($branch['leaves']) && count($branch['leaves']) == 1 && count($branch['branches']) == 0) {
 			$leaves[] = $branch['leaves'][0];
 			$branch['leaves'] = array();
+		}
+
+		if (($branch['type'] == 'OR') && count($branch['branches']) == 0 && count($branch['leaves']) != 0) {
+			if (!$root) {
+				$this->tempLeaves = $branch['leaves'];
+				$this->saved_uuids[] = $uuid;
+				return 'getFromTemp';
+			}
 		}
 
 		// If we have no branches and no leaves left after all of this, return nothing and unset this branch
