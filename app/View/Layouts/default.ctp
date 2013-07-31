@@ -49,6 +49,9 @@
 				if (Configure::read('debug') == 0) echo "style=\"padding-top:100px;\"";
 			?>
 		>
+			<div class="breadcrumb <?php echo $debugMode; ?>">
+				<?php echo $this->Html->getCrumbs(' > ', 'Home');?>
+			</div>
 			<?php echo $this->fetch('content'); ?>
 		</div>
 	<?php

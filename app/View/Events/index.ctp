@@ -3,6 +3,7 @@
 <?php if(empty($this->passedArgs['searchDatefrom'])) $this->passedArgs['searchDatefrom'] = '';?>
 <?php if(empty($this->passedArgs['searchDateuntil'])) $this->passedArgs['searchDateuntil'] = '';?>
 <?php if(empty($this->passedArgs['searchpublished'])) $this->passedArgs['searchpublished'] = '2';?>
+<?php echo $this->element('bread_crumbs'); ?>
 <div class="events index">
 	<h2>Events</h2>
 	<div class="pagination">

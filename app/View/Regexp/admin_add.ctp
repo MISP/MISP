@@ -1,3 +1,4 @@
+<?php echo $this->element('bread_crumbs'); ?>
 <div class="regexp form">
 <?php echo $this->Form->create('Regexp');?>
 	<fieldset>

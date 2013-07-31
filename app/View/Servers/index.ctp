@@ -1,3 +1,4 @@
+<?php echo $this->element('bread_crumbs'); ?>
 <div class="servers index">
 	<h2>Servers</h2>
 	<div class="pagination">

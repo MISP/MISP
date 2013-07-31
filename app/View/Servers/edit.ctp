@@ -1,3 +1,4 @@
+<?php echo $this->element('bread_crumbs'); ?>
 <div class="servers form">
 <?php echo $this->Form->create('Server', array('novalidate'=>true));?>
 	<fieldset>

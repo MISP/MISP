@@ -1,3 +1,4 @@
+<?php echo $this->element('bread_crumbs'); ?>
 <div class="users form">
 <h2>CyDefSIG Terms and Conditions</h2>
 <p>Please add your terms and conditions here</p>

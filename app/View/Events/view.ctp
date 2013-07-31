@@ -1,6 +1,7 @@
 <?php
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
+echo $this->element('bread_crumbs');
 ?>
 <div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">

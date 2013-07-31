@@ -1,4 +1,4 @@
-
+<?php echo $this->element('bread_crumbs'); ?>
 <div class="shadow_attributes form">
 <?php echo $this->Form->create('ShadowAttribute');?>
 	<fieldset>

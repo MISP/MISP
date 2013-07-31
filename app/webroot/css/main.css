@@ -429,4 +429,12 @@ dd {
 	color: #FF0000 !important;
 	font-weight:bold !important;
 }
+.breadcrumb {
+	position: absolute;
+	padding-top:0px;
+	padding-left:0px;
+	padding-bottom:0px;
+	left:13.5%;
+}
+
 

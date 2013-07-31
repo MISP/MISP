@@ -1,3 +1,4 @@
+<?php echo $this->element('bread_crumbs'); ?>
 <div class="roles index">
 	<h2><?php echo __('Roles');?></h2>
 	<div class="pagination">

@@ -1,3 +1,4 @@
+<?php echo $this->element('bread_crumbs'); ?>
 <div class="news view">
 <h2>News</h2>
 <h3>June 2012</h3>
