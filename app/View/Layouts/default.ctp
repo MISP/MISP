@@ -51,7 +51,8 @@
 		>
 		<?php 
 			// Add locations here that should not have a breadrumb displayed
-			if ($this->params['action'] !== 'login'):
+			// If we get an error, also, we don't want the breadcrumbs shown
+			if ($this->params['action'] !== 'login' && $this->response->statusCode() < '400'):
 		?>
 				<div class="breadcrumb <?php echo $debugMode; ?>">
 					<?php echo $this->Html->getCrumbs(' > ', 'Home');?>
