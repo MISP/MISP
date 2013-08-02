@@ -142,12 +142,10 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 			<?php 
 			foreach ($allPivots as $k => $v) {
 				?>
-				<div class="pivot">
-				<div class="pivot-arrow-back"></div>
+				<div class="arrow_box">
 				<span title="<?php echo h($v[1]); ?>">
 				<?php  echo $this->Html->link(h($v[2]) . ' (' . h($v[0]) . ')', array('controller' => 'events', 'action' => 'view', $v[0], true));?>
 				</span>
-				<div class="pivot-arrow-front"></div>
 
 				</div>
 				<?php 
