@@ -242,6 +242,9 @@ class EventsController extends AppController {
 
 	private function __continuePivoting($id, $info, $date){
 		$pivot = $this->Session->read('pivot_thread');
+		foreach ($pivot as $k => $v) {
+			if ($v[0] == $id) return;
+		}
 		$pivot[] = array($id, $info, $date);
 		$this->Session->write('pivot_thread', $pivot);
 	}

@@ -139,18 +139,21 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	<?php if (sizeOf($allPivots) > 1): ?>
 	<div>
 			<h3>Pivot Thread</h3>
+			<div class="arrow_box">
+				<?php 
+					echo $this->Html->link('Reset thread', array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
+				?>
+			</div>
 			<?php 
 			foreach ($allPivots as $k => $v) {
-				?>
-				<div class="arrow_box">
+			?>
+			<div class="arrow_box">
 				<span title="<?php echo h($v[1]); ?>">
-				<?php  echo $this->Html->link(h($v[2]) . ' (' . h($v[0]) . ')', array('controller' => 'events', 'action' => 'view', $v[0], true, true));?>
+					<?php  echo $this->Html->link(h($v[2]) . ' (' . h($v[0]) . ')', array('controller' => 'events', 'action' => 'view', $v[0], true, true));?>
 				</span>
-
-				</div>
-				<?php 
-
-			}
+			</div>
+			<?php
+				}
 			?>
 	</div>
 	<?php endif; ?>
