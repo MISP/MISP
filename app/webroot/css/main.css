@@ -146,7 +146,7 @@ div.view {
   float:right;
   width:85%;
   border-left:1px solid #666;
-  padding:10px 1%;
+  padding:0px 1%;
   padding-bottom:40px;
 }
 div.actions {
@@ -429,12 +429,47 @@ dd {
 	color: #FF0000 !important;
 	font-weight:bold !important;
 }
-.breadcrumb {
-	position: absolute;
-	padding-top:0px;
-	padding-left:0px;
-	padding-bottom:0px;
-	left:13.5%;
+
+.pivot {
+  background-color:#F2F2F2;
+  border-top: 1px solid #B2B2B2;
+  border-bottom: 1px solid #B2B2B2;
+  margin-bottom: 5px;
+  margin-right: 10px;
+  padding:0px;
+  padding-left:20px;
+  padding-right:10px;
+  position:relative;
+  line-height:17px;
+  text-align:center;
+  display: inline-block;
 }
+.pivot-arrow-front {
+	width: 0; 
+	height: 0; 
+	border-top: 9px solid transparent;
+	border-bottom: 9px solid transparent;
+	border-left: 9px solid #F2F2F2;
+	position:absolute;
+	bottom:0px;
+	left:100%;
+}
+
+.pivot-arrow-back {
+	width: 0; 
+	height: 0;
+	background-color:#FFFFFF;
+	border-right: 8px solid #F2F2F2;
+	border-top: 9px solid #F2F2F2;
+	border-bottom: 8px solid #F2F2F2;
+	border-left: 8px solid transparent;
+	position:absolute;
+	bottom:0px;
+	left:0%;
+}
+
+
+
+
 
 

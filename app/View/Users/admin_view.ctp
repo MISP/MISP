@@ -1,5 +1,4 @@
 <?php
-echo $this->element('bread_crumbs');
 $buttonAddStatus = $isAclAdd ? 'button_on':'button_off';
 $mayModify = ($isSiteAdmin || ($isAdmin && ($user['User']['org'] == $me['org'])));
 $buttonModifyStatus = $mayModify ? 'button_on':'button_off';

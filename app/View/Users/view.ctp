@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs'); ?>
 <div class="users view">
 <h2><?php  echo __('User');?></h2>
 	<dl>
@@ -72,7 +71,7 @@ if (h($user['User']['gpgkey']) != 0) {
 			}
 		?>
 		<li><a href="/users/news">News</a></li>
-		<li><a href="/users/view/me">My Profile</a></li>
+		<li class="active"><a href="/users/view/me">My Profile</a></li>
 		<li><a href="/users/memberslist">Members List</a></li>
 		<li><a href="/pages/display/doc/general">User Guide</a></li>
 		<li><a href="/users/terms">Terms & Conditions</a></li>

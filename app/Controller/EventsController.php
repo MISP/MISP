@@ -167,7 +167,7 @@ class EventsController extends AppController {
 	 * @throws NotFoundException
 	 */
 
-	public function view($id = null) {
+	public function view($id = null, $continue=false) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		$perm_publish = $this->userRole['perm_publish'];
 		if (strlen($id) == 36) {
@@ -223,8 +223,26 @@ class EventsController extends AppController {
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
+		if ($continue) {
+			$this->__continuePivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
+		} else {
+			$this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
+		}
+		$this->set('allPivots', $this->Session->read('pivot_thread'));
+	}
+	
+	private function __startPivoting($id, $info, $date){
+		$this->Session->write('pivot_thread', null);
+		$initial_pivot = array();
+		$initial_pivot[] = array($id, $info, $date);
+		$this->Session->write('pivot_thread', $initial_pivot);
 	}
 
+	private function __continuePivoting($id, $info, $date){
+		$pivot = $this->Session->read('pivot_thread');
+		$pivot[] = array($id, $info, $date);
+		$this->Session->write('pivot_thread', $pivot);
+	}
 	/*
 	public function view($id = null) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.

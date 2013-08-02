@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs');?>
 <div class="users index">
 	<h2><?php echo __('Users');?></h2>
 	<div class="pagination">

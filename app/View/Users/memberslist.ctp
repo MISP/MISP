@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs'); ?>
 <div class="users index">
 	<h2>Members</h2>
  	<table class="table table-striped table-condensed table-bordered" style="width:300px;">
@@ -115,7 +114,7 @@ endforeach; ?>
 	<ul class="nav nav-list">
 		<li><a href="/users/news">News</a></li>
 		<li><a href="/users/view/me">My Profile</a></li>
-		<li><a href="/users/memberslist">Members List</a></li>
+		<li class="active"><a href="/users/memberslist">Members List</a></li>
 		<li><a href="/pages/display/doc/general">User Guide</a></li>
 		<li><a href="/users/terms">Terms & Conditions</a></li>
 	</ul>

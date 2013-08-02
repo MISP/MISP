@@ -1,7 +1,6 @@
 <?php
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
-echo $this->element('bread_crumbs');
 ?>
 <div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
@@ -126,9 +125,9 @@ echo $this->element('bread_crumbs');
 			<?php
 			$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
 			if ($relatedEvent['Event']['org'] == $me['org']) {
-				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']), array('style' => 'color:red;'));
+				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true), array('style' => 'color:red;'));
 			} else {
-				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id']));
+				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true));
 			}
 			?>
 			</div></li>
@@ -137,6 +136,26 @@ echo $this->element('bread_crumbs');
 	</div>
 	<?php endif; ?>
 	</div>
+	<?php if (sizeOf($allPivots) > 1): ?>
+	<div>
+			<h3>Pivot Thread</h3>
+			<?php 
+			foreach ($allPivots as $k => $v) {
+				?>
+				<div class="pivot">
+				<div class="pivot-arrow-back"></div>
+				<span title="<?php echo h($v[1]); ?>">
+				<?php  echo $this->Html->link(h($v[2]) . ' (' . h($v[0]) . ')', array('controller' => 'events', 'action' => 'view', $v[0], true));?>
+				</span>
+				<div class="pivot-arrow-front"></div>
+
+				</div>
+				<?php 
+
+			}
+			?>
+	</div>
+	<?php endif; ?>
 	<div>
 		<h3>Attributes</h3>
 		<?php
@@ -208,9 +227,9 @@ if (!empty($event['Attribute'])):?>
 				foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
 					echo '<span title="'.h($relatedAttribute['info']).'">';
 					if ($relatedAttribute['org'] == $me['org']) {
-						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id']), array ('style' => 'color:red;'));
+						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true), array ('style' => 'color:red;'));
 					} else {
-						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id']));
+						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true));
 					}
 
 					echo "</span>";

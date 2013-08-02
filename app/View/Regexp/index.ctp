@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs'); ?>
 <div class="regexp index">
 	<h2>Import Regexp</h2>
 	<div class="pagination">

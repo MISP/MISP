@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs'); ?>
 <script>
 function showMessage(){
 	document.getElementById("messageDiv").style.display="none"){

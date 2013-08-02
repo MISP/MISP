@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs'); ?>
 <div class="shadow_attributes form">
 <?php echo $this->Form->create('ShadowAttribute', array('enctype' => 'multipart/form-data','onSubmit' => 'document.getElementById("ShadowAttributeMalware").removeAttribute("disabled");'));?>
 	<fieldset>

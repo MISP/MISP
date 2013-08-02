@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs');?>
 <div class="whitelist form">
 <?php echo $this->Form->create('Whitelist');?>
 	<fieldset>

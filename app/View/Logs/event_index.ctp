@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs'); ?>
 <div class="logs index">
 <h2>Logs</h2>
 	<div class="pagination">

@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs'); ?>
 <div class="events form">
 <?php echo $this->Form->create('Event', array('type' => 'file'));?>
 	<fieldset>

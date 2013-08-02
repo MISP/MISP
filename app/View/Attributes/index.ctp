@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs'); ?>
 <div class="attributes index">
 	<h2>Attributes</h2>
 		<?php

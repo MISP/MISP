@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs'); ?>
 <div class="events form">
 <?php echo $this->Form->create('Event');?>
 	<fieldset>
@@ -29,7 +28,7 @@ if ('true' == Configure::read('CyDefSIG.sync')) {
 ?>
 	</fieldset>
 <?php
-echo $this->Form->button('Edit', array('class' => 'btn btn-primary'));
+echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>

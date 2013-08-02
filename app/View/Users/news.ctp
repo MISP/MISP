@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs'); ?>
 <div class="news view">
 <h2>News</h2>
 <h3>June 2012</h3>
@@ -76,7 +75,7 @@ A bug in the DNS attributes has been corrected.</p>
 </div>
 <div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
-		<li><a href="/users/news">News</a></li>
+		<li class="active"><a href="/users/news">News</a></li>
 		<li><a href="/users/view/me">My Profile</a></li>
 		<li><a href="/users/memberslist">Members List</a></li>
 		<li><a href="/pages/display/doc/general">User Guide</a></li>

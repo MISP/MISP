@@ -1,6 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 	<?php echo $this->Html->charset(); ?>
 	<title>
 		<?php echo $title_for_layout, ' - ', Configure::read('CyDefSIG.name')?>:
@@ -54,9 +55,6 @@
 			// If we get an error, also, we don't want the breadcrumbs shown
 			if ($this->params['action'] !== 'login' && $this->response->statusCode() < '400'):
 		?>
-				<div class="breadcrumb <?php echo $debugMode; ?>">
-					<?php echo $this->Html->getCrumbs(' > ', 'Home');?>
-				</div>
 		<?php 
 			endif;
 		?>

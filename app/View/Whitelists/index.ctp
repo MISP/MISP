@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs');?>
 <div class="whitelist index">
 	<h2>Signature Whitelist</h2>
 	<div class="pagination">

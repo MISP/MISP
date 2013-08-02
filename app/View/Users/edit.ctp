@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs'); ?>
 <div class="users form">
 <?php echo $this->Form->create('User', array('novalidate' => true));?>
 	<fieldset>

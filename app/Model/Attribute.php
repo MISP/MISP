@@ -640,10 +640,6 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'mutex':
-				if (preg_match('#^(\\\\BaseNamedObjects\\\\)#', $value) && !preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
 			case 'AS':
 			case 'snort':
 			case 'pattern-in-file':

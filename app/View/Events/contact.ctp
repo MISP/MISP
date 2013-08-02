@@ -1,4 +1,3 @@
-<?php echo $this->element('bread_crumbs'); ?>
 <?php
 $mayModify = (($isAclModify && $this->request->data['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $this->request->data['Event']['orgc'] == $me['org']));
 $mayPublish = ($isAclPublish && $this->request->data['Event']['orgc'] == $me['org']);
