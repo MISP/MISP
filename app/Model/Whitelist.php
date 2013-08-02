@@ -65,29 +65,10 @@ class Whitelist extends AppModel {
 		),
 	);
 
+	// regexp validation
 	public function validateValue ($fields) {
-		$value = $fields['name'];
-
-		// check data validation
-		// host domainname maybe..
-		if(preg_match("#^[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value))
+		if (preg_match($fields['name'], 'test') === false) return false;
 		return true;
-
-		// IP maybe..
-		$parts = explode("/", $value);
-		// [0] = the ip
-		// [1] = the network address
-		if (count($parts) <= 2 ) {
-			// ipv4 and ipv6 matching
-			if (filter_var($parts[0],FILTER_VALIDATE_IP)) {
-				// ip is validated, now check if we have a valid network mask
-				if (empty($parts[1]))
-				return true;
-				else if(is_numeric($parts[1]) && $parts[1] < 129)
-				return true;
-			}
-		}
-		return false;
 	}
 
 	public function valueIsUnique ($fields) {
@@ -103,27 +84,46 @@ class Whitelist extends AppModel {
 		return true;
 	}
 
-/**
- * get the Whitelist as an array
- *
- * @return array whitelistCheck names
- */
-	public function populateWhitelist() {
-		$whitelistCheck = array();
+	public function getBlockedValues() {
+		$Whitelists = $this->find('all', array('fields' => array('name')));
+		$toReturn = array();
+		foreach ($Whitelists as $item) {
+			$toReturn[] = $item['Whitelist']['name'];
+		}
+		return $toReturn;
+	}
 
-		$whitelist = $this->find('all', array('recursive' => 0,'fields' => 'name'));
-
-		// loop through whitelist table,
-		foreach ($whitelist as $whitelistItem) {
-			$ipl = array();
-			$ipl[] = $whitelistItem['Whitelist']['name'];
-			$whitelistCheck = array_merge($whitelistCheck,$ipl);
-			if (count($ipl) > 0 && $whitelistItem != $ipl[0]) {
-				$dummyArray = array();
-				$dummyArray[] = $whitelistItem['Whitelist']['name'];
-				$whitelistCheck = array_merge($whitelistCheck,$dummyArray);
+	public function removeWhitelistedFromArray($data, $isAttributeArray) {
+		// Let's get all of the values that will be blocked by the whitelist
+		$whitelists = $this->getBlockedValues();
+		// if we don't have any whitelist items in the db, don't loop through each attribute
+		if (!empty($whitelists)) {
+			// if $isAttributeArray, we know that we have just an array of attributes
+			if ($isAttributeArray) {
+				// loop through each attribute and unset the ones that are whitelisted
+				foreach ($data as $k => $attribute) {
+					// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
+					foreach ($whitelists as $wlitem) {
+						if (preg_match($wlitem, $attribute['Attribute']['value'])) {
+							unset($data[$k]);
+						}
+					}
+				}
+			} else {
+			// if !$isAttributeArray, we know that we have an array of events that we need to parse through
+				foreach ($data as $ke => $event) {
+					// loop through each attribute and unset the ones that are whitelisted
+					foreach ($event['Attribute'] as $k => $attribute) {
+						// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
+						foreach ($whitelists as $wlitem) {
+							if (preg_match($wlitem, $attribute['value'])) {
+								unset($data[$ke]['Attribute'][$k]);
+							}
+						}
+					}
+				}
 			}
 		}
-		return $whitelistCheck;
+		return $data;
 	}
 }

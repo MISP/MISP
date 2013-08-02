@@ -17,9 +17,11 @@ class NidsExportComponent extends Component {
 		$this->rules[] = '# ';
 	}
 
-	public function suricataRules($items, $startSid) {
+	private $whitelist = null;
+
+	public function export($items, $startSid) {
 		$this->Whitelist = ClassRegistry::init('Whitelist');
-		$this->whitelist = $this->Whitelist->populateWhitelist();
+		$this->whitelist = $this->Whitelist->getBlockedValues();
 
 		$this->explain();
 
@@ -96,7 +98,7 @@ class NidsExportComponent extends Component {
 	}
 
 	public function ipDstRule($ruleFormat, $attribute, &$sid) {
-		$overruled = in_array($attribute['value'], $this->whitelist);
+		$overruled = $this->checkWhitelist($attribute['value']);
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'ip',							// proto
@@ -114,7 +116,7 @@ class NidsExportComponent extends Component {
 	}
 
 	public function ipSrcRule($ruleFormat, $attribute, &$sid) {
-		$overruled = in_array($attribute['value'], $this->whitelist);
+		$overruled = $this->checkWhitelist($attribute['value']);
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'ip',							// proto
@@ -132,9 +134,10 @@ class NidsExportComponent extends Component {
 	}
 
 	public function emailSrcRule($ruleFormat, $attribute, &$sid) {
+		$overruled = $this->checkWhitelist($attribute['value']);
 		$content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
-				(false) ? '#OVERRULED BY WHITELIST# ' : '',
+				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
 				'$EXTERNAL_NET',				// src_ip
 				'any',							// src_port
@@ -150,9 +153,10 @@ class NidsExportComponent extends Component {
 	}
 
 	public function emailDstRule($ruleFormat, $attribute, &$sid) {
+		$overruled = $this->checkWhitelist($attribute['value']);
 		$content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
-				(false) ? '#OVERRULED BY WHITELIST# ' : '',
+				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
 				'$EXTERNAL_NET',				// src_ip
 				'any',							// src_port
@@ -169,9 +173,10 @@ class NidsExportComponent extends Component {
 
 	public function emailSubjectRule($ruleFormat, $attribute, &$sid) {
 		// LATER nids - email-subject rule might not match because of line-wrapping
+		$overruled = $this->checkWhitelist($attribute['value']);
 		$content = 'flow:established,to_server; content:"Subject|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
-				(false) ? '#OVERRULED BY WHITELIST# ' : '',
+				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
 				'$EXTERNAL_NET',				// src_ip
 				'any',							// src_port
@@ -188,9 +193,10 @@ class NidsExportComponent extends Component {
 
 	public function emailAttachmentRule($ruleFormat, $attribute, &$sid) {
 		// LATER nids - email-attachment rule might not match because of line-wrapping
+		$overruled = $this->checkWhitelist($attribute['value']);
 		$content = 'flow:established,to_server; content:"Content-Disposition: attachment|3b| filename=|22|"; content:"' . $attribute['value'] . '|22|";';
 		$this->rules[] = sprintf($ruleFormat,
-				(false) ? '#OVERRULED BY WHITELIST# ' : '',
+				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
 				'$EXTERNAL_NET',				// src_ip
 				'any',							// src_port
@@ -206,7 +212,7 @@ class NidsExportComponent extends Component {
 	}
 
 	public function hostnameRule($ruleFormat, $attribute, &$sid) {
-		$overruled = in_array($attribute['value'], $this->whitelist);
+		$overruled = $this->checkWhitelist($attribute['value']);
 		$content = 'content:"' . $this->dnsNameToRawFormat($attribute['value'], 'hostname') . '"; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -258,7 +264,7 @@ class NidsExportComponent extends Component {
 	}
 
 	public function domainRule($ruleFormat, $attribute, &$sid) {
-		$overruled = in_array($attribute['value'], $this->whitelist);
+		$overruled = $this->checkWhitelist($attribute['value']);
 		$content = 'content:"' . $this->dnsNameToRawFormat($attribute['value']) . '"; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -314,9 +320,10 @@ class NidsExportComponent extends Component {
 		//$hostpart = parse_url($attribute['value'], PHP_URL_HOST);
 		//$overruled = $this->checkNames($hostpart);
 		// warning: only suricata compatible
+		$overruled = $this->checkWhitelist($attribute['value']);
 		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; nocase; http_uri;';
 		$this->rules[] = sprintf($ruleFormat,
-				(false) ? '#OVERRULED BY WHITELIST# ' : '',
+				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'http',							// proto
 				'$HOME_NET',					// src_ip
 				'any',							// src_port
@@ -398,7 +405,7 @@ class NidsExportComponent extends Component {
 		foreach ($explodedNames as &$explodedName) {
 			// count the lenght of the part, and add |length| before
 			$length = strlen($explodedName);
-			if ($length > 255) exit('ERROR: dns name is to long for RFC'); // LATER log correctly without dying
+			if ($length > 255) $this->log('WARNING: dns name is to long for RFC: '.$name);
 			$hexLength = dechex($length);
 			if (1 == strlen($hexLength)) $hexLength = '0' . $hexLength;
 			$rawName .= '|' . $hexLength . '|' . $explodedName;
@@ -433,5 +440,14 @@ class NidsExportComponent extends Component {
 		$rawName .= '(0)';
 		// and append |00| to terminate the name
 		return $rawName;
+	}
+
+	public function checkWhitelist($value) {
+		foreach ($this->whitelist as $wlitem) {
+			if (preg_match($wlitem, $value)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

@@ -1,6 +1,6 @@
 <div class="users index">
 	<h2>Members</h2>
- 	<table cellpadding="0" cellspacing="0" style="width:300px;">
+ 	<table class="table table-striped table-condensed table-bordered" style="width:300px;">
 	<tr>
 			<th>Organisation</th>
 			<th># of members</th>
@@ -9,13 +9,13 @@
 	<?php
 foreach ($orgs as $org):?>
 	<tr>
-		<td><?php echo $org['User']['org']; ?>&nbsp;</td>
-		<td><?php echo $org[0]['num_members']; ?>&nbsp;</td>
+		<td><?php echo h($org['User']['org']); ?>&nbsp;</td>
+		<td><?php echo h($org[0]['num_members']); ?>&nbsp;</td>
 		<?php
 			$imgRelativePath = 'orgs' . DS . h($org['User']['org']) . '.png';
 			$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 		?>
-		<td><?php if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org['User']['org']) . '.png', array('alt' => h($org['User']['org']),'width' => '48','hight' => '48'));?>&nbsp</td>
+		<td><?php if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org['User']['org']) . '.png', array('alt' => h($org['User']['org']),'width' => '48','hight' => '48'));?>&nbsp;</td>
 	</tr>
 	<?php
 endforeach; ?>
@@ -90,7 +90,7 @@ foreach ($graphData as $row) {
 	});
 	</script>
 
-	<!-- table cellpadding="0" cellspacing="0" style="width:400px;">
+	<!-- table class="table table-striped table-condensed table-bordered" style="width:400px;">
 	<tr>
 		<th>Org</th>
 		<th>Type</th>
@@ -99,9 +99,9 @@ foreach ($graphData as $row) {
 	<?php
 foreach ($typesHistogram as $item):?>
 		<tr>
-			<td><?php echo $item['Event']['org']; ?>&nbsp;</td>
-			<td><?php echo $item['Attribute']['type']; ?>&nbsp;</td>
-			<td><?php echo $item['0']['num_types']; ?>&nbsp;</td>
+			<td><?php echo h($item['Event']['org']); ?>&nbsp;</td>
+			<td><?php echo h($item['Attribute']['type']); ?>&nbsp;</td>
+			<td><?php echo h($item['0']['num_types']); ?>&nbsp;</td>
 
 		</tr>
 		<?php
@@ -110,12 +110,12 @@ endforeach; ?>
 
 </div>
 
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
+<div class="actions <?php echo $debugMode;?>">
+	<ul class="nav nav-list">
+		<li><a href="/users/news">News</a></li>
+		<li><a href="/users/view/me">My Profile</a></li>
+		<li class="active"><a href="/users/memberslist">Members List</a></li>
+		<li><a href="/pages/display/doc/general">User Guide</a></li>
+		<li><a href="/users/terms">Terms & Conditions</a></li>
 	</ul>
-</div>
-
-<div class="users index">
-
 </div>

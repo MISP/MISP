@@ -28,18 +28,20 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <p>Automatic export of MD5/SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
 <p>You can configure your tools to automatically download the following files:</p>
 <h4>md5</h4>
-<pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/hids_md5/<?php echo $me['authkey']; ?></pre>
+<pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/hids/md5/<?php echo $me['authkey']; ?></pre>
 <h4>sha1</h4>
-<pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/hids_sha1/<?php echo $me['authkey']; ?></pre>
+<pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/hids/sha1/<?php echo $me['authkey']; ?></pre>
 <p></p>
 
 <h3>Text export</h3>
 <p>An automatic export of all attributes of a specific type to a plain text file.</p>
 <p>You can configure your tools to automatically download the following files:</p>
-<pre><?php
-foreach ($sigTypes as $sigType):?>
-	<?php echo Configure::read('CyDefSIG.baseurl');?>/events/text/<?php echo $me['authkey']; ?>/<?php echo $sigType . "\n";?><?php
-endforeach;?>
+<pre>
+<?php
+foreach ($sigTypes as $sigType) {
+	echo Configure::read('CyDefSIG.baseurl').'/events/text/'.$me['authkey'].'/'.$sigType . "\n";
+}
+?>
 </pre>
 <p></p>
 
@@ -53,11 +55,20 @@ This would enable you to export:</p>
 <li>...</li>
 </ul>
 
-
-
 </div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
+<div class="actions <?php echo $debugMode;?>">
+	<ul class="nav nav-list">
+		<li><a href="/events/index">List Events</a></li>
+		<?php if ($isAclAdd): ?>
+		<li><a href="/events/add">Add Event</a></li>
+		<?php endif; ?>
+		<li class="divider"></li>
+		<li><a href="/attributes/index">List Attributes</a></li>
+		<li><a href="/attributes/search">Search Attributes</a></li>
+		<li class="divider"></li>
+		<li><a href="/events/export">Export</a></li>
+		<?php if ($isAclAuth): ?>
+		<li class="active"><a href="/events/automation">Automation</a></li>
+		<?php endif;?>
 	</ul>
 </div>

@@ -98,7 +98,6 @@
  */
 Cache::config('default', array('engine' => 'File'));
 
-//Configure::write('CyDefSIG.baseurl', 'https://sig.cyber-defence.be');
 Configure::write('CyDefSIG.baseurl', 'http://localhost:8888');
 if (!Configure::read('CyDefSIG.baseurl')) {
 	if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) {
@@ -108,12 +107,14 @@ if (!Configure::read('CyDefSIG.baseurl')) {
 	}
 }
 Configure::write('CyDefSIG.name', 'MISP');
-Configure::write('CyDefSIG.version', '2.0');
-Configure::write('CyDefSIG.header', 'CyDefSIG: Cyber Defence Signature Sharing Platform');
+Configure::write('CyDefSIG.version', 'devel2.1');
+Configure::write('CyDefSIG.header', 'MISP: Malware Information Sharing Platform');
 Configure::write('CyDefSIG.footerpart1', 'Powered by MISP');
 Configure::write('CyDefSIG.footerpart2', '&copy; Belgian Defense CERT & NCIRC');
 Configure::write('CyDefSIG.footer', Configure::read('CyDefSIG.footerpart1') . ' ' . Configure::read('CyDefSIG.footerpart2'));
 Configure::write('CyDefSIG.footerversion', Configure::read('CyDefSIG.footerpart1') . ' version ' . Configure::read('CyDefSIG.version') . ' ' . Configure::read('CyDefSIG.footerpart2'));
+// The following field is optional
+// Configure::write('MISP.footer_logo', 'imagename');     // Logo for the bottom right corner of the screen
 Configure::write('CyDefSIG.org', 'ORGNAME');                // if sync this will be Event.org content on the peer side
 Configure::write('CyDefSIG.logo', 'orgs/ORGNAME.png');     // used in Events::index for owned events
 
@@ -121,10 +122,7 @@ Configure::write('CyDefSIG.logo', 'orgs/ORGNAME.png');     // used in Events::in
 Configure::write('CyDefSIG.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
 
 Configure::write('CyDefSIG.sync', 'true');                 // enable features related to syncing with other CyDefSIG instances - should be always on because of the current distribution model.
-Configure::write('CyDefSIG.private', 'true');                 // respect private to org or server.
-if ('true' == Configure::read('CyDefSIG.private')) {
-	Configure::write('CyDefSIG.sync', 'true');
-}
+
 Configure::write('CyDefSIG.email', 'email@address.com'); // email from for all the mails
 Configure::write('CyDefSIG.contact', 'email@address.com'); // contact address for this instance's support person / group
 
@@ -136,23 +134,13 @@ Configure::write('GnuPG.homedir', '/path/to/your/.gnupg/');
 Configure::write('SecureAuth.amount', 5);              // the maximum amount of failed logins
 Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
 
-/**
- * Network activity, ip-src
- * 30 class-C network ip addresses
- * (time in ms)
- *
- *           default     db    sql
- * all         25366  16601  15941
- *             24839  16604  15611
- * paginated   16759   8447   6615
- *             17734   8639   8846
- */
 Configure::write('CyDefSIG.dns', 'false');				// there is a nameserver available to do resolution.
 
-Configure::write('CyDefSIG.rest', 'ii');				// i is unchecked, use ii
-														// RESTfull, possible values:
-														// - i, event without attributes
-														// - ii, event with attributes (more framework friendly and more RESTfull friendly)
+// The following 3 fields are optional
+
+//Configure::write('MISP.welcome_text_top', 'Welcome to the Organisation community\'s');     // used in Events::login before the MISP logo
+//Configure::write('MISP.welcome_text_bottom', 'instance');     // used in Events::login after the MISP logo
+//Configure::write('MISP.welcome_logo', 'organisation');     // used in Events::login to the left of the MISP logo, place a .png file in app/webroot/img with the name specified here. In this case it would be organisation.png
 
 /**
  * The settings below can be used to set additional paths to models, views and controllers.
@@ -205,6 +193,7 @@ CakePlugin::load('SysLog');
 CakePlugin::load('Assets'); // having Logable
 CakePlugin::load('SysLogLogable');
 CakePlugin::load('MagicTools'); // having OrphansProtectable
+CakePlugin::load('UrlCache');
 
 /**
  * You can attach event listeners to the request lifecyle as Dispatcher Filter . By Default CakePHP bundles two filters:

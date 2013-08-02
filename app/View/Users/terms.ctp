@@ -9,9 +9,12 @@ if (!$termsaccepted) {
 }
 ?>
 </div>
-
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
+<div class="actions <?php echo $debugMode;?>">
+	<ul class="nav nav-list">
+		<li><a href="/users/news">News</a></li>
+		<li><a href="/users/view/me">My Profile</a></li>
+		<li><a href="/users/memberslist">Members List</a></li>
+		<li><a href="/pages/display/doc/general">User Guide</a></li>
+		<li class="active"><a href="/users/terms">Terms & Conditions</a></li>
 	</ul>
 </div>

@@ -12,11 +12,6 @@ class WhitelistsController extends AppController {
 	public $XXXcomponents = array('Security', 'RequestHandler');
 
 	public $components = array(
-		'Auth' => array(
-			'authorize' => array(
-				'Actions' => array('actionPath' => 'controllers/Whitelists')
-			)
-		),
 		'Security',
 		'AdminCrud'
 	);
@@ -32,21 +27,13 @@ class WhitelistsController extends AppController {
 		parent::beforeFilter();
 	}
 
-	public function isAuthorized($user) { // TODO REMOVE
-		// Admins can access everything
-		if (parent::isAuthorized($user)) {
-			return true;
-		}
-		// the other pages are allowed by logged in users
-		return true;
-	}
-
 /**
  * admin_add method
  *
  * @return void
  */
 	public function admin_add() {
+		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminAdd();
 	}
 
@@ -68,7 +55,7 @@ class WhitelistsController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
-		if(!$this->_IsSiteAdmin()) $this->redirect(array('controller' => 'blacklists', 'action' => 'index', 'admin' => false));
+		if(!$this->_IsSiteAdmin()) $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminEdit($id);
 	}
 
@@ -81,7 +68,7 @@ class WhitelistsController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_delete($id = null) {
-		if(!$this->_IsSiteAdmin()) $this->redirect(array('controller' => 'blacklists', 'action' => 'index', 'admin' => false));
+		if(!$this->_IsSiteAdmin()) $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminDelete($id);
 	}
 
@@ -92,6 +79,6 @@ class WhitelistsController extends AppController {
  */
 	public function index() {
 		$this->recursive = 0;
-		$this->set('list', Sanitize::clean($this->paginate()));
+		$this->set('list', $this->paginate());
 	}
 }

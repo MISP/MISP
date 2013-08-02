@@ -1,21 +1,19 @@
 <?php
 // TODO also output a kind of status code and data what was requested in the REST result
 $xmlArray = array();
+
 foreach ($events as $key => $event) {
 	// rearrange things to be compatible with the Xml::fromArray()
 	$events[$key] = $events[$key]['Event'];
+	unset($events[$key]['Event']);
 
 	// cleanup the array from things we do not want to expose
-	unset($events[$key]['Event']);
-	// hide the private field is we are not in sync mode
-	if ('true' != Configure::read('CyDefSIG.sync')) {
-		unset($events[$key]['private']);
-	}
-	unset($events[$key]['cluster']);
-	unset($events[$key]['sharing']);
+	unset($events[$key]['user_id']);
 	// hide the org field is we are not in showorg mode
 	if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
 		unset($events[$key]['org']);
+		unset($events[$key]['orgc']);
+		unset($events[$key]['from']);
 	}
 
 }

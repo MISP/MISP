@@ -28,18 +28,9 @@ class LogsController extends AppController {
 		parent::beforeFilter();
 
 		// permit reuse of CSRF tokens on the search page.
-		if ('search' == $this->request->params['action']) {
+		if ('admin_search' == $this->request->params['action']) {
 			$this->Security->csrfUseOnce = false;
 		}
-	}
-
-	public function isAuthorized($user) {
-		// Admins can access everything
-		if (parent::isAuthorized($user)) {
-			return true;
-		}
-		// the other pages are allowed by logged in users
-		return true;
 	}
 
 /**
@@ -48,7 +39,7 @@ class LogsController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		if(!$this->checkAction('perm_audit')) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+		if(!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$this->set('isSearch', 0);
 		if ($this->Auth->user('org') == 'ADMIN') {
 			$this->AdminCrud->adminIndex();
@@ -59,19 +50,73 @@ class LogsController extends AppController {
 			$this->recursive = 0;
 			$this->paginate = array(
 					'limit' => 60,
-					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 logs(?)
-					'conditions' => $conditions
+					'conditions' => $conditions,
+					'order' => array('Log.id' => 'DESC')
 			);
 
-			$this->set('list', Sanitize::clean($this->paginate()));
+			$this->set('list', $this->paginate());
 		}
+	}
+
+	// Shows a minimalistic history for the currently selected event
+	public function event_index($id) {
+		// check if the user has access to this event...
+		$mayModify = false;
+		$mineOrAdmin = false;
+		$this->loadModel('Event');
+		$this->Event->recursive = -1;
+		$this->Event->read(null, $id);
+		// send unauthorised people away. Only site admins and users of the same org may see events that are "your org only". Everyone else can proceed for all other levels of distribution
+		if ($this->Auth->user('org') != 'ADMIN') {
+			if ($this->Event->data['Event']['distribution'] == 0) {
+				if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
+					$this->Session->setFlash(__('You don\'t have access to view this event.'));
+					$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+				} else {
+					$mineOrAdmin = true;
+				}
+			}
+		} else {
+			$mineOrAdmin = true;
+		}
+		$this->set('published', $this->Event->data['Event']['published']);
+		if ($mineOrAdmin && $this->userRole['perm_modify']) $mayModify = true;
+		// get a list of the attributes that belong to the event
+		$this->loadModel('Attribute');
+		$this->Attribute->recursive = -1;
+		$attributes = $this->Attribute->find('all', array(
+				'conditions' => array('event_id' => $id),
+				'fields' => array ('id', 'event_id', 'distribution'),
+				'contain' => 'Event.distribution'
+		));
+		// get a list of all log entries that affect the current event or any of the attributes found above
+		$conditions['OR'][] = array('AND' => array('Log.model LIKE' => 'Event', 'Log.model_id LIKE' => $id));
+		$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'Attribute'));
+		// set a condition for the attribute, otherwise an empty event will show all attributes in the log
+		$conditions['OR'][1]['AND']['OR'][0] = array('Log.model_id LIKE' => null);
+		foreach ($attributes as $a) {
+			// Hop over the attributes that are private if the user should is not of the same org and not an admin
+			if ($mineOrAdmin || ($a['Event']['distribution'] != 0 && $a['Attribute']['distribution'] != 0)) {
+				$conditions['OR'][1]['AND']['OR'][] = array('Log.model_id LIKE' => $a['Attribute']['id']);
+			}
+		}
+		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change');
+		$this->paginate = array(
+				'limit' => 60,
+				'conditions' => $conditions,
+				'order' => array('Log.id' => 'DESC'),
+				'fields' => $fieldList
+		);
+		$this->set('list', $this->paginate());
+		$this->set('eventId', $id);
+		$this->set('mayModify', $mayModify);
 	}
 
 	public $helpers = array('Js' => array('Jquery'), 'Highlight');
 
 	public function admin_search() {
-		if(!$this->checkAction('perm_audit')) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-		$fullAddress = array('/admin/logs/search', '/logs/admin_search');
+		if(!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+		$fullAddress = array('/admin/logs/search', '/logs/admin_search'); // FIXME remove this crap check
 		$orgRestriction = null;
 		if ($this->Auth->user('org') == 'ADMIN') {
 			$orgRestriction = false;
@@ -79,14 +124,14 @@ class LogsController extends AppController {
 			$orgRestriction = $this->Auth->user('org');
 		}
 		$this->set('orgRestriction', $orgRestriction);
-		if (in_array($this->request->here, $fullAddress)) {
+		if (in_array($this->request->here, $fullAddress)) { // FIXME remove this crap check
 
 			$this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
 
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions_log', array());
 
-			if ($this->request->is('post') && in_array($this->request->here, $fullAddress)) {
+			if ($this->request->is('post') && in_array($this->request->here, $fullAddress)) { // FIXME remove this crap check
 				$email = $this->request->data['Log']['email'];
 				if (!$orgRestriction) {
 					$org = $this->request->data['Log']['org'];
@@ -122,14 +167,13 @@ class LogsController extends AppController {
 				if (isset($change)) {
 					$conditions['LOWER(Log.change) LIKE'] = '%' . strtolower($change) . '%';
 				}
-				//$conditions['COLLATE'] = 'utf_general_ci';
 				$this->{$this->defaultModel}->recursive = 0;
 				$this->paginate = array(
 					'limit' => 60,
-					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 logs(?)
-					'conditions' => $conditions
+					'conditions' => $conditions,
+					'order' => array('Log.id' => 'DESC')
 				);
-				$this->set('list', Sanitize::clean($this->paginate()));
+				$this->set('list', $this->paginate());
 
 				// and store into session
 				$this->Session->write('paginate_conditions_log', $this->paginate);
@@ -170,7 +214,7 @@ class LogsController extends AppController {
 			// re-get pagination
 			$this->{$this->defaultModel}->recursive = 0;
 			$this->paginate = $this->Session->read('paginate_conditions_log');
-			$this->set('list', Sanitize::clean($this->paginate()));
+			$this->set('list', $this->paginate());
 
 			// set the same view as the index page
 			$this->render('admin_index');

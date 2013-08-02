@@ -1,37 +1,48 @@
 <div class="events form">
 <?php echo $this->Form->create('Event');?>
 	<fieldset>
-		<legend><?php echo __('Edit Event'); ?></legend>
+		<legend>Edit Event</legend>
 <?php
-echo $this->Form->input('id');
-echo $this->Form->input('date');
-echo $this->Form->input('risk', array(
-		'before' => $this->Html->div('forminfo', '', array('id' => 'EventRiskDiv'))));
-echo $this->Form->input('analysis', array(
-		'options' => array($analysisLevels),
-		'before' => $this->Html->div('forminfo', '', array('id' => 'EventAnalysisDiv'))));
+	echo $this->Form->input('id');
+	echo $this->Form->input('date', array(
+			'type' => 'text',
+			'class' => 'datepicker'
+	));
 if ('true' == Configure::read('CyDefSIG.sync')) {
-	if ('true' == $canEditDist) {
-		echo $this->Form->input('distribution', array('label' => 'Distribution',
-			'between' => $this->Html->div('forminfo', '', array('id' => 'EventDistributionDiv'))
-		));
-	}
+	echo $this->Form->input('distribution', array(
+		'options' => array($distributionLevels),
+		'label' => 'Distribution',
+	));
 }
-echo $this->Form->input('info');
+	echo $this->Form->input('risk', array(
+			'div' => 'input clear'
+			));
+	echo $this->Form->input('analysis', array(
+			'options' => array($analysisLevels),
+			));
+	echo $this->Form->input('info', array(
+			'div' => 'clear',
+			'class' => 'input-xxlarge'
+			));
 
-// link an onchange event to the form elements
-if ('true' == $canEditDist) {
-	$this->Js->get('#EventDistribution')->event('change', 'showFormInfo("#EventDistribution")');
-}
-$this->Js->get('#EventRisk')->event('change', 'showFormInfo("#EventRisk")');
-$this->Js->get('#EventAnalysis')->event('change', 'showFormInfo("#EventAnalysis")');
 ?>
 	</fieldset>
-<?php echo $this->Form->end(__('Submit', true));?>
+<?php
+echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
+echo $this->Form->end();
+?>
 </div>
-<div class="actions">
-	<ul>
-		<?php echo $this->element('actions_menu'); ?>
+<div class="actions <?php echo $debugMode;?>">
+	<ul class="nav nav-list">
+		<li><a href="/events/view/<?php echo $this->request->data['Event']['id'];?>">View Event</a></li>
+		<li><a href="/logs/event_index/<?php echo $this->request->data['Event']['id'];?>">View Event History</a></li>
+		<li class="active"><a href="/events/edit/<?php echo $this->request->data['Event']['id'];?>">Edit Event</a></li>
+		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $this->request->data['Event']['id']), null, __('Are you sure you want to delete # %s?', $this->request->data['Event']['id'])); ?></li>
+		<li class="divider"></li>
+		<li><a href="/events/index">List Events</a></li>
+		<?php if ($isAclAdd): ?>
+		<li><a href="/events/add">Add Event</a></li>
+		<?php endif; ?>
 	</ul>
 </div>
 
@@ -39,41 +50,58 @@ $this->Js->get('#EventAnalysis')->event('change', 'showFormInfo("#EventAnalysis"
 //
 //Generate tooltip information
 //
-var formInfoValues = new Array();
-<?php
-if ('true' == $canEditDist) {
-	foreach ($distributionDescriptions as $type => $def) {
-		$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-		echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
-	}
-}
+var formInfoValues = {
+		'EventDistribution' : new Array(),
+		'EventRisk' : new Array(),
+		'EventAnalysis' : new Array()
+};
 
+<?php
+foreach ($distributionDescriptions as $type => $def) {
+	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
+	echo "formInfoValues['EventDistribution']['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
+}
 foreach ($riskDescriptions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
+	echo "formInfoValues['EventRisk']['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
 }
 foreach ($analysisDescriptions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
+	echo "formInfoValues['EventAnalysis']['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
 }
 ?>
 
-function showFormInfo(id) {
-	idDiv = id+'Div';
-	// LATER use nice animations
-	//$(idDiv).hide('fast');
-	// change the content
-	var value = $(id).val();    // get the selected value
-	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
-	// show it again
-	$(idDiv).fadeIn('slow');
-}
+$(document).ready(function() {
 
-// hide the formInfo things
-if ('true' == $canEditDist) {
-	$('#EventDistributionDiv').hide();
-}
-$('#EventRiskDiv').hide();
-$('#EventAnalysisDiv').hide();
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
+
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('mouseover', function(e) {
+	    var $e = $(e.target);
+	    if ($e.is('option')) {
+	        $('#'+e.currentTarget.id).popover('destroy');
+	        $('#'+e.currentTarget.id).popover({
+	            trigger: 'manual',
+	            placement: 'right',
+	            content: formInfoValues[e.currentTarget.id][$e.val()],
+	        }).popover('show');
+		}
+	});
+
+	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
+	// disadvangate is that user needs to click on the item to see the tooltip.
+	// no solutions exist, except to generate the select completely using html.
+	$("#EventAnalysis, #EventRisk, #EventDistribution").on('change', function(e) {
+		var $e = $(e.target);
+        $('#'+e.currentTarget.id).popover('destroy');
+        $('#'+e.currentTarget.id).popover({
+            trigger: 'manual',
+            placement: 'right',
+            content: formInfoValues[e.currentTarget.id][$e.val()],
+        }).popover('show');
+	});
+});
+
 </script>
 <?php echo $this->Js->writeBuffer();

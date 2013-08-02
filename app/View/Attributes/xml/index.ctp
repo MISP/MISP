@@ -6,12 +6,13 @@ foreach ($attributes as $key => $attribute) {
 
 	// cleanup the array from things we do not want to expose
 	unset($attributes[$key]['Event']);
-	// hide the private field is we are not in sync mode
-	if ('true' != Configure::read('CyDefSIG.sync')) {
-		unset($attributes[$key]['private']);
-	}
-	unset($attributes[$key]['sharing']);
-	unset($attributes[$key]['cluster']);
+
+	unset($attributes[$key]['value1']);
+	unset($attributes[$key]['value2']);
+
+	unset($attributes[$key]['category_order']);
+
+
 }
 
 // display the XML to the user

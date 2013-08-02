@@ -6,7 +6,7 @@ App::import('Controller', 'ServersController');
 
 class SysLogLogableBehavior extends LogableBehavior {
 
-	function afterSave(&$Model, $created) {
+	function afterSave(Model $Model, $created) {
 
 		if (!$this->settings[$Model->alias]['enabled']) {
 			return true;
@@ -214,12 +214,6 @@ class SysLogLogableBehavior extends LogableBehavior {
 					$this->Whitelists = new WhitelistsController();
 					$this->Whitelists->constructClasses();
 					$title = 'Whitelist ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
-					$logData['Log']['title'] = $title;
-					break;
-				case "Blacklist":
-					$this->Blacklists = new BlacklistsController();
-					$this->Blacklists->constructClasses();
-					$title = 'Blacklists ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
 					$logData['Log']['title'] = $title;
 					break;
 				case "Regexp":

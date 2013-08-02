@@ -9,15 +9,9 @@ App::uses('AppController', 'Controller');
  */
 class RolesController extends AppController {
 
-	public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage &amp; Publish Organization Events');
+	public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage & Publish Organization Events'); // FIXME move this to Role Model
 
 	public $components = array(
-		'Acl',
-		'Auth' => array(
-			'authorize' => array(
-				'Actions' => array('actionPath' => 'controllers')
-			)
-		),
 		'Security',
 		'Session', 'AdminCrud' // => array('fields' => array('name'))
 	);
@@ -65,7 +59,6 @@ class RolesController extends AppController {
 				$this->Session->setFlash(__(sprintf('The Role has been saved.')));
 				$this->set('options', $this->options);
 				$passAlong = $this->Role->read(null, $this->Role->getInsertID());
-				$this->_generateACL($passAlong);
 				$this->redirect(array('action' => 'index'));
 			} else {
 				if (!($this->Session->check('Message.flash'))) {
@@ -99,7 +92,6 @@ class RolesController extends AppController {
 		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminEdit($id);
 		$passAlong = $this->Role->read(null, $id);
-		$this->_generateACL($passAlong);
 		$this->set('options', $this->options);
 	}
 
@@ -124,7 +116,7 @@ class RolesController extends AppController {
  */
 	public function index() {
 		$this->recursive = 0;
-		$this->set('list', Sanitize::clean($this->paginate()));
+		$this->set('list', $this->paginate());
 		$this->set('options', $this->options);
 	}
 }

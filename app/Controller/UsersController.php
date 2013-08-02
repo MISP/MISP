@@ -29,24 +29,6 @@ class UsersController extends AppController {
 		$this->Auth->allow('login', 'logout');
 	}
 
-	public function isAuthorized($user) {
-		// Admins can access everything
-		if (parent::isAuthorized($user)) {
-			return true;
-		}
-		// Do not allow admin routing
-		if (isset($this->request->params['admin']) && true == $this->request->params['admin'])
-			return false;
-		// Only on own user for these actions
-		if (in_array($this->action, array('view', 'edit', 'delete', 'resetauthkey'))) {
-			$userid = $this->request->params['pass'][0];
-			if ("me" == $userid ) return true;
-			return ($userid === $this->Auth->user('id'));
-		}
-		// the other pages are allowed by logged in users
-		return true;
-	}
-
 /**
  * view method
  *
@@ -56,12 +38,15 @@ class UsersController extends AppController {
  */
 	public function view($id = null) {
 		if ("me" == $id) $id = $this->Auth->user('id');
+		if (!$this->_isSiteAdmin() && $this->Auth->user('id') != $id) {
+			throw new NotFoundException(__('Invalid user or not authorised.'));
+		}
 		$this->User->id = $id;
+		$this->User->recursive = 0;
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		// Only own profile verified by isAuthorized
-		$this->set('user', Sanitize::clean($this->User->read(null, $id)));
+		$this->set('user', $this->User->read(null, $id));
 	}
 
 /**
@@ -72,12 +57,15 @@ class UsersController extends AppController {
  * @throws NotFoundException
  */
 	public function edit($id = null) {
-		if ("me" == $id) $id = $this->Auth->user('id');
-		$this->User->id = $id;
-		if (!$this->User->exists()) {
-			throw new NotFoundException(__('Invalid user'));
+		$me = false;
+		if ("me" == $id) {
+			$id = $this->Auth->user('id');
+			$me = true;
 		}
-		// Only own profile verified by isAuthorized
+		$this->User->read(null, $id);
+		if (!$this->User->exists() && !$me && !$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org') == $this->User->data['User']['org'])) {
+			throw new NotFoundException(__('Invalid user or not authorised.'));
+		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// What fields should be saved (allowed to be saved)
 			$fieldList = array('email', 'autoalert', 'gpgkey', 'nids_sid' );
@@ -94,11 +82,13 @@ class UsersController extends AppController {
 		} else {
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
+			if (!$this->User->exists() || (!$this->_isSiteAdmin() && $this->Auth->user('org') != $this->User->data['User']['org'])) {
+				throw new NotFoundException(__('Invalid user or not authorised.'));
+			}
 			$this->User->set('password', '');
-			$this->request->data = Sanitize::clean($this->User->data);
+			$this->request->data = $this->User->data;
 		}
-		// XXX ACL roles
-		$roles = Sanitize::clean($this->User->Role->find('list'));
+		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
 
@@ -122,11 +112,11 @@ class UsersController extends AppController {
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
 			$this->User->set('password', '');
-			$this->request->data = Sanitize::clean($this->User->data);
+			$this->request->data = $this->User->data;
 		}
 		// XXX ACL roles
 		$this->extraLog("change_pw");
-		$roles = Sanitize::clean($this->User->Role->find('list'));
+		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
 
@@ -148,7 +138,6 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		//if ($this->Auth->User('org') != 'ADMIN' && $this->Auth->User('org') != $this->User->data['User']['org']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
-		//Replaced by isAuthorized
 		//// Only own profile
 		//if ($this->Auth->user('id') != $id) {
 		//	throw new ForbiddenException('You are not authorized to delete this profile.');
@@ -167,14 +156,15 @@ class UsersController extends AppController {
  */
 	public function admin_index() {
 		$this->User->recursive = 0;
-		if ($this->Auth->User('org') == "ADMIN") {
-			$this->set('users', Sanitize::clean($this->paginate()));
+		if ($this->_isSiteAdmin()) {
+			$this->set('users', $this->paginate());
 		} else {
+			if (!($this->_isAdmin())) throw new NotFoundException(__('Invalid user or not authorised.'));
 			$conditions['User.org LIKE'] = $this->Auth->User('org');
 			$this->paginate = array(
 					'conditions' => array($conditions),
 			);
-			$this->set('users', Sanitize::clean($this->paginate()));
+			$this->set('users', $this->paginate());
 		}
 	}
 
@@ -190,9 +180,10 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		$this->set('user', Sanitize::clean($this->User->read(null, $id)));
+		$this->set('user', $this->User->read(null, $id));
+		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org') == $this->User->data['User']['org'])) throw new MethodNotAllowedException();
 		$temp = $this->User->field('invited_by');
-		$this->set('user2', Sanitize::clean($this->User->read(null, $temp)));
+		$this->set('user2', $this->User->read(null, $temp));
 	}
 
 /**
@@ -201,12 +192,14 @@ class UsersController extends AppController {
  * @return void
  */
 	public function admin_add() {
+		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		$this->set('currentOrg', $this->Auth->User('org'));
 		if ($this->request->is('post')) {
 			$this->User->create();
 			// set invited by
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
 			$this->request->data['User']['change_pw'] = 1;
+			$this->request->data['User']['newsread'] = '2000-01-01';
 			if ($this->Auth->User('org') != 'ADMIN') $this->request->data['User']['org'] = $this->Auth->User('org');
 			if ($this->User->save($this->request->data)) {
 				$this->Session->setFlash(__('The user has been saved'));
@@ -222,7 +215,7 @@ class UsersController extends AppController {
 			$this->set('authkey', $this->newkey);
 		}
 		// XXX ACL roles
-		$roles = Sanitize::clean($this->User->Role->find('list'));
+		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
 
@@ -301,7 +294,7 @@ class UsersController extends AppController {
 			$this->User->read(null, $id);
 			if ($this->Auth->User('org') != 'ADMIN' && $this->Auth->User('org') != $this->User->data['User']['org']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
 			$this->User->set('password', '');
-			$this->request->data = Sanitize::clean($this->User->data, array('escape' => false)); // TODO CHECK
+			$this->request->data = $this->User->data; // TODO CHECK
 
 		}
 		// TODO ACL CLEANUP combobox for orgs
@@ -309,7 +302,7 @@ class UsersController extends AppController {
 		$orgIds = $this->_arrayToValuesIndexArray($orgIds);
 		$this->set('orgIds', compact('orgIds'));
 		// XXX ACL, Roles in Users
-		$roles = Sanitize::clean($this->User->Role->find('list'));
+		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
 
@@ -325,6 +318,7 @@ class UsersController extends AppController {
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
 		}
+		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		$this->User->id = $id;
 		$user = $this->User->read('email', $id);
 		$fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
@@ -343,15 +337,35 @@ class UsersController extends AppController {
 	public function login() {
 		if ($this->Auth->login()) {
 			$this->extraLog("login");	// TODO Audit, extraLog, check: customLog i.s.o. extraLog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
-			$this->redirect($this->Auth->redirect());
+			// TODO removed the auto redirect for now, due to security concerns - will look more into this
+			// $this->redirect($this->Auth->redirectUrl());
+			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		} else {
 			// don't display authError before first login attempt
 			if (str_replace("//","/",$this->webroot . $this->Session->read('Auth.redirect')) == $this->webroot && $this->Session->read('Message.auth.message') == $this->Auth->authError) {
 				$this->Session->delete('Message.auth');
 			}
 			// don't display "invalid user" before first login attempt
-			if($this->request->is('post')) $this->Session->setFlash(__('Invalid username or password, try again'));
+			if($this->request->is('post')) {
+				$this->Session->setFlash(__('Invalid username or password, try again'));
+			}
 
+			// populate the DB with the first user if it's empty
+			if ($this->User->find('count') == 0 ) {
+				$admin = array('User' => array(
+						'email' => 'admin@admin.test',
+						'org' => 'ADMIN',
+						'password' => 'admin',
+						'confirm_password' => 'admin',
+						'authkey' => $this->User->generateAuthKey(),
+						'nids_sid' => 4000000,
+						'date' => date('YYY-mm-dd'),
+						'role_id' => 1,
+						'change_pw' => 1
+						));
+				$this->User->validator()->remove('password'); // password is to simple, remove validation
+				$this->User->save($admin);
+			}
 		}
 	}
 
@@ -383,18 +397,17 @@ class UsersController extends AppController {
 	public function resetauthkey($id = null) {
 		if (!$id) {
 			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
-			$this->redirect(array('action' => 'index'));
+			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
 		}
-		if ('me' == $id ) $id = $this->Auth->user('id');
-
-		//Replaced by isAuthorized
-		//// only allow reset key for own account, except for admins
-		//if (!$this->_isAdmin() && $id != $this->Auth->user('id')) {
-		//	throw new ForbiddenException('Not authorized to reset the key for this user');
-		//}
-
 		// reset the key
 		$this->User->id = $id;
+		if (!$this->User->exists($id)) {
+			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
+			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
+		}
+		$this->User->read();
+		if ('me' == $id ) $id = $this->Auth->user('id');
+		else if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org') == $this->User->data['User']['org'])) throw new MethodNotAllowedException();
 		$newkey = $this->User->generateAuthKey();
 		$this->User->saveField('authkey', $newkey);
 		$this->Session->setFlash(__('New authkey generated.', true));
@@ -414,17 +427,17 @@ class UsersController extends AppController {
 							'order' => array('User.org'),
 		);
 		$orgs = $this->User->find('all', $params);
-		$this->set('orgs', Sanitize::clean($orgs));
+		$this->set('orgs', $orgs);
 
 		// What org posted what type of attribute
 		$this->loadModel('Attribute');
-		$fields = array('Event.org', 'Attribute.type', 'count(Attribute.type) as `num_types`');
+		$fields = array('Event.orgc', 'Attribute.type', 'count(Attribute.type) as `num_types`');
 		$params = array('recursive' => 0,
 							'fields' => $fields,
-							'group' => array('Attribute.type', 'Event.org'),
-							'order' => array('Event.org', 'num_types DESC'),
+							'group' => array('Attribute.type', 'Event.orgc'),
+							'order' => array('Event.orgc', 'num_types DESC'),
 		);
-		$typesHistogram = Sanitize::clean($this->Attribute->find('all', $params));
+		$typesHistogram = $this->Attribute->find('all', $params);
 		$this->set('typesHistogram', $typesHistogram);
 
 		// Nice graphical histogram
@@ -443,11 +456,11 @@ class UsersController extends AppController {
 		$prevRowOrg = "";
 		$i = -1;
 		foreach ($typesHistogram as &$row) {
-			if ($prevRowOrg != $row['Event']['org']) {
+			if ($prevRowOrg != $row['Event']['orgc']) {
 				$i++;
 				$graphData[] = "";
-				$prevRowOrg = $row['Event']['org'];
-				$graphData[$i] .= "org: '" . $row['Event']['org'] . "'";
+				$prevRowOrg = $row['Event']['orgc'];
+				$graphData[$i] .= "org: '" . $row['Event']['orgc'] . "'";
 			}
 			$graphData[$i] .= ', ' . str_replace($replace, "_", $row['Attribute']['type']) . ': ' . $row[0]['num_types'];
 		}
@@ -573,7 +586,6 @@ class UsersController extends AppController {
 			$message2 = null;
 			$recipients = array();
 			$messageP = array();
-			$finalPackage = array();
 			// Formulating the message and the subject that will be common to the e-mail(s) sent
 			if ($this->request->data['User']['action'] == '0') {
 				// Custom message
@@ -596,6 +608,13 @@ class UsersController extends AppController {
 			}
 			$message2 .= "\n\nBest Regards,\n" . Configure::read('CyDefSIG.org') . ' MISP support';
 
+			// Return an error message if the action is a password reset for a new user
+
+			if ($this->request->data['User']['recipient'] == 2 && $this->request->data['User']['action'] == '1') {
+				$this->Session->setFlash(__('Cannot reset the password of a user that doesn\'t exist.'));
+				$this->redirect(array('action' => 'email', 'admin' => true));
+			}
+
 			// Setting up the list of recipient(s) based on the setting and creating the final message for each user, including the password
 			// If the recipient is all users, and the action to create a password, create it and for each user and squeeze it between the main message and the signature
 			if ($this->request->data['User']['recipient'] == 0) {
@@ -604,7 +623,7 @@ class UsersController extends AppController {
 				if ($this->request->data['User']['action'] == '1') {
 					$i = 0;
 					foreach ($recipients as $rec) {
-						$password = $this->__randomPassword();
+						$password = $this->User->generateRandomPassword();
 						$messageP = "\n\nYour temporary password: " . $password;
 						$message[$i] = $message1 . $messageP . $message2;
 						$recipientPass[$i] = $password;
@@ -624,7 +643,7 @@ class UsersController extends AppController {
 				$recipients[0] = $emails[$this->request->data['User']['recipientEmailList']];
 				$recipientGPG[0] = $gpgKeys[$this->request->data['User']['recipientEmailList']];
 				if ($this->request->data['User']['action'] == '1') {
-					$password = $this->__randomPassword();
+					$password = $this->User->generateRandomPassword();
 					$message[0] = $message1 . "\n\nYour temporary password: " . $password . $message2;
 					$recipientPass[0] = $password;
 				} else {
@@ -632,51 +651,36 @@ class UsersController extends AppController {
 				}
 			}
 
-			// If the recipient is a future user, and the action to create a password, create it and squeeze it between the main message and the signature
-			if ($this->request->data['User']['recipient'] == 2) {
-				$recipients[0] = $this->request->data['User']['recipientEmail'];
-				$recipientGPG[0] = $this->request->data['User']['gpg'];
-				if ($this->request->data['User']['action'] == '1') {
-					$password = $this->__randomPassword();
-					$message[0] = $message1 . "\n\nYour temporary password: " . $password . $message2;
-					$recipientPass[0] = $password;
-				} else {
-					$message[0] = $message1;
-				}
-			}
 			require_once 'Crypt/GPG.php';
 			$i = 0;
 			foreach ($recipients as $recipient) {
-				$finalPackage[$i]['message'] = $message[$i];
-				$finalPackage[$i]['gpgkey'] = $recipientGPG[$i];
-				$finalPackage[$i]['email'] = $recipients[$i];
-				if (!empty($finalPackage[$i]['gpgkey'])) {
+				if (!empty($recipientGPG[$i])) {
 					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 					$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-					$finalPackage[$i]['messageSigned'] = $gpg->sign($finalPackage[$i]['message'], Crypt_GPG::SIGN_MODE_CLEAR);
-					$keyImportOutput = $gpg->importKey($finalPackage[$i]['gpgkey']);
+					$messageSigned = $gpg->sign($message[$i], Crypt_GPG::SIGN_MODE_CLEAR);
+					$keyImportOutput = $gpg->importKey($recipientGPG[$i]);
 					try {
 						$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 						$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
 
-						$finalPackage[$i]['encryptedMessage'] = $gpg->encrypt($finalPackage[$i]['messageSigned'], true);
+						$encryptedMessage = $gpg->encrypt($messageSigned, true);
 					} catch (Exception $e){
 						// catch errors like expired PGP keys
 						$this->log($e->getMessage());
 						// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 					}
 				} else {
-					$finalPackage[$i]['encryptedMessage'] = $finalPackage[$i]['message'];
+					$encryptedMessage = $message[$i];
 				}
 
 				// prepare the email
 				$this->Email->from = Configure::read('CyDefSIG.email');
-				$this->Email->to = Sanitize::clean($finalPackage[$i]['email']);
+				$this->Email->to = $recipients[$i];
 				$this->Email->subject = $subject;
 				//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';		// both text or html
-				$this->set('body', $finalPackage[$i]['encryptedMessage']);
+				$this->set('body', $encryptedMessage);
 
 				// send it
 				$result = $this->Email->send();
@@ -684,7 +688,7 @@ class UsersController extends AppController {
 				// if sending successful and action was a password change, update the user's password.
 				if ($result && $this->request->data['User']['action'] == '1') {
 					$this->User->recursive = 0;
-					$temp = $this->User->findByEmail($finalPackage[$i]['email']);
+					$temp = $this->User->findByEmail($recipients[$i]);
 					$this->User->id = $temp['User']['id'];
 					$this->User->read();
 					$this->User->saveField('password', $recipientPass[$i]);
@@ -698,17 +702,6 @@ class UsersController extends AppController {
 			$this->Session->setFlash(__('E-mails sent.'));
 		}
 		// User didn't see the contact form yet. Present it to him.
-	}
-
-	private function __randomPassword() {
-		$alphabet = "abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ0123456789";
-		$pass = array();
-		$alphaLength = strlen($alphabet) - 1;
-		for ($i = 0; $i < 8; $i++) {
-			$n = rand(0, $alphaLength);
-			$pass[] = $alphabet[$n];
-		}
-		return implode($pass);
 	}
 
 }

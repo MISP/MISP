@@ -6,17 +6,36 @@ App::uses('AppHelper', 'View/Helper');
 // Used for things such as searches in the logs to highlight found terms
 
 	class HighlightHelper extends AppHelper {
-		public function highlighter($str, $keyWords) {
-			if (is_array($keyWords)) {
-				foreach ($keyWords as $keyword) {
-					$keyword = trim($keyword);
-					$str = preg_replace('%' . $keyword . '%i', '<span style="color:red">' . $keyword . '</span>', $str);
-				}
-				return $str;
+
+		/**
+		 * Important: data needs to be sanitized using the h() function before entering this function
+		 * @param unknown_type $keywordArray
+		 */
+		public function build_replace_pairs($keywordArray) {
+			// build the $replacePairs variable used to highlight the keywords
+			$replacementArray = array();
+			if (!is_array($keywordArray)) {
+				$keywordArray = array($keywordArray);
+			}
+			foreach ($keywordArray as $k => &$keywordArrayElement) {
+			    $keywordArrayElement = trim($keywordArrayElement);
+			    if ("" == $keywordArrayElement) {
+			    	unset($keywordArray[$k]);
+			    	continue;
+			    }
+			    $replacementArray[] = '<span style="color:red">'.$keywordArrayElement.'</span>';
+			}
+			if (!empty($replacementArray))
+			    return array_combine($keywordArray, $replacementArray);
+		}
+
+		public function highlighter($str, $replacePairs) {
+			if (is_array($replacePairs)) {
+				return strtr($str, $replacePairs);
 			} else {
-				$str = preg_replace('%' . $keyWords . '%i', '<span style="color:red">' . $keyWords . '</span>', $str);
 				return $str;
 			}
+
 		}
 	}
 ?>
