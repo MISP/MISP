@@ -144,7 +144,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 				?>
 				<div class="arrow_box">
 				<span title="<?php echo h($v[1]); ?>">
-				<?php  echo $this->Html->link(h($v[2]) . ' (' . h($v[0]) . ')', array('controller' => 'events', 'action' => 'view', $v[0], true));?>
+				<?php  echo $this->Html->link(h($v[2]) . ' (' . h($v[0]) . ')', array('controller' => 'events', 'action' => 'view', $v[0], true, true));?>
 				</span>
 
 				</div>
