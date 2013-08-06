@@ -198,7 +198,7 @@ if (!empty($event['Attribute'])):?>
 			</td>
 			<td class="showspaces <?php echo $extra; ?>"><?php $sigDisplay = $attribute['value'];
 			if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
-				$filenameHash = explode('|', $attribute['value']);
+				$filenameHash = explode('|', nl2br(h($attribute['value'])));
 				if (strrpos($filenameHash[0], '\\')) {
 					$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
 					$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
