@@ -8,10 +8,14 @@
 				'after' => $this->Html->div('forminfo', '', array('id' => 'AttributeCategoryDiv')),
 				));
 		if ('true' == Configure::read('CyDefSIG.sync')) {
+			$initialDistribution = 3;
+			if (Configure::read('MISP.default_attribute_distribution') != null) {
+				$initialDistribution = Configure::read('MISP.default_attribute_distribution');
+			}
 			echo $this->Form->input('distribution', array(
 					'options' => $distributionLevels,
 					'label' => 'Distribution',
-					'selected' => $currentDist,
+					'selected' => $initialDistribution,
 					'after' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv')),
 			));
 			//'before' => $this->Html->div('forminfo', isset($attrDescriptions['distribution']['formdesc']) ? $attrDescriptions['distribution']['formdesc'] : $attrDescriptions['distribution']['desc']),));

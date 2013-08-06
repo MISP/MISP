@@ -142,6 +142,8 @@ Configure::write('CyDefSIG.dns', 'false');				// there is a nameserver available
 //Configure::write('MISP.welcome_text_bottom', 'instance');     // used in Events::login after the MISP logo
 //Configure::write('MISP.welcome_logo', 'organisation');     // used in Events::login to the left of the MISP logo, place a .png file in app/webroot/img with the name specified here. In this case it would be organisation.png
 Configure::write('MISP.disablerestalert', 'false');
+Configure::write('MISP.default_event_distribution', 3);
+Configure::write('MISP.default_attribute_distribution', 3);
 
 /**
  * The settings below can be used to set additional paths to models, views and controllers.

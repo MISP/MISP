@@ -495,6 +495,9 @@ class AttributesController extends AppController {
 				$attribute['value'] = $entry['Value'];
 				$attribute['to_ids'] = ($entry['Confidence'] > 51) ? 1 : 0; // To IDS if high confidence
 				$attribute['distribution'] = 3; // 'All communities'
+				if (Configure::read('MISP.default_attribute_distribution') != null) {
+					$attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+				}
 				switch($entry['Type']) {
 					case 'Address':
 						$attribute['category'] = 'Network activity';
