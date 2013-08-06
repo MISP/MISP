@@ -83,7 +83,7 @@ class EventsController extends AppController {
 	 */
 	public function index() {
 		// list the events
-
+		
 		// TODO information exposure vulnerability - as we don't limit the filter depending on the CyDefSIG.showorg parameter
 		// this filter will work if showorg=false and users will be able to perform the filtering and see what events were posted by what org.
 		// same goes for orgc in all cases
@@ -562,6 +562,9 @@ class EventsController extends AppController {
 		if ($saveResult) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
+				if ('true' != Configure::read('MISP.disablerestalert')) {
+					$this->__sendAlertEmail($this->Event->getId());
+				}
 				$this->__publish($this->Event->getId(), $passAlong);
 			}
 			return true;
@@ -2057,7 +2060,6 @@ class EventsController extends AppController {
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
 		}
-		$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
