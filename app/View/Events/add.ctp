@@ -7,11 +7,15 @@
 				'type' => 'text',
 				'class' => 'datepicker'
 		));
+		$initialDistribution = 3;
+		if (Configure::read('MISP.default_event_distribution') != null) {
+			$initialDistribution = Configure::read('MISP.default_event_distribution');
+		}
 		if ('true' == Configure::read('CyDefSIG.sync')) {
 			echo $this->Form->input('distribution', array(
 					'options' => array($distributionLevels),
 					'label' => 'Distribution',
-		'selected' => '3',
+					'selected' => $initialDistribution,
 					));
 		}
 		echo $this->Form->input('risk', array(
