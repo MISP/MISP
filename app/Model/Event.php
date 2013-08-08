@@ -376,12 +376,14 @@ class Event extends AppModel {
 		        'order' => array('Correlation.event_id DESC')));
 		$relatedAttributes = array();
 		foreach($correlations as $correlation) {
-		    $relatedAttributes[$correlation['Correlation']['1_attribute_id']][] = array(
+			$current = array(
 		            'id' => $correlation['Correlation']['event_id'],
 		            'org' => $correlation['Correlation']['org'],
 		    		'info' => $correlation['Correlation']['info']
 		    );
-
+			if (empty($relatedAttributes[$correlation['Correlation']['1_attribute_id']]) || !in_array($current, $relatedAttributes[$correlation['Correlation']['1_attribute_id']])) {
+		    	$relatedAttributes[$correlation['Correlation']['1_attribute_id']][] = $current;
+			}
 		}
 		return $relatedAttributes;
 	}
