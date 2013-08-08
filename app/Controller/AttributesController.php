@@ -489,12 +489,15 @@ class AttributesController extends AppController {
 			// import attributes
 			//
 			$attributes = array();  // array with all the attributes we're going to save
+			$this->loadModel('Event');
+			$this->Event->recursive = -1;
+			$this->Event->read(null, $eventId);
 			foreach($entries as $entry) {
 				$attribute = array();
 				$attribute['event_id'] = $this->request->data['Attribute']['event_id'];
 				$attribute['value'] = $entry['Value'];
 				$attribute['to_ids'] = ($entry['Confidence'] > 51) ? 1 : 0; // To IDS if high confidence
-				$attribute['distribution'] = 3; // 'All communities'
+				$attribute['distribution'] = '3'; // 'All communities'
 				if (Configure::read('MISP.default_attribute_distribution') != null) {
 					if (Configure::read('MISP.default_attribute_distribution') === 'event') {
 						$attribute['distribution'] = $this->Event->data['Event']['distribution'];
