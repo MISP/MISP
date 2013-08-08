@@ -13,7 +13,11 @@
 		if ('true' == Configure::read('CyDefSIG.sync')) {
 			$initialDistribution = 3;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
-				$initialDistribution = Configure::read('MISP.default_attribute_distribution');
+				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+					$initialDistribution = $currentDist;	
+				} else {
+					$initialDistribution = Configure::read('MISP.default_attribute_distribution');
+				}
 			}
 			echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
