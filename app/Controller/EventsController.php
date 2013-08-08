@@ -1835,10 +1835,14 @@ class EventsController extends AppController {
 			$this->Event->read(null, $id);
 			$saveEvent['Event'] = $this->Event->data['Event'];
 			$saveEvent['Event']['published'] = false;
-			$dist = '3';
+			$dist = 3;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
-				$dist = '';
-				$dist .= Configure::read('MISP.default_attribute_distribution');
+				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+					$dist = $this->Event->data['Event']['distribution'];
+				} else {
+					$dist = '';
+					$dist .= Configure::read('MISP.default_attribute_distribution');
+				}
 			}
 			// read XML
 			$event = $this->IOCImport->readXML($fileData, $id, $dist);
