@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   `timestamp` int(11) NOT NULL DEFAULT '0',
   `distribution` tinyint(4) NOT NULL DEFAULT '0',
   `proposal_email_lock` tinyint(1) NOT NULL DEFAULT '0',
+  `locked` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `uuid` (`uuid`),
   FULLTEXT KEY `info` (`info`)
