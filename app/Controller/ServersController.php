@@ -280,7 +280,7 @@ class ServersController extends AppController {
 							}
 						} else {
 							$result = $eventsController->_edit($event, $existingEvent['Event']['id']);
-							if ($result === 'Success') $successes[] = $eventId;
+							if ($result === 'success') $successes[] = $eventId;
 							else $fails[$eventId] = $result;
 						}
 					} else {
