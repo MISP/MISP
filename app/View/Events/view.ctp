@@ -36,6 +36,8 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 		<?php if ($isAclAdd): ?>
 		<li><a href="/events/add">Add Event</a></li>
 		<?php endif; ?>
+		<li class="divider"></li>
+		<li><a href="/posts/add/null/null/event/<?php echo $event['Event']['id'];?>">Leave comment</a></li>
 	</ul>
 </div>
 
@@ -408,6 +410,9 @@ if (!empty($event['Attribute'])):?>
 				<?php
 				endif; ?>
 		</div>
+		<?php 
+			echo $this->element('eventdiscussion');
+		?>
 </div>
 <script type="text/javascript">
 // tooltips

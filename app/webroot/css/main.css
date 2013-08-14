@@ -465,4 +465,42 @@ dd {
 	margin-top: -11px;
 }
 
+.discussionBox {
 
+	border-collapse: separate;
+}
+
+.discussionBoxTD {
+	line-height: 20px;
+	padding-right: 8px;
+	padding-left: 8px;
+	padding-bottom: 4px;
+	border-color: #b2b2b2;
+	border-style: solid;
+	border-width: 1px;
+
+}
+
+.discussionBoxTDtop {
+	padding-top: 8px;
+	border-top-left-radius:7px;
+	border-top-right-radius:7px;
+	background-color: #F0F0F0;
+}
+
+.discussionBoxTDMid {
+	padding-top: 8px;
+	border-top: 0px;
+	border-bottom: 0px;
+}
+
+.discussionBoxTDbottom {
+	border-bottom-left-radius:7px;
+	border-bottom-right-radius:7px;
+	background-color: #F0F0F0;
+	padding-left: 8px;
+	padding-bottom: 4px;
+	padding-top: 4px;
+}
+
+	

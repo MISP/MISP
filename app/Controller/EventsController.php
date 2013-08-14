@@ -231,6 +231,11 @@ class EventsController extends AppController {
 			$this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
 		}
 		$this->set('allPivots', $this->Session->read('pivot_thread'));
+		// Show the discussion
+		$this->loadModel('Thread');
+		$thread = $this->Thread->find('first', array('conditions' => array('event_id' => $id)));
+		$this->set('posts', $thread['Post']);
+		$this->set('myuserid', $this->Auth->user('id'));
 	}
 	
 	private function __startPivoting($id, $info, $date){
@@ -628,7 +633,6 @@ class EventsController extends AppController {
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
-
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
 				$saveEvent = true;
