@@ -410,9 +410,13 @@ if (!empty($event['Attribute'])):?>
 				<?php
 				endif; ?>
 		</div>
-		<?php 
-			echo $this->element('eventdiscussion');
-		?>
+		<h3>Discussion</h3>
+		<div id="discussion">
+			<?php 
+				echo $this->element('eventdiscussion');
+			?>
+			<a href = <?php echo Configure::read('CyDefSIG.baseurl') . '/posts/add/event/' . $event['Event']['id']; ?>><span class="btn btn-primary">Add comment</span></a>
+		</div>
 </div>
 <script type="text/javascript">
 // tooltips
@@ -422,5 +426,7 @@ $(document).ready(function () {
 		'container' : 'body',
 		delay: { show: 500, hide: 100 }
 		});
+	$('#discussion').hide();
 });
+
 </script>

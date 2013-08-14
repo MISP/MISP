@@ -466,41 +466,61 @@ dd {
 }
 
 .discussionBox {
-
 	border-collapse: separate;
+	box-shadow: 5px 5px 5px #888888;
+	width:100%;
+	max-width:900px;
 }
 
 .discussionBoxTD {
-	line-height: 20px;
 	padding-right: 8px;
 	padding-left: 8px;
-	padding-bottom: 4px;
-	border-color: #b2b2b2;
 	border-style: solid;
-	border-width: 1px;
+	border-width: 0px;
 
 }
 
 .discussionBoxTDtop {
-	padding-top: 8px;
-	border-top-left-radius:7px;
-	border-top-right-radius:7px;
-	background-color: #F0F0F0;
-}
-
-.discussionBoxTDMid {
-	padding-top: 8px;
-	border-top: 0px;
-	border-bottom: 0px;
+	color: #ffffff;
+	background-color: #cccccc;
 }
 
 .discussionBoxTDbottom {
-	border-bottom-left-radius:7px;
-	border-bottom-right-radius:7px;
-	background-color: #F0F0F0;
+	background-color: #eeeeee;
 	padding-left: 8px;
 	padding-bottom: 4px;
 	padding-top: 4px;
 }
 
+.discussionBoxTDMid {
+	padding-top: 8px;
+	height: 100px;
+	vertical-align: top;
+}
+
+.discussionBoxTDMidLeft {
+	background-color: #eeeeee;
+	width: 80px;
+	text-align:center;
+}
+
+.discussionBoxTDMidRight {
+}
+
+.whitelink {
+	color:#ffffff;
+}
+
+.quote {
+	margin: 0 10px;
+	margin-bottom: 10px;
+	-moz-border-radius: 0px;
+	-webkit-border-radius: 0px;
+	background: #f2f6f8 none;
+	border-radius: 0px;
+	border: 1px solid #417394;
+	position: relative;
+	top: 0;
+	padding: 4px;
+}
 	

@@ -1,7 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
-
 /**
  * Events Controller
  *
@@ -233,7 +232,17 @@ class EventsController extends AppController {
 		$this->set('allPivots', $this->Session->read('pivot_thread'));
 		// Show the discussion
 		$this->loadModel('Thread');
-		$thread = $this->Thread->find('first', array('conditions' => array('event_id' => $id)));
+		$params = array('conditions' => array('event_id' => $id),
+				'contain' => array(
+						'Post' => array(
+							'User',
+						),
+				)
+		);
+		$thread = $this->Thread->find('first', $params);
+		if (empty($thread)) {
+			$thread['Post'] = array();
+		}
 		$this->set('posts', $thread['Post']);
 		$this->set('myuserid', $this->Auth->user('id'));
 	}

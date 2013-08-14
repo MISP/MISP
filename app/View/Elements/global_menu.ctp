@@ -110,7 +110,16 @@
 						</ul>
 					</li>
 					<?php endif;?>
-
+					<li class="dropdown">
+						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+							Discussions
+							<b class="caret"></b>
+						</a>
+						<ul class="dropdown-menu">
+							<li><a href="/threads/index">List Discussions</a></li>
+							<li><a href="/posts/add">Start Discussion</a></li>
+						</ul>
+					</li>
 				</ul>
 			</div>
 			<div class="nav-collapse collapse pull-right">
