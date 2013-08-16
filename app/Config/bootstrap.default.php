@@ -136,6 +136,8 @@ Configure::write('SecureAuth.expire', 300);            // the time-window for th
 
 Configure::write('CyDefSIG.dns', 'false');				// there is a nameserver available to do resolution.
 
+Configure::write('CyDefSig.cveurl', 'http://web.nvd.nist.gov/view/vuln/detail?vulnId='); 	// Default URL for NVD/CVE reference.
+
 // The following 3 fields are optional
 
 //Configure::write('MISP.welcome_text_top', 'Welcome to the Organisation community\'s');     // used in Events::login before the MISP logo

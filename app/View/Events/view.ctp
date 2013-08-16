@@ -213,7 +213,12 @@ if (!empty($event['Attribute'])):?>
 				echo h($filenameHash[0]);
 				if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 			} elseif ('vulnerability' == $attribute['type']) {
-				echo $this->Html->link(h($sigDisplay), 'http://www.google.com/search?q=' . h($sigDisplay), array('target' => '_blank'));
+				if (! is_null(Configure::read('CyDefSig.cveurl'))) {
+					$cveUrl = Configure::read('CyDefSig.cveurl');
+				} else {
+					$cveUrl = "http://www.google.com/search?q=";
+				}
+				echo $this->Html->link(h($sigDisplay), h($cveUrl) . h($sigDisplay), array('target' => '_blank'));
 			} elseif ('link' == $attribute['type']) {
 				echo $this->Html->link(h($sigDisplay), h($sigDisplay));
 			} else {
