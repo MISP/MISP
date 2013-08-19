@@ -426,7 +426,7 @@ $(document).ready(function () {
 		'container' : 'body',
 		delay: { show: 500, hide: 100 }
 		});
-	$('#discussion').hide();
+
 });
 
 </script>

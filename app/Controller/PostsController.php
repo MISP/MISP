@@ -114,8 +114,8 @@ class PostsController extends AppController {
 					$event_id = $this->Event->data['Event']['id'];
 				}
 				$newThread = array(
-						'date_created' => date('Y/m/d h:i:s'),
-						'date_modified' => date('Y/m/d h:i:s'),
+						'date_created' => date('Y/m/d H:i:s'),
+						'date_modified' => date('Y/m/d H:i:s'),
 						'user_id' => $this->Auth->user('id'),
 						'event_id' => $event_id,
 						'title' => $title,
@@ -128,7 +128,7 @@ class PostsController extends AppController {
 			} else {
 				// In this case, we have a post that was posted in an already existing thread. Update the thread!
 				$this->Thread->read(null, $target_thread_id);
-				$this->Thread->data['Thread']['date_modified'] = date('Y/m/d h:i:s');
+				$this->Thread->data['Thread']['date_modified'] = date('Y/m/d H:i:s');
 				$this->Thread->save();
 			}
 			
@@ -136,8 +136,8 @@ class PostsController extends AppController {
 			// Time to create our post! 
 			$this->Post->create();
 			$newPost = array(
-					'date_created' => date('Y/m/d h:i:s'),
-					'date_modified' => date('Y/m/d h:i:s'),
+					'date_created' => date('Y/m/d H:i:s'),
+					'date_modified' => date('Y/m/d H:i:s'),
 					'user_id' => $this->Auth->user('id'),
 					'contents' => $this->request->data['Post']['message'],
 					'post_id' => $post_id,
@@ -176,7 +176,7 @@ class PostsController extends AppController {
 			throw new MethodNotAllowedException('This is not your event.');
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
-			$this->request->data['Post']['date_modified'] = date('Y/m/d h:i:s');
+			$this->request->data['Post']['date_modified'] = date('Y/m/d H:i:s');
 			$fieldList = array('date_modified', 'contents');
 			if ($this->Post->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash('Post edited');
@@ -224,14 +224,7 @@ class PostsController extends AppController {
 			$this->redirect(array('controller' => 'threads', 'action' => 'view', $thread));
 
 	}
-	
-	public function index($thread_id) {
-		$this->loadModel('Thread');
-		$this->Thread->id = $thread_id;
-		if (!$this->Thread->exists()) {
-			throw new NotFoundException(__('Invalid thread'));
-		}
-	}
+
 	
 	// Views the proper context for the post
 	public function view($post_id) {

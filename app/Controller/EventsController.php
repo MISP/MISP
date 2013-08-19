@@ -233,18 +233,31 @@ class EventsController extends AppController {
 		// Show the discussion
 		$this->loadModel('Thread');
 		$params = array('conditions' => array('event_id' => $id),
-				'contain' => array(
-						'Post' => array(
-							'User',
-						),
-				)
+				'recursive' => -1,
+				'fields' => array('id', 'event_id', 'distribution', 'title')
 		);
 		$thread = $this->Thread->find('first', $params);
-		if (empty($thread)) {
-			$thread['Post'] = array();
+		if (!empty($thread)) {
+			if ($thread['Thread']['distribution'] != $result['Event']['distribution']) {
+				$this->Thread->saveField('distribution', $result['Event']['distribution']);
+			}
+			$this->loadModel('Post');
+			$this->paginate['Post'] = array(
+					'limit' => 5,
+					'conditions' => array('Post.thread_id' => $thread['Thread']['id']),
+					'contain' => 'User'
+			);
+			$posts = $this->paginate('Post');
+			// Show the discussion
+			$this->set('posts', $posts);
+			$this->set('thread_id', $thread['Thread']['id']);
+			$this->set('myuserid', $this->Auth->user('id'));
+			$this->set('thread_title', $thread['Thread']['title']);
+			if ($this->request->is('ajax')) {
+				$this->layout = 'ajax';
+				$this->render('/Elements/eventdiscussion');
+			}
 		}
-		$this->set('posts', $thread['Post']);
-		$this->set('myuserid', $this->Auth->user('id'));
 	}
 	
 	private function __startPivoting($id, $info, $date){
