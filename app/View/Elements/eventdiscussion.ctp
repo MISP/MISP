@@ -5,8 +5,8 @@
         $this->Paginator->options(array(
             'update' => '#top',
             'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
+            'before' => '$(".loading").show()',
+            'complete' => '$(".loading").hide()',
         ));
 
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
@@ -121,5 +121,27 @@
         ?>
         </ul>
     </div>
+	<div class="comment">
+	<?php echo $this->Form->create('Post');?>
+		<fieldset>
+		<?php
+			echo $this->Form->input('message', array(
+					'type' => 'textarea',
+					'div' => 'input clear',
+					'class' => 'input-xxlarge',
+			));
+		?>
+		</fieldset>
+	<?php
+	echo $this->Js->submit('Send', array(
+			'before'=>$this->Js->get('#loading')->effect('fadeIn'),
+			'success'=>$this->Js->get('#loading')->effect('fadeOut'),
+			'update'=>'#top',
+			'class'=>'btn btn-primary',
+			'url' => '/posts/add/thread/' . $thread_id
+	));
+	echo $this->Form->end();
+	?>
+	</div>
 </div>
-	<?php echo $this->Js->writeBuffer();?>
+<?php echo $this->Js->writeBuffer();?>

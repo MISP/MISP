@@ -11,8 +11,11 @@ class PostsController extends AppController {
 	public $components = array(
 		'Security',
 		'Session',
+		'RequestHandler'
 	);
 
+	public $helpers = array('Js' => array('Jquery'));
+	
 	public $paginate = array(
 			'limit' => 60,
 	);
@@ -27,7 +30,7 @@ class PostsController extends AppController {
 	// /posts/add/event/id : Checks if the event already has a thread, if no it creates one. The post is added to the event's thread
 	// /posts/add/thread/id : Adds a post to the thread specified
 	// /posts/add/post/id : Adds a post as a reply to another post. The system finds the appropriate thread, adds the post to the thread and links to the post that is being replied to. 
-	public function add($target_type = null, $target_id = null) {
+	public function add($target_type = null, $target_id = null, $quick = false) {
 		$this->loadModel('Thread');
 		$this->Thread->recursive = -1;
 		$distribution = 1;
@@ -193,6 +196,30 @@ class PostsController extends AppController {
 		$this->set('title', $this->Post->data['Thread']['title']);
 		$this->set('contents', $this->Post->data['Post']['contents']);
 		$this->set('id', $post_id);
+	}
+	
+	public function quick_add() {
+		if($this->RequestHandler->isAjax()) {
+			$this->layout = 'ajax'; //THIS LINE NEWLY ADDED
+			if(!empty($this->data)) {
+				if($this->Message->save($this->data)) {
+					$this->Session->setFlash('Your Message has been posted');
+				}
+			}
+		}
+	}
+	
+	
+	public function quick_edit() {
+		throw new Exception();
+		if($this->RequestHandler->isAjax()) {
+			$this->layout = 'ajax'; //THIS LINE NEWLY ADDED
+			if(!empty($this->data)) {
+				if($this->Message->save($this->data)) {
+					$this->Session->setFlash('Your Message has been posted');
+				}
+			}
+		}
 	}
 	
 	public function delete($post_id) {

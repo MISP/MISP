@@ -70,5 +70,9 @@
 	echo $this->Html->script('main');
 	?>
 	</div>
+	<div class="loading">
+		<div class="spinner"></div>
+		<div class="loadingText">Loading</div>
+	</div>
 </body>
 </html>

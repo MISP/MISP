@@ -254,6 +254,7 @@ class EventsController extends AppController {
 			$this->set('myuserid', $this->Auth->user('id'));
 			$this->set('thread_title', $thread['Thread']['title']);
 			if ($this->request->is('ajax')) {
+				$this->disableCache();
 				$this->layout = 'ajax';
 				$this->render('/Elements/eventdiscussion');
 			}

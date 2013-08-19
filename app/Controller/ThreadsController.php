@@ -25,7 +25,8 @@ class ThreadsController extends AppController {
 	}
 	
 	
-	public function view($thread_id) {		$this->Thread->recursive = -1;
+	public function view($thread_id) {		
+		$this->Thread->recursive = -1;
 		$this->Thread->id = $thread_id;
 		
 		//If the thread doesn't exist, throw exception

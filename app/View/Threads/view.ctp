@@ -3,9 +3,6 @@
 <?php
 	echo $this->element('eventdiscussion');
 ?>
-		<div>
-			<a href = <?php echo Configure::read('CyDefSIG.baseurl') . '/posts/add/thread/' . $thread_id; ?>><span class="btn btn-primary">Add comment</span></a>
-		</div>
 </div>
 <div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
