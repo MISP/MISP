@@ -1048,7 +1048,6 @@ class EventsController extends AppController {
 			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-
 			$this->loadModel('User');
 
 			//
@@ -1065,24 +1064,21 @@ class EventsController extends AppController {
 						'conditions' => $conditions,
 						'recursive' => 0,
 				));
-				$alertEmails = Array();
 				foreach ($alertUsers as &$user) {
-					$alertEmails[] = $user['User']['email'];
+					// prepare the the unencrypted email
+					$this->Email->from = Configure::read('CyDefSIG.email');
+					$this->Email->to = $user['User']['email'];
+					$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
+					$this->Email->template = 'body';
+					$this->Email->sendAs = 'text';	// both text or html
+					$this->set('body', $bodySigned);
+					// send it
+					$this->Email->send();
+					// If you wish to send multiple emails using a loop, you'll need
+					// to reset the email fields using the reset method of the Email component.
+					$this->Email->reset();
 				}
-				// prepare the the unencrypted email
-				$this->Email->from = Configure::read('CyDefSIG.email');
-				$this->Email->bcc = $alertEmails;
-				$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
-				$this->Email->template = 'body';
-				$this->Email->sendAs = 'text';	// both text or html
-				$this->set('body', $bodySigned);
-				// send it
-				$this->Email->send();
-				// If you wish to send multiple emails using a loop, you'll need
-				// to reset the email fields using the reset method of the Email component.
-				$this->Email->reset();
 			}
-
 			//
 			// Build a list of the recipients that wish to receive encrypted mails.
 			//
