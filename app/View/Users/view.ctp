@@ -50,8 +50,8 @@
 		<dt><?php echo __('GPG Key'); ?></dt>
 		<dd>
 		<?php
-if (h($user['User']['gpgkey']) != 0) {
-	echo "<code>" + nl2br(h($user['User']['gpgkey'])) + "</code>";
+if (!empty($user['User']['gpgkey'])) {
+	echo "<code>" . nl2br(h($user['User']['gpgkey'])) . "</code>";
 } else {
 	echo "N/A";
 }

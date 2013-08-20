@@ -77,7 +77,7 @@ class ShadowAttributesController extends AppController {
 			// Find the live attribute by the shadow attribute's uuid, so we can begin editing it
 			$this->Attribute->contain = 'Event';
 			$activeAttribute = $this->Attribute->findByUuid($this->ShadowAttribute->data['ShadowAttribute']['uuid']);
-
+			
 			// Send those away that shouldn't be able to see this
 			if (!$this->_isSiteAdmin()) {
 				if (($activeAttribute['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org']) || (!$this->userRole['perm_modify'] || !$this->userRole['perm_publish'])) {

@@ -1072,7 +1072,7 @@ class EventsController extends AppController {
 				// prepare the the unencrypted email
 				$this->Email->from = Configure::read('CyDefSIG.email');
 				$this->Email->bcc = $alertEmails;
-				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
+				$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';	// both text or html
 				$this->set('body', $bodySigned);
@@ -1101,7 +1101,7 @@ class EventsController extends AppController {
 				// send the email
 				$this->Email->from = Configure::read('CyDefSIG.email');
 				$this->Email->to = $user['User']['email'];
-				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
+				$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';		// both text or html
 
@@ -1296,7 +1296,7 @@ class EventsController extends AppController {
 			$this->Email->from = Configure::read('CyDefSIG.email');
 			$this->Email->replyTo = $this->Auth->user('email');
 			$this->Email->to = $reporter['User']['email'];
-			$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Need info about event " . $id . " - TLP Amber";
+			$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Need info about event " . $id . " - TLP Amber";
 			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
 			$this->Email->template = 'body';
 			$this->Email->sendAs = 'text';		// both text or html
