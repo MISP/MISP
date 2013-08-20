@@ -77,12 +77,12 @@ class ShadowAttributesController extends AppController {
 			// Find the live attribute by the shadow attribute's uuid, so we can begin editing it
 			$this->Attribute->contain = 'Event';
 			$activeAttribute = $this->Attribute->findByUuid($this->ShadowAttribute->data['ShadowAttribute']['uuid']);
-
+			
 			// Send those away that shouldn't be able to see this
 			if (!$this->_isSiteAdmin()) {
-				if (($activeAttribute['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org']) || (!$this->userRole['perm_modify'] || !$this->userRole['perm_publish'])) {
-					$this->Session->setFlash(__('Invalid attribute.'));
-					$this->redirect(array('controller' => 'events', 'action' => 'index'));
+				if ((($activeAttribute['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org'])) || (!$this->userRole['perm_modify'])) {
+					$this->Session->setFlash('You don\'t have permission to do that');
+					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->ShadowAttribute->data['ShadowAttribute']['event_id']));
 				}
 			}
 			// Update the live attribute with the shadow data
@@ -111,11 +111,21 @@ class ShadowAttributesController extends AppController {
 			$this->loadModel('Event');
 			$toDeleteId = $shadow['id'];
 
-			// Stuff that we won't use in its current form for the attribute
-			unset($shadow['email'], $shadow['org'], $shadow['id'], $shadow['old_id']);
+
 			$this->loadModel('Event');
 			$this->Event->recursive = -1;
 			$event = $this->Event->read(null, $shadow['event_id']);
+			
+			if (!$this->_isSiteAdmin()) {
+				if ((($event['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $shadow['org'])) || (!$this->userRole['perm_modify'])) {
+					$this->Session->setFlash('You don\'t have permission to do that');
+					$this->redirect(array('controller' => 'events', 'action' => 'view', $shadow['ShadowAttribute']['event_id']));
+				}
+			}
+			
+			// Stuff that we won't use in its current form for the attribute
+			unset($shadow['email'], $shadow['org'], $shadow['id'], $shadow['old_id']);
+			
 			$attribute = $shadow;
 
 			// set the distribution equal to that of the event
@@ -168,9 +178,9 @@ class ShadowAttributesController extends AppController {
 		$this->Event->read();
 		// Send those away that shouldn't be able to see this
 		if (!$this->_isSiteAdmin()) {
-			if (($this->Event->data['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org']) && (!$this->userRole['perm_modify'] || !$this->userRole['perm_publish'])) {
-				$this->Session->setFlash(__('Invalid attribute.'));
-				$this->redirect(array('controller' => 'events', 'action' => 'index'));
+			if ((($this->Event->data['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org'])) || (!$this->userRole['perm_modify'])) {
+				$this->Session->setFlash('You don\'t have permission to do that');
+				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 			}
 		}
 		$this->ShadowAttribute->delete($id, $cascade = false);
@@ -197,6 +207,7 @@ class ShadowAttributesController extends AppController {
 			//
 			// multiple attributes in batch import
 			//
+			
 			if ((isset($this->request->data['ShadowAttribute']['batch_import']) && $this->request->data['ShadowAttribute']['batch_import'] == 1)) {
 				// make array from value field
 				$attributes = explode("\n", $this->request->data['ShadowAttribute']['value']);
@@ -212,6 +223,7 @@ class ShadowAttributesController extends AppController {
 					$this->request->data['ShadowAttribute']['value'] = $attribute; // set the value as the content of the single line
 					$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 					$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
+					$this->request->data['ShadowAttribute']['distribution'] = -$$this->Auth->user('org');
 					// TODO loop-holes,
 					// there seems to be a loop-hole in misp here
 					// be it an create and not an update
@@ -278,8 +290,6 @@ class ShadowAttributesController extends AppController {
 		array_pop($categories);
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', compact('categories'));
-		$this->loadModel('Event');
-		$events = $this->Event->findById($eventId);
 		// combobox for distribution
 		$count = 0;
 
@@ -621,8 +631,7 @@ class ShadowAttributesController extends AppController {
 			// prepare the email
 			$this->Email->from = Configure::read('CyDefSIG.email');
 			$this->Email->to = $reporter['User']['email'];
-			$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Proposal to event #" . $id;
-			$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
+			$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Proposal to event #" . $id;
 			$this->Email->template = 'body';
 			$this->Email->sendAs = 'text';		// both text or html
 			$this->set('body', $bodyEncSig);
