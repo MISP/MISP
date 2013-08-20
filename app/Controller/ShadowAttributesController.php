@@ -75,7 +75,7 @@ class ShadowAttributesController extends AppController {
 		// If the old_id is set to anything but 0 then we're dealing with a proposed edit to an existing attribute
 		if ($shadow['old_id'] != 0) {
 			// Find the live attribute by the shadow attribute's uuid, so we can begin editing it
-			$this->Attribute->recursive = -1;
+			$this->Attribute->contain = 'Event';
 			$activeAttribute = $this->Attribute->findByUuid($this->ShadowAttribute->data['ShadowAttribute']['uuid']);
 
 			// Send those away that shouldn't be able to see this
