@@ -80,7 +80,7 @@ class ShadowAttributesController extends AppController {
 			
 			// Send those away that shouldn't be able to see this
 			if (!$this->_isSiteAdmin()) {
-				if ((($activeAttribute['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org'])) || (!$this->userRole['perm_modify'])) {
+				if ($activeAttribute['Event']['orgc'] != $this->Auth->user('org') || (!$this->userRole['perm_modify'])) {
 					$this->Session->setFlash('You don\'t have permission to do that');
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->ShadowAttribute->data['ShadowAttribute']['event_id']));
 				}
@@ -119,7 +119,7 @@ class ShadowAttributesController extends AppController {
 			if (!$this->_isSiteAdmin()) {
 				if ((($event['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $shadow['org'])) || (!$this->userRole['perm_modify'])) {
 					$this->Session->setFlash('You don\'t have permission to do that');
-					$this->redirect(array('controller' => 'events', 'action' => 'view', $shadow['ShadowAttribute']['event_id']));
+					$this->redirect(array('controller' => 'events', 'action' => 'index'));
 				}
 			}
 			
@@ -142,7 +142,7 @@ class ShadowAttributesController extends AppController {
 			$event['Event']['published'] = 0;
 			$this->Event->save($event, array('fieldList' => $fieldList));
 			$this->Session->setFlash(__('Proposed attribute accepted', true), 'default', array());
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $shadow['event_id']));
+			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
 	}
 
