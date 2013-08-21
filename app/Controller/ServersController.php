@@ -202,6 +202,8 @@ class ServersController extends AppController {
 							$this->Server->data);
 					if (null != $event) {
 						// we have an Event array
+						// The event came from a pull, so it should be locked.
+						$event['Event']['locked'] = true;
 						if (!isset($event['Event']['distribution'])) { // version 1
 							$event['Event']['distribution'] = '1';
 						}
@@ -330,7 +332,7 @@ class ServersController extends AppController {
 		} else {
 			$this->redirect(array('action' => 'index'));
 		}
-		if (!$eventIds) {
+		if (!isset($eventIds)) {
 			$findParams = array(
 			        'conditions' => array(
 			                $eventid_conditions_key => $eventid_conditions_value,
@@ -343,6 +345,7 @@ class ServersController extends AppController {
 			);
 			$eventIds = $this->Event->find('all', $findParams);
 		}
+		//debug($eventIds);
 		// now process the $eventIds to pull each of the events sequentially
 		if (!empty($eventIds)) {
 			$successes = array();
@@ -352,12 +355,13 @@ class ServersController extends AppController {
 			foreach ($eventIds as $eventId) {
 				$this->Event->recursive=1;
 				$event = $this->Event->findById($eventId['Event']['id']);
+				$event['Event']['locked'] = true;
 				unset($event['User']);
 				$result = $this->Event->uploadEventToServer(
 				        $event,
 				        $this->Server->data,
 				        $HttpSocket);
-				if (true == $result) {
+				if ('Success' === $result) {
 				    $successes[] = $event['Event']['id'];
 				} else {
 				    $fails[$event['Event']['id']] = $result;
@@ -371,8 +375,12 @@ class ServersController extends AppController {
 			    $lastpushedid = max($successes);
 			}
 			// increment lastid based on the highest ID seen
-			$this->Server->saveField('lastpushedid', $lastpushedid);
+			// Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
+			$this->Server->data['Server']['lastpushedid'] = $lastpushedid;
+			$this->Server->save($this->Server->data);
 		}
+		if (!isset($successes)) $successes = null;
+		if (!isset($fails)) $fails = null;
 		$this->set('successes', $successes);
 		$this->set('fails', $fails);
 	}

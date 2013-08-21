@@ -104,6 +104,9 @@ class AttributesController extends AppController {
 			// remove the published flag from the event
 			$this->Event->recursive = -1;
 			$this->Event->read(null, $this->request->data['Attribute']['event_id']);
+			if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+				throw new UnauthorizedException('You do not have permission to do that.');
+			}
 			$this->Event->set('timestamp', $date->getTimestamp());
 			$this->Event->set('published', 0);
 			$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
@@ -277,6 +280,12 @@ class AttributesController extends AppController {
 		//$ssdeep = null;
 		if ($this->request->is('post')) {
 			$this->loadModel('Event');
+			$this->Event->id = $this->request->data['Attribute']['event_id'];
+			$this->Event->recursive = -1;
+			$this->Event->read();
+			if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+				throw new UnauthorizedException('You do not have permission to do that.');
+			}
 			// Check if there were problems with the file upload
 			// only keep the last part of the filename, this should prevent directory attacks
 			$filename = basename($this->request->data['Attribute']['value']['name']);
@@ -440,6 +449,14 @@ class AttributesController extends AppController {
 	 */
 	public function add_threatconnect($eventId = null) {
 		if ($this->request->is('post')) {
+
+			$this->loadModel('Event');
+			$this->Event->id = $eventId;
+			$this->Event->recursive = -1;
+			$this->Event->read();
+			if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+				throw new UnauthorizedException('You do not have permission to do that.');
+			}
 			//
 			// File upload
 			//
@@ -489,22 +506,17 @@ class AttributesController extends AppController {
 			// import attributes
 			//
 			$attributes = array();  // array with all the attributes we're going to save
-			$this->loadModel('Event');
-			$this->Event->recursive = -1;
-			$this->Event->read(null, $eventId);
 			foreach($entries as $entry) {
 				$attribute = array();
 				$attribute['event_id'] = $this->request->data['Attribute']['event_id'];
 				$attribute['value'] = $entry['Value'];
 				$attribute['to_ids'] = ($entry['Confidence'] > 51) ? 1 : 0; // To IDS if high confidence
-				$attribute['distribution'] = '3'; // 'All communities'
-				if (Configure::read('MISP.default_attribute_distribution') != null) {
-					if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-						$attribute['distribution'] = $this->Event->data['Event']['distribution'];
-					} else {
-						$attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+				$attribute['distribution'] = 3; // 'All communities'
+				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+					$attribute['distribution'] = $this->Event->data['Event']['distribution'];
+				} else {
+					$attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
 					}
-				}
 				switch($entry['Type']) {
 					case 'Address':
 						$attribute['category'] = 'Network activity';
@@ -615,8 +627,12 @@ class AttributesController extends AppController {
 			$uuid = $this->Attribute->data['Attribute']['uuid'];
 		}
 		if (!$this->_isSiteAdmin()) {
-			// check for non-private and re-read
-			if (($this->Attribute->data['Event']['org'] != $this->Auth->user('org')) || (($this->Attribute->data['Event']['org'] == $this->Auth->user('org')) && ($this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) && (!$this->userRole['perm_modify'] || !$this->userRole['perm_modify_org']))) {
+			// 
+			if ($this->Attribute->data['Event']['orgc'] == $this->Auth->user('org')
+				&& (($this->userRole['perm_modify'] && $this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) 
+					|| $this->userRole['perm_modify_org'])) {
+				// Allow the edit
+			} else {
 				$this->Session->setFlash(__('Invalid attribute.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
@@ -741,6 +757,20 @@ class AttributesController extends AppController {
 			$uuid = $result['Attribute']['uuid'];
 		}
 
+		// check for permissions
+		if (!$this->_isSiteAdmin()) {
+			$this->Attribute->read();
+			if ($this->Attribute->data['Event']['locked']) {
+				if ($this->_checkOrg() != $this->Attribute->data['Event']['org'] || !$this->userRole['perm_sync']) {
+					throw new MethodNotAllowedException();
+				}
+			} else {
+				if ($this->_checkOrg() != $this->Attribute->data['Event']['orgc']) {
+					throw new MethodNotAllowedException();
+				}	
+			}
+		}
+			
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->delete()) {
 			// delete the attribute from remote servers
