@@ -446,6 +446,11 @@ class EventsController extends AppController {
 	}
 
 	public function addIOC($id) {
+		$this->Event->recursive = -1;
+		$this->Event->read(null, $id);
+		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+			throw new UnauthorizedException('You do not have permission to do that.');
+		}
 		if ($this->request->is('post')) {
 			if (!empty($this->data)) {
 				$ext = '';
@@ -484,8 +489,6 @@ class EventsController extends AppController {
 
 		// set the id
 		$this->set('id', $id);
-		$this->Event->recursive = -1;
-		$this->Event->read(null, $id);
 		// set whether it is published or not
 		$this->set('published', $this->Event->data['Event']['published']);
 
@@ -550,11 +553,7 @@ class EventsController extends AppController {
 		}
 		// FIXME chri: validate the necessity for all these fields...impact on security !
 		$fieldList = array(
-				'Event' => array('orgc', 'date', 'risk', 'analysis', 'info', 'published', 'uuid'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision')
-		);
-		$fieldList = array(
-				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution'),
+				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
 		);
 		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
@@ -581,6 +580,9 @@ class EventsController extends AppController {
 
 		} else {
 			return 'Event exists and is the same or newer.';
+		}
+		if (!$this->Event->data['Event']['locked']) {
+			return 'Event originated on this instance, any changes to it have to be done locally.';
 		}
 		$fieldList = array(
 				'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
@@ -627,14 +629,14 @@ class EventsController extends AppController {
 		// check for if private and user not authorised to edit, go away
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
 			if (($this->Event->data['Event']['org'] != $this->_checkOrg()) || !($this->userRole['perm_modify'])) {
-				$this->Session->setFlash(__('You are not authorised to do that.'));
+				$this->Session->setFlash(__('You are not authorised to do that. Please considering using the propose attribute feature.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
 
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
-				$saveEvent = true;
+				$saveEvent = false;
 				// Workaround for different structure in XML/array than what CakePHP expects
 				$this->Event->cleanupEventArrayFromXML($this->request->data);
 
@@ -642,7 +644,6 @@ class EventsController extends AppController {
 				// LATER do this with	 $this->validator()->remove('event_id');
 				unset($this->Event->Attribute->validate['event_id']);
 				unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-
 				// http://book.cakephp.org/2.0/en/models/saving-your-data.html
 				// Creating or updating is controlled by the models id field.
 				// If $Model->id is set, the record with this primary key is updated.
@@ -650,18 +651,23 @@ class EventsController extends AppController {
 
 				// reposition to get the event.id with given uuid
 				$existingEvent = $this->Event->findByUuid($this->request->data['Event']['uuid']);
+				// If the event exists...
 				if (count($existingEvent)) {
 					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
-					if (isset($this->request->data['Event']['timestamp'])) {
-						if ($this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
-							// Consider shadow attributes?
-						} else {
-							$saveEvent = false;
+					// Conditions affecting all: 
+					// user.org == event.org
+					// edit timestamp newer than existing event timestamp
+					if (isset($this->request->data['Event']['timestamp']) && $this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+						// If the above is true, we have two more options: 
+						// For users that are of the creating org of the event, always allow the edit
+						// For users that are sync users, only allow the edit if the event is locked 
+						if ($existingEvent['Event']['orgc'] === $this->_checkOrg() 
+								|| ($this->userRole['perm_sync'] && $existingEvent['Event']['locked'])) {	
+							// Only allow an edit if this is true!
+							$saveEvent = true;						
 						}
 					}
 				}
-
-
 				$fieldList = array(
 						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
@@ -691,11 +697,7 @@ class EventsController extends AppController {
 				if ($saveEvent) {
 					$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
 				} else {
-					$message = 'This would be a downgrade...';
-					$this->set('event', $existingEvent);
-					$this->view($existingEvent['Event']['id']);
-					$this->render('view');
-					return true;
+					throw new MethodNotAllowedException();
 				}
 				if ($saveResult) {
 					// TODO RESTfull: we now need to compare attributes, to see if we need to do a RESTfull attribute delete
@@ -798,7 +800,7 @@ class EventsController extends AppController {
 		}
 		if (!$this->_isSiteAdmin()) {
 			$this->Event->read();
-			if (!$this->Event->data['Event']['org'] == $this->_checkOrg()) {
+			if (!$this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
 				throw new MethodNotAllowedException();
 			}
 		}
@@ -834,6 +836,7 @@ class EventsController extends AppController {
 		$this->Event->id = $id;
 		$this->Event->recursive = 1;
 		$this->Event->read();
+		$this->Event->data['Event']['locked'] = 1;
 
 		// get a list of the servers
 		$this->loadModel('Server');
@@ -1410,8 +1413,8 @@ class EventsController extends AppController {
 		// $conditions['AND'][] = array('Event.published =' => 1);
 
 		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id');
-		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution');
+		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked');
+		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id');
 
 		$params = array('conditions' => $conditions,

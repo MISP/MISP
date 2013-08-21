@@ -420,12 +420,15 @@ class Event extends AppModel {
 		$newLocation = $newTextBody = '';
 		$result = $this->restfullEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
 		if ($result === 403) {
-			return false;
+			return 'The distribution level of this event blocks it from being pushed.';
 		}
 		if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
 				//$updated = true;
 				$result = $this->restfullEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
+				if ($result === 405) {
+					return 'You do not have permission to edit this event or the event is up to date.';
+				}
 			}
 			try { // TODO Xml::build() does not throw the XmlException
 				$xml = Xml::build($newTextBody);
@@ -442,7 +445,6 @@ class Event extends AppModel {
 					}
 				}
 			}
-
 			// get the new attribute uuids in an array
 			$newerUuids = array();
 			foreach ($event['Attribute'] as $attribute) {
@@ -461,8 +463,7 @@ class Event extends AppModel {
 				}
 			}
 		}
-		//if($updated)return false;
-		return true;
+		return 'Success';
 	}
 
 /**
@@ -563,14 +564,22 @@ class Event extends AppModel {
 					}
 					break;
 				case '302': // Found
-				case '404': // Not Found
 					$newLocation = $response->headers['Location'];
 					$newTextBody = $response->body();
 					return true;
 					//return isset($urlPath) ? $response->body() : $response->headers['Location'];
 					break;
-				case '403': //not authorised
+				case '404': // Not Found
+					$newLocation = $response->headers['Location'];
+					$newTextBody = $response->body();
+					return 404;
+					break;
+				case '405': 
+					return 405;
+					break;
+				case '403': // Not authorised
 					return 403;
+					break;
 
 			}
 		}
