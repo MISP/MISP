@@ -1,21 +1,26 @@
 <div style="width:100%;">
-<div class="row-fluid" style="margin: 0 auto;display:table;">
 	<?php
 		echo $this->Session->flash('auth');
+	?>
+<table style="width:1000px;margin-left:auto;margin-right:auto;">
+	<tr>
+	<td style="text-align:right;width:200px">
+	<?php 
 		if (true == Configure::read('MISP.welcome_logo')) {
 	?>
-		<div class="span3" style="text-align:right;">
-		<img src="
-				<?php
-				echo Configure::read('CyDefSig.url') . '/img/';
-				echo Configure::read('MISP.welcome_logo');
-				?>
-		.png" alt="" />
-		</div>
+		<?php if (Configure::read('MISP.welcome_logo')): ?>
+			<img src="
+					<?php
+					echo Configure::read('CyDefSig.url') . '/img/';
+					echo Configure::read('MISP.welcome_logo');
+					?>
+			.png" alt="" />
+		<?php endif; ?>
+		</td>
 	<?php
 		}
 	?>
-	<div class="span6">
+	<td  style="width:500px">
 		<span style="font-size:18px;"><?php
 			if (true == Configure::read('MISP.welcome_text_top')) {
 				echo Configure::read('MISP.welcome_text_top');
@@ -47,14 +52,18 @@
 			echo $this->Form->end();
 		?>
 		</div>
-	</div>
-	<div class="span3">
+	</td>
+	<td style="width:200px">
+		<?php if (Configure::read('MISP.welcome_logo2')): ?>
 			<img src="
 				<?php
 				echo Configure::read('CyDefSig.url') . '/img/';
 				echo Configure::read('MISP.welcome_logo2');
 				?>
 		.png" alt="" />
-	</div>
+		<?php endif; ?>
+	</td>
+	</tr>
+	</table>
 </div>
 </div>
