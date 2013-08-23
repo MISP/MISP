@@ -7,20 +7,6 @@
  *
  * You should also use this file to include any files that provide global functions/constants
  * that your application uses.
- *
- * PHP 5
- *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright 2005-2012, Cake Software Foundation, Inc. (http://cakefoundation.org)
- *
- * Licensed under The MIT License
- * Redistributions of files must retain the above copyright notice.
- *
- * @copyright     Copyright 2005-2012, Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
- * @package       app.Config
- * @since         CakePHP(tm) v 0.10.8.2117
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 
 /**
@@ -107,7 +93,7 @@ if (!Configure::read('CyDefSIG.baseurl')) {
 	}
 }
 Configure::write('CyDefSIG.name', 'MISP');
-Configure::write('CyDefSIG.version', 'devel2.1');
+Configure::write('CyDefSIG.version', '2.1');
 Configure::write('CyDefSIG.header', 'MISP: Malware Information Sharing Platform');
 Configure::write('CyDefSIG.footerpart1', 'Powered by MISP');
 Configure::write('CyDefSIG.footerpart2', '&copy; Belgian Defense CERT & NCIRC');
@@ -145,7 +131,7 @@ Configure::write('CyDefSIG.dns', 'false');				// there is a nameserver available
 Configure::write('MISP.disablerestalert', 'false');
 // Events will be created with the default distribution setting based on this. Valid options: '0', '1', '2', '3'
 Configure::write('MISP.default_event_distribution', '3');
-// Setting this to 'event' will create attributes that take the event's distribution as the initial setting. Valid options: '0', '1', '2', '3', 'event' 
+// Setting this to 'event' will create attributes that take the event's distribution as the initial setting. Valid options: '0', '1', '2', '3', 'event'
 Configure::write('MISP.default_attribute_distribution', 'event');
 
 /**
