@@ -2,9 +2,9 @@
 	<?php
 		echo $this->Session->flash('auth');
 	?>
-<table style="width:1100px;margin-left:auto;margin-right:auto;">
+<table style="width:1200px;margin-left:auto;margin-right:auto;">
 	<tr>
-	<td style="text-align:right;width:250px">
+	<td style="text-align:right;width:250px;padding-right:50px">
 	<?php 
 		if (true == Configure::read('MISP.welcome_logo')) {
 	?>
@@ -20,7 +20,7 @@
 	<?php
 		}
 	?>
-	<td  style="width:600px">
+	<td style="width:600px">
 		<span style="font-size:18px;"><?php
 			if (true == Configure::read('MISP.welcome_text_top')) {
 				echo Configure::read('MISP.welcome_text_top');
@@ -53,7 +53,7 @@
 		?>
 		</div>
 	</td>
-	<td style="width:250px">
+	<td style="width:250px;padding-left:50px">
 		<?php if (Configure::read('MISP.welcome_logo2')): ?>
 			<img src="
 				<?php
