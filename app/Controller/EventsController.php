@@ -243,7 +243,10 @@ class EventsController extends AppController {
 	private function __continuePivoting($id, $info, $date){
 		$pivot = $this->Session->read('pivot_thread');
 		foreach ($pivot as $k => $v) {
-			if ($v[0] == $id) return;
+			if ($v[0] == $id) {
+				
+				return;
+			}
 		}
 		$pivot[] = array($id, $info, $date);
 		$this->Session->write('pivot_thread', $pivot);
@@ -551,7 +554,7 @@ class EventsController extends AppController {
 				unset ($attribute['id']);
 			}
 		}
-		// FIXME chri: validate the necessity for all these fields...impact on security !
+		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
 				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
@@ -627,7 +630,7 @@ class EventsController extends AppController {
 		}
 		$this->Event->read(null, $id);
 		// check for if private and user not authorised to edit, go away
-		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
+		if (!$this->_isSiteAdmin() && !($this->userRole['perm_sync'] && $this->_isRest())) {
 			if (($this->Event->data['Event']['org'] != $this->_checkOrg()) || !($this->userRole['perm_modify'])) {
 				$this->Session->setFlash(__('You are not authorised to do that. Please considering using the propose attribute feature.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
