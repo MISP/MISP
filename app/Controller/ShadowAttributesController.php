@@ -223,7 +223,6 @@ class ShadowAttributesController extends AppController {
 					$this->request->data['ShadowAttribute']['value'] = $attribute; // set the value as the content of the single line
 					$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 					$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
-					$this->request->data['ShadowAttribute']['distribution'] = -$$this->Auth->user('org');
 					// TODO loop-holes,
 					// there seems to be a loop-hole in misp here
 					// be it an create and not an update
