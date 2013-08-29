@@ -14,7 +14,14 @@
 	</div>
 	<div class="row bottom-buffer">
 		<div class="span3">
-		<?php echo $this->Html->link('Download all as CSV', array('action' => 'csv', 'download'), array('class' => 'btn btn-block full-width')); ?>
+		<?php echo $this->Html->link('Download all signatures as CSV', array('action' => 'csv', 'download'), array('class' => 'btn btn-block full-width')); ?>
+		</div>
+		<div class="span9">Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.
+		</div>
+	</div>
+		<div class="row bottom-buffer">
+		<div class="span3">
+		<?php echo $this->Html->link('Download all as CSV', array('action' => 'csv', 'download', '0','1'), array('class' => 'btn btn-block full-width')); ?>
 		</div>
 		<div class="span9">Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.
 		</div>
