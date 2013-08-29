@@ -1601,7 +1601,7 @@ class EventsController extends AppController {
 				$econditions['AND']['OR'] = array('event.distribution >' => 0, 'event.org =' => $this->Auth->user('org'));
 			}
 			if ($eventid == null) {
-				$econditions['AND'][] = array('event.published =' => 1);
+				$econditions['AND'][] = array('Event.published =' => 1);
 			}
 			// If it's a full download (eventid == null) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
 			if ($eventid == null) {
