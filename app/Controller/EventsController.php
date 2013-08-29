@@ -1598,7 +1598,7 @@ class EventsController extends AppController {
 		if ($eventid !== 'search') {
 			// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
 			if(!$this->_isSiteAdmin()) {
-				$econditions['AND']['OR'] = array('event.distribution >' => 0, 'event.org =' => $this->Auth->user('org'));
+				$econditions['AND']['OR'] = array('Event.distribution >' => 0, 'Event.org =' => $this->Auth->user('org'));
 			}
 			if ($eventid == null) {
 				$econditions['AND'][] = array('Event.published =' => 1);
