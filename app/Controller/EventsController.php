@@ -1559,7 +1559,7 @@ class EventsController extends AppController {
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
-	public function csv($key, $eventid=null) {
+	public function csv($key, $eventid=0, $ignore=0) {
 		$final = array();
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
@@ -1568,7 +1568,7 @@ class EventsController extends AppController {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
 			$this->response->type('csv');	// set the content type
-			if ($eventid == null) {
+			if ($eventid == 0) {
 				$this->header('Content-Disposition: inline; filename="misp.all_attributes.csv"');
 			} else if ($eventid === 'search') {
 				$this->header('Content-Disposition: inline; filename="misp.search_result.csv"');
@@ -1581,7 +1581,7 @@ class EventsController extends AppController {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
 			$this->response->type('csv');	// set the content type
-			if ($eventid == null) {
+			if ($eventid == 0) {
 				$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
 			} else {
 				$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
@@ -1600,11 +1600,11 @@ class EventsController extends AppController {
 			if(!$this->_isSiteAdmin()) {
 				$econditions['AND']['OR'] = array('Event.distribution >' => 0, 'Event.org =' => $this->Auth->user('org'));
 			}
-			if ($eventid == null) {
+			if ($eventid == 0 && $ignore == 0) {
 				$econditions['AND'][] = array('Event.published =' => 1);
 			}
 			// If it's a full download (eventid == null) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
-			if ($eventid == null) {
+			if ($eventid == 0) {
 				$this->Event->recursive = -1;
 				// let's add the conditions if we're dealing with a non-siteadmin user
 				$params = array(
@@ -1620,11 +1620,13 @@ class EventsController extends AppController {
 				}
 			}
 			// if we're downloading a single event, set it as a condition
-			if (isset($eventid)) {
+			if ($eventid!=0) {
 				$conditions['AND'][] = array('Attribute.event_id' => $eventid);
 			}
 			//restricting to non-private or same org if the user is not a site-admin.
-			$conditions['AND'][] = array('Attribute.to_ids =' => 1);
+			if ($ignore == 0) {
+				$conditions['AND'][] = array('Attribute.to_ids =' => 1);
+			}
 			if (!$this->_isSiteAdmin()) {
 				$temp = array();
 				$distribution = array();
@@ -1636,7 +1638,7 @@ class EventsController extends AppController {
 		// if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
 		// We don't need to look out for permissions since that's filtered by the search itself
 		// We just want all the attributes found by the search
-		if (isset($eventid) && $eventid === 'search') {
+		if ($eventid === 'search') {
 			$attributeIDList = $this->Session->read('search_find_attributeidlist');
 			foreach ($attributeIDList as $aID) {
 				$conditions['AND']['OR'][] = array('Attribute.id' => $aID);
