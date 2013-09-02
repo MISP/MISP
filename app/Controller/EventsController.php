@@ -83,7 +83,7 @@ class EventsController extends AppController {
 	 */
 	public function index() {
 		// list the events
-		
+
 		// TODO information exposure vulnerability - as we don't limit the filter depending on the CyDefSIG.showorg parameter
 		// this filter will work if showorg=false and users will be able to perform the filtering and see what events were posted by what org.
 		// same goes for orgc in all cases
@@ -242,7 +242,7 @@ class EventsController extends AppController {
 		}
 		$this->set('allPivots', $this->Session->read('pivot_thread'));
 	}
-	
+
 	private function __startPivoting($id, $info, $date){
 		$this->Session->write('pivot_thread', null);
 		$initial_pivot = array();
@@ -254,7 +254,7 @@ class EventsController extends AppController {
 		$pivot = $this->Session->read('pivot_thread');
 		foreach ($pivot as $k => $v) {
 			if ($v[0] == $id) {
-				
+
 				return;
 			}
 		}
@@ -601,9 +601,10 @@ class EventsController extends AppController {
 				'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
 		);
+		$data['Event']['id'] = $this->Event->data['Event']['id'];
 		if (isset($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => &$attribute) {
-				$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
+				$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $this->Event->data);
 				if (count($existingAttribute)) {
 					$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
 					// Check if the attribute's timestamp is bigger than the one that already exists.
@@ -623,6 +624,13 @@ class EventsController extends AppController {
 		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
 		if ($saveResult) return 'success';
 		else return 'Saving the event has failed.';
+	}
+
+	private function __searchUuidInAttributeArray($uuid, &$attr_array) {
+		foreach ($attr_array['Attribute'] as &$attr) {
+			if ($attr['uuid'] == $uuid)	return array('Attribute' => $attr);
+		}
+		return false;
 	}
 
 	/**
@@ -667,17 +675,17 @@ class EventsController extends AppController {
 				// If the event exists...
 				if (count($existingEvent)) {
 					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
-					// Conditions affecting all: 
+					// Conditions affecting all:
 					// user.org == event.org
 					// edit timestamp newer than existing event timestamp
 					if (isset($this->request->data['Event']['timestamp']) && $this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
-						// If the above is true, we have two more options: 
+						// If the above is true, we have two more options:
 						// For users that are of the creating org of the event, always allow the edit
-						// For users that are sync users, only allow the edit if the event is locked 
-						if ($existingEvent['Event']['orgc'] === $this->_checkOrg() 
-								|| ($this->userRole['perm_sync'] && $existingEvent['Event']['locked'])) {	
+						// For users that are sync users, only allow the edit if the event is locked
+						if ($existingEvent['Event']['orgc'] === $this->_checkOrg()
+								|| ($this->userRole['perm_sync'] && $existingEvent['Event']['locked'])) {
 							// Only allow an edit if this is true!
-							$saveEvent = true;						
+							$saveEvent = true;
 						}
 					}
 				}
