@@ -192,13 +192,7 @@ class EventsController extends AppController {
 				}
 			}
 		}
-		/*
-		 * 
-		 * 				if ($this->_isRest() && $this->Attribute->typeIsAttachment($attribute['type'])) {
-					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-					$attribute['data'] = $encodedFile;
-				}
-		 */
+
 		// This happens if the user doesn't have permission to view the event.
 		// TODO change this to NotFoundException to keep it in line with the other invalid event messages, but will have to check if it impacts the sync before doing that
 		if (!isset($results[0])) {
