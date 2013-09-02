@@ -1447,7 +1447,6 @@ class EventsController extends AppController {
 		if ($this->_isAdmin()) $params['contain']['User'] = array('fields' => 'email');
 		$results = $this->Event->find('all', $params);
 		// Do some refactoring with the event
-		$this->loadModel('Attribute');
 		foreach ($results as $eventKey => &$event) {
 			// Let's find all the related events and attach it to the event itself
 			$results[$eventKey]['RelatedEvent'] = $this->Event->getRelatedEvents($this->Auth->user(), $event['Event']['id']);
