@@ -25,11 +25,21 @@ class ShadowAttribute extends AppModel {
 		'Regexp' => array('fields' => array('value', 'value2')),
 	);
 
-	/**
-	 * hasMany relation to shadow attributes
-	 *
-	 * @var unknown
-	 */
+/**
+ * belongsTo associations
+ *
+ * @var array
+ */
+	public $belongsTo = array(
+		'Event' => array(
+			'className' => 'Event',
+			'foreignKey' => 'event_id',
+			'conditions' => '',
+			'fields' => '',
+			'order' => '',
+			'counterCache' => true
+		)
+	);
 
 /**
  * Display field
@@ -266,21 +276,6 @@ class ShadowAttribute extends AppModel {
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
-/**
- * belongsTo associations
- *
- * @var array
- */
-	public $belongsTo = array(
-		'Event' => array(
-			'className' => 'Event',
-			'foreignKey' => 'id',
-			'conditions' => '',
-			'fields' => '',
-			'order' => '',
-			'counterCache' => true
-		)
-	);
 
 /**
  * beforeSave
