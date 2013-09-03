@@ -142,7 +142,7 @@ class ShadowAttributesController extends AppController {
 			$event['Event']['published'] = 0;
 			$this->Event->save($event, array('fieldList' => $fieldList));
 			$this->Session->setFlash(__('Proposed attribute accepted', true), 'default', array());
-			$this->redirect(array('controller' => 'events', 'action' => 'index'));
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->Event->id));
 		}
 	}
 
@@ -184,6 +184,7 @@ class ShadowAttributesController extends AppController {
 			}
 		}
 		$this->ShadowAttribute->delete($id, $cascade = false);
+		$this->_setProposalLock($eventId, false);
 		$this->Session->setFlash(__('Proposed change discarded', true), 'default', array());
 		$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 	}
@@ -246,7 +247,7 @@ class ShadowAttributesController extends AppController {
 				if ($successes) {
 					// list the ones that succeeded
 					$this->Session->setFlash(__('The lines' . $successes . ' have been saved', true));
-					$this->_setProposalLock($eventId, 1);
+					$this->__sendProposalAlertEmail($eventId);
 				}
 
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
@@ -265,7 +266,7 @@ class ShadowAttributesController extends AppController {
 				$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 				$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
 				if ($this->ShadowAttribute->save($this->request->data)) {
-					$this->_setProposalLock($eventId, 1);
+					$this->__sendProposalAlertEmail($eventId);
 					// inform the user and redirect
 					$this->Session->setFlash(__('The proposal has been saved'));
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
@@ -368,7 +369,7 @@ class ShadowAttributesController extends AppController {
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 			$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
 			if ($this->ShadowAttribute->save($this->request->data)) {
-				$this->_setProposalLock($eventId, 1);
+				$this->__sendProposalAlertEmail($eventId);
 			} else {
 				$this->Session->setFlash(__('The ShadowAttribute could not be saved. Did you already upload this file?'));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
@@ -514,7 +515,7 @@ class ShadowAttributesController extends AppController {
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'value', 'org');
 			if ($this->ShadowAttribute->save($this->request->data)) {
-				$this->_setProposalLock($this->request->data['ShadowAttribute']['event_id'], 1);
+				$this->__sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id']);
 				$this->Session->setFlash(__('The proposed Attribute has been saved'));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 			} else {
@@ -544,30 +545,33 @@ class ShadowAttributesController extends AppController {
 		$this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
 	}
-	private function _setProposalLock($id, $setting) {
-		// This method is used to change the proposalLock to the opposite of the passed argument setting if the current setting doesn't match and save the event
+	
+	private function _setProposalLock($id, $lock = true) {
 		$this->loadModel('Event');
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(null, $id);
-		if ($setting == 1) {
-			if ($event['Event']['proposal_email_lock'] == 0) {
-				$fieldList = array('proposal_email_lock', 'id', 'info');
-				$event['Event']['proposal_email_lock'] = 1;
-				$this->Event->save($event, array('fieldList' => $fieldList));
-				$this->__sendProposalAlertEmail($id);
-			}
+		if ($lock) {
+			$event['Event']['proposal_email_lock'] = 1;
 		} else {
-			if ($event['Event']['proposal_email_lock'] == 1) {
-				$fieldList = array('proposal_email_lock', 'id', 'info');
-				$event['Event']['proposal_email_lock'] = 0;
-				$this->Event->save($event, array('fieldList' => $fieldList));
-			}
+			$event['Event']['proposal_email_lock'] = 0;
 		}
+		$fieldList = array('proposal_email_lock', 'id', 'info');
+		$this->Event->save($event, array('fieldList' => $fieldList));
 	}
+	
+	
 	private function __sendProposalAlertEmail($id) {
 		$this->loadModel('Event');
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(null, $id);
+		
+		// If the event has an e-mail lock, return
+		if ($event['Event']['proposal_email_lock'] == 1) {
+			return;
+		} else {
+			$this->_setProposalLock($id);
+		}
+		
 		$this->loadModel('User');
 		$this->User->recursive = -1;
 		$orgMembers = array();
@@ -580,7 +584,7 @@ class ShadowAttributesController extends AppController {
 		$body = "";
 		$body .= "Hello, \n";
 		$body .= "\n";
-		$body .= "A user of another organisation has proposed a change to an event created by you or your organisations. \n";
+		$body .= "A user of another organisation has proposed a change to an event created by you or your organisation. \n";
 		$body .= "\n";
 		$body .= "To view the event in question, follow this link:";
 		$body .= ' ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $id . "\n";
@@ -648,5 +652,29 @@ class ShadowAttributesController extends AppController {
 			// to reset the email fields using the reset method of the Email component.
 			$this->Email->reset();
 		}
+	}
+	
+	public function index() {
+		
+		$this->paginate = array(
+				'conditions' =>
+					array('OR' =>
+							array(
+									'Event.org =' => $this->Auth->user('org'),
+									'AND' => array(
+											'ShadowAttribute.org =' => $this->Auth->user('org'),
+											'Event.distribution >' => 0,
+									),
+							)
+					),
+				'fields' => array('id', 'org', 'old_id'),
+				'contain' => array(
+						'Event' =>array(
+								'fields' => array('id', 'org', 'info', 'orgc'),
+						),
+				),
+				'recursive' => 1	
+		);
+		$this->set('shadowAttributes', $this->paginate());
 	}
 }
