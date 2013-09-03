@@ -21,6 +21,8 @@
 							<li><a href="/attributes/index">List Attributes</a></li>
 							<li><a href="/attributes/search">Search Attributes</a></li>
 							<li class="divider"></li>
+							<li><a href="/shadow_attributes/index">View Proposals</a></li>
+							<li class="divider"></li>
 							<li><a href="/events/export">Export</a></li>
 							<?php if ($isAclAuth): ?>
 							<li><a href="/events/automation">Automation</a></li>
