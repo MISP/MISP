@@ -1,6 +1,18 @@
 <div class="users form">
-<h2>CyDefSIG Terms and Conditions</h2>
-<p>Please add your terms and conditions here</p>
+<h2>MISP Terms and Conditions</h2>
+
+<?php
+$termsFile = APP ."View/Users/terms";
+
+if (!(file_exists($termsFile))) {
+	echo "<p>Please add your terms and conditions in file $termsFile.</p>";
+}else {
+	$terms = new File($termsFile, false);
+	echo $terms->read(true,'r');
+	$terms->close();
+}
+?>
+
 <?php
 if (!$termsaccepted) {
 	echo $this->Form->create('User');

@@ -1283,7 +1283,7 @@ class EventsController extends AppController {
 			// save the gpg key to a temporary file
 			$tmpfname = tempnam(TMP, "GPGkey");
 			$handle = fopen($tmpfname, "w");
-			fwrite($handle, $meUser['gpgkey']);
+			fwrite($handle, $this->Auth->user('gpgkey'));
 			fclose($handle);
 			// attach it
 			$this->Email->attachments = array(
