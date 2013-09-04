@@ -778,7 +778,10 @@ class AttributesController extends AppController {
 				// find the uuid
 				$this->__deleteAttributeFromServers($uuid);
 			}
-
+			
+			// We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
+			$this->loadModel('ShadowAttribute');
+			$this->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
 			$this->Session->setFlash(__('Attribute deleted'));
 		} else {
 			$this->Session->setFlash(__('Attribute was not deleted'));
