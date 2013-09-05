@@ -240,31 +240,28 @@ class EventsController extends AppController {
 			$data = $this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
 		}
 		$this->set('allPivots', $this->Session->read('pivot_thread'));
+		$test = $this->__arrangePivotVertical($this->Session->read('pivot_thread'));
+		debug($test);
+		$data = array('<ul>');
+		$temp = $this->__convertPivotToHTML($test, $id);
+		$data = array_merge($data, $temp);
+		$data = array_merge($data, array('</ul>'));
 		$this->set('data', $data);
 	}
 
 	private function __startPivoting($id, $info, $date){
 		$this->Session->write('pivot_thread', null);
-		$data = array('<ul><li>');
-		$initial_pivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => 0, 'children' => array());
-		$data[] = '<a href="/events/view/' . $id . '/1/' . '">' . $id . ' - ' . substr($info, 0, 8) . '</a>';
-		$data = array_merge($data, array('</li></ul>'));
+		$initial_pivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => 0, 'height' => 0, 'children' => array());
 		$this->Session->write('pivot_thread', $initial_pivot);
-		return $data;
 	}
 
 	private function __continuePivoting($id, $info, $date, $fromEvent){
 		$pivot = $this->Session->read('pivot_thread');
-		$newPivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => null ,'children' => array());
+		$newPivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => null, 'children' => array());
 		if (!$this->__checkForPivot($pivot, $id)) {
 			$pivot = $this->__insertPivot($pivot, $fromEvent, $newPivot, 0);
 		}
-		$data = array('<ul>');
-		$temp = $this->__convertPivotToHTML($pivot, $id);
-		$data = array_merge($data, $temp);
-		$data = array_merge($data, array('</ul>'));
 		$this->Session->write('pivot_thread', $pivot);
-		return $data;
 	}
 	
 	private function __insertPivot($pivot, $oldId, $newPivot, $depth) {
@@ -287,6 +284,16 @@ class EventsController extends AppController {
 				return true;
 			}
 		}
+	}
+	
+	private function __arrangePivotVertical($pivot) {
+		$height = $pivot['height'];
+		foreach ($pivot['children'] as $k => $v) {
+			$pivot['children'][$k]['height'] = $height;
+			$pivot['children'][$k] = $this->__arrangePivotVertical($pivot['children'][$k]);
+			$height += 30;
+		}
+		return $pivot;
 	}
 	
 	private function __convertPivotToHTML($pivot, $currentEvent) {
