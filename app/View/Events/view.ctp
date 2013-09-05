@@ -125,9 +125,9 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 			<?php
 			$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
 			if ($relatedEvent['Event']['org'] == $me['org']) {
-				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true), array('style' => 'color:red;'));
+				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
 			} else {
-				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true));
+				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));
 			}
 			?>
 			</div></li>
@@ -136,27 +136,9 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	</div>
 	<?php endif; ?>
 	</div>
-	<?php if (sizeOf($allPivots) > 1): ?>
 	<div>
-			<h3>Pivot Thread</h3>
-			<div class="arrow_box">
-				<?php 
-					echo $this->Html->link('Reset thread', array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
-				?>
-			</div>
-			<?php 
-			foreach ($allPivots as $k => $v) {
-			?>
-			<div class="arrow_box">
-				<span title="<?php echo h($v[1]); ?>">
-					<?php  echo $this->Html->link(h($v[2]) . ' (' . h($v[0]) . ')', array('controller' => 'events', 'action' => 'view', $v[0], true, true));?>
-				</span>
-			</div>
-			<?php
-				}
-			?>
+		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
-	<?php endif; ?>
 	<div>
 		<h3>Attributes</h3>
 		<?php

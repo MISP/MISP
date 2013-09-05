@@ -167,7 +167,7 @@ class EventsController extends AppController {
 	 * @throws NotFoundException
 	 */
 
-	public function view($id = null, $continue=false, $fromPivot=false) {
+	public function view($id = null, $continue=false, $fromEvent=null) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		$perm_publish = $this->userRole['perm_publish'];
 		if (strlen($id) == 36) {
@@ -233,34 +233,78 @@ class EventsController extends AppController {
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
+		
 		if ($continue) {
-			if (!$fromPivot) {
-				$this->__continuePivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
-			}
+			$data = $this->__continuePivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date'], $fromEvent);
 		} else {
-			$this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
+			$data = $this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
 		}
 		$this->set('allPivots', $this->Session->read('pivot_thread'));
+		$this->set('data', $data);
 	}
 
 	private function __startPivoting($id, $info, $date){
 		$this->Session->write('pivot_thread', null);
-		$initial_pivot = array();
-		$initial_pivot[] = array($id, $info, $date);
+		$data = array('<ul><li>');
+		$initial_pivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => 0, 'children' => array());
+		$data[] = '<a href="/events/view/' . $id . '/1/' . '">' . $id . ' - ' . substr($info, 0, 8) . '</a>';
+		$data = array_merge($data, array('</li></ul>'));
 		$this->Session->write('pivot_thread', $initial_pivot);
+		return $data;
 	}
 
-	private function __continuePivoting($id, $info, $date){
+	private function __continuePivoting($id, $info, $date, $fromEvent){
 		$pivot = $this->Session->read('pivot_thread');
-		foreach ($pivot as $k => $v) {
-			if ($v[0] == $id) {
-
-				return;
+		$newPivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => null ,'children' => array());
+		if (!$this->__checkForPivot($pivot, $id)) {
+			$pivot = $this->__insertPivot($pivot, $fromEvent, $newPivot, 0);
+		}
+		$data = array('<ul>');
+		$temp = $this->__convertPivotToHTML($pivot, $id);
+		$data = array_merge($data, $temp);
+		$data = array_merge($data, array('</ul>'));
+		$this->Session->write('pivot_thread', $pivot);
+		return $data;
+	}
+	
+	private function __insertPivot($pivot, $oldId, $newPivot, $depth) {
+		$depth++;
+		if ($pivot['id'] == $oldId) {
+			$newPivot['depth'] = $depth;
+			$pivot['children'][] = $newPivot;
+			return $pivot;
+		}
+		foreach($pivot['children'] as $k => $v) {
+			$pivot['children'][$k] = $this->__insertPivot($v, $oldId, $newPivot, $depth);
+		}
+		return $pivot;
+	}
+	
+	private function __checkForPivot($pivot, $id) {
+		if ($id == $pivot['id']) return true;
+		foreach ($pivot['children'] as $k => $v) {
+			if ($this->__checkForPivot($v, $id)) {
+				return true;
 			}
 		}
-		$pivot[] = array($id, $info, $date);
-		$this->Session->write('pivot_thread', $pivot);
 	}
+	
+	private function __convertPivotToHTML($pivot, $currentEvent) {
+		$data = null;
+		$data[] = '<li>';
+		$data[] = '<a href="/events/view/' . $pivot['id'] . '/1/' . $currentEvent . '">' . $pivot['id'] . ' - ' . substr($pivot['info'], 0, 8) . '</a>';
+		if (!empty($pivot['children'])) {
+			$data[] = '<ul>';
+			foreach ($pivot['children'] as $k => $v) {
+				$temp = $this->__convertPivotToHTML($v, $currentEvent);
+				$data = array_merge($data, $temp);
+			}	
+			$data[] = '</ul>';
+		}
+		$data[] = '</li>';
+		return $data;
+	}
+	
 	/*
 	public function view($id = null) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
