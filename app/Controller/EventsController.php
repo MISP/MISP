@@ -33,7 +33,7 @@ class EventsController extends AppController {
 			),
 	);
 
-	public $helpers = array('Js' => array('Jquery'));
+	public $helpers = array('Js' => array('Jquery'), 'Pivot');
 
 	public function beforeFilter() {
 		parent::beforeFilter();
@@ -240,13 +240,9 @@ class EventsController extends AppController {
 			$data = $this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
 		}
 		$this->set('allPivots', $this->Session->read('pivot_thread'));
-		$test = $this->__arrangePivotVertical($this->Session->read('pivot_thread'));
-		debug($test);
-		$data = array('<ul>');
-		$temp = $this->__convertPivotToHTML($test, $id);
-		$data = array_merge($data, $temp);
-		$data = array_merge($data, array('</ul>'));
-		$this->set('data', $data);
+		$pivot = $this->__arrangePivotVertical($this->Session->read('pivot_thread'));
+		$this->set('pivot', $pivot);
+		$this->set('currentEvent', $id);
 	}
 
 	private function __startPivoting($id, $info, $date){
@@ -284,32 +280,43 @@ class EventsController extends AppController {
 				return true;
 			}
 		}
+		return false;
 	}
 	
 	private function __arrangePivotVertical($pivot) {
-		$height = $pivot['height'];
+		if (empty($pivot)) return null;
+		$pivot['children'] = array_values($pivot['children']);
 		foreach ($pivot['children'] as $k => $v) {
-			$pivot['children'][$k]['height'] = $height;
-			$pivot['children'][$k] = $this->__arrangePivotVertical($pivot['children'][$k]);
-			$height += 30;
+			$pivot['children'][$k]['height'] = $k*50;
+			$temp = $this->__arrangePivotVertical($pivot['children'][$k]);
+			$pivot['children'][$k] = $temp;
 		}
 		return $pivot;
 	}
 	
-	private function __convertPivotToHTML($pivot, $currentEvent) {
-		$data = null;
-		$data[] = '<li>';
-		$data[] = '<a href="/events/view/' . $pivot['id'] . '/1/' . $currentEvent . '">' . $pivot['id'] . ' - ' . substr($pivot['info'], 0, 8) . '</a>';
-		if (!empty($pivot['children'])) {
-			$data[] = '<ul>';
-			foreach ($pivot['children'] as $k => $v) {
-				$temp = $this->__convertPivotToHTML($v, $currentEvent);
-				$data = array_merge($data, $temp);
-			}	
-			$data[] = '</ul>';
+	public function removePivot($id, $eventId) {
+		$pivot = $this->Session->read('pivot_thread');
+		if ($pivot['id'] == $id) {
+			$pivot = null;
+			$this->Session->write('pivot_thread', null);
+		} else {
+			$pivot = $this->__doRemove($pivot, $id);
 		}
-		$data[] = '</li>';
-		return $data;
+		$this->Session->write('pivot_thread', $pivot);
+		$pivot = $this->__arrangePivotVertical($pivot);
+		$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, true, $eventId));
+	}
+	
+	private function __doRemove($pivot, $id) {
+		foreach ($pivot['children'] as $k => $v) {
+			if ($v['id'] == $id) {
+				unset ($pivot['children'][$k]);
+				return $pivot;
+			} else {
+				$pivot['children'][$k] = $this->__doRemove($v, $id);
+			}
+		}
+		return $pivot;
 	}
 	
 	/*

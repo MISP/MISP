@@ -215,9 +215,9 @@ if (!empty($event['Attribute'])):?>
 				foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
 					echo '<span title="'.h($relatedAttribute['info']).'">';
 					if ($relatedAttribute['org'] == $me['org']) {
-						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true), array ('style' => 'color:red;'));
+						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('style' => 'color:red;'));
 					} else {
-						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true));
+						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']));
 					}
 
 					echo "</span>";
