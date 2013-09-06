@@ -33,7 +33,7 @@ class EventsController extends AppController {
 			),
 	);
 
-	public $helpers = array('Js' => array('Jquery'));
+	public $helpers = array('Js' => array('Jquery'), 'Pivot');
 
 	public function beforeFilter() {
 		parent::beforeFilter();
@@ -167,7 +167,7 @@ class EventsController extends AppController {
 	 * @throws NotFoundException
 	 */
 
-	public function view($id = null, $continue=false, $fromPivot=false) {
+	public function view($id = null, $continue=false, $fromEvent=null) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		$perm_publish = $this->userRole['perm_publish'];
 		if (strlen($id) == 36) {
@@ -233,34 +233,96 @@ class EventsController extends AppController {
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
+		
 		if ($continue) {
-			if (!$fromPivot) {
-				$this->__continuePivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
-			}
+			$data = $this->__continuePivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date'], $fromEvent);
 		} else {
-			$this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
+			$data = $this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
 		}
 		$this->set('allPivots', $this->Session->read('pivot_thread'));
+		$pivot = $this->Session->read('pivot_thread');
+		$this->__arrangePivotVertical($pivot);
+		$this->set('pivot', $pivot);
+		$this->set('currentEvent', $id);
 	}
 
 	private function __startPivoting($id, $info, $date){
 		$this->Session->write('pivot_thread', null);
-		$initial_pivot = array();
-		$initial_pivot[] = array($id, $info, $date);
+		$initial_pivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => 0, 'height' => 0, 'children' => array());
 		$this->Session->write('pivot_thread', $initial_pivot);
 	}
 
-	private function __continuePivoting($id, $info, $date){
+	private function __continuePivoting($id, $info, $date, $fromEvent){
 		$pivot = $this->Session->read('pivot_thread');
-		foreach ($pivot as $k => $v) {
-			if ($v[0] == $id) {
-
-				return;
-			}
+		$newPivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => null, 'children' => array());
+		if (!$this->__checkForPivot($pivot, $id)) {
+			$pivot = $this->__insertPivot($pivot, $fromEvent, $newPivot, 0);
 		}
-		$pivot[] = array($id, $info, $date);
 		$this->Session->write('pivot_thread', $pivot);
 	}
+	
+	private function __insertPivot($pivot, $oldId, $newPivot, $depth) {
+		$depth++;
+		if ($pivot['id'] == $oldId) {
+			$newPivot['depth'] = $depth;
+			$pivot['children'][] = $newPivot;
+			return $pivot;
+		}
+		foreach($pivot['children'] as $k => $v) {
+			$pivot['children'][$k] = $this->__insertPivot($v, $oldId, $newPivot, $depth);
+		}
+		return $pivot;
+	}
+	
+	private function __checkForPivot($pivot, $id) {
+		if ($id == $pivot['id']) return true;
+		foreach ($pivot['children'] as $k => $v) {
+			if ($this->__checkForPivot($v, $id)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private function __arrangePivotVertical(&$pivot) {
+		if (empty($pivot)) return null;
+		$max = count($pivot['children']) - 1;
+		if ($max < 0) $max = 0;
+		$temp = 0;
+		$pivot['children'] = array_values($pivot['children']);
+		foreach ($pivot['children'] as $k => $v) {
+			$pivot['children'][$k]['height'] = ($temp+$k)*50;
+			$temp = $this->__arrangePivotVertical($pivot['children'][$k]);
+			if ($temp > $max) $max = $temp;
+		}
+		return $max;
+	}
+	
+	public function removePivot($id, $eventId) {
+		$pivot = $this->Session->read('pivot_thread');
+		if ($pivot['id'] == $id) {
+			$pivot = null;
+			$this->Session->write('pivot_thread', null);
+		} else {
+			$pivot = $this->__doRemove($pivot, $id);
+		}
+		$this->Session->write('pivot_thread', $pivot);
+		$pivot = $this->__arrangePivotVertical($pivot);
+		$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, true, $eventId));
+	}
+	
+	private function __doRemove($pivot, $id) {
+		foreach ($pivot['children'] as $k => $v) {
+			if ($v['id'] == $id) {
+				unset ($pivot['children'][$k]);
+				return $pivot;
+			} else {
+				$pivot['children'][$k] = $this->__doRemove($v, $id);
+			}
+		}
+		return $pivot;
+	}
+	
 	/*
 	public function view($id = null) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
