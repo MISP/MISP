@@ -242,19 +242,20 @@ class EventsController extends AppController {
 		$this->set('allPivots', $this->Session->read('pivot_thread'));
 		$pivot = $this->Session->read('pivot_thread');
 		$this->__arrangePivotVertical($pivot);
+		$this->__setDeletable($pivot, $id, true);
 		$this->set('pivot', $pivot);
 		$this->set('currentEvent', $id);
 	}
 
 	private function __startPivoting($id, $info, $date){
 		$this->Session->write('pivot_thread', null);
-		$initial_pivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => 0, 'height' => 0, 'children' => array());
+		$initial_pivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => 0, 'height' => 0, 'children' => array(), 'deletable' => true);
 		$this->Session->write('pivot_thread', $initial_pivot);
 	}
 
 	private function __continuePivoting($id, $info, $date, $fromEvent){
 		$pivot = $this->Session->read('pivot_thread');
-		$newPivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => null, 'children' => array());
+		$newPivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => null, 'children' => array(), 'deletable' => true);
 		if (!$this->__checkForPivot($pivot, $id)) {
 			$pivot = $this->__insertPivot($pivot, $fromEvent, $newPivot, 0);
 		}
@@ -298,7 +299,7 @@ class EventsController extends AppController {
 		return $max;
 	}
 	
-	public function removePivot($id, $eventId) {
+	public function removePivot($id, $eventId, $self = false) {
 		$pivot = $this->Session->read('pivot_thread');
 		if ($pivot['id'] == $id) {
 			$pivot = null;
@@ -312,16 +313,39 @@ class EventsController extends AppController {
 		$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, true, $eventId));
 	}
 	
-	private function __doRemove($pivot, $id) {
+	private function __removeChildren(&$pivot, $id) {
+		if ($pivot['id'] == $id) {
+			$pivot['children'] = array();
+		} else {
+			foreach ($pivot['children'] as $k => $v) {
+				$this->__removeChildren($v, $id);
+			}
+		}
+	}
+	
+	private function __doRemove(&$pivot, $id) {
 		foreach ($pivot['children'] as $k => $v) {
 			if ($v['id'] == $id) {
 				unset ($pivot['children'][$k]);
 				return $pivot;
 			} else {
-				$pivot['children'][$k] = $this->__doRemove($v, $id);
+				$pivot['children'][$k] = $this->__doRemove($pivot['children'][$k], $id);
 			}
 		}
 		return $pivot;
+	}
+	
+	private function __setDeletable(&$pivot, $id, $root=false) {
+		if ($pivot['id'] == $id && !$root) {
+			$pivot['deletable'] = false;
+			return true;
+		}
+		$containsCurrent = false;
+		foreach ($pivot['children'] as $k => $v) {
+			$containsCurrent = $this->__setDeletable($pivot['children'][$k], $id);
+			if ($containsCurrent && !$root) $pivot['deletable'] = false;
+		}
+		return !$pivot['deletable'];
 	}
 	
 	/*

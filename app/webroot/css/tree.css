@@ -100,11 +100,6 @@
 	-moz-border-radius: 7px;
 }
 
-.tree div a{
-	text-decoration: none;
-	color: #666;
-}
-
 .tree .pivotElement div{
 	position: absolute;
 	left: 150px;
@@ -117,5 +112,21 @@
 .pivotText {
 	padding-left:3px;
 	vertical-align: top;
+	color: #666;
+	text-decoration: none;
+}
+
+.pivotTextBlue {
+	padding-left:3px;
+	vertical-align: top;
+	color: #fff;
+	text-decoration: none;
+}
+
+.pivotSpanBlue {
+	background-color: #0088cc;
+	border-radius: 7px;
+	-webkit-border-radius: 7px;
+	-moz-border-radius: 7px;
 }
 
