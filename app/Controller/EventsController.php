@@ -303,6 +303,7 @@ class EventsController extends AppController {
 		if ($pivot['id'] == $id) {
 			$pivot = null;
 			$this->Session->write('pivot_thread', null);
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 		} else {
 			$pivot = $this->__doRemove($pivot, $id);
 		}
