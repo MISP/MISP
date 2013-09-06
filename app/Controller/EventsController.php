@@ -240,7 +240,8 @@ class EventsController extends AppController {
 			$data = $this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
 		}
 		$this->set('allPivots', $this->Session->read('pivot_thread'));
-		$pivot = $this->__arrangePivotVertical($this->Session->read('pivot_thread'));
+		$pivot = $this->Session->read('pivot_thread');
+		$this->__arrangePivotVertical($pivot);
 		$this->set('pivot', $pivot);
 		$this->set('currentEvent', $id);
 	}
@@ -283,15 +284,18 @@ class EventsController extends AppController {
 		return false;
 	}
 	
-	private function __arrangePivotVertical($pivot) {
+	private function __arrangePivotVertical(&$pivot) {
 		if (empty($pivot)) return null;
+		$max = count($pivot['children']) - 1;
+		if ($max < 0) $max = 0;
+		$temp = 0;
 		$pivot['children'] = array_values($pivot['children']);
 		foreach ($pivot['children'] as $k => $v) {
-			$pivot['children'][$k]['height'] = $k*50;
+			$pivot['children'][$k]['height'] = ($temp+$k)*50;
 			$temp = $this->__arrangePivotVertical($pivot['children'][$k]);
-			$pivot['children'][$k] = $temp;
+			if ($temp > $max) $max = $temp;
 		}
-		return $pivot;
+		return $max;
 	}
 	
 	public function removePivot($id, $eventId) {
