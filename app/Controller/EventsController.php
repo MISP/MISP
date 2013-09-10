@@ -237,27 +237,40 @@ class EventsController extends AppController {
 				'fields' => array('id', 'event_id', 'distribution', 'title')
 		);
 		$thread = $this->Thread->find('first', $params);
-		if (!empty($thread)) {
+		if (empty($thread)) {
+			$newThread = array(
+					'date_created' => date('Y/m/d H:i:s'),
+					'date_modified' => date('Y/m/d H:i:s'),
+					'user_id' => $this->Auth->user('id'),
+					'event_id' => $id,
+					'title' => 'Discussion about Event #' . $result['Event']['id'] . ' (' . $result['Event']['info'] . ')',
+					'distribution' => $result['Event']['distribution'],
+					'post_count' => 0,
+					'org' => $result['Event']['orgc']
+			);
+			$this->Thread->save($newThread);
+			$thread = ($this->Thread->read());
+		} else {
 			if ($thread['Thread']['distribution'] != $result['Event']['distribution']) {
 				$this->Thread->saveField('distribution', $result['Event']['distribution']);
 			}
-			$this->loadModel('Post');
-			$this->paginate['Post'] = array(
-					'limit' => 5,
-					'conditions' => array('Post.thread_id' => $thread['Thread']['id']),
-					'contain' => 'User'
-			);
-			$posts = $this->paginate('Post');
-			// Show the discussion
-			$this->set('posts', $posts);
-			$this->set('thread_id', $thread['Thread']['id']);
-			$this->set('myuserid', $this->Auth->user('id'));
-			$this->set('thread_title', $thread['Thread']['title']);
-			if ($this->request->is('ajax')) {
-				$this->disableCache();
-				$this->layout = 'ajax';
-				$this->render('/Elements/eventdiscussion');
-			}
+		}
+		$this->loadModel('Post');
+		$this->paginate['Post'] = array(
+				'limit' => 5,
+				'conditions' => array('Post.thread_id' => $thread['Thread']['id']),
+				'contain' => 'User'
+		);
+		$posts = $this->paginate('Post');
+		// Show the discussion
+		$this->set('posts', $posts);
+		$this->set('thread_id', $thread['Thread']['id']);
+		$this->set('myuserid', $this->Auth->user('id'));
+		$this->set('thread_title', $thread['Thread']['title']);
+		if ($this->request->is('ajax')) {
+			$this->disableCache();
+			$this->layout = 'ajax';
+			$this->render('/Elements/eventdiscussion');
 		}
 	}
 	

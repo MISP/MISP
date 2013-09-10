@@ -70,14 +70,11 @@ class ThreadsController extends AppController {
 	
 	public function index() {
 		$conditions = null;
-		
-		//if (!$this->_isSiteAdmin()) {
-			$conditions['OR'] = array(
+			$conditions['AND']['OR'] = array(
 					'Thread.distribution >' => 0, 
 					'Thread.org' => $this->Auth->user('org'),
 			);
-			//$conditions[] = array('Thread.event_id' => 0);
-		//}
+			$conditions['AND'][] = array('Thread.post_count >' => 0);
 			$this->paginate = array(
 					'conditions' => array($conditions),
 					'fields' => array('date_modified', 'date_created', 'org', 'distribution', 'title', 'post_count'),
