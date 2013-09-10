@@ -127,9 +127,9 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 			<?php
 			$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
 			if ($relatedEvent['Event']['org'] == $me['org']) {
-				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true), array('style' => 'color:red;'));
+				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
 			} else {
-				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true));
+				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));
 			}
 			?>
 			</div></li>
@@ -138,29 +138,13 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	</div>
 	<?php endif; ?>
 	</div>
-	<?php if (sizeOf($allPivots) > 1): ?>
-	<div>
-			<h3>Pivot Thread</h3>
-			<div class="arrow_box">
-				<?php 
-					echo $this->Html->link('Reset thread', array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
-				?>
-			</div>
-			<?php 
-			foreach ($allPivots as $k => $v) {
-			?>
-			<div class="arrow_box">
-				<span title="<?php echo h($v[1]); ?>">
-					<?php  echo $this->Html->link(h($v[2]) . ' (' . h($v[0]) . ')', array('controller' => 'events', 'action' => 'view', $v[0], true, true));?>
-				</span>
-			</div>
-			<?php
-				}
-			?>
+	<br />
+	<h3><span id="pivots_active" class="icon-minus"></span><span id="pivots_inactive" class="icon-plus" style="display:none;"></span>Pivot Thread</h3>
+	<div id="pivots_div">
+		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
-	<?php endif; ?>
-	<div>
-		<h3>Attributes</h3>
+	<h3><span id="attributes_active" class="icon-minus"></span><span id="attributes_inactive" class="icon-plus" style="display:none;"></span>Attributes</h3>
+	<div id="attributes_div">
 		<?php
 if (!empty($event['Attribute'])):?>
 		<table class="table table-striped table-condensed">
@@ -215,7 +199,12 @@ if (!empty($event['Attribute'])):?>
 				echo h($filenameHash[0]);
 				if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 			} elseif ('vulnerability' == $attribute['type']) {
-				echo $this->Html->link(h($sigDisplay), 'http://www.google.com/search?q=' . h($sigDisplay), array('target' => '_blank'));
+				if (! is_null(Configure::read('CyDefSig.cveurl'))) {
+					$cveUrl = Configure::read('CyDefSig.cveurl');
+				} else {
+					$cveUrl = "http://www.google.com/search?q=";
+				}
+				echo $this->Html->link(h($sigDisplay), h($cveUrl) . h($sigDisplay), array('target' => '_blank'));
 			} elseif ('link' == $attribute['type']) {
 				echo $this->Html->link(h($sigDisplay), h($sigDisplay));
 			} else {
@@ -223,23 +212,27 @@ if (!empty($event['Attribute'])):?>
 				echo (h($sigDisplay));
 			}
 				?></td>
-				<td class="short <?php echo $extra; ?>" style="max-width:100px;">
+				<td class="shortish <?php echo $extra; ?>">
 				<?php
 			$first = 0;
+			?>
+				<ul class="inline" style="margin:0px;">
+			<?php 
 			if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 				foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
-					echo '<span title="'.h($relatedAttribute['info']).'">';
+					echo '<li style="padding-right: 0px; padding-left:0px;" title ="' . h($relatedAttribute['info']) . '"><span>';
 					if ($relatedAttribute['org'] == $me['org']) {
-						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true), array ('style' => 'color:red;'));
+						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('style' => 'color:red;'));
 					} else {
-						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true));
+						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']));
 					}
 
-					echo "</span>";
+					echo "</span></li>";
 					echo ' ';
 				}
 			}
-				?>&nbsp;
+				?>
+				</ul>
 				</td>
 				<td class="short <?php echo $extra; ?>"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
 				<td class="short
@@ -410,8 +403,8 @@ if (!empty($event['Attribute'])):?>
 				<?php
 				endif; ?>
 		</div>
-		<h3>Discussion</h3>
-		<div id="discussion">
+		<h3><span id="discussions_active" class="icon-minus"></span><span id="discussions_inactive" class="icon-plus" style="display:none;"></span>Discussion</h3>
+		<div id="discussions_div">
 			<?php 
 				echo $this->element('eventdiscussion');
 			?>
@@ -420,12 +413,43 @@ if (!empty($event['Attribute'])):?>
 <script type="text/javascript">
 // tooltips
 $(document).ready(function () {
-	$("th, td, dt, div, span").tooltip({
+	$("th, td, dt, div, span, li").tooltip({
 		'placement': 'top',
 		'container' : 'body',
 		delay: { show: 500, hide: 100 }
 		});
-
+	$('#discussions_active').click(function() {
+		  $('#discussions_div').hide();
+		  $('#discussions_active').hide();
+		  $('#discussions_inactive').show();
+		});
+	$('#discussions_inactive').click(function() {
+		  $('#discussions_div').show();
+		  $('#discussions_active').show();
+		  $('#discussions_inactive').hide();
+		});
+	$('#attributes_active').click(function() {
+		  $('#attributes_div').hide();
+		  $('#attributes_active').hide();
+		  $('#attributes_inactive').show();
+		});
+	$('#attributes_inactive').click(function() {
+		  $('#attributes_div').show();
+		  $('#attributes_active').show();
+		  $('#attributes_inactive').hide();
+		});
+	$('#pivots_active').click(function() {
+		  $('#pivots_div').hide();
+		  $('#pivots_active').hide();
+		  $('#pivots_inactive').show();
+		});
+	$('#pivots_inactive').click(function() {
+		  $('#pivots_div').show();
+		  $('#pivots_active').show();
+		  $('#pivots_inactive').hide();
+		});
 });
+
+
 
 </script>

@@ -32,7 +32,7 @@ class EventsController extends AppController {
 			),
 	);
 
-	public $helpers = array('Js' => array('Jquery'));
+	public $helpers = array('Js' => array('Jquery'), 'Pivot');
 
 	public function beforeFilter() {
 		parent::beforeFilter();
@@ -166,7 +166,7 @@ class EventsController extends AppController {
 	 * @throws NotFoundException
 	 */
 
-	public function view($id = null, $continue=false, $fromPivot=false) {
+	public function view($id = null, $continue=false, $fromEvent=null) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		$perm_publish = $this->userRole['perm_publish'];
 		if (strlen($id) == 36) {
@@ -182,6 +182,16 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event.'));
 		}
 		$results = $this->__fetchEvent($id);
+		if ($this->_isRest()) {
+			$this->loadModel('Attribute');
+			foreach ($results[0]['Attribute'] as &$attribute) {
+				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+					$attribute['data'] = $encodedFile;
+				}
+			}
+		}
+
 		// This happens if the user doesn't have permission to view the event.
 		// TODO change this to NotFoundException to keep it in line with the other invalid event messages, but will have to check if it impacts the sync before doing that
 		if (!isset($results[0])) {
@@ -222,12 +232,11 @@ class EventsController extends AppController {
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
+		
 		if ($continue) {
-			if (!$fromPivot) {
-				$this->__continuePivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
-			}
+			$data = $this->__continuePivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date'], $fromEvent);
 		} else {
-			$this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
+			$data = $this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
 		}
 		$this->set('allPivots', $this->Session->read('pivot_thread'));
 		// Show the discussion
@@ -272,23 +281,114 @@ class EventsController extends AppController {
 			$this->layout = 'ajax';
 			$this->render('/Elements/eventdiscussion');
 		}
+		$pivot = $this->Session->read('pivot_thread');
+		$this->__arrangePivotVertical($pivot);
+		$this->__setDeletable($pivot, $id, true);
+		$this->set('pivot', $pivot);
+		$this->set('currentEvent', $id);
 	}
-	
+
 	private function __startPivoting($id, $info, $date){
 		$this->Session->write('pivot_thread', null);
-		$initial_pivot = array();
-		$initial_pivot[] = array($id, $info, $date);
+		$initial_pivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => 0, 'height' => 0, 'children' => array(), 'deletable' => true);
 		$this->Session->write('pivot_thread', $initial_pivot);
 	}
 
-	private function __continuePivoting($id, $info, $date){
+	private function __continuePivoting($id, $info, $date, $fromEvent){
 		$pivot = $this->Session->read('pivot_thread');
-		foreach ($pivot as $k => $v) {
-			if ($v[0] == $id) return;
+		$newPivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => null, 'children' => array(), 'deletable' => true);
+		if (!$this->__checkForPivot($pivot, $id)) {
+			$pivot = $this->__insertPivot($pivot, $fromEvent, $newPivot, 0);
 		}
-		$pivot[] = array($id, $info, $date);
 		$this->Session->write('pivot_thread', $pivot);
 	}
+	
+	private function __insertPivot($pivot, $oldId, $newPivot, $depth) {
+		$depth++;
+		if ($pivot['id'] == $oldId) {
+			$newPivot['depth'] = $depth;
+			$pivot['children'][] = $newPivot;
+			return $pivot;
+		}
+		foreach($pivot['children'] as $k => $v) {
+			$pivot['children'][$k] = $this->__insertPivot($v, $oldId, $newPivot, $depth);
+		}
+		return $pivot;
+	}
+	
+	private function __checkForPivot($pivot, $id) {
+		if ($id == $pivot['id']) return true;
+		foreach ($pivot['children'] as $k => $v) {
+			if ($this->__checkForPivot($v, $id)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private function __arrangePivotVertical(&$pivot) {
+		if (empty($pivot)) return null;
+		$max = count($pivot['children']) - 1;
+		if ($max < 0) $max = 0;
+		$temp = 0;
+		$pivot['children'] = array_values($pivot['children']);
+		foreach ($pivot['children'] as $k => $v) {
+			$pivot['children'][$k]['height'] = ($temp+$k)*50;
+			$temp += $this->__arrangePivotVertical($pivot['children'][$k]);
+			if ($k == $max) $temp = $pivot['children'][$k]['height'] / 50;
+		}
+		return $temp;
+	}
+	
+	public function removePivot($id, $eventId, $self = false) {
+		$pivot = $this->Session->read('pivot_thread');
+		if ($pivot['id'] == $id) {
+			$pivot = null;
+			$this->Session->write('pivot_thread', null);
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+		} else {
+			$pivot = $this->__doRemove($pivot, $id);
+		}
+		$this->Session->write('pivot_thread', $pivot);
+		$pivot = $this->__arrangePivotVertical($pivot);
+		$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, true, $eventId));
+	}
+	
+	private function __removeChildren(&$pivot, $id) {
+		if ($pivot['id'] == $id) {
+			$pivot['children'] = array();
+		} else {
+			foreach ($pivot['children'] as $k => $v) {
+				$this->__removeChildren($v, $id);
+			}
+		}
+	}
+	
+	private function __doRemove(&$pivot, $id) {
+		foreach ($pivot['children'] as $k => $v) {
+			if ($v['id'] == $id) {
+				unset ($pivot['children'][$k]);
+				return $pivot;
+			} else {
+				$pivot['children'][$k] = $this->__doRemove($pivot['children'][$k], $id);
+			}
+		}
+		return $pivot;
+	}
+	
+	private function __setDeletable(&$pivot, $id, $root=false) {
+		if ($pivot['id'] == $id && !$root) {
+			$pivot['deletable'] = false;
+			return true;
+		}
+		$containsCurrent = false;
+		foreach ($pivot['children'] as $k => $v) {
+			$containsCurrent = $this->__setDeletable($pivot['children'][$k], $id);
+			if ($containsCurrent && !$root) $pivot['deletable'] = false;
+		}
+		return !$pivot['deletable'];
+	}
+	
 	/*
 	public function view($id = null) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
@@ -487,6 +587,11 @@ class EventsController extends AppController {
 	}
 
 	public function addIOC($id) {
+		$this->Event->recursive = -1;
+		$this->Event->read(null, $id);
+		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+			throw new UnauthorizedException('You do not have permission to do that.');
+		}
 		if ($this->request->is('post')) {
 			if (!empty($this->data)) {
 				$ext = '';
@@ -525,8 +630,6 @@ class EventsController extends AppController {
 
 		// set the id
 		$this->set('id', $id);
-		$this->Event->recursive = -1;
-		$this->Event->read(null, $id);
 		// set whether it is published or not
 		$this->set('published', $this->Event->data['Event']['published']);
 
@@ -589,13 +692,9 @@ class EventsController extends AppController {
 				unset ($attribute['id']);
 			}
 		}
-		// FIXME chri: validate the necessity for all these fields...impact on security !
+		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
-				'Event' => array('orgc', 'date', 'risk', 'analysis', 'info', 'published', 'uuid'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision')
-		);
-		$fieldList = array(
-				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution'),
+				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
 		);
 		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
@@ -603,6 +702,9 @@ class EventsController extends AppController {
 		if ($saveResult) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
+				if ('true' != Configure::read('MISP.disablerestalert')) {
+					$this->__sendAlertEmail($this->Event->getId());
+				}
 				$this->__publish($this->Event->getId(), $passAlong);
 			}
 			return true;
@@ -620,13 +722,17 @@ class EventsController extends AppController {
 		} else {
 			return 'Event exists and is the same or newer.';
 		}
+		if (!$this->Event->data['Event']['locked']) {
+			return 'Event originated on this instance, any changes to it have to be done locally.';
+		}
 		$fieldList = array(
 				'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
 		);
+		$data['Event']['id'] = $this->Event->data['Event']['id'];
 		if (isset($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => &$attribute) {
-				$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
+				$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $this->Event->data);
 				if (count($existingAttribute)) {
 					$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
 					// Check if the attribute's timestamp is bigger than the one that already exists.
@@ -648,6 +754,13 @@ class EventsController extends AppController {
 		else return 'Saving the event has failed.';
 	}
 
+	private function __searchUuidInAttributeArray($uuid, &$attr_array) {
+		foreach ($attr_array['Attribute'] as &$attr) {
+			if ($attr['uuid'] == $uuid)	return array('Attribute' => $attr);
+		}
+		return false;
+	}
+
 	/**
 	 * edit method
 	 *
@@ -663,15 +776,15 @@ class EventsController extends AppController {
 		}
 		$this->Event->read(null, $id);
 		// check for if private and user not authorised to edit, go away
-		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
+		if (!$this->_isSiteAdmin() && !($this->userRole['perm_sync'] && $this->_isRest())) {
 			if (($this->Event->data['Event']['org'] != $this->_checkOrg()) || !($this->userRole['perm_modify'])) {
-				$this->Session->setFlash(__('You are not authorised to do that.'));
+				$this->Session->setFlash(__('You are not authorised to do that. Please considering using the propose attribute feature.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
-				$saveEvent = true;
+				$saveEvent = false;
 				// Workaround for different structure in XML/array than what CakePHP expects
 				$this->Event->cleanupEventArrayFromXML($this->request->data);
 
@@ -679,7 +792,6 @@ class EventsController extends AppController {
 				// LATER do this with	 $this->validator()->remove('event_id');
 				unset($this->Event->Attribute->validate['event_id']);
 				unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-
 				// http://book.cakephp.org/2.0/en/models/saving-your-data.html
 				// Creating or updating is controlled by the models id field.
 				// If $Model->id is set, the record with this primary key is updated.
@@ -687,18 +799,23 @@ class EventsController extends AppController {
 
 				// reposition to get the event.id with given uuid
 				$existingEvent = $this->Event->findByUuid($this->request->data['Event']['uuid']);
+				// If the event exists...
 				if (count($existingEvent)) {
 					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
-					if (isset($this->request->data['Event']['timestamp'])) {
-						if ($this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
-							// Consider shadow attributes?
-						} else {
-							$saveEvent = false;
+					// Conditions affecting all:
+					// user.org == event.org
+					// edit timestamp newer than existing event timestamp
+					if (isset($this->request->data['Event']['timestamp']) && $this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+						// If the above is true, we have two more options:
+						// For users that are of the creating org of the event, always allow the edit
+						// For users that are sync users, only allow the edit if the event is locked
+						if ($existingEvent['Event']['orgc'] === $this->_checkOrg()
+								|| ($this->userRole['perm_sync'] && $existingEvent['Event']['locked'])) {
+							// Only allow an edit if this is true!
+							$saveEvent = true;
 						}
 					}
 				}
-
-
 				$fieldList = array(
 						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
@@ -728,11 +845,7 @@ class EventsController extends AppController {
 				if ($saveEvent) {
 					$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
 				} else {
-					$message = 'This would be a downgrade...';
-					$this->set('event', $existingEvent);
-					$this->view($existingEvent['Event']['id']);
-					$this->render('view');
-					return true;
+					throw new MethodNotAllowedException();
 				}
 				if ($saveResult) {
 					// TODO RESTfull: we now need to compare attributes, to see if we need to do a RESTfull attribute delete
@@ -835,7 +948,7 @@ class EventsController extends AppController {
 		}
 		if (!$this->_isSiteAdmin()) {
 			$this->Event->read();
-			if (!$this->Event->data['Event']['org'] == $this->_checkOrg()) {
+			if (!$this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
 				throw new MethodNotAllowedException();
 			}
 		}
@@ -871,6 +984,7 @@ class EventsController extends AppController {
 		$this->Event->id = $id;
 		$this->Event->recursive = 1;
 		$this->Event->read();
+		$this->Event->data['Event']['locked'] = 1;
 
 		// get a list of the servers
 		$this->loadModel('Server');
@@ -1085,7 +1199,6 @@ class EventsController extends AppController {
 			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-
 			$this->loadModel('User');
 
 			//
@@ -1102,24 +1215,21 @@ class EventsController extends AppController {
 						'conditions' => $conditions,
 						'recursive' => 0,
 				));
-				$alertEmails = Array();
 				foreach ($alertUsers as &$user) {
-					$alertEmails[] = $user['User']['email'];
+					// prepare the the unencrypted email
+					$this->Email->from = Configure::read('CyDefSIG.email');
+					$this->Email->to = $user['User']['email'];
+					$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
+					$this->Email->template = 'body';
+					$this->Email->sendAs = 'text';	// both text or html
+					$this->set('body', $bodySigned);
+					// send it
+					$this->Email->send();
+					// If you wish to send multiple emails using a loop, you'll need
+					// to reset the email fields using the reset method of the Email component.
+					$this->Email->reset();
 				}
-				// prepare the the unencrypted email
-				$this->Email->from = Configure::read('CyDefSIG.email');
-				$this->Email->bcc = $alertEmails;
-				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
-				$this->Email->template = 'body';
-				$this->Email->sendAs = 'text';	// both text or html
-				$this->set('body', $bodySigned);
-				// send it
-				$this->Email->send();
-				// If you wish to send multiple emails using a loop, you'll need
-				// to reset the email fields using the reset method of the Email component.
-				$this->Email->reset();
 			}
-
 			//
 			// Build a list of the recipients that wish to receive encrypted mails.
 			//
@@ -1138,7 +1248,7 @@ class EventsController extends AppController {
 				// send the email
 				$this->Email->from = Configure::read('CyDefSIG.email');
 				$this->Email->to = $user['User']['email'];
-				$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
+				$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';		// both text or html
 
@@ -1300,7 +1410,7 @@ class EventsController extends AppController {
 			// save the gpg key to a temporary file
 			$tmpfname = tempnam(TMP, "GPGkey");
 			$handle = fopen($tmpfname, "w");
-			fwrite($handle, $meUser['gpgkey']);
+			fwrite($handle, $this->Auth->user('gpgkey'));
 			fclose($handle);
 			// attach it
 			$this->Email->attachments = array(
@@ -1333,7 +1443,7 @@ class EventsController extends AppController {
 			$this->Email->from = Configure::read('CyDefSIG.email');
 			$this->Email->replyTo = $this->Auth->user('email');
 			$this->Email->to = $reporter['User']['email'];
-			$this->Email->subject = "[" . Configure::read('CyDefSIG.name') . "] Need info about event " . $id . " - TLP Amber";
+			$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Need info about event " . $id . " - TLP Amber";
 			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
 			$this->Email->template = 'body';
 			$this->Email->sendAs = 'text';		// both text or html
@@ -1451,8 +1561,8 @@ class EventsController extends AppController {
 		// $conditions['AND'][] = array('Event.published =' => 1);
 
 		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id');
-		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution');
+		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked');
+		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id');
 
 		$params = array('conditions' => $conditions,
@@ -1594,7 +1704,7 @@ class EventsController extends AppController {
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
-	public function csv($key, $eventid=null) {
+	public function csv($key, $eventid=0, $ignore=0) {
 		$final = array();
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
@@ -1603,7 +1713,7 @@ class EventsController extends AppController {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
 			$this->response->type('csv');	// set the content type
-			if ($eventid == null) {
+			if ($eventid == 0) {
 				$this->header('Content-Disposition: inline; filename="misp.all_attributes.csv"');
 			} else if ($eventid === 'search') {
 				$this->header('Content-Disposition: inline; filename="misp.search_result.csv"');
@@ -1616,7 +1726,7 @@ class EventsController extends AppController {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
 			$this->response->type('csv');	// set the content type
-			if ($eventid == null) {
+			if ($eventid == 0) {
 				$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
 			} else {
 				$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
@@ -1633,13 +1743,13 @@ class EventsController extends AppController {
 		if ($eventid !== 'search') {
 			// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
 			if(!$this->_isSiteAdmin()) {
-				$econditions['AND']['OR'] = array('event.distribution >' => 0, 'event.org =' => $this->Auth->user('org'));
+				$econditions['AND']['OR'] = array('Event.distribution >' => 0, 'Event.org =' => $this->Auth->user('org'));
 			}
-			if ($eventid == null) {
-				$econditions['AND'][] = array('event.published =' => 1);
+			if ($eventid == 0 && $ignore == 0) {
+				$econditions['AND'][] = array('Event.published =' => 1);
 			}
 			// If it's a full download (eventid == null) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
-			if ($eventid == null) {
+			if ($eventid == 0) {
 				$this->Event->recursive = -1;
 				// let's add the conditions if we're dealing with a non-siteadmin user
 				$params = array(
@@ -1655,11 +1765,13 @@ class EventsController extends AppController {
 				}
 			}
 			// if we're downloading a single event, set it as a condition
-			if (isset($eventid)) {
+			if ($eventid!=0) {
 				$conditions['AND'][] = array('Attribute.event_id' => $eventid);
 			}
 			//restricting to non-private or same org if the user is not a site-admin.
-			$conditions['AND'][] = array('Attribute.to_ids =' => 1);
+			if ($ignore == 0) {
+				$conditions['AND'][] = array('Attribute.to_ids =' => 1);
+			}
 			if (!$this->_isSiteAdmin()) {
 				$temp = array();
 				$distribution = array();
@@ -1671,7 +1783,7 @@ class EventsController extends AppController {
 		// if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
 		// We don't need to look out for permissions since that's filtered by the search itself
 		// We just want all the attributes found by the search
-		if (isset($eventid) && $eventid === 'search') {
+		if ($eventid === 'search') {
 			$attributeIDList = $this->Session->read('search_find_attributeidlist');
 			foreach ($attributeIDList as $aID) {
 				$conditions['AND']['OR'][] = array('Attribute.id' => $aID);
@@ -1872,7 +1984,15 @@ class EventsController extends AppController {
 			$this->Event->read(null, $id);
 			$saveEvent['Event'] = $this->Event->data['Event'];
 			$saveEvent['Event']['published'] = false;
-			$dist = $this->Event->data['Event']['distribution'];
+			$dist = 3;
+			if (Configure::read('MISP.default_attribute_distribution') != null) {
+				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+					$dist = $this->Event->data['Event']['distribution'];
+				} else {
+					$dist = '';
+					$dist .= Configure::read('MISP.default_attribute_distribution');
+				}
+			}
 			// read XML
 			$event = $this->IOCImport->readXML($fileData, $id, $dist);
 
@@ -2097,7 +2217,6 @@ class EventsController extends AppController {
 			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditionsAttributes['OR'] = $temp2;
 		}
-		$conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');

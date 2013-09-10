@@ -1,21 +1,26 @@
 <div style="width:100%;">
-<div class="row" style="margin: 0 auto;display:table;">
 	<?php
 		echo $this->Session->flash('auth');
+	?>
+<table style="width:1200px;margin-left:auto;margin-right:auto;">
+	<tr>
+	<td style="text-align:right;width:250px;padding-right:50px">
+	<?php 
 		if (true == Configure::read('MISP.welcome_logo')) {
 	?>
-		<div class="span4">
-		<img src="
-				<?php
-				echo Configure::read('CyDefSig.url') . '/img/';
-				echo Configure::read('MISP.welcome_logo');
-				?>
-		.png" alt="" />
-		</div>
+		<?php if (Configure::read('MISP.welcome_logo')): ?>
+			<img src="
+					<?php
+					echo Configure::read('CyDefSig.url') . '/img/';
+					echo Configure::read('MISP.welcome_logo');
+					?>
+			.png" alt="" />
+		<?php endif; ?>
+		</td>
 	<?php
 		}
 	?>
-	<div class="span8">
+	<td style="width:600px">
 		<span style="font-size:18px;"><?php
 			if (true == Configure::read('MISP.welcome_text_top')) {
 				echo Configure::read('MISP.welcome_text_top');
@@ -34,6 +39,7 @@
 				echo Configure::read('MISP.welcome_text_bottom');
 		?>
 		</div>
+		<div>
 		<?php
 			}
 			echo $this->Form->create('User', array('action' => 'login'));
@@ -45,6 +51,19 @@
 			echo $this->Form->button('Login', array('class' => 'btn btn-primary'));
 			echo $this->Form->end();
 		?>
-	</div>
+		</div>
+	</td>
+	<td style="width:250px;padding-left:50px">
+		<?php if (Configure::read('MISP.welcome_logo2')): ?>
+			<img src="
+				<?php
+				echo Configure::read('CyDefSig.url') . '/img/';
+				echo Configure::read('MISP.welcome_logo2');
+				?>
+		.png" alt="" />
+		<?php endif; ?>
+	</td>
+	</tr>
+	</table>
 </div>
 </div>

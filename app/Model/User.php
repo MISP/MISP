@@ -19,6 +19,7 @@ class User extends AppModel {
 
 	public $orgField = 'org';	// TODO Audit, LogableBehaviour + org
 
+	
 /**
  * Validation rules
  *
@@ -239,6 +240,7 @@ class User extends AppModel {
 			'change' => 'full'
 		),
 		'Trim',
+		'Containable'
 		//'RemoveNewline' => array('fields' => array('gpgkey')),
 	);
 

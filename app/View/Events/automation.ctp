@@ -22,10 +22,10 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <p>You can configure your tools to automatically download the following file:</p>
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/nids/<?php echo $me['authkey']; ?></pre>
 <p></p>
-<p>Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.</p>
+<p>Administration is able to maintain a white-list containing host, domain name and IP numbers to exclude from the NIDS export.</p>
 
-<h3>Hash datatabse export</h3>
-<p>Automatic export of MD5/SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
+<h3>Hash database export</h3>
+<p>Automatic export of MD5/SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for suspicious files. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
 <p>You can configure your tools to automatically download the following files:</p>
 <h4>md5</h4>
 <pre><?php echo Configure::read('CyDefSIG.baseurl');?>/events/hids/md5/<?php echo $me['authkey']; ?></pre>
