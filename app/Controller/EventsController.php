@@ -292,7 +292,6 @@ class EventsController extends AppController {
 		$temp = 0;
 		$pivot['children'] = array_values($pivot['children']);
 		foreach ($pivot['children'] as $k => $v) {
-			if($pivot['id'] == 49) debug($max);
 			$pivot['children'][$k]['height'] = ($temp+$k)*50;
 			$temp += $this->__arrangePivotVertical($pivot['children'][$k]);
 			if ($k == $max) $temp = $pivot['children'][$k]['height'] / 50;
