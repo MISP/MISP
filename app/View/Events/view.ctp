@@ -208,23 +208,27 @@ if (!empty($event['Attribute'])):?>
 				echo (h($sigDisplay));
 			}
 				?></td>
-				<td class="short <?php echo $extra; ?>" style="max-width:100px;">
+				<td class="shortish <?php echo $extra; ?>">
 				<?php
 			$first = 0;
+			?>
+				<ul class="inline" style="margin:0px;">
+			<?php 
 			if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 				foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
-					echo '<span title="'.h($relatedAttribute['info']).'">';
+					echo '<li style="padding-right: 0px; padding-left:0px;" title ="' . h($relatedAttribute['info']) . '"><span>';
 					if ($relatedAttribute['org'] == $me['org']) {
 						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('style' => 'color:red;'));
 					} else {
 						echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']));
 					}
 
-					echo "</span>";
+					echo "</span></li>";
 					echo ' ';
 				}
 			}
 				?>&nbsp;
+				</ul>
 				</td>
 				<td class="short <?php echo $extra; ?>"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
 				<td class="short
@@ -399,7 +403,7 @@ if (!empty($event['Attribute'])):?>
 <script type="text/javascript">
 // tooltips
 $(document).ready(function () {
-	$("th, td, dt, div, span").tooltip({
+	$("th, td, dt, div, span, li").tooltip({
 		'placement': 'top',
 		'container' : 'body',
 		delay: { show: 500, hide: 100 }

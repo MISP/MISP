@@ -235,6 +235,11 @@ td.short {
 	text-align: left;
 }
 
+td.shortish {
+	width:10%;
+	text-align: left;
+}
+
 td.highlight1 {
 	background-color: #0088cc !important;
 	color: #ffffff !important;
