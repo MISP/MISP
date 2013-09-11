@@ -630,7 +630,7 @@ class ShadowAttributesController extends AppController {
 				$bodyEncSig = $bodySigned;
 				// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
 			}
-
+debug ($reporter['User']['email']);
 			// prepare the email
 			$this->Email->from = Configure::read('CyDefSIG.email');
 			$this->Email->to = $reporter['User']['email'];
@@ -655,18 +655,12 @@ class ShadowAttributesController extends AppController {
 	}
 	
 	public function index() {
-		
+		$conditions = null;
+		if (!$this->_isSiteAdmin()) {
+			$conditions = array('Event.org =' => $this->Auth->user('org'));
+		}
 		$this->paginate = array(
-				'conditions' =>
-					array('OR' =>
-							array(
-									'Event.org =' => $this->Auth->user('org'),
-									'AND' => array(
-											'ShadowAttribute.org =' => $this->Auth->user('org'),
-											'Event.distribution >' => 0,
-									),
-							)
-					),
+				'conditions' => $conditions,
 				'fields' => array('id', 'org', 'old_id'),
 				'contain' => array(
 						'Event' =>array(
