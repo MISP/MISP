@@ -630,7 +630,6 @@ class ShadowAttributesController extends AppController {
 				$bodyEncSig = $bodySigned;
 				// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
 			}
-debug ($reporter['User']['email']);
 			// prepare the email
 			$this->Email->from = Configure::read('CyDefSIG.email');
 			$this->Email->to = $reporter['User']['email'];
