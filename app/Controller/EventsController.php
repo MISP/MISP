@@ -33,7 +33,7 @@ class EventsController extends AppController {
 			),
 	);
 
-	public $helpers = array('Js' => array('Jquery'), 'Pivot');
+	public $helpers = array('Js' => array('Jquery'));
 
 	public function beforeFilter() {
 		parent::beforeFilter();
@@ -233,18 +233,20 @@ class EventsController extends AppController {
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
-		
-		if ($continue) {
-			$data = $this->__continuePivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date'], $fromEvent);
-		} else {
-			$data = $this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
+		if (!$this->_isRest()) {
+			$this->helpers[] = 'Pivot';
+			if ($continue) {
+				$data = $this->__continuePivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date'], $fromEvent);
+			} else {
+				$data = $this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
+			}
+			$this->set('allPivots', $this->Session->read('pivot_thread'));
+			$pivot = $this->Session->read('pivot_thread');
+			$this->__arrangePivotVertical($pivot);
+			$this->__setDeletable($pivot, $id, true);
+			$this->set('pivot', $pivot);
+			$this->set('currentEvent', $id);
 		}
-		$this->set('allPivots', $this->Session->read('pivot_thread'));
-		$pivot = $this->Session->read('pivot_thread');
-		$this->__arrangePivotVertical($pivot);
-		$this->__setDeletable($pivot, $id, true);
-		$this->set('pivot', $pivot);
-		$this->set('currentEvent', $id);
 	}
 
 	private function __startPivoting($id, $info, $date){
