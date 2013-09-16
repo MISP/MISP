@@ -1483,7 +1483,7 @@ class EventsController extends AppController {
 
 	// Grab an event or a list of events for the event view or any of the XML exports. The returned object includes an array of events (or an array that only includes a single event if an ID was given)
 	// Included with the event are the attached attributes, shadow attributes, related events, related attribute information for the event view and the creating user's email address where appropriate
-	private function __fetchEvent($eventid = null) {
+	private function __fetchEvent($eventid = null, $idList = null) {
 		if (isset($eventid)) {
 			$this->Event->id = $eventid;
 			if (!$this->Event->exists()) {
@@ -1498,7 +1498,7 @@ class EventsController extends AppController {
 		//restricting to non-private or same org if the user is not a site-admin.
 		if (!$this->_isSiteAdmin()) {
 			$org = $this->_checkOrg();
-			$conditions['OR'] = array(
+			$conditions['AND']['OR'] = array(
 						'Event.distribution >' => 0,
 						'Event.org LIKE' => $org
 					);
@@ -1515,6 +1515,10 @@ class EventsController extends AppController {
 				);
 
 
+		}
+		
+		if ($idList) {
+			$conditions['AND'][] = array('Event.id' => $idList);
 		}
 		// removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
 		// $conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
@@ -2160,51 +2164,16 @@ class EventsController extends AppController {
 		$this->response->type('xml');	// set the content type
 		$this->layout = 'xml/default';
 		$this->header('Content-Disposition: download; filename="misp.search.results.xml"');
-		$put['OR'] = array();
-		foreach ($idList as $listElement) {
-			$put['OR'][] = array('Event.id' => $listElement);
-		}
-		$conditions['AND'][] = $put;
-		$conditionsAttributes = array();
-		// Restricting to non-private or same org if the user is not a site-admin.
-		if (!$this->_isSiteAdmin()) {
-			$temp = array();
-			$temp2 = array();
-			$org = $this->_checkOrg();
-			array_push($temp, array('Event.private >' => 0));
-			array_push($temp, array('Event.org LIKE' => $org));
-			$put2['OR'] = $temp;
-			$conditions['AND'][] = $put2;
-			array_push($temp2, array('Attribute.private >' => 0));
-			array_push($temp2, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
-			$conditionsAttributes['OR'] = $temp2;
-		}
 
-		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.date', 'Event.risk', 'Event.analysis', 'Event.info', 'Event.published', 'Event.uuid');
-		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id');
-		if ('true' == Configure::read('CyDefSIG.showorg')) {
-			$fields[] = 'Event.org';
-		}
-
-		$params = array('conditions' => $conditions,
-				'recursive' => 1,
-				'fields' => $fields,
-				'contain' => array(
-						'Attribute' => array(
-								'fields' => $fieldsAtt,
-								'conditions' => $conditionsAttributes,
-						),
-				)
-		);
-		$results = $this->Event->find('all', $params);
+		$results = $this->__fetchEvent(null, $idList);
 		// Whitelist check
 		$this->loadModel('Whitelist');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
+
 		$this->set('results', $results);
 		$this->render('xml');
 	}
-
+	
 	public function downloadOpenIOCEvent($eventid) {
 
 		// return a downloadable text file called misp.openIOC.<eventId>.ioc for individual events
