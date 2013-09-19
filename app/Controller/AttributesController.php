@@ -21,6 +21,9 @@ class AttributesController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
+		
+		$this->Auth->allow('restSearch');
+		$this->Auth->allow('returnAttributes');
 
 		// permit reuse of CSRF tokens on the search page.
 		if ('search' == $this->request->params['action']) {
@@ -1056,4 +1059,149 @@ class AttributesController extends AppController {
 
 		$this->set('fails', $this->Attribute->checkComposites());
 	}
+	
+	// Use the rest interface to search for attributes. Usage:
+	// MISP-base-url/attributes/restSearch/[api-key]/[value]/[type]/[category]/[orgc]
+	// value, type, category, orgc are optional
+	// the last 4 fields accept the following operators:
+	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
+	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
+	public function restSearch($key, $value=null, $type=null, $category=null, $orgc=null) {
+		$user = $this->checkAuthUser($key);
+		if (!$user) {
+			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+		}
+		$this->response->type('xml');	// set the content type
+		$this->layout = 'xml/default';
+		$this->header('Content-Disposition: download; filename="misp.search.attribute.results.xml"');
+		$conditions['AND'] = array();
+		$subcondition = array();
+		$this->loadModel('Attribute');
+		// add the values as specified in the 2nd parameter to the conditions
+		$values = explode('&&', $value);
+		$parameters = array('value', 'type', 'category', 'org');
+	
+		foreach ($parameters as $k => $param) {
+			if (isset(${$parameters[$k]})) {
+				$elements = explode('&&', ${$parameters[$k]});
+				foreach($elements as $v) {
+					if (substr($v, 0, 1) == '!') {
+						$subcondition['OR'][] = array('Attribute.value NOT LIKE' => $v);
+					} else {
+						$subcondition['OR'][] = array('Attribute.value LIKE' => $v);
+					}
+				}
+				array_push ($conditions['AND'], $subcondition);
+				$subcondition = array();
+			}
+		}
+	
+		// change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
+	
+		$params = array(
+				'conditions' => $conditions,
+				'fields' => array('Attribute.*', 'Event.org', 'Event.distribution'),
+				'contain' => 'Event'
+		);
+	
+		// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
+
+		if (!$user['User']['siteAdmin']) {
+			$temp = array();
+			$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
+			$subcondition['OR'][] = $temp;
+			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
+			array_push($conditions['AND'], $subcondition);
+		}
+
+		$results = $this->Attribute->find('all', $params);
+		$this->loadModel('Whitelist');
+		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
+		$this->set('results', $results);
+	}
+	
+	// returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter. 
+	// Similar to the restSearch, this parameter can be chained with '&&' and negations are accepted too. For example filename&&!filename|md5 would return all filenames that don't have an md5
+	// The usage of returnAttributes is the following: [MISP-url]/attributes/returnAttributes/<API-key>/<type>/<signature flag>
+	// The signature flag is off by default, enabling it will only return attribugtes that have the to_ids flag set to true.
+	public function returnAttributes($key, $id, $type = null, $sigOnly = false) {
+		$user = $this->checkAuthUser($key);
+		if (!$user) {
+			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+		}
+		$this->loadModel('Event');
+		$this->Event->read(null, $id);
+		$myEventOrAdmin = false;
+		if ($user['User']['siteAdmin'] || $this->Event->data['Event']['org'] == $user['User']['org']) {
+			$myEventOrAdmin = true;
+		}
+		
+		if (!$myEventOrAdmin) {
+			if ($this->Event->data['Event']['distribution'] == 0) {
+				throw new UnauthorizedException('You don\'t have access to that event.');
+			} 
+		}
+		$this->response->type('xml');	// set the content type
+		$this->layout = 'xml/default';
+		$this->header('Content-Disposition: download; filename="misp.search.attribute.results.xml"');
+		// check if user can see the event!
+		$conditions['AND'] = array();
+		$include = array();
+		$exclude = array();
+		$attributes = array();
+		// If there is a type set, create the include and exclude arrays from it
+		if (isset($type)) {
+			$elements = explode('&&', $type);
+			foreach($elements as $v) {
+				if (substr($v, 0, 1) == '!') {
+					$exclude[] = substr($v, 1);
+				} else {
+					$include[] = $v;
+				}
+			}
+		}
+		
+		// check each attribute
+		foreach($this->Event->data['Attribute'] as $k => $attribute) {
+			$contained = false;
+			// If the include list is empty, then we just then the first check should always set contained to true (basically we chose type = all - exclusions, or simply all)
+			if (empty($include)) {
+				$contained = true;
+			} else {
+				// If we have elements in $include we should check if the attribute's type should be included
+				foreach ($include as $inc) {
+					if (strpos($attribute['type'], $inc) !== false) {
+						$contained = true;
+					}
+				}
+			}
+			// If we have either everything included or the attribute passed the include check, we should check if there is a reason to exclude the attribute
+			// For example, filename may be included, but md5 may be excluded, meaning that filename|md5 should be removed
+			if ($contained) {
+				foreach ($exclude as $exc) {
+					if (strpos($attribute['type'], $exc) !== false) {
+						$contained = false;
+						continue 2;	
+					}							
+				}
+			}
+			// If we still didn't throw the attribute away, let's check if the user requesting the attributes is of the owning organisation of the event
+			// and if not, whether the distribution of the attribute allows the user to see it
+			if ($contained && !$myEventOrAdmin && $attribute['distribution'] == 0) {
+				$contained = false;
+			}
+			
+			// If we have set the sigOnly parameter and the attribute has to_ids set to false, discard it!
+			if ($contained && $sigOnly && !$attribute['to_ids']) {
+				$contained = false;
+			}
+			
+			// If after all of this $contained is still true, let's add the attribute to the array
+			if ($contained) $attributes[] = $attribute;
+		}
+
+		$this->set('results', $attributes);
+	}
+	
+	
 }

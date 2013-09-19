@@ -1514,8 +1514,6 @@ class EventsController extends AppController {
 					array('(SELECT events.org FROM events WHERE events.id = ShadowAttribute.event_id) LIKE' => $org),
 					array('ShadowAttribute.org LIKE' => $org),
 				);
-
-
 		}
 		
 		if ($idList) {
@@ -2175,21 +2173,21 @@ class EventsController extends AppController {
 		$this->render('xml');
 	}
 
-	// Use the rest interface to search for  
-	public function restSearch($key, $target = 'event', $value=null, $type=null, $category=null, $org=null) {
-		if (!$this->_isRest()) {
-			//throw new MethodNotAllowedException('This feature can only be accessed via the REST API only.');
-		}
+	// Use the rest interface to search for  attributes or events. Usage:
+	// MISP-base-url/events/restSearch/[api-key]/[value]/[type]/[category]/[orgc]
+	// value, type, category, orgc are optional
+	// target can be either "event" or "attribute"
+	// the last 4 fields accept the following operators:
+	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
+	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
+	public function restSearch($key, $value=null, $type=null, $category=null, $org=null) {
 		$user = $this->checkAuthUser($key);
 		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
-		if ($target != 'event' && $target != 'attribute') {
-			throw new UnauthorizedException('Invalid return type. The return type must be specified as either an "event" or an "attribute".');
-		}
 		$this->response->type('xml');	// set the content type
 		$this->layout = 'xml/default';
-		$this->header('Content-Disposition: download; filename="misp.search.' . $target . '.results.xml"');
+		$this->header('Content-Disposition: download; filename="misp.search.events.results.xml"');
 		$conditions['AND'] = array();
 		$subcondition = array();
 		$this->loadModel('Attribute');
@@ -2212,19 +2210,19 @@ class EventsController extends AppController {
 			}
 		}
 		
-		// change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
 		$params = array(
 			'conditions' => $conditions,
-			'fields' => 'event_id'
+			'fields' => array('Attribute.event_id'),
 		);
-		$test = $this->Attribute->find('all', $params);
+		
+		$attributes = $this->Attribute->find('all', $params);
 		$eventIds = array();
-		foreach ($test as $attribute) {
+		foreach ($attributes as $attribute) {
 			if (!in_array($attribute['Attribute']['event_id'], $eventIds)) $eventIds[] = $attribute['Attribute']['event_id'];
 		}
 		$results = $this->__fetchEvent(null, $eventIds);
 		$this->loadModel('Whitelist');
-		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
+		$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
 		$this->set('results', $results);
 	}
 	
