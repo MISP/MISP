@@ -248,15 +248,27 @@ class AttributesController extends AppController {
 		}
 
 		$this->Attribute->read();
-		$path = "files" . DS . $this->Attribute->data['Attribute']['event_id'] . DS;
-		$file = $this->Attribute->data['Attribute']['id'];
+		if (!$this->_isSiteAdmin() && 
+		$this->Auth->user('org') != 
+		$this->Attribute->data['Event']['org'] && 
+		($this->Attribute->data['Event']['distribution'] == 0 || 
+			$this->Attribute->data['Attribute']['distribution'] == 0
+		)) {
+		throw new UnauthorizedException('You do not have the permission to view this event.');
+		}
+		$this->__downloadAttachment($this->Attribute->data['Attribute']);
+  	}
+  	
+	private function __downloadAttachment($attribute) {
+		$path = "files" . DS . $attribute['event_id'] . DS;
+		$file = $attribute['id'];
 		$filename = '';
-		if ('attachment' == $this->Attribute->data['Attribute']['type']) {
-			$filename = $this->Attribute->data['Attribute']['value'];
+		if ('attachment' == $attribute['type']) {
+			$filename = $attribute['value'];
 			$fileExt = pathinfo($filename, PATHINFO_EXTENSION);
 			$filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
-		} elseif ('malware-sample' == $this->Attribute->data['Attribute']['type']) {
-			$filenameHash = explode('|', $this->Attribute->data['Attribute']['value']);
+		} elseif ('malware-sample' == $attribute['type']) {
+			$filenameHash = explode('|', $attribute['value']);
 			$filename = $filenameHash[0];
 			$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 			$fileExt = "zip";
