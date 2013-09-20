@@ -1078,7 +1078,7 @@ class AttributesController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key, $value=null, $type=null, $category=null, $orgc=null) {
+	public function restSearch($key, $value=null, $type=null, $category=null, $org=null) {
 		$user = $this->checkAuthUser($key);
 		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
@@ -1098,9 +1098,9 @@ class AttributesController extends AppController {
 				$elements = explode('&&', ${$parameters[$k]});
 				foreach($elements as $v) {
 					if (substr($v, 0, 1) == '!') {
-						$subcondition['OR'][] = array('Attribute.value NOT LIKE' => $v);
+						$subcondition['AND'][] = array('Attribute.value NOT LIKE' => '%'.substr($v, 1).'%');
 					} else {
-						$subcondition['OR'][] = array('Attribute.value LIKE' => $v);
+						$subcondition['OR'][] = array('Attribute.value LIKE' => '%'.$v.'%');
 					}
 				}
 				array_push ($conditions['AND'], $subcondition);
@@ -1108,6 +1108,16 @@ class AttributesController extends AppController {
 			}
 		}
 	
+		// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
+		
+		if (!$user['User']['siteAdmin']) {
+			$temp = array();
+			$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
+			$subcondition['OR'][] = $temp;
+			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
+			array_push($conditions['AND'], $subcondition);
+		}
+		
 		// change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
 	
 		$params = array(
@@ -1116,19 +1126,10 @@ class AttributesController extends AppController {
 				'contain' => 'Event'
 		);
 	
-		// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
-
-		if (!$user['User']['siteAdmin']) {
-			$temp = array();
-			$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
-			$subcondition['OR'][] = $temp;
-			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
-			array_push($conditions['AND'], $subcondition);
-		}
-
 		$results = $this->Attribute->find('all', $params);
 		$this->loadModel('Whitelist');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
+		if (empty($results)) throw new NotFoundException('No matches.');
 		$this->set('results', $results);
 	}
 	
@@ -1206,13 +1207,14 @@ class AttributesController extends AppController {
 			}
 			
 			// If we have set the sigOnly parameter and the attribute has to_ids set to false, discard it!
-			if ($contained && $sigOnly && !$attribute['to_ids']) {
+			if ($contained && $sigOnly === 'true' && !$attribute['to_ids']) {
 				$contained = false;
 			}
 			
 			// If after all of this $contained is still true, let's add the attribute to the array
 			if ($contained) $attributes[] = $attribute;
 		}
+		if (empty($attributes)) throw new NotFoundException('No matches.');
 		$this->set('results', $attributes);
 	}
 	
@@ -1223,13 +1225,17 @@ class AttributesController extends AppController {
 		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
+		$this->Attribute->id = $id;
+		if(!$this->Attribute->exists()) {
+			throw new NotFoundException('Invalid attribute or no authorisation to view it.');
+		}
 		$this->Attribute->read(null, $id);
 		if (!$user['User']['siteAdmin'] && 
 			$user['User']['org'] != $this->Attribute->data['Event']['org'] && 
 			($this->Attribute->data['Event']['distribution'] == 0 || 
 				$this->Attribute->data['Attribute']['distribution'] == 0
 			)) {
-			throw new UnauthorizedException('You do not have the permission to view this event.');
+			throw new NotFoundException('Invalid attribute or no authorisation to view it.');
 		}
 		$this->__downloadAttachment($this->Attribute->data['Attribute']);
 	}

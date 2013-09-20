@@ -2200,9 +2200,9 @@ class EventsController extends AppController {
 				$elements = explode('&&', ${$parameters[$k]});
 				foreach($elements as $v) {
 					if (substr($v, 0, 1) == '!') {
-						$subcondition['OR'][] = array('Attribute.value NOT LIKE' => $v);
+						$subcondition['AND'][] = array('Attribute.value NOT LIKE' => '%'.substr($v, 1).'%');
 					} else {
-						$subcondition['OR'][] = array('Attribute.value LIKE' => $v);
+						$subcondition['OR'][] = array('Attribute.value LIKE' => '%'.$v.'%');
 					}
 				}
 				array_push ($conditions['AND'], $subcondition);
@@ -2210,6 +2210,16 @@ class EventsController extends AppController {
 			}
 		}
 		
+		// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
+		
+		if (!$user['User']['siteAdmin']) {
+			$temp = array();
+			$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
+			$subcondition['OR'][] = $temp;
+			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
+			array_push($conditions['AND'], $subcondition);
+		}
+				
 		$params = array(
 			'conditions' => $conditions,
 			'fields' => array('Attribute.event_id'),
@@ -2220,7 +2230,11 @@ class EventsController extends AppController {
 		foreach ($attributes as $attribute) {
 			if (!in_array($attribute['Attribute']['event_id'], $eventIds)) $eventIds[] = $attribute['Attribute']['event_id'];
 		}
-		$results = $this->__fetchEvent(null, $eventIds);
+		if (!empty($eventIds)) {
+			$results = $this->__fetchEvent(null, $eventIds);
+		} else {
+			throw new NotFoundException('No matches.');
+		}
 		$this->loadModel('Whitelist');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
 		$this->set('results', $results);

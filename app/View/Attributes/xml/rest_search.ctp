@@ -7,7 +7,7 @@ foreach ($results as $k => $v) {
 			$results[$k]['Attribute']['value2'],
 			$results[$k]['Attribute']['category_order']
 	);
-	$xmlArray['response']['Attribute'] = $results[$k]['Attribute'];
+	$xmlArray['response']['Attribute'][] = $results[$k]['Attribute'];
 }
 $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 echo $xmlObject->asXML();
