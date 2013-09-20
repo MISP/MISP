@@ -295,6 +295,8 @@ class AppController extends Controller {
 			$this->loadModel('Role');
 			$this->Role->recursive = -1;
 			$role = $this->Role->findById($user['User']['role_id']);
+			$user['User']['siteAdmin'] = false;
+			if ($role['Role']['perm_admin'] && $user['User']['org'] == 'ADMIN') $user['User']['siteAdmin'] = true;
 			if ($role['Role']['perm_auth']) {
 				return $user;
 			}

@@ -29,7 +29,7 @@ class EventsController extends AppController {
 			'limit' => 60,
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
 			'order' => array(
-					'Event.id' => 'DESC'
+					'Event.timestamp' => 'DESC'
 			),
 	);
 
@@ -45,6 +45,7 @@ class EventsController extends AppController {
 		$this->Auth->allow('hids_sha1');
 		$this->Auth->allow('text');
 		$this->Auth->allow('dot');
+		$this->Auth->allow('restSearch');
 
 		// TODO Audit, activate logable in a Controller
 		if (count($this->uses) && $this->{$this->modelClass}->Behaviors->attached('SysLogLogable')) {
@@ -1513,8 +1514,6 @@ class EventsController extends AppController {
 					array('(SELECT events.org FROM events WHERE events.id = ShadowAttribute.event_id) LIKE' => $org),
 					array('ShadowAttribute.org LIKE' => $org),
 				);
-
-
 		}
 		
 		if ($idList) {
@@ -2172,6 +2171,73 @@ class EventsController extends AppController {
 
 		$this->set('results', $results);
 		$this->render('xml');
+	}
+
+	// Use the rest interface to search for  attributes or events. Usage:
+	// MISP-base-url/events/restSearch/[api-key]/[value]/[type]/[category]/[orgc]
+	// value, type, category, orgc are optional
+	// target can be either "event" or "attribute"
+	// the last 4 fields accept the following operators:
+	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
+	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
+	public function restSearch($key, $value=null, $type=null, $category=null, $org=null) {
+		$user = $this->checkAuthUser($key);
+		if (!$user) {
+			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+		}
+		$this->response->type('xml');	// set the content type
+		$this->layout = 'xml/default';
+		$this->header('Content-Disposition: download; filename="misp.search.events.results.xml"');
+		$conditions['AND'] = array();
+		$subcondition = array();
+		$this->loadModel('Attribute');
+		// add the values as specified in the 2nd parameter to the conditions
+		$values = explode('&&', $value);
+		$parameters = array('value', 'type', 'category', 'org');
+		
+		foreach ($parameters as $k => $param) {
+			if (isset(${$parameters[$k]})) {
+				$elements = explode('&&', ${$parameters[$k]});
+				foreach($elements as $v) {
+					if (substr($v, 0, 1) == '!') {
+						$subcondition['AND'][] = array('Attribute.value NOT LIKE' => '%'.substr($v, 1).'%');
+					} else {
+						$subcondition['OR'][] = array('Attribute.value LIKE' => '%'.$v.'%');
+					}
+				}
+				array_push ($conditions['AND'], $subcondition);
+				$subcondition = array();
+			}
+		}
+		
+		// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
+		
+		if (!$user['User']['siteAdmin']) {
+			$temp = array();
+			$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
+			$subcondition['OR'][] = $temp;
+			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
+			array_push($conditions['AND'], $subcondition);
+		}
+				
+		$params = array(
+			'conditions' => $conditions,
+			'fields' => array('Attribute.event_id'),
+		);
+		
+		$attributes = $this->Attribute->find('all', $params);
+		$eventIds = array();
+		foreach ($attributes as $attribute) {
+			if (!in_array($attribute['Attribute']['event_id'], $eventIds)) $eventIds[] = $attribute['Attribute']['event_id'];
+		}
+		if (!empty($eventIds)) {
+			$results = $this->__fetchEvent(null, $eventIds);
+		} else {
+			throw new NotFoundException('No matches.');
+		}
+		$this->loadModel('Whitelist');
+		$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+		$this->set('results', $results);
 	}
 	
 	public function downloadOpenIOCEvent($eventid) {
