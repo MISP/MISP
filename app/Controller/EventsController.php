@@ -1484,7 +1484,7 @@ class EventsController extends AppController {
 
 	// Grab an event or a list of events for the event view or any of the XML exports. The returned object includes an array of events (or an array that only includes a single event if an ID was given)
 	// Included with the event are the attached attributes, shadow attributes, related events, related attribute information for the event view and the creating user's email address where appropriate
-	private function __fetchEvent($eventid = null, $idList = null) {
+	private function __fetchEvent($eventid = null, $idList = null, $orgFromFetch = null) {
 		if (isset($eventid)) {
 			$this->Event->id = $eventid;
 			if (!$this->Event->exists()) {
@@ -1494,11 +1494,22 @@ class EventsController extends AppController {
 		} else {
 			$conditions = array();
 		}
+		// if we come from automation, we may not be logged in - instead we used an auth key in the URL. 
+		if (!empty($orgFromFetch)) {
+			$org = $orgFromFetch;
+			if ($orgFromFetch == 'ADMIN') $isSiteAdmin = true;
+			else $isSiteAdmin = false;
+		} else {
+			$org = $this->_checkOrg();
+			$isSiteAdmin = $this->_isSiteAdmin();
+		}
+		
 		$conditionsAttributes = array();
 		$conditionsShadowAttributes = array();
 		//restricting to non-private or same org if the user is not a site-admin.
-		if (!$this->_isSiteAdmin()) {
-			$org = $this->_checkOrg();
+		if (!$isSiteAdmin) {
+			if (!empty($orgFromFetch)) $org = $orgFromFetch;
+			else $org = $this->_checkOrg();
 			$conditions['AND']['OR'] = array(
 						'Event.distribution >' => 0,
 						'Event.org LIKE' => $org
@@ -1544,7 +1555,7 @@ class EventsController extends AppController {
 						),
 				)
 		);
-		if ($this->_isAdmin()) $params['contain']['User'] = array('fields' => 'email');
+		if ($isSiteAdmin) $params['contain']['User'] = array('fields' => 'email');
 		$results = $this->Event->find('all', $params);
 		// Do some refactoring with the event
 		foreach ($results as $eventKey => &$event) {
@@ -2230,7 +2241,7 @@ class EventsController extends AppController {
 			if (!in_array($attribute['Attribute']['event_id'], $eventIds)) $eventIds[] = $attribute['Attribute']['event_id'];
 		}
 		if (!empty($eventIds)) {
-			$results = $this->__fetchEvent(null, $eventIds);
+			$results = $this->__fetchEvent(null, $eventIds, $user['User']['org']);
 		} else {
 			throw new NotFoundException('No matches.');
 		}
