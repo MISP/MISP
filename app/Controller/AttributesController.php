@@ -1098,9 +1098,9 @@ class AttributesController extends AppController {
 				$elements = explode('&&', ${$parameters[$k]});
 				foreach($elements as $v) {
 					if (substr($v, 0, 1) == '!') {
-						$subcondition['AND'][] = array('Attribute.value NOT LIKE' => '%'.substr($v, 1).'%');
+						$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
 					} else {
-						$subcondition['OR'][] = array('Attribute.value LIKE' => '%'.$v.'%');
+						$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
 					}
 				}
 				array_push ($conditions['AND'], $subcondition);
