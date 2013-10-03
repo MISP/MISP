@@ -6,13 +6,13 @@
 		echo $this->Form->input('name');?>
 		<?php echo $this->Form->input('permission', array('type' => 'select', 'options' => $options), array('value' => '3'));?>
 		<div class = 'input clear'></div>
-		<?php echo $this->Form->input('perm_sync', array(
-				'type' => 'checkbox',
-				'checked' => false,
-		));?>
+		<?php echo $this->Form->input('perm_sync', array('type' => 'checkbox', 'checked' => false));?>
 		<?php echo $this->Form->input('perm_admin', array('type' => 'checkbox', 'checked' => false));?>
 		<?php echo $this->Form->input('perm_audit', array('type' => 'checkbox', 'checked' => false));?>
+		<div class = 'input clear'></div>
 		<?php echo $this->Form->input('perm_auth', array('type' => 'checkbox', 'checked' => false));?>
+		<?php echo $this->Form->input('perm_site_admin', array('type' => 'checkbox', 'checked' => false));?>
+		<?php echo $this->Form->input('perm_regexp_access', array('type' => 'checkbox', 'checked' => false));?>
 	</fieldset>
 <?php
 echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
@@ -41,6 +41,8 @@ $this->Js->get('#RolePermission')->event('change', 'deactivateActions()');
 $this->Js->get('#RolePermSync')->event('change', 'checkPerms("RolePermSync")');
 $this->Js->get('#RolePermAdmin')->event('change', 'checkPerms("RolePermAdmin")');
 $this->Js->get('#RolePermAudit')->event('change', 'checkPerms("RolePermAudit")');
+$this->Js->get('#RolePermSiteAdmin')->event('change', 'checkPerms("RolePermSiteAdmin");activateAll();');
+$this->Js->get('#RolePermRegexpAccess')->event('change', 'checkPerms("RolePermRegexpAccess")');
 ?>
 
 <script type="text/javascript">
@@ -52,6 +54,18 @@ function deactivateActions() {
 		document.getElementById("RolePermSync").checked = false;
 		document.getElementById("RolePermAdmin").checked = false;
 		document.getElementById("RolePermAudit").checked = false;
+		document.getElementById("RolePermSiteAdmin").checked = false;
+		document.getElementById("RolePermRegexpAccess").checked = false;
+	}
+}
+
+function activateAll() {
+	if (document.getElementById("RolePermSiteAdmin").checked) {
+		document.getElementById("RolePermSync").checked = true;
+		document.getElementById("RolePermAdmin").checked = true;
+		document.getElementById("RolePermAudit").checked = true;
+		document.getElementById("RolePermAuth").checked = true;
+		document.getElementById("RolePermRegexpAccess").checked = true;
 	}
 }
 

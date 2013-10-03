@@ -30,7 +30,7 @@ class RegexpController extends AppController {
 	public function admin_add() {
 		$this->loadModel('Attribute');
 		$types = array_keys($this->Attribute->typeDefinitions);
-		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if(!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		if ($this->request->is('post')) {
 			if ($this->request->data['Regexp']['all'] == 1) {
 				$this->Regexp->create();
@@ -63,7 +63,7 @@ class RegexpController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if(!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminIndex();
 	}
 
@@ -81,7 +81,7 @@ class RegexpController extends AppController {
 		$this->loadModel('Attribute');
 		$types = array_keys($this->Attribute->typeDefinitions);
 		// send the user away if he/she's no admin
-		if ($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if (!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->Regexp->id = $id;
 		if (!$this->Regexp->exists()) {
 			throw new NotFoundException('Invalid Regexp');
@@ -159,7 +159,7 @@ class RegexpController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_delete($id = null) {
-		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if(!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminDelete($id);
 	}
 
@@ -176,9 +176,8 @@ class RegexpController extends AppController {
 /**
  *
  */
-
 	public function admin_clean() {
-		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if(!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$allRegexp = $this->Regexp->find('all');
 		$deletable = array();
 		$modifications = 0;

@@ -1124,7 +1124,7 @@ class EventsController extends AppController {
 		$body .= 'Analysis    : ' . $this->Event->analysisLevels[$event['Event']['analysis']] . "\n";
 		$body .= 'Info  : ' . "\n";
 		$body .= $event['Event']['info'] . "\n";
-		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
+		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user(), $this->_isSiteAdmin());
 		if (!empty($relatedEvents)) {
 			$body .= '----------------------------------------------' . "\n";
 			$body .= 'Related to : '. "\n";
@@ -1339,7 +1339,7 @@ class EventsController extends AppController {
 		}
 		$body .= 'Risk		: ' . $event['Event']['risk'] . "\n";
 		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
-		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
+		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user(), $this->_isSiteAdmin());
 		if (!empty($relatedEvents)) {
 			foreach ($relatedEvents as &$relatedEvent) {
 				$body .= 'Related to  : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
@@ -1484,7 +1484,7 @@ class EventsController extends AppController {
 
 	// Grab an event or a list of events for the event view or any of the XML exports. The returned object includes an array of events (or an array that only includes a single event if an ID was given)
 	// Included with the event are the attached attributes, shadow attributes, related events, related attribute information for the event view and the creating user's email address where appropriate
-	private function __fetchEvent($eventid = null, $idList = null, $orgFromFetch = null) {
+	private function __fetchEvent($eventid = null, $idList = null, $orgFromFetch = null, $isSiteAdmin = false) {
 		if (isset($eventid)) {
 			$this->Event->id = $eventid;
 			if (!$this->Event->exists()) {
@@ -1497,8 +1497,6 @@ class EventsController extends AppController {
 		// if we come from automation, we may not be logged in - instead we used an auth key in the URL. 
 		if (!empty($orgFromFetch)) {
 			$org = $orgFromFetch;
-			if ($orgFromFetch == 'ADMIN') $isSiteAdmin = true;
-			else $isSiteAdmin = false;
 		} else {
 			$org = $this->_checkOrg();
 			$isSiteAdmin = $this->_isSiteAdmin();
@@ -1560,9 +1558,9 @@ class EventsController extends AppController {
 		// Do some refactoring with the event
 		foreach ($results as $eventKey => &$event) {
 			// Let's find all the related events and attach it to the event itself
-			$results[$eventKey]['RelatedEvent'] = $this->Event->getRelatedEvents($this->Auth->user(), $event['Event']['id']);
+			$results[$eventKey]['RelatedEvent'] = $this->Event->getRelatedEvents($this->Auth->user(), $this->_isSiteAdmin(), $event['Event']['id']);
 			// Let's also find all the relations for the attributes - this won't be in the xml export though
-			$results[$eventKey]['RelatedAttribute'] = $this->Event->getRelatedAttributes($this->Auth->user(), $event['Event']['id']);
+			$results[$eventKey]['RelatedAttribute'] = $this->Event->getRelatedAttributes($this->Auth->user(), $this->_isSiteAdmin(), $event['Event']['id']);
 			foreach ($event['Attribute'] as $key => &$attribute) {
 				$attribute['ShadowAttribute'] = array();
 				// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
@@ -2241,7 +2239,7 @@ class EventsController extends AppController {
 			if (!in_array($attribute['Attribute']['event_id'], $eventIds)) $eventIds[] = $attribute['Attribute']['event_id'];
 		}
 		if (!empty($eventIds)) {
-			$results = $this->__fetchEvent(null, $eventIds, $user['User']['org']);
+			$results = $this->__fetchEvent(null, $eventIds, $user['User']['org'], true);
 		} else {
 			throw new NotFoundException('No matches.');
 		}

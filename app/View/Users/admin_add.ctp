@@ -6,7 +6,7 @@
 		echo $this->Form->input('email');
 		echo $this->Form->input('password');
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
-		if ($currentOrg == 'ADMIN') {
+		if ($isSiteAdmin) {
 			echo $this->Form->input('org', array('label' => 'Organisation'));
 		}
 		echo $this->Form->input('role_id', array('label' => 'Role', 'div' => 'input clear'));
