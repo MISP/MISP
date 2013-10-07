@@ -70,5 +70,10 @@
 	echo $this->Html->script('main');
 	?>
 	</div>
+	<script type="text/javascript">
+		$(window).scroll(function(e) {
+			$('.actions').css('left',-$(window).scrollLeft());
+		});
+	</script>
 </body>
 </html>
