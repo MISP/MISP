@@ -148,7 +148,7 @@ class NidsExportComponent extends Component {
 				'tcp',							// proto
 				'$EXTERNAL_NET',				// src_ip
 				'any',							// src_port
-				'<>',							// direction
+				'->',							// direction
 				'$SMTP_SERVERS',				// dst_ip
 				'25',							// dst_port
 				'Source Email Address: ' . $attribute['value'],		// msg
@@ -167,7 +167,7 @@ class NidsExportComponent extends Component {
 				'tcp',							// proto
 				'$EXTERNAL_NET',				// src_ip
 				'any',							// src_port
-				'<>',							// direction
+				'->',							// direction
 				'$SMTP_SERVERS',				// dst_ip
 				'25',							// dst_port
 				'Destination Email Address: ' . $attribute['value'],	// msg
@@ -187,7 +187,7 @@ class NidsExportComponent extends Component {
 				'tcp',							// proto
 				'$EXTERNAL_NET',				// src_ip
 				'any',							// src_port
-				'<>',							// direction
+				'->',							// direction
 				'$SMTP_SERVERS',				// dst_ip
 				'25',							// dst_port
 				'Bad Email Subject',			// msg
@@ -207,7 +207,7 @@ class NidsExportComponent extends Component {
 				'tcp',							// proto
 				'$EXTERNAL_NET',				// src_ip
 				'any',							// src_port
-				'<>',							// direction
+				'->',							// direction
 				'$SMTP_SERVERS',				// dst_ip
 				'25',							// dst_port
 				'Bad Email Attachment',			// msg
