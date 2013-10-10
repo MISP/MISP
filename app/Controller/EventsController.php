@@ -20,7 +20,7 @@ class EventsController extends AppController {
 			'RequestHandler',
 			'HidsMd5Export',
 			'HidsSha1Export',
-			'NidsExport',
+			'NidsSuricataExport',
 			'IOCExport',
 			'IOCImport'
 	);
@@ -264,7 +264,7 @@ class EventsController extends AppController {
 		}
 		$this->Session->write('pivot_thread', $pivot);
 	}
-	
+
 	private function __insertPivot($pivot, $oldId, $newPivot, $depth) {
 		$depth++;
 		if ($pivot['id'] == $oldId) {
@@ -277,7 +277,7 @@ class EventsController extends AppController {
 		}
 		return $pivot;
 	}
-	
+
 	private function __checkForPivot($pivot, $id) {
 		if ($id == $pivot['id']) return true;
 		foreach ($pivot['children'] as $k => $v) {
@@ -287,7 +287,7 @@ class EventsController extends AppController {
 		}
 		return false;
 	}
-	
+
 	private function __arrangePivotVertical(&$pivot) {
 		if (empty($pivot)) return null;
 		$max = count($pivot['children']) - 1;
@@ -301,7 +301,7 @@ class EventsController extends AppController {
 		}
 		return $temp;
 	}
-	
+
 	public function removePivot($id, $eventId, $self = false) {
 		$pivot = $this->Session->read('pivot_thread');
 		if ($pivot['id'] == $id) {
@@ -315,7 +315,7 @@ class EventsController extends AppController {
 		$pivot = $this->__arrangePivotVertical($pivot);
 		$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, true, $eventId));
 	}
-	
+
 	private function __removeChildren(&$pivot, $id) {
 		if ($pivot['id'] == $id) {
 			$pivot['children'] = array();
@@ -325,7 +325,7 @@ class EventsController extends AppController {
 			}
 		}
 	}
-	
+
 	private function __doRemove(&$pivot, $id) {
 		foreach ($pivot['children'] as $k => $v) {
 			if ($v['id'] == $id) {
@@ -337,7 +337,7 @@ class EventsController extends AppController {
 		}
 		return $pivot;
 	}
-	
+
 	private function __setDeletable(&$pivot, $id, $root=false) {
 		if ($pivot['id'] == $id && !$root) {
 			$pivot['deletable'] = false;
@@ -350,7 +350,7 @@ class EventsController extends AppController {
 		}
 		return !$pivot['deletable'];
 	}
-	
+
 	/*
 	public function view($id = null) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
@@ -1494,7 +1494,7 @@ class EventsController extends AppController {
 		} else {
 			$conditions = array();
 		}
-		// if we come from automation, we may not be logged in - instead we used an auth key in the URL. 
+		// if we come from automation, we may not be logged in - instead we used an auth key in the URL.
 		if (!empty($orgFromFetch)) {
 			$org = $orgFromFetch;
 			if ($orgFromFetch == 'ADMIN') $isSiteAdmin = true;
@@ -1503,7 +1503,7 @@ class EventsController extends AppController {
 			$org = $this->_checkOrg();
 			$isSiteAdmin = $this->_isSiteAdmin();
 		}
-		
+
 		$conditionsAttributes = array();
 		$conditionsShadowAttributes = array();
 		//restricting to non-private or same org if the user is not a site-admin.
@@ -1526,7 +1526,7 @@ class EventsController extends AppController {
 					array('ShadowAttribute.org LIKE' => $org),
 				);
 		}
-		
+
 		if ($idList) {
 			$conditions['AND'][] = array('Event.id' => $idList);
 		}
@@ -1623,7 +1623,9 @@ class EventsController extends AppController {
 		unset($this->Attribute->virtualFields['category_order']);  // not needed for IDS export and speeds things up
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->NidsExport->export($items, $user['User']['nids_sid']);
+		// TODO chri - export depending of the requested type
+		$rules = $this->NidsSuricataExport->export(&$items, $user['User']['nids_sid']);
+
 		$this->set('rules', $rules);
 	}
 
@@ -2205,7 +2207,7 @@ class EventsController extends AppController {
 		// add the values as specified in the 2nd parameter to the conditions
 		$values = explode('&&', $value);
 		$parameters = array('value', 'type', 'category', 'org');
-		
+
 		foreach ($parameters as $k => $param) {
 			if (isset(${$parameters[$k]})) {
 				$elements = explode('&&', ${$parameters[$k]});
@@ -2220,9 +2222,9 @@ class EventsController extends AppController {
 				$subcondition = array();
 			}
 		}
-		
+
 		// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
-		
+
 		if (!$user['User']['siteAdmin']) {
 			$temp = array();
 			$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
@@ -2230,7 +2232,7 @@ class EventsController extends AppController {
 			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
 			array_push($conditions['AND'], $subcondition);
 		}
-				
+
 		$params = array(
 			'conditions' => $conditions,
 			'fields' => array('Attribute.event_id'),
@@ -2249,7 +2251,7 @@ class EventsController extends AppController {
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
 		$this->set('results', $results);
 	}
-	
+
 	public function downloadOpenIOCEvent($eventid) {
 
 		// return a downloadable text file called misp.openIOC.<eventId>.ioc for individual events

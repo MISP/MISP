@@ -6,7 +6,11 @@ class NidsExportComponent extends Component {
 
 	public $classtype = 'trojan-activity';
 
+	public $format = "";   // suricata (default), snort
+
 	public function explain() {
+		$this->rules[] = '# MISP export of IDS rules - optimized for '.$this->format;
+		$this->rules[] = '#';
 		$this->rules[] = '# These NIDS rules contain some variables that need to exist in your configuration.';
 		$this->rules[] = '# Make sure you have set:';
 		$this->rules[] = '#';
@@ -19,12 +23,15 @@ class NidsExportComponent extends Component {
 
 	private $whitelist = null;
 
-	public function export($items, $startSid) {
+
+	public function export($items, $startSid, $format="suricata") {
+		$this->format = $format;
 		$this->Whitelist = ClassRegistry::init('Whitelist');
 		$this->whitelist = $this->Whitelist->getBlockedValues();
 
+		// output a short explanation
 		$this->explain();
-
+		// generate the rules
 		foreach ($items as &$item) {
 			switch ($item['Event']['risk']) {
 				case 'Undefined':
@@ -238,7 +245,7 @@ class NidsExportComponent extends Component {
 				'any',							// dst_ip
 				'53',							// dst_port
 				'Hostname: ' . $attribute['value'],		// msg
-				$content,						// rule_content
+				$content. ' flow:established;',			// rule_content
 				'',							// tag
 				$sid,							// sid
 				1								// rev
@@ -246,7 +253,7 @@ class NidsExportComponent extends Component {
 		$sid++;
 		// also do http requests
 		// warning: only suricata compatible
-		$content = 'flow:to_server,established; content: "Host: ' . $attribute['value'] . '"; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-]/";';
+		$content = 'flow:to_server,established; content: "Host: ' . $attribute['value'] . '"; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-]/H";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'http',						// proto
@@ -290,7 +297,7 @@ class NidsExportComponent extends Component {
 				'any',							// dst_ip
 				'53',							// dst_port
 				'Domain: ' . $attribute['value'],		// msg
-				$content,						// rule_content
+				$content. ' flow:established;',			// rule_content
 				'',							// tag
 				$sid,							// sid
 				1								// rev
@@ -298,7 +305,7 @@ class NidsExportComponent extends Component {
 		$sid++;
 		// also do http requests,
 		// warning: only suricata compatible
-		$content = 'flow:to_server,established; content: "Host:"; nocase; http_header; content:"' . $attribute['value'] . '"; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-]/";';
+		$content = 'flow:to_server,established; content: "Host:"; nocase; http_header; content:"' . $attribute['value'] . '"; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-]/H";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'http',						// proto
@@ -438,7 +445,7 @@ class NidsExportComponent extends Component {
 		}
 		// put all together
 		$rawName .= '(0)';
-		// and append |00| to terminate the name
+		// and append (0) to terminate the name
 		return $rawName;
 	}
 
