@@ -12,5 +12,6 @@ class NidsSuricataExportComponent extends NidsExportComponent {
 		return parent::export(&$items, $startSid);
 	}
 
+	// below overwrite functions from NidsExportComponent
 
 }

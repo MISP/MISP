@@ -142,7 +142,7 @@ class NidsExportComponent extends Component {
 
 	public function emailSrcRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;';
+		$content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
@@ -161,7 +161,7 @@ class NidsExportComponent extends Component {
 
 	public function emailDstRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;';
+		$content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
@@ -181,7 +181,7 @@ class NidsExportComponent extends Component {
 	public function emailSubjectRule($ruleFormat, $attribute, &$sid) {
 		// LATER nids - email-subject rule might not match because of line-wrapping
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$content = 'flow:established,to_server; content:"Subject|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase;';
+		$content = 'flow:established,to_server; content:"Subject|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
@@ -201,7 +201,7 @@ class NidsExportComponent extends Component {
 	public function emailAttachmentRule($ruleFormat, $attribute, &$sid) {
 		// LATER nids - email-attachment rule might not match because of line-wrapping
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$content = 'flow:established,to_server; content:"Content-Disposition: attachment|3b| filename=|22|"; content:"' . $attribute['value'] . '|22|";';
+		$content = 'flow:established,to_server; content:"Content-Disposition: attachment|3b| filename=|22|"; content:"' . $attribute['value'] . '|22|"; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
