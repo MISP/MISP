@@ -142,7 +142,7 @@ class NidsExportComponent extends Component {
 
 	public function emailSrcRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
+		$content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"' . $attribute['value'] . '"; fast_pattern; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
@@ -161,7 +161,7 @@ class NidsExportComponent extends Component {
 
 	public function emailDstRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
+		$content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"' . $attribute['value'] . '"; fast_pattern; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
@@ -181,7 +181,7 @@ class NidsExportComponent extends Component {
 	public function emailSubjectRule($ruleFormat, $attribute, &$sid) {
 		// LATER nids - email-subject rule might not match because of line-wrapping
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$content = 'flow:established,to_server; content:"Subject|3a|"; nocase; content:"' . $attribute['value'] . '"; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
+		$content = 'flow:established,to_server; content:"Subject|3a|"; nocase; content:"' . $attribute['value'] . '"; fast_pattern; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
@@ -201,7 +201,7 @@ class NidsExportComponent extends Component {
 	public function emailAttachmentRule($ruleFormat, $attribute, &$sid) {
 		// LATER nids - email-attachment rule might not match because of line-wrapping
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$content = 'flow:established,to_server; content:"Content-Disposition: attachment|3b| filename=|22|"; content:"' . $attribute['value'] . '|22|"; content:"|0D 0A 0D 0A|"; within:8192;';
+		$content = 'flow:established,to_server; content:"Content-Disposition|3a| attachment|3b| filename|3d 22|"; content:"' . $attribute['value'] . '|22|"; fast_pattern; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',							// proto
@@ -220,7 +220,7 @@ class NidsExportComponent extends Component {
 
 	public function hostnameRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$content = 'content:"' . $this->dnsNameToRawFormat($attribute['value'], 'hostname') . '"; nocase;';
+		$content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . $this->dnsNameToRawFormat($attribute['value'], 'hostname') . '"; fast_pattern; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'udp',							// proto
@@ -253,7 +253,7 @@ class NidsExportComponent extends Component {
 		$sid++;
 		// also do http requests
 		// warning: only suricata compatible
-		$content = 'flow:to_server,established; content: "Host: ' . $attribute['value'] . '"; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-]/H";';
+		$content = 'flow:to_server,established; content: "Host|3a| ' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-]/H";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'http',						// proto
@@ -272,7 +272,7 @@ class NidsExportComponent extends Component {
 
 	public function domainRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$content = 'content:"' . $this->dnsNameToRawFormat($attribute['value']) . '"; nocase;';
+		$content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . $this->dnsNameToRawFormat($attribute['value']) . '"; fast_pattern; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'udp',							// proto
@@ -305,7 +305,7 @@ class NidsExportComponent extends Component {
 		$sid++;
 		// also do http requests,
 		// warning: only suricata compatible
-		$content = 'flow:to_server,established; content: "Host:"; nocase; http_header; content:"' . $attribute['value'] . '"; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-]/H";';
+		$content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-]/H";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'http',						// proto
@@ -328,7 +328,7 @@ class NidsExportComponent extends Component {
 		//$overruled = $this->checkNames($hostpart);
 		// warning: only suricata compatible
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; nocase; http_uri;';
+		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_uri;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'http',							// proto
@@ -346,12 +346,30 @@ class NidsExportComponent extends Component {
 	}
 
 	public function userAgentRule($ruleFormat, $attribute, &$sid) {
-		// TODO nids - write snort user-agent rule
+		$overruled = $this->checkWhitelist($attribute['value']);
+		// warning: only suricata compatible
+		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; fast_pattern; http_user_agent;';
+		$this->rules[] = sprintf($ruleFormat,
+		        ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+		        'http',						// proto
+		        '$HOME_NET',					// src_ip
+		        'any',							// src_port
+		        '->',							// direction
+		        '$EXTERNAL_NET',				// dst_ip
+		        'any',							// dst_port
+		        'Outgoing User-Agent: ' . $attribute['value'],		// msg
+		        $content,						// rule_content
+		        'tag:session,600,seconds;',	// tag
+		        $sid,							// sid
+		        1								// rev
+		);
 	}
 
 	public function snortRule($ruleFormat, $attribute, &$sid, $ruleFormatMsg, $ruleFormatReference) {
-		// LATER nids - test using lots of snort rules.
-		$tmpRule = $attribute['value'];
+		// LATER nids - test using lots of snort rules, some rules don't contain all the necessary to be a valid rule.
+
+		// store the value in the rule, but also strip out the newlines
+		$tmpRule = str_replace(array("\r","\n"), " ", $attribute['value']);
 
 		// rebuild the rule by overwriting the different keywords using preg_replace()
 		//   sid	   - '/sid\s*:\s*[0-9]+\s*;/'
