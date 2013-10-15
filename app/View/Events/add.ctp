@@ -94,7 +94,7 @@ $(document).ready(function() {
 	    if ($e.is('option')) {
 	        $('#'+e.currentTarget.id).popover('destroy');
 	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'manual',
+	            trigger: 'focus',
 	            placement: 'right',
 	            content: formInfoValues[e.currentTarget.id][$e.val()],
 	        }).popover('show');
@@ -108,7 +108,7 @@ $(document).ready(function() {
 		var $e = $(e.target);
         $('#'+e.currentTarget.id).popover('destroy');
         $('#'+e.currentTarget.id).popover({
-            trigger: 'manual',
+            trigger: 'focus',
             placement: 'right',
             content: formInfoValues[e.currentTarget.id][$e.val()],
         }).popover('show');
