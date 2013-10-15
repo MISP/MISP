@@ -134,6 +134,7 @@ $(document).ready(function() {
 	    $('#'+e.currentTarget.id).popover('destroy');
 	});
 
+
 	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {
@@ -154,9 +155,12 @@ $(document).ready(function() {
 		var $e = $(e.target);
 		$('#'+e.currentTarget.id).popover('destroy');
         $('#'+e.currentTarget.id).popover({
-            trigger: 'manual',
+            trigger: 'focus',
             placement: 'right',
         }).popover('show');
+       // $('#'+e.currentTarget.id).on('mouseleave', $('#'+e.currentTarget.id).popover('destroy');
+        //$('#'+e.currentTarget.id).on('mouseout', $('#'+e.currentTarget.id).popover('destroy'));
+       
 	});
 
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
@@ -166,7 +170,7 @@ $(document).ready(function() {
 	    var $e = $(e.target);
         $('#'+e.currentTarget.id).popover('destroy');
         $('#'+e.currentTarget.id).popover({
-            trigger: 'manual',
+            trigger: 'focus',
             placement: 'right',
             content: formInfoValues[$e.val()],
         }).popover('show');

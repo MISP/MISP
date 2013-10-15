@@ -261,7 +261,7 @@ class AttributesController extends AppController {
 		}
 		$this->__downloadAttachment($this->Attribute->data['Attribute']);
 	}
-	
+
 	private function __downloadAttachment($attribute) {
 		$path = "files" . DS . $attribute['event_id'] . DS;
 		$file = $attribute['id'];

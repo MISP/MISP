@@ -4,9 +4,10 @@
 		<legend><?php echo __('Add Attachment'); ?></legend>
 		<?php
 		echo $this->Form->hidden('event_id');
-		echo $this->Form->input('category', array(
-				'after' => $this->Html->div('forminfo', '', array('id' => 'AttributeCategoryDiv')),
-				));
+		echo $this->Form->input('category');
+		?>
+		<div class="input clear"></div>
+		<?php
 		if ('true' == Configure::read('CyDefSIG.sync')) {
 			$initialDistribution = 3;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
@@ -20,7 +21,6 @@
 					'options' => $distributionLevels,
 					'label' => 'Distribution',
 					'selected' => $initialDistribution,
-					'after' => $this->Html->div('forminfo', '', array('id' => 'AttributeDistributionDiv')),
 			));
 			//'before' => $this->Html->div('forminfo', isset($attrDescriptions['distribution']['formdesc']) ? $attrDescriptions['distribution']['formdesc'] : $attrDescriptions['distribution']['desc']),));
 		}
@@ -122,60 +122,50 @@ foreach ($categoryDefinitions as $category => $def) {
 	}
 }
 ?>
+$(document).ready(function() {
+	
+	$("#AttributeCategory, #AttributeDistribution").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
+	
+	$("#AttributeCategory, #AttributeDistribution").on('mouseover', function(e) {
+	    var $e = $(e.target);
+	    if ($e.is('option')) {
+	        $('#'+e.currentTarget.id).popover('destroy');
+	        $('#'+e.currentTarget.id).popover({
+	            trigger: 'manual',
+	            placement: 'right',
+	            content: formInfoValues[$e.val()],
+	        }).popover('show');
+		}
+	});
+	
+	$("input, label").on('mouseleave', function(e) {
+	    $('#'+e.currentTarget.id).popover('destroy');
+	});
+	
+	$("input, label").on('mouseover', function(e) {
+		var $e = $(e.target);
+		$('#'+e.currentTarget.id).popover('destroy');
+	    $('#'+e.currentTarget.id).popover({
+	        trigger: 'focus',
+	        placement: 'right',
+	    }).popover('show');
+	});
+	
+	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
+	// disadvangate is that user needs to click on the item to see the tooltip.
+	// no solutions exist, except to generate the select completely using html.
+	$("#AttributeCategory, #AttributeDistribution").on('change', function(e) {
+	    var $e = $(e.target);
+	    $('#'+e.currentTarget.id).popover('destroy');
+	    $('#'+e.currentTarget.id).popover({
+	        trigger: 'focus',
+	        placement: 'right',
+	        content: formInfoValues[$e.val()],
+	    }).popover('show');
+	});
 
-function showFormType(id) {
-	idDiv = id+'Div';
-	// LATER use nice animations
-	//$(idDiv).hide('fast');
-	// change the content
-	var value = $(id).val();	// get the selected value
-	//$(idDiv).html(formInfoValues[value]);	// search in a lookup table
-
-	// do checkbox un/ticked when the document is changed
-	if (formZipTypeValues[value] == "true") {
-		document.getElementById("AttributeMalware").setAttribute("checked", "checked");
-		if (formAttTypeValues[value] == "false") document.getElementById("AttributeMalware").setAttribute("disabled", "disabled");
-		else document.getElementById("AttributeMalware").removeAttribute("disabled");
-	} else {
-		document.getElementById("AttributeMalware").removeAttribute("checked");
-		if (formAttTypeValues[value] == "true") document.getElementById("AttributeMalware").setAttribute("disabled", "disabled");
-		else document.getElementById("AttributeMalware").removeAttribute("disabled");
-	}
-}
-
-function showFormInfo(id) {
-	idDiv = id+'Div';
-	// LATER use nice animations
-	//$(idDiv).hide('fast');
-	// change the content
-	var value = $(id).val();	// get the selected value
-	$(idDiv).html(formInfoValues[value]);	// search in a lookup table
-
-	// show it again
-	$(idDiv).fadeIn('slow');
-
-	// do checkbox un/ticked when the document is changed
-	if (formZipTypeValues[value] == "true") {
-		document.getElementById("AttributeMalware").setAttribute("checked", "checked");
-		if (formAttTypeValues[value] == "false") document.getElementById("AttributeMalware").setAttribute("disabled", "disabled");
-		else document.getElementById("AttributeMalware").removeAttribute("disabled");
-	} else {
-		document.getElementById("AttributeMalware").removeAttribute("checked");
-		if (formAttTypeValues[value] == "true") document.getElementById("AttributeMalware").setAttribute("disabled", "disabled");
-		else document.getElementById("AttributeMalware").removeAttribute("disabled");
-	}
-}
-
-// hide the formInfo things
-$('#AttributeTypeDiv').hide();
-$('#AttributeCategoryDiv').hide();
-$(function(){
-	// do checkbox un/ticked when the document is ready
-	showFormType("#AttributeCategory");
-	}
-);
-
-//hide the formInfo things
-$('#AttributeDistributionDiv').hide();
+});
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts
