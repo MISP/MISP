@@ -20,7 +20,7 @@ class EventsController extends AppController {
 			'RequestHandler',
 			'HidsMd5Export',
 			'HidsSha1Export',
-			'NidsExport',
+			//'NidsSuricataExport',
 			'IOCExport',
 			'IOCImport'
 	);
@@ -264,7 +264,7 @@ class EventsController extends AppController {
 		}
 		$this->Session->write('pivot_thread', $pivot);
 	}
-	
+
 	private function __insertPivot($pivot, $oldId, $newPivot, $depth) {
 		$depth++;
 		if ($pivot['id'] == $oldId) {
@@ -277,7 +277,7 @@ class EventsController extends AppController {
 		}
 		return $pivot;
 	}
-	
+
 	private function __checkForPivot($pivot, $id) {
 		if ($id == $pivot['id']) return true;
 		foreach ($pivot['children'] as $k => $v) {
@@ -287,7 +287,7 @@ class EventsController extends AppController {
 		}
 		return false;
 	}
-	
+
 	private function __arrangePivotVertical(&$pivot) {
 		if (empty($pivot)) return null;
 		$max = count($pivot['children']) - 1;
@@ -301,7 +301,7 @@ class EventsController extends AppController {
 		}
 		return $temp;
 	}
-	
+
 	public function removePivot($id, $eventId, $self = false) {
 		$pivot = $this->Session->read('pivot_thread');
 		if ($pivot['id'] == $id) {
@@ -315,7 +315,7 @@ class EventsController extends AppController {
 		$pivot = $this->__arrangePivotVertical($pivot);
 		$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, true, $eventId));
 	}
-	
+
 	private function __removeChildren(&$pivot, $id) {
 		if ($pivot['id'] == $id) {
 			$pivot['children'] = array();
@@ -325,7 +325,7 @@ class EventsController extends AppController {
 			}
 		}
 	}
-	
+
 	private function __doRemove(&$pivot, $id) {
 		foreach ($pivot['children'] as $k => $v) {
 			if ($v['id'] == $id) {
@@ -337,7 +337,7 @@ class EventsController extends AppController {
 		}
 		return $pivot;
 	}
-	
+
 	private function __setDeletable(&$pivot, $id, $root=false) {
 		if ($pivot['id'] == $id && !$root) {
 			$pivot['deletable'] = false;
@@ -350,123 +350,7 @@ class EventsController extends AppController {
 		}
 		return !$pivot['deletable'];
 	}
-	
-	/*
-	public function view($id = null) {
-		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
-		$perm_publish = $this->userRole['perm_publish'];
-		if (strlen($id) == 36) {
-			$this->Event->recursive = -1;
-			$temp = $this->Event->findByUuid($id);
-			if ($temp == null) throw new NotFoundException(__('Invalid event'));
-			$id = $temp['Event']['id'];
-		}
-		$isSiteAdmin = $this->_isSiteAdmin();
 
-		$this->Event->id = $id;
-		if(!$this->Event->exists()) {
-			throw new NotFoundException(__('Invalid event, it already exists.'));
-		}
-
-		$this->Event->recursive = 2;
-		$this->Event->contain('Attribute', 'ShadowAttribute', 'User.email');
-		$this->Event->read();
-		$myEvent = true;
-		if (!$isSiteAdmin) {
-			// check private
-			if (($this->Event->data['Event']['distribution'] == 0) && ($this->Event->data['Event']['org'] != $this->Auth->user('org'))) {
-				$this->Session->setFlash(__('Invalid event.'));
-				$this->redirect(array('controller' => 'events', 'action' => 'index'));
-			}
-		}
-		if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
-			$myEvent = false;
-		}
-
-		// Now that we're loaded the event and made sure that we can actually see it, let's do 2 thngs:
-		// run through each attribute and unset it if it's private and we're not an admin or from the owner org of the event
-		// if we didn't unset the attribute, rearrange the shadow attributes
-		foreach ($this->Event->data['Attribute'] as $key => &$attribute) {
-			if (!$isSiteAdmin && !$myEvent && ($attribute['distribution'] == 0)) {
-				unset($this->Event->data['Attribute'][$key]);
-			} else {
-				if (!isset($attribute['ShadowAttribute'])) $attribute['ShadowAttribute'] = array();
-				foreach ($this->Event->data['ShadowAttribute'] as $k => &$sa) {
-					if ($sa['old_id'] == $attribute['id']) {
-						$this->Event->data['Attribute'][$key]['ShadowAttribute'][] = $sa;
-						unset($this->Event->data['ShadowAttribute'][$k]);
-					}
-				}
-			}
-		}
-		// since we unset some attributes and shadowattributes, let's reindex them.
-		$this->Event->data['ShadowAttribute'] = array_values($this->Event->data['ShadowAttribute']);
-		$this->Event->data['Attribute'] = array_values($this->Event->data['Attribute']);
-
-		$this->set('analysisLevels', $this->Event->analysisLevels);
-
-		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user());
-		$relatedAttributes = $this->Event->getRelatedAttributes($this->Auth->user());
-		$this->loadModel('Attribute');
-		if ($this->_isRest()) {
-			foreach ($this->Event->data['Attribute'] as &$attribute) {
-				// 	for REST requests also add the encoded attachment
-				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-					// 	LATER check if this has a serious performance impact on XML conversion and memory usage
-					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-					$attribute['data'] = $encodedFile;
-				}
-			}
-		}
-		// set up the ShadowAttributes for the view - the only shadow attributes that should be passed to the view are the ones that the user is eligible to see
-		// This means: Proposals of other organisations to own events, if the user is a publisher
-		// Also: proposals made by the current user's organisation
-		if (!$this->_isRest()) {
-			foreach ($this->Event->data['Attribute'] as &$attribute) {
-				// if the user is of the same org as the event and has publishing rights, just show everything
-				if (($this->Auth->user('org') != $this->Event->data['Event']['org'] || !$perm_publish) && !$this->_isSiteAdmin()) {
-					$counter = 0;
-					foreach ($attribute['ShadowAttribute'] as &$shadow) {
-						if ($shadow['org'] != $this->Auth->user('org')) unset($attribute['ShadowAttribute'][$counter]);
-						$counter++;
-					}
-				}
-			}
-		}
-		// params for the jQuery RESTfull interface
-		$this->set('authkey', $this->Auth->user('authkey'));
-		$this->set('baseurl', Configure::read('CyDefSIG.baseurl'));
-
-		$this->set('relatedAttributes', $relatedAttributes);
-		// passing decriptions for model fields
-		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
-		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-		$this->set('event', $this->Event->data);
-		if(isset($this->Event->data['ShadowAttribute'])) {
-			$this->set('remaining', $this->Event->data['ShadowAttribute']);
-		}
-		$this->set('relatedEvents', $relatedEvents);
-
-		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
-
-		// passing type and category definitions (explanations)
-		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
-		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-
-		// combobox for analysis
-		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
-		$this->set('distributionLevels', $this->Event->distributionLevels);
-
-		// combobox for analysis
-		$analysiss = $this->Event->validate['analysis']['rule'][1];
-		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
-		$this->set('analysiss', $analysiss);
-		// tooltip for analysis
-		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
-		$this->set('analysisLevels', $this->Event->analysisLevels);
-	}
-
-	*/
 
 	/**
 	 * add method
@@ -1494,7 +1378,7 @@ class EventsController extends AppController {
 		} else {
 			$conditions = array();
 		}
-		// if we come from automation, we may not be logged in - instead we used an auth key in the URL. 
+		// if we come from automation, we may not be logged in - instead we used an auth key in the URL.
 		if (!empty($orgFromFetch)) {
 			$org = $orgFromFetch;
 			if ($orgFromFetch == 'ADMIN') $isSiteAdmin = true;
@@ -1503,7 +1387,7 @@ class EventsController extends AppController {
 			$org = $this->_checkOrg();
 			$isSiteAdmin = $this->_isSiteAdmin();
 		}
-		
+
 		$conditionsAttributes = array();
 		$conditionsShadowAttributes = array();
 		//restricting to non-private or same org if the user is not a site-admin.
@@ -1526,7 +1410,7 @@ class EventsController extends AppController {
 					array('ShadowAttribute.org LIKE' => $org),
 				);
 		}
-		
+
 		if ($idList) {
 			$conditions['AND'][] = array('Event.id' => $idList);
 		}
@@ -1580,7 +1464,14 @@ class EventsController extends AppController {
 		return $results;
 	}
 
-	public function nids($key) {
+	public function nids($format = 'suricata', $key = '') {
+
+		// backwards compatibility, swap key and format
+		if ($format != 'snort' && $format != 'suricata') {
+			$key = $format;
+			$format = 'suricata'; // default format
+		}
+
 		if ($key != 'download') {
 			$this->response->type('txt');	// set the content type
 			$this->header('Content-Disposition: inline; filename="misp.rules"');
@@ -1623,7 +1514,17 @@ class EventsController extends AppController {
 		unset($this->Attribute->virtualFields['category_order']);  // not needed for IDS export and speeds things up
 		$items = $this->Attribute->find('all', $params);
 
-		$rules = $this->NidsExport->export($items, $user['User']['nids_sid']);
+		// export depending of the requested type
+		switch ($format) {
+		    case 'suricata':
+		    	$this->NidsExport = $this->Components->load('NidsSuricataExport');
+		        break;
+		    case 'snort':
+		    	$this->NidsExport = $this->Components->load('NidsSnortExport');
+		        break;
+		}
+		$rules = $this->NidsExport->export(&$items, $user['User']['nids_sid']);
+
 		$this->set('rules', $rules);
 	}
 
@@ -2205,7 +2106,7 @@ class EventsController extends AppController {
 		// add the values as specified in the 2nd parameter to the conditions
 		$values = explode('&&', $value);
 		$parameters = array('value', 'type', 'category', 'org');
-		
+
 		foreach ($parameters as $k => $param) {
 			if (isset(${$parameters[$k]})) {
 				$elements = explode('&&', ${$parameters[$k]});
@@ -2220,9 +2121,9 @@ class EventsController extends AppController {
 				$subcondition = array();
 			}
 		}
-		
+
 		// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
-		
+
 		if (!$user['User']['siteAdmin']) {
 			$temp = array();
 			$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
@@ -2230,7 +2131,7 @@ class EventsController extends AppController {
 			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
 			array_push($conditions['AND'], $subcondition);
 		}
-				
+
 		$params = array(
 			'conditions' => $conditions,
 			'fields' => array('Attribute.event_id'),
@@ -2249,7 +2150,7 @@ class EventsController extends AppController {
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
 		$this->set('results', $results);
 	}
-	
+
 	public function downloadOpenIOCEvent($eventid) {
 
 		// return a downloadable text file called misp.openIOC.<eventId>.ioc for individual events
