@@ -9,7 +9,7 @@ class NidsSuricataExportComponent extends NidsExportComponent {
 		// set the specific format
 		$this->format = 'suricata';
 		// call the generic function
-		return parent::export(&$items, $startSid);
+		return parent::export($items, $startSid);
 	}
 
 	// below overwrite functions from NidsExportComponent

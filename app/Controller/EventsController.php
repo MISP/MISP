@@ -1523,7 +1523,7 @@ class EventsController extends AppController {
 		    	$this->NidsExport = $this->Components->load('NidsSnortExport');
 		        break;
 		}
-		$rules = $this->NidsExport->export(&$items, $user['User']['nids_sid']);
+		$rules = $this->NidsExport->export($items, $user['User']['nids_sid']);
 
 		$this->set('rules', $rules);
 	}
