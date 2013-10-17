@@ -106,6 +106,7 @@ class NidsExportComponent extends Component {
 
 	public function ipDstRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
+		$attribute['value'] = replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'ip',							// proto
@@ -124,6 +125,7 @@ class NidsExportComponent extends Component {
 
 	public function ipSrcRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
+		$attribute['value'] = replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'ip',							// proto
@@ -142,6 +144,7 @@ class NidsExportComponent extends Component {
 
 	public function emailSrcRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
+		$attribute['value'] = replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"' . $attribute['value'] . '"; fast_pattern; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -161,6 +164,7 @@ class NidsExportComponent extends Component {
 
 	public function emailDstRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
+		$attribute['value'] = replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"' . $attribute['value'] . '"; fast_pattern; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -181,6 +185,7 @@ class NidsExportComponent extends Component {
 	public function emailSubjectRule($ruleFormat, $attribute, &$sid) {
 		// LATER nids - email-subject rule might not match because of line-wrapping
 		$overruled = $this->checkWhitelist($attribute['value']);
+		$attribute['value'] = replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:established,to_server; content:"Subject|3a|"; nocase; content:"' . $attribute['value'] . '"; fast_pattern; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -201,6 +206,7 @@ class NidsExportComponent extends Component {
 	public function emailAttachmentRule($ruleFormat, $attribute, &$sid) {
 		// LATER nids - email-attachment rule might not match because of line-wrapping
 		$overruled = $this->checkWhitelist($attribute['value']);
+		$attribute['value'] = replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:established,to_server; content:"Content-Disposition|3a| attachment|3b| filename|3d 22|"; content:"' . $attribute['value'] . '|22|"; fast_pattern; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -220,6 +226,7 @@ class NidsExportComponent extends Component {
 
 	public function hostnameRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
+		$attribute['value'] = replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . $this->dnsNameToRawFormat($attribute['value'], 'hostname') . '"; fast_pattern; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -253,7 +260,7 @@ class NidsExportComponent extends Component {
 		$sid++;
 		// also do http requests
 		// warning: only suricata compatible
-		$content = 'flow:to_server,established; content: "Host|3a| ' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-]/H";';
+		$content = 'flow:to_server,established; content: "Host|3a| ' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/[^A-Za-z0-9-\.]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'http',						// proto
@@ -272,6 +279,7 @@ class NidsExportComponent extends Component {
 
 	public function domainRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
+		$attribute['value'] = replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . $this->dnsNameToRawFormat($attribute['value']) . '"; fast_pattern; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -305,7 +313,7 @@ class NidsExportComponent extends Component {
 		$sid++;
 		// also do http requests,
 		// warning: only suricata compatible
-		$content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-]/H";';
+		$content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'http',						// proto
@@ -328,6 +336,7 @@ class NidsExportComponent extends Component {
 		//$overruled = $this->checkNames($hostpart);
 		// warning: only suricata compatible
 		$overruled = $this->checkWhitelist($attribute['value']);
+		$attribute['value'] = replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_uri;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -347,6 +356,7 @@ class NidsExportComponent extends Component {
 
 	public function userAgentRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
+		$attribute['value'] = replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		// warning: only suricata compatible
 		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; fast_pattern; http_user_agent;';
 		$this->rules[] = sprintf($ruleFormat,
@@ -413,15 +423,15 @@ class NidsExportComponent extends Component {
 		$this->rules[] = $tmpRule;
 	}
 
-/**
- * Converts a DNS name to a raw format usable in NIDS like Snort.
- *   example host: foobar.com becomes |00||06|foobar|03|com|00|
- *   example domain: foobar.com becomes |06|foobar|03|com|00|
- * @param string $name dns name to be converted
- * @param string $type the type of dns name - domain (default) or hostname
- * @return string raw snort compatible format of the dns name
- */
-	public function dnsNameToRawFormat($name, $type='domain') {
+	/**
+	 * Converts a DNS name to a raw format usable in NIDS like Snort.
+	 *   example host: foobar.com becomes |00||06|foobar|03|com|00|
+	 *   example domain: foobar.com becomes |06|foobar|03|com|00|
+	 * @param string $name dns name to be converted
+	 * @param string $type the type of dns name - domain (default) or hostname
+	 * @return string raw snort compatible format of the dns name
+	 */
+	public static function dnsNameToRawFormat($name, $type='domain') {
 		$rawName = "";
 		if ('hostname' == $type) $rawName = '|00|';
 		// explode using the dot
@@ -441,14 +451,14 @@ class NidsExportComponent extends Component {
 		return $rawName;
 	}
 
-/**
- * Converts a DNS name to a MS DNS log format.
- * Practical usage is to use these strings to search in logfiles
- *   example: foobar.com becomes (6)foobar(3)com(0)
- * @param string $name dns name to be converted
- * @return string raw snort compatible format of the dns name
- */
-	public function dnsNameToMSDNSLogFormat($name) {
+	/**
+	 * Converts a DNS name to a MS DNS log format.
+	 * Practical usage is to use these strings to search in logfiles
+	 *   example: foobar.com becomes (6)foobar(3)com(0)
+	 * @param string $name dns name to be converted
+	 * @return string raw snort compatible format of the dns name
+	 */
+	public static function dnsNameToMSDNSLogFormat($name) {
 		$rawName = "";
 		// in MS DNS log format we can't use (0) to distinguish between hostname and domain (including subdomains)
 		// explode using the dot
@@ -465,6 +475,23 @@ class NidsExportComponent extends Component {
 		$rawName .= '(0)';
 		// and append (0) to terminate the name
 		return $rawName;
+	}
+
+	/**
+	 * Replaces characters that are not allowed in a signature.
+	 *   example: " is converted to |22|
+	 * @param unknown_type $value
+	 */
+	public static function replaceIllegalChars($value) {
+		$replace_pairs = array(
+				'|' => '|7c|', // Needs to stay on top !
+				'"' => '|22|',
+				';' => '|3b|',
+				':' => '|3a|',
+				'\\' => '|5c|',
+				'0x' => '|30 78|'
+				);
+		return strtr($value, $replace_pairs);
 	}
 
 	public function checkWhitelist($value) {
