@@ -576,38 +576,42 @@ class EventsController extends AppController {
 				}
 			}
 		}
-		// combobox for distribution
-		$distributions = array_keys($this->Event->distributionDescriptions);
-		$distributions = $this->_arrayToValuesIndexArray($distributions);
-		$this->set('distributions', $distributions);
-		// tooltip for distribution
-		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
-		$this->set('distributionLevels', $this->Event->distributionLevels);
-
-		// combobox for risks
-		$risks = $this->Event->validate['risk']['rule'][1];
-		$risks = $this->_arrayToValuesIndexArray($risks);
-		$this->set('risks',$risks);
-
 		// set the id
 		$this->set('id', $id);
 		// set whether it is published or not
 		$this->set('published', $this->Event->data['Event']['published']);
-
-		// tooltip for risk
-		$this->set('riskDescriptions', $this->Event->riskDescriptions);
-
-		// combobox for analysis
-		$analysiss = $this->Event->validate['analysis']['rule'][1];
-		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
-		$this->set('analysiss',$analysiss);
-		// tooltip for analysis
-		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
-		$this->set('analysisLevels', $this->Event->analysisLevels);
-
-		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
 
+	public function add_xml() {
+		if (!$this->userRole['perm_modify']) {
+			throw new UnauthorizedException('You do not have permission to do that.');
+		}
+		if ($this->request->is('post')) {
+			if (!empty($this->data)) {
+				$ext = '';
+				if (isset($this->data['Event']['submittedxml'])) {
+					App::uses('File', 'Utility');
+					$file = new File($this->data['Event']['submittedxml']['name']);
+					$ext = $file->ext();
+				}
+				if (isset($this->data['Event']['submittedxml']) && ($ext != 'xml') && $this->data['Event']['submittedxml']['size'] > 0 &&
+				is_uploaded_file($this->data['Event']['submittedxml']['tmp_name'])) {
+					$this->Session->setFlash(__('You may only upload OpenIOC ioc files.'));
+				}
+				if (isset($this->data['Event']['submittedxml'])) $this->_addXMLFile();
+	
+				// redirect to the view of the newly created event
+				if (!CakeSession::read('Message.flash')) {
+					$this->Session->setFlash(__('The event has been saved'));
+				} else {
+					$existingFlash = CakeSession::read('Message.flash');
+					$this->Session->setFlash(__('The event has been saved. ' . $existingFlash['message']));
+				}
+			}
+		}
+	}
+	
+	
 	/**
 	 * Low level function to add an Event based on an Event $data array
 	 *
@@ -634,7 +638,6 @@ class EventsController extends AppController {
 			unset($this->Event->Attribute->validate['event_id']);
 			unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 		}
-
 		unset ($data['Event']['id']);
 		if (isset($data['Event']['uuid'])) {
 			// check if the uuid already exists
@@ -882,6 +885,8 @@ class EventsController extends AppController {
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		
+		$this->set('event', $this->Event->data);
 	}
 
 	/**
@@ -1450,7 +1455,7 @@ class EventsController extends AppController {
 	}
 
 
-	public function xml($key, $eventid=null) {
+	public function xml($key, $eventid=null, $withAttachment = false) {
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1475,6 +1480,15 @@ class EventsController extends AppController {
 			}
 		}
 		$results = $this->__fetchEvent($eventid);
+		if ($withAttachment) {
+			$this->loadModel('Attribute');
+			foreach ($results[0]['Attribute'] as &$attribute) {
+				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+					$attribute['data'] = $encodedFile;
+				}
+			}
+		}
 		// Whitelist check
 		$this->loadModel('Whitelist');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
@@ -1993,6 +2007,36 @@ class EventsController extends AppController {
 		}
 	}
 
+	public function _addXMLFile() {
+		if (!empty($this->data) && $this->data['Event']['submittedxml']['size'] > 0 &&
+		is_uploaded_file($this->data['Event']['submittedxml']['tmp_name'])) {
+			$xmlData = fread(fopen($this->data['Event']['submittedxml']['tmp_name'], "r"),
+					$this->data['Event']['submittedxml']['size']);
+			App::uses('Xml', 'Utility');
+			$xmlArray = Xml::toArray(Xml::build($xmlData));
+			
+			// In case we receive an event that is not encapsulated in a response. This should never happen (unless it's a copy+paste fail), 
+			// but just in case, let's clean it up anyway.
+			if (isset($xmlArray['Event'])) {
+				$xmlArray['response']['Event'] = $xmlArray['Event'];
+				unset($xmlArray['Event']);
+			}
+			
+			if (!isset($xmlArray['response']) || !isset($xmlArray['response']['Event'])) {
+				throw new Exception('This is not a valid MISP XML file.');
+			} 
+			if (isset($xmlArray['response']['Event'][0])) {
+				foreach ($xmlArray['response']['Event'] as $event) {
+					$temp['Event'] = $event;
+					$this->_add($temp, true);
+				}
+			} else {
+				$temp['Event'] = $xmlArray['response']['Event'];
+				$this->_add($temp, true);
+			}
+		}
+	}
+	
 	public function _readGfiXML($data, $id) {
 		$this->loadModel('Attribute');
 
@@ -2210,4 +2254,66 @@ class EventsController extends AppController {
 		$final = $this->IOCExport->buildAll($event, $isMyEvent, $isSiteAdmin);
 		$this->set('final', $final);
 	}
+	
+	public function create_dummy_event() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
+		$date = new DateTime();
+		$data['Event']['info'] = 'Test event showing every category-type combination';
+		$data['Event']['date'] = '2013-10-09';
+		$data['Event']['risk'] = 'Undefined';
+		$data['Event']['analysis'] = '0';
+		$data['Event']['distribution'] = '0';	
+
+		$defaultValues = array(
+				'md5' => '098f6bcd4621d373cade4e832627b4f6',
+				'sha1' => 'a7645200866fd00bde529733ceac8506ab1f5518',
+				'sha256' => '0f58957831a9cf0b768451ee6b236555f519c04f0da5a5ea87538fd0990b29d1',
+				'filename' => 'test.exe',
+				'filename|md5' => 'test.exe|8886be8e4e862189a68d27e8fc7a6144',
+				'filename|sha1' => 'test.exe|a7645200866fd00bde529733ceac8506ab1f5518',
+				'filename|sha256' => 'test.exe|0f58957831a9cf0b768451ee6b236555f519c04f0da5a5ea87538fd0990b29d1',
+				'ip-src' => '1.1.1.1',
+				'ip-dst' => '2.2.2.2',
+				'hostname' => 'www.futuremark.com',
+				'domain' => 'evildomain.org',
+				'email-src' => 'bla@bla.com',
+				'email-dst' => 'hmm@hmm.com',
+				'email-subject' => 'Some made-up email subject',
+				'email-attachment' => 'filename.exe',
+				'url' => 'http://www.evilsite.com/test',
+				'http-method' => 'POST',
+				'user-agent' => 'Microsoft Internet Explorer',
+				'regkey' => 'HKLM\Software\Microsoft\Windows\CurrentVersion\Run\fishy',
+				'regkey|value' => 'HKLM\Software\Microsoft\Windows\CurrentVersion\Run\fishy|%ProgramFiles%\Malicios\malware.exe',
+				'AS' => '45566',
+				'snort' => 'alert ip 1.1.1.1 any -> $HOME_NET any (msg: "MISP e1 Incoming From IP: 1.1.1.1"; classtype:trojan-activity; sid:21; rev:1; priority:1; reference:url,http://localhost:8888/events/view/1;)',
+				'pattern-in-file' => 'Somestringinfile',
+				'pattern-in-traffic' => 'Somestringintraffic',
+				'pattern-in-memory' => 'Somestringinmemory',
+				'yara' => 'rule silent_banker : banker{meta:description = "This is just an example" thread_level = 3 in_the_wild = true strings: $a = {6A 40 68 00 30 00 00 6A 14 8D 91} $b = {8D 4D B0 2B C1 83 C0 27 99 6A 4E 59 F7 F9} $c = "UVODFRYSIHLNWPEJXQZAKCBGMT" condition:}',
+				'vulnerability' => 'CVE-2011-0001',
+				'attachment' => 'file.txt',
+				'malware-sample' => 'test.exe|8886be8e4e862189a68d27e8fc7a6144',
+				'link' => 'http://www.somesite.com/',
+				'comment' => 'Comment',
+				'text' => 'Any text',
+				'other' => 'Could be anything',
+				'named pipe' => '\\.\pipe\PipeName',
+				'mutex' => 'mutexstring',
+		);
+		$this->loadModel('Attribute');
+		foreach ($this->Attribute->categoryDefinitions as $category => $v) {
+			foreach ($v['types'] as $k => $type) {
+				$data['Attribute'][] = array(
+					'category' => $category,
+					'type' => $type,
+					'value' => $defaultValues[$type],
+					'to_ids' => '0',
+					'distribution' => '0',						
+				);
+			}
+		}
+		$this->_add($data, false);	
+	}
+	
 }

@@ -50,9 +50,6 @@ endforeach;?>
         </ul>
 	</div>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li class="active"><?php echo $this->Html->link('List Whitelist', array('admin' => true, 'action' => 'index'));?></li>
-		<li><?php echo $this->Html->link('New Whitelist', array('admin' => true, 'action' => 'add'));?></li>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'whitelist', 'menuItem' => 'index'));
+?>

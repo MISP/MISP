@@ -2,42 +2,9 @@
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 ?>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li class="active"><a href="/events/view/<?php echo $event['Event']['id'];?>">View Event</a></li>
-		<li><a href="/logs/event_index/<?php echo $event['Event']['id'];?>">View Event History</a></li>
-		<?php if ($isSiteAdmin || $mayModify): ?>
-		<li><a href="/events/edit/<?php echo $event['Event']['id'];?>">Edit Event</a></li>
-		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
-		<li class="divider"></li>
-		<li><a href="/attributes/add/<?php echo $event['Event']['id'];?>">Add Attribute</a></li>
-		<li><a href="/attributes/add_attachment/<?php echo $event['Event']['id'];?>">Add Attachment</a></li>
-		<li><a href="/events/addIOC/<?php echo $event['Event']['id'];?>">Populate from IOC</a></li>
-		<li><a href="/attributes/add_threatconnect/<?php echo $event['Event']['id']; ?>">Populate from ThreatConnect</a></li>
-		<?php else:	?>
-		<li><a href="/shadow_attributes/add/<?php echo $event['Event']['id'];?>">Propose Attribute</a></li>
-		<li><a href="/shadow_attributes/add_attachment/<?php echo $event['Event']['id'];?>">Propose Attachment</a></li>
-		<?php endif; ?>
-		<li class="divider"></li>
-		<?php if ( 0 == $event['Event']['published'] && ($isAdmin || $mayPublish)): ?>
-		<li><?php echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?'); ?></li>
-		<li><?php echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!'); ?></li>
-		<?php else: ?>
-		<!-- ul><li>Alert already sent</li></ul -->
-		<?php endif; ?>
-		<li><a href="/events/contact/<?php echo $event['Event']['id'];?>">Contact Reporter</a></li>
-		<li><a href="/events/xml/download/<?php echo $event['Event']['id'];?>">Download as XML</a></li>
-		<?php if ($event['Event']['published']): ?>
-		<li><a href="/events/downloadOpenIOCEvent/<?php echo $event['Event']['id'];?>">Download as IOC</a></li>
-		<li><a href="/events/csv/download/<?php echo $event['Event']['id'];?>">Download as CSV</a></li>
-		<?php endif; ?>
-		<li class="divider"></li>
-		<li><a href="/events/index">List Events</a></li>
-		<?php if ($isAclAdd): ?>
-		<li><a href="/events/add">Add Event</a></li>
-		<?php endif; ?>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
+?>
 
 
 <div class="events view">

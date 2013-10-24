@@ -60,21 +60,7 @@ if (!empty($user['User']['gpgkey'])) {
 		</dd>
 	</dl>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<?php
-			if ($me['id'] == $user['User']['id']) {
-		?>
-		<li><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
-		<li class="divider"></li>
-		<?php
-			}
-		?>
-		<li><a href="/users/news">News</a></li>
-		<li class="active"><a href="/users/view/me">My Profile</a></li>
-		<li><a href="/users/memberslist">Members List</a></li>
-		<li><a href="/pages/display/doc/general">User Guide</a></li>
-		<li><a href="/users/terms">Terms & Conditions</a></li>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'me'));
+?>
 

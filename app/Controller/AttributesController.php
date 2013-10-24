@@ -723,6 +723,7 @@ class AttributesController extends AppController {
 		$this->loadModel('Event');
 		$this->Event->id = $eventId;
 		$this->Event->read();
+		$this->set('published', $this->Event->data['Event']['published']);
 		// needed for RBAC
 		// combobox for types
 		$types = array_keys($this->Attribute->typeDefinitions);
