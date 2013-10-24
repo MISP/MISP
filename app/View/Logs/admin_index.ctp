@@ -92,18 +92,11 @@
 		</ul>
 	</div>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-	<?php
-		if ($isSearch == 1){
-			$searchClass = 'class="active"';
-			$listClass = '';
-		} else {
-			$searchClass = '';
-			$listClass = 'class="active"';
-		}
-	?>
-		<li <?php echo $listClass;?>><?php echo $this->Html->link('List Logs', array('admin' => true, 'action' => 'index'));?></li>
-		<li <?php echo $searchClass;?>><?php echo $this->Html->link('Search Logs', array('admin' => true, 'action' => 'search'));?></li>
-	</ul>
-</div>
+<?php
+	if ($isSearch == 1){
+		$class = 'search';
+	} else {
+		$class = 'index';
+	}
+	echo $this->element('side_menu', array('menuList' => 'logs', 'menuItem' => $class));
+?>

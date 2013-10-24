@@ -61,6 +61,6 @@ if (!empty($user['User']['gpgkey'])) {
 	</dl>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'me'));
+	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'view'));
 ?>
 

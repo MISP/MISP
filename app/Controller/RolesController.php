@@ -44,6 +44,7 @@ class RolesController extends AppController {
 			throw new NotFoundException(__('Invalid role'));
 		}
 		$this->set('role', $this->Role->read(null, $id));
+		$this->set('id', $id);
 	}
 
 /**
@@ -93,6 +94,7 @@ class RolesController extends AppController {
 		$this->AdminCrud->adminEdit($id);
 		$passAlong = $this->Role->read(null, $id);
 		$this->set('options', $this->options);
+		$this->set('id', $id);
 	}
 
 /**

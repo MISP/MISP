@@ -90,6 +90,7 @@ class UsersController extends AppController {
 		}
 		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
+		$this->set('id', $id);
 	}
 
 	public function change_pw() {
@@ -183,6 +184,7 @@ class UsersController extends AppController {
 		$this->set('user', $this->User->read(null, $id));
 		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org') == $this->User->data['User']['org'])) throw new MethodNotAllowedException();
 		$temp = $this->User->field('invited_by');
+		$this->set('id', $id);
 		$this->set('user2', $this->User->read(null, $temp));
 	}
 
@@ -301,6 +303,7 @@ class UsersController extends AppController {
 		$orgIds = array('ADMIN', 'NCIRC', 'Other MOD');
 		$orgIds = $this->_arrayToValuesIndexArray($orgIds);
 		$this->set('orgIds', compact('orgIds'));
+		$this->set('id', $id);
 		// XXX ACL, Roles in Users
 		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));

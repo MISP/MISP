@@ -43,11 +43,6 @@ echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<div class="actions">
-	<ul>
-
-	</ul>
-</div>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'regexp', 'menuItem' => 'edit', 'id' => $this->Form->value('Regexp.id')));
 ?>
