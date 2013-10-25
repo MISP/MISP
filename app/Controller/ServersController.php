@@ -307,7 +307,7 @@ class ServersController extends AppController {
 	}
 
 	public function push($id = null, $technique=false) {
-		if ($this->Auth->user('org') != 'ADMIN' && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin() && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));

@@ -66,7 +66,7 @@ class Regexp extends AppModel {
 	}
 
 	public function replaceSpecific($string, $allRegexp = null, $type) {
-		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if(!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$orig = $string;
 		foreach ($allRegexp as $regexp) {
 			if (strlen($regexp['Regexp']['replacement']) && strlen($regexp['Regexp']['regexp']) && ($regexp['Regexp']['type'] === 'ALL' || $regexp['Regexp']['type'] === $type)) {

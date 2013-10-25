@@ -37,11 +37,11 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<?php if ($isSiteAdmin): ?>
+							<?php if ($isAclRegexp): ?>
 							<li><a href="/admin/regexp/index">Import Regexp</a></li>
 							<li><a href="/admin/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
-							<?php if (!$isSiteAdmin): ?>
+							<?php if (!$isAclRegexp): ?>
 							<li><a href="/regexp/index">Import Regexp</a></li>
 							<li><a href="/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
@@ -112,7 +112,7 @@
 						</ul>
 					</li>
 					<?php endif;?>
-
+					<li style="margin-top:15px;margin-left:20px;font-size:16px;color:white;text-shadow: 0 0 4px white, 0 -5px 4px #ff3, 2px -10px 6px #fd3, -2px -15px 11px #f80, 2px -25px 18px #f20;font-weight:bold">EXCERCISE EXCERCISE EXCERCISE</li>
 				</ul>
 			</div>
 			<div class="nav-collapse collapse pull-right">

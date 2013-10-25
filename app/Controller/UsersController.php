@@ -196,13 +196,27 @@ class UsersController extends AppController {
 	public function admin_add() {
 		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		$this->set('currentOrg', $this->Auth->User('org'));
+		$this->set('isSiteAdmin', $this->_isSiteAdmin());
+		$params = null;
+		if (!$this->_isSiteAdmin()) {
+			$params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));
+		}
+		$roles = $this->User->Role->find('list', $params);
 		if ($this->request->is('post')) {
 			$this->User->create();
 			// set invited by
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
 			$this->request->data['User']['change_pw'] = 1;
 			$this->request->data['User']['newsread'] = '2000-01-01';
-			if ($this->Auth->User('org') != 'ADMIN') $this->request->data['User']['org'] = $this->Auth->User('org');
+			if (!$this->_isSiteAdmin()) {
+				$this->request->data['User']['org'] = $this->Auth->User('org');
+				$this->loadModel('Role');
+				$this->Role->recursive = -1;
+				$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
+				if ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1) {
+					throw new Exception('You are not authorised to assign that role to a user.');
+				}
+			}
 			if ($this->User->save($this->request->data)) {
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->redirect(array('action' => 'index'));
@@ -216,8 +230,6 @@ class UsersController extends AppController {
 			$this->newkey = $this->User->generateAuthKey();
 			$this->set('authkey', $this->newkey);
 		}
-		// XXX ACL roles
-		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
 
@@ -235,6 +247,11 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
+		$params = null;
+		if (!$this->_isSiteAdmin()) {
+			$params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));
+		}
+		$roles = $this->User->Role->find('list', $params);
 		$this->set('currentId', $id);
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$fields = array();
@@ -251,7 +268,14 @@ class UsersController extends AppController {
 			if ("" != $this->request->data['User']['password'])
 				$fields[] = 'password';
 			$fields[] = 'role_id';
-			//debug($fields);debug(tru);
+			if (!$this->_isSiteAdmin()) {
+				$this->loadModel('Role');
+				$this->Role->recursive = -1;
+				$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
+				if ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1) {
+					throw new Exception('You are not authorised to assign that role to a user.');
+				}
+			}
 			if ($this->User->save($this->request->data, true, $fields)) {
 				// TODO Audit, extraLog, fields compare
 				// newValues to array
@@ -294,18 +318,11 @@ class UsersController extends AppController {
 		} else {
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
-			if ($this->Auth->User('org') != 'ADMIN' && $this->Auth->User('org') != $this->User->data['User']['org']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
+			if (!$this->_isSiteAdmin() && $this->Auth->User('org') != $this->User->data['User']['org']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
 			$this->User->set('password', '');
 			$this->request->data = $this->User->data; // TODO CHECK
 
 		}
-		// TODO ACL CLEANUP combobox for orgs
-		$orgIds = array('ADMIN', 'NCIRC', 'Other MOD');
-		$orgIds = $this->_arrayToValuesIndexArray($orgIds);
-		$this->set('orgIds', compact('orgIds'));
-		$this->set('id', $id);
-		// XXX ACL, Roles in Users
-		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
 
@@ -352,20 +369,39 @@ class UsersController extends AppController {
 			if($this->request->is('post')) {
 				$this->Session->setFlash(__('Invalid username or password, try again'));
 			}
-
+			// populate the DB with the first role (site admin) if it's empty
+			$this->loadModel('Role');
+			if ($this->Role->find('count') == 0 ) {
+				$siteAdmin = array('Role' => array(
+					'id' => 1,
+					'name' => 'Site Admin',
+					'perm_add' => 1,
+					'perm_modify' => 1,
+					'perm_modify_org' => 1,
+					'perm_publish' => 1,
+					'perm_sync' => 1,
+					'perm_admin' => 1,
+					'perm_audit' => 1,
+					'perm_auth' => 1,
+					'perm_site_admin' => 1,
+					'perm_regexp_access' => 1,
+				));
+				$this->Role->save($siteAdmin);
+			}	
 			// populate the DB with the first user if it's empty
 			if ($this->User->find('count') == 0 ) {
 				$admin = array('User' => array(
-						'email' => 'admin@admin.test',
-						'org' => 'ADMIN',
-						'password' => 'admin',
-						'confirm_password' => 'admin',
-						'authkey' => $this->User->generateAuthKey(),
-						'nids_sid' => 4000000,
-						'date' => date('YYY-mm-dd'),
-						'role_id' => 1,
-						'change_pw' => 1
-						));
+					'id' => 1,
+					'email' => 'admin@admin.test',
+					'org' => 'ADMIN',
+					'password' => 'admin',
+					'confirm_password' => 'admin',
+					'authkey' => $this->User->generateAuthKey(),
+					'nids_sid' => 4000000,
+					'newsread' => date('Y-m-d'),
+					'role_id' => 1,
+					'change_pw' => 1
+				));
 				$this->User->validator()->remove('password'); // password is to simple, remove validation
 				$this->User->save($admin);
 			}
