@@ -22,9 +22,11 @@
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
 			<th><?php echo $this->Paginator->sort('perm_sync', 'Sync Actions');?></th>
-			<th><?php echo $this->Paginator->sort('perm_admin', 'Administration Actions');?></th>
 			<th><?php echo $this->Paginator->sort('perm_audit', 'Audit Actions');?></th>
+			<th><?php echo $this->Paginator->sort('perm_regexp', 'Regexp Actions');?></th>			
 			<th><?php echo $this->Paginator->sort('perm_auth', 'Auth Key Access');?></th>
+			<th><?php echo $this->Paginator->sort('perm_admin', 'Admin');?></th>
+			<th><?php echo $this->Paginator->sort('perm_site_admin', 'Site Admin');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
 foreach ($list as $item): ?>
@@ -33,9 +35,11 @@ foreach ($list as $item): ?>
 		<td><?php echo h($item['Role']['name']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_sync']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Role']['perm_admin']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_audit']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['perm_regexp_access']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_auth']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['perm_admin']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['perm_site_admin']); ?>&nbsp;</td>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Role']['id']), array('class' => 'icon-edit', 'title' => 'Edit')); ?>
 			<?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Role']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>

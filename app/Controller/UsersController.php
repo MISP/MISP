@@ -323,6 +323,7 @@ class UsersController extends AppController {
 			$this->request->data = $this->User->data; // TODO CHECK
 
 		}
+		$this->set('id', $id);
 		$this->set(compact('roles'));
 	}
 
