@@ -111,7 +111,6 @@ class PostsController extends AppController {
 				// We have a post that was posted in a new thread. This could also mean that someone created the first post related to an event!
 				$this->Thread->create();
 				// Take the title from above and the id of the event as event_id if we are adding a post to an event. 
-				debug($this->request->data);
 				if ($target_type === 'event') {
 					$title = $eventDiscussionTitle;
 					$event_id = $this->Event->data['Event']['id'];

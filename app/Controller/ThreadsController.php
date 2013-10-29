@@ -58,6 +58,13 @@ class ThreadsController extends AppController {
 				'contain' => 'User'
 		);
 		$posts = $this->paginate('Post');
+		if (!$this->_isSiteAdmin()) {
+			foreach ($posts as &$post) {
+				if ($post['User']['org'] != $this->Auth->user('org')) {
+					$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org'] . ')';
+				}
+			}
+		}
 		$this->set('posts', $posts);
 		$this->set('thread_id', $thread_id);
 		$this->set('myuserid', $this->Auth->user('id'));
@@ -69,6 +76,7 @@ class ThreadsController extends AppController {
 	}
 	
 	public function index() {
+		$this->loadModel('Posts');
 		$conditions = null;
 			$conditions['AND']['OR'] = array(
 					'Thread.distribution >' => 0, 
@@ -81,15 +89,23 @@ class ThreadsController extends AppController {
 					'contain' => array(
 							'Post' =>array(
 								'fields' => array(),
+								'limit' => 1,
+								'order' => 'Post.date_modified DESC',
 								'User' => array(
-									'fields' => array('email', 'org')
+									'fields' => array('id','email', 'org'),
 									)
 								),
 							),
 					'order' => array('Thread.date_modified' => 'desc'),
 					'recursive' => 1
 			);
-		$this->set('threads', $this->paginate());
+		$threadsBeforeEmailRemoval = $this->paginate();
+		if (!$this->_isSiteAdmin()) {
+			foreach ($threadsBeforeEmailRemoval as &$thread) {
+				if ($thread['Post'][0]['User']['org'] != $this->Auth->user('org')) $thread['Post'][0]['User']['email'] = 'User ' . $thread['Post'][0]['User']['id'] . " (" . $thread['Post'][0]['User']['org'] . ")";
+			}
+		}
+		$this->set('threads', $threadsBeforeEmailRemoval);
 		$this->loadModel('Event');
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 	}

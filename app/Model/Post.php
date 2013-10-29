@@ -12,7 +12,7 @@ class Post extends AppModel {
 	public $belongsTo = array(
 			'Thread',
 			'User' => array(
-				'fields' => array('email', 'org'),
+				'fields' => array('email', 'org', 'id'),
 					
 			)
 	);

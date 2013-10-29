@@ -42,7 +42,9 @@
 					<tr>
 						<td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidLeft">
 							<?php 
-								echo $this->Html->image('orgs/' . h($post['User']['org']) . '.png', array('alt' => h($post['User']['org']), 'title' => h($post['User']['org']), 'style' => 'width:48px; height:48px'));
+								$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($post['User']['org']) . '.png';
+								if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($post['User']['org']) . '.png', array('alt' => h($post['User']['org']), 'title' => h($post['User']['org']), 'style' => 'width:48px; height:48px'));
+								else echo $this->Html->tag('span', h($post['User']['org']), array('class' => 'welcome', 'style' => 'float:center;'));								
 							?>
 						</td>
 						<td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidRight">
@@ -124,8 +126,14 @@
 	<div class="comment">
 	<?php echo $this->Form->create('Post');?>
 		<fieldset>
+		<div class="input clear">
+			<button type="button" title="Insert a quote - just paste your quote between the [quote][/quote] tags." class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()">Quote</button>
+			<button type="button" title="Insert a link to an event - just enter the event ID between the [event][/event] tags." class="toggle btn btn-inverse qet" id = "event"  onclick="insertEvent()">Event</button>
+			<button type="button" title="Insert a link to a discussion thread - enter the thread's ID between the [thread][/thread] tags." class="toggle-right btn btn-inverse qet" id = "thread"  onclick="insertThread()">Thread</button>
+		</div>
 		<?php
 			echo $this->Form->input('message', array(
+					'label' => false,
 					'type' => 'textarea',
 					'div' => 'input clear',
 					'class' => 'input-xxlarge',
@@ -144,4 +152,15 @@
 	?>
 	</div>
 </div>
+<script type="text/javascript"> 
+	function insertQuote() {
+		document.getElementById("PostMessage").value+="[Quote][/Quote]"; 
+	}
+	function insertEvent() {
+		document.getElementById("PostMessage").value+="[Event][/Event]"; 
+	}
+	function insertThread() {
+		document.getElementById("PostMessage").value+="[Thread][/Thread]"; 
+	}
+</script>
 <?php echo $this->Js->writeBuffer();?>

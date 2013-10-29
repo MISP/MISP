@@ -36,8 +36,6 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 		<?php if ($isAclAdd): ?>
 		<li><a href="/events/add">Add Event</a></li>
 		<?php endif; ?>
-		<li class="divider"></li>
-		<li><a href="/posts/add/null/null/event/<?php echo $event['Event']['id'];?>">Leave comment</a></li>
 	</ul>
 </div>
 
@@ -139,11 +137,29 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	<?php endif; ?>
 	</div>
 	<br />
-	<h3><span id="pivots_active" class="icon-minus"></span><span id="pivots_inactive" class="icon-plus" style="display:none;"></span>Pivot Thread</h3>
+	<div>
+		<button class="btn btn-inverse toggle-left btn.active" id="pivots_active">
+			<span class="icon-minus icon-white" style="vertical-align:top;"></span>
+			Pivots
+		</button><button class="btn btn-inverse toggle-left" style="display:none;" id="pivots_inactive">
+			<span class="icon-plus icon-white" style="vertical-align:top;"></span>
+			Pivots
+		</button><button class="btn btn-inverse toggle" id="attributes_active">
+			<span class="icon-minus icon-white" style="vertical-align:top;"></span>
+			Attributes
+		</button><button class="btn btn-inverse toggle" id="attributes_inactive" style="display:none;">
+			<span class="icon-plus icon-white" style="vertical-align:top;"></span>
+			Attributes
+		</button><button class="btn btn-inverse toggle-right" id="discussions_active">
+			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Discussion
+		</button><button class="btn btn-inverse toggle-right" id="discussions_inactive" style="display:none;">
+			<span class="icon-plus icon-white" style="vertical-align:top;"></span>Discussion
+		</button>
+	</div>
+	<br />
 	<div id="pivots_div">
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
-	<h3><span id="attributes_active" class="icon-minus"></span><span id="attributes_inactive" class="icon-plus" style="display:none;"></span>Attributes</h3>
 	<div id="attributes_div">
 		<?php
 if (!empty($event['Attribute'])):?>
@@ -403,7 +419,6 @@ if (!empty($event['Attribute'])):?>
 				<?php
 				endif; ?>
 		</div>
-		<h3><span id="discussions_active" class="icon-minus"></span><span id="discussions_inactive" class="icon-plus" style="display:none;"></span>Discussion</h3>
 		<div id="discussions_div">
 			<?php 
 				echo $this->element('eventdiscussion');
