@@ -107,7 +107,7 @@ class AppController extends Controller {
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
 			$this->set('isAdmin', $role['perm_admin']);
-			$this->set('isSiteAdmin', $this->_isSiteAdmin());
+			$this->set('isSiteAdmin', $role['perm_site_admin']);
 			$this->set('isAclAdd', $role['perm_add']);
 			$this->set('isAclModify', $role['perm_modify']);
 			$this->set('isAclModifyOrg', $role['perm_modify_org']);
@@ -116,6 +116,7 @@ class AppController extends Controller {
 			$this->set('isAclAdmin', $role['perm_admin']);
 			$this->set('isAclAudit', $role['perm_audit']);
 			$this->set('isAclAuth', $role['perm_auth']);
+			$this->set('isAclRegexp', $role['perm_regexp_access']);
 			$this->userRole = $role;
 		} else {
 			$this->set('me', false);
@@ -129,6 +130,7 @@ class AppController extends Controller {
 			$this->set('isAclAdmin', false);
 			$this->set('isAclAudit', false);
 			$this->set('isAclAuth', false);
+			$this->set('isAclRegexp', false);
 		}
 		if (Configure::read('debug') > 0) {
 			$this->debugMode = 'debugOn';
@@ -165,7 +167,7 @@ class AppController extends Controller {
  */
 	protected function _isAdmin() {
 		$org = $this->Auth->user('org');
-		if ((isset($org) && $org === 'ADMIN') || $this->userRole['perm_admin']) {
+		if ($this->userRole['perm_site_admin'] || $this->userRole['perm_admin']) {
 			return true;
 		}
 		return false;
@@ -175,11 +177,7 @@ class AppController extends Controller {
  * checks if the currently logged user is a site administrator (an admin that can manage any user or event on the instance and create / edit the roles).
  */
 	protected function _isSiteAdmin() {
-		$org = $this->Auth->user('org');
-		if (isset($org) && $org === 'ADMIN') {
-			return true;
-		}
-		return false;
+		return $this->userRole['perm_site_admin'];
 	}
 
 	protected function _checkOrg() {
@@ -295,6 +293,8 @@ class AppController extends Controller {
 			$this->loadModel('Role');
 			$this->Role->recursive = -1;
 			$role = $this->Role->findById($user['User']['role_id']);
+			$user['User']['siteAdmin'] = false;
+			if ($role['Role']['perm_site_admin']) $user['User']['siteAdmin'] = true;
 			if ($role['Role']['perm_auth']) {
 				return $user;
 			}

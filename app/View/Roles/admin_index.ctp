@@ -22,9 +22,11 @@
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
 			<th><?php echo $this->Paginator->sort('perm_sync', 'Sync Actions');?></th>
-			<th><?php echo $this->Paginator->sort('perm_admin', 'Administration Actions');?></th>
 			<th><?php echo $this->Paginator->sort('perm_audit', 'Audit Actions');?></th>
+			<th><?php echo $this->Paginator->sort('perm_regexp', 'Regexp Actions');?></th>			
 			<th><?php echo $this->Paginator->sort('perm_auth', 'Auth Key Access');?></th>
+			<th><?php echo $this->Paginator->sort('perm_admin', 'Admin');?></th>
+			<th><?php echo $this->Paginator->sort('perm_site_admin', 'Site Admin');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
 foreach ($list as $item): ?>
@@ -33,9 +35,11 @@ foreach ($list as $item): ?>
 		<td><?php echo h($item['Role']['name']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_sync']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Role']['perm_admin']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_audit']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['perm_regexp_access']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_auth']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['perm_admin']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['perm_site_admin']); ?>&nbsp;</td>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Role']['id']), array('class' => 'icon-edit', 'title' => 'Edit')); ?>
 			<?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Role']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>
@@ -61,18 +65,6 @@ endforeach; ?>
     </div>
 
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link('New User', array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
-		<li><?php echo $this->Html->link('List Users', array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
-		<li class="divider"></li>
-		<?php if ($isSiteAdmin): ?>
-		<li><?php echo $this->Html->link('New Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
-		<?php endif; ?>
-		<li class="active"><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
-		<?php if ($isSiteAdmin): ?>
-		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Contact users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
-		<?php endif; ?>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'indexRole'));
+?>

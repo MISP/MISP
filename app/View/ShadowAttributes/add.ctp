@@ -39,22 +39,10 @@
 	echo $this->Form->end();
 ?>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link('View Event', array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id'])); ?> </li>
-		<li class="active"><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $this->request->data['ShadowAttribute']['event_id']));?> </li>
-		<li><?php echo $this->Html->link('Propose Attachment', array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $this->request->data['ShadowAttribute']['event_id']));?> </li>
-		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Contact reporter', array('controller' => 'events', 'action' => 'contact', $this->request->data['ShadowAttribute']['event_id'])); ?> </li>
-		<li><?php echo $this->Html->link('Download as XML', array('controller' => 'events', 'action' => 'xml', 'download', $this->request->data['ShadowAttribute']['event_id'])); ?></li>
-		<li><?php echo $this->Html->link('Download as IOC', array('controller' => 'events', 'action' => 'downloadOpenIOCEvent', $this->request->data['ShadowAttribute']['event_id'])); ?> </li>
-		<li class="divider"></li>
-		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
-		<?php if ($isAclAdd): ?>
-		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
-		<?php endif; ?>
-	</ul>
-</div>
+<?php 
+	$event['Event']['id'] = $this->request->data['ShadowAttribute']['event_id'];
+	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttribute', 'event' => $event));
+?>
 <script type="text/javascript">
 //
 //Generate Category / Type filtering array
@@ -87,43 +75,30 @@ function formCategoryChanged(id) {
 
 $(document).ready(function() {
 
-	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute, #ShadowAttributeDistribution").on('mouseleave', function(e) {
+	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute").on('mouseleave', function(e) {
 	    $('#'+e.currentTarget.id).popover('destroy');
 	});
 
-	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute, #ShadowAttributeDistribution").on('mouseover', function(e) {
+	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {
 	        $('#'+e.currentTarget.id).popover('destroy');
 	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'manual',
+	            trigger: 'focus',
 	            placement: 'right',
 	            content: formInfoValues[$e.val()],
 	        }).popover('show');
 	    }
 	});
 
-	$("input, label").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
-	});
-
-	$("input, label").on('mouseover', function(e) {
-		var $e = $(e.target);
-		$('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'manual',
-            placement: 'right',
-        }).popover('show');
-	});
-
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
 	// disadvangate is that user needs to click on the item to see the tooltip.
 	// no solutions exist, except to generate the select completely using html.
-	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute, #ShadowAttributeDistribution").on('change', function(e) {
+	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute").on('change', function(e) {
 	    var $e = $(e.target);
         $('#'+e.currentTarget.id).popover('destroy');
         $('#'+e.currentTarget.id).popover({
-            trigger: 'manual',
+            trigger: 'focus',
             placement: 'right',
             content: formInfoValues[$e.val()],
         }).popover('show');

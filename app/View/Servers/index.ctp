@@ -48,14 +48,14 @@ foreach ($servers as $server): ?>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="short action-links">
 			<?php
-			if ($server['Server']['pull'] && $me['org'] == 'ADMIN')
+			if ($server['Server']['pull'] && $isSiteAdmin)
 				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'full'), array('class' => 'icon-download', 'title' => 'Pull all'));
-			if ($server['Server']['push'] && $me['org'] == 'ADMIN')
+			if ($server['Server']['push'] && $isSiteAdmin)
 				echo $this->Html->link('', array('action' => 'push', $server['Server']['id'], 'full'), array('class' => 'icon-upload', 'title' => 'Push all'));
 			?>
 			&nbsp;
 			<?php
-			$mayModify = ($me['org'] == 'ADMIN' || $me['org'] == $server['Server']['organization']) || ($isAdmin && ($server['Server']['organization'] == $me['org']));
+			$mayModify = ($isSiteAdmin || $me['org'] == $server['Server']['organization']) || ($isAdmin && ($server['Server']['organization'] == $me['org']));
 			if ($mayModify) echo $this->Html->link('', array('action' => 'edit', $server['Server']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
 			if ($mayModify) echo $this->Form->postLink('', array('action' => 'delete', $server['Server']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $server['Server']['id']));
 			?>
@@ -83,9 +83,6 @@ endforeach; ?>
     </div>
 
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li class="active"><?php echo $this->Html->link('List Servers', array('controller' => 'servers', 'action' => 'index'));?></li>
-		<li><?php if ($isAclAdd && $me['org'] == 'ADMIN') echo $this->Html->link('New Server', array('controller' => 'servers', 'action' => 'add')); ?></li>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'index'));
+?>

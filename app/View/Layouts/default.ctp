@@ -65,5 +65,10 @@
 		<div class="spinner"></div>
 		<div class="loadingText">Loading</div>
 	</div>
+	<script type="text/javascript">
+		$(window).scroll(function(e) {
+			$('.actions').css('left',-$(window).scrollLeft());
+		});
+	</script>
 </body>
 </html>

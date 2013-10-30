@@ -119,36 +119,16 @@ endforeach;
     </div>
 
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li><a href="/events/index">List Events</a></li>
-		<?php if ($isAclAdd): ?>
-		<li><a href="/events/add">Add Event</a></li>
-		<?php endif; ?>
-		<li class="divider"></li>
-		<?php
-		if ($isSearch == 1){
-			$searchClass = 'class="active"';
-			$listClass = '';
-		} else {
-			$searchClass = '';
-			$listClass = 'class="active"';
-		}
-		?>
-		<li <?php echo $listClass;?>><a href="/attributes/index">List Attributes</a></li>
-		<li <?php echo $searchClass;?>><a href="/attributes/search">Search Attributes</a></li>
-		<?php if ($isSearch == 1): ?>
-		<li class="divider"></li>
-		<li><a href="/events/downloadSearchResult">Download results as XML</a></li>
-		<li><a href="/events/csv/download/search">Download results as CSV</a></li>
-		<?php endif; ?>
-		<li class="divider"></li>
-		<li><a href="/events/export">Export</a></li>
-		<?php if ($isAclAuth): ?>
-		<li><a href="/events/automation">Automation</a></li>
-		<?php endif;?>
-	</ul>
-</div>
+<?php
+if ($isSearch == 1){
+	$class = 'searchAttributes2';
+} else {
+	$class = 'listAttributes';
+}
+?>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => $class));
+?>
 <script type="text/javascript">
 // tooltips
 $(document).ready(function () {

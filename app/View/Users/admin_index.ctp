@@ -61,7 +61,7 @@ foreach ($users as $user): ?>
 		<?php echo h($user['User']['newsread']); ?>&nbsp;</td>
 		<td class="short action-links">
 			<?php
-	if (($isAclAdmin && (($user['User']['org'] == $me['org'])) || ('1' == $me['id'])) || ($me['org'] == 'ADMIN')) {
+	if (($isAclAdmin && (($user['User']['org'] == $me['org'])) || ('1' == $me['id'])) || ($isSiteAdmin)) {
 				echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $user['User']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
 				echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $user['User']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $user['User']['id']));
 	}?>
@@ -89,18 +89,6 @@ endforeach; ?>
     </div>
 
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link('New User', array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
-		<li class="active"><?php echo $this->Html->link('List Users', array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
-		<li class="divider"></li>
-		<?php if ($isSiteAdmin): ?>
-		<li><?php echo $this->Html->link('New Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
-		<?php endif; ?>
-		<li><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
-		<?php if ($isSiteAdmin): ?>
-		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Contact users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
-		<?php endif; ?>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'indexUser'));
+?>

@@ -318,11 +318,11 @@ class Event extends AppModel {
 		return $this->field('id', array('id' => $eventid, 'org' => $org)) === $eventid;
 	}
 
-	public function getRelatedEvents($me, $eventId = null) {
+	public function getRelatedEvents($me, $isSiteAdmin = false, $eventId = null) {
 		if ($eventId == null) $eventId = $this->data['Event']['id'];
 		$this->Correlation = ClassRegistry::init('Correlation');
 		// search the correlation table for the event ids of the related events
-		if ('ADMIN' != $me['org']) {
+		if (!$isSiteAdmin) {
 		    $conditionsCorrelation = array('AND' =>
 		            array('Correlation.1_event_id' => $eventId),
 		            array("OR" => array(
@@ -355,11 +355,11 @@ class Event extends AppModel {
 		return $relatedEvents;
 	}
 
-	public function getRelatedAttributes($me, $id = null) {
+	public function getRelatedAttributes($me, $isSiteAdmin = false, $id = null) {
 		if ($id == null) $id = $this->data['Event']['id'];
 		$this->Correlation = ClassRegistry::init('Correlation');
 		// search the correlation table for the event ids of the related attributes
-		if ('ADMIN' != $me['org']) {
+		if (!$isSiteAdmin) {
 		    $conditionsCorrelation = array('AND' =>
 		            array('Correlation.1_event_id' => $id),
 		            array("OR" => array(

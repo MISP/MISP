@@ -41,22 +41,9 @@ echo $this->Form->end();
 ?>
 </div>
 
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li><a href="/events/index">List Events</a></li>
-		<?php if ($isAclAdd): ?>
-		<li class="active"><a href="/events/add">Add Event</a></li>
-		<?php endif; ?>
-		<li class="divider"></li>
-		<li><a href="/attributes/index">List Attributes</a></li>
-		<li><a href="/attributes/search">Search Attributes</a></li>
-		<li class="divider"></li>
-		<li><a href="/events/export">Export</a></li>
-		<?php if ($isAclAuth): ?>
-		<li><a href="/events/automation">Automation</a></li>
-		<?php endif;?>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'add'));
+?>
 
 <script type="text/javascript">
 //
@@ -94,7 +81,7 @@ $(document).ready(function() {
 	    if ($e.is('option')) {
 	        $('#'+e.currentTarget.id).popover('destroy');
 	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'manual',
+	            trigger: 'focus',
 	            placement: 'right',
 	            content: formInfoValues[e.currentTarget.id][$e.val()],
 	        }).popover('show');
@@ -108,7 +95,7 @@ $(document).ready(function() {
 		var $e = $(e.target);
         $('#'+e.currentTarget.id).popover('destroy');
         $('#'+e.currentTarget.id).popover({
-            trigger: 'manual',
+            trigger: 'focus',
             placement: 'right',
             content: formInfoValues[e.currentTarget.id][$e.val()],
         }).popover('show');

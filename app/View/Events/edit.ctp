@@ -32,19 +32,9 @@ echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li><a href="/events/view/<?php echo $this->request->data['Event']['id'];?>">View Event</a></li>
-		<li><a href="/logs/event_index/<?php echo $this->request->data['Event']['id'];?>">View Event History</a></li>
-		<li class="active"><a href="/events/edit/<?php echo $this->request->data['Event']['id'];?>">Edit Event</a></li>
-		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $this->request->data['Event']['id']), null, __('Are you sure you want to delete # %s?', $this->request->data['Event']['id'])); ?></li>
-		<li class="divider"></li>
-		<li><a href="/events/index">List Events</a></li>
-		<?php if ($isAclAdd): ?>
-		<li><a href="/events/add">Add Event</a></li>
-		<?php endif; ?>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'editEvent'));
+?>
 
 <script type="text/javascript">
 //
@@ -82,7 +72,7 @@ $(document).ready(function() {
 	    if ($e.is('option')) {
 	        $('#'+e.currentTarget.id).popover('destroy');
 	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'manual',
+	            trigger: 'focus',
 	            placement: 'right',
 	            content: formInfoValues[e.currentTarget.id][$e.val()],
 	        }).popover('show');
@@ -96,7 +86,7 @@ $(document).ready(function() {
 		var $e = $(e.target);
         $('#'+e.currentTarget.id).popover('destroy');
         $('#'+e.currentTarget.id).popover({
-            trigger: 'manual',
+            trigger: 'focus',
             placement: 'right',
             content: formInfoValues[e.currentTarget.id][$e.val()],
         }).popover('show');

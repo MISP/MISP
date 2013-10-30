@@ -41,7 +41,7 @@ class LogsController extends AppController {
 	public function admin_index() {
 		if(!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$this->set('isSearch', 0);
-		if ($this->Auth->user('org') == 'ADMIN') {
+		if ($this->_isSiteAdmin()) {
 			$this->AdminCrud->adminIndex();
 		} else {
 			$orgRestriction = null;
@@ -67,7 +67,7 @@ class LogsController extends AppController {
 		$this->Event->recursive = -1;
 		$this->Event->read(null, $id);
 		// send unauthorised people away. Only site admins and users of the same org may see events that are "your org only". Everyone else can proceed for all other levels of distribution
-		if ($this->Auth->user('org') != 'ADMIN') {
+		if (!$this->_isSiteAdmin()) {
 			if ($this->Event->data['Event']['distribution'] == 0) {
 				if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
 					$this->Session->setFlash(__('You don\'t have access to view this event.'));
@@ -118,7 +118,7 @@ class LogsController extends AppController {
 		if(!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$fullAddress = array('/admin/logs/search', '/logs/admin_search'); // FIXME remove this crap check
 		$orgRestriction = null;
-		if ($this->Auth->user('org') == 'ADMIN') {
+		if ($this->_isSiteAdmin()) {
 			$orgRestriction = false;
 		} else {
 			$orgRestriction = $this->Auth->user('org');

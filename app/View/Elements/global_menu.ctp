@@ -37,11 +37,11 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<?php if ($isSiteAdmin): ?>
+							<?php if ($isAclRegexp): ?>
 							<li><a href="/admin/regexp/index">Import Regexp</a></li>
 							<li><a href="/admin/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
-							<?php if (!$isSiteAdmin): ?>
+							<?php if (!$isAclRegexp): ?>
 							<li><a href="/regexp/index">Import Regexp</a></li>
 							<li><a href="/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>

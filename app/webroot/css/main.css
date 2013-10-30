@@ -563,9 +563,9 @@ dd {
 }
 
 .qet {
-	padding:1px 1px;
-	font-size:12px;
-	float:left;
+	padding:1px 5px !important;
+	font-size:12px !important;
+	float:left !important;
 }
 
 @-webkit-keyframes rotation {
