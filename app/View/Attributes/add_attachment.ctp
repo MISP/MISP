@@ -22,6 +22,13 @@
 					'label' => 'Distribution',
 					'selected' => $initialDistribution,
 			));
+			echo $this->Form->input('comment', array(
+					'type' => 'text',
+					'label' => 'Contextual Comment',
+					'error' => array('escape' => false),
+					'div' => 'input clear',
+					'class' => 'input-xxlarge'
+			));
 			//'before' => $this->Html->div('forminfo', isset($attrDescriptions['distribution']['formdesc']) ? $attrDescriptions['distribution']['formdesc'] : $attrDescriptions['distribution']['desc']),));
 		}
 		?>

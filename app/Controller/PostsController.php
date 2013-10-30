@@ -134,7 +134,6 @@ class PostsController extends AppController {
 				$this->Thread->save();
 			}
 			
-			
 			// Time to create our post! 
 			$this->Post->create();
 			$newPost = array(

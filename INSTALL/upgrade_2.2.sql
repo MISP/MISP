@@ -25,3 +25,4 @@ CREATE TABLE IF NOT EXISTS `posts` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ;
 
+ALTER TABLE  `attributes` ADD  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;

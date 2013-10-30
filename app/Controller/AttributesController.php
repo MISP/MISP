@@ -402,12 +402,12 @@ class AttributesController extends AppController {
 				$temp['Attribute']['type'] = 'filename|sha256';
 				$temp['Attribute']['value'] = $filename . '|' .$sha256;
 				$temp['Attribute']['uuid'] = String::uuid();
-				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids')));
+				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids', 'comment')));
 				$this->Attribute->create();
 				$temp['Attribute']['type'] = 'filename|sha1';
 				$temp['Attribute']['value'] = $filename . '|' .$sha1;
 				$temp['Attribute']['uuid'] = String::uuid();
-				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids')));
+				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids', 'comment')));
 			}
 
 
@@ -689,7 +689,7 @@ class AttributesController extends AppController {
 			} else {
 				$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
 			}
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'distribution', 'value', 'timestamp');
+			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'distribution', 'value', 'timestamp', 'comment');
 
 			$this->loadModel('Event');
 			$this->Event->id = $eventId;

@@ -137,6 +137,7 @@ if (!empty($event['Attribute'])):?>
 			<th>Category</th>
 			<th>Type</th>
 			<th>Value</th>
+			<th>Comment</th>
 			<th>Related Events</th>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>">IDS</th>
 			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>">Distribution</th>
@@ -163,9 +164,7 @@ if (!empty($event['Attribute'])):?>
 			</td>
 			<?php endif; ?>
 			<td class="short <?php echo $extra; ?>" title="<?php echo $typeDefinitions[$attribute['type']]['desc'];?>">
-
 				<?php echo h($attribute['type']);?>
-
 			</td>
 			<td class="showspaces <?php echo $extra; ?>"><?php $sigDisplay = $attribute['value'];
 			if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
@@ -196,8 +195,10 @@ if (!empty($event['Attribute'])):?>
 				$sigDisplay = str_replace("\r", '', $sigDisplay);
 				echo (h($sigDisplay));
 			}
-				?></td>
-				<td class="shortish <?php echo $extra; ?>">
+				?>
+			</td>
+			<td class="showspaces bitwider <?php echo $extra; ?>"><?php echo h($attribute['comment']); ?></td>
+			<td class="shortish <?php echo $extra; ?>">
 				<?php
 			$first = 0;
 			?>
@@ -294,6 +295,8 @@ if (!empty($event['Attribute'])):?>
 					<td class="short highlight2">
 					</td>
 					<td class="short highlight2">
+					</td>
+					<td class="short highlight2">
 					<?php
 						if ($shadowAttribute['to_ids'] != $attribute['to_ids']) echo $shadowAttribute['to_ids'] ? 'Yes' : 'No';
 					?>
@@ -364,6 +367,8 @@ if (!empty($event['Attribute'])):?>
 											echo h($sigDisplay);
 										}
 									?></td>
+								<td class="short highlight2">
+								</td>
 								<td class="short highlight2">
 								</td>
 								<td class="short highlight2">

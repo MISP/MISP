@@ -32,6 +32,7 @@ if ($isSearch == 1) {
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
+			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<th<?php echo ' title="' . $attrDescriptions['signature']['desc'] . '"';?>>
 			<?php echo $this->Paginator->sort('IDS');?></th>
 			<th class="actions">Actions</th>
@@ -83,7 +84,11 @@ foreach ($attributes as $attribute):
 			} else {
 				echo $sigDisplay;
 			}
-			?></td>
+			?>
+		</td>
+		<td onclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
+			<?php echo h($attribute['Attribute']['comment']); ?>&nbsp;
+		</td>
 		<td class="short" onclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;
 		</td>

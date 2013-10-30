@@ -31,6 +31,13 @@
 				'div' => 'input clear',
 				'class' => 'input-xxlarge'
 		));
+		echo $this->Form->input('comment', array(
+				'type' => 'text',
+				'label' => 'Contextual Comment',
+				'error' => array('escape' => false),
+				'div' => 'input clear',
+				'class' => 'input-xxlarge'
+		));
 		?>
 		<div class="input clear"></div>
 		<?php
@@ -43,7 +50,6 @@
 				'type' => 'checkbox',
 				'data-content' => 'Create multiple attributes one per line',
 		));
-
 		// link an onchange event to the form elements
 		$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
 		?>

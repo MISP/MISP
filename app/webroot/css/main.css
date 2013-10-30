@@ -240,6 +240,11 @@ td.shortish {
 	text-align: left;
 }
 
+td.bitwider {
+	width:20%;
+	text-align: left;
+}
+
 td.highlight1 {
 	background-color: #0088cc !important;
 	color: #ffffff !important;
