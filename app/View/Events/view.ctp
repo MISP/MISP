@@ -205,7 +205,7 @@ if (!empty($event['Attribute'])):?>
 				echo $this->Html->link(h($sigDisplay), h($sigDisplay));
 			} else {
 				$sigDisplay = str_replace("\r", '', $sigDisplay);
-				echo (h($sigDisplay));
+				echo nl2br(h($sigDisplay));
 			}
 				?></td>
 				<td class="shortish <?php echo $extra; ?>">
@@ -298,7 +298,7 @@ if (!empty($event['Attribute'])):?>
 								} elseif ('link' == $shadowAttribute['type']) {
 									echo $this->Html->link(h($sigDisplay), h($sigDisplay));
 								} else {
-									echo h($sigDisplay);
+									echo nl2br(h($sigDisplay));
 								}
 							}
 						?></td>
@@ -372,7 +372,7 @@ if (!empty($event['Attribute'])):?>
 										} elseif ('link' == $remain['type']) {
 											echo $this->Html->link(h($sigDisplay), h($sigDisplay));
 										} else {
-											echo h($sigDisplay);
+											echo nl2br(h($sigDisplay));
 										}
 									?></td>
 								<td class="short highlight2">
