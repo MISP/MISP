@@ -95,7 +95,7 @@
 					<li <?php if ($menuItem === 'view') echo 'class="active";'?>><a href="/users/view/me">My Profile</a></li>
 					<li <?php if ($menuItem === 'members') echo 'class="active";'?>><a href="/users/memberslist">Members List</a></li>
 					<li <?php if ($menuItem === 'userGuide') echo 'class="active";'?>><a href="/pages/display/doc/general">User Guide</a></li>
-					<li <?php if ($menuItem === 'terms') echo 'class="active";'?>><a href="/users/terms">Terms & Conditions</a></li>
+					<li <?php if ($menuItem === 'terms') echo 'class="active";'?>><a href="/users/terms">Terms &amp; Conditions</a></li>
 					<?php 
 				break;
 				
@@ -139,6 +139,28 @@
 				case 'logs': ?>
 					<li <?php if ($menuItem === 'index') echo 'class="active";'?>><?php echo $this->Html->link('List Logs', array('admin' => true, 'action' => 'index'));?></li>
 					<li <?php if ($menuItem === 'search') echo 'class="active";'?>><?php echo $this->Html->link('Search Logs', array('admin' => true, 'action' => 'search'));?></li>
+					<?php 
+				break;	
+				
+				case 'threads': 
+				
+					if ($menuItem === 'add' || $menuItem === 'view') {
+						if (!(empty($thread_id) && empty($target_type))) { ?>
+					<li  <?php if ($menuItem === 'view') echo 'class="active";'?>><?php echo $this->Html->link('View Thread', array('controller' => 'threads', 'action' => 'view', $thread_id));?></li>
+					<li  <?php if ($menuItem === 'add') echo 'class="active";'?>><?php echo $this->Html->link('Add Post', array('controller' => 'posts', 'action' => 'add', 'thread', $thread_id));?></li>
+					<li class="divider"></li>
+					<?php 
+						}
+					}
+					if ($menuItem === 'edit') { ?>
+						<li><?php echo $this->Html->link('View Thread', array('controller' => 'threads', 'action' => 'view', $thread_id));?></li>
+						<li class="active"><?php echo $this->Html->link('Edit Post', array('controller' => 'threads', 'action' => 'view', $id));?></li>
+						<li class="divider"></li>
+					<?php 
+					}
+					?>
+					<li <?php if ($menuItem === 'index') echo 'class="active";'?>><?php echo $this->Html->link('List Threads', array('controller' => 'threads', 'action' => 'index'));?></li>
+					<li <?php if ($menuItem === 'add' && !isset($thread_id)) echo 'class="active";'?>><a href = "<?php echo Configure::read('CyDefSIG.baseurl');?>/posts/add">New Thread</a></li>
 					<?php 
 				break;	
 			}

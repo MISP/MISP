@@ -22,11 +22,6 @@ echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li class="active"><?php echo $this->Html->link('Edit Post', array('controller' => 'threads', 'action' => 'view', $id));?></li>
-		<li class="divider"></li>
-		<li><?php echo $this->Html->link('List Threads', array('controller' => 'threads', 'action' => 'index'));?></li>
-		<li><a href = "<?php echo Configure::read('CyDefSIG.baseurl');?>/posts/add">New Thread</a></li>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'threads', 'menuItem' => 'edit'));
+?>

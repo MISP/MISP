@@ -72,7 +72,7 @@ foreach ($attributes as $attribute):
 		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 		<?php echo $attribute['Attribute']['type']; ?>&nbsp;</td>
 		<td class="showspaces" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';"><?php
-			$sigDisplay = h($attribute['Attribute']['value']);
+			$sigDisplay = nl2br(h($attribute['Attribute']['value']));
 			if ($isSearch == 1 && !empty($replacePairs)) {
 				// highlight the keywords if there are any
 				$sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);

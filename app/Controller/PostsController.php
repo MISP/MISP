@@ -194,6 +194,7 @@ class PostsController extends AppController {
 		$this->set('title', $this->Post->data['Thread']['title']);
 		$this->set('contents', $this->Post->data['Post']['contents']);
 		$this->set('id', $post_id);
+		$this->set('thread_id', $this->Post->data['Post']['thread_id']);
 	}
 	
 	public function quick_add() {

@@ -96,9 +96,6 @@ endforeach; ?>
     </div>
 
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li class="active"><?php echo $this->Html->link('List Threads', array('controller' => 'threads', 'action' => 'index'));?></li>
-		<li><a href = "<?php echo Configure::read('CyDefSIG.baseurl');?>/posts/add">New Thread</a></li>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'threads', 'menuItem' => 'index'));
+?>
