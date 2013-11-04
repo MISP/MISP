@@ -107,7 +107,7 @@ class IOCImportComponent extends Component {
 		// Add a special attribute that captures the basic data about the .ioc such as the ioc-s uuid, info, long info, author, etc.
 		// Define the fields used in the global iocinfo variable.
 		foreach ($this->iocinfo as $k => $v) {
-			$event['Attribute'][] = array('uuid' => String::uuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => false, 'distribution' => $this->distribution);
+			$event['Attribute'][] = array('uuid' => String::uuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => false, 'distribution' => $this->distribution, 'comment' => 'OpenIOC import');
 		}
 
 		// attach the graph to the event
@@ -165,6 +165,7 @@ class IOCImportComponent extends Component {
 		if ($temp[0] == 'Other' && $temp[1] == 'other') {
 			$attribute['value'] = $attribute['search'] . ': ' . $attribute['value'];
 		}
+		$attribute['comment'] = 'OpenIOC import';
 		return $attribute;
 	}
 

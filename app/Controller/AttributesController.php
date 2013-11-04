@@ -494,7 +494,6 @@ class AttributesController extends AppController {
 			}
 
 			// parse uploaded csv file
-			$filename = '/Users/chri/Downloads/ThreatConnectExport2.csv';
 			$filename = $tmpfile->path;
 			$header = NULL;
 			$entries = array();
@@ -526,12 +525,15 @@ class AttributesController extends AppController {
 				$attribute['event_id'] = $this->request->data['Attribute']['event_id'];
 				$attribute['value'] = $entry['Value'];
 				$attribute['to_ids'] = ($entry['Confidence'] > 51) ? 1 : 0; // To IDS if high confidence
-				$attribute['distribution'] = 3; // 'All communities'
-				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-					$attribute['distribution'] = $this->Event->data['Event']['distribution'];
-				} else {
-					$attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-					}
+				$attribute['comment'] = 'ThreatConnect: ' . $entry['Description'];
+				$attribute['distribution'] = '3'; // 'All communities'
+				if (Configure::read('MISP.default_attribute_distribution') != null) {
+					if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+						$attribute['distribution'] = $this->Event->data['Event']['distribution'];
+					} else {
+						$attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+					} 
+				}
 				switch($entry['Type']) {
 					case 'Address':
 						$attribute['category'] = 'Network activity';

@@ -1919,7 +1919,7 @@ class EventsController extends AppController {
 			$this->Event->read(null, $id);
 			$saveEvent['Event'] = $this->Event->data['Event'];
 			$saveEvent['Event']['published'] = false;
-			$dist = 3;
+			$dist = '3';
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
 					$dist = $this->Event->data['Event']['distribution'];
@@ -1945,7 +1945,7 @@ class EventsController extends AppController {
 
 			$fieldList = array(
 					'Event' => array('published', 'timestamp'),
-					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp')
+					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp', 'comment')
 			);
 			// Save it all
 			$saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
@@ -2012,13 +2012,13 @@ class EventsController extends AppController {
 		$realMalware = $realFileName;
 		$rootDir = APP . "files" . DS . $id . DS;
 		$malware = $rootDir . DS . 'sample';
-		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id);
+		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id, null, '', '', true);
 
 		//Network activity -- .pcap
 		$realFileName = 'analysis.pcap';
 		$rootDir = APP . "files" . DS . $id . DS;
 		$malware = $rootDir . DS . 'Analysis' . DS . 'analysis.pcap';
-		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	false, $id, 'Network activity');
+		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	false, $id, 'Network activity', '', '', true);
 
 		//Artifacts dropped -- filename|md5
 		$files = array();
@@ -2067,7 +2067,7 @@ class EventsController extends AppController {
 			$extraPath = 'Analysis' . DS . 'proc_' . $index . DS . 'modified_files' . DS;
 			$file = new File($actualFile);
 			if ($file->exists()) { // TODO put in array for test later
-				$this->Event->Attribute->uploadAttachment($actualFile, $realFileName, true, $id, null, $extraPath, $keyName); // TODO was false
+				$this->Event->Attribute->uploadAttachment($actualFile, $realFileName, true, $id, null, $extraPath, $keyName, true); // TODO was false
 			} else {
 			}
 		}
@@ -2092,7 +2092,9 @@ class EventsController extends AppController {
 					'category' => 'Network activity',
 					'type' => 'ip-dst',
 					'value' => $ip,
-					'to_ids' => false));
+					'to_ids' => false,
+					'comment' => 'GFI import',
+					));
 		}
 		foreach ($hostnames as $hostname) {
 			// add attribute..
@@ -2102,7 +2104,9 @@ class EventsController extends AppController {
 					'category' => 'Network activity',
 					'type' => 'hostname',
 					'value' => $hostname,
-					'to_ids' => false));
+					'to_ids' => false,
+					'comment' => 'GFI import',
+			));
 		}
 		// Persistence mechanism -- regkey|value
 		$regs = array();
@@ -2142,7 +2146,9 @@ class EventsController extends AppController {
 					'category' => $itsCategory, // 'Persistence mechanism'
 					'type' => $itsType,
 					'value' => $itsValue,
-					'to_ids' => false));
+					'to_ids' => false,
+					'comment' => 'GFI import',
+			));
 		}
 	}
 

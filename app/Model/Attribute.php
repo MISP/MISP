@@ -795,7 +795,7 @@ class Attribute extends AppModel {
  *
  * @return void
  */
-	public function uploadAttachment($fileP, $realFileName, $malware, $eventId = null, $category = null, $extraPath = '', $fullFileName = '') {
+	public function uploadAttachment($fileP, $realFileName, $malware, $eventId = null, $category = null, $extraPath = '', $fullFileName = '', $fromGFI = false) {
 		// Check if there were problems with the file upload
 		// only keep the last part of the filename, this should prevent directory attacks
 		$filename = basename($fileP);
@@ -810,11 +810,13 @@ class Attribute extends AppModel {
 			$this->data['Attribute']['type'] = "malware-sample";
 			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $md5 : $filename . '|' . $md5; // TODO gives problems with bigger files
 			$this->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
+			if ($fromGFI) $this->data['Attribute']['comment'] = 'GFI import';
 		} else {
 			$this->data['Attribute']['category'] = $category ? $category : "Artifacts dropped";
 			$this->data['Attribute']['type'] = "attachment";
 			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName : $realFileName;
 			$this->data['Attribute']['to_ids'] = 0;
+			if ($fromGFI) $this->data['Attribute']['comment'] = 'GFI import';
 		}
 
 		if ($this->save($this->data)) {

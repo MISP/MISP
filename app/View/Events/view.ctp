@@ -193,7 +193,7 @@ if (!empty($event['Attribute'])):?>
 				echo $this->Html->link(h($sigDisplay), h($sigDisplay));
 			} else {
 				$sigDisplay = str_replace("\r", '', $sigDisplay);
-				echo (h($sigDisplay));
+				echo nl2br(h($sigDisplay));
 			}
 				?>
 			</td>
