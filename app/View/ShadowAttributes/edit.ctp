@@ -24,9 +24,6 @@
 		?>
 		<div class="input clear"></div>
 		<?php
-		echo $this->Form->input('batch_import', array(
-				'type' => 'checkbox',
-		));
 		echo $this->Form->input('to_ids', array(
 				'checked' => true,
 				'label' => 'IDS Signature?',
@@ -41,22 +38,10 @@
 	echo $this->Form->end();
 ?>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link('View Event', array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id'])); ?> </li>
-		<li class="active"><?php echo $this->Html->link('Propose Attribute', array('controller' => 'shadow_attributes', 'action' => 'add', $this->request->data['ShadowAttribute']['event_id']));?> </li>
-		<li><?php echo $this->Html->link('Propose Attachment', array('controller' => 'shadow_attributes', 'action' => 'add_attachment', $this->request->data['ShadowAttribute']['event_id']));?> </li>
-		<li class="divider"></li>
-		<li><?php echo $this->Html->link('Contact reporter', array('controller' => 'events', 'action' => 'contact', $this->request->data['ShadowAttribute']['event_id'])); ?> </li>
-		<li><?php echo $this->Html->link('Download as XML', array('controller' => 'events', 'action' => 'xml', 'download', $this->request->data['ShadowAttribute']['event_id'])); ?></li>
-		<li><?php echo $this->Html->link('Download as IOC', array('controller' => 'events', 'action' => 'downloadOpenIOCEvent', $this->request->data['ShadowAttribute']['event_id'])); ?> </li>
-		<li class="divider"></li>
-		<li><?php echo $this->Html->link('List Events', array('controller' => 'events', 'action' => 'index')); ?></li>
-		<?php if ($isAclAdd): ?>
-		<li><?php echo $this->Html->link('Add Event', array('controller' => 'events', 'action' => 'add')); ?></li>
-		<?php endif; ?>
-	</ul>
-</div>
+<?php 
+	$event['Event']['id'] = $this->request->data['ShadowAttribute']['event_id'];
+	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttribute', 'event' => $event));
+?>
 
 <script type="text/javascript">
 //

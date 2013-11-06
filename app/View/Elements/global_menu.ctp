@@ -37,11 +37,11 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<?php if ($isSiteAdmin): ?>
+							<?php if ($isAclRegexp): ?>
 							<li><a href="/admin/regexp/index">Import Regexp</a></li>
 							<li><a href="/admin/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
-							<?php if (!$isSiteAdmin): ?>
+							<?php if (!$isAclRegexp): ?>
 							<li><a href="/regexp/index">Import Regexp</a></li>
 							<li><a href="/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
@@ -57,7 +57,7 @@
 							<li><a href="/users/news">News</a></li>
 							<li><a href="/users/view/me">My Profile</a></li>
 							<li><a href="/users/memberslist">Members List</a></li>
-							<li><a href="/pages/display/doc/general">User Guide</a></li>
+							<li><a href="/pages/display/doc/quickstart">User Guide</a></li>
 							<li><a href="/users/terms">Terms &amp; Conditions</a></li>
 							<li class="divider"></li>
 							<li><a href="/users/logout">Log out</a></li>
@@ -112,7 +112,16 @@
 						</ul>
 					</li>
 					<?php endif;?>
-
+					<li class="dropdown">
+						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+							Discussions
+							<b class="caret"></b>
+						</a>
+						<ul class="dropdown-menu">
+							<li><a href="/threads/index">List Discussions</a></li>
+							<li><a href="/posts/add">Start Discussion</a></li>
+						</ul>
+					</li>
 				</ul>
 			</div>
 			<div class="nav-collapse collapse pull-right">

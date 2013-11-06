@@ -55,10 +55,6 @@ endforeach;?>
 		</ul>
 	</div>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li class="active"><?php echo $this->Html->link('List Regexp', array('admin' => true, 'action' => 'index'));?></li>
-		<li><?php echo $this->Html->link('New Regexp', array('admin' => true, 'action' => 'add'));?></li>
-		<li><?php echo $this->Html->link('Perform on existing', array('admin' => true, 'action' => 'clean'));?></li>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'regexp', 'menuItem' => 'index'));
+?>

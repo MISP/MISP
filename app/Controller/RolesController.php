@@ -44,6 +44,7 @@ class RolesController extends AppController {
 			throw new NotFoundException(__('Invalid role'));
 		}
 		$this->set('role', $this->Role->read(null, $id));
+		$this->set('id', $id);
 	}
 
 /**
@@ -52,7 +53,7 @@ class RolesController extends AppController {
  * @return void
  */
 	public function admin_add() {
-		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
+		if(!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		if ($this->request->is('post')) {
 			$this->Role->create();
 			if ($this->Role->save($this->request->data)) {
@@ -76,7 +77,7 @@ class RolesController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
+		if(!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminIndex();
 		$this->set('options', $this->options);
 	}
@@ -89,10 +90,11 @@ class RolesController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
-		if($this->Auth->User('org') != 'ADMIN') $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
+		if(!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminEdit($id);
 		$passAlong = $this->Role->read(null, $id);
 		$this->set('options', $this->options);
+		$this->set('id', $id);
 	}
 
 /**

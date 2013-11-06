@@ -21,38 +21,6 @@ echo $this->Form->button('Search', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<script type="text/javascript">
-var formInfoValues = new Array();
 <?php
-foreach ($actionDefinitions as $action => $def) {
-	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['$action'] = \"$info\";\n";
-}
-
-$this->Js->get('#LogAction')->event('change', 'showFormInfo("#LogAction")');
+	echo $this->element('side_menu', array('menuList' => 'logs', 'menuItem' => 'search'));
 ?>
-formInfoValues['ALL'] = '';
-
-function showFormInfo(id) {
-	idDiv = id+'Div';
-	// LATER use nice animations
-	//$(idDiv).hide('fast');
-	// change the content
-	var value = $(id).val();    // get the selected value
-	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
-
-	// show it again
-	$(idDiv).fadeIn('slow');
-}
-
-// hide the formInfo things
-$('#LogActionDiv').hide();
-
-</script>
-<?php echo $this->Js->writeBuffer(); ?>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li ><?php echo $this->Html->link('List Logs', array('admin' => true, 'action' => 'index'));?></li>
-		<li class="active"><?php echo $this->Html->link('Search Logs', array('admin' => true, 'action' => 'search'));?></li>
-	</ul>
-</div>

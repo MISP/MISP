@@ -6,7 +6,7 @@
 		echo $this->Form->input('email');
 		echo $this->Form->input('password');
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
-		if ($currentOrg == 'ADMIN') {
+		if ($isSiteAdmin) {
 			echo $this->Form->input('org', array('label' => 'Organisation'));
 		}
 		echo $this->Form->input('role_id', array('label' => 'Role', 'div' => 'input clear'));
@@ -21,18 +21,6 @@
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();?>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li class="active"><a href="/admin/users/add">New User</a></li>
-		<li><a href="/admin/users/index">List Users</a></li>
-		<li class="divider"></li>
-		<?php if ($isSiteAdmin): ?>
-		<li><a href="/admin/roles/add">New Role</a></li>
-		<?php endif; ?>
-		<li><a href="/admin/roles/index">List Role</a></li>
-		<?php if ($isSiteAdmin): ?>
-		<li class="divider"></li>
-		<li><a href="/admin/users/email">Contact Users</a></li>
-		<?php endif; ?>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'addUser'));
+?>

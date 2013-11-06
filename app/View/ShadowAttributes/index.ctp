@@ -70,19 +70,6 @@
         </ul>
     </div>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li class="active"><a href="/events/index">List Events</a></li>
-		<?php if ($isAclAdd): ?>
-		<li><a href="/events/add">Add Event</a></li>
-		<?php endif; ?>
-		<li class="divider"></li>
-		<li><a href="/attributes/index">List Attributes</a></li>
-		<li><a href="/attributes/search">Search Attributes</a></li>
-		<li class="divider"></li>
-		<li><a href="/events/export">Export</a></li>
-		<?php if ($isAclAuth): ?>
-		<li><a href="/events/automation">Automation</a></li>
-		<?php endif;?>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewProposals'));
+?>
