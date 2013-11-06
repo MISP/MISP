@@ -2,42 +2,9 @@
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 ?>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li class="active"><a href="/events/view/<?php echo $event['Event']['id'];?>">View Event</a></li>
-		<li><a href="/logs/event_index/<?php echo $event['Event']['id'];?>">View Event History</a></li>
-		<?php if ($isSiteAdmin || $mayModify): ?>
-		<li><a href="/events/edit/<?php echo $event['Event']['id'];?>">Edit Event</a></li>
-		<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
-		<li class="divider"></li>
-		<li><a href="/attributes/add/<?php echo $event['Event']['id'];?>">Add Attribute</a></li>
-		<li><a href="/attributes/add_attachment/<?php echo $event['Event']['id'];?>">Add Attachment</a></li>
-		<li><a href="/events/addIOC/<?php echo $event['Event']['id'];?>">Populate from IOC</a></li>
-		<li><a href="/attributes/add_threatconnect/<?php echo $event['Event']['id']; ?>">Populate from ThreatConnect</a></li>
-		<?php else:	?>
-		<li><a href="/shadow_attributes/add/<?php echo $event['Event']['id'];?>">Propose Attribute</a></li>
-		<li><a href="/shadow_attributes/add_attachment/<?php echo $event['Event']['id'];?>">Propose Attachment</a></li>
-		<?php endif; ?>
-		<li class="divider"></li>
-		<?php if ( 0 == $event['Event']['published'] && ($isAdmin || $mayPublish)): ?>
-		<li><?php echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?'); ?></li>
-		<li><?php echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!'); ?></li>
-		<?php else: ?>
-		<!-- ul><li>Alert already sent</li></ul -->
-		<?php endif; ?>
-		<li><a href="/events/contact/<?php echo $event['Event']['id'];?>">Contact Reporter</a></li>
-		<li><a href="/events/xml/download/<?php echo $event['Event']['id'];?>">Download as XML</a></li>
-		<?php if ($event['Event']['published']): ?>
-		<li><a href="/events/downloadOpenIOCEvent/<?php echo $event['Event']['id'];?>">Download as IOC</a></li>
-		<li><a href="/events/csv/download/<?php echo $event['Event']['id'];?>">Download as CSV</a></li>
-		<?php endif; ?>
-		<li class="divider"></li>
-		<li><a href="/events/index">List Events</a></li>
-		<?php if ($isAclAdd): ?>
-		<li><a href="/events/add">Add Event</a></li>
-		<?php endif; ?>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
+?>
 
 
 <div class="events view">
@@ -75,7 +42,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					&nbsp;
 				</dd>
 				<?php endif; ?>
-				<?php if ($isSiteAdmin || ($isAdmin && $me['org'] == $event['Event']['org'])): ?>
+				<?php if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org'] == $event['Event']['org']))): ?>
 				<dt>Email</dt>
 				<dd>
 					<?php echo h($event['User']['email']); ?>
@@ -136,11 +103,33 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	</div>
 	<?php endif; ?>
 	</div>
+	<br />
 	<div>
+		<button class="btn btn-inverse toggle-left btn.active qet" id="pivots_active">
+			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Pivots
+		</button>
+		<button class="btn btn-inverse toggle-left qet" style="display:none;" id="pivots_inactive">
+			<span class="icon-plus icon-white" style="vertical-align:top;"></span>Pivots
+		</button>
+		<button class="btn btn-inverse toggle qet" id="attributes_active">
+			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Attributes
+		</button>
+		<button class="btn btn-inverse toggle qet" id="attributes_inactive" style="display:none;">
+			<span class="icon-plus icon-white" style="vertical-align:top;"></span>Attributes
+		</button>
+		<button class="btn btn-inverse toggle-right qet" id="discussions_active">
+			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Discussion
+		</button>
+		<button class="btn btn-inverse toggle-right qet" id="discussions_inactive" style="display:none;">
+			<span class="icon-plus icon-white" style="vertical-align:top;"></span>Discussion
+		</button>
+	</div>
+	<br />
+	<br />
+	<div id="pivots_div">
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
-	<div>
-		<h3>Attributes</h3>
+	<div id="attributes_div">
 		<?php
 if (!empty($event['Attribute'])):?>
 		<table class="table table-striped table-condensed">
@@ -148,6 +137,7 @@ if (!empty($event['Attribute'])):?>
 			<th>Category</th>
 			<th>Type</th>
 			<th>Value</th>
+			<th>Comment</th>
 			<th>Related Events</th>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>">IDS</th>
 			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>">Distribution</th>
@@ -174,9 +164,7 @@ if (!empty($event['Attribute'])):?>
 			</td>
 			<?php endif; ?>
 			<td class="short <?php echo $extra; ?>" title="<?php echo $typeDefinitions[$attribute['type']]['desc'];?>">
-
 				<?php echo h($attribute['type']);?>
-
 			</td>
 			<td class="showspaces <?php echo $extra; ?>"><?php $sigDisplay = $attribute['value'];
 			if ('attachment' == $attribute['type'] || 'malware-sample' == $attribute['type'] ) {
@@ -207,8 +195,10 @@ if (!empty($event['Attribute'])):?>
 				$sigDisplay = str_replace("\r", '', $sigDisplay);
 				echo nl2br(h($sigDisplay));
 			}
-				?></td>
-				<td class="shortish <?php echo $extra; ?>">
+				?>
+			</td>
+			<td class="showspaces bitwider <?php echo $extra; ?>"><?php echo h($attribute['comment']); ?></td>
+			<td class="shortish <?php echo $extra; ?>">
 				<?php
 			$first = 0;
 			?>
@@ -227,7 +217,7 @@ if (!empty($event['Attribute'])):?>
 					echo ' ';
 				}
 			}
-				?>&nbsp;
+				?>
 				</ul>
 				</td>
 				<td class="short <?php echo $extra; ?>"><?php echo $attribute['to_ids'] ? 'Yes' : 'No';?></td>
@@ -305,6 +295,8 @@ if (!empty($event['Attribute'])):?>
 					<td class="short highlight2">
 					</td>
 					<td class="short highlight2">
+					</td>
+					<td class="short highlight2">
 					<?php
 						if ($shadowAttribute['to_ids'] != $attribute['to_ids']) echo $shadowAttribute['to_ids'] ? 'Yes' : 'No';
 					?>
@@ -378,6 +370,8 @@ if (!empty($event['Attribute'])):?>
 								<td class="short highlight2">
 								</td>
 								<td class="short highlight2">
+								</td>
+								<td class="short highlight2">
 									<?php
 										echo $remain['to_ids'] ? 'Yes' : 'No';
 									?></td>
@@ -399,6 +393,11 @@ if (!empty($event['Attribute'])):?>
 				<?php
 				endif; ?>
 		</div>
+		<div id="discussions_div">
+			<?php 
+				echo $this->element('eventdiscussion');
+			?>
+		</div>
 </div>
 <script type="text/javascript">
 // tooltips
@@ -408,5 +407,38 @@ $(document).ready(function () {
 		'container' : 'body',
 		delay: { show: 500, hide: 100 }
 		});
+	$('#discussions_active').click(function() {
+		  $('#discussions_div').hide();
+		  $('#discussions_active').hide();
+		  $('#discussions_inactive').show();
+		});
+	$('#discussions_inactive').click(function() {
+		  $('#discussions_div').show();
+		  $('#discussions_active').show();
+		  $('#discussions_inactive').hide();
+		});
+	$('#attributes_active').click(function() {
+		  $('#attributes_div').hide();
+		  $('#attributes_active').hide();
+		  $('#attributes_inactive').show();
+		});
+	$('#attributes_inactive').click(function() {
+		  $('#attributes_div').show();
+		  $('#attributes_active').show();
+		  $('#attributes_inactive').hide();
+		});
+	$('#pivots_active').click(function() {
+		  $('#pivots_div').hide();
+		  $('#pivots_active').hide();
+		  $('#pivots_inactive').show();
+		});
+	$('#pivots_inactive').click(function() {
+		  $('#pivots_div').show();
+		  $('#pivots_active').show();
+		  $('#pivots_inactive').hide();
+		});
 });
+
+
+
 </script>

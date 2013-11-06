@@ -22,9 +22,7 @@ else:?>
 	<?php
 endif;?>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li class="active"><?php echo $this->Html->link('List Servers', array('controller' => 'servers', 'action' => 'index'));?></li>
-		<li><?php if ($isAclAdd && $me['org'] == 'ADMIN') echo $this->Html->link('New Server', array('controller' => 'servers', 'action' => 'add')); ?></li>
-	</ul>
-</div>
+
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'push'));
+?>

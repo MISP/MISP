@@ -43,17 +43,7 @@ echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<div class="actions">
-	<ul>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'regexp', 'menuItem' => 'edit', 'id' => $this->Form->value('Regexp.id')));
+?>
 
-	</ul>
-</div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li><?php echo $this->Html->link('List Regexp', array('admin' => true, 'action' => 'index'));?></li>
-		<li><?php echo $this->Html->link('New Regexp', array('admin' => true, 'action' => 'add'));?></li>
-		<li><?php echo $this->Html->link('Perform on existing', array('admin' => true, 'action' => 'clean'));?></li>
-		<li class="divider"></li>
-		<li><?php echo $this->Form->postLink('Delete Regexp', array('admin' => true, 'action' => 'delete', $this->Form->value('Regexp.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Regexp.id')));?></li>
-	</ul>
-</div>

@@ -49,16 +49,7 @@
 			<?php
 				if (Configure::read('debug') == 0) echo "style=\"padding-top:100px;\"";
 			?>
-		>
-		<?php 
-			// Add locations here that should not have a breadrumb displayed
-			// If we get an error, also, we don't want the breadcrumbs shown
-			if ($this->params['action'] !== 'login' && $this->response->statusCode() < '400'):
-		?>
-		<?php 
-			endif;
-		?>
-			
+		>	
 			<?php echo $this->fetch('content'); ?>
 		</div>
 	<?php
@@ -69,6 +60,10 @@
 	echo $this->Html->script('bootstrap-datepicker');
 	echo $this->Html->script('main');
 	?>
+	</div>
+	<div class="loading">
+		<div class="spinner"></div>
+		<div class="loadingText">Loading</div>
 	</div>
 	<script type="text/javascript">
 		$(window).scroll(function(e) {

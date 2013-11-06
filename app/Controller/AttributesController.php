@@ -402,12 +402,12 @@ class AttributesController extends AppController {
 				$temp['Attribute']['type'] = 'filename|sha256';
 				$temp['Attribute']['value'] = $filename . '|' .$sha256;
 				$temp['Attribute']['uuid'] = String::uuid();
-				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids')));
+				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids', 'comment')));
 				$this->Attribute->create();
 				$temp['Attribute']['type'] = 'filename|sha1';
 				$temp['Attribute']['value'] = $filename . '|' .$sha1;
 				$temp['Attribute']['uuid'] = String::uuid();
-				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids')));
+				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids', 'comment')));
 			}
 
 
@@ -494,7 +494,6 @@ class AttributesController extends AppController {
 			}
 
 			// parse uploaded csv file
-			$filename = '/Users/chri/Downloads/ThreatConnectExport2.csv';
 			$filename = $tmpfile->path;
 			$header = NULL;
 			$entries = array();
@@ -526,12 +525,15 @@ class AttributesController extends AppController {
 				$attribute['event_id'] = $this->request->data['Attribute']['event_id'];
 				$attribute['value'] = $entry['Value'];
 				$attribute['to_ids'] = ($entry['Confidence'] > 51) ? 1 : 0; // To IDS if high confidence
-				$attribute['distribution'] = 3; // 'All communities'
-				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-					$attribute['distribution'] = $this->Event->data['Event']['distribution'];
-				} else {
-					$attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-					}
+				$attribute['comment'] = 'ThreatConnect: ' . $entry['Description'];
+				$attribute['distribution'] = '3'; // 'All communities'
+				if (Configure::read('MISP.default_attribute_distribution') != null) {
+					if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+						$attribute['distribution'] = $this->Event->data['Event']['distribution'];
+					} else {
+						$attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+					} 
+				}
 				switch($entry['Type']) {
 					case 'Address':
 						$attribute['category'] = 'Network activity';
@@ -689,7 +691,7 @@ class AttributesController extends AppController {
 			} else {
 				$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
 			}
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'distribution', 'value', 'timestamp');
+			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'distribution', 'value', 'timestamp', 'comment');
 
 			$this->loadModel('Event');
 			$this->Event->id = $eventId;
@@ -726,6 +728,7 @@ class AttributesController extends AppController {
 		$this->loadModel('Event');
 		$this->Event->id = $eventId;
 		$this->Event->read();
+		$this->set('published', $this->Event->data['Event']['published']);
 		// needed for RBAC
 		// combobox for types
 		$types = array_keys($this->Attribute->typeDefinitions);

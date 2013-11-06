@@ -39,7 +39,6 @@ class IOCExportComponent extends Component {
 
 	// This method will turn each eligible attribute into an indicator
 	private function __buildAttribute($attribute) {
-
 		// Hop over attributes that don't have the to ids flag turned on and check whether the attribute is sent for IOC export based on category/type
 		if (!$this->__checkValidTypeForIOC($attribute) || $attribute['to_ids'] == 0) return;
 
@@ -69,6 +68,10 @@ class IOCExportComponent extends Component {
 				$this->final[] = '        <Context document="TaskItem" search="TaskItem/sha1sum" type="mir" />';
 				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
 				break;
+			case 'sha256':
+				$this->final[] = '        <Context document="TaskItem" search="TaskItem/sha256sum" type="mir" />';
+				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
+				break;
 			case 'filename':
 				$this->final[] = '        <Context document="FileItem" search="FileItem/FileName" type="mir" />';
 				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
@@ -79,6 +82,10 @@ class IOCExportComponent extends Component {
 				break;
 			case 'filename|sha1':
 				$this->final[] = '        <Context document="TaskItem" search="TaskItem/sha1sum" type="mir" />';
+				$this->final[] = '        <Content type="string">' . h($attribute['value2']) . '</Content>';
+				break;
+			case 'filename|sha256':
+				$this->final[] = '        <Context document="TaskItem" search="TaskItem/sha256sum" type="mir" />';
 				$this->final[] = '        <Content type="string">' . h($attribute['value2']) . '</Content>';
 				break;
 			case 'ip-src':
@@ -140,6 +147,7 @@ class IOCExportComponent extends Component {
 			case 'link':
 				$this->final[] = '        <Context document="URL" search="UrlHistoryItem/URL" type="mir" />';
 				$this->final[] = '        <Content type="md5">' . h($attribute['value2']) . '</Content>';
+				break;
 		}
 		// since regkey|value is enclosed by an AND indicator, it was closed differently in its branch
 		if ($attribute['type'] != 'regkey|value') {

@@ -49,33 +49,8 @@
 		</ul>
 	</div>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li><a href="/events/view/<?php echo $eventId;?>">View Event</a></li>
-		<li class="active"><a href="/logs/event_index/<?php echo $eventId;?>">View Event History</a></li>
-		<?php if ($isSiteAdmin || $mayModify): ?>
-		<li><a href="/events/edit/<?php echo $eventId;?>">Edit Event</a></li>
-		<li><?php echo $this->Form->postLink('Delete Event', array('controller' => 'events', 'action' => 'delete', $eventId), null, __('Are you sure you want to delete # %s?', $eventId)); ?></li>
-		<li class="divider"></li>
-		<li><a href="/attributes/add/<?php echo $eventId;?>">Add Attribute</a></li>
-		<li><a href="/attributes/add_attachment/<?php echo $eventId;?>">Add Attachment</a></li>
-		<li><a href="/events/addIOC/<?php echo $eventId;?>">Populate from IOC</a></li>
-		<li><a href="/attributes/add_threatconnect/<?php echo $eventId; ?>">Populate from ThreatConnect</a></li>
-		<?php else:	?>
-		<li><a href="/shadow_attributes/add/<?php echo $eventId;?>">Propose Attribute</a></li>
-		<li><a href="/shadow_attributes/add_attachment/<?php echo $eventId;?>">Propose Attachment</a></li>
-		<?php endif; ?>
-		<li class="divider"></li>
-		<li><a href="/events/contact/<?php echo $eventId;?>">Contact Reporter</a></li>
-		<li><a href="/events/xml/download/<?php echo $eventId;?>">Download as XML</a></li>
-		<?php if ($published): ?>
-		<li><a href="/events/downloadOpenIOCEvent/<?php echo $eventId;?>">Download as IOC</a></li>
-		<li><a href="/events/csv/download/<?php echo $eventId;?>">Download as CSV</a></li>
-		<?php endif; ?>
-		<li class="divider"></li>
-		<li><a href="/events/index">List Events</a></li>
-		<?php if ($isAclAdd): ?>
-		<li><a href="/events/add">Add Event</a></li>
-		<?php endif; ?>
-	</ul>
-</div>
+<?php 
+	// We mimic the $event from some other views to pass the ID back to the sidemenu
+	$event['Event']['id'] = $eventId;
+	echo $this->element('side_menu', array('menuList' => 'event', 'event' => $event, 'menuItem' => 'eventLog'));
+?>

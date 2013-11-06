@@ -45,12 +45,12 @@ class ServersController extends AppController {
  */
 	public function index() {
 		$this->Server->recursive = 0;
-		if ($this->_IsSiteAdmin()) {
+		if ($this->_isSiteAdmin()) {
 			$this->paginate = array(
 							'conditions' => array(),
 			);
 		} else {
-			if (!$this->userRole['perm_sync']) $this->redirect(array('controller' => 'events', 'action' => 'index'));
+			if (!$this->userRole['perm_sync'] && !$this->userRole['perm_admin']) $this->redirect(array('controller' => 'events', 'action' => 'index'));
 			$conditions['Server.org LIKE'] = $this->Auth->user('org');
 			$this->paginate = array(
 					'conditions' => array($conditions),
@@ -307,7 +307,7 @@ class ServersController extends AppController {
 	}
 
 	public function push($id = null, $technique=false) {
-		if ($this->Auth->user('org') != 'ADMIN' && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin() && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));

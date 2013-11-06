@@ -39,7 +39,7 @@ foreach ($graphData as $row) {
 		});
 		var panel1 = Ext.create('widget.panel', {
 			width: 800,
-			height: 900,
+			height: 950,
 			//title: 'Attributes by Organisation',
 			renderTo: 'graph',
 			layout: 'fit',
@@ -109,13 +109,6 @@ endforeach; ?>
 	</table -->
 
 </div>
-
-<div class="actions <?php echo $debugMode;?>">
-	<ul class="nav nav-list">
-		<li><a href="/users/news">News</a></li>
-		<li><a href="/users/view/me">My Profile</a></li>
-		<li class="active"><a href="/users/memberslist">Members List</a></li>
-		<li><a href="/pages/display/doc/general">User Guide</a></li>
-		<li><a href="/users/terms">Terms & Conditions</a></li>
-	</ul>
-</div>
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'members'));
+?>
