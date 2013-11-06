@@ -41,9 +41,7 @@
 				//'after' => '<br>Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"',
 		));
 		// link an onchange event to the form elements
-		$this->Js->get('#AttributeType')->event('change', 'showFormInfo("#AttributeType")');
-		$this->Js->get('#AttributeCategory')->event('change', 'showFormInfo("#AttributeCategory")');
-		$this->Js->get('#AttributeDistribution')->event('change', 'showFormInfo("#AttributeDistribution")');
+		$this->Js->get('#AttributeCategory')->event('change', 'malwareCheckboxSetter("#AttributeCategory")');
 		?>
 	</fieldset>
 <?php
@@ -165,7 +163,28 @@ $(document).ready(function() {
 	        content: formInfoValues[$e.val()],
 	    }).popover('show');
 	});
-
 });
+	
+function malwareCheckboxSetter(id) {
+idDiv = id+'Div';
+var value = $(id).val();  // get the selected value
+
+	// do checkbox un/ticked when the document is changed
+	if (formZipTypeValues[value] == "true") {
+		document.getElementById("AttributeMalware").setAttribute("checked", "checked");
+		if (formAttTypeValues[value] == "false") document.getElementById("AttributeMalware").setAttribute("disabled", "disabled");
+		else document.getElementById("AttributeMalware").removeAttribute("disabled");
+	} else {
+		document.getElementById("AttributeMalware").removeAttribute("checked");
+		if (formAttTypeValues[value] == "true") document.getElementById("AttributeMalware").setAttribute("disabled", "disabled");
+		else document.getElementById("AttributeMalware").removeAttribute("disabled");
+	}
+}
+$(function(){
+	// do checkbox un/ticked when the document is ready
+	malwareCheckboxSetter("#AttributeCategory");
+	}
+);
+
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts
