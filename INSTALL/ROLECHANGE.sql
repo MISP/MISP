@@ -1,6 +1,8 @@
 ALTER TABLE  `roles` ADD  `perm_site_admin` TINYINT( 1 ) NOT NULL DEFAULT  '0',
 ADD  `perm_regexp_access` TINYINT( 1 ) NOT NULL DEFAULT  '0';
 
+ALTER TABLE  `attributes` ADD  `comment` text COLLATE utf8_bin NOT NULL;
+
 CREATE TABLE IF NOT EXISTS `threads` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `date_created` datetime NOT NULL,

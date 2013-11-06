@@ -312,7 +312,7 @@ class ShadowAttribute extends AppModel {
 		return true;
 	}
 
-	public function afterSave($created) {
+	public function afterSave($created, $options = array()) {
 
 		$result = true;
 		// if the 'data' field is set on the $this->data then save the data to the correct file

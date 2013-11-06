@@ -349,7 +349,7 @@ class Attribute extends AppModel {
 		return true;
 	}
 
-	public function afterSave($created) {
+	public function afterSave($created, $options = array()) {
 		// update correlation...
 		$this->__afterSaveCorrelation($this->data['Attribute']);
 

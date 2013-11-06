@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `timestamp` int(11) NOT NULL DEFAULT '0',
   `distribution` tinyint(4) NOT NULL DEFAULT '0',
+  `comment` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
   KEY `uuid` (`uuid`)
@@ -119,6 +120,22 @@ CREATE TABLE IF NOT EXISTS `logs` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `posts`
+--
+CREATE TABLE IF NOT EXISTS `posts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `date_created` datetime NOT NULL,
+  `date_modified` datetime NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `contents` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `post_id` int(11) NOT NULL DEFAULT '0',
+  `thread_id` int(11) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `regexp`
 --
 
@@ -150,6 +167,8 @@ CREATE TABLE IF NOT EXISTS `roles` (
   `perm_audit` tinyint(1) DEFAULT NULL,
   `perm_full` tinyint(1) DEFAULT NULL,
   `perm_auth` tinyint(1) NOT NULL DEFAULT '0',
+  `perm_regexp_access` TINYINT( 1 ) NOT NULL DEFAULT  '0',
+  `perm_site_admin` TINYINT( 1 ) NOT NULL DEFAULT  '0',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
@@ -195,6 +214,23 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   KEY `uuid` (`uuid`),
   KEY `old_id` (`old_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `threads`
+--
+CREATE TABLE IF NOT EXISTS `threads` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `date_created` datetime NOT NULL,
+  `date_modified` datetime NOT NULL,
+  `distribution` tinyint(4) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `post_count` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `title` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `org` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ;
 -- --------------------------------------------------------
 
 --
