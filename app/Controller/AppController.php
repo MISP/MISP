@@ -66,9 +66,6 @@ class AppController extends Controller {
 				//'authorize' => array('Controller', // Added this line
 				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
 				),
-			'DebugKit.Toolbar' => array(
-				'panels' => array('DebugKitEx.Resque')
-			)
 	);
 
 	public function beforeFilter() {
