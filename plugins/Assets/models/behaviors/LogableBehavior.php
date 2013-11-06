@@ -364,7 +364,7 @@ class LogableBehavior extends ModelBehavior {
 		$this->_saveLog($Model, $logData);
 	}
 
-	function beforeSave(Model $Model) {
+	function beforeSave(Model $Model, $options = array()) {
 
 		if (isset($this->schema['change']) && $Model->id) {
 			$this->old = $Model->find('first', array(
@@ -375,7 +375,7 @@ class LogableBehavior extends ModelBehavior {
 		return true;
 	}
 
-	function afterSave(Model $Model, $created) {
+	function afterSave(Model $Model, $created, $options = array()) {
 
 		if (!$this->settings[$Model->alias]['enabled']) {
 			return true;

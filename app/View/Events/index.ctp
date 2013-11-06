@@ -321,6 +321,7 @@ $(document).ready( function () {
 
 });
 
+
 function toggleField(field) {
 	$(field).toggle();
 	$(field +" input").focus();

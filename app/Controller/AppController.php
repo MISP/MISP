@@ -65,7 +65,10 @@ class AppController extends Controller {
 				'logoutRedirect' => array('controller' => 'users', 'action' => 'login'),
 				//'authorize' => array('Controller', // Added this line
 				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
-				)
+				),
+			'DebugKit.Toolbar' => array(
+				'panels' => array('DebugKitEx.Resque')
+			)
 	);
 
 	public function beforeFilter() {
@@ -197,7 +200,31 @@ class AppController extends Controller {
 		$this->Auth->login($user['User']);
 	}
 
+	public function queuegenerateCorrelation() {
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		CakeResque::enqueue(
+			'default',
+			'AdminShell',
+			array('jobGenerateCorrelation')					
+		);
+		$this->Session->setFlash('Job queued.');
+		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+	}
 	public function generateCorrelation() {
+		$this->loadModel('Correlation');
+		$this->Correlation->deleteAll(array('id !=' => ''), false);
+		$this->loadModel('Attribute');
+		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.cluster', 'Event.date', 'Event.org');
+		// get all attributes..
+		$attributes = $this->Attribute->find('all', array('recursive' => -1));
+		// for all attributes..
+		foreach ($attributes as $attribute) {
+			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
+		}
+	}
+	
+	
+	/*public function generateCorrelation() {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 
 		$this->loadModel('Correlation');
@@ -212,7 +239,7 @@ class AppController extends Controller {
 		}
 		$this->Session->setFlash(__('All done.'));
 		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-	}
+	}*/
 	
 	public function generateLocked() {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();

@@ -1025,6 +1025,14 @@ class EventsController extends AppController {
 		return $uploaded;
 	}
 
+	public function test($id) {
+		CakeResque::enqueue(
+			'default',
+			'EventShell',
+			array('doPublish', $id)
+		);
+	}
+	
 	/**
 	 * Publishes the event without sending an alert email
 	 *
@@ -1038,9 +1046,9 @@ class EventsController extends AppController {
 		// update the event and set the from field to the current instance's organisation from the bootstrap. We also need to save id and info for the logs.
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(null, $id);
+		$event['Event']['published'] = 1;
 		$fieldList = array('published', 'id', 'info');
 		$this->Event->save($event, array('fieldList' => $fieldList));
-
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// Performs all the actions required to publish an event

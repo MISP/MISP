@@ -6,7 +6,7 @@ App::import('Controller', 'ServersController');
 
 class SysLogLogableBehavior extends LogableBehavior {
 
-	function afterSave(Model $Model, $created) {
+	function afterSave(Model $Model, $created, $options = array()) {
 
 		if (!$this->settings[$Model->alias]['enabled']) {
 			return true;

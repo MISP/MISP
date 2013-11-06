@@ -18,3 +18,4 @@
 /app/Config/core.php
 /cakephp
 /app/webroot/gpg.asc
+/app/Plugin/CakeResque/Config/bootstrap.php

@@ -40,7 +40,7 @@ class UrlCacheAppHelper extends Helper {
 	 *
 	 * @return void
 	 */
-	function afterLayout($layoutFile = null) {
+	function afterLayout($layoutFile) {
 		if (!Configure::read('UrlCache.active') || Configure::read('UrlCache.runtime.afterLayout')) {
 			return;
 		}
