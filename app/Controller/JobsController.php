@@ -10,6 +10,13 @@ App::uses('AppController', 'Controller');
 class JobsController extends AppController {
 	public $components = array('Security' ,'RequestHandler', 'Session');
 	
+	public $paginate = array(
+			'limit' => 50,
+			'order' => array(
+					'Job.id' => 'desc'
+			)
+	);
+	
 	public function beforeFilter() {
 		parent::beforeFilter();
 	}

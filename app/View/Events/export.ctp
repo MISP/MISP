@@ -4,52 +4,53 @@
 	Note that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artifacts. Support for more attribute types is planned.
 	<br/>
 	<p>Simply click on any of the following buttons to download the appropriate data.</p>
-
-	<div class="row bottom-buffer">
-		<div class="span3">
-		<?php echo $this->Html->link('Download all as XML', array('action' => 'xml', 'download'), array('class' => 'btn btn-block full-width')); ?>
-		</div>
-		<div class="span9">Click this to download all events and attributes that you have access to <small>(except file attachments)</small> in a custom XML format.
-		</div>
-	</div>
-	<div class="row bottom-buffer">
-		<div class="span3">
-		<?php echo $this->Html->link('Download all signatures as CSV', array('action' => 'csv', 'download'), array('class' => 'btn btn-block full-width')); ?>
-		</div>
-		<div class="span9">Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.
-		</div>
-	</div>
-		<div class="row bottom-buffer">
-		<div class="span3">
-		<?php echo $this->Html->link('Download all as CSV', array('action' => 'csv', 'download', '0','1'), array('class' => 'btn btn-block full-width')); ?>
-		</div>
-		<div class="span9">Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.
-		</div>
-	</div>
-	<div class="row bottom-buffer">
-		<div class="span3">
-		<?php echo $this->Html->link('Download Suricata rules', array('action' => 'nids', 'suricata', 'download'), array('class' => 'btn btn-block full-width')); ?>
-		<?php echo $this->Html->link('Download Snort rules', array('action' => 'nids', 'snort', 'download'), array('class' => 'btn btn-block full-width')); ?>
-		</div>
-		<div class="span9">Click this to download all network related attributes that you
-				have access to under the Snort rule format. Only <em>published</em>
-				events and attributes marked as <em>IDS Signature</em> are exported.
-				Administration is able to maintain a whitelist containing host,
-				domain name and IP numbers to exclude from the NIDS export.
-		</div>
-	</div>
-	<div class="row bottom-buffer">
-		<div class="span3">
-			<?php echo $this->Html->link('Download all MD5 hashes', array('action' => 'hids', 'md5','download'), array('class' => 'btn btn-block full-width')); ?>
-			<?php echo $this->Html->link('Download all SHA1 hashes', array('action' => 'hids', 'sha1','download'), array('class' => 'btn btn-block full-width')); ?>
-		</div>
-		<div class="span9">Click on one of these two buttons to download all MD5 or SHA1
-				checksums contained in file-related attributes. This list can be
-				used to feed forensic software when searching for susipicious files.
-				Only <em>published</em> events and attributes marked as <em>IDS
-					Signature</em> are exported.
-		</div>
-	</div>
+	<?php $i = 0;?>
+	<table class="table table-striped table-hover table-condensed">
+		<tr>
+			<th style="text-align:center;">Type</th>
+			<th style="text-align:center;">Last Update</th>
+			<th style="text-align:center;">Description</th>
+			<th style="text-align:center;">Progress</th>
+			<th style="text-align:center;">Actions</th>
+		</tr>
+		<?php foreach ($export_types as $type): ?>
+			<tr>
+				<td class="short"><?php echo $type['type']; ?></td>
+				<td class="short" style="color:red;"><?php echo $type['lastModified']; ?></td>
+				<td><?php echo $type['description']; ?></td>
+				<td style="width:150px;">
+							<div class="progress progress-striped active" style="margin-bottom: 0px;">
+				  <div id="bar<?php echo $i; ?>" class="bar" style="width: <?php echo 0; ?>%;">
+				 	 <?php 
+				 	 	if (1 > 0 && 0 < 100) echo 0 . '%'; 
+				 	 	if (0 == 100) echo 'Completed.';
+				 	 ?>
+				  </div>
+				</div>
+					<script type="text/javascript">
+					setInterval(function(){
+						$.getJSON('/jobs/getGenerateCorrelationProgress/<?php echo h($item['Job']['id']); ?>', function(data) {
+							var x = document.getElementById("bar<?php echo h($item['Job']['id']); ?>"); 
+							x.style.width = data+"%";
+							if (data > 0 && data < 100) {
+								x.innerHTML = data + "%";
+							}
+							if (data == 100) {
+								x.innerHTML = "Completed.";
+							}
+						});
+						}, 1000);
+	
+					</script>
+					<?php $i++; ?>
+				</td>
+				<td style="width:150px;">
+					<?php echo $this->Html->link('Download', array('action' => 'xml', 'download'), array('class' => 'btn btn-inverse toggle-left btn.active qet')); 
+					echo $this->Html->link('Generate', array('action' => 'cacheXML'), array('class' => 'btn btn-inverse toggle-right btn.active qet')); ?>
+				</td>
+			</tr>
+		<?php endforeach; ?>
+	</table>
 	<p>
 	Click on one of these buttons to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.
 	</p>

@@ -196,7 +196,7 @@ class AppController extends Controller {
 	}
 
 	public function queuegenerateCorrelation() {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		if (!$this->_isSiteAdmin()) throw new NotFoundException();
 		CakeResque::enqueue(
 			'default',
 			'AdminShell',

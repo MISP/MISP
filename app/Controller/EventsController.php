@@ -969,6 +969,17 @@ class EventsController extends AppController {
 		);
 	}
 	
+	public function cacheXML() {
+		if ($this->_isSiteAdmin()) $isSiteAdmin = '1';
+		else $isSiteAdmin = '0';
+		CakeResque::enqueue(
+			'default',
+			'EventShell',
+			array('cachexml', $this->Auth->user('org'), $this->_isSiteAdmin())
+		);
+		
+	}
+	
 	/**
 	 * Publishes the event without sending an alert email
 	 *
@@ -1387,10 +1398,95 @@ class EventsController extends AppController {
 	}
 
 	public function export() {
-		// Simply display a static view
+		//$currentTime = time();
+		$now = time();
+		
+		// as a site admin we'll use the ADMIN identifier, not to overwrite the cached files of our own org with a file that includes too much data.
+		if ($this->_isSiteAdmin()) $useOrg = 'ADMIN';
+		else $useOrg = $this->Auth->User('org'); 
+		
+		$export_types = array(
+				'xml' => array(
+					'extension' => '.xml',
+					'type' => 'XML',
+					'description' => 'Click this to download all events and attributes that you have access to <small>(except file attachments)</small> in a custom XML format.',	
+				),
+				'csv_sig' => array(
+						'extension' => '.csv',
+						'type' => 'CSV (Signature)',
+						'description' => 'Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.',
+				),
+				'csv' => array(
+						'extension' => '.csv',
+						'type' => 'CSV (All)',
+						'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
+				),
+				'suricata' => array(
+						'extension' => '.rules',
+						'type' => 'XML',
+						'description' => 'Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
+				),
+				'snort' => array(
+						'extension' => '.rules',
+						'type' => 'XML',
+						'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
+				),
+				'md5' => array(
+						'extension' => '.txt',
+						'type' => 'XML',
+						'description' => 'Click on one of these two buttons to download all MD5 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
+				),
+				'sha1' => array(
+						'extension' => '.txt',
+						'type' => 'XML',
+						'description' => 'Click on one of these two buttons to download all SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
+				),
+		);
+		$this->loadModel('Job');
+		foreach ($export_types as $k => $type) {
+			$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $k);
+			$file = new File($dir->pwd() . DS . $useOrg . $type['extension']);
+			$job = $this->Job->find('first', array(
+					'fields' => array('id'),
+					'conditions' => array(
+							'job_type' => 'cache_' . $k,
+							'org' => $useOrg
+						),
+					'order' => array('Job.id' => 'desc')
+			));
+			if (!$file->exists()) {
+				$lastModified = 'N/A';
+			} else {
+				$lastModified = $this->__timeDifference($now, $file->lastChange());
+			}
+			$export_types[$k]['lastModified'] = $lastModified;
+			if (!empty($job)) {
+				$export_types[$k]['job_id'] = $job['Job']['id'];
+			} else {
+				$export_types[$k]['job_id'] = null;
+			}
+		}
+		
 		// generate the list of Attribute types
 		$this->loadModel('Attribute');
+		//$lastModified = strftime("%d, %m, %Y, %T", $lastModified);
+		$this->set('useOrg', $useOrg);
+		$this->set('export_types', $export_types);
 		$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
+	}
+	
+	private function __timeDifference($now, $then) {
+		$periods = array("second", "minute", "hour", "day", "week", "month", "year");
+		$lengths = array("60","60","24","7","4.35","12");
+		$difference = $now - $then;
+		for($j = 0; $difference >= $lengths[$j] && $j < count($lengths)-1; $j++) {
+			$difference /= $lengths[$j];
+		}
+		$difference = round($difference);
+		if($difference != 1) {
+			$periods[$j].= "s";
+		}
+		return $difference . " " . $periods[$j] . " ago";
 	}
 
 
@@ -1437,15 +1533,6 @@ class EventsController extends AppController {
 	// Grab an event or a list of events for the event view or any of the XML exports. The returned object includes an array of events (or an array that only includes a single event if an ID was given)
 	// Included with the event are the attached attributes, shadow attributes, related events, related attribute information for the event view and the creating user's email address where appropriate
 	private function __fetchEvent($eventid = null, $idList = null, $orgFromFetch = null, $isSiteAdmin = false) {
-		if (isset($eventid)) {
-			$this->Event->id = $eventid;
-			if (!$this->Event->exists()) {
-				throw new NotFoundException(__('Invalid event'));
-			}
-			$conditions = array("Event.id" => $eventid);
-		} else {
-			$conditions = array();
-		}
 		// if we come from automation, we may not be logged in - instead we used an auth key in the URL.
 		if (!empty($orgFromFetch)) {
 			$org = $orgFromFetch;
@@ -1453,80 +1540,11 @@ class EventsController extends AppController {
 			$org = $this->_checkOrg();
 			$isSiteAdmin = $this->_isSiteAdmin();
 		}
+		if (!empty($orgFromFetch)) $org = $orgFromFetch;
+		else $org = $this->_checkOrg();
 
-		$conditionsAttributes = array();
-		$conditionsShadowAttributes = array();
-		//restricting to non-private or same org if the user is not a site-admin.
-		if (!$isSiteAdmin) {
-			if (!empty($orgFromFetch)) $org = $orgFromFetch;
-			else $org = $this->_checkOrg();
-			$conditions['AND']['OR'] = array(
-						'Event.distribution >' => 0,
-						'Event.org LIKE' => $org
-					);
-			$conditionsAttributes['OR'] = array(
-						'Attribute.distribution >' => 0,
-						'(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org
-					);
-			$conditionsShadowAttributes['OR'] = array(
-					// We are currently looking at events.org matching the user's org, but later on, once we start syncing shadow attributes, we may want to change this to orgc
-					// Right now the org that currently owns the event on an instance can see, accept and decline these requests, but in the long run once we can distribute
-					// the requests back to the creator, we may want to leave these decisions up to them.
-					array('(SELECT events.org FROM events WHERE events.id = ShadowAttribute.event_id) LIKE' => $org),
-					array('ShadowAttribute.org LIKE' => $org),
-				);
-		}
-
-		if ($idList) {
-			$conditions['AND'][] = array('Event.id' => $idList);
-		}
-		// removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
-		// $conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
-		// Same idea for the published. Just adjust the tools to check for this
-		// TODO: It is important to make sure that this is documented
-		// $conditions['AND'][] = array('Event.published =' => 1);
-
-		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked');
-		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
-		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id');
-
-		$params = array('conditions' => $conditions,
-				'recursive' => 0,
-				'fields' => $fields,
-				'contain' => array(
-						'Attribute' => array(
-								'fields' => $fieldsAtt,
-								'conditions' => $conditionsAttributes,
-						),
-						'ShadowAttribute' => array(
-								'fields' => $fieldsShadowAtt,
-								'conditions' => $conditionsShadowAttributes,
-						),
-				)
-		);
-		if ($isSiteAdmin) $params['contain']['User'] = array('fields' => 'email');
-		$results = $this->Event->find('all', $params);
-		// Do some refactoring with the event
-		foreach ($results as $eventKey => &$event) {
-			// Let's find all the related events and attach it to the event itself
-			$results[$eventKey]['RelatedEvent'] = $this->Event->getRelatedEvents($this->Auth->user(), $this->_isSiteAdmin(), $event['Event']['id']);
-			// Let's also find all the relations for the attributes - this won't be in the xml export though
-			$results[$eventKey]['RelatedAttribute'] = $this->Event->getRelatedAttributes($this->Auth->user(), $this->_isSiteAdmin(), $event['Event']['id']);
-			foreach ($event['Attribute'] as $key => &$attribute) {
-				$attribute['ShadowAttribute'] = array();
-				// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
-				// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
-				foreach ($event['ShadowAttribute'] as $k => &$sa) {
-					if(!empty($sa['old_id'])) {
-						if ($sa['old_id'] == $attribute['id']) {
-							$results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
-							unset($results[$eventKey]['ShadowAttribute'][$k]);
-						}
-					}
-				}
-			}
-		}
+		$results = $this->Event->fetchEvent($eventid, $idList, $org, $isSiteAdmin);
+	
 		return $results;
 	}
 

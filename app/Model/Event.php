@@ -718,4 +718,110 @@ class Event extends AppModel {
 		// error, so return null
 		return null;
 	}
+	
+	public function fetchEventIds($org, $isSiteAdmin) {
+		$conditions = array();
+		if (!$isSiteAdmin) {
+			$conditions['OR'] = array(
+					'Event.distribution >' => 0,
+					'Event.org LIKE' => $org
+			);
+		}
+		$fields = array('Event.id', 'Event.org', 'Event.distribution');
+		$params = array(
+			'conditions' => $conditions,
+			'recursive' => -1,
+			'fields' => $fields,
+		);
+		$results = $this->find('all', $params);
+		return $results;
+	}
+	
+	//Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller.
+	public function fetchEvent($eventid = null, $idList = null, $org, $isSiteAdmin, $bkgrProcess = null) {
+		if (isset($eventid)) {
+			$this->id = $eventid;
+			if (!$this->exists()) {
+				throw new NotFoundException(__('Invalid event'));
+			}
+			$conditions = array("Event.id" => $eventid);
+		} else {
+			$conditions = array();
+		}
+		$me['org'] = $org;
+		// if we come from automation, we may not be logged in - instead we used an auth key in the URL.
+		
+		$conditionsAttributes = array();
+		$conditionsShadowAttributes = array();
+		//restricting to non-private or same org if the user is not a site-admin.
+		if (!$isSiteAdmin) {
+			$conditions['AND']['OR'] = array(
+				'Event.distribution >' => 0,
+				'Event.org LIKE' => $org
+			);
+			$conditionsAttributes['OR'] = array(
+				'Attribute.distribution >' => 0,
+				'(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org
+			);
+			$conditionsShadowAttributes['OR'] = array(
+			// We are currently looking at events.org matching the user's org, but later on, once we start syncing shadow attributes, we may want to change this to orgc
+			// Right now the org that currently owns the event on an instance can see, accept and decline these requests, but in the long run once we can distribute
+			// the requests back to the creator, we may want to leave these decisions up to them.
+				array('(SELECT events.org FROM events WHERE events.id = ShadowAttribute.event_id) LIKE' => $org),
+				array('ShadowAttribute.org LIKE' => $org),
+			);
+		}
+			
+		if ($idList) {
+			$conditions['AND'][] = array('Event.id' => $idList);
+		}
+		// removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
+		// $conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
+		// Same idea for the published. Just adjust the tools to check for this
+		// TODO: It is important to make sure that this is documented
+		// $conditions['AND'][] = array('Event.published =' => 1);
+		
+		// do not expose all the data ...
+		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked');
+		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
+		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id');
+			
+		$params = array('conditions' => $conditions,
+			'recursive' => 0,
+			'fields' => $fields,
+			'contain' => array(
+				'Attribute' => array(
+					'fields' => $fieldsAtt,
+					'conditions' => $conditionsAttributes,
+				),
+				'ShadowAttribute' => array(
+					'fields' => $fieldsShadowAtt,
+					'conditions' => $conditionsShadowAttributes,
+				),
+			)
+		);
+		if ($isSiteAdmin) $params['contain']['User'] = array('fields' => 'email');
+		$results = $this->find('all', $params);
+		// Do some refactoring with the event
+		foreach ($results as $eventKey => &$event) {
+			// Let's find all the related events and attach it to the event itself
+			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($me, $isSiteAdmin, $event['Event']['id']);
+			// Let's also find all the relations for the attributes - this won't be in the xml export though
+			$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($me, $isSiteAdmin, $event['Event']['id']);
+			foreach ($event['Attribute'] as $key => &$attribute) {
+				$attribute['ShadowAttribute'] = array();
+				// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
+				// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
+				foreach ($event['ShadowAttribute'] as $k => &$sa) {
+					if(!empty($sa['old_id'])) {
+						if ($sa['old_id'] == $attribute['id']) {
+							$results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
+							unset($results[$eventKey]['ShadowAttribute'][$k]);
+						}
+					}
+				}
+			}
+		}
+		return $results;
+	}
 }
