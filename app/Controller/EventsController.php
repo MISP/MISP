@@ -531,7 +531,7 @@ class EventsController extends AppController {
 					$this->Session->setFlash(__('You may only upload OpenIOC ioc files.'));
 				}
 				if (isset($this->data['Event']['submittedxml'])) $this->_addXMLFile();
-	
+
 				// redirect to the view of the newly created event
 				if (!CakeSession::read('Message.flash')) {
 					$this->Session->setFlash(__('The event has been saved'));
@@ -542,8 +542,8 @@ class EventsController extends AppController {
 			}
 		}
 	}
-	
-	
+
+
 	/**
 	 * Low level function to add an Event based on an Event $data array
 	 *
@@ -816,7 +816,7 @@ class EventsController extends AppController {
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
-		
+
 		$this->set('event', $this->Event->data);
 	}
 
@@ -1969,17 +1969,17 @@ class EventsController extends AppController {
 					$this->data['Event']['submittedxml']['size']);
 			App::uses('Xml', 'Utility');
 			$xmlArray = Xml::toArray(Xml::build($xmlData));
-			
-			// In case we receive an event that is not encapsulated in a response. This should never happen (unless it's a copy+paste fail), 
+
+			// In case we receive an event that is not encapsulated in a response. This should never happen (unless it's a copy+paste fail),
 			// but just in case, let's clean it up anyway.
 			if (isset($xmlArray['Event'])) {
 				$xmlArray['response']['Event'] = $xmlArray['Event'];
 				unset($xmlArray['Event']);
 			}
-			
+
 			if (!isset($xmlArray['response']) || !isset($xmlArray['response']['Event'])) {
 				throw new Exception('This is not a valid MISP XML file.');
-			} 
+			}
 			if (isset($xmlArray['response']['Event'][0])) {
 				foreach ($xmlArray['response']['Event'] as $event) {
 					$temp['Event'] = $event;
@@ -1991,7 +1991,7 @@ class EventsController extends AppController {
 			}
 		}
 	}
-	
+
 	public function _readGfiXML($data, $id) {
 		$this->loadModel('Attribute');
 
@@ -2281,7 +2281,7 @@ class EventsController extends AppController {
 		$final = $this->IOCExport->buildAll($event, $isMyEvent, $isSiteAdmin);
 		$this->set('final', $final);
 	}
-	
+
 	public function create_dummy_event() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
 		$date = new DateTime();
@@ -2289,7 +2289,7 @@ class EventsController extends AppController {
 		$data['Event']['date'] = '2013-10-09';
 		$data['Event']['risk'] = 'Undefined';
 		$data['Event']['analysis'] = '0';
-		$data['Event']['distribution'] = '0';	
+		$data['Event']['distribution'] = '0';
 
 		$defaultValues = array(
 				'md5' => '098f6bcd4621d373cade4e832627b4f6',
@@ -2336,11 +2336,11 @@ class EventsController extends AppController {
 					'type' => $type,
 					'value' => $defaultValues[$type],
 					'to_ids' => '0',
-					'distribution' => '0',						
+					'distribution' => '0',
 				);
 			}
 		}
-		$this->_add($data, false);	
+		$this->_add($data, false);
 	}
-	
+
 }

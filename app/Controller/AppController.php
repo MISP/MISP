@@ -70,7 +70,7 @@ class AppController extends Controller {
 
 	public function beforeFilter() {
 		// REST authentication
-		if ($this->_isRest()) {
+		if ($this->_isRest() || $this->isJson()) {
 			// disable CSRF for REST access
 			if (array_key_exists('Security', $this->components))
 				$this->Security->csrfCheck = false;
@@ -142,6 +142,10 @@ class AppController extends Controller {
 
 	public $userRole = null;
 
+	public function isJson(){
+		return $this->request->header('Accept') === 'application/json';
+	}
+
 	//public function blackhole($type) {
 	//	// handle errors.
 	//	throw new Exception(__d('cake_dev', 'The request has been black-holed'));
@@ -211,7 +215,7 @@ class AppController extends Controller {
 		$this->Session->setFlash(__('All done.'));
 		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 	}
-	
+
 	public function generateLocked() {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$this->loadModel('User');
@@ -222,7 +226,7 @@ class AppController extends Controller {
 		foreach ($orgs as $k => $org) {
 			$orgs[$k]['User']['count'] = $this->User->find('count', array(
 							'conditions' => array(
-									'org =' => $orgs[$k]['User']['org'], 
+									'org =' => $orgs[$k]['User']['org'],
 			)));
 			if ($orgs[$k]['User']['count'] > 1) {
 				$localOrgs[] = $orgs[$k]['User']['org'];
@@ -231,7 +235,7 @@ class AppController extends Controller {
 				// If we only have a single user for an org, check if that user is a sync user. If not, then it is a valid local org and the events created by him/her should be unlocked.
 				$this->User->recursive = 1;
 				$user = ($this->User->find('first', array(
-						'fields' => array('id', 'role_id'), 
+						'fields' => array('id', 'role_id'),
 						'conditions' => array('org' => $org['User']['org']),
 						'contain' => array('Role' => array(
 								'fields' => array('id', 'perm_sync'),
@@ -250,7 +254,7 @@ class AppController extends Controller {
 				'conditions' => $conditions
 		));
 		$this->Event->updateAll(
-				array('Event.locked' => 1), 
+				array('Event.locked' => 1),
 				$conditions
 		);
 		$this->Session->setFlash('Events updated, '. $toBeUpdated . ' record(s) altered.');

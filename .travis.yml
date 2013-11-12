@@ -3,3 +3,14 @@ php:
     - 5.5
     - 5.4
     - 5.3
+
+env:
+    - DB=mysql
+
+matrix:
+    allow_failures:
+        - php: 5.5
+
+before_script:
+    - pecl install Crypt_GPG
+    - pecl install Net_GeoIP

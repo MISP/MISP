@@ -21,7 +21,7 @@ class AttributesController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
-		
+
 		$this->Auth->allow('restSearch');
 		$this->Auth->allow('returnAttributes');
 		$this->Auth->allow('downloadAttachment');
@@ -251,10 +251,10 @@ class AttributesController extends AppController {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
 		$this->Attribute->read();
-		if (!$this->_isSiteAdmin() && 
-			$this->Auth->user('org') != 
-			$this->Attribute->data['Event']['org'] && 
-			($this->Attribute->data['Event']['distribution'] == 0 || 
+		if (!$this->_isSiteAdmin() &&
+			$this->Auth->user('org') !=
+			$this->Attribute->data['Event']['org'] &&
+			($this->Attribute->data['Event']['distribution'] == 0 ||
 				$this->Attribute->data['Attribute']['distribution'] == 0
 			)) {
 			throw new UnauthorizedException('You do not have the permission to view this event.');
@@ -532,7 +532,7 @@ class AttributesController extends AppController {
 						$attribute['distribution'] = $this->Event->data['Event']['distribution'];
 					} else {
 						$attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-					} 
+					}
 				}
 				switch($entry['Type']) {
 					case 'Address':
@@ -644,9 +644,9 @@ class AttributesController extends AppController {
 			$uuid = $this->Attribute->data['Attribute']['uuid'];
 		}
 		if (!$this->_isSiteAdmin()) {
-			// 
+			//
 			if ($this->Attribute->data['Event']['orgc'] == $this->Auth->user('org')
-				&& (($this->userRole['perm_modify'] && $this->Attribute->data['Event']['user_id'] != $this->Auth->user('id')) 
+				&& (($this->userRole['perm_modify'] && $this->Attribute->data['Event']['user_id'] != $this->Auth->user('id'))
 					|| $this->userRole['perm_modify_org'])) {
 				// Allow the edit
 			} else {
@@ -785,10 +785,10 @@ class AttributesController extends AppController {
 			} else {
 				if ($this->_checkOrg() != $this->Attribute->data['Event']['orgc']) {
 					throw new MethodNotAllowedException();
-				}	
+				}
 			}
 		}
-			
+
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->delete()) {
 			// delete the attribute from remote servers
@@ -796,7 +796,7 @@ class AttributesController extends AppController {
 				// find the uuid
 				$this->__deleteAttributeFromServers($uuid);
 			}
-			
+
 			// We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
 			$this->loadModel('ShadowAttribute');
 			$this->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
@@ -1074,7 +1074,7 @@ class AttributesController extends AppController {
 
 		$this->set('fails', $this->Attribute->checkComposites());
 	}
-	
+
 	// Use the rest interface to search for attributes. Usage:
 	// MISP-base-url/attributes/restSearch/[api-key]/[value]/[type]/[category]/[orgc]
 	// value, type, category, orgc are optional
@@ -1095,7 +1095,7 @@ class AttributesController extends AppController {
 		// add the values as specified in the 2nd parameter to the conditions
 		$values = explode('&&', $value);
 		$parameters = array('value', 'type', 'category', 'org');
-	
+
 		foreach ($parameters as $k => $param) {
 			if (isset(${$parameters[$k]})) {
 				$elements = explode('&&', ${$parameters[$k]});
@@ -1110,9 +1110,9 @@ class AttributesController extends AppController {
 				$subcondition = array();
 			}
 		}
-	
+
 		// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
-		
+
 		if (!$user['User']['siteAdmin']) {
 			$temp = array();
 			$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
@@ -1120,23 +1120,23 @@ class AttributesController extends AppController {
 			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
 			array_push($conditions['AND'], $subcondition);
 		}
-		
+
 		// change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
-	
+
 		$params = array(
 				'conditions' => $conditions,
 				'fields' => array('Attribute.*', 'Event.org', 'Event.distribution'),
 				'contain' => 'Event'
 		);
-	
+
 		$results = $this->Attribute->find('all', $params);
 		$this->loadModel('Whitelist');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
 		if (empty($results)) throw new NotFoundException('No matches.');
 		$this->set('results', $results);
 	}
-	
-	// returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter. 
+
+	// returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
 	// Similar to the restSearch, this parameter can be chained with '&&' and negations are accepted too. For example filename&&!filename|md5 would return all filenames that don't have an md5
 	// The usage of returnAttributes is the following: [MISP-url]/attributes/returnAttributes/<API-key>/<type>/<signature flag>
 	// The signature flag is off by default, enabling it will only return attribugtes that have the to_ids flag set to true.
@@ -1153,11 +1153,11 @@ class AttributesController extends AppController {
 		if ($user['User']['siteAdmin'] || $this->Event->data['Event']['org'] == $user['User']['org']) {
 			$myEventOrAdmin = true;
 		}
-		
+
 		if (!$myEventOrAdmin) {
 			if ($this->Event->data['Event']['distribution'] == 0) {
 				throw new UnauthorizedException('You don\'t have access to that event.');
-			} 
+			}
 		}
 		$this->response->type('xml');	// set the content type
 		$this->layout = 'xml/default';
@@ -1178,7 +1178,7 @@ class AttributesController extends AppController {
 				}
 			}
 		}
-		
+
 		// check each attribute
 		foreach($this->Event->data['Attribute'] as $k => $attribute) {
 			$contained = false;
@@ -1199,8 +1199,8 @@ class AttributesController extends AppController {
 				foreach ($exclude as $exc) {
 					if (strpos($attribute['type'], $exc) !== false) {
 						$contained = false;
-						continue 2;	
-					}							
+						continue 2;
+					}
 				}
 			}
 			// If we still didn't throw the attribute away, let's check if the user requesting the attributes is of the owning organisation of the event
@@ -1208,19 +1208,19 @@ class AttributesController extends AppController {
 			if ($contained && !$myEventOrAdmin && $attribute['distribution'] == 0) {
 				$contained = false;
 			}
-			
+
 			// If we have set the sigOnly parameter and the attribute has to_ids set to false, discard it!
 			if ($contained && $sigOnly === 'true' && !$attribute['to_ids']) {
 				$contained = false;
 			}
-			
+
 			// If after all of this $contained is still true, let's add the attribute to the array
 			if ($contained) $attributes[] = $attribute;
 		}
 		if (empty($attributes)) throw new NotFoundException('No matches.');
 		$this->set('results', $attributes);
 	}
-	
+
 	public function downloadAttachment($key, $id) {
 		$user = $this->checkAuthUser($key);
 		// if the user is authorised to use the api key then user will be populated with the user's account
@@ -1233,9 +1233,9 @@ class AttributesController extends AppController {
 			throw new NotFoundException('Invalid attribute or no authorisation to view it.');
 		}
 		$this->Attribute->read(null, $id);
-		if (!$user['User']['siteAdmin'] && 
-			$user['User']['org'] != $this->Attribute->data['Event']['org'] && 
-			($this->Attribute->data['Event']['distribution'] == 0 || 
+		if (!$user['User']['siteAdmin'] &&
+			$user['User']['org'] != $this->Attribute->data['Event']['org'] &&
+			($this->Attribute->data['Event']['distribution'] == 0 ||
 				$this->Attribute->data['Attribute']['distribution'] == 0
 			)) {
 			throw new NotFoundException('Invalid attribute or no authorisation to view it.');
