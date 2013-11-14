@@ -153,7 +153,7 @@ class AppController extends Controller {
 	//}
 
 	protected function _isRest() {
-		return (isset($this->RequestHandler) && $this->RequestHandler->isXml());
+		return (isset($this->RequestHandler) && ($this->RequestHandler->isXml() || $this->isJson()));
 	}
 
 /**

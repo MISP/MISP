@@ -593,7 +593,9 @@ class EventsController extends AppController {
 				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
 		);
-		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
+
+		$saveResult = $this->Event->saveAssociated($data, array('validate' => false, 'fieldList' => $fieldList,
+			'atomic' => true));
 		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
 		if ($saveResult) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
