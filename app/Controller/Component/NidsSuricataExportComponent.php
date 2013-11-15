@@ -5,7 +5,7 @@ App::uses('NidsExportComponent', 'Controller/Component');
 
 class NidsSuricataExportComponent extends NidsExportComponent {
 
-	public function export($items, $startSid) {
+	public function export($items, $startSid, $format = 'suricata') {
 		// set the specific format
 		$this->format = 'suricata';
 		// call the generic function

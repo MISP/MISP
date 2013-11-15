@@ -5,7 +5,7 @@ App::uses('File', 'Utility');
 require_once 'AppShell.php';
 class EventShell extends AppShell
 {
-	public $uses = array('Event', 'Job');
+	public $uses = array('Event', 'Attribute', 'Job');
 	
 	public function doPublish() {
 		$id = $this->args[0];
@@ -40,42 +40,22 @@ class EventShell extends AppShell
 	public function cachexml() {
 		$org = $this->args[0];
 		$isSiteAdmin = $this->args[1];
-		$target = null;
-		if ($isSiteAdmin) {
-			$target = 'All events.';
-			$jobOrg = 'ADMIN';
-		} else {
-			$target = 'Events visible to: '.$org;
-			$jobOrg = $org;
-		}
-		
-		
-		$this->Job->create();
-		$data = array(
-				'worker' => 'default',
-				'job_type' => 'cache_xml',
-				'job_input' => $target,
-				'status' => 0,
-				'retries' => 0,
-				'org' => $jobOrg,
-				'message' => 'Fetching events.',
-		);
-		$this->Job->save($data);
+		$id = $this->args[2];
+		$this->Job->id = $id;
 		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
 		$results = array();
 		$eventCount = count($eventIds);
 		foreach ($eventIds as $k => $eventId) {
 			$temp = $this->Event->fetchEvent($eventId['Event']['id'], null, $org, $isSiteAdmin, $this->Job->id);
 			$results[$k] = $temp[0];
-			$this->Job->saveField('progress', ($k+1) / $eventCount * 100);
-			sleep(1);
+			$this->Job->saveField('progress', ($k+1) / $eventCount * 80);
 		}
 
 		// Whitelist check
 		$this->loadModel('Whitelist');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
 		
-		foreach ($results as $result) {
+		foreach ($results as $k => $result) {
 			$result['Event']['Attribute'] = $result['Attribute'];
 			$result['Event']['ShadowAttribute'] = $result['ShadowAttribute'];
 			$result['Event']['RelatedEvent'] = $result['RelatedEvent'];
@@ -112,12 +92,83 @@ class EventShell extends AppShell
 				}
 			}
 			$xmlArray['response']['Event'][] = $result['Event'];
+			$this->Job->saveField('progress', (($k+1) / $eventCount * 20) + 79);
 		}
 		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/xml');
-		$file = new File($dir->pwd() . DS . $org . '.xml');
+		$file = new File($dir->pwd() . DS . 'misp.xml' . '.' . $org . '.xml');
 		$file->write($xmlObject->asXML());
 		$file->close();
+		$this->Job->saveField('progress', '100');
+	}
+	
+	public function cachehids() {
+		$org = $this->args[0];
+		$isSiteAdmin = $this->args[1];
+		$id = $this->args[2];
+		$this->Job->id = $id;
+		$extra = $this->args[3];
+		$this->Job->saveField('progress', 1);
+		$rules = $this->Attribute->hids($isSiteAdmin, $extra);
+		$this->Job->saveField('progress', 80);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
+		$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.txt');
+		$file->write('');
+		foreach ($rules as $rule) {
+			$file->append($rule . PHP_EOL);
+		}
+		$file->close();
+		$this->Job->saveField('progress', '100');
+	}
+	
+	public function cachecsv() {
+		$org = $this->args[0];
+		$isSiteAdmin = $this->args[1];
+		$id = $this->args[2];
+		$this->Job->id = $id;
+		$extra = $this->args[3];
+		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
+		$eventCount = count($eventIds);
+		foreach ($eventIds as $k => $eventId) {
+			$attributes = $this->Event->csv($org, $isSiteAdmin, 0, $extra);
+			$this->Job->saveField('progress', $k / $eventCount * 80);
+		}
+		$this->loadModel('Whitelist');
+		$final = array();
+		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
+		foreach ($attributes as $attribute) {
+			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'];
+		}
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
+		$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.csv');
+		$file->write('');
+		foreach ($final as $line) {
+			$file->append($line . PHP_EOL);
+		}
+		$file->close();
+		$this->Job->saveField('progress', '100');
+	}
+	
+	public function cachetext() {
+		$org = $this->args[0];
+		$isSiteAdmin = $this->args[1];
+		$id = $this->args[2];
+		$this->Job->id = $id;
+		$extra = $this->args[3];
+		$types = array_keys($this->Attribute->typeDefinitions);
+		$typeCount = count($types);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/text');
+		foreach ($types as $k => $type) {
+			$final = $this->Attribute->text($org, $isSiteAdmin, $type);
+			$file = new File($dir->pwd() . DS . 'misp.text_' . $type . '.' . $org . '.txt');
+			$file->write('');
+			foreach ($final as $attribute) {
+				$file->append($attribute['Attribute']['value'] . PHP_EOL);
+			}
+			$file->close();
+			$this->Job->saveField('progress', $k / $typeCount * 80);
+		}
+		$this->Job->saveField('progress', '100');
 	}
 }
 

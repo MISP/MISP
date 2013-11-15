@@ -54,7 +54,7 @@
 		</div>
 	<?php
 	echo $this->element('footer');
-	//echo $this->element('sql_dump');
+	echo $this->element('sql_dump');
 	echo $this->Html->script('bootstrap');
 	// echo $this->Html->script('bootstrap.min');
 	echo $this->Html->script('bootstrap-datepicker');

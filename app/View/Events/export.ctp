@@ -5,66 +5,150 @@
 	<br/>
 	<p>Simply click on any of the following buttons to download the appropriate data.</p>
 	<?php $i = 0;?>
+	<script type="text/javascript">
+		var jobsArray = new Array();
+		var intervalArray = new Array();
+		function queueInterval(i, k, id, progress, modified) {
+			jobsArray[i] = id;
+			//if (id != -1) alert (i + " - "+ k + " - " + progress + " - " + id + " - " + modified);
+			intervalArray[i] = setInterval(function(){
+					if (id != -1 && progress < 100 && modified != "N/A") {
+						queryTask(k, i);
+					}
+				}, 1000);
+		}
+		function editMessage(id, text) {
+			document.getElementById("message" + id).innerHTML = text;
+		}
+	</script>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th style="text-align:center;">Type</th>
 			<th style="text-align:center;">Last Update</th>
 			<th style="text-align:center;">Description</th>
+			<th style="text-align:center;">Outdated</th>
 			<th style="text-align:center;">Progress</th>
 			<th style="text-align:center;">Actions</th>
 		</tr>
-		<?php foreach ($export_types as $type): ?>
+		<?php foreach ($export_types as $k => $type): ?>
 			<tr>
 				<td class="short"><?php echo $type['type']; ?></td>
-				<td class="short" style="color:red;"><?php echo $type['lastModified']; ?></td>
+				<td id="update<?php echo $i; ?>" class="short" style="color:red;"><?php echo $type['lastModified']; ?></td>
 				<td><?php echo $type['description']; ?></td>
-				<td style="width:150px;">
-							<div class="progress progress-striped active" style="margin-bottom: 0px;">
-				  <div id="bar<?php echo $i; ?>" class="bar" style="width: <?php echo 0; ?>%;">
-				 	 <?php 
-				 	 	if (1 > 0 && 0 < 100) echo 0 . '%'; 
-				 	 	if (0 == 100) echo 'Completed.';
-				 	 ?>
-				  </div>
-				</div>
-					<script type="text/javascript">
-					setInterval(function(){
-						$.getJSON('/jobs/getGenerateCorrelationProgress/<?php echo h($item['Job']['id']); ?>', function(data) {
-							var x = document.getElementById("bar<?php echo h($item['Job']['id']); ?>"); 
-							x.style.width = data+"%";
-							if (data > 0 && data < 100) {
-								x.innerHTML = data + "%";
-							}
-							if (data == 100) {
-								x.innerHTML = "Completed.";
-							}
-						});
-						}, 1000);
-	
-					</script>
-					<?php $i++; ?>
+				<td id="outdated<?php echo $i; ?>">
+					<?php 
+						if ($type['recommendation']) {
+							echo '<span style="color:red;">Yes</span>';
+						} else {
+							echo 'No';
+						} 
+					?>
 				</td>
 				<td style="width:150px;">
-					<?php echo $this->Html->link('Download', array('action' => 'xml', 'download'), array('class' => 'btn btn-inverse toggle-left btn.active qet')); 
-					echo $this->Html->link('Generate', array('action' => 'cacheXML'), array('class' => 'btn btn-inverse toggle-right btn.active qet')); ?>
+					<div id="barFrame<?php echo $i; ?>" class="progress progress-striped active" style="margin-bottom: 0px;display:none;">
+					  <div id="bar<?php echo $i; ?>" class="bar" style="width: <?php echo $type['progress']; ?>%;">
+					 	 <?php 
+					 	 	if ($type['progress'] > 0 && $type['progress'] < 100) echo $type['progress'] . '%'; 
+					 	 ?>
+					  </div>
+					</div>
+					<div id="message<?php echo $i; ?>" style="text-align:center;display:block;">Loading...</div>
+					<?php $temp = $i . "','" . $k . "','" . $type['job_id'] . "','" .  $type['progress'] . "','" . $type['lastModified']; ?>
+					<script type="text/javascript">
+						if ("<?php echo $type['progress']; ?>"  == 0) {
+							if ("<?php echo $type['lastModified']; ?>" != "N/A") {
+								editMessage(<?php echo $i; ?>, "Queued.");
+							} else {
+								editMessage(<?php echo $i; ?>, '<span style="color:red;">N/A</span>');
+							}
+						}
+						if ("<?php echo $type['progress']; ?>" == 100) editMessage(<?php echo $i; ?>, "Completed.");
+						queueInterval('<?php echo $temp;?>');
+					</script>
+				</td>
+				<td style="width:150px;">
+					<?php 
+						if ($k !== 'text') {
+							echo $this->Html->link('Download', array('action' => 'downloadExport', $k), array('class' => 'btn btn-inverse toggle-left btn.active qet'));
+						?>
+							<button class = "btn btn-inverse toggle-right btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>>Generate</button>
+						<?php 
+						} else { 
+						?>
+							<button class = "btn btn-inverse btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>>Generate</button>
+						<?php
+						}  
+						?>
+
 				</td>
 			</tr>
-		<?php endforeach; ?>
+		<?php 
+			$i++; 
+		endforeach; ?>
 	</table>
-	<p>
-	Click on one of these buttons to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.
-	</p>
-
 	<ul class="inline">
 	<?php
 	foreach ($sigTypes as $sigType): ?>
 		<li class="actions" style="text-align:center; width: auto; padding: 7px 2px;">
-		<?php echo $this->Html->link($sigType, array('action' => 'text', 'download' ,$sigType), array('class' => 'btn')) ?>
+		<?php echo $this->Html->link($sigType, array('action' => 'downloadExport', $k, $sigType), array('class' => 'btn btn-inverse btn.active qet')); ?>
+		<?php /* echo $this->Html->link($sigType, array('action' => 'text', 'download' ,$sigType), array('class' => 'btn'))*/ ?>
 		</li>
 	<?php endforeach; ?>
 	</ul>
-
 </div>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'export'));
 ?>
+<script type="text/javascript">
+	function generate(i, type, id, progress, modified) {
+		$.ajax({
+			url: "/jobs/cache/" + type,
+			})
+			.done(function(data) {
+				jobsArray[i] = data;
+				editMessage(i, "Adding...");
+				queueInterval(i, type, data, 1, "Just now");
+				disableButton(i);
+			});
+		}
+	
+	function queryTask(type, i){
+		$.getJSON('/jobs/getProgress/cache_' + type, function(data) {
+			var x = document.getElementById("bar" + i); 
+			x.style.width = data+"%";
+			if (data > -1 && data < 100) {
+				x.innerHTML = data + "%";
+				showDiv("barFrame" + i);
+				hideDiv("message" + i);
+			}
+			if (data == 100) {
+				clearInterval(intervalArray[i]);
+				hideDiv("barFrame" + i);
+				showDiv("message" + i);
+				updateTime(i);
+				editMessage(i, "Completed.");
+				updateOutdated(i);
+			}
+		});
+	}
+
+	function showDiv(id) {
+		document.getElementById(id).style.display = 'block';
+	}
+
+	function hideDiv(id) {
+		document.getElementById(id).style.display = 'none';
+	}
+
+	function updateTime(id) {
+		document.getElementById("update" + id).innerHTML = "0 seconds ago";
+	}
+
+	function updateOutdated(id) {
+		document.getElementById("outdated" + id).innerHTML = "No";
+	}
+
+	function disableButton(id) {
+		$('#button' + id).prop('disabled', true);
+	}
+</script>

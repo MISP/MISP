@@ -969,17 +969,6 @@ class EventsController extends AppController {
 		);
 	}
 	
-	public function cacheXML() {
-		if ($this->_isSiteAdmin()) $isSiteAdmin = '1';
-		else $isSiteAdmin = '0';
-		CakeResque::enqueue(
-			'default',
-			'EventShell',
-			array('cachexml', $this->Auth->user('org'), $this->_isSiteAdmin())
-		);
-		
-	}
-	
 	/**
 	 * Publishes the event without sending an alert email
 	 *
@@ -1402,52 +1391,25 @@ class EventsController extends AppController {
 		$now = time();
 		
 		// as a site admin we'll use the ADMIN identifier, not to overwrite the cached files of our own org with a file that includes too much data.
-		if ($this->_isSiteAdmin()) $useOrg = 'ADMIN';
-		else $useOrg = $this->Auth->User('org'); 
-		
-		$export_types = array(
-				'xml' => array(
-					'extension' => '.xml',
-					'type' => 'XML',
-					'description' => 'Click this to download all events and attributes that you have access to <small>(except file attachments)</small> in a custom XML format.',	
-				),
-				'csv_sig' => array(
-						'extension' => '.csv',
-						'type' => 'CSV (Signature)',
-						'description' => 'Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.',
-				),
-				'csv' => array(
-						'extension' => '.csv',
-						'type' => 'CSV (All)',
-						'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
-				),
-				'suricata' => array(
-						'extension' => '.rules',
-						'type' => 'XML',
-						'description' => 'Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
-				),
-				'snort' => array(
-						'extension' => '.rules',
-						'type' => 'XML',
-						'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
-				),
-				'md5' => array(
-						'extension' => '.txt',
-						'type' => 'XML',
-						'description' => 'Click on one of these two buttons to download all MD5 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
-				),
-				'sha1' => array(
-						'extension' => '.txt',
-						'type' => 'XML',
-						'description' => 'Click on one of these two buttons to download all SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
-				),
-		);
+		if ($this->_isSiteAdmin()) {
+			$useOrg = 'ADMIN';
+			$conditions = null;			
+		} else {
+			$useOrg = $this->Auth->User('org');
+			$conditions = array('orgc' => $this->Auth-user('org'));
+		}
+		$this->Event->recursive = -1;
+		$newestEvent = $this->Event->find('first', array(
+			'conditions' => $conditions,
+			'fields' => 'timestamp',
+			'order' => 'Event.timestamp DESC',
+		));
 		$this->loadModel('Job');
-		foreach ($export_types as $k => $type) {
+		foreach ($this->Event->export_types as $k => $type) {
 			$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $k);
-			$file = new File($dir->pwd() . DS . $useOrg . $type['extension']);
+			$file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $useOrg . $type['extension']);
 			$job = $this->Job->find('first', array(
-					'fields' => array('id'),
+					'fields' => array('id', 'progress'),
 					'conditions' => array(
 							'job_type' => 'cache_' . $k,
 							'org' => $useOrg
@@ -1456,23 +1418,45 @@ class EventsController extends AppController {
 			));
 			if (!$file->exists()) {
 				$lastModified = 'N/A';
+				$this->Event->export_types[$k]['recommendation'] = 1;
 			} else {
-				$lastModified = $this->__timeDifference($now, $file->lastChange());
+				$fileChange = $file->lastChange();
+				$lastModified = $this->__timeDifference($now, $fileChange);
+				if ($fileChange > $newestEvent['Event']['timestamp']) {
+					$this->Event->export_types[$k]['recommendation'] = 0;
+				} else {
+					$this->Event->export_types[$k]['recommendation'] = 1;
+				}
 			}
-			$export_types[$k]['lastModified'] = $lastModified;
+			$this->Event->export_types[$k]['lastModified'] = $lastModified;
 			if (!empty($job)) {
-				$export_types[$k]['job_id'] = $job['Job']['id'];
+				$this->Event->export_types[$k]['job_id'] = $job['Job']['id'];
+				$this->Event->export_types[$k]['progress'] = $job['Job']['progress'];
 			} else {
-				$export_types[$k]['job_id'] = null;
+				$this->Event->export_types[$k]['job_id'] = -1;
+				$this->Event->export_types[$k]['progress'] = 0;
 			}
+			//$this->Event->export_types[$k]['recommendation']
 		}
 		
 		// generate the list of Attribute types
 		$this->loadModel('Attribute');
 		//$lastModified = strftime("%d, %m, %Y, %T", $lastModified);
 		$this->set('useOrg', $useOrg);
-		$this->set('export_types', $export_types);
+		$this->set('export_types', $this->Event->export_types);
 		$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
+	}
+	
+
+	public function downloadExport($type, $extra = null) {
+		if ($this->_isSiteAdmin()) $org = 'ADMIN';
+		else $org = $this->Auth->user('org');
+		$this->autoRender = false;
+		if ($extra != null) $extra = '_' . $extra;
+		$this->response->type($this->Event->export_types[$type]['extension']);
+		$path = 'tmp/cached_exports/' . $type . DS . 'misp.' . strtolower($this->Event->export_types[$type]['type']) . $extra . '.' . $org . $this->Event->export_types[$type]['extension'];
+		$newFileName = 'misp.' . $this->Event->export_types[$type]['type'] . '.' . $org . $this->Event->export_types[$type]['extension'];
+		$this->response->file($path, array('download' => true));
 	}
 	
 	private function __timeDifference($now, $then) {
@@ -1608,12 +1592,11 @@ class EventsController extends AppController {
 		        break;
 		}
 		$rules = $this->NidsExport->export($items, $user['User']['nids_sid']);
-
+		
 		$this->set('rules', $rules);
 	}
 
 	public function hids($type, $key) {
-
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1632,33 +1615,9 @@ class EventsController extends AppController {
 			$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
 			$this->layout = 'text/default';
 		}
-
-		// check if it's a valid type
-		if ($type != 'md5' && $type != 'sha1') {
-			throw new UnauthorizedException('Invalid hash type.');
-		}
-
 		$this->loadModel('Attribute');
 
-		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
-		if (!$this->_isSiteAdmin()) {
-			$temp = array();
-			$distribution = array();
-			array_push($temp, array('Attribute.distribution >' => 0));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
-			$conditions['OR'] = $temp;
-		}
-
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
-		);
-		$items = $this->Attribute->find('all', $params);
-
-		if ($type == 'md5') $rules = $this->HidsMd5Export->export($items);
-		if ($type == 'sha1') $rules = $this->HidsSha1Export->export($items);
+		$rules = $this->Attribute->hids($this->_isSiteAdmin(), $type);
 		$this->set('rules', $rules);
 	}
 
@@ -1666,7 +1625,7 @@ class EventsController extends AppController {
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
 	public function csv($key, $eventid=0, $ignore=0) {
-		$final = array();
+		$list = array();
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1682,6 +1641,8 @@ class EventsController extends AppController {
 				$this->header('Content-Disposition: inline; filename="misp.event_' . $eventid . '.csv"');
 			}
 			$this->layout = 'text/default';
+			$isSiteAdmin = $user['User']['siteAdmin'];
+			$org = $user['User']['org'];
 		} else {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
@@ -1693,123 +1654,23 @@ class EventsController extends AppController {
 				$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
 			}
 			$this->layout = 'text/default';
-		}
-
-		$attributeList = array();
-		$conditions = array();
-		$econditions = array();
-		$this->loadModel('Attribute');
-		$this->Attribute->recursive = -1;
-		// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
-		if ($eventid !== 'search') {
-			// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-			if(!$this->_isSiteAdmin()) {
-				$econditions['AND']['OR'] = array('Event.distribution >' => 0, 'Event.org =' => $this->Auth->user('org'));
-			}
-			if ($eventid == 0 && $ignore == 0) {
-				$econditions['AND'][] = array('Event.published =' => 1);
-			}
-			// If it's a full download (eventid == null) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
-			if ($eventid == 0) {
-				$this->Event->recursive = -1;
-				// let's add the conditions if we're dealing with a non-siteadmin user
-				$params = array(
-						'conditions' => $econditions,
-						'fields' => array('id', 'distribution', 'org', 'published'),
-						);
-				$events = $this->Event->find('all', $params);
-			}
-			// if we have items in events, add their IDs to the conditions. If we're a site admin, or we have a single event selected for download, this should be empty
-			if (isset($events)) {
-				foreach ($events as $event) {
-					$conditions['AND']['OR'][] = array('Attribute.event_id' => $event['Event']['id']);
-				}
-			}
-			// if we're downloading a single event, set it as a condition
-			if ($eventid!=0) {
-				$conditions['AND'][] = array('Attribute.event_id' => $eventid);
-			}
-			//restricting to non-private or same org if the user is not a site-admin.
-			if ($ignore == 0) {
-				$conditions['AND'][] = array('Attribute.to_ids =' => 1);
-			}
-			if (!$this->_isSiteAdmin()) {
-				$temp = array();
-				$distribution = array();
-				array_push($temp, array('Attribute.distribution >' => 0));
-				array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
-				$conditions['OR'] = $temp;
-			}
+			$isSiteAdmin = $this->_isSiteAdmin();
+			$org = $this->Auth->user('org');
 		}
 		// if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
 		// We don't need to look out for permissions since that's filtered by the search itself
 		// We just want all the attributes found by the search
 		if ($eventid === 'search') {
-			$attributeIDList = $this->Session->read('search_find_attributeidlist');
-			foreach ($attributeIDList as $aID) {
-				$conditions['AND']['OR'][] = array('Attribute.id' => $aID);
-			}
+			$list = $this->Session->read('search_find_attributeidlist');
 		}
-
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid'),
-		);
-		$attributes = $this->Attribute->find('all', $params);
+		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list);
 		$this->loadModel('Whitelist');
+		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
-			$attribute['Attribute']['value'] = str_replace("\r", "", $attribute['Attribute']['value']);
-			$attribute['Attribute']['value'] = str_replace("\n", "", $attribute['Attribute']['value']);
 			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'];
 		}
 		$this->set('final', $final);
-	}
-
-
-	public function text($key, $type="") {
-		if ($key != 'download') {
-			// check if the key is valid -> search for users based on key
-			$user = $this->checkAuthUser($key);
-			if (!$user) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
-			}
-			$this->response->type('txt');	// set the content type
-			$this->header('Content-Disposition: inline; filename="misp.' . $type . '.txt"');
-			$this->layout = 'text/default';
-		} else {
-			if (!$this->Auth->user('id')) {
-				throw new UnauthorizedException('You have to be logged in to do that.');
-			}
-			$this->response->type('txt');	// set the content type
-			$this->header('Content-Disposition: download; filename="misp.' . $type . '.txt"');
-			$this->layout = 'text/default';
-		}
-
-		$this->loadModel('Attribute');
-
-		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.type' => $type, 'Attribute.to_ids =' => 1, 'Event.published =' => 1);
-		if (!$this->_isSiteAdmin()) {
-			$temp = array();
-			$distribution = array();
-			array_push($temp, array('Attribute.distribution >' => 0));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
-			$conditions['OR'] = $temp;
-		}
-
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'fields' => array('Attribute.value'), //array of field names
-				'order' => array('Attribute.value'), //string or array defining order
-				'group' => array('Attribute.value'), //fields to GROUP BY
-				'contain' => array('Event.id', 'Event.published'),
-		);
-		$attributes = $this->Attribute->find('all', $params);
-		$this->loadModel('Whitelist');
-		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
-		$this->set('attributes', $attributes);
 	}
 
 	//public function dot($key) {
@@ -2369,4 +2230,8 @@ class EventsController extends AppController {
 		$this->_add($data, false);	
 	}
 	
+	public function tester() {
+		$this->loadModel('Attribute');
+		debug ($this->Attribute->text('NCIRC', true, 'ip-dst'));
+	}
 }

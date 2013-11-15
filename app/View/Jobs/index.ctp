@@ -16,6 +16,25 @@
         ?>
         </ul>
     </div>
+    <script type="text/javascript">
+		var intervalArray = new Array();
+
+		function queueInterval(k, id) {
+			intervalArray[k] = setInterval(function(){
+				$.getJSON('/jobs/getGenerateCorrelationProgress/' + id, function(data) {
+					var x = document.getElementById("bar" + id); 
+					x.style.width = data+"%";
+					if (data > 0 && data < 100) {
+						x.innerHTML = data + "%";
+					}
+					if (data == 100) {
+						x.innerHTML = "Completed.";
+						clearInterval(intervalArray[k]);
+					}
+				});
+				}, 3000);
+		}
+	</script>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
@@ -27,7 +46,7 @@
 			<th><?php echo $this->Paginator->sort('retries');?></th>
 			<th><?php echo $this->Paginator->sort('progress');?></th>
 	</tr><?php
-foreach ($list as $item): ?>
+foreach ($list as $k => $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['Job']['id']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Job']['worker']); ?>&nbsp;</td>
@@ -45,21 +64,11 @@ foreach ($list as $item): ?>
 			 	 ?>
 			  </div>
 			</div>
-				<script type="text/javascript">
-				setInterval(function(){
-					$.getJSON('/jobs/getGenerateCorrelationProgress/<?php echo h($item['Job']['id']); ?>', function(data) {
-						var x = document.getElementById("bar<?php echo h($item['Job']['id']); ?>"); 
-						x.style.width = data+"%";
-						if (data > 0 && data < 100) {
-							x.innerHTML = data + "%";
-						}
-						if (data == 100) {
-							x.innerHTML = "Completed.";
-						}
-					});
-					}, 1000);
-
-				</script>
+				<?php if ($item['Job']['progress'] != 100): ?>
+					<script type="text/javascript">
+						queueInterval("<?php echo $k; ?>", "<?php echo h($item['Job']['id']); ?>");
+					</script>
+				<?php endif; ?>
 		</td>
 	</tr><?php
 endforeach; ?>
@@ -86,3 +95,5 @@ endforeach; ?>
 
 	</ul>
 </div>
+
+				

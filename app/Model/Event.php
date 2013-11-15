@@ -70,6 +70,49 @@ class Event extends AppModel {
 		0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities'
 	);
 
+	public $export_types = array(
+			'xml' => array(
+					'extension' => '.xml',
+					'type' => 'XML',
+					'description' => 'Click this to download all events and attributes that you have access to <small>(except file attachments)</small> in a custom XML format.',
+			),
+			'csv_sig' => array(
+					'extension' => '.csv',
+					'type' => 'CSV_Sig',
+					'description' => 'Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.',
+			),
+			'csv_all' => array(
+					'extension' => '.csv',
+					'type' => 'CSV_All',
+					'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
+			),
+			'suricata' => array(
+					'extension' => '.rules',
+					'type' => 'Suricata',
+					'description' => 'Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
+			),
+			'snort' => array(
+					'extension' => '.rules',
+					'type' => 'Snort',
+					'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
+			),
+			'md5' => array(
+					'extension' => '.txt',
+					'type' => 'MD5',
+					'description' => 'Click on one of these two buttons to download all MD5 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
+			),
+			'sha1' => array(
+					'extension' => '.txt',
+					'type' => 'SHA1',
+					'description' => 'Click on one of these two buttons to download all SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
+			),
+			'text' => array(
+					'extension' => '.txt',
+					'type' => 'TEXT',
+					'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
+			)
+	);
+	
 /**
  * Validation rules
  *
@@ -824,4 +867,68 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
+	 public function csv($org, $isSiteAdmin, $eventid=0, $ignore=0, $attributeIDList = array()) {
+	 	$final = array();
+	 	
+	 	$attributeList = array();
+	 	$conditions = array();
+	 	$econditions = array();
+	 	$this->recursive = -1;
+	 	// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
+	 	if ($eventid !== 'search') {
+	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
+	 		if(!$isSiteAdmin) {
+	 			$econditions['AND']['OR'] = array('Event.distribution >' => 0, 'Event.org =' => $org);
+	 		}
+	 		if ($eventid == 0 && $ignore == 0) {
+	 			$econditions['AND'][] = array('Event.published =' => 1);
+	 		}
+	 		// If it's a full download (eventid == null) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
+	 		if ($eventid == 0) {
+	 			$this->recursive = -1;
+	 			// let's add the conditions if we're dealing with a non-siteadmin user
+	 			$params = array(
+	 					'conditions' => $econditions,
+	 					'fields' => array('id', 'distribution', 'org', 'published'),
+	 			);
+	 			$events = $this->find('all', $params);
+	 		}
+	 		// if we have items in events, add their IDs to the conditions. If we're a site admin, or we have a single event selected for download, this should be empty
+	 		if (isset($events)) {
+	 			foreach ($events as $event) {
+	 				$conditions['AND']['OR'][] = array('Attribute.event_id' => $event['Event']['id']);
+	 			}
+	 		}
+	 		// if we're downloading a single event, set it as a condition
+	 		if ($eventid!=0) {
+	 			$conditions['AND'][] = array('Attribute.event_id' => $eventid);
+	 		}
+	 		//restricting to non-private or same org if the user is not a site-admin.
+	 		if ($ignore == 0) {
+	 			$conditions['AND'][] = array('Attribute.to_ids =' => 1);
+	 		}
+	 		if (!$isSiteAdmin) {
+	 			$temp = array();
+	 			$distribution = array();
+	 			array_push($temp, array('Attribute.distribution >' => 0));
+	 			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
+	 			$conditions['OR'] = $temp;
+	 		}
+	 	}
+	 	if ($eventid === 'search') {
+		 	foreach ($attributeIDList as $aID) {
+		 		$conditions['AND']['OR'][] = array('Attribute.id' => $aID);
+		 	}
+	 	}
+	 	$params = array(
+	 			'conditions' => $conditions, //array of conditions
+	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid'),
+	 	);
+	 	$attributes = $this->Attribute->find('all', $params);
+	 	foreach ($attributes as $attribute) {
+	 		$attribute['Attribute']['value'] = str_replace("\r", "", $attribute['Attribute']['value']);
+	 		$attribute['Attribute']['value'] = str_replace("\n", "", $attribute['Attribute']['value']);
+	 	}
+	 	return $attributes;
+	 }
 }
