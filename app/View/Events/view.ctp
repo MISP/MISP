@@ -2,7 +2,7 @@
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 ?>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
 ?>
 
@@ -54,9 +54,9 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					<?php echo h($event['Event']['date']); ?>
 					&nbsp;
 				</dd>
-				<dt title="<?php echo $eventDescriptions['risk']['desc'];?>">Risk</dt>
+				<dt title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>">Risk</dt>
 				<dd>
-					<?php echo h($event['Event']['risk']); ?>
+					<?php echo h($event['ThreatLevel']['name']); ?>
 					&nbsp;
 				</dd>
 				<dt title="<?php echo $eventDescriptions['analysis']['desc'];?>">Analysis</dt>
@@ -203,7 +203,7 @@ if (!empty($event['Attribute'])):?>
 			$first = 0;
 			?>
 				<ul class="inline" style="margin:0px;">
-			<?php 
+			<?php
 			if (isset($relatedAttributes[$attribute['id']]) && (null != $relatedAttributes[$attribute['id']])) {
 				foreach ($relatedAttributes[$attribute['id']] as $relatedAttribute) {
 					echo '<li style="padding-right: 0px; padding-left:0px;" title ="' . h($relatedAttribute['info']) . '"><span>';
@@ -394,7 +394,7 @@ if (!empty($event['Attribute'])):?>
 				endif; ?>
 		</div>
 		<div id="discussions_div">
-			<?php 
+			<?php
 				echo $this->element('eventdiscussion');
 			?>
 		</div>

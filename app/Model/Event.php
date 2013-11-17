@@ -34,7 +34,7 @@ class Event extends AppModel {
  * @var array
  */
 	public $fieldDescriptions = array(
-		'risk' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
+		'threat_level_id' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
 		'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
 		'submittedgfi' => array('desc' => 'GFI sandbox: export upload', 'formdesc' => 'GFI sandbox: export upload'),
 		'submittedioc' => array('desc' => '', 'formdesc' => ''),
@@ -42,12 +42,12 @@ class Event extends AppModel {
 		'distribution' => array('desc' => 'Describes who will have access to the event.')
 	);
 
-	public $riskDescriptions = array(
+	/*public $riskDescriptions = array(
 		'Undefined' => array('desc' => '*undefined* no risk', 'formdesc' => 'No risk'),
 		'Low' => array('desc' => '*low* means mass-malware', 'formdesc' => 'Mass-malware'),
 		'Medium' => array('desc' => '*medium* means APT malware', 'formdesc' => 'APT malware'),
 		'High' => array('desc' => '*high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Sophisticated APT malware or 0-day attack')
-	);
+	);*/
 
 	public $analysisDescriptions = array(
 		0 => array('desc' => '*Initial* means the event has just been created', 'formdesc' => 'Creation started'),
@@ -106,14 +106,14 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'risk' => array(
-				'rule' => array('inList', array('Undefined', 'Low','Medium','High')),
-				'message' => 'Options : Undefined, Low, Medium, High',
-				//'allowEmpty' => false,
-				'required' => true,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+		'threat_level_id' => array(
+			'notempty' => array(
+				'rule' => array('notempty'),
+				//'message' => 'Please specify threat level',
+				'required' => true
+			),
 		),
+
 		'distribution' => array(
 			'rule' => array('inList', array('0', '1', '2', '3')),
 			'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
@@ -219,6 +219,10 @@ class Event extends AppModel {
 			'conditions' => '',
 			'fields' => '',
 			'order' => ''
+		),
+		'ThreatLevel' => array(
+			'className' => 'ThreatLevel',
+			'foreignKey' => 'threat_level_id'
 		)
 	);
 
@@ -574,7 +578,7 @@ class Event extends AppModel {
 					$newTextBody = $response->body();
 					return 404;
 					break;
-				case '405': 
+				case '405':
 					return 405;
 					break;
 				case '403': // Not authorised

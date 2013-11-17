@@ -14,7 +14,7 @@ if ('true' == Configure::read('CyDefSIG.sync')) {
 		'label' => 'Distribution',
 	));
 }
-	echo $this->Form->input('risk', array(
+	echo $this->Form->input('threat_level_id', array(
 			'div' => 'input clear'
 			));
 	echo $this->Form->input('analysis', array(
@@ -32,7 +32,7 @@ echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'editEvent'));
 ?>
 
@@ -42,7 +42,7 @@ echo $this->Form->end();
 //
 var formInfoValues = {
 		'EventDistribution' : new Array(),
-		'EventRisk' : new Array(),
+		'EventThreatLevelId' : new Array(),
 		'EventAnalysis' : new Array()
 };
 
@@ -52,8 +52,7 @@ foreach ($distributionDescriptions as $type => $def) {
 	echo "formInfoValues['EventDistribution']['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
 }
 foreach ($riskDescriptions as $type => $def) {
-	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['EventRisk']['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
+	echo "formInfoValues['EventThreatLevelId']['" . addslashes($type) . "'] = \"" . addslashes($def) . "\";\n";	// as we output JS code we need to add slashes
 }
 foreach ($analysisDescriptions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
@@ -63,11 +62,11 @@ foreach ($analysisDescriptions as $type => $def) {
 
 $(document).ready(function() {
 
-	$("#EventAnalysis, #EventRisk, #EventDistribution").on('mouseleave', function(e) {
+	$("#EventAnalysis, #EventThreatLevelId, #EventDistribution").on('mouseleave', function(e) {
 	    $('#'+e.currentTarget.id).popover('destroy');
 	});
 
-	$("#EventAnalysis, #EventRisk, #EventDistribution").on('mouseover', function(e) {
+	$("#EventAnalysis, #EventThreatLevelId, #EventDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {
 	        $('#'+e.currentTarget.id).popover('destroy');
@@ -82,7 +81,7 @@ $(document).ready(function() {
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
 	// disadvangate is that user needs to click on the item to see the tooltip.
 	// no solutions exist, except to generate the select completely using html.
-	$("#EventAnalysis, #EventRisk, #EventDistribution").on('change', function(e) {
+	$("#EventAnalysis, #EventThreatLevelId, #EventDistribution").on('change', function(e) {
 		var $e = $(e.target);
         $('#'+e.currentTarget.id).popover('destroy');
         $('#'+e.currentTarget.id).popover({

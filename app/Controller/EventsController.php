@@ -149,6 +149,11 @@ class EventsController extends AppController {
 				}
 			}
 		}
+		$this->paginate = array('contain' => array(
+			'ThreatLevel' => array(
+				'fields' => array(
+					'ThreatLevel.name'))
+		));
 		$this->set('events', $this->paginate());
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
@@ -462,11 +467,9 @@ class EventsController extends AppController {
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 
 		// combobox for risks
-		$risks = $this->Event->validate['risk']['rule'][1];
-		$risks = $this->_arrayToValuesIndexArray($risks);
-		$this->set('risks',$risks);
-		// tooltip for risk
-		$this->set('riskDescriptions', $this->Event->riskDescriptions);
+		$threat_levels = $this->Event->ThreatLevel->find('all');
+		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+		$this->set('riskDescriptions', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.form_description'));
 
 		// combobox for analysis
 		$analysiss = $this->Event->validate['analysis']['rule'][1];
@@ -590,7 +593,7 @@ class EventsController extends AppController {
 		}
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
-				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
+				'Event' => array('org', 'orgc', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
 		);
 
@@ -624,7 +627,7 @@ class EventsController extends AppController {
 			return 'Event originated on this instance, any changes to it have to be done locally.';
 		}
 		$fieldList = array(
-				'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
+				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
 		);
 		$data['Event']['id'] = $this->Event->data['Event']['id'];
@@ -715,7 +718,7 @@ class EventsController extends AppController {
 					}
 				}
 				$fieldList = array(
-						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
+						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
 				);
 
@@ -768,7 +771,7 @@ class EventsController extends AppController {
 				}
 			}
 			// say what fields are to be updated
-			$fieldList = array('date', 'risk', 'analysis', 'info', 'published', 'distribution', 'timestamp');
+			$fieldList = array('date', 'threat_level_id', 'analysis', 'info', 'published', 'distribution', 'timestamp');
 
 			$this->Event->read();
 			// always force the org, but do not force it for admins
@@ -801,12 +804,9 @@ class EventsController extends AppController {
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 
 		// combobox for types
-		$risks = $this->Event->validate['risk']['rule'][1];
-		$risks = $this->_arrayToValuesIndexArray($risks);
-		$this->set('risks',$risks);
-
-		// tooltip for risk
-		$this->set('riskDescriptions', $this->Event->riskDescriptions);
+		$threat_levels = $this->Event->ThreatLevel->find('all');
+		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+		$this->set('riskDescriptions', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.form_description'));
 
 		// combobox for analysis
 		$analysiss = $this->Event->validate['analysis']['rule'][1];
@@ -1057,7 +1057,7 @@ class EventsController extends AppController {
 		if ('true' == Configure::read('CyDefSIG.showorg')) {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
-		$body .= 'Risk        : ' . $event['Event']['risk'] . "\n";
+		$body .= 'Risk        : ' . $event['ThreatLevel']['name'] . "\n";
 		$body .= 'Analysis    : ' . $this->Event->analysisLevels[$event['Event']['analysis']] . "\n";
 		$body .= 'Info  : ' . "\n";
 		$body .= $event['Event']['info'] . "\n";
@@ -1119,7 +1119,7 @@ class EventsController extends AppController {
 					// prepare the the unencrypted email
 					$this->Email->from = Configure::read('CyDefSIG.email');
 					$this->Email->to = $user['User']['email'];
-					$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
+					$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['ThreatLevel']['name'] . " - TLP Amber";
 					$this->Email->template = 'body';
 					$this->Email->sendAs = 'text';	// both text or html
 					$this->set('body', $bodySigned);
@@ -1148,7 +1148,7 @@ class EventsController extends AppController {
 				// send the email
 				$this->Email->from = Configure::read('CyDefSIG.email');
 				$this->Email->to = $user['User']['email'];
-				$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
+				$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['ThreatLevel']['name'] . " - TLP Amber";
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';		// both text or html
 
@@ -1274,7 +1274,7 @@ class EventsController extends AppController {
 		if ('true' == Configure::read('CyDefSIG.showorg')) {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
-		$body .= 'Risk		: ' . $event['Event']['risk'] . "\n";
+		$body .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
 		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
 		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user(), $this->_isSiteAdmin());
 		if (!empty($relatedEvents)) {
@@ -1481,7 +1481,7 @@ class EventsController extends AppController {
 		// $conditions['AND'][] = array('Event.published =' => 1);
 
 		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked');
+		$fields = array('Event.id', 'Event.org', 'Event.date','Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked');
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id');
 
@@ -1489,6 +1489,9 @@ class EventsController extends AppController {
 				'recursive' => 0,
 				'fields' => $fields,
 				'contain' => array(
+						'ThreatLevel' => array(
+							'fields' => array('ThreatLevel.name')
+						),
 						'Attribute' => array(
 								'fields' => $fieldsAtt,
 								'conditions' => $conditionsAttributes,
@@ -2289,7 +2292,7 @@ class EventsController extends AppController {
 		$date = new DateTime();
 		$data['Event']['info'] = 'Test event showing every category-type combination';
 		$data['Event']['date'] = '2013-10-09';
-		$data['Event']['risk'] = 'Undefined';
+		$data['Event']['threat_level_id'] = 4; //'Undefined'
 		$data['Event']['analysis'] = '0';
 		$data['Event']['distribution'] = '0';
 

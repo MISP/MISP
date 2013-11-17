@@ -33,7 +33,7 @@ class NidsExportComponent extends Component {
 		$this->explain();
 		// generate the rules
 		foreach ($items as &$item) {
-			switch ($item['Event']['risk']) {
+			/*switch ($item['Event']['risk']) {
 				case 'Undefined':
 					$priority = '4';
 					break;
@@ -48,12 +48,12 @@ class NidsExportComponent extends Component {
 					break;
 				default:
 					$priority = '4';
-			}
+			}*/
 
 			# proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
 			$ruleFormatMsg = 'msg: "' . Configure::read('CyDefSIG.name') . ' e' . $item['Event']['id'] . ' %s"';
 			$ruleFormatReference = 'reference:url,' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $item['Event']['id'];
-			$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $priority . '; ' . $ruleFormatReference . ';) ';
+			$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
 
 			$sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
 			$attribute = &$item['Attribute'];

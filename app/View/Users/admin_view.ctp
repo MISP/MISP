@@ -112,7 +112,7 @@ if (h($user['User']['change_pw']) == 1) {
 				</td>
 				<td><?php echo h($event['id']);?></td>
 				<td><?php echo h($event['date']);?></td>
-				<td><?php echo h($event['risk']);?></td>
+				<td><?php echo h($event['threat_level_id']);?></td>
 				<td><?php echo h($event['info']);?></td>
 				<td><?php echo h($event['uuid']);?></td>
 				<td><?php echo h($event['distribution']);?></td>
@@ -131,6 +131,6 @@ if (h($user['User']['change_pw']) == 1) {
 	endif; ?>
 	</div>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'viewUser'));
 ?>

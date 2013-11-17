@@ -13,13 +13,13 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `value2` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `to_ids` tinyint(1) NOT NULL DEFAULT '1',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
-  `timestamp` int(11) NOT NULL DEFAULT '0',
+  `timestamp` int(11) DEFAULT '0',
   `distribution` tinyint(4) NOT NULL DEFAULT '0',
-  `comment` text COLLATE utf8_bin NOT NULL,
+  `comment` text COLLATE utf8_bin,
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
   KEY `uuid` (`uuid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS `correlations` (
   KEY `1_event_id` (`1_event_id`),
   KEY `1_attribute_id` (`1_attribute_id`),
   KEY `attribute_id` (`attribute_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+
 -- --------------------------------------------------------
 
 --
@@ -77,9 +78,9 @@ CREATE TABLE IF NOT EXISTS `correlations` (
 
 CREATE TABLE IF NOT EXISTS `events` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `threat_level_id` int(11) DEFAULT NULL,
   `org` varchar(255) COLLATE utf8_bin NOT NULL,
   `date` date NOT NULL,
-  `risk` enum('Undefined','Low','Medium','High') COLLATE utf8_bin NOT NULL,
   `info` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `user_id` int(11) NOT NULL,
   `published` tinyint(1) NOT NULL DEFAULT '0',
@@ -94,7 +95,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   PRIMARY KEY (`id`),
   KEY `uuid` (`uuid`),
   FULLTEXT KEY `info` (`info`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -115,13 +116,14 @@ CREATE TABLE IF NOT EXISTS `logs` (
   `org` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   `description` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
 --
 -- Table structure for table `posts`
 --
+
 CREATE TABLE IF NOT EXISTS `posts` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `date_created` datetime NOT NULL,
@@ -131,7 +133,7 @@ CREATE TABLE IF NOT EXISTS `posts` (
   `post_id` int(11) NOT NULL DEFAULT '0',
   `thread_id` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -145,7 +147,7 @@ CREATE TABLE IF NOT EXISTS `regexp` (
   `replacement` varchar(255) COLLATE utf8_bin NOT NULL,
   `type` varchar(100) COLLATE utf8_bin NOT NULL DEFAULT 'ALL',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -167,10 +169,10 @@ CREATE TABLE IF NOT EXISTS `roles` (
   `perm_audit` tinyint(1) DEFAULT NULL,
   `perm_full` tinyint(1) DEFAULT NULL,
   `perm_auth` tinyint(1) NOT NULL DEFAULT '0',
-  `perm_regexp_access` TINYINT( 1 ) NOT NULL DEFAULT  '0',
-  `perm_site_admin` TINYINT( 1 ) NOT NULL DEFAULT  '0',
+  `perm_regexp_access` tinyint(1) NOT NULL DEFAULT '0',
+  `perm_site_admin` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=5 ;
 
 -- --------------------------------------------------------
 
@@ -189,7 +191,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `lastpulledid` int(11) NOT NULL,
   `lastpushedid` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -213,12 +215,14 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   KEY `event_id` (`event_id`),
   KEY `uuid` (`uuid`),
   KEY `old_id` (`old_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+
 -- --------------------------------------------------------
 
 --
 -- Table structure for table `threads`
 --
+
 CREATE TABLE IF NOT EXISTS `threads` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `date_created` datetime NOT NULL,
@@ -230,7 +234,22 @@ CREATE TABLE IF NOT EXISTS `threads` (
   `title` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `org` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `threat_levels`
+--
+
+CREATE TABLE IF NOT EXISTS `threat_levels` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `form_description` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
 -- --------------------------------------------------------
 
 --
@@ -255,7 +274,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   PRIMARY KEY (`id`),
   KEY `email` (`email`),
   KEY `password` (`password`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=2 ;
 
 -- --------------------------------------------------------
 
@@ -267,7 +286,7 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -275,9 +294,9 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
 -- Default values for initial installation
 --
 
-INSERT INTO `regexp` 
+INSERT INTO `regexp`
   (`regexp`, `replacement`)
-VALUES 
+VALUES
   ('/.:.ProgramData./i','%ALLUSERSPROFILE%\\\\'),
   ('/.:.Documents and Settings.All Users./i','%ALLUSERSPROFILE%\\\\'),
   ('/.:.Program Files.Common Files./i','%COMMONPROGRAMFILES%\\\\'),
@@ -326,5 +345,19 @@ VALUES ('3', 'User', NOW() , NOW() , '1', '1', '1' , '0' , '0' , '0' , '0' , '0'
 
 INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`)
 VALUES ('4', 'Sync user', NOW(), NOW(), '1', '1', '1', '1', '1', '0', '1', '0', '1');
+
+-- --------------------------------------------------------
+
+--
+-- Initial threat levels
+--
+
+
+INSERT INTO `threat_levels` (`id`, `name`, `description`, `form_description`)
+VALUES
+  (1,'High','*high* means sophisticated APT malware or 0-day attack','Sophisticated APT malware or 0-day attack'),
+  (2,'Medium','*medium* means APT malware','APT malware'),
+  (3,'Low','*low* means mass-malware','Mass-malware'),
+  (4,'Undefined','*undefined* no risk','No risk');
 
 -- --------------------------------------------------------
