@@ -3,7 +3,7 @@
     "id": "15",
     "org": "ORG",
     "date": "2012-04-12",
-    "risk": "Medium",
+    "threat_level_id": "4",
     "info": "info",
     "user_id": "1",
     "uuid": "4f8c2c4e-00dc-42c9-83ad-76e9ff32448e",
