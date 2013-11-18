@@ -109,7 +109,7 @@ class EventShell extends AppShell
 		$this->Job->id = $id;
 		$extra = $this->args[3];
 		$this->Job->saveField('progress', 1);
-		$rules = $this->Attribute->hids($isSiteAdmin, $extra);
+		$rules = $this->Attribute->hids($isSiteAdmin, $org, $extra);
 		$this->Job->saveField('progress', 80);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
 		$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.txt');

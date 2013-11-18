@@ -17,9 +17,6 @@ class EventsController extends AppController {
 			'Security',
 			'Email',
 			'RequestHandler',
-			'HidsMd5Export',
-			'HidsSha1Export',
-			//'NidsSuricataExport',
 			'IOCExport',
 			'IOCImport'
 	);
@@ -1406,8 +1403,6 @@ class EventsController extends AppController {
 		));
 		$this->loadModel('Job');
 		foreach ($this->Event->export_types as $k => $type) {
-			$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $k);
-			$file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $useOrg . $type['extension']);
 			$job = $this->Job->find('first', array(
 					'fields' => array('id', 'progress'),
 					'conditions' => array(
@@ -1416,6 +1411,13 @@ class EventsController extends AppController {
 						),
 					'order' => array('Job.id' => 'desc')
 			));
+			$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $k);
+			if ($k === 'text') {
+				// Since all of the text export files are generated together, we might as well just check for a single one md5.
+				$file = new File($dir->pwd() . DS . 'misp.text_md5.' . $useOrg . $type['extension']);
+			} else {
+				$file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $useOrg . $type['extension']);
+			}
 			if (!$file->exists()) {
 				$lastModified = 'N/A';
 				$this->Event->export_types[$k]['recommendation'] = 1;
@@ -1428,6 +1430,7 @@ class EventsController extends AppController {
 					$this->Event->export_types[$k]['recommendation'] = 1;
 				}
 			}
+			
 			$this->Event->export_types[$k]['lastModified'] = $lastModified;
 			if (!empty($job)) {
 				$this->Event->export_types[$k]['job_id'] = $job['Job']['id'];
@@ -1563,36 +1566,7 @@ class EventsController extends AppController {
 
 		// display the full snort rulebase
 		$this->loadModel('Attribute');
-
-		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		if (!$this->_isSiteAdmin()) {
-			$temp = array();
-			$distribution = array();
-			array_push($temp, array('Attribute.distribution >' => 0));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
-			$conditions['OR'] = $temp;
-		}
-
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
-		);
-		unset($this->Attribute->virtualFields['category_order']);  // not needed for IDS export and speeds things up
-		$items = $this->Attribute->find('all', $params);
-
-		// export depending of the requested type
-		switch ($format) {
-		    case 'suricata':
-		    	$this->NidsExport = $this->Components->load('NidsSuricataExport');
-		        break;
-		    case 'snort':
-		    	$this->NidsExport = $this->Components->load('NidsSnortExport');
-		        break;
-		}
-		$rules = $this->NidsExport->export($items, $user['User']['nids_sid']);
-		
+		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid']);
 		$this->set('rules', $rules);
 	}
 
@@ -1611,13 +1585,14 @@ class EventsController extends AppController {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
+			$user = $this->Auth->user;
 			$this->response->type(array('txt' => 'text/html'));	// set the content type
 			$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
 			$this->layout = 'text/default';
 		}
 		$this->loadModel('Attribute');
 
-		$rules = $this->Attribute->hids($this->_isSiteAdmin(), $type);
+		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type);
 		$this->set('rules', $rules);
 	}
 
