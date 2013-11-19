@@ -1411,7 +1411,7 @@ class EventsController extends AppController {
 						),
 					'order' => array('Job.id' => 'desc')
 			));
-			$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $k);
+			$dir = new Folder(APP . 'tmp/cached_exports/' . $k);
 			if ($k === 'text') {
 				// Since all of the text export files are generated together, we might as well just check for a single one md5.
 				$file = new File($dir->pwd() . DS . 'misp.text_md5.' . $useOrg . $type['extension']);
@@ -1476,7 +1476,6 @@ class EventsController extends AppController {
 		return $difference . " " . $periods[$j] . " ago";
 	}
 
-
 	public function xml($key, $eventid=null, $withAttachment = false) {
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
@@ -1535,7 +1534,7 @@ class EventsController extends AppController {
 		return $results;
 	}
 
-	public function nids($format = 'suricata', $key = '') {
+	public function nids($format = 'suricata', $key = '', $id = null, $continue = false) {
 
 		// backwards compatibility, swap key and format
 		if ($format != 'snort' && $format != 'suricata') {
@@ -1566,7 +1565,7 @@ class EventsController extends AppController {
 
 		// display the full snort rulebase
 		$this->loadModel('Attribute');
-		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid']);
+		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid'], $id, $continue);
 		$this->set('rules', $rules);
 	}
 

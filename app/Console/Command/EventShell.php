@@ -92,7 +92,9 @@ class EventShell extends AppShell
 				}
 			}
 			$xmlArray['response']['Event'][] = $result['Event'];
-			$this->Job->saveField('progress', (($k+1) / $eventCount * 20) + 79);
+			if ($k % 20 == 0) {
+				$this->Job->saveField('progress', (($k+1) / $eventCount * 10) + 79);
+			}
 		}
 		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/xml');
@@ -130,8 +132,10 @@ class EventShell extends AppShell
 		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
 		$eventCount = count($eventIds);
 		foreach ($eventIds as $k => $eventId) {
-			$attributes = $this->Event->csv($org, $isSiteAdmin, 0, $extra);
-			$this->Job->saveField('progress', $k / $eventCount * 80);
+			$attributes = $this->Event->csv($org, $isSiteAdmin, $eventId['Event']['id'], $extra);
+			if ($k % 10 == 0) {
+				$this->Job->saveField('progress', $k / $eventCount * 80);
+			}
 		}
 		$this->loadModel('Whitelist');
 		$final = array();
@@ -166,8 +170,37 @@ class EventShell extends AppShell
 				$file->append($attribute['Attribute']['value'] . PHP_EOL);
 			}
 			$file->close();
-			$this->Job->saveField('progress', $k / $typeCount * 80);
+			$this->Job->saveField('progress', $k / $typeCount * 100);
 		}
+		$this->Job->saveField('progress', 100);
+	}
+	
+	public function cachenids() {
+		$org = $this->args[0];
+		$isSiteAdmin = $this->args[1];
+		$id = $this->args[2];
+		$this->Job->id = $id;
+		$format = $this->args[3];
+		$sid = $this->args[4];
+		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
+		$eventCount = count($eventIds);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format);
+		$file = new File($dir->pwd() . DS . 'misp.' . $format . '.' . $org . '.rules');
+		$file->write('');
+		foreach ($eventIds as $k => $eventId) {
+			if ($k == 0) {
+				$temp = $this->Attribute->nids($isSiteAdmin, $org, $format, $sid, $eventId['Event']['id']);
+			} else {
+				$temp = $this->Attribute->nids($isSiteAdmin, $org, $format, $sid, $eventId['Event']['id'], true);
+			}
+			foreach ($temp as $line) {
+				$file->append($line . PHP_EOL);
+			}
+			if ($k % 10 == 0) {
+				$this->Job->saveField('progress', $k / $eventCount * 80);
+			}
+		}
+		$file->close();
 		$this->Job->saveField('progress', '100');
 	}
 }

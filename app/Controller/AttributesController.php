@@ -1266,4 +1266,9 @@ class AttributesController extends AppController {
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		$this->set('attributes', $attributes);
 	}
+	
+	public function tester () {
+		debug($this->Attribute->nids(true, 'ADMIN', 'suricata', 1111));
+	}
+	
 }

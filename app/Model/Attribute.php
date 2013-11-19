@@ -1110,7 +1110,7 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 	
-	public function nids($isSiteAdmin, $org, $format, $sid) {
+	public function nids($isSiteAdmin, $org, $format, $sid, $id = null, $continue = false) {
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
 		if (!$isSiteAdmin) {
@@ -1119,6 +1119,10 @@ class Attribute extends AppModel {
 			array_push($temp, array('Attribute.distribution >' => 0));
 			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
 			$conditions['OR'] = $temp;
+		}
+		
+		if ($id) {
+			array_push($conditions['AND'], array('Event.id' => $id));
 		}
 		
 		$params = array(
@@ -1140,7 +1144,7 @@ class Attribute extends AppModel {
 				$export = new NidsSnortExport();
 				break;
 		}
-		$rules = $export->export($items, $sid, $format);
+		$rules = $export->export($items, $sid, $format, $continue);
 		return $rules;
 	}
 

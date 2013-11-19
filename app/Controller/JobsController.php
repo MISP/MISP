@@ -70,6 +70,7 @@ class JobsController extends AppController {
 			$jobOrg = $this->Auth->user('org');
 		}
 		$extra = null;
+		$extra2 = null;
 		$shell = 'Event';
 		$this->Job->create();
 		$data = array(
@@ -89,12 +90,17 @@ class JobsController extends AppController {
 			$extra = $type;
 			$type = 'csv';
 		}
+		if ($type === 'suricata' || $type === 'snort') {
+			$extra = $type;
+			$type = 'nids';
+			$extra2 = $this->Auth->user('nids_sid');
+		}
 		$this->Job->save($data);
 		$id = $this->Job->id;
 		CakeResque::enqueue(
 		'default',
 		$shell . 'Shell',
-		array('cache' . $type, $this->Auth->user('org'), $this->_isSiteAdmin(), $id, $extra)
+		array('cache' . $type, $this->Auth->user('org'), $this->_isSiteAdmin(), $id, $extra, $extra2)
 		);
 		return new CakeResponse(array('body' => json_encode($id)));
 	}
