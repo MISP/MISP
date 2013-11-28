@@ -470,6 +470,38 @@ class Event extends AppModel {
 		return 'Success';
 	}
 
+	/**
+	 *	Call the TAXII client
+	 *
+	 * @param  int $id Event id
+	 * @param  array $server associative array with server data
+	 * @return mixed boolean or HTTP status
+	 */
+	public function taxii_publish($id, $server, $client_path){
+		$this->contain(array('Attribute' => array('category', 'type', 'value1', 'value2', 'to_ids', 'uuid', 'timestamp', 'distribution')));
+		$fieldList = array(
+			'threat_level_id', 'org', 'date', 'info', 'published', 'uuid', 'analysis',
+			'orgc', 'timestamp', 'distribution'
+		);
+		$data = $this->read($fieldList, $id);
+		$data['api_key'] = $server['Server']['authkey'];
+		$data['server_url'] = $server['Server']['url'].'/events';
+
+		$data = json_encode($data);
+		ob_start();
+	    passthru(Configure::read('CyDefSIG.taxii_client_path'). " -t string -th ".
+	    	$server['Server']['url']." -d '".$data."'");
+
+	    /**
+	     * Response sample:
+	     * '{"in_response_to": "44492", "status_detail": "Total Time: 0.0200021266937", "extended_headers": {},
+	     * "message": "Event saved.", "message_type": "Status_Message", "message_id": "79739", "status_type":
+	     * "SUCCESS"}'
+	     */
+
+	    return json_decode(ob_get_clean());
+	}
+
 /**
  * Uploads the event and the associated Attributes to another Server
  * TODO move this to a component
@@ -479,6 +511,10 @@ class Event extends AppModel {
 	public function restfullEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
 		if ($event['Event']['distribution'] < 2) { // never upload private events
 			return 403; //"Event is private and non exportable";
+		}
+
+		if('true' == Configure::read('CyDefSIG.taxii_sync')){
+			return $this->taxii_publish($event['Event']['id'], $server, Configure::read('CyDefSIG.taxii_client_path'));
 		}
 
 		$url = $server['Server']['url'];

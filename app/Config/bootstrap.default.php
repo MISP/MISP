@@ -108,6 +108,8 @@ Configure::write('CyDefSIG.logo', 'orgs/ORGNAME.png');     // used in Events::in
 Configure::write('CyDefSIG.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
 
 Configure::write('CyDefSIG.sync', 'true');                 // enable features related to syncing with other CyDefSIG instances - should be always on because of the current distribution model.
+Configure::write('CyDefSIG.taxii_sync', 'true');
+Configure::write('CyDefSIG.taxii_client_path', '/usr/local/taxii-client-vanilla');
 
 Configure::write('CyDefSIG.email', 'email@address.com'); // email from for all the mails
 Configure::write('CyDefSIG.contact', 'email@address.com'); // contact address for this instance's support person / group
