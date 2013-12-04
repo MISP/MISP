@@ -146,6 +146,11 @@ class EventsController extends AppController {
 				}
 			}
 		}
+		$this->paginate = array('contain' => array(
+			'ThreatLevel' => array(
+				'fields' => array(
+					'ThreatLevel.name'))
+		));
 		$this->set('events', $this->paginate());
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
@@ -459,11 +464,9 @@ class EventsController extends AppController {
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 
 		// combobox for risks
-		$risks = $this->Event->validate['risk']['rule'][1];
-		$risks = $this->_arrayToValuesIndexArray($risks);
-		$this->set('risks',$risks);
-		// tooltip for risk
-		$this->set('riskDescriptions', $this->Event->riskDescriptions);
+		$threat_levels = $this->Event->ThreatLevel->find('all');
+		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+		$this->set('riskDescriptions', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.form_description'));
 
 		// combobox for analysis
 		$analysiss = $this->Event->validate['analysis']['rule'][1];
@@ -528,7 +531,7 @@ class EventsController extends AppController {
 					$this->Session->setFlash(__('You may only upload OpenIOC ioc files.'));
 				}
 				if (isset($this->data['Event']['submittedxml'])) $this->_addXMLFile();
-	
+
 				// redirect to the view of the newly created event
 				if (!CakeSession::read('Message.flash')) {
 					$this->Session->setFlash(__('The event has been saved'));
@@ -539,8 +542,8 @@ class EventsController extends AppController {
 			}
 		}
 	}
-	
-	
+
+
 	/**
 	 * Low level function to add an Event based on an Event $data array
 	 *
@@ -587,10 +590,12 @@ class EventsController extends AppController {
 		}
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
-				'Event' => array('org', 'orgc', 'date', 'risk', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
+				'Event' => array('org', 'orgc', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
 		);
-		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
+
+		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,
+			'atomic' => true));
 		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
 		if ($saveResult) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
@@ -619,7 +624,7 @@ class EventsController extends AppController {
 			return 'Event originated on this instance, any changes to it have to be done locally.';
 		}
 		$fieldList = array(
-				'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
+				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
 		);
 		$data['Event']['id'] = $this->Event->data['Event']['id'];
@@ -710,7 +715,7 @@ class EventsController extends AppController {
 					}
 				}
 				$fieldList = array(
-						'Event' => array('date', 'risk', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
+						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
 				);
 
@@ -763,7 +768,7 @@ class EventsController extends AppController {
 				}
 			}
 			// say what fields are to be updated
-			$fieldList = array('date', 'risk', 'analysis', 'info', 'published', 'distribution', 'timestamp');
+			$fieldList = array('date', 'threat_level_id', 'analysis', 'info', 'published', 'distribution', 'timestamp');
 
 			$this->Event->read();
 			// always force the org, but do not force it for admins
@@ -796,12 +801,9 @@ class EventsController extends AppController {
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 
 		// combobox for types
-		$risks = $this->Event->validate['risk']['rule'][1];
-		$risks = $this->_arrayToValuesIndexArray($risks);
-		$this->set('risks',$risks);
-
-		// tooltip for risk
-		$this->set('riskDescriptions', $this->Event->riskDescriptions);
+		$threat_levels = $this->Event->ThreatLevel->find('all');
+		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+		$this->set('riskDescriptions', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.form_description'));
 
 		// combobox for analysis
 		$analysiss = $this->Event->validate['analysis']['rule'][1];
@@ -813,7 +815,7 @@ class EventsController extends AppController {
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
-		
+
 		$this->set('event', $this->Event->data);
 	}
 
@@ -957,14 +959,6 @@ class EventsController extends AppController {
 		}
 		return $uploaded;
 	}
-
-	public function test($id) {
-		CakeResque::enqueue(
-			'default',
-			'EventShell',
-			array('doPublish', $id)
-		);
-	}
 	
 	/**
 	 * Publishes the event without sending an alert email
@@ -1047,144 +1041,7 @@ class EventsController extends AppController {
 	}
 
 	private function __sendAlertEmail($id) {
-		$this->Event->recursive = 1;
-		$event = $this->Event->read(null, $id);
-
-		// The mail body, h() is NOT needed as we are sending plain-text mails.
-		$body = "";
-		$body .= '----------------------------------------------' . "\n";
-		$appendlen = 20;
-		$body .= 'URL         : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
-		$body .= 'Event       : ' . $event['Event']['id'] . "\n";
-		$body .= 'Date        : ' . $event['Event']['date'] . "\n";
-		if ('true' == Configure::read('CyDefSIG.showorg')) {
-			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
-		}
-		$body .= 'Risk        : ' . $event['Event']['risk'] . "\n";
-		$body .= 'Analysis    : ' . $this->Event->analysisLevels[$event['Event']['analysis']] . "\n";
-		$body .= 'Info  : ' . "\n";
-		$body .= $event['Event']['info'] . "\n";
-		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user(), $this->_isSiteAdmin());
-		if (!empty($relatedEvents)) {
-			$body .= '----------------------------------------------' . "\n";
-			$body .= 'Related to : '. "\n";
-			foreach ($relatedEvents as &$relatedEvent) {
-				$body .= Configure::read('CyDefSIG.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
-
-			}
-			$body .= '----------------------------------------------' . "\n";
-		}
-		$body .= 'Attributes  :' . "\n";
-		$bodyTempOther = "";
-
-		if (isset($event['Attribute'])) {
-			foreach ($event['Attribute'] as &$attribute) {
-				$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . "\n";
-				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
-					$bodyTempOther .= $line;
-				else $body .= $line;
-			}
-		}
-		if (!empty($bodyTempOther)) {
-			$body .= "\n";
-		}
-		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
-		$body .= '----------------------------------------------' . "\n";
-		// find out whether the event is private, to limit the alerted user's list to the org only
-		if ($event['Event']['distribution'] == 0) {
-			$eventIsPrivate = true;
-		} else {
-			$eventIsPrivate = false;
-		}
-		// sign the body
-		require_once 'Crypt/GPG.php';
-		try {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
-			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-			$this->loadModel('User');
-
-			//
-			// Build a list of the recipients that get a non-encrypted mail
-			// But only do this if it is allowed in the bootstrap.php file.
-			//
-			if ($eventIsPrivate) {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "", 'User.org =' => $event['Event']['org']);
-			} else {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "");
-			}
-			if ('false' == Configure::read('GnuPG.onlyencrypted')) {
-				$alertUsers = $this->User->find('all', array(
-						'conditions' => $conditions,
-						'recursive' => 0,
-				));
-				foreach ($alertUsers as &$user) {
-					// prepare the the unencrypted email
-					$this->Email->from = Configure::read('CyDefSIG.email');
-					$this->Email->to = $user['User']['email'];
-					$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
-					$this->Email->template = 'body';
-					$this->Email->sendAs = 'text';	// both text or html
-					$this->set('body', $bodySigned);
-					// send it
-					$this->Email->send();
-					// If you wish to send multiple emails using a loop, you'll need
-					// to reset the email fields using the reset method of the Email component.
-					$this->Email->reset();
-				}
-			}
-			//
-			// Build a list of the recipients that wish to receive encrypted mails.
-			//
-			if ($eventIsPrivate) {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "", 'User.org =' => $event['Event']['org']);
-			} else {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "");
-			}
-			$alertUsers = $this->User->find('all', array(
-					'conditions' => $conditions,
-					'recursive' => 0,
-			)
-			);
-			// encrypt the mail for each user and send it separately
-			foreach ($alertUsers as &$user) {
-				// send the email
-				$this->Email->from = Configure::read('CyDefSIG.email');
-				$this->Email->to = $user['User']['email'];
-				$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['Event']['risk'] . " - TLP Amber";
-				$this->Email->template = 'body';
-				$this->Email->sendAs = 'text';		// both text or html
-
-				// import the key of the user into the keyring
-				// this is not really necessary, but it enables us to find
-				// the correct key-id even if it is not the same as the emailaddress
-				$keyImportOutput = $gpg->importKey($user['User']['gpgkey']);
-				// say what key should be used to encrypt
-				try {
-					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-
-					$bodyEncSig = $gpg->encrypt($bodySigned, true);
-
-					$this->set('body', $bodyEncSig);
-					$this->Email->send();
-				} catch (Exception $e){
-					// catch errors like expired PGP keys
-					$this->log($e->getMessage());
-					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
-				}
-				// If you wish to send multiple emails using a loop, you'll need
-				// to reset the email fields using the reset method of the Email component.
-				$this->Email->reset();
-			}
-		} catch (Exception $e){
-			// catch errors like expired PGP keys
-			$this->log($e->getMessage());
-			return $e->getMessage();
-		}
-
-		// LATER check if sending email succeeded and return appropriate result
-		return true;
+		return ($this->Event->sendAlertEmail($id, $this->Auth->user('org'), $this->_isSiteAdmin()));
 	}
 
 	/**
@@ -1277,7 +1134,7 @@ class EventsController extends AppController {
 		if ('true' == Configure::read('CyDefSIG.showorg')) {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
-		$body .= 'Risk		: ' . $event['Event']['risk'] . "\n";
+		$body .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
 		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
 		$relatedEvents = $this->Event->getRelatedEvents($this->Auth->user(), $this->_isSiteAdmin());
 		if (!empty($relatedEvents)) {
@@ -1384,70 +1241,77 @@ class EventsController extends AppController {
 	}
 
 	public function export() {
-		//$currentTime = time();
-		$now = time();
-		
-		// as a site admin we'll use the ADMIN identifier, not to overwrite the cached files of our own org with a file that includes too much data.
-		if ($this->_isSiteAdmin()) {
-			$useOrg = 'ADMIN';
-			$conditions = null;			
-		} else {
-			$useOrg = $this->Auth->User('org');
-			$conditions = array('orgc' => $this->Auth-user('org'));
-		}
-		$this->Event->recursive = -1;
-		$newestEvent = $this->Event->find('first', array(
-			'conditions' => $conditions,
-			'fields' => 'timestamp',
-			'order' => 'Event.timestamp DESC',
-		));
-		$this->loadModel('Job');
-		foreach ($this->Event->export_types as $k => $type) {
-			$job = $this->Job->find('first', array(
-					'fields' => array('id', 'progress'),
-					'conditions' => array(
-							'job_type' => 'cache_' . $k,
-							'org' => $useOrg
-						),
-					'order' => array('Job.id' => 'desc')
-			));
-			$dir = new Folder(APP . 'tmp/cached_exports/' . $k);
-			if ($k === 'text') {
-				// Since all of the text export files are generated together, we might as well just check for a single one md5.
-				$file = new File($dir->pwd() . DS . 'misp.text_md5.' . $useOrg . $type['extension']);
-			} else {
-				$file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $useOrg . $type['extension']);
-			}
-			if (!$file->exists()) {
-				$lastModified = 'N/A';
-				$this->Event->export_types[$k]['recommendation'] = 1;
-			} else {
-				$fileChange = $file->lastChange();
-				$lastModified = $this->__timeDifference($now, $fileChange);
-				if ($fileChange > $newestEvent['Event']['timestamp']) {
-					$this->Event->export_types[$k]['recommendation'] = 0;
-				} else {
-					$this->Event->export_types[$k]['recommendation'] = 1;
-				}
-			}
+		// Check if the background jobs are enabled - if not, fall back to old export page.
+		if (Configure::read('MISP.background_jobs')) {
+			$now = time();
 			
-			$this->Event->export_types[$k]['lastModified'] = $lastModified;
-			if (!empty($job)) {
-				$this->Event->export_types[$k]['job_id'] = $job['Job']['id'];
-				$this->Event->export_types[$k]['progress'] = $job['Job']['progress'];
+			// as a site admin we'll use the ADMIN identifier, not to overwrite the cached files of our own org with a file that includes too much data.
+			if ($this->_isSiteAdmin()) {
+				$useOrg = 'ADMIN';
+				$conditions = null;			
 			} else {
-				$this->Event->export_types[$k]['job_id'] = -1;
-				$this->Event->export_types[$k]['progress'] = 0;
+				$useOrg = $this->Auth->User('org');
+				$conditions = array('orgc' => $this->Auth-user('org'));
 			}
-			//$this->Event->export_types[$k]['recommendation']
+			$this->Event->recursive = -1;
+			$newestEvent = $this->Event->find('first', array(
+				'conditions' => $conditions,
+				'fields' => 'timestamp',
+				'order' => 'Event.timestamp DESC',
+			));
+			$this->loadModel('Job');
+			foreach ($this->Event->export_types as $k => $type) {
+				$job = $this->Job->find('first', array(
+						'fields' => array('id', 'progress'),
+						'conditions' => array(
+								'job_type' => 'cache_' . $k,
+								'org' => $useOrg
+							),
+						'order' => array('Job.id' => 'desc')
+				));
+				$dir = new Folder(APP . 'tmp/cached_exports/' . $k);
+				if ($k === 'text') {
+					// Since all of the text export files are generated together, we might as well just check for a single one md5.
+					$file = new File($dir->pwd() . DS . 'misp.text_md5.' . $useOrg . $type['extension']);
+				} else {
+					$file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $useOrg . $type['extension']);
+				}
+				if (!$file->exists()) {
+					$lastModified = 'N/A';
+					$this->Event->export_types[$k]['recommendation'] = 1;
+				} else {
+					$fileChange = $file->lastChange();
+					$lastModified = $this->__timeDifference($now, $fileChange);
+					if ($fileChange > $newestEvent['Event']['timestamp']) {
+						$this->Event->export_types[$k]['recommendation'] = 0;
+					} else {
+						$this->Event->export_types[$k]['recommendation'] = 1;
+					}
+				}
+				
+				$this->Event->export_types[$k]['lastModified'] = $lastModified;
+				if (!empty($job)) {
+					$this->Event->export_types[$k]['job_id'] = $job['Job']['id'];
+					$this->Event->export_types[$k]['progress'] = $job['Job']['progress'];
+				} else {
+					$this->Event->export_types[$k]['job_id'] = -1;
+					$this->Event->export_types[$k]['progress'] = 0;
+				}
+				//$this->Event->export_types[$k]['recommendation']
+			}
+			$this->set('useOrg', $useOrg);
+			$this->set('export_types', $this->Event->export_types);
+			// generate the list of Attribute types
+			$this->loadModel('Attribute');
+			//$lastModified = strftime("%d, %m, %Y, %T", $lastModified);
+			$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
+		} else {
+			// generate the list of Attribute types
+			$this->loadModel('Attribute');
+			//$lastModified = strftime("%d, %m, %Y, %T", $lastModified);
+			$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
+			$this->render('/Events/export_alternate');
 		}
-		
-		// generate the list of Attribute types
-		$this->loadModel('Attribute');
-		//$lastModified = strftime("%d, %m, %Y, %T", $lastModified);
-		$this->set('useOrg', $useOrg);
-		$this->set('export_types', $this->Event->export_types);
-		$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
 	}
 	
 
@@ -1528,9 +1392,7 @@ class EventsController extends AppController {
 		}
 		if (!empty($orgFromFetch)) $org = $orgFromFetch;
 		else $org = $this->_checkOrg();
-
 		$results = $this->Event->fetchEvent($eventid, $idList, $org, $isSiteAdmin);
-	
 		return $results;
 	}
 
@@ -1830,17 +1692,17 @@ class EventsController extends AppController {
 					$this->data['Event']['submittedxml']['size']);
 			App::uses('Xml', 'Utility');
 			$xmlArray = Xml::toArray(Xml::build($xmlData));
-			
-			// In case we receive an event that is not encapsulated in a response. This should never happen (unless it's a copy+paste fail), 
+
+			// In case we receive an event that is not encapsulated in a response. This should never happen (unless it's a copy+paste fail),
 			// but just in case, let's clean it up anyway.
 			if (isset($xmlArray['Event'])) {
 				$xmlArray['response']['Event'] = $xmlArray['Event'];
 				unset($xmlArray['Event']);
 			}
-			
+
 			if (!isset($xmlArray['response']) || !isset($xmlArray['response']['Event'])) {
 				throw new Exception('This is not a valid MISP XML file.');
-			} 
+			}
 			if (isset($xmlArray['response']['Event'][0])) {
 				foreach ($xmlArray['response']['Event'] as $event) {
 					$temp['Event'] = $event;
@@ -1852,7 +1714,7 @@ class EventsController extends AppController {
 			}
 		}
 	}
-	
+
 	public function _readGfiXML($data, $id) {
 		$this->loadModel('Attribute');
 
@@ -2142,15 +2004,15 @@ class EventsController extends AppController {
 		$final = $this->IOCExport->buildAll($event, $isMyEvent, $isSiteAdmin);
 		$this->set('final', $final);
 	}
-	
+
 	public function create_dummy_event() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
 		$date = new DateTime();
 		$data['Event']['info'] = 'Test event showing every category-type combination';
 		$data['Event']['date'] = '2013-10-09';
-		$data['Event']['risk'] = 'Undefined';
+		$data['Event']['threat_level_id'] = 4; //'Undefined'
 		$data['Event']['analysis'] = '0';
-		$data['Event']['distribution'] = '0';	
+		$data['Event']['distribution'] = '0';
 
 		$defaultValues = array(
 				'md5' => '098f6bcd4621d373cade4e832627b4f6',
@@ -2197,15 +2059,10 @@ class EventsController extends AppController {
 					'type' => $type,
 					'value' => $defaultValues[$type],
 					'to_ids' => '0',
-					'distribution' => '0',						
+					'distribution' => '0',
 				);
 			}
 		}
-		$this->_add($data, false);	
-	}
-	
-	public function tester() {
-		$this->loadModel('Attribute');
-		debug ($this->Attribute->text('NCIRC', true, 'ip-dst'));
+		$this->_add($data, false);
 	}
 }

@@ -128,6 +128,9 @@
 				editMessage(i, "Completed.");
 				updateOutdated(i);
 			}
+			if (data == -1) {
+				alert("Warning, the background worker is not responding!");
+			}
 		});
 	}
 

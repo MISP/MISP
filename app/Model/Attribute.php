@@ -819,6 +819,7 @@ class Attribute extends AppModel {
 			if ($fromGFI) $this->data['Attribute']['comment'] = 'GFI import';
 		}
 
+		//???
 		if ($this->save($this->data)) {
 			// attribute saved correctly in the db
 		} else {
@@ -828,6 +829,7 @@ class Attribute extends AppModel {
 		// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
 		// no sanitization is required on the filename, path or type as we save
 		// create directory structure
+		// ???
 		if (PHP_OS == 'WINNT') {
 			$rootDir = APP . "files" . DS . $eventId;
 		} else {
@@ -878,11 +880,11 @@ class Attribute extends AppModel {
 			$this->Correlation = ClassRegistry::init('Correlation');
 			// When we add/update an attribute we need to
 			// - (beforeSave) (update-only) clean up the relation of the old value: remove the existing relations related to that attribute, we DO have a reference, the id
-	
+
 			// - remove the existing relations for that value1 or value2, we do NOT have an id reference, but we have a value1/value2 field to search for
 			// ==> DELETE FROM correlations WHERE value = $value1 OR value = $value2 */
 			$dummy = $this->Correlation->deleteAll(array('Correlation.value' => array($a['value1'], $a['value2'])));
-	
+
 			// now build a correlation array of things that will need to be added in the db
 			// we do this twice, once for value1 and once for value2
 			$correlations = array();   // init variable
@@ -898,7 +900,7 @@ class Attribute extends AppModel {
 			            	),
 			            	'AND' => array(
 			            		'Attribute.type !=' => 'vulnerability',
-			            		'Attribute.type !=' => 'comment',			            				
+			            		'Attribute.type !=' => 'comment',
 						)),
 			            'recursive' => 0,
 			            //'fields' => '', // we want to have the Attribute AND Event, so do not filter here

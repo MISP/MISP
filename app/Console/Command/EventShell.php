@@ -5,7 +5,7 @@ App::uses('File', 'Utility');
 require_once 'AppShell.php';
 class EventShell extends AppShell
 {
-	public $uses = array('Event', 'Attribute', 'Job');
+	public $uses = array('Event', 'Attribute', 'Job', 'User');
 	
 	public function doPublish() {
 		$id = $this->args[0];
@@ -98,7 +98,11 @@ class EventShell extends AppShell
 		}
 		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/xml');
-		$file = new File($dir->pwd() . DS . 'misp.xml' . '.' . $org . '.xml');
+		if ($isSiteAdmin) {
+			$file = new File($dir->pwd() . DS . 'misp.xml' . '.ADMIN.xml');
+		} else {
+			$file = new File($dir->pwd() . DS . 'misp.xml' . '.' . $org . '.xml');
+		}
 		$file->write($xmlObject->asXML());
 		$file->close();
 		$this->Job->saveField('progress', '100');
@@ -114,7 +118,11 @@ class EventShell extends AppShell
 		$rules = $this->Attribute->hids($isSiteAdmin, $org, $extra);
 		$this->Job->saveField('progress', 80);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
-		$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.txt');
+		if ($isSiteAdmin) {
+			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.txt');
+		} else {
+			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.txt');
+		}
 		$file->write('');
 		foreach ($rules as $rule) {
 			$file->append($rule . PHP_EOL);
@@ -144,7 +152,11 @@ class EventShell extends AppShell
 			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'];
 		}
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
-		$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.csv');
+		if ($isSiteAdmin) {
+			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.csv');
+		} else {
+			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.csv');
+		}
 		$file->write('');
 		foreach ($final as $line) {
 			$file->append($line . PHP_EOL);
@@ -164,7 +176,11 @@ class EventShell extends AppShell
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/text');
 		foreach ($types as $k => $type) {
 			$final = $this->Attribute->text($org, $isSiteAdmin, $type);
-			$file = new File($dir->pwd() . DS . 'misp.text_' . $type . '.' . $org . '.txt');
+			if ($isSiteAdmin) {
+				$file = new File($dir->pwd() . DS . 'misp.text_' . $type . '.ADMIN.txt');
+			} else {
+				$file = new File($dir->pwd() . DS . 'misp.text_' . $type . '.' . $org . '.txt');
+			}
 			$file->write('');
 			foreach ($final as $attribute) {
 				$file->append($attribute['Attribute']['value'] . PHP_EOL);
@@ -185,7 +201,11 @@ class EventShell extends AppShell
 		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
 		$eventCount = count($eventIds);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format);
-		$file = new File($dir->pwd() . DS . 'misp.' . $format . '.' . $org . '.rules');
+		if ($isSiteAdmin) {
+			$file = new File($dir->pwd() . DS . 'misp.' . $format . '.ADMIN.rules');
+		} else {
+			$file = new File($dir->pwd() . DS . 'misp.' . $format . '.' . $org . '.rules');
+		}
 		$file->write('');
 		foreach ($eventIds as $k => $eventId) {
 			if ($k == 0) {
@@ -202,6 +222,17 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+	}
+	
+	public function alertemail() {
+		$org = $this->args[0];
+		$isSiteAdmin = $this->args[1];
+		$ProcessId = $this->args[2];
+		$this->Job->id = $ProcessId;
+		$eventId = $this->args[3];
+		$result = $this->Event->sendAlertEmail($eventId, $org, $isSiteAdmin, $ProcessId);
+		$this->Job->saveField('progress', '100');
+		if ($result != true) $this->Job->saveField('message', 'Job done.');
 	}
 }
 

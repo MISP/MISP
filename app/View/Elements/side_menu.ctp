@@ -133,6 +133,8 @@
 					<li class="divider"></li>
 					<li <?php if ($menuItem === 'contact') echo 'class="active";'?>><?php echo $this->Html->link('Contact users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
 					<li <?php if ($menuItem === 'adminTools') echo 'class="active";'?>><a href="/pages/display/administration">Administrative tools</a></li>
+					<li class="divider"></li>
+					<li <?php if ($menuItem === 'jobs') echo 'class="active";'?>><a href="/jobs/index">Jobs</a></li>
 					<?php endif; 
 				break;	
 				

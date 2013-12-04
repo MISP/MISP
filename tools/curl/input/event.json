@@ -1,0 +1,66 @@
+{
+  "Event": {
+    "id": "15",
+    "org": "ORG",
+    "date": "2012-04-12",
+    "threat_level_id": "4",
+    "info": "info",
+    "user_id": "1",
+    "uuid": "4f8c2c4e-00dc-42c9-83ad-76e9ff32448e",
+    "distribution": "0",
+    "analysis": "0",
+    "timestamp": "1",
+    "Attribute": [
+      {
+        "id": "116",
+        "event_id": "14",
+        "type": "ip-dst",
+        "category": "Network activity",
+        "to_ids": "1",
+        "uuid": "4f8c2cc3-0410-4bf0-8559-5b9dff32448e",
+        "distribution": "0",
+        "value": "1.1.1.111",
+        "timestamp": "0"
+      },
+      {
+        "id": "117",
+        "event_id": "14",
+        "type": "malware-sample",
+        "category": "Payload delivery",
+        "to_ids": "0",
+        "uuid": "4f8c2d08-7e6c-4648-8730-50a7ff32448e",
+        "distribution": "0",
+        "value": "A.doc|3f6f1aaab6171925c81de9b34a8fcf8e",
+        "timestamp": "0"
+      },
+      {
+        "id": "115",
+        "event_id": "14",
+        "type": "vulnerability",
+        "category": "Payload delivery",
+        "to_ids": "1",
+        "uuid": "4f8c2c69-9bf8-4279-8d03-2138ff32448e",
+        "distribution": "0",
+        "value": "CVE-XXXX-XXXX",
+        "timestamp": "0"
+      }
+    ],
+    "RelatedEvent": [
+      {
+        "id": "11",
+        "date": "2011-01-03",
+        "uuid": "4f8812ff-ded0-4592-9227-0615ff32448e"
+      },
+      {
+        "id": "9",
+        "date": "2011-02-02",
+        "uuid": "4f85981e-d044-4b16-bc16-0a35ff32448e"
+      },
+      {
+        "id": "6",
+        "date": "2011-03-01",
+        "uuid": "4f7a9faa-91d4-4c91-8ec6-0878ff32448e"
+      }
+    ]
+  }
+}

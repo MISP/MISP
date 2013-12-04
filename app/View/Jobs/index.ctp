@@ -95,5 +95,7 @@ endforeach; ?>
 
 	</ul>
 </div>
-
+<?php 
+	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'jobs'));
+?>
 				

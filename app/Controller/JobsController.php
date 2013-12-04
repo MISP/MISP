@@ -27,10 +27,6 @@ class JobsController extends AppController {
 		$this->set('list', $this->paginate());
 	}
 	
-	public function retry($id) {
-		
-	}
-	
 	public function getGenerateCorrelationProgress($id) {
 		//if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$progress = $this->Job->findById($id);
@@ -49,7 +45,7 @@ class JobsController extends AppController {
 			'conditions' => array(
 				'job_type' => $type,
 				'org' => $org
-				),
+			),
 			'fields' => array('id', 'progress'),
 			'order' => array('Job.id' => 'desc'),
 		));
@@ -65,7 +61,7 @@ class JobsController extends AppController {
 		if ($this->_isSiteAdmin()) {
 			$target = 'All events.';
 			$jobOrg = 'ADMIN';
-		} else {
+		} else { 
 			$target = 'Events visible to: '.$this->Auth->user('org');
 			$jobOrg = $this->Auth->user('org');
 		}
@@ -74,13 +70,13 @@ class JobsController extends AppController {
 		$shell = 'Event';
 		$this->Job->create();
 		$data = array(
-				'worker' => 'default',
-				'job_type' => 'cache_' . $type,
-				'job_input' => $target,
-				'status' => 0,
-				'retries' => 0,
-				'org' => $jobOrg,
-				'message' => 'Fetching events.',
+			'worker' => 'default',
+			'job_type' => 'cache_' . $type,
+			'job_input' => $target,
+			'status' => 0,
+			'retries' => 0,
+			'org' => $jobOrg,
+			'message' => 'Fetching events.',
 		);
 		if ($type === 'md5' || $type === 'sha1') {
 			$extra = $type;
@@ -93,16 +89,35 @@ class JobsController extends AppController {
 		if ($type === 'suricata' || $type === 'snort') {
 			$extra = $type;
 			$type = 'nids';
-			$extra2 = $this->Auth->user('nids_sid');
+			$extra2 = $this->Auth->user('sid');
 		}
 		$this->Job->save($data);
 		$id = $this->Job->id;
 		CakeResque::enqueue(
-		'default',
-		$shell . 'Shell',
-		array('cache' . $type, $this->Auth->user('org'), $this->_isSiteAdmin(), $id, $extra, $extra2)
+			'default',
+			$shell . 'Shell',
+			array('cache' . $type, $this->Auth->user('org'), $this->_isSiteAdmin(), $id, $extra, $extra2)
 		);
 		return new CakeResponse(array('body' => json_encode($id)));
 	}
 	
+	public function sendAlertEmail($id) {
+		$this->Job->create();
+		$data = array(
+			'worker' => 'default',
+			'job_type' => 'contact_alert',
+			'job_input' => 'Event: ' . $id,
+			'status' => 0,
+			'retries' => 0,
+			'org' => $this->Auth->user('org'),
+			'message' => 'Fetching events.',
+		);
+		$this->Job->save($data);
+		$jobId = $this->Job->id;
+		$result = CakeResque::enqueue(
+			'default',
+			'EventShell',
+			array('alertemail', $this->Auth->user('org'), $this->_isSiteAdmin(), $jobId, $id)
+		);
+	}	
 }

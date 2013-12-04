@@ -160,8 +160,8 @@
 							?>
 				</div>
 			</th>
-			<th title="<?php echo $eventDescriptions['risk']['desc'];?>">
-				<?php echo $this->Paginator->sort('risk');?>
+			<th title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>">
+				<?php echo $this->Paginator->sort('threat_level_id');?>
 			</th>
 			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>">
 				<?php echo $this->Paginator->sort('analysis');?>
@@ -246,7 +246,7 @@
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
 			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
-				<?php echo $event['Event']['risk']; ?>&nbsp;
+				<?php echo $event['ThreatLevel']['name']; ?>&nbsp;
 			</td>
 			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $analysisLevels[$event['Event']['analysis']]; ?>&nbsp;
@@ -294,7 +294,7 @@
         </ul>
     </div>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));
 ?>
 

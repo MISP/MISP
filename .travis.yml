@@ -1,0 +1,35 @@
+language: php
+php:
+    - 5.5
+    - 5.4
+    - 5.3
+
+env:
+    - CAKE_VERSION=2.4.2 DB=mysql
+    - CAKE_VERSION=master DB=mysql
+
+matrix:
+    allow_failures:
+        - php: 5.5
+
+before_script:
+    - pecl install Crypt_GPG
+    - pecl install Net_GeoIP
+    - phpenv rehash
+    - sh -c "if [ '$DB' = 'mysql' ]; then mysql -e 'CREATE DATABASE misp_test;'; fi"
+    - git clone git://github.com/cakephp/cakephp ../cakephp && cd ../cakephp && git checkout $CAKE_VERSION
+    - chmod -R 777 ../cakephp/app/tmp
+    - echo "<?php
+        class DATABASE_CONFIG {
+        public \$test = array(
+          'datasource' => 'Database/Mysql',
+          'database' => 'misp_test',
+          'host' => '0.0.0.0',
+          'login' => 'travis',
+          'host' => '',
+          'persistent' => false
+        );
+        }" > app/Config/database.php
+
+script:
+    - ./lib/Cake/Console/cake test app AllTests --stderr

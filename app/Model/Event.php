@@ -1,6 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
-
+App::uses('CakeEmail', 'Network/Email');
 App::import('Controller', 'Attributes');
 /**
  * Event Model
@@ -34,7 +34,7 @@ class Event extends AppModel {
  * @var array
  */
 	public $fieldDescriptions = array(
-		'risk' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
+		'threat_level_id' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
 		'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
 		'submittedgfi' => array('desc' => 'GFI sandbox: export upload', 'formdesc' => 'GFI sandbox: export upload'),
 		'submittedioc' => array('desc' => '', 'formdesc' => ''),
@@ -42,12 +42,12 @@ class Event extends AppModel {
 		'distribution' => array('desc' => 'Describes who will have access to the event.')
 	);
 
-	public $riskDescriptions = array(
+	/*public $riskDescriptions = array(
 		'Undefined' => array('desc' => '*undefined* no risk', 'formdesc' => 'No risk'),
 		'Low' => array('desc' => '*low* means mass-malware', 'formdesc' => 'Mass-malware'),
 		'Medium' => array('desc' => '*medium* means APT malware', 'formdesc' => 'APT malware'),
 		'High' => array('desc' => '*high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Sophisticated APT malware or 0-day attack')
-	);
+	);*/
 
 	public $analysisDescriptions = array(
 		0 => array('desc' => '*Initial* means the event has just been created', 'formdesc' => 'Creation started'),
@@ -149,14 +149,14 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'risk' => array(
-				'rule' => array('inList', array('Undefined', 'Low','Medium','High')),
-				'message' => 'Options : Undefined, Low, Medium, High',
-				//'allowEmpty' => false,
-				'required' => true,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+		'threat_level_id' => array(
+			'notempty' => array(
+				'rule' => array('notempty'),
+				//'message' => 'Please specify threat level',
+				'required' => true
+			),
 		),
+
 		'distribution' => array(
 			'rule' => array('inList', array('0', '1', '2', '3')),
 			'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
@@ -262,6 +262,10 @@ class Event extends AppModel {
 			'conditions' => '',
 			'fields' => '',
 			'order' => ''
+		),
+		'ThreatLevel' => array(
+			'className' => 'ThreatLevel',
+			'foreignKey' => 'threat_level_id'
 		)
 	);
 
@@ -617,7 +621,7 @@ class Event extends AppModel {
 					$newTextBody = $response->body();
 					return 404;
 					break;
-				case '405': 
+				case '405':
 					return 405;
 					break;
 				case '403': // Not authorised
@@ -825,7 +829,7 @@ class Event extends AppModel {
 		// $conditions['AND'][] = array('Event.published =' => 1);
 		
 		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.risk', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked');
+		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked');
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id');
 			
@@ -833,6 +837,9 @@ class Event extends AppModel {
 			'recursive' => 0,
 			'fields' => $fields,
 			'contain' => array(
+				'ThreatLevel' => array(
+						'fields' => array('ThreatLevel.name')
+				),
 				'Attribute' => array(
 					'fields' => $fieldsAtt,
 					'conditions' => $conditionsAttributes,
@@ -867,11 +874,11 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	 public function csv($org, $isSiteAdmin, $eventid=0, $ignore=0, $attributeIDList = array()) {
-	 	$final = array();
+	public function csv($org, $isSiteAdmin, $eventid=0, $ignore=0, $attributeIDList = array()) {
+		$final = array();
 	 	
-	 	$attributeList = array();
-	 	$conditions = array();
+		$attributeList = array();
+		$conditions = array();
 	 	$econditions = array();
 	 	$this->recursive = -1;
 	 	// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
@@ -931,4 +938,149 @@ class Event extends AppModel {
 	 	}
 	 	return $attributes;
 	 }
+	 
+	public function sendAlertEmail($id, $org, $isSiteAdmin, $processId = null) {
+		$this->recursive = 1;
+		$event = $this->read(null, $id);
+		
+		// Initialise the Job class if we have a background process ID
+		// This will keep updating the process's progress bar
+		if ($processId) {
+			$this->Job = ClassRegistry::init('Job');
+		}
+		
+		// The mail body, h() is NOT needed as we are sending plain-text mails.
+		$body = "";
+		$body .= '----------------------------------------------' . "\n";
+		$appendlen = 20;
+		$body .= 'URL         : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
+		$body .= 'Event       : ' . $event['Event']['id'] . "\n";
+		$body .= 'Date        : ' . $event['Event']['date'] . "\n";
+		if ('true' == Configure::read('CyDefSIG.showorg')) {
+			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
+		}
+		$body .= 'Risk        : ' . $event['ThreatLevel']['name'] . "\n";
+		$body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
+		$body .= 'Info  : ' . "\n";
+		$body .= $event['Event']['info'] . "\n";
+		$user['org'] = $org;
+		$relatedEvents = $this->getRelatedEvents($user, $isSiteAdmin);
+		if (!empty($relatedEvents)) {
+			$body .= '----------------------------------------------' . "\n";
+			$body .= 'Related to : '. "\n";
+			foreach ($relatedEvents as &$relatedEvent) {
+				$body .= Configure::read('CyDefSIG.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
+			}
+			$body .= '----------------------------------------------' . "\n";
+		}
+		$body .= 'Attributes  :' . "\n";
+		$bodyTempOther = "";
+	
+		if (isset($event['Attribute'])) {
+			foreach ($event['Attribute'] as &$attribute) {
+				$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . "\n";
+				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
+					$bodyTempOther .= $line;
+				else $body .= $line;
+			}
+		}
+		if (!empty($bodyTempOther)) {
+			$body .= "\n";
+		}
+		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
+		$body .= '----------------------------------------------' . "\n";
+		// find out whether the event is private, to limit the alerted user's list to the org only
+		if ($event['Event']['distribution'] == 0) {
+			$eventIsPrivate = true;
+		} else {
+			$eventIsPrivate = false;
+		}
+		// sign the body
+		require_once 'Crypt/GPG.php';
+		try {
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
+			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+			//
+			// Build a list of the recipients that get a non-encrypted mail
+			// But only do this if it is allowed in the bootstrap.php file.
+			//
+			if ($eventIsPrivate) {
+			$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "", 'User.org =' => $event['Event']['org']);
+			} else {
+			$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "");
+			}
+				if ('false' == Configure::read('GnuPG.onlyencrypted')) {
+					$alertUsers = $this->User->find('all', array(
+							'conditions' => $conditions,
+							'recursive' => 0,
+					));
+					$max = count($alertUsers);
+					foreach ($alertUsers as $k => &$user) {
+					// prepare the the unencrypted email
+						$Email = new CakeEmail();
+						$Email->from(Configure::read('CyDefSIG.email'));
+						$Email->to($user['User']['email']);
+						$Email->subject("[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
+						$Email->emailFormat('text');	// both text or html
+						// send it
+						$Email->send($bodySigned);
+						$Email->reset();
+						if ($processId) {
+							$this->Job->saveField('progress', $k / $max * 50);
+						}
+					}
+				}
+					//
+					// Build a list of the recipients that wish to receive encrypted mails.
+					//
+				if ($eventIsPrivate) {
+					$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "", 'User.org =' => $event['Event']['org']);
+				} else {
+					$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "");
+				}
+	 			$alertUsers = $this->User->find('all', array(
+	 					'conditions' => $conditions,
+	 					'recursive' => 0,
+	 				)
+				);
+ 			// encrypt the mail for each user and send it separately
+ 			foreach ($alertUsers as &$user) {
+ 				// send the email
+ 				$Email = new CakeEmail();
+ 				$Email->from(Configure::read('CyDefSIG.email'));
+ 				$Email->to($user['User']['email']);
+ 				$Email->subject("[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
+ 				$Email->emailFormat('text');		// both text or html
+  					// import the key of the user into the keyring
+ 				// this is not really necessary, but it enables us to find
+ 				// the correct key-id even if it is not the same as the emailaddress
+ 				$keyImportOutput = $gpg->importKey($user['User']['gpgkey']);
+ 				// say what key should be used to encrypt
+ 				try {
+ 					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+ 					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
+  						$bodyEncSig = $gpg->encrypt($bodySigned, true);
+ 						$Email->send($bodyEncSig);
+ 				} catch (Exception $e){
+ 					// catch errors like expired PGP keys
+ 					$this->log($e->getMessage());
+ 					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
+ 				}
+ 				// If you wish to send multiple emails using a loop, you'll need
+ 				// to reset the email fields using the reset method of the Email component.
+ 				$Email->reset();
+ 				if ($processId) {
+ 					$this->Job->saveField('progress', ($k / $max * 50) + 50);
+ 				}
+ 			}
+		} catch (Exception $e){
+ 			// catch errors like expired PGP keys
+			$this->log($e->getMessage());
+ 			return $e->getMessage();
+ 		}
+ 
+ 	// LATER check if sending email succeeded and return appropriate result
+ 	return true;
+	}
 }

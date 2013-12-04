@@ -91,10 +91,14 @@
 							<?php endif; ?>
 							<li><a href="/admin/roles/index">List Roles</a></li>
 							<?php if($isSiteAdmin): ?>
-							<li class="divider"></li>
-							<li><a href="/admin/users/email">Contact Users</a></li>
-							<li class="divider"></li>
-							<li><a href="/pages/display/administration">Administrative tools</a></li>
+								<li class="divider"></li>
+								<li><a href="/admin/users/email">Contact Users</a></li>
+								<li class="divider"></li>
+								<li><a href="/pages/display/administration">Administrative tools</a></li>
+								<?php if (Configure::read('MISP.background_jobs')): ?>
+									<li class="divider"></li>
+									<li><a href="/jobs/index">Jobs</a></li>
+								<?php endif; ?>						
 							<?php endif; ?>
 						</ul>
 					</li>
