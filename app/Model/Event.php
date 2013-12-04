@@ -1083,4 +1083,137 @@ class Event extends AppModel {
  	// LATER check if sending email succeeded and return appropriate result
  	return true;
 	}
+	
+	public function sendContactEmail($id, $message, $all, $user, $isSiteAdmin) {
+		// fetch the event
+		$event = $this->read(null, $id);
+		$this->User = ClassRegistry::init('User');
+		if (!$all) {
+			//Insert extra field here: alertOrg or something, then foreach all the org members
+			//limit this array to users with contactalerts turned on!
+			$orgMembers = array();
+			$this->User->recursive = 0;
+			$temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert', 'id'));
+			foreach ($temp as $tempElement) {
+				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
+					array_push($orgMembers, $tempElement);
+				}
+			}
+		} else {
+			$orgMembers = $this->User->findAllById($event['Event']['user_id'], array('email', 'gpgkey'));
+		}
+	
+		// The mail body, h() is NOT needed as we are sending plain-text mails.
+		$body = "";
+		$body .= "Hello, \n";
+		$body .= "\n";
+		$body .= "Someone wants to get in touch with you concerning a MISP event. \n";
+		$body .= "\n";
+		$body .= "You can reach him at " . $user['User']['email'] . "\n";
+		if (!$user['User']['gpgkey'])
+			$body .= "His GPG/PGP key is added as attachment to this email. \n";
+		$body .= "\n";
+		$body .= "He wrote the following message: \n";
+		$body .= $message . "\n";
+		$body .= "\n";
+		$body .= "\n";
+		$body .= "The event is the following: \n";
+	
+		// print the event in mail-format
+		// LATER place event-to-email-layout in a function
+		$appendlen = 20;
+		$body .= 'URL		 : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
+		$body .= 'Event	   : ' . $event['Event']['id'] . "\n";
+		$body .= 'Date		: ' . $event['Event']['date'] . "\n";
+		if ('true' == Configure::read('CyDefSIG.showorg')) {
+			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
+		}
+		$body .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
+		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
+		$relatedEvents = $this->getRelatedEvents($user, $isSiteAdmin);
+		if (!empty($relatedEvents)) {
+			foreach ($relatedEvents as &$relatedEvent) {
+				$body .= 'Related to  : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
+	
+			}
+		}
+		$body .= 'Info  : ' . "\n";
+		$body .= $event['Event']['info'] . "\n";
+		$body .= "\n";
+		$body .= 'Attributes  :' . "\n";
+		$bodyTempOther = "";
+		if (!empty($event['Attribute'])) {
+			foreach ($event['Attribute'] as &$attribute) {
+				$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])) . ': ' . $attribute['value'] . "\n";
+				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
+					$bodyTempOther .= $line;
+				else $body .= $line;
+			}
+		}
+		$body .= "\n";
+		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
+		$Email = new CakeEmail();
+		// sign the body
+		require_once 'Crypt/GPG.php';
+		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
+		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+		$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+		// Add the GPG key of the user as attachment
+		// LATER sign the attached GPG key
+		if ($user['User']['gpgkey'] != null) {
+			// save the gpg key to a temporary file
+			$tmpfname = tempnam(TMP, "GPGkey");
+			$handle = fopen($tmpfname, "w");
+			fwrite($handle, $user['User']['gpgkey']);
+			fclose($handle);
+			// attach it
+			$Email->attachments(array(
+					'gpgkey.asc' => $tmpfname
+			));
+		}
+		foreach ($orgMembers as &$reporter) {
+			if (!empty($reporter['User']['gpgkey'])) {
+				// import the key of the user into the keyring
+				// this isn't really necessary, but it gives it the fingerprint necessary for the next step
+				$keyImportOutput = $gpg->importKey($reporter['User']['gpgkey']);
+				// say what key should be used to encrypt
+				try {
+				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+				$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
+	
+				$bodyEncSig = $gpg->encrypt($bodySigned, true);
+				} catch (Exception $e){
+				// catch errors like expired PGP keys
+					$this->log($e->getMessage());
+					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
+				}
+			} else {
+				$bodyEncSig = $bodySigned;
+				// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
+			}
+			$Email->from(Configure::read('CyDefSIG.email'));
+			$Email->replyTo($user['User']['email']);
+			$Email->to($reporter['User']['email']);
+			$Email->subject("[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Need info about event " . $id . " - TLP Amber");
+			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
+			$Email->emailFormat('text');		// both text or html
+
+			// Add the GPG key of the user as attachment
+			// LATER sign the attached GPG key
+			if ($user['User']['gpgkey'] != null) {
+				// attach the gpg key
+				$Email->attachments(array(
+					'gpgkey.asc' => $tmpfname
+				));
+			}
+			// send it
+			$result = $Email->send($bodyEncSig);
+			// If you wish to send multiple emails using a loop, you'll need
+			// to reset the email fields using the reset method of the Email component.
+			$Email->reset();
+		}
+		// remove the temporary gpg file
+		if ($user['User']['gpgkey'] != null) unlink($tmpfname);
+		return $result;
+	}
 }

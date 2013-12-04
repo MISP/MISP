@@ -22,7 +22,7 @@
 		echo $this->fetch('css');
 		echo $this->fetch('script');
 
-		echo $this->Html->script('jquery-1.9.1.min'); // Include jQuery library
+		echo $this->Html->script('jquery-2.0.3.min'); // Include jQuery library
 	?>
 
 <!--?php echo $scripts_for_layout; ?-->

@@ -23,6 +23,7 @@ class JobsController extends AppController {
 	
 	public function index() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if (!Configure::read('MISP.background_jobs')) throw new NotFoundException('Background jobs are not enabled on this instance.');
 		$this->recursive = 0;
 		$this->set('list', $this->paginate());
 	}
@@ -100,24 +101,4 @@ class JobsController extends AppController {
 		);
 		return new CakeResponse(array('body' => json_encode($id)));
 	}
-	
-	public function sendAlertEmail($id) {
-		$this->Job->create();
-		$data = array(
-			'worker' => 'default',
-			'job_type' => 'contact_alert',
-			'job_input' => 'Event: ' . $id,
-			'status' => 0,
-			'retries' => 0,
-			'org' => $this->Auth->user('org'),
-			'message' => 'Fetching events.',
-		);
-		$this->Job->save($data);
-		$jobId = $this->Job->id;
-		$result = CakeResque::enqueue(
-			'default',
-			'EventShell',
-			array('alertemail', $this->Auth->user('org'), $this->_isSiteAdmin(), $jobId, $id)
-		);
-	}	
 }
