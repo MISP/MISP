@@ -1952,4 +1952,39 @@ class EventsController extends AppController {
 		}
 		$this->_add($data, false);
 	}
+	
+	public function proposalEventIndex() {
+		$this->loadModel('ShadowAttribute');
+		$this->ShadowAttribute->recursive = -1;
+		$result = $this->ShadowAttribute->find('all', array(
+				'fields' => array('event_id'),
+				'group' => 'event_id',
+				'conditions' => array(
+						'ShadowAttribute.event_org =' => $this->Auth->user('org'),
+				)));
+		$this->Event->recursive = -1;
+		$conditions = array();
+		foreach ($result as $eventId) {
+				$conditions['OR'][] = array('Event.id =' => $eventId['ShadowAttribute']['event_id']);
+		}
+		$this->paginate = array(
+				'conditions' => $conditions,
+				'contain' => array(
+					'ThreatLevel' => array(
+							'fields' => array(
+							'ThreatLevel.name')),
+					'User' => array(
+							'fields' => array(
+								'User.email'	
+					)),
+					'ShadowAttribute'=> array(
+						'fields' => array(
+							'ShadowAttribute.id'
+					)),
+		));
+		$this->set('events', $this->paginate());
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		$this->set('analysisLevels', $this->Event->analysisLevels);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
+	}
 }

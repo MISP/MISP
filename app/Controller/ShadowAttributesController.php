@@ -662,12 +662,25 @@ class ShadowAttributesController extends AppController {
 				'conditions' => $conditions,
 				'fields' => array('id', 'org', 'old_id'),
 				'contain' => array(
-						'Event' =>array(
+						'Event' => array(
 								'fields' => array('id', 'org', 'info', 'orgc'),
 						),
 				),
 				'recursive' => 1	
 		);
 		$this->set('shadowAttributes', $this->paginate());
+	}
+	
+	public function eventIndex() {
+		$result = $this->ShadowAttribute->find('all', array(
+			'fields' => array('event_id'),
+			'group' => 'event_id',
+			'conditions' => array(
+				'ShadowAttribute.event_org =' => $this->Auth->user('org'),			
+		)));
+		$this->loadModel('Event');
+		foreach ($result as $eventId) {
+			
+		}
 	}
 }

@@ -21,6 +21,13 @@
 				'error' => array('escape' => false),
 				'class' => 'input-xxlarge clear'
 		));
+		echo $this->Form->input('comment', array(
+				'type' => 'text',
+				'label' => 'Contextual Comment',
+				'error' => array('escape' => false),
+				'div' => 'input clear',
+				'class' => 'input-xxlarge'
+		));
 		?>
 		<div class="input clear"></div>
 		<?php

@@ -138,6 +138,9 @@ class AppController extends Controller {
 			$this->debugMode = 'debugOff';
 		}
 		$this->set('debugMode', $this->debugMode);
+		$proposalCount = $this->_getProposalCount();
+		$this->set('proposalCount', $proposalCount[0]);
+		$this->set('proposalEventCount', $proposalCount[1]);
 	}
 
 	public $userRole = null;
@@ -156,6 +159,23 @@ class AppController extends Controller {
 		return (isset($this->RequestHandler) && ($this->RequestHandler->isXml() || $this->isJson()));
 	}
 
+	private function _getProposalCount() {
+		$this->loadModel('ShadowAttribute');
+		$this->ShadowAttribute->recursive = -1;
+		$shadowAttributes = $this->ShadowAttribute->find('all', array(
+				'conditions' => array( 
+					'ShadowAttribute.event_org' => $this->Auth->user('org')
+		)));
+		$results = array();
+		$eventIds = array();
+		$results[0] = count($shadowAttributes);
+		foreach ($shadowAttributes as $sa) {
+			if (!in_array($sa['ShadowAttribute']['event_id'], $eventIds)) $eventIds[] = $sa['ShadowAttribute']['event_id'];
+		}
+		$results[1] = count($eventIds);
+		return $results;
+	}
+	
 /**
  * Convert an array to the same array but with the values also as index instead of an interface_exists
  */

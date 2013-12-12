@@ -52,6 +52,7 @@
 					<?php endif; ?>
 					<li class="divider"></li>
 					<li <?php if ($menuItem === 'viewProposals') echo 'class="active";'?>><a href="/shadow_attributes/index">View Proposals</a></li>
+					<li <?php if ($menuItem === 'viewProposalIndex') echo 'class="active";'?>><a href="/events/proposalEventIndex">Events with proposals</a></li>
 					<li class="divider"></li>
 					<li <?php if ($menuItem === 'export') echo 'class="active";'?>><a href="/events/export">Export</a></li>
 					<?php if ($isAclAuth): ?>

@@ -22,6 +22,7 @@
 							<li><a href="/attributes/search">Search Attributes</a></li>
 							<li class="divider"></li>
 							<li><a href="/shadow_attributes/index">View Proposals</a></li>
+							<li><a href="/events/proposalEventIndex">Events with proposals</a></li>
 							<li class="divider"></li>
 							<li><a href="/events/export">Export</a></li>
 							<?php if ($isAclAuth): ?>
@@ -136,6 +137,11 @@
 
 			<div class="nav-collapse collapse pull-right" style="margin-top:10px">
 				<div class="nav" style="font-weight:bold">
+					<?php if ($proposalCount > 0): ?>
+						<span class="proposal_span"><a href="/events/proposalEventIndex" class="proposal_link"><?php echo $proposalCount . ' proposals in ' . $proposalEventCount; ?> events</a></span>
+					<?php else: ?>
+						<span><a href="/events/proposalEventIndex" class="proposal_link"><?php echo $proposalCount . ' proposals in ' . $proposalEventCount; ?> events</a></span>
+					<?php endif;?>
 					<span class="logoBlue">M</span><span class="logoGray">alware</span>
 					<span class="logoBlue">I</span><span class="logoGray">nformation </span>
 					<span class="logoBlue">S</span><span class="logoGray">haring</span>
