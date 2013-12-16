@@ -870,12 +870,7 @@ class AttributesController extends AppController {
 								if (preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($saveWord, 2))) {
 									$cidrresults = $this->CIDR($saveWord);
 									foreach ($cidrresults as $result) {
-										$partCount = explode('.', $result);
-										if (count($partCount) < 4) { 
-											array_push($temp2, array('Attribute.value NOT LIKE' => $result . '%'));
-										} else {
-											array_push($temp2, array('Attribute.value NOT LIKE' => $result));
-										}
+										array_push($temp2, array('Attribute.value NOT LIKE' => $result));
 									}
 								} else {
 									array_push($temp2, array('Attribute.value NOT LIKE' => '%' . substr($keywordArrayElement, 2)));
@@ -884,12 +879,7 @@ class AttributesController extends AppController {
 								if (preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', $saveWord)) {
 									$cidrresults = $this->CIDR($saveWord);
 									foreach ($cidrresults as $result) {
-										$partCount = explode('.', $result);
-										if (count($partCount) < 4) {
-											array_push($temp, array('Attribute.value LIKE' => $result . '%'));
-										} else {
-											array_push($temp, array('Attribute.value LIKE' => $result));
-										}
+										array_push($temp, array('Attribute.value LIKE' => $result));
 									}
 								} else {
 									array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
@@ -1124,7 +1114,7 @@ class AttributesController extends AppController {
 		$length = $i;
 		for ($i = 0; $i < ($searchTermMax - $searchTermMin + 1); $i++) {
 			$results[$i] = $searchTermLeft . ($searchTermMin + $i);
-			if ($length < 4) $results[$i] .= '.';
+			if ($length < 3) $results[$i] .= '.%';
 		}
 		return $results;
 	}
