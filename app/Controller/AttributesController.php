@@ -867,9 +867,33 @@ class AttributesController extends AppController {
 						$keywordArrayElement = '%' . trim($keywordArrayElement) . '%';
 						if ($keywordArrayElement != '%%') {
 							if ($keywordArrayElement[1] == '!') {
-								array_push($temp2, array('Attribute.value NOT LIKE' => '%' . substr($keywordArrayElement, 2)));
+								if (preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($saveWord, 2))) {
+									$cidrresults = $this->CIDR($saveWord);
+									foreach ($cidrresults as $result) {
+										$partCount = explode('.', $result);
+										if (count($partCount) < 4) { 
+											array_push($temp2, array('Attribute.value NOT LIKE' => $result . '%'));
+										} else {
+											array_push($temp2, array('Attribute.value NOT LIKE' => $result));
+										}
+									}
+								} else {
+									array_push($temp2, array('Attribute.value NOT LIKE' => '%' . substr($keywordArrayElement, 2)));
+								}
 							} else {
-								array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+								if (preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', $saveWord)) {
+									$cidrresults = $this->CIDR($saveWord);
+									foreach ($cidrresults as $result) {
+										$partCount = explode('.', $result);
+										if (count($partCount) < 4) {
+											array_push($temp, array('Attribute.value LIKE' => $result . '%'));
+										} else {
+											array_push($temp, array('Attribute.value LIKE' => $result));
+										}
+									}
+								} else {
+									array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+								}
 							}
 						}
 						if ($i == 1 && $saveWord != '') $keyWordText = $saveWord;
@@ -1067,5 +1091,41 @@ class AttributesController extends AppController {
 		if (!self::_isAdmin()) throw new NotFoundException();
 
 		$this->set('fails', $this->Attribute->checkComposites());
+	}
+	
+	public function CIDR($cidr) {
+		list($address, $prefix) = explode('/', $cidr, 2);
+		$address = decbin(ip2long($address));
+		$address = substr("00000000000000000000000000000000",0,32 - strlen($address)) . $address;
+		$min = '';
+		$max = '';
+		for ($i = 0; $i < $prefix; $i++) {
+			$min .= $address[$i];
+		}
+		$max = $min;
+		$min = str_pad($min, 32, '0', STR_PAD_RIGHT);
+		$max = str_pad($max, 32, '1', STR_PAD_RIGHT);
+		$minArray = array();
+		$maxArray = array();
+		$searchTermLeft = '';
+		$searchTermMin = 0;
+		$searchTermMax = 0;
+		$results = array();
+		for ($i = 0; $i < 4; $i++) {
+			$minArray[] = bindec(substr($min, ($i*8), 8));
+			$maxArray[] = bindec(substr($max, ($i*8), 8));
+			if ($minArray[$i] === $maxArray[$i]) $searchTermLeft .= $minArray[$i] . '.';
+			else {
+				$searchTermMin = $minArray[$i];
+				$searchTermMax = $maxArray[$i];
+				break;
+			}
+		}
+		$length = $i;
+		for ($i = 0; $i < ($searchTermMax - $searchTermMin + 1); $i++) {
+			$results[$i] = $searchTermLeft . ($searchTermMin + $i);
+			if ($length < 4) $results[$i] .= '.';
+		}
+		return $results;
 	}
 }
