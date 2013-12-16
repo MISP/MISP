@@ -67,6 +67,12 @@ For example, in order to search for all attributes created by your organisation 
 	echo Configure::read('CyDefSIG.baseurl').'/attributes/restSearch/'.$me['authkey'].'/192.168&&127.0&&!0.1/ip-src/null/' . $me['org'];
 ?>
 </pre>
+<p>You can also use search for IP addresses using CIDR. Make sure that you use '|' (pipe) instead of '/' (slashes). See below for an example: </p>
+<pre>
+<?php
+	echo Configure::read('CyDefSIG.baseurl').'/attributes/restSearch/'.$me['authkey'].'/192.168.1.1|16/ip-src/null/' . $me['org'];
+?>
+</pre>
 
 <h3>Export attributes of event with specified type as XML</h3>
 <p>If you want to export all attributes of a pre-defined type that belong to an event, use the following syntax:</p>
