@@ -10,7 +10,7 @@ App::uses('File', 'Utility');
  */
 class AttributesController extends AppController {
 
-	public $components = array('Security', 'RequestHandler');
+	public $components = array('Security', 'RequestHandler', 'Cidr');
 
 	public $paginate = array(
 			'limit' => 60,
@@ -873,9 +873,23 @@ class AttributesController extends AppController {
 						$keywordArrayElement = '%' . trim($keywordArrayElement) . '%';
 						if ($keywordArrayElement != '%%') {
 							if ($keywordArrayElement[1] == '!') {
-								array_push($temp2, array('Attribute.value NOT LIKE' => '%' . substr($keywordArrayElement, 2)));
+								if (preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($saveWord, 2))) {
+									$cidrresults = $this->Cidr->CIDR($saveWord);
+									foreach ($cidrresults as $result) {
+										array_push($temp2, array('Attribute.value NOT LIKE' => $result));
+									}
+								} else {
+									array_push($temp2, array('Attribute.value NOT LIKE' => '%' . substr($keywordArrayElement, 2)));
+								}
 							} else {
-								array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+								if (preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', $saveWord)) {
+									$cidrresults = $this->Cidr->CIDR($saveWord);
+									foreach ($cidrresults as $result) {
+										array_push($temp, array('Attribute.value LIKE' => $result));
+									}
+								} else {
+									array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+								}
 							}
 						}
 						if ($i == 1 && $saveWord != '') $keyWordText = $saveWord;
@@ -1086,6 +1100,7 @@ class AttributesController extends AppController {
 		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
+		$value = str_replace('|', '/', $value);
 		$this->response->type('xml');	// set the content type
 		$this->layout = 'xml/default';
 		$this->header('Content-Disposition: download; filename="misp.search.attribute.results.xml"');
@@ -1095,15 +1110,37 @@ class AttributesController extends AppController {
 		// add the values as specified in the 2nd parameter to the conditions
 		$values = explode('&&', $value);
 		$parameters = array('value', 'type', 'category', 'org');
-
+		
 		foreach ($parameters as $k => $param) {
 			if (isset(${$parameters[$k]})) {
 				$elements = explode('&&', ${$parameters[$k]});
 				foreach($elements as $v) {
 					if (substr($v, 0, 1) == '!') {
-						$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+						if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
+							$cidrresults = $this->Cidr->CIDR(substr($v, 1));
+							foreach ($cidrresults as $result) {
+								$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
+							}
+						} else {
+							if ($parameters[$k] === 'org') {
+								$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+							} else {
+								$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+							}
+						}
 					} else {
-						$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+						if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
+							$cidrresults = $this->Cidr->CIDR($v);
+							foreach ($cidrresults as $result) {
+								$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
+							}
+						} else {
+							if ($parameters[$k] === 'org') {
+								$subcondition['OR'][] = array('Event.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+							} else {
+								$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+							}
+						}
 					}
 				}
 				array_push ($conditions['AND'], $subcondition);
@@ -1266,9 +1303,4 @@ class AttributesController extends AppController {
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		$this->set('attributes', $attributes);
 	}
-	
-	public function tester () {
-		debug($this->Attribute->nids(true, 'ADMIN', 'suricata', 1111));
-	}
-	
 }

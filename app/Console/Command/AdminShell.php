@@ -28,7 +28,6 @@ class AdminShell extends AppShell
 		foreach ($attributes as $k => $attribute) {
 			$this->Job->saveField('progress', $k/$total*100);
 			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
-			sleep(1);
 		}
 		$this->Job->saveField('progress', 100);
 		$this->Job->saveField('message', 'Job done.');

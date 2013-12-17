@@ -25,7 +25,32 @@ class JobsController extends AppController {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!Configure::read('MISP.background_jobs')) throw new NotFoundException('Background jobs are not enabled on this instance.');
 		$this->recursive = 0;
-		$this->set('list', $this->paginate());
+		$jobs = $this->paginate();
+		foreach($jobs as &$job) {
+			if ($job['Job']['process_id']) {
+				$job['Job']['status'] = $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id']));
+			} else {
+				$job['Job']['status'] = '???';
+			}
+		}
+		$this->set('list', $jobs);
+	}
+	
+	private function __jobStatusConverter($status) {
+		switch ($status) {
+			case 1:
+				return 'In progress...';
+				break;
+			case 2:
+				return 'Unknown';
+				break;
+			case 3:
+				return 'Unknown';
+				break;
+			case 4:
+				return 'Completed';
+				break;
+		}
 	}
 	
 	public function getGenerateCorrelationProgress($id) {
@@ -71,7 +96,7 @@ class JobsController extends AppController {
 		$shell = 'Event';
 		$this->Job->create();
 		$data = array(
-			'worker' => 'default',
+			'worker' => 'cache',
 			'job_type' => 'cache_' . $type,
 			'job_input' => $target,
 			'status' => 0,
@@ -94,11 +119,21 @@ class JobsController extends AppController {
 		}
 		$this->Job->save($data);
 		$id = $this->Job->id;
-		CakeResque::enqueue(
-			'default',
+		$process_id = CakeResque::enqueue(
+			'cache',
 			$shell . 'Shell',
-			array('cache' . $type, $this->Auth->user('org'), $this->_isSiteAdmin(), $id, $extra, $extra2)
+			array('cache' . $type, $this->Auth->user('org'), $this->_isSiteAdmin(), $id, $extra, $extra2),
+			true
 		);
+		$this->Job->saveField('process_id', $process_id);
 		return new CakeResponse(array('body' => json_encode($id)));
+	}
+	
+	public function jobScheduler() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+	}
+	
+	public function stopWorker() {
+		debug(CakeResque::getFailedJobLog('323c143da4e12cf682554c4a8742f412'));
 	}
 }

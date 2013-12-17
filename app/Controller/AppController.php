@@ -163,6 +163,8 @@ class AppController extends Controller {
 		$this->loadModel('ShadowAttribute');
 		$this->ShadowAttribute->recursive = -1;
 		$shadowAttributes = $this->ShadowAttribute->find('all', array(
+				'recursive' => -1,
+				'fields' => array('event_id', 'event_org'),
 				'conditions' => array( 
 					'ShadowAttribute.event_org' => $this->Auth->user('org')
 		)));
@@ -219,16 +221,23 @@ class AppController extends Controller {
 		$this->Auth->login($user['User']);
 	}
 
+	
 	public function queuegenerateCorrelation() {
 		if (!$this->_isSiteAdmin()) throw new NotFoundException();
-		CakeResque::enqueue(
+		$process_id = CakeResque::enqueue(
 			'default',
 			'AdminShell',
-			array('jobGenerateCorrelation')					
+			array('jobGenerateCorrelation'),
+			true				
 		);
+		debug($process_id);
+		debug(CakeResque::getJobStatus($process_id));
+		debug(CakeResque::getJobStatus('f80f51ee76dd22194a0dd6cd28c15f46'));
+		throw new Exception();
 		$this->Session->setFlash('Job queued.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
+	
 	public function generateCorrelation() {
 		$this->loadModel('Correlation');
 		$this->Correlation->deleteAll(array('id !=' => ''), false);

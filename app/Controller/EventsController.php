@@ -1055,11 +1055,12 @@ class EventsController extends AppController {
 			);
 			$this->Job->save($data);
 			$jobId = $this->Job->id;
-			$result = CakeResque::enqueue(
+			$process_id = CakeResque::enqueue(
 					'default',
 					'EventShell',
 					array('alertemail', $this->Auth->user('org'), $this->_isSiteAdmin(), $jobId, $id)
 			);
+			$this->Job->saveField('process_id', $process_id);
 			return true;
 		} else {
 			return ($this->Event->sendAlertEmail($id, $this->Auth->user('org'), $this->_isSiteAdmin()));
