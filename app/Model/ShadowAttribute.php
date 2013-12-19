@@ -64,7 +64,8 @@ class ShadowAttribute extends AppModel {
 			IF (ShadowAttribute.category="Network activity", "g",
 			IF (ShadowAttribute.category="Payload type", "h",
 			IF (ShadowAttribute.category="Attribution", "i",
-			IF (ShadowAttribute.category="External analysis", "j", "k"))))))))))'
+			IF (ShadowAttribute.category="Attribution", "j",
+			IF (ShadowAttribute.category="External analysis", "k", "l")))))))))))'
 	); // TODO hardcoded
 
 /**
@@ -124,7 +125,13 @@ class ShadowAttribute extends AppModel {
 			'text' => array('desc' => 'Name, ID or a reference'),
             'named pipe' => array('desc' => 'Named pipe, use the format \\.\pipe\<PipeName>'),
             'mutex' => array('desc' => 'Mutex, use the format \BaseNamedObjects\<Mutex>'),
-			'other' => array('desc' => 'Other attribute')
+			'other' => array('desc' => 'Other attribute'),
+			'target-user' => array('desc' => 'Attack Targets Username(s)'),
+			'target-email' => array('desc' => 'Attack Targets Email(s)'),
+			'target-machine' => array('desc' => 'Attack Targets Machine Name(s)'),
+			'target-org' => array('desc' => 'Attack Targets Department or Orginization(s)'),
+			'target-location' => array('desc' => 'Attack Targets Physical Location(s)'),
+			'target-external' => array('desc' => 'External Target Orginizations Affected by this Attack'),
 	);
 
 	// definitions of categories
@@ -133,6 +140,11 @@ class ShadowAttribute extends AppModel {
 					'desc' => 'Reference used by the publishing party (e.g. ticket number)',
 					'types' => array('link', 'comment', 'text', 'other')
 					),
+			'Targeting data' => array(
+					'desc' => 'Internal Attack Targeting and Compromise Information',
+					'formdesc' => 'Targeting information to include recipient email, infected machines, department, and or locations.<br/>',
+					'types' => array('target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'comment')
+			),
 			'Antivirus detection' => array(
 					'desc' => 'All the info about how the malware is detected by the antivirus products',
 					'formdesc' => 'List of anti-virus vendors detecting the malware or information on detection performance (e.g. 13/43 or 67%).<br/>Attachment with list of detection or link to VirusTotal could be placed here as well.',
@@ -213,6 +225,7 @@ class ShadowAttribute extends AppModel {
 		'category' => array(
 			'rule' => array('inList', array(
 							'Internal reference',
+							'Targeting data',
 							'Antivirus detection',
 							'Payload delivery',
 							'Payload installation',
@@ -551,6 +564,42 @@ class ShadowAttribute extends AppModel {
 			case 'other':
 				$returnValue = true;
 				break;
+			case 'target-user':
+				// no newline
+				if (!preg_match("#\n#", $value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'target-email':
+				if (preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value)) {
+					$returnValue = true;
+				} else {
+					$returnValue = 'Email address has invalid format. Please double check the value or select "other" for a type.';
+				}
+				break;
+			case 'target-machine':
+				// no newline
+				if (!preg_match("#\n#", $value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'target-org':
+				// no newline
+				if (!preg_match("#\n#", $value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'target-location':
+				// no newline
+				if (!preg_match("#\n#", $value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'target-external':
+				// no newline
+				if (!preg_match("#\n#", $value)) {
+					$returnValue = true;
+				}
 		}
 
 		return $returnValue;
