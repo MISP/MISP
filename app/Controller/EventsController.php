@@ -1811,7 +1811,7 @@ class EventsController extends AppController {
 		//$event['Attribute'] = $this->Whitelist->removeWhitelistedFromArray($event['Attribute'], false);
 		// set up helper variables for the authorisation check in the component
 		$isMyEvent = false;
-		if ($this->Auth->User == $event['Event']['org']) $isMyEvent = true;
+		if ($this->Auth->User('org') == $event['Event']['org']) $isMyEvent = true;
 		$isSiteAdmin = $this->_isSiteAdmin();
 
 		// send the event and the vars needed to check authorisation to the Component
