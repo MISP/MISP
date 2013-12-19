@@ -7,8 +7,10 @@ class IOCExportComponent extends Component {
 	public function buildAll($event, $isSiteAdmin, $isMyEvent) {
 		$temp = array();
 		if (!$isSiteAdmin) {
-			if ($event['Event']['distribution'] == 1 && !$isMyEvent && !isSiteAdmin) {
+			if (!$isMyEvent) {
+				if ($event['Event']['distribution'] == 0) {
 				throw new Exception('Nothing to see here (not authorised)');
+				}
 			}
 		}
 		$this->__buildTop($event);
