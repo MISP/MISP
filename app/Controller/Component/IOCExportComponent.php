@@ -8,7 +8,9 @@ class IOCExportComponent extends Component {
 		$temp = array();
 		if (!$isSiteAdmin) {
 			if (!$isMyEvent) {
+				if ($event['Event']['distribution'] == 0) {
 				throw new Exception('Nothing to see here (not authorised)');
+				}
 			}
 		}
 		$this->__buildTop($event);
