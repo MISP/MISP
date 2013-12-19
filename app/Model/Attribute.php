@@ -42,15 +42,16 @@ class Attribute extends AppModel {
 	public $virtualFields = array(
 			'value' => 'IF (Attribute.value2="", Attribute.value1, CONCAT(Attribute.value1, "|", Attribute.value2))',
 			'category_order' => 'IF (Attribute.category="Internal reference", "a",
-			IF (Attribute.category="Antivirus detection", "b",
-			IF (Attribute.category="Payload delivery", "c",
-			IF (Attribute.category="Payload installation", "d",
-			IF (Attribute.category="Artifacts dropped", "e",
-			IF (Attribute.category="Persistence mechanism", "f",
-			IF (Attribute.category="Network activity", "g",
-			IF (Attribute.category="Payload type", "h",
-			IF (Attribute.category="Attribution", "i",
-			IF (Attribute.category="External analysis", "j", "k"))))))))))'
+			IF (Attribute.category="Targeting data", "b",
+ 			IF (Attribute.category="Antivirus detection", "c",
+ 			IF (Attribute.category="Payload delivery", "d",
+ 			IF (Attribute.category="Payload installation", "e",
+ 			IF (Attribute.category="Artifacts dropped", "f",
+ 			IF (Attribute.category="Persistence mechanism", "g",
+ 			IF (Attribute.category="Network activity", "h",
+ 			IF (Attribute.category="Payload type", "i",
+ 			IF (Attribute.category="Attribution", "j",
+ 			IF (Attribute.category="External analysis", "k", "l")))))))))))'
 	); // TODO hardcoded
 
 /**
@@ -126,6 +127,12 @@ class Attribute extends AppModel {
 			'other' => array('desc' => 'Other attribute'),
 			'named pipe' => array('desc' => 'Named pipe, use the format \\.\pipe\<PipeName>'),
 			'mutex' => array('desc' => 'Mutex, use the format \BaseNamedObjects\<Mutex>'),
+ 			'target-user' => array('desc' => 'Attack Targets Username(s)'),
+ 			'target-email' => array('desc' => 'Attack Targets Email(s)'),
+ 			'target-machine' => array('desc' => 'Attack Targets Machine Name(s)'),
+ 			'target-org' => array('desc' => 'Attack Targets Department or Orginization(s)'),
+ 			'target-location' => array('desc' => 'Attack Targets Physical Location(s)'),
+ 			'target-external' => array('desc' => 'External Target Orginizations Affected by this Attack'),
 	);
 
 	// definitions of categories
@@ -134,6 +141,11 @@ class Attribute extends AppModel {
 					'desc' => 'Reference used by the publishing party (e.g. ticket number)',
 					'types' => array('link', 'comment', 'text', 'other')
 					),
+ 			'Targeting data' => array(
+ 					'desc' => 'Internal Attack Targeting and Compromise Information',
+ 					'formdesc' => 'Targeting information to include recipient email, infected machines, department, and or locations.<br/>',
+ 					'types' => array('target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'comment')
+ 					),
 			'Antivirus detection' => array(
 					'desc' => 'All the info about how the malware is detected by the antivirus products',
 					'formdesc' => 'List of anti-virus vendors detecting the malware or information on detection performance (e.g. 13/43 or 67%). Attachment with list of detection or link to VirusTotal could be placed here as well.',
@@ -214,6 +226,7 @@ class Attribute extends AppModel {
 		'category' => array(
 			'rule' => array('inList', array(
 							'Internal reference',
+							'Targeting data',
 							'Antivirus detection',
 							'Payload delivery',
 							'Payload installation',
@@ -675,6 +688,42 @@ class Attribute extends AppModel {
 			case 'other':
 				$returnValue = true;
 				break;
+ 			case 'target-user':
+ 				// no newline
+ 				if (!preg_match("#\n#", $value)) {
+ 					$returnValue = true;
+ 				}
+ 				break;
+ 			case 'target-email':
+ 				if (preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value)) {
+ 					$returnValue = true;
+ 				} else {
+ 					$returnValue = 'Email address has invalid format. Please double check the value or select "other" for a type.';
+ 				}
+ 				break;
+ 			case 'target-machine':
+ 				// no newline
+ 				if (!preg_match("#\n#", $value)) {
+ 					$returnValue = true;
+ 				}
+ 				break;
+ 			case 'target-org':
+ 				// no newline
+ 				if (!preg_match("#\n#", $value)) {
+ 					$returnValue = true;
+ 				}
+ 				break;
+ 			case 'target-location':
+ 				// no newline
+ 				if (!preg_match("#\n#", $value)) {
+ 					$returnValue = true;
+ 				}
+ 				break;
+ 			case 'target-external':
+ 				// no newline
+ 				if (!preg_match("#\n#", $value)) {
+ 					$returnValue = true;
+ 				}
 		}
 		return $returnValue;
 	}
