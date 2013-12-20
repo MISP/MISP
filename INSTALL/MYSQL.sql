@@ -294,34 +294,36 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
 -- Default values for initial installation
 --
 
-INSERT INTO `regexp`
-  (`regexp`, `replacement`)
-VALUES
-  ('/.:.ProgramData./i','%ALLUSERSPROFILE%\\\\'),
-  ('/.:.Documents and Settings.All Users./i','%ALLUSERSPROFILE%\\\\'),
-  ('/.:.Program Files.Common Files./i','%COMMONPROGRAMFILES%\\\\'),
-  ('/.:.Program Files \(x86\).Common Files./i','%COMMONPROGRAMFILES(x86)%\\\\'),
-  ('/.:.Users.(\\w+).AppData.Local.Temp./i','%TEMP%\\\\'),
-  ('/.:.ProgramData./i','%PROGRAMDATA%\\\\'),
-  ('/.:.Program Files./i','%PROGRAMFILES%\\\\'),
-  ('/.:.Program Files \(x86\)./i','%PROGRAMFILES(X86)%\\\\'),
-  ('/.:.Users.Public./i','%PUBLIC%\\\\'),
-  ('/.:.Documents and Settings.(\\w+).Local Settings.Temp./i','%TEMP%\\\\'),
-  ('/.:.Users.(\\w+).AppData.Local.Temp./i','%TEMP%\\\\'),
-  ('/.:.Users.(\\w+).AppData.Local./i','%LOCALAPPDATA%\\\\'),
-  ('/.:.Users.(\\w+).AppData.Roaming./i','%APPDATA%\\\\'),
-  ('/.:.Users.(\\w+).Application Data./i','%APPDATA%\\\\'),
-  ('/.:.Windows.(\\w+).Application Data./i','%APPDATA%\\\\'),
-  ('/.:.Users.(\\w+)./i','%USERPROFILE%\\\\'),
-  ('/.:.DOCUME~1.(\\w+)./i','%USERPROFILE%\\\\'),
-  ('/.:.Documents and Settings.(\\w+)./i','%USERPROFILE%\\\\'),
-  ('/.:.Windows./i','%WINDIR%\\\\'),
-  ('/.:.Windows./i','%WINDIR%\\\\'),
-  ('/.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{9}){1}(-[0-9]{10}){1}-[0-9]{9}-[0-9]{4}/i','HKCU'),
-  ('/.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){2}-[0-9]{9}-[0-9]{4}/i','HKCU'),
-  ('/.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){3}-[0-9]{4}/i','HKCU'),
-  ('/.REGISTRY.MACHINE./i','HKLM\\\\'),
-  ('/.Registry.Machine./i','HKLM\\\\');
+INSERT INTO `regexp` (`id`, `regexp`, `replacement`, `type`) VALUES
+(1, '/.:.ProgramData./i', '%ALLUSERSPROFILE%\\\\', 'ALL'),
+(2, '/.:.Documents and Settings.All Users./i', '%ALLUSERSPROFILE%\\\\', 'ALL'),
+(3, '/.:.Program Files.Common Files./i', '%COMMONPROGRAMFILES%\\\\', 'ALL'),
+(4, '/.:.Program Files (x86).Common Files./i', '%COMMONPROGRAMFILES(x86)%\\\\', 'ALL'),
+(5, '/.:.Users\\\\(.*?)\\\\AppData.Local.Temp./i', '%TEMP%\\\\', 'ALL'),
+(6, '/.:.ProgramData./i', '%PROGRAMDATA%\\\\', 'ALL'),
+(7, '/.:.Program Files./i', '%PROGRAMFILES%\\\\', 'ALL'),
+(8, '/.:.Program Files (x86)./i', '%PROGRAMFILES(X86)%\\\\', 'ALL'),
+(9, '/.:.Users.Public./i', '%PUBLIC%\\\\', 'ALL'),
+(10, '/.:.Documents and Settings\\\\(.*?)\\\\Local Settings.Temp./i', '%TEMP%\\\\', 'ALL'),
+(11, '/.:.Users\\\\(.*?)\\\\AppData.Local.Temp./i', '%TEMP%\\\\', 'ALL'),
+(12, '/.:.Users\\\\(.*?)\\\\AppData.Local./i', '%LOCALAPPDATA%\\\\', 'ALL'),
+(13, '/.:.Users\\\\(.*?)\\\\AppData.Roaming./i', '%APPDATA%\\\\', 'ALL'),
+(14, '/.:.Users\\\\(.*?)\\\\Application Data./i', '%APPDATA%\\\\', 'ALL'),
+(15, '/.:.Windows\\\\(.*?)\\\\Application Data./i', '%APPDATA%\\\\', 'ALL'),
+(16, '/.:.Users\\\\(.*?)\\\\/i', '%USERPROFILE%\\\\', 'ALL'),
+(17, '/.:.DOCUME~1.\\\\(.*?)\\\\/i', '%USERPROFILE%\\\\', 'ALL'),
+(18, '/.:.Documents and Settings\\\\(.*?)\\\\/i', '%USERPROFILE%\\\\', 'ALL'),
+(19, '/.:.Windows./i', '%WINDIR%\\\\', 'ALL'),
+(20, '/.:.Windows./i', '%WINDIR%\\\\', 'ALL'),
+(21, '/.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{9}){1}(-[0-9]{10}){1}-[0-9]{9}-[0-9]{4}/i', 'HKCU', 'ALL'),
+(22, '/.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){2}-[0-9]{9}-[0-9]{4}/i', 'HKCU', 'ALL'),
+(23, '/.REGISTRY.USER.S(-[0-9]{1}){2}-[0-9]{2}(-[0-9]{10}){3}-[0-9]{4}/i', 'HKCU', 'ALL'),
+(24, '/.REGISTRY.MACHINE./i', 'HKLM\\\\', 'ALL'),
+(25, '/.Registry.Machine./i', 'HKLM\\\\', 'ALL'),
+(26, '/%USERPROFILE%.Application Data.Microsoft.UProof/i', '', 'ALL'),
+(27, '/%USERPROFILE%.Local Settings.History/i', '', 'ALL'),
+(28, '/%APPDATA%.Microsoft.UProof/i ', '', 'ALL'),
+(29, '/%LOCALAPPDATA%.Microsoft.Windows.Temporary Internet Files/i', '', 'ALL');
 
 -- --------------------------------------------------------
 
@@ -361,3 +363,4 @@ VALUES
   (4,'Undefined','*undefined* no risk','No risk');
 
 -- --------------------------------------------------------
+

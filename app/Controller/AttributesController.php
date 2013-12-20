@@ -594,7 +594,7 @@ class AttributesController extends AppController {
 				else
 					$attribute['type'] = 'comment';
 				$attribute['value'] = $reference;
-				$attribute['distribution'] = 3; // 'All communities'
+				$attribute['distribution'] = '3'; // 'All communities'
 				// add attribute to the array that will be saved
 				$attributes[] = $attribute;
 			}
