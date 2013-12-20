@@ -4,7 +4,7 @@
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
 				<ul class="nav">
-					<li class="active"><a href="/">Home
+					<li class="active"><a href="/">home
 					</a></li>
 
 					<li class="dropdown">

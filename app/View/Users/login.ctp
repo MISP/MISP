@@ -2,7 +2,7 @@
 	<?php
 		echo $this->Session->flash('auth');
 	?>
-<table style="width:1250px;margin-left:auto;margin-right:auto;">
+<table style="width:1200px;margin-left:auto;margin-right:auto;">
 	<tr>
 	<td style="text-align:right;width:250px;padding-right:50px">
 	<?php 
@@ -20,7 +20,7 @@
 	<?php
 		}
 	?>
-	<td style="width:650px">
+	<td style="width:600px">
 		<span style="font-size:18px;"><?php
 			if (true == Configure::read('MISP.welcome_text_top')) {
 				echo Configure::read('MISP.welcome_text_top');

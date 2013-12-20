@@ -67,7 +67,7 @@ class Whitelist extends AppModel {
 
 	// regexp validation
 	public function validateValue ($fields) {
-		if (preg_match("/".$fields['name']."/", 'test') === false) return false;
+		if (preg_match($fields['name'], 'test') === false) return false;
 		return true;
 	}
 
@@ -104,7 +104,7 @@ class Whitelist extends AppModel {
 				foreach ($data as $k => $attribute) {
 					// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
 					foreach ($whitelists as $wlitem) {
-						if (preg_match("/".$wlitem."/", $attribute['Attribute']['value'])) {
+						if (preg_match($wlitem, $attribute['Attribute']['value'])) {
 							unset($data[$k]);
 						}
 					}
@@ -116,7 +116,7 @@ class Whitelist extends AppModel {
 					foreach ($event['Attribute'] as $k => $attribute) {
 						// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
 						foreach ($whitelists as $wlitem) {
-							if (preg_match("/".$wlitem."/", $attribute['value'])) {
+							if (preg_match($wlitem, $attribute['value'])) {
 								unset($data[$ke]['Attribute'][$k]);
 							}
 						}

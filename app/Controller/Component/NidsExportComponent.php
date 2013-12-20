@@ -492,7 +492,7 @@ class NidsExportComponent extends Component {
 
 	public function checkWhitelist($value) {
 		foreach ($this->whitelist as $wlitem) {
-			if (preg_match("/".$wlitem."/", $value)) {
+			if (preg_match($wlitem, $value)) {
 				return true;
 			}
 		}
