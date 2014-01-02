@@ -13,6 +13,7 @@
 		echo $this->Html->css('roboto');
 		echo $this->Html->css('bootstrap'); // see http://twitter.github.io/bootstrap/base-css.html
 		echo $this->Html->css('datepicker');
+		echo $this->Html->css('bootstrap-timepicker');
 		echo $this->Html->css('main');
 
 		// FIXME chri: re-add print stylesheet
@@ -57,6 +58,7 @@
 	echo $this->element('sql_dump');
 	echo $this->Html->script('bootstrap');
 	// echo $this->Html->script('bootstrap.min');
+	echo $this->Html->script('bootstrap-timepicker');
 	echo $this->Html->script('bootstrap-datepicker');
 	echo $this->Html->script('main');
 	?>

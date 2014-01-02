@@ -91,46 +91,17 @@ class JobsController extends AppController {
 			$target = 'Events visible to: '.$this->Auth->user('org');
 			$jobOrg = $this->Auth->user('org');
 		}
-		$extra = null;
-		$extra2 = null;
-		$shell = 'Event';
-		$this->Job->create();
-		$data = array(
-			'worker' => 'cache',
-			'job_type' => 'cache_' . $type,
-			'job_input' => $target,
-			'status' => 0,
-			'retries' => 0,
-			'org' => $jobOrg,
-			'message' => 'Fetching events.',
-		);
-		if ($type === 'md5' || $type === 'sha1') {
-			$extra = $type;
-			$type = 'hids';
-		}
-		if ($type === 'csv_all' || $type === 'csv_sig') {
-			$extra = $type;
-			$type = 'csv';
-		}
-		if ($type === 'suricata' || $type === 'snort') {
-			$extra = $type;
-			$type = 'nids';
-			$extra2 = $this->Auth->user('sid');
-		}
-		$this->Job->save($data);
-		$id = $this->Job->id;
-		$process_id = CakeResque::enqueue(
-			'cache',
-			$shell . 'Shell',
-			array('cache' . $type, $this->Auth->user('org'), $this->_isSiteAdmin(), $id, $extra, $extra2),
-			true
-		);
-		$this->Job->saveField('process_id', $process_id);
+		$id = $this->Job->cache($type, $this->_isSiteAdmin(), $this->Auth->user('org'), $target, $jobOrg);
 		return new CakeResponse(array('body' => json_encode($id)));
 	}
 	
-	public function jobScheduler() {
+	public function jobScheduler($type) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if ($type === 'cache_exports') $this->$_cacheScheduler(); 
+	}
+	
+	private function _cacheScheduler() {
+		
 	}
 	
 	public function stopWorker() {

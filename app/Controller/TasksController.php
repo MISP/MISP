@@ -41,8 +41,47 @@ class TasksController extends AppController {
 		}
 	}
 	
-	public function setTask($id) {
-		
+	public function setTask() {
+		if (!$this->_isSiteAdmin()) {
+			throw new MethodNotAllowedException('You are not authorised to do that.');
+		}
+		$today = $this->_getTodaysTimestamp();
+		if ($this->request->is('post') || $this->request->is('put')) {
+			$tasks = $this->Task->find('all', array('fields' => array('id', 'timer', 'scheduled_time')));
+			foreach ($tasks as $k => $task) {
+				if ($this->request->data['Task'][$task['Task']['id']]['timer'] == $task['Task']['timer']) unset($this->request->data['Task'][$task['Task']['id']]['timer']);
+				if ($this->request->data['Task'][$task['Task']['id']]['scheduled_time'] == $task['Task']['scheduled_time']) unset($this->request->data['Task'][$task['Task']['id']]['scheduled_time']);
+				if (empty($this->request->data['Task'][$task['Task']['id']])) { 
+					unset($this->request->data['Task'][$task['Task']['id']]);
+				} else {
+					$this->request->data['Task'][$task['Task']['id']]['id'] = $task['Task']['id'];
+					$this->request->data['Task'][$task['Task']['id']]['next_execution_time'] = strtotime(date("Y-m-d") . ' ' . $this->request->data['Task'][$task['Task']['id']]['scheduled_time']);
+					if ($this->request->data['Task'][$task['Task']['id']]['next_execution_time'] < time()) {
+						$this->request->data['Task'][$task['Task']['id']]['next_execution_time'] = strtotime('+1 day', $this->request->data['Task'][$task['Task']['id']]['next_execution_time']);
+					}
+					if (!isset($this->request->data['Task'][$task['Task']['id']]['timer'])) $this->request->data['Task'][$task['Task']['id']]['timer'] = $task['Task']['timer'];
+					$this->Task->save($this->request->data['Task'][$task['Task']['id']]);
+					// schedule task
+					if ($this->request->data['Task'][$task['Task']['id']]['timer'] != 0) {
+						
+					}
+				}
+			}
+			throw new Exception();
+			/*
+			if ($this->Post->save($this->request->data)) {
+				$this->Session->setFlash('Task edited');
+				$this->redirect(array('action' => 'index'));
+			} else {
+				$this->Session->setFlash('The Task could not be edited. Please, try again.');
+			}
+			*/
+		}
+		//$this->redirect(array('action' => 'index'));
+	}
+	
+	private function _getTodaysTimestamp() {
+		return strtotime(date("d/m/Y") . ' 00:00:00');
 	}
 	
 }
