@@ -91,20 +91,7 @@ class JobsController extends AppController {
 			$target = 'Events visible to: '.$this->Auth->user('org');
 			$jobOrg = $this->Auth->user('org');
 		}
-		$id = $this->Job->cache($type, $this->_isSiteAdmin(), $this->Auth->user('org'), $target, $jobOrg);
+		$id = $this->Job->cache($type, $this->_isSiteAdmin(), $this->Auth->user('org'), $target, $jobOrg, $this->Auth->user('sid'));
 		return new CakeResponse(array('body' => json_encode($id)));
-	}
-	
-	public function jobScheduler($type) {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
-		if ($type === 'cache_exports') $this->$_cacheScheduler(); 
-	}
-	
-	private function _cacheScheduler() {
-		
-	}
-	
-	public function stopWorker() {
-		debug(CakeResque::getFailedJobLog('323c143da4e12cf682554c4a8742f412'));
 	}
 }

@@ -7,7 +7,7 @@ App::uses('AppModel', 'Model');
 */
 class Job extends AppModel {
 	
-	public function cache($type, $isSiteAdmin, $org, $target, $jobOrg) {
+	public function cache($type, $isSiteAdmin, $org, $target, $jobOrg, $sid) {
 		$extra = null;
 		$extra2 = null;
 		$shell = 'Event';
@@ -32,7 +32,7 @@ class Job extends AppModel {
 		if ($type === 'suricata' || $type === 'snort') {
 			$extra = $type;
 			$type = 'nids';
-			$extra2 = $this->Auth->user('sid');
+			$extra2 = $sid;
 		}
 		$this->save($data);
 		$id = $this->id;

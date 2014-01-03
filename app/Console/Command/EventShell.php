@@ -5,7 +5,7 @@ App::uses('File', 'Utility');
 require_once 'AppShell.php';
 class EventShell extends AppShell
 {
-	public $uses = array('Event', 'Attribute', 'Job', 'User');
+	public $uses = array('Event', 'Attribute', 'Job', 'User', 'Task');
 	
 	public function doPublish() {
 		$id = $this->args[0];
@@ -233,6 +233,35 @@ class EventShell extends AppShell
 		$result = $this->Event->sendAlertEmail($eventId, $org, $isSiteAdmin, $ProcessId);
 		$this->Job->saveField('progress', '100');
 		if ($result != true) $this->Job->saveField('message', 'Job done.');
+	}
+	
+	public function enqueueCaching() {
+		$timestamp = $this->args[0];
+		$task = $this->Task->findByType('cache_exports');
+		
+		// If the next execution time and the timestamp don't match, it means that this task is no longer valid as the time for the execution has since being scheduled
+		// been updated. 
+		if ($task['Task']['next_execution_time'] != $timestamp) return;
+		
+		$orgs = $this->User->getOrgs();
+		
+		// Queue a set of exports for admins. This "ADMIN" organisation. The organisation of the admin users doesn't actually matter, it is only used to indentify
+		// the special cache files containing all events
+		$i = 0;
+		foreach($this->Event->export_types as $k => $type) {
+			foreach ($orgs as $org) {
+				$this->Job->cache($k, false, $org, 'Events visible to: ' . $org, $org);
+				$i++;
+			}
+			$this->Job->cache($k, true, 'ADMIN', 'All events.', 'ADMIN');
+			$i++;
+		}
+		$task['Task']['message'] = $i . ' jobs started at ' . date('d/m/Y - H:i:s') . '.';
+		if ($task['Task']['timer'] > 0) {
+			$task['Task']['next_execution_time'] = strtotime('+' . $task['Task']['timer'] . ' hours', $task['Task']['next_execution_time']);
+			$task['Task']['scheduled_time'] = $this->Task->breakTime($task['Task']['scheduled_time'], $task['Task']['timer']);
+		}
+		$this->Task->save($task);
 	}
 }
 

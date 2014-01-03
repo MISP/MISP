@@ -99,6 +99,8 @@
 								<?php if (Configure::read('MISP.background_jobs')): ?>
 									<li class="divider"></li>
 									<li><a href="/jobs/index">Jobs</a></li>
+									<li class="divider"></li>
+									<li><a href="/tasks">Scheduled Tasks</a></li>
 								<?php endif; ?>						
 							<?php endif; ?>
 						</ul>

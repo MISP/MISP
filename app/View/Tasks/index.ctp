@@ -1,5 +1,6 @@
 <div class="task index">
 	<h2>Scheduled Tasks</h2>
+	<p>Here you can schedule pre-defined tasks that will be executed every x hours. You can alter the date and time of the next scheduled execution and the frequency at which it will be repeated (expressed in hours). If you set the frequency to 0 then the task will not be repeated. To change and of the above mentioned settings just click on the appropriate field and hit update all when you are done editing the scheduled tasks.</p>
 	<div class="pagination">
         <ul>
         <?php
@@ -32,7 +33,7 @@
 			<th><?php echo $this->Paginator->sort('scheduled_time');?></th>
 			<th><?php echo $this->Paginator->sort('next_execution_time', 'Next Run');?></th>
 			<th><?php echo $this->Paginator->sort('description');?></th>
-			<th><?php echo $this->Paginator->sort('job_id', 'Job ID');?></th>
+			<th><?php echo $this->Paginator->sort('message');?></th>
 	</tr><?php
 foreach ($list as $item):?>
 	<tr>
@@ -66,13 +67,23 @@ foreach ($list as $item):?>
 				<?php echo h($item['Task']['scheduled_time']); ?>
 			</div>
 		</td>
-		<td class="short">
-			<?php 
-				echo h(date("d/m/Y", $item['Task']['next_execution_time']));
-			?>
-		&nbsp;</td>
+		<td style="width:250px;">
+			<div class="input-append bootstrap-datepicker" id="<?php echo $item['Task']['id'] . '-next_execution_time-active';?>" style="display:none">
+				<?php
+					echo $this->Form->input($item['Task']['id'] . '.next_execution_time', array(
+							'type' => 'text',
+							'class' => 'datepicker',
+							'default' => h(date("Y-m-d", $item['Task']['next_execution_time'])),
+							'id' => 'datepicker' . $item['Task']['id']
+					));
+				?>
+			</div>
+			<div id="<?php echo $item['Task']['id'];?>-next_execution_time-passive" onClick="activate3(<?php echo $item['Task']['id'];?>, 'next_execution_time', '<?php echo h(date("Y-m-d", $item['Task']['next_execution_time']));?>')">
+				<?php echo h(date("Y-m-d", $item['Task']['next_execution_time'])); ?>
+			</div>
+		</td>
 		<td><?php echo h($item['Task']['description']);?>&nbsp;</td>
-		<td class="short"><?php echo $item['Task']['job_id']; ?></td>
+		<td><?php echo h($item['Task']['message']); ?></td>
 	</tr><?php
 endforeach; ?>
 	</table>
@@ -96,7 +107,7 @@ endforeach; ?>
     </div>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'task', 'menuItem' => 'index'));
+	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'tasks'));
 ?>
 <script type="text/javascript">
 	function activate1(id, type){
@@ -107,6 +118,10 @@ endforeach; ?>
 	function activate2(id, type, defaultValue){
 		$("#"+id+"-"+type+"-active").show();
 		$("#"+id+"-"+type+"-passive").hide();
-		$('#timepicker'+id).timepicker({defaultTime: defaultValue});
+		$('#timepicker'+id).timepicker({defaultTime: defaultValue, minuteStep: 1, showMeridian: false});
+	} 
+	function activate3(id, type, defaultValue){
+		$("#"+id+"-"+type+"-active").show();
+		$("#"+id+"-"+type+"-passive").hide();
 	} 
 </script>

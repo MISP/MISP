@@ -28,6 +28,7 @@ class TasksController extends AppController {
 		$this->recursive = 0;
 		$tasks = $this->paginate();
 		$this->set('list', $tasks);
+		$this->set('time', time());
 	}
 	
 	// checks if all the mandatory tasks exist, and if not, creates them
@@ -47,7 +48,7 @@ class TasksController extends AppController {
 		}
 		$today = $this->_getTodaysTimestamp();
 		if ($this->request->is('post') || $this->request->is('put')) {
-			$tasks = $this->Task->find('all', array('fields' => array('id', 'timer', 'scheduled_time')));
+			$tasks = $this->Task->find('all', array('fields' => array('id', 'timer', 'scheduled_time', 'type', 'next_execution_time')));
 			foreach ($tasks as $k => $task) {
 				if ($this->request->data['Task'][$task['Task']['id']]['timer'] == $task['Task']['timer']) unset($this->request->data['Task'][$task['Task']['id']]['timer']);
 				if ($this->request->data['Task'][$task['Task']['id']]['scheduled_time'] == $task['Task']['scheduled_time']) unset($this->request->data['Task'][$task['Task']['id']]['scheduled_time']);
@@ -55,33 +56,41 @@ class TasksController extends AppController {
 					unset($this->request->data['Task'][$task['Task']['id']]);
 				} else {
 					$this->request->data['Task'][$task['Task']['id']]['id'] = $task['Task']['id'];
-					$this->request->data['Task'][$task['Task']['id']]['next_execution_time'] = strtotime(date("Y-m-d") . ' ' . $this->request->data['Task'][$task['Task']['id']]['scheduled_time']);
-					if ($this->request->data['Task'][$task['Task']['id']]['next_execution_time'] < time()) {
-						$this->request->data['Task'][$task['Task']['id']]['next_execution_time'] = strtotime('+1 day', $this->request->data['Task'][$task['Task']['id']]['next_execution_time']);
+					if (isset($this->request->data['Task'][$task['Task']['id']]['next_execution_time'])) {
+						$temp = $this->request->data['Task'][$task['Task']['id']]['next_execution_time'];
+					} else {
+						$temp = date("Y-m-d", $task['Task']['next_execution_time']);
 					}
-					if (!isset($this->request->data['Task'][$task['Task']['id']]['timer'])) $this->request->data['Task'][$task['Task']['id']]['timer'] = $task['Task']['timer'];
-					$this->Task->save($this->request->data['Task'][$task['Task']['id']]);
+					if (isset($this->request->data['Task'][$task['Task']['id']]['scheduled_time'])) {
+						$this->request->data['Task'][$task['Task']['id']]['next_execution_time'] = strtotime($temp . ' ' . $this->request->data['Task'][$task['Task']['id']]['scheduled_time']);
+					} else {
+						$this->request->data['Task'][$task['Task']['id']]['next_execution_time'] = strtotime($temp . ' ' . $task['Task']['scheduled_time']);
+					}
 					// schedule task
-					if ($this->request->data['Task'][$task['Task']['id']]['timer'] != 0) {
-						
-					}
+					$this->_jobScheduler($task['Task']['type'], $this->request->data['Task'][$task['Task']['id']]['next_execution_time']);
+					$this->Task->save($this->request->data['Task'][$task['Task']['id']]);
 				}
 			}
-			throw new Exception();
-			/*
-			if ($this->Post->save($this->request->data)) {
-				$this->Session->setFlash('Task edited');
-				$this->redirect(array('action' => 'index'));
-			} else {
-				$this->Session->setFlash('The Task could not be edited. Please, try again.');
-			}
-			*/
+			$this->Session->setFlash('Task edited');
+			$this->redirect(array('action' => 'index'));
 		}
-		//$this->redirect(array('action' => 'index'));
 	}
 	
 	private function _getTodaysTimestamp() {
 		return strtotime(date("d/m/Y") . ' 00:00:00');
 	}
 	
+	private function _jobScheduler($type, $timestamp) {
+		if ($type === 'cache_exports') $this->_cacheScheduler($timestamp);
+	}
+	
+	private function _cacheScheduler($timestamp) {
+		CakeResque::enqueueAt(
+				$timestamp,
+				'cache',
+				'EventShell',
+				array('enqueueCaching', $timestamp),
+				true
+		);
+	}
 }
