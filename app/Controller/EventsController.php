@@ -478,7 +478,7 @@ class EventsController extends AppController {
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
-
+		$this->set('sharingGroups', $this->Event->SharingGroup->find('list'));
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
 
