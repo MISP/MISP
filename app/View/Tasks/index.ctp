@@ -78,7 +78,7 @@ foreach ($list as $item):?>
 					));
 				?>
 			</div>
-			<div id="<?php echo $item['Task']['id'];?>-next_execution_time-passive" onClick="activate3(<?php echo $item['Task']['id'];?>, 'next_execution_time', '<?php echo h(date("Y-m-d", $item['Task']['next_execution_time']));?>')">
+			<div id="<?php echo $item['Task']['id'];?>-next_execution_time-passive" onClick="activate1(<?php echo $item['Task']['id'];?>, 'next_execution_time')">
 				<?php echo h(date("Y-m-d", $item['Task']['next_execution_time'])); ?>
 			</div>
 		</td>
@@ -119,9 +119,5 @@ endforeach; ?>
 		$("#"+id+"-"+type+"-active").show();
 		$("#"+id+"-"+type+"-passive").hide();
 		$('#timepicker'+id).timepicker({defaultTime: defaultValue, minuteStep: 1, showMeridian: false});
-	} 
-	function activate3(id, type, defaultValue){
-		$("#"+id+"-"+type+"-active").show();
-		$("#"+id+"-"+type+"-passive").hide();
 	} 
 </script>
