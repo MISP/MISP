@@ -672,7 +672,7 @@ class Event extends AppModel {
  * TODO move this to a component
  * @return array|NULL
  */
-	public function downloadEventFromServer($eventId, $server, $HttpSocket=null) {
+	public function downloadEventFromServer($eventId, $server, $HttpSocket=null, $propsalDownload = false) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
@@ -690,7 +690,11 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		$uri = $url . '/events/' . $eventId;
+		if (!$propsalDownload) {
+			$uri = $url . '/events/' . $eventId;
+		} else {
+			$uri = $url . '/shadow_attributes/getProposalsByUuid/' . $eventId;
+		}
 		$response = $HttpSocket->get($uri, $data = '', $request);
 		if ($response->isOk()) {
 			$xmlArray = Xml::toArray(Xml::build($response->body));
@@ -831,7 +835,7 @@ class Event extends AppModel {
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked');
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
-		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id');
+		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment');
 			
 		$params = array('conditions' => $conditions,
 			'recursive' => 0,

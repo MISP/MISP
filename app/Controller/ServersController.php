@@ -157,7 +157,7 @@ class ServersController extends AppController {
 		}
 
 		App::uses('HttpSocket', 'Network/Http');
-		$this->Server->read(null, $id);
+		$s = $this->Server->read(null, $id);
 		if (false == $this->Server->data['Server']['pull']) {
 			$this->Session->setFlash(__('Pull setting not enabled for this server.'));
 			$this->redirect(array('action' => 'index'));
@@ -187,11 +187,11 @@ class ServersController extends AppController {
 		} else {
 			$this->redirect(array('action' => 'index'));
 		}
-
 		// now process the $eventIds to pull each of the events sequentially
 		if (!empty($eventIds)) {
 			$successes = array();
 			$fails = array();
+			$pulledProposals = array();
 			// download each event
 			if (null != $eventIds) {
 				App::import('Controller', 'Events');
@@ -298,12 +298,41 @@ class ServersController extends AppController {
 				// increment lastid based on the highest ID seen
 				$this->Server->set('lastpulledid', $lastpulledid);
 				$this->Server->save($event, array('fieldList' => array('lastpulledid', 'url')));
+				// grab all of the shadow attributes that are relevant to us
 
+				$events = $this->Event->find('all', array(
+					'fields' => array('id', 'uuid'),
+					'recursive' => -1,
+				));
+				$this->loadModel('ShadowAttribute');
+				$this->ShadowAttribute->recursive = -1;
+				foreach ($events as &$event) {
+					$proposals = $this->Event->downloadEventFromServer($event['Event']['uuid'], $s, null, true);
+					if (null != $proposals) {
+						if (isset($proposals['ShadowAttribute']['id'])) {
+							$temp = $proposals['ShadowAttribute'];
+							$proposals['ShadowAttribute'] = array(0 => $temp);
+						}
+						foreach($proposals['ShadowAttribute'] as &$proposal) {
+							unset($proposal['id']);
+							$proposal['event_id'] = $event['Event']['id'];
+							if (!$this->ShadowAttribute->findByUuid($proposal['uuid'])) {
+								if (isset($pulledProposals[$event['Event']['id']])) {
+									$pulledProposals[$event['Event']['id']]++;
+								} else {
+									$pulledProposals[$event['Event']['id']] = 1;
+								}
+								$this->ShadowAttribute->create();
+								$this->ShadowAttribute->save($proposal);
+							}
+						}
+					}
+				}
 			}
 		}
-
 		$this->set('successes', $successes);
 		$this->set('fails', $fails);
+		$this->set('pulledProposals', $pulledProposals);
 	}
 
 	public function push($id = null, $technique=false) {

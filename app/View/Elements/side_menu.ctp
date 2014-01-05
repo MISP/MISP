@@ -107,7 +107,7 @@
 					<li class="divider"></li>
 					<?php endif; ?>
 					<li <?php if ($menuItem === 'index') echo 'class="active";'?>><?php echo $this->Html->link('List Servers', array('controller' => 'servers', 'action' => 'index'));?></li>
-					<li <?php if ($menuItem === 'add') echo 'class="active";'?>><?php if ($isAclAdd && $me['org'] == 'ADMIN') echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
+					<li <?php if ($menuItem === 'add') echo 'class="active";'?>><?php if ($isSiteAdmin) echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
 					<?php 
 				break;	
 				

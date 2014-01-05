@@ -248,54 +248,55 @@ class EventsController extends AppController {
 			$this->__setDeletable($pivot, $id, true);
 			$this->set('pivot', $pivot);
 			$this->set('currentEvent', $id);
-		}
-		$this->set('allPivots', $this->Session->read('pivot_thread'));
-		// Show the discussion
-		$this->loadModel('Thread');
-		$params = array('conditions' => array('event_id' => $id),
-				'recursive' => -1,
-				'fields' => array('id', 'event_id', 'distribution', 'title')
-		);
-		$thread = $this->Thread->find('first', $params);
-		if (empty($thread)) {
-			$newThread = array(
-					'date_created' => date('Y/m/d H:i:s'),
-					'date_modified' => date('Y/m/d H:i:s'),
-					'user_id' => $this->Auth->user('id'),
-					'event_id' => $id,
-					'title' => 'Discussion about Event #' . $result['Event']['id'] . ' (' . $result['Event']['info'] . ')',
-					'distribution' => $result['Event']['distribution'],
-					'post_count' => 0,
-					'org' => $result['Event']['orgc']
+
+			$this->set('allPivots', $this->Session->read('pivot_thread'));
+			// Show the discussion
+			$this->loadModel('Thread');
+			$params = array('conditions' => array('event_id' => $id),
+					'recursive' => -1,
+					'fields' => array('id', 'event_id', 'distribution', 'title')
 			);
-			$this->Thread->save($newThread);
-			$thread = ($this->Thread->read());
-		} else {
-			if ($thread['Thread']['distribution'] != $result['Event']['distribution']) {
-				$this->Thread->saveField('distribution', $result['Event']['distribution']);
+			$thread = $this->Thread->find('first', $params);
+			if (empty($thread)) {
+				$newThread = array(
+						'date_created' => date('Y/m/d H:i:s'),
+						'date_modified' => date('Y/m/d H:i:s'),
+						'user_id' => $this->Auth->user('id'),
+						'event_id' => $id,
+						'title' => 'Discussion about Event #' . $result['Event']['id'] . ' (' . $result['Event']['info'] . ')',
+						'distribution' => $result['Event']['distribution'],
+						'post_count' => 0,
+						'org' => $result['Event']['orgc']
+				);
+				$this->Thread->save($newThread);
+				$thread = ($this->Thread->read());
+			} else {
+				if ($thread['Thread']['distribution'] != $result['Event']['distribution']) {
+					$this->Thread->saveField('distribution', $result['Event']['distribution']);
+				}
 			}
+			$this->loadModel('Post');
+			$this->paginate['Post'] = array(
+					'limit' => 5,
+					'conditions' => array('Post.thread_id' => $thread['Thread']['id']),
+					'contain' => 'User'
+			);
+			$posts = $this->paginate('Post');
+			// Show the discussion
+			$this->set('posts', $posts);
+			$this->set('thread_id', $thread['Thread']['id']);
+			$this->set('myuserid', $this->Auth->user('id'));
+			$this->set('thread_title', $thread['Thread']['title']);
+			if ($this->request->is('ajax')) {
+				$this->disableCache();
+				$this->layout = 'ajax';
+				$this->render('/Elements/eventdiscussion');
+			}
+			$pivot = $this->Session->read('pivot_thread');
+			$this->__arrangePivotVertical($pivot);
+			$this->__setDeletable($pivot, $id, true);
+			$this->set('pivot', $pivot);
 		}
-		$this->loadModel('Post');
-		$this->paginate['Post'] = array(
-				'limit' => 5,
-				'conditions' => array('Post.thread_id' => $thread['Thread']['id']),
-				'contain' => 'User'
-		);
-		$posts = $this->paginate('Post');
-		// Show the discussion
-		$this->set('posts', $posts);
-		$this->set('thread_id', $thread['Thread']['id']);
-		$this->set('myuserid', $this->Auth->user('id'));
-		$this->set('thread_title', $thread['Thread']['title']);
-		if ($this->request->is('ajax')) {
-			$this->disableCache();
-			$this->layout = 'ajax';
-			$this->render('/Elements/eventdiscussion');
-		}
-		$pivot = $this->Session->read('pivot_thread');
-		$this->__arrangePivotVertical($pivot);
-		$this->__setDeletable($pivot, $id, true);
-		$this->set('pivot', $pivot);
 		$this->set('currentEvent', $id);
 	}
 
@@ -1967,6 +1968,9 @@ class EventsController extends AppController {
 		$conditions = array();
 		foreach ($result as $eventId) {
 				$conditions['OR'][] = array('Event.id =' => $eventId['ShadowAttribute']['event_id']);
+		}
+		if (empty($result)) {
+			$conditions['OR'][] = array('Event.id =' => -1);
 		}
 		$this->paginate = array(
 				'conditions' => $conditions,
