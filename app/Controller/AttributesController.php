@@ -1279,4 +1279,28 @@ class AttributesController extends AppController {
 		}
 		$this->__downloadAttachment($this->Attribute->data['Attribute']);
 	}
+
+	public function text($key, $type="") {
+		if ($key != 'download') {
+			// check if the key is valid -> search for users based on key
+			$user = $this->checkAuthUser($key);
+			if (!$user) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
+			$this->response->type('txt');	// set the content type
+			$this->header('Content-Disposition: inline; filename="misp.' . $type . '.txt"');
+			$this->layout = 'text/default';
+		} else {
+			if (!$this->Auth->user('id')) {
+				throw new UnauthorizedException('You have to be logged in to do that.');
+			}
+			$this->response->type('txt');	// set the content type
+			$this->header('Content-Disposition: download; filename="misp.' . $type . '.txt"');
+			$this->layout = 'text/default';
+		}
+		$attributes = $this->Attribute->text($this->_checkOrg(), $this->_isSiteAdmin(), $type);
+		$this->loadModel('Whitelist');
+		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
+		$this->set('attributes', $attributes);
+	}
 }

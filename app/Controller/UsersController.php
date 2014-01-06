@@ -433,7 +433,7 @@ class UsersController extends AppController {
 		$this->Session->setFlash(__('Good-Bye'));
 		$this->redirect($this->Auth->logout());
 	}
-
+	
 	public function resetauthkey($id = null) {
 		if (!$id) {
 			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
@@ -464,7 +464,7 @@ class UsersController extends AppController {
 		$params = array('recursive' => 0,
 							'fields' => $fields,
 							'group' => array('User.org'),
-							'order' => array('User.org'),
+							'order' => array('UPPER(User.org)'),
 		);
 		$orgs = $this->User->find('all', $params);
 		$this->set('orgs', $orgs);
@@ -743,5 +743,4 @@ class UsersController extends AppController {
 		}
 		// User didn't see the contact form yet. Present it to him.
 	}
-
 }

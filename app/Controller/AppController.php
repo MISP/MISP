@@ -65,7 +65,7 @@ class AppController extends Controller {
 				'logoutRedirect' => array('controller' => 'users', 'action' => 'login'),
 				//'authorize' => array('Controller', // Added this line
 				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
-				)
+				),
 	);
 
 	public function beforeFilter() {
@@ -138,6 +138,9 @@ class AppController extends Controller {
 			$this->debugMode = 'debugOff';
 		}
 		$this->set('debugMode', $this->debugMode);
+		$proposalCount = $this->_getProposalCount();
+		$this->set('proposalCount', $proposalCount[0]);
+		$this->set('proposalEventCount', $proposalCount[1]);
 	}
 
 	public $userRole = null;
@@ -156,6 +159,25 @@ class AppController extends Controller {
 		return (isset($this->RequestHandler) && ($this->RequestHandler->isXml() || $this->isJson()));
 	}
 
+	private function _getProposalCount() {
+		$this->loadModel('ShadowAttribute');
+		$this->ShadowAttribute->recursive = -1;
+		$shadowAttributes = $this->ShadowAttribute->find('all', array(
+				'recursive' => -1,
+				'fields' => array('event_id', 'event_org'),
+				'conditions' => array( 
+					'ShadowAttribute.event_org' => $this->Auth->user('org')
+		)));
+		$results = array();
+		$eventIds = array();
+		$results[0] = count($shadowAttributes);
+		foreach ($shadowAttributes as $sa) {
+			if (!in_array($sa['ShadowAttribute']['event_id'], $eventIds)) $eventIds[] = $sa['ShadowAttribute']['event_id'];
+		}
+		$results[1] = count($eventIds);
+		return $results;
+	}
+	
 /**
  * Convert an array to the same array but with the values also as index instead of an interface_exists
  */
@@ -199,7 +221,38 @@ class AppController extends Controller {
 		$this->Auth->login($user['User']);
 	}
 
+	
+	public function queuegenerateCorrelation() {
+		if (!$this->_isSiteAdmin()) throw new NotFoundException();
+		$process_id = CakeResque::enqueue(
+			'default',
+			'AdminShell',
+			array('jobGenerateCorrelation'),
+			true				
+		);
+		debug($process_id);
+		debug(CakeResque::getJobStatus($process_id));
+		debug(CakeResque::getJobStatus('f80f51ee76dd22194a0dd6cd28c15f46'));
+		throw new Exception();
+		$this->Session->setFlash('Job queued.');
+		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+	}
+	
 	public function generateCorrelation() {
+		$this->loadModel('Correlation');
+		$this->Correlation->deleteAll(array('id !=' => ''), false);
+		$this->loadModel('Attribute');
+		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.type', 'Attribute.category', 'Attribute.value1', 'Attribute.value2');
+		// get all attributes..
+		$attributes = $this->Attribute->find('all', array('recursive' => -1, 'fields' => $fields));
+		// for all attributes..
+		foreach ($attributes as $attribute) {
+			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
+		}
+	}
+	
+	
+	/*public function generateCorrelation() {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 
 		$this->loadModel('Correlation');
@@ -214,8 +267,8 @@ class AppController extends Controller {
 		}
 		$this->Session->setFlash(__('All done.'));
 		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-	}
-
+	}*/
+	
 	public function generateLocked() {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$this->loadModel('User');

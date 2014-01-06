@@ -1,3 +1,7 @@
+<?php
+$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
+$mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
+?>
 <div class="events form">
 <?php echo $this->Form->create('Event');?>
 	<fieldset>
@@ -33,7 +37,7 @@ echo $this->Form->end();
 ?>
 </div>
 <?php
-	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'editEvent'));
+	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'editEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
 ?>
 
 <script type="text/javascript">

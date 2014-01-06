@@ -1,9 +1,9 @@
 <?php
-$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
+$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 ?>
 <?php
-	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
+	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
 ?>
 
 
@@ -293,6 +293,9 @@ if (!empty($event['Attribute'])):?>
 							}
 						?></td>
 					<td class="short highlight2">
+					<?php 
+						echo h($shadowAttribute['comment']);
+					?>
 					</td>
 					<td class="short highlight2">
 					</td>
@@ -368,6 +371,9 @@ if (!empty($event['Attribute'])):?>
 										}
 									?></td>
 								<td class="short highlight2">
+								<?php 
+									echo h($remain['comment']);
+								?>
 								</td>
 								<td class="short highlight2">
 								</td>

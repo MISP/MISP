@@ -1,6 +1,6 @@
 <?php
 
-class NidsExportComponent extends Component {
+class NidsExport {
 
 	public $rules = array();
 
@@ -24,13 +24,15 @@ class NidsExportComponent extends Component {
 	private $whitelist = null;
 
 
-	public function export($items, $startSid, $format="suricata") {
+	public function export($items, $startSid, $format="suricata", $continue = false) {
 		$this->format = $format;
 		$this->Whitelist = ClassRegistry::init('Whitelist');
 		$this->whitelist = $this->Whitelist->getBlockedValues();
 
 		// output a short explanation
-		$this->explain();
+		if (!$continue) {
+			$this->explain();
+		}
 		// generate the rules
 		foreach ($items as &$item) {
 			/*switch ($item['Event']['risk']) {
@@ -106,7 +108,7 @@ class NidsExportComponent extends Component {
 
 	public function ipDstRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'ip',							// proto
@@ -125,7 +127,7 @@ class NidsExportComponent extends Component {
 
 	public function ipSrcRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'ip',							// proto
@@ -144,7 +146,7 @@ class NidsExportComponent extends Component {
 
 	public function emailSrcRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"' . $attribute['value'] . '"; fast_pattern; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -164,7 +166,7 @@ class NidsExportComponent extends Component {
 
 	public function emailDstRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"' . $attribute['value'] . '"; fast_pattern; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -185,7 +187,7 @@ class NidsExportComponent extends Component {
 	public function emailSubjectRule($ruleFormat, $attribute, &$sid) {
 		// LATER nids - email-subject rule might not match because of line-wrapping
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:established,to_server; content:"Subject|3a|"; nocase; content:"' . $attribute['value'] . '"; fast_pattern; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -206,7 +208,7 @@ class NidsExportComponent extends Component {
 	public function emailAttachmentRule($ruleFormat, $attribute, &$sid) {
 		// LATER nids - email-attachment rule might not match because of line-wrapping
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:established,to_server; content:"Content-Disposition|3a| attachment|3b| filename|3d 22|"; content:"' . $attribute['value'] . '|22|"; fast_pattern; content:"|0D 0A 0D 0A|"; within:8192;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -226,8 +228,8 @@ class NidsExportComponent extends Component {
 
 	public function hostnameRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-		$content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . NidsExportComponent::dnsNameToRawFormat($attribute['value'], 'hostname') . '"; fast_pattern; nocase;';
+		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		$content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . NidsExport::dnsNameToRawFormat($attribute['value'], 'hostname') . '"; fast_pattern; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'udp',							// proto
@@ -278,8 +280,8 @@ class NidsExportComponent extends Component {
 
 	public function domainRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-		$content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . NidsExportComponent::dnsNameToRawFormat($attribute['value']) . '"; fast_pattern; nocase;';
+		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		$content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . NidsExport::dnsNameToRawFormat($attribute['value']) . '"; fast_pattern; nocase;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'udp',							// proto
@@ -333,7 +335,7 @@ class NidsExportComponent extends Component {
 		//$hostpart = parse_url($attribute['value'], PHP_URL_HOST);
 		//$overruled = $this->checkNames($hostpart);
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; nocase; http_uri;';
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -353,7 +355,7 @@ class NidsExportComponent extends Component {
 
 	public function userAgentRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; http_header;';
 		$this->rules[] = sprintf($ruleFormat,
 		        ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',

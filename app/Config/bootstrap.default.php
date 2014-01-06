@@ -128,15 +128,17 @@ Configure::write('CyDefSig.cveurl', 'http://web.nvd.nist.gov/view/vuln/detail?vu
 
 // The following 3 fields are optional
 
-//Configure::write('MISP.welcome_text_top', 'Welcome to the Organisation community\'s');     // used in Events::login before the MISP logo
-//Configure::write('MISP.welcome_text_bottom', 'instance');     // used in Events::login after the MISP logo
-//Configure::write('MISP.welcome_logo', 'organisation');     // used in Events::login to the left of the MISP logo, place a .png file in app/webroot/img with the name specified here. In this case it would be organisation.png
-//Configure::write('MISP.welcome_logo2', 'organisation2');     // used in Events::login to the right of the MISP logo, place a .png file in app/webroot/img with the name specified here. In this case it would be organisation2.png
+// Configure::write('MISP.welcome_text_top', 'Welcome to the Organisation community\'s');     // used in Events::login before the MISP logo
+// Configure::write('MISP.welcome_text_bottom', 'instance');     // used in Events::login after the MISP logo
+// Configure::write('MISP.welcome_logo', 'organisation');     // used in Events::login to the left of the MISP logo, place a .png file in app/webroot/img with the name specified here. In this case it would be organisation.png
+// Configure::write('MISP.welcome_logo2', 'organisation2');     // used in Events::login to the right of the MISP logo, place a .png file in app/webroot/img with the name specified here. In this case it would be organisation2.png
 Configure::write('MISP.disablerestalert', 'false');
 // Events will be created with the default distribution setting based on this. Valid options: '0', '1', '2', '3'
 Configure::write('MISP.default_event_distribution', '3');
 // Setting this to 'event' will create attributes that take the event's distribution as the initial setting. Valid options: '0', '1', '2', '3', 'event'
 Configure::write('MISP.default_attribute_distribution', 'event');
+
+// Configure::write('MISP.background_jobs', true);
 
 /**
  * The settings below can be used to set additional paths to models, views and controllers.

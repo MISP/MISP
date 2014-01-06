@@ -107,6 +107,7 @@ class LogsController extends AppController {
 				'order' => array('Log.id' => 'DESC'),
 				'fields' => $fieldList
 		);
+		$this->set('event', $this->Event->data);
 		$this->set('list', $this->paginate());
 		$this->set('eventId', $id);
 		$this->set('mayModify', $mayModify);

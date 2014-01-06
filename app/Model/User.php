@@ -356,4 +356,16 @@ class User extends AppModel {
 		}
 		return $fails;
 	}
+	
+	public function getOrgs() {
+		$this->recursive = -1;
+		$orgs = $this->find('all', array(
+				'fields' => array('DISTINCT (User.org) AS org'),
+		));
+		$orgNames = array();
+		foreach ($orgs as $org) {
+			$orgNames[] = $org['User']['org'];
+		}
+		return $orgNames;
+	}
 }

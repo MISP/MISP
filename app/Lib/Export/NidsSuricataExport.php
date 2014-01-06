@@ -1,22 +1,20 @@
 <?php
+App::uses('NidsExport', 'Export');
 
-App::uses('NidsExportComponent', 'Controller/Component');
+class NidsSuricataExport extends NidsExport {
 
-
-class NidsSuricataExportComponent extends NidsExportComponent {
-
-	public function export($items, $startSid) {
+	public function export($items, $startSid, $format = "suricata", $continue = false) {
 		// set the specific format
-		$this->format = 'suricata';
+		$this->format = "suricata";
 		// call the generic function
-		return parent::export($items, $startSid);
+		return parent::export($items, $startSid, $format, $continue);
 	}
 
-	// below overwrite functions from NidsExportComponent
+	// below overwrite functions from NidsExport
 	public function hostnameRule($ruleFormat, $attribute, &$sid) {
 	    $overruled = $this->checkWhitelist($attribute['value']);
-	    $attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-	    $content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . NidsExportComponent::dnsNameToRawFormat($attribute['value'], 'hostname') . '"; fast_pattern; nocase;';
+	    $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+	    $content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . NidsExport::dnsNameToRawFormat($attribute['value'], 'hostname') . '"; fast_pattern; nocase;';
 	    $this->rules[] = sprintf($ruleFormat,
 	            ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 	            'udp',							// proto
@@ -68,8 +66,8 @@ class NidsSuricataExportComponent extends NidsExportComponent {
 
 	public function domainRule($ruleFormat, $attribute, &$sid) {
 	    $overruled = $this->checkWhitelist($attribute['value']);
-	    $attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-	    $content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . NidsExportComponent::dnsNameToRawFormat($attribute['value']) . '"; fast_pattern; nocase;';
+	    $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+	    $content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . NidsExport::dnsNameToRawFormat($attribute['value']) . '"; fast_pattern; nocase;';
 	    $this->rules[] = sprintf($ruleFormat,
 	            ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 	            'udp',							// proto
@@ -125,7 +123,7 @@ class NidsSuricataExportComponent extends NidsExportComponent {
 	    //$overruled = $this->checkNames($hostpart);
 	    // warning: only suricata compatible
 	    $overruled = $this->checkWhitelist($attribute['value']);
-	    $attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+	    $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 	    $content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_uri;';
 	    $this->rules[] = sprintf($ruleFormat,
 	            ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -145,7 +143,7 @@ class NidsSuricataExportComponent extends NidsExportComponent {
 
 	public function userAgentRule($ruleFormat, $attribute, &$sid) {
 	    $overruled = $this->checkWhitelist($attribute['value']);
-	    $attribute['value'] = NidsExportComponent::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+	    $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 	    // warning: only suricata compatible
 	    $content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; fast_pattern; http_user_agent;';
 	    $this->rules[] = sprintf($ruleFormat,

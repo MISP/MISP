@@ -2,7 +2,17 @@
 	<ul class="nav nav-list">
 		<?php 
 			switch ($menuList) {
-				case 'event': ?>						
+				case 'event': 
+					if ($menuItem === 'addAttribute' || 
+						$menuItem === 'addAttachment' || 
+						$menuItem === 'addIOC' || 
+						$menuItem === 'addThreatConnect'
+					) {
+						// we can safely assume that mayModify is true if comming from these actions, as they require it in the controller and the user has already passed that check
+						$mayModify = true;
+						if ($isAclPublish) $mayPublish = true;
+					}
+					?>						
 					<li <?php if ($menuItem === 'viewEvent') echo 'class="active";'?>><a href="/events/view/<?php echo $event['Event']['id'];?>">View Event</a></li>
 					<li <?php if ($menuItem === 'eventLog') echo 'class="active";'?>><a href="/logs/event_index/<?php echo $event['Event']['id'];?>">View Event History</a></li>
 					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
@@ -52,6 +62,7 @@
 					<?php endif; ?>
 					<li class="divider"></li>
 					<li <?php if ($menuItem === 'viewProposals') echo 'class="active";'?>><a href="/shadow_attributes/index">View Proposals</a></li>
+					<li <?php if ($menuItem === 'viewProposalIndex') echo 'class="active";'?>><a href="/events/proposalEventIndex">Events with proposals</a></li>
 					<li class="divider"></li>
 					<li <?php if ($menuItem === 'export') echo 'class="active";'?>><a href="/events/export">Export</a></li>
 					<?php if ($isAclAuth): ?>
@@ -106,7 +117,7 @@
 					<li class="divider"></li>
 					<?php endif; ?>
 					<li <?php if ($menuItem === 'index') echo 'class="active";'?>><?php echo $this->Html->link('List Servers', array('controller' => 'servers', 'action' => 'index'));?></li>
-					<li <?php if ($menuItem === 'add') echo 'class="active";'?>><?php if ($isAclAdd && $me['org'] == 'ADMIN') echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
+					<li <?php if ($menuItem === 'add') echo 'class="active";'?>><?php if ($isSiteAdmin) echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
 					<?php 
 				break;	
 				
@@ -130,10 +141,16 @@
 					<?php endif; ?>
 					<li <?php if ($menuItem === 'indexRole') echo 'class="active";'?>><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 					<?php if ($isSiteAdmin): ?>
-					<li class="divider"></li>
-					<li <?php if ($menuItem === 'contact') echo 'class="active";'?>><?php echo $this->Html->link('Contact users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
-					<li <?php if ($menuItem === 'adminTools') echo 'class="active";'?>><a href="/pages/display/administration">Administrative tools</a></li>
-					<?php endif; 
+						<li class="divider"></li>
+						<li <?php if ($menuItem === 'contact') echo 'class="active";'?>><?php echo $this->Html->link('Contact users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+						<li <?php if ($menuItem === 'adminTools') echo 'class="active";'?>><a href="/pages/display/administration">Administrative tools</a></li>
+						<li class="divider"></li>
+						<?php if (Configure::read('MISP.background_jobs')): ?>
+							<li <?php if ($menuItem === 'jobs') echo 'class="active";'?>><a href="/jobs/index">Jobs</a></li>
+							<li class="divider"></li>
+							<li <?php if ($menuItem === 'tasks') echo 'class="active";'?>><a href="/tasks">Scheduled Tasks</a></li>
+						<?php endif; 
+					endif;
 				break;	
 				
 				case 'logs': ?>

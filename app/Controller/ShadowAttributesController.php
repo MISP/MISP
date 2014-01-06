@@ -98,7 +98,9 @@ class ShadowAttributesController extends AppController {
 			$this->Event->recursive = -1;
 			// Unpublish the event, accepting a proposal is modifying the event after all. Also, reset the lock.
 			$event = $this->Event->read(null, $activeAttribute['Attribute']['event_id']);
-			$fieldList = array('proposal_email_lock', 'id', 'info', 'published');
+			$fieldList = array('proposal_email_lock', 'id', 'info', 'published', 'timestamp');
+			$date = new DateTime();
+			$event['Event']['timestamp'] = $date->getTimestamp();
 			$event['Event']['proposal_email_lock'] = 0;
 			$event['Event']['published'] = 0;
 			$this->Event->save($event, array('fieldList' => $fieldList));
@@ -198,13 +200,15 @@ class ShadowAttributesController extends AppController {
  */
 	public function add($eventId = null) {
 		if ($this->request->is('post')) {
-
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
 			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
 			if (isset($this->request->data['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($this->request->data['ShadowAttribute']['type'])) {
 				$this->Session->setFlash(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
 			}
+			$temp = $this->_getEventData($this->request->data['ShadowAttribute']['event_id']);
+			$event_uuid = $temp['uuid'];
+			$event_org = $temp['orgc'];
 			//
 			// multiple attributes in batch import
 			//
@@ -224,6 +228,8 @@ class ShadowAttributesController extends AppController {
 					$this->request->data['ShadowAttribute']['value'] = $attribute; // set the value as the content of the single line
 					$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 					$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
+					$this->request->data['ShadowAttribute']['event_uuid'] = $event_uuid;
+					$this->request->data['ShadowAttribute']['event_org'] = $event_org;
 					// TODO loop-holes,
 					// there seems to be a loop-hole in misp here
 					// be it an create and not an update
@@ -265,8 +271,10 @@ class ShadowAttributesController extends AppController {
 				$savedId = $this->ShadowAttribute->getId();
 				$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 				$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
+				$this->request->data['ShadowAttribute']['event_uuid'] = $event_uuid;
+				$this->request->data['ShadowAttribute']['event_org'] = $event_org;
 				if ($this->ShadowAttribute->save($this->request->data)) {
-					$this->__sendProposalAlertEmail($eventId);
+					$this->__sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id']);
 					// inform the user and redirect
 					$this->Session->setFlash(__('The proposal has been saved'));
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
@@ -333,7 +341,6 @@ class ShadowAttributesController extends AppController {
  */
 	public function add_attachment($eventId = null) {
 		if ($this->request->is('post')) {
-			$this->loadModel('Event');
 			// Check if there were problems with the file upload
 			// only keep the last part of the filename, this should prevent directory attacks
 			$filename = basename($this->request->data['ShadowAttribute']['value']['name']);
@@ -347,8 +354,9 @@ class ShadowAttributesController extends AppController {
 				$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
 			}
-
-			$this->Event->id = $this->request->data['ShadowAttribute']['event_id'];
+			$temp = $this->_getEventData($this->request->data['ShadowAttribute']['event_id']);
+			$event_uuid = $temp['uuid'];
+			$event_org = $temp['orgc'];
 			// save the file-info in the database
 			$this->ShadowAttribute->create();
 			if ($this->request->data['ShadowAttribute']['malware']) {
@@ -368,6 +376,8 @@ class ShadowAttributesController extends AppController {
 			$this->request->data['ShadowAttribute']['batch_import'] = 0;
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 			$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
+			$this->request->data['ShadowAttribute']['event_uuid'] = $event_uuid;
+			$this->request->data['ShadowAttribute']['event_org'] = $event_org;
 			if ($this->ShadowAttribute->save($this->request->data)) {
 				$this->__sendProposalAlertEmail($eventId);
 			} else {
@@ -434,8 +444,6 @@ class ShadowAttributesController extends AppController {
 		} else {
 			// set the event_id in the form
 			$this->request->data['ShadowAttribute']['event_id'] = $eventId;
-			$this->loadModel('Event');
-			$events = $this->Event->findById($eventId);
 		}
 
 		// combobox for categories
@@ -488,7 +496,7 @@ class ShadowAttributesController extends AppController {
 		}
 		$uuid = $this->Attribute->data['Attribute']['uuid'];
 		if (!$this->_isSiteAdmin()) {
-			if (($this->Attribute->data['Attribute']['distribution'] == 0) || ($this->Attribute->data['Event']['org'] == $this->Auth->user('org'))) {
+			if (($this->Attribute->data['Attribute']['distribution'] == 0) || ($this->Attribute->data['Event']['orgc'] == $this->Auth->user('org'))) {
 				$this->Session->setFlash(__('Invalid Attribute.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
@@ -506,9 +514,14 @@ class ShadowAttributesController extends AppController {
 
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$existingAttribute = $this->Attribute->findByUuid($uuid);
+			$temp = $this->_getEventData($eventId);
+			$event_uuid = $temp['uuid'];
+			$event_org = $temp['orgc'];
 			$this->request->data['ShadowAttribute']['old_id'] = $existingAttribute['Attribute']['id'];
 			$this->request->data['ShadowAttribute']['uuid'] = $existingAttribute['Attribute']['uuid'];
 			$this->request->data['ShadowAttribute']['event_id'] = $existingAttribute['Attribute']['event_id'];
+			$this->request->data['ShadowAttribute']['event_uuid'] = $event_uuid;
+			$this->request->data['ShadowAttribute']['event_org'] = $event_org;
 			if ($attachment) $this->request->data['ShadowAttribute']['value'] = $existingAttribute['Attribute']['value'];
 			if ($attachment) $this->request->data['ShadowAttribute']['type'] = $existingAttribute['Attribute']['type'];
 			$this->request->data['ShadowAttribute']['org'] =  $this->Auth->user('org');
@@ -662,12 +675,47 @@ class ShadowAttributesController extends AppController {
 				'conditions' => $conditions,
 				'fields' => array('id', 'org', 'old_id'),
 				'contain' => array(
-						'Event' =>array(
+						'Event' => array(
 								'fields' => array('id', 'org', 'info', 'orgc'),
 						),
 				),
 				'recursive' => 1	
 		);
 		$this->set('shadowAttributes', $this->paginate());
+	}
+	
+	public function eventIndex() {
+		$result = $this->ShadowAttribute->find('all', array(
+			'fields' => array('event_id'),
+			'group' => 'event_id',
+			'conditions' => array(
+				'ShadowAttribute.event_org =' => $this->Auth->user('org'),			
+		)));
+		$this->loadModel('Event');
+		foreach ($result as $eventId) {
+			
+		}
+	}
+	
+	private function _getEventData($event_id) {
+		$this->loadModel('Event');
+		$this->Event->recursive = -1;
+		$this->Event->read(array('id', 'uuid', 'orgc'), $event_id);
+		return $this->Event->data['Event'];
+	} 
+	
+	// takes a uuid and finds all proposals that belong to an event with the given uuid. These are then returned. 
+	public function getProposalsByUuid($uuid) {
+		if (!$this->_isRest()) {
+			throw new MethodNotAllowedException(__('This feature is only available for REST users'));
+		}
+		if (strlen($uuid) != 36) {
+			throw new NotFoundException(__('Invalid UUID'));
+		}
+		$this->ShadowAttribute->recursive = -1;
+		$temp = $this->ShadowAttribute->findAllByEventUuid($uuid);
+		if ($temp == null) throw new NotFoundException(__('Invalid event'));
+		$this->set('proposal', $temp);
+		$this->render('get_proposals_by_uuid');
 	}
 }

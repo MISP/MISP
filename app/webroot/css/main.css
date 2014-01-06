@@ -573,6 +573,30 @@ dd {
 	float:left !important;
 }
 
+.proposal_span {
+	padding-right: 25px;
+}
+
+a.proposal_link, a.proposal_link_red {
+	text-decoration:none;
+	font-weight:normal;
+}
+
+a.proposal_link:visited, a.proposal_link:link {
+	color:#999999;
+}
+a.proposal_link:hover {
+	color:white;
+}
+a.proposal_link_red:visited, a.proposal_link:link {
+	color:#999999;
+}
+a.proposal_link_red:hover {
+	color:red;
+}
+
+
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}

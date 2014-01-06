@@ -22,6 +22,7 @@
 							<li><a href="/attributes/search">Search Attributes</a></li>
 							<li class="divider"></li>
 							<li><a href="/shadow_attributes/index">View Proposals</a></li>
+							<li><a href="/events/proposalEventIndex">Events with proposals</a></li>
 							<li class="divider"></li>
 							<li><a href="/events/export">Export</a></li>
 							<?php if ($isAclAuth): ?>
@@ -91,10 +92,16 @@
 							<?php endif; ?>
 							<li><a href="/admin/roles/index">List Roles</a></li>
 							<?php if($isSiteAdmin): ?>
-							<li class="divider"></li>
-							<li><a href="/admin/users/email">Contact Users</a></li>
-							<li class="divider"></li>
-							<li><a href="/pages/display/administration">Administrative tools</a></li>
+								<li class="divider"></li>
+								<li><a href="/admin/users/email">Contact Users</a></li>
+								<li class="divider"></li>
+								<li><a href="/pages/display/administration">Administrative tools</a></li>
+								<?php if (Configure::read('MISP.background_jobs')): ?>
+									<li class="divider"></li>
+									<li><a href="/jobs/index">Jobs</a></li>
+									<li class="divider"></li>
+									<li><a href="/tasks">Scheduled Tasks</a></li>
+								<?php endif; ?>						
 							<?php endif; ?>
 						</ul>
 					</li>
@@ -132,6 +139,11 @@
 
 			<div class="nav-collapse collapse pull-right" style="margin-top:10px">
 				<div class="nav" style="font-weight:bold">
+					<?php if ($proposalCount > 0): ?>
+						<span class="proposal_span"><a href="/events/proposalEventIndex" class="proposal_link"><?php echo $proposalCount . ' proposals in ' . $proposalEventCount; ?> events</a></span>
+					<?php else: ?>
+						<span><a href="/events/proposalEventIndex" class="proposal_link"><?php echo $proposalCount . ' proposals in ' . $proposalEventCount; ?> events</a></span>
+					<?php endif;?>
 					<span class="logoBlue">M</span><span class="logoGray">alware</span>
 					<span class="logoBlue">I</span><span class="logoGray">nformation </span>
 					<span class="logoBlue">S</span><span class="logoGray">haring</span>

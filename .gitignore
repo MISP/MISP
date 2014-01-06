@@ -18,3 +18,14 @@
 /app/Config/core.php
 /cakephp
 /app/webroot/gpg.asc
+/app/Plugin/CakeResque/Config/bootstrap.php
+/app/tmp/cached_exports/csv
+/app/tmp/cached_exports/csv_all
+/app/tmp/cached_exports/csv_sig
+/app/tmp/cached_exports/md5
+/app/tmp/cached_exports/sha1
+/app/tmp/cached_exports/snort
+/app/tmp/cached_exports/suricata
+/app/tmp/cached_exports/text
+/app/tmp/cached_exports/xml
+/app/tmp/logs

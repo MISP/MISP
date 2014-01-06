@@ -195,7 +195,7 @@
 			<th class="actions">Actions</th>
 
 		</tr>
-		<?php foreach ($events as $event):?>
+		<?php foreach ($events as $event): ?>
 		<tr <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
 			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php
@@ -307,6 +307,7 @@ $(document).ready( function () {
 	$('#searchpublished').hide();
 
 });
+
 
 function toggleField(field) {
 	$(field).toggle();

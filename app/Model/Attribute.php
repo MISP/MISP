@@ -1083,4 +1083,92 @@ class Attribute extends AppModel {
 		}
 		return $fails;
 	}
+	
+	public function hids($isSiteAdmin, $org ,$type) {
+		// check if it's a valid type
+		if ($type != 'md5' && $type != 'sha1') {
+			throw new UnauthorizedException('Invalid hash type.');
+		}
+		
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
+		if (!$isSiteAdmin) {
+			$temp = array();
+			$distribution = array();
+			array_push($temp, array('Attribute.distribution >' => 0));
+			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
+			$conditions['OR'] = $temp;
+		}
+		
+		$params = array(
+				'conditions' => $conditions, //array of conditions
+				'recursive' => 0, //int
+				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+		);
+		$items = $this->find('all', $params);
+		App::uses('HidsExport', 'Export');
+		$export = new HidsExport();
+		$rules = $export->export($items, strtoupper($type));
+		return $rules;
+	}
+	
+	public function nids($isSiteAdmin, $org, $format, $sid, $id = null, $continue = false) {
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
+		if (!$isSiteAdmin) {
+			$temp = array();
+			$distribution = array();
+			array_push($temp, array('Attribute.distribution >' => 0));
+			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
+			$conditions['OR'] = $temp;
+		}
+		
+		if ($id) {
+			array_push($conditions['AND'], array('Event.id' => $id));
+		}
+		
+		$params = array(
+				'conditions' => $conditions, //array of conditions
+				'recursive' => 0, //int
+				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+		);
+		unset($this->virtualFields['category_order']);  // not needed for IDS export and speeds things up
+		$items = $this->find('all', $params);
+		
+		// export depending of the requested type
+		switch ($format) {
+			case 'suricata':
+-				App::uses('NidsSuricataExport', 'Export');
+				$export = new NidsSuricataExport();
+				break;
+			case 'snort':
+				App::uses('NidsSnortExport', 'Export');
+				$export = new NidsSnortExport();
+				break;
+		}
+		$rules = $export->export($items, $sid, $format, $continue);
+		return $rules;
+	}
+
+	 public function text($org, $isSiteAdmin, $type) {
+	 	//restricting to non-private or same org if the user is not a site-admin.
+	 	$conditions['AND'] = array('Attribute.type' => $type, 'Attribute.to_ids =' => 1, 'Event.published =' => 1);
+	 	if (!$isSiteAdmin) {
+	 		$temp = array();
+	 		$distribution = array();
+	 		array_push($temp, array('Attribute.distribution >' => 0));
+	 		array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
+	 		$conditions['OR'] = $temp;
+	 	}
+	 	
+	 	$params = array(
+	 			'conditions' => $conditions, //array of conditions
+	 			'recursive' => 0, //int
+	 			'fields' => array('Attribute.value'), //array of field names
+	 			'order' => array('Attribute.value'), //string or array defining order
+	 			'group' => array('Attribute.value'), //fields to GROUP BY
+	 			'contain' => array('Event.id', 'Event.published'),
+	 	);
+	 	return $this->find('all', $params);
+	 }
 }

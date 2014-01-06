@@ -1,65 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Event>
-	<id>14</id>
-	<org>ORG</org>
-	<date>2012-04-12</date>
-	<risk>Medium</risk>
-	<info>info</info>
-	<user_id>1</user_id>
-	<alerted>0</alerted>
-	<uuid>4f8c2c4e-00dc-42c9-83ad-76e9ff32448e</uuid>
-	<private>0</private>
+	<id>25</id>
+	<org>NCIRC</org>
+	<date>2013-12-12</date>
+	<threat_level_id>1</threat_level_id>
+	<info>test5</info>
 	<published>0</published>
+	<uuid>52b9bca5-2e04-4fed-acf3-1f60c0a80e0a</uuid>
+	<attribute_count>1</attribute_count>
+	<analysis>0</analysis>
+	<timestamp>1386855599</timestamp>
+	<distribution>1</distribution>
+	<proposal_email_lock>0</proposal_email_lock>
+	<orgc>NCIRC</orgc>
+	<locked>0</locked>
 	<Attribute>
-		<id>116</id>
-		<event_id>14</event_id>
-		<type>ip-dst</type>
+		<id>7</id>
+		<type>ip-src</type>
 		<category>Network activity</category>
-		<to_ids>1</to_ids>
-		<uuid>4f8c2cc3-0410-4bf0-8559-5b9dff32448e</uuid>
-		<revision>1</revision>
-		<private>0</private>
-		<value>1.1.1.111</value>
-		<category_order>g</category_order>
-	</Attribute>
-	<Attribute>
-		<id>117</id>
-		<event_id>14</event_id>
-		<type>malware-sample</type>
-		<category>Payload delivery</category>
 		<to_ids>0</to_ids>
-		<uuid>4f8c2d08-7e6c-4648-8730-50a7ff32448e</uuid>
-		<revision>1</revision>
-		<private>0</private>
-		<value>A.doc|3f6f1aaab6171925c81de9b34a8fcf8e</value>
-		<category_order>c</category_order>
-		<data />
+		<uuid>52a9bcbe-d87c-4c5e-8408-22e8c0a80e0a</uuid>
+		<event_id>9</event_id>
+		<distribution>1</distribution>
+		<timestamp>1386855599</timestamp>
+		<comment/>
+		<value>1.1.1.2</value>
+		<ShadowAttribute/>
 	</Attribute>
-	<Attribute>
-		<id>115</id>
-		<event_id>14</event_id>
-		<type>vulnerability</type>
-		<category>Payload delivery</category>
-		<to_ids>1</to_ids>
-		<uuid>4f8c2c69-9bf8-4279-8d03-2138ff32448e</uuid>
-		<revision>1</revision>
-		<private>0</private>
-		<value>CVE-XXXX-XXXX</value>
-		<category_order>c</category_order>
-	</Attribute>
-	<RelatedEvent>
-		<id>11</id>
-		<date>2011-01-03</date>
-		<uuid>4f8812ff-ded0-4592-9227-0615ff32448e</uuid>
-	</RelatedEvent>
-	<RelatedEvent>
-		<id>9</id>
-		<date>2011-02-02</date>
-		<uuid>4f85981e-d044-4b16-bc16-0a35ff32448e</uuid>
-	</RelatedEvent>
-	<RelatedEvent>
-		<id>6</id>
-		<date>2011-03-01</date>
-		<uuid>4f7a9faa-91d4-4c91-8ec6-0878ff32448e</uuid>
-	</RelatedEvent>
+	<ShadowAttribute/>
 </Event>
