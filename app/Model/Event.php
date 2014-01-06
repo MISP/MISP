@@ -943,7 +943,34 @@ class Event extends AppModel {
 	 	return $attributes;
 	 }
 	 
-	public function sendAlertEmail($id, $org, $isSiteAdmin, $processId = null) {
+	 public function sendAlertEmailRouter($id, $user) {
+	 	if (Configure::read('MISP.background_jobs')) {
+	 		$job = ClassRegistry::init('Job');
+	 		$job->create();
+	 		$data = array(
+	 				'worker' => 'default',
+	 				'job_type' => 'publish_alert_email',
+	 				'job_input' => 'Event: ' . $id,
+	 				'status' => 0,
+	 				'retries' => 0,
+	 				'org' => $user['org'],
+	 				'message' => 'Sending...',
+	 		);
+	 		$job->save($data);
+	 		$jobId = $job->id;
+	 		$process_id = CakeResque::enqueue(
+	 				'default',
+	 				'EventShell',
+	 				array('alertemail', $user['org'], $jobId, $id)
+	 		);
+	 		$job->saveField('process_id', $process_id);
+	 		return true;
+	 	} else {
+	 		return ($this->sendAlertEmail($id, $user['org']));
+	 	}
+	 } 
+	
+	public function sendAlertEmail($id, $org, $processId = null) {
 		$this->recursive = 1;
 		$event = $this->read(null, $id);
 		
@@ -968,7 +995,7 @@ class Event extends AppModel {
 		$body .= 'Info  : ' . "\n";
 		$body .= $event['Event']['info'] . "\n";
 		$user['org'] = $org;
-		$relatedEvents = $this->getRelatedEvents($user, $isSiteAdmin);
+		$relatedEvents = $this->getRelatedEvents($user, false);
 		if (!empty($relatedEvents)) {
 			$body .= '----------------------------------------------' . "\n";
 			$body .= 'Related to : '. "\n";
@@ -1219,5 +1246,259 @@ class Event extends AppModel {
 		// remove the temporary gpg file
 		if ($user['User']['gpgkey'] != null) unlink($tmpfname);
 		return $result;
+	}
+	
+	/**
+	 * Low level function to add an Event based on an Event $data array
+	 *
+	 * @return bool true if success
+	 */
+	public function _add(&$data, $fromXml, $user, $or='', $passAlong = null, $fromPull = false) {
+		$this->create();
+		// force check userid and orgname to be from yourself
+		$data['Event']['user_id'] = $user['id'];
+		$date = new DateTime();
+	
+		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('CyDefSIG.org');
+		//else $data['Event']['org'] = $auth->user('org');
+		$data['Event']['org'] = $user['org'];
+		// set these fields if the event is freshly created and not pushed from another instance.
+		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
+		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
+		if ($fromXml) {
+			// Workaround for different structure in XML/array than what CakePHP expects
+			$this->cleanupEventArrayFromXML($data);
+			// the event_id field is not set (normal) so make sure no validation errors are thrown
+			// LATER do this with	 $this->validator()->remove('event_id');
+			unset($this->Attribute->validate['event_id']);
+			unset($this->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
+		}
+		unset ($data['Event']['id']);
+		if (isset($data['Event']['uuid'])) {
+			// check if the uuid already exists
+			$existingEventCount = $this->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
+			if ($existingEventCount > 0) {
+				// RESTfull, set responce location header..so client can find right URL to edit
+				if ($fromPull) return false;
+				$existingEvent = $this->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
+				return $existingEvent['Event']['id'];
+			}
+		}
+		if (isset($data['Attribute'])) {
+			foreach ($data['Attribute'] as &$attribute) {
+				unset ($attribute['id']);
+			}
+		}
+		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
+		$fieldList = array(
+				'Event' => array('org', 'orgc', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
+		);
+	
+		$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,
+				'atomic' => true));
+		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
+		if ($saveResult) {
+			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
+				// do the necessary actions to publish the event (email, upload,...)
+				if ('true' != Configure::read('MISP.disablerestalert')) {
+					$this->sendAlertEmailRouter($this->getId(), $user);
+				}
+				$this->publish($this->getId(), $passAlong);
+			}
+			return true;
+		} else {
+			//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
+			return false;
+		}
+	}
+	
+	public function _edit(&$data, $id) {
+		$this->read(null, $id);
+		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
+		if ($this->data['Event']['timestamp'] < $data['Event']['timestamp']) {
+	
+		} else {
+			return 'Event exists and is the same or newer.';
+		}
+		if (!$this->data['Event']['locked']) {
+			return 'Event originated on this instance, any changes to it have to be done locally.';
+		}
+		$fieldList = array(
+				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
+		);
+		$data['Event']['id'] = $this->data['Event']['id'];
+		if (isset($data['Event']['Attribute'])) {
+			foreach ($data['Event']['Attribute'] as $k => &$attribute) {
+				$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $this->data);
+				if (count($existingAttribute)) {
+					$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
+					// Check if the attribute's timestamp is bigger than the one that already exists.
+					// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+					// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+					if ($data['Event']['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+	
+					} else {
+					unset($data['Event']['Attribute'][$k]);
+					}
+					} else {
+					unset($data['Event']['Attribute'][$k]['id']);
+					}
+					}
+	}
+	$this->cleanupEventArrayFromXML($data);
+	$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
+	if ($saveResult) return 'success';
+		else return 'Saving the event has failed.';
+	}
+	
+	private function __searchUuidInAttributeArray($uuid, &$attr_array) {
+		foreach ($attr_array['Attribute'] as &$attr) {
+			if ($attr['uuid'] == $uuid)	return array('Attribute' => $attr);
+		}
+		return false;
+	}
+	
+	/**
+	 * Uploads this specific event to all remote servers
+	 * TODO move this to a component
+	 *
+	 * @return bool true if success, false if, partly, failed
+	 */
+	public function uploadEventToServersRouter($id, $passAlong = null) {
+		// make sure we have all the data of the Event
+		$this->id = $id;
+		$this->recursive = 1;
+		$this->read();
+		$this->data['Event']['locked'] = 1;
+	
+		// get a list of the servers
+		$server = ClassRegistry::init('Server');
+		$servers = $server->find('all', array(
+				'conditions' => array('Server.push' => true)
+		));
+		// iterate over the servers and upload the event
+		if(empty($servers))
+			return true;
+	
+		$uploaded = true;
+		$failedServers = array();
+		App::uses('HttpSocket', 'Network/Http');
+		$HttpSocket = new HttpSocket();
+		foreach ($servers as &$server) {
+			//Skip servers where the event has come from.
+			if (($passAlong != $server)) {
+				$thisUploaded = $this->uploadEventToServer($this->data, $server, $HttpSocket);
+				if (!$thisUploaded) {
+					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
+					$failedServers[] = $server['Server']['url'];
+				}
+			}
+		}
+		if (!$uploaded) {
+			return $failedServers;
+		} else {
+			return true;
+		}
+	}
+	
+	public function publishRouter($id, $passAlong = null) {
+		if (Configure::read('MISP.background_jobs')) {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'publish_event',
+					'job_input' => 'Event ID: ' . $id,
+					'status' => 0,
+					'retries' => 0,
+					'org' => $this->Auth->user('org'),
+					'message' => 'Publishing.',
+			);
+			$job->save($data);
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'default',
+					'EventShell',
+					array('publish', $id, $passAlong, $process_id)
+			);
+			$job->saveField('process_id', $process_id);
+			return true;
+		} else {
+			$result = $this->publish($id, $passAlong);
+			return $result;
+		}
+	}
+	
+	/**
+	 * Performs all the actions required to publish an event
+	 *
+	 * @param unknown_type $id
+	 */
+	public function publish($id, $passAlong = null, $processId) {
+		$this->id = $id;
+		$this->recursive = 0;
+		$event = $this->read(null, $id);
+		// update the DB to set the published flag
+		$fieldList = array('published', 'id', 'info');
+		$event['Event']['published'] = 1;
+		$this->save($event, array('fieldList' => $fieldList));
+		$uploaded = false;
+		if ('true' == Configure::read('CyDefSIG.sync') && $event['Event']['distribution'] > 1) {
+			$uploaded = $this->uploadEventToServersRouter($id, $passAlong);
+			if (($uploaded == false) || (is_array($uploaded))) {
+				$this->saveField('published', 0);
+			}
+		} else {
+			return true;
+		}
+		return $uploaded;
+	}
+	
+
+	/**
+	 *
+	 * Sends out an email to all people within the same org
+	 * with the request to be contacted about a specific event.
+	 * @todo move __sendContactEmail($id, $message) to a better place. (components?)
+	 *
+	 * @param unknown_type $id The id of the event for wich you want to contact the org.
+	 * @param unknown_type $message The custom message that will be appended to the email.
+	 * @param unknown_type $all, true: send to org, false: send to person.
+	 *
+	 * @codingStandardsIgnoreStart
+	 * @throws \UnauthorizedException as well. // TODO Exception NotFoundException
+	 * @codingStandardsIgnoreEnd
+	 *
+	 * @return True if success, False if error
+	 */
+	public function sendContactEmailRouter($id, $message, $all, $user, $isSiteAdmin, $JobId = false) {
+		if (Configure::read('MISP.background_jobs')) {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'contact_alert',
+					'job_input' => 'To entire org: ' . $all,
+					'status' => 0,
+					'retries' => 0,
+					'org' => $user['org'],
+					'message' => 'Contacting.',
+			);
+			$job->save($data);
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'default',
+					'EventShell',
+					array('contactemail', $id, $message, $all, $user['id'], $isSiteAdmin, $jobId)
+			);
+			$job->saveField('process_id', $process_id);
+			return true;
+		} else {
+			$userMod['User'] = $user;
+			$result = $this->sendContactEmail($id, $message, $all, $userMod, $isSiteAdmin);
+			return $result;
+		}
 	}
 }

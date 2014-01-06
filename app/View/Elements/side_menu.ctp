@@ -2,7 +2,17 @@
 	<ul class="nav nav-list">
 		<?php 
 			switch ($menuList) {
-				case 'event': ?>						
+				case 'event': 
+					if ($menuItem === 'addAttribute' || 
+						$menuItem === 'addAttachment' || 
+						$menuItem === 'addIOC' || 
+						$menuItem === 'addThreatConnect'
+					) {
+						// we can safely assume that mayModify is true if comming from these actions, as they require it in the controller and the user has already passed that check
+						$mayModify = true;
+						if ($isAclPublish) $mayPublish = true;
+					}
+					?>						
 					<li <?php if ($menuItem === 'viewEvent') echo 'class="active";'?>><a href="/events/view/<?php echo $event['Event']['id'];?>">View Event</a></li>
 					<li <?php if ($menuItem === 'eventLog') echo 'class="active";'?>><a href="/logs/event_index/<?php echo $event['Event']['id'];?>">View Event History</a></li>
 					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>

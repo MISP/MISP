@@ -226,11 +226,25 @@ class EventShell extends AppShell
 	
 	public function alertemail() {
 		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$ProcessId = $this->args[2];
+		$processId = $this->args[1];
+		$this->Job->id = $processId;
+		$eventId = $this->args[2];
+		$result = $this->Event->sendAlertEmail($eventId, $org, $processId);
+		$this->Job->saveField('progress', '100');
+		if ($result != true) $this->Job->saveField('message', 'Job done.');
+	}
+	
+	public function contactemail() {
+		$id = $this->args[0];
+		$message = $this->args[1];
+		$all = $this->args[2];
+		$userId = $this->args[3];
+		$isSiteAdmin = $this->args[4];
+		$processId = $this->args[5];
 		$this->Job->id = $ProcessId;
-		$eventId = $this->args[3];
-		$result = $this->Event->sendAlertEmail($eventId, $org, $isSiteAdmin, $ProcessId);
+		$user = $this->User->read(null, $userId);
+		$eventId = $this->args[2];
+		$result = $this->Event->sendContactEmail($id, $message, $all, $user, $isSiteAdmin);
 		$this->Job->saveField('progress', '100');
 		if ($result != true) $this->Job->saveField('message', 'Job done.');
 	}
@@ -262,6 +276,17 @@ class EventShell extends AppShell
 			$task['Task']['scheduled_time'] = $this->Task->breakTime($task['Task']['scheduled_time'], $task['Task']['timer']);
 		}
 		$this->Task->save($task);
+	}
+	
+	public function publish() {
+		$id = $this->args[0];
+		$passAlong = $this->args[1];
+		$processId = $this->args[2];
+		$this->Job->id = $processId;
+		$eventId = $this->args[2];
+		$result = $this->Event->publish($id, $passAlong, $processId);
+		$this->Job->saveField('progress', '100');
+		if ($result != true) $this->Job->saveField('message', 'Job done.');
 	}
 }
 

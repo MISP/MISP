@@ -150,7 +150,8 @@ class EventsController extends AppController {
 			'ThreatLevel' => array(
 				'fields' => array(
 					'ThreatLevel.name'))
-		));
+			), 'order' => array('Event.timestamp' => 'DESC'),
+		);
 		$this->set('events', $this->paginate());
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
@@ -401,7 +402,6 @@ class EventsController extends AppController {
 		return !$pivot['deletable'];
 	}
 
-
 	/**
 	 * add method
 	 *
@@ -424,7 +424,8 @@ class EventsController extends AppController {
 						is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
-					if ($this->_add($this->request->data, $this->_isRest(),'')) {
+					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
+					if ($add && !is_numeric($add)) {
 						if ($this->_isRest()) {
 							// REST users want to see the newly created event
 							$this->view($this->Event->getId());
@@ -444,6 +445,10 @@ class EventsController extends AppController {
 						}
 					} else {
 						if ($this->_isRest()) { // TODO return error if REST
+							if(is_numeric($add)) {
+								$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $add);
+								$this->response->send();
+							}
 							// REST users want to see the failed event
 							$this->view($this->Event->getId());
 							$this->render('view');
@@ -602,9 +607,9 @@ class EventsController extends AppController {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
 				if ('true' != Configure::read('MISP.disablerestalert')) {
-					$this->__sendAlertEmail($this->Event->getId());
+					$this->Event->sendAlertEmailRouter($this->Event->getId(), $this->Auth->user(), $this->_isSiteAdmin());
 				}
-				$this->__publish($this->Event->getId(), $passAlong);
+				$this->Event->publish($this->Event->getId(), $passAlong);
 			}
 			return true;
 		} else {
@@ -753,7 +758,7 @@ class EventsController extends AppController {
 					//if published -> do the actual publishing
 					if ((!empty($this->request->data['Event']['published']) && 1 == $this->request->data['Event']['published'])) {
 						// do the necessary actions to publish the event (email, upload,...)
-						$this->__publish($existingEvent['Event']['id']);
+						$this->Event->publish($existingEvent['Event']['id']);
 					}
 
 					// REST users want to see the newly created event
@@ -872,49 +877,6 @@ class EventsController extends AppController {
 	}
 
 	/**
-	 * Uploads this specific event to all remote servers
-	 * TODO move this to a component
-	 *
-	 * @return bool true if success, false if, partly, failed
-	 */
-	private function __uploadEventToServers($id, $passAlong = null) {
-		// make sure we have all the data of the Event
-		$this->Event->id = $id;
-		$this->Event->recursive = 1;
-		$this->Event->read();
-		$this->Event->data['Event']['locked'] = 1;
-
-		// get a list of the servers
-		$this->loadModel('Server');
-		$servers = $this->Server->find('all', array(
-				'conditions' => array('Server.push' => true)
-		));
-		// iterate over the servers and upload the event
-		if(empty($servers))
-			return true;
-
-		$uploaded = true;
-		$failedServers = array();
-		App::uses('HttpSocket', 'Network/Http');
-		$HttpSocket = new HttpSocket();
-		foreach ($servers as &$server) {
-			//Skip servers where the event has come from.
-			if (($passAlong != $server)) {
-				$thisUploaded = $this->Event->uploadEventToServer($this->Event->data, $server, $HttpSocket);
-				if (!$thisUploaded) {
-					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
-					$failedServers[] = $server['Server']['url'];
-				}
-			}
-		}
-		if (!$uploaded) {
-			return $failedServers;
-		} else {
-			return true;
-		}
-	}
-
-	/**
 	 * Delets this specific event to all remote servers
 	 * TODO move this to a component(?)
 	 */
@@ -935,31 +897,6 @@ class EventsController extends AppController {
 			$this->Event->deleteEventFromServer($uuid, $server, $HttpSocket);
 		}
 	}
-
-	/**
-	 * Performs all the actions required to publish an event
-	 *
-	 * @param unknown_type $id
-	 */
-	private function __publish($id, $passAlong = null) {
-		$this->Event->id = $id;
-		$this->Event->recursive = 0;
-		$event = $this->Event->read(null, $id);
-		// update the DB to set the published flag
-		$fieldList = array('published', 'id', 'info');
-		$event['Event']['published'] = 1;
-		$this->Event->save($event, array('fieldList' => $fieldList));
-		$uploaded = false;
-		if ('true' == Configure::read('CyDefSIG.sync') && $event['Event']['distribution'] > 1) {
-			$uploaded = $this->__uploadEventToServers($id, $passAlong);
-			if (($uploaded == false) || (is_array($uploaded))) {
-				$this->Event->saveField('published', 0);
-			}
-		} else {
-			return true;
-		}
-		return $uploaded;
-	}
 	
 	/**
 	 * Publishes the event without sending an alert email
@@ -974,20 +911,26 @@ class EventsController extends AppController {
 		// update the event and set the from field to the current instance's organisation from the bootstrap. We also need to save id and info for the logs.
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(null, $id);
-		$event['Event']['published'] = 1;
-		$fieldList = array('published', 'id', 'info');
-		$this->Event->save($event, array('fieldList' => $fieldList));
+		if (!$this->_isSiteAdmin()) {
+			if (!$this->userRole['perm_publish'] && !$this->Auth->user('org') === $this->Event->data['Event']['orgc']) {
+				throw new MethodNotAllowedException('You don\'t have the permission to do that.');
+			}
+		}
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// Performs all the actions required to publish an event
-			$result = $this->__publish($id);
-			if (!is_array($result)) {
-				// redirect to the view event page
-				$this->Session->setFlash(__('Event published, but NO mail sent to any participants.', true));
+			$result = $this->Event->publish($id);
+			if (Configure::read('MISP.background_jobs')) {
+				if (!is_array($result)) {
+					// redirect to the view event page
+					$this->Session->setFlash(__('Event published, but NO mail sent to any participants.', true));
+				} else {
+					$lastResult = array_pop($result);
+					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
+					$this->Session->setFlash(__(sprintf('Event not published to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString), true));
+				}
 			} else {
-				$lastResult = array_pop($result);
-				$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
-				$this->Session->setFlash(__(sprintf('Event not published to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString), true));
+				$this->Session->setFlash(__('Job queued.'));
 			}
 			$this->redirect(array('action' => 'view', $id));
 		}
@@ -1005,14 +948,20 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-
+		$this->Event->recursive = -1;
+		$this->Event->read(null, $id);
+		if (!$this->_isSiteAdmin()) {
+			if (!$this->userRole['perm_publish'] && !$this->Auth->user('org') === $this->Event->data['Event']['orgc']) {
+				throw new MethodNotAllowedException('You don\'t have the permission to do that.');
+			}
+		}
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// send out the email
-			$emailResult = $this->__sendAlertEmail($id);
+			$emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user(), $this->_isSiteAdmin());
 			if (is_bool($emailResult) && $emailResult = true) {
 				// Performs all the actions required to publish an event
-				$result = $this->__publish($id);
+				$result = $this->Event->publish($id);
 				if (!is_array($result)) {
 
 					// redirect to the view event page
@@ -1024,7 +973,7 @@ class EventsController extends AppController {
 				}
 			} elseif (!is_bool($emailResult)) {
 				// Performs all the actions required to publish an event
-				$result = $this->__publish($id);
+				$result = $this->Event->publish($id);
 				if (!is_array($result)) {
 
 					// redirect to the view event page
@@ -1038,33 +987,6 @@ class EventsController extends AppController {
 				$this->Session->setFlash(__('Sending of email failed', true), 'default', array(), 'error');
 			}
 			$this->redirect(array('action' => 'view', $id));
-		}
-	}
-
-	private function __sendAlertEmail($id) {
-		if (Configure::read('MISP.background_jobs')) {
-			$this->loadModel('Job');
-			$this->Job->create();
-			$data = array(
-					'worker' => 'default',
-					'job_type' => 'contact_alert',
-					'job_input' => 'Event: ' . $id,
-					'status' => 0,
-					'retries' => 0,
-					'org' => $this->Auth->user('org'),
-					'message' => 'Fetching events.',
-			);
-			$this->Job->save($data);
-			$jobId = $this->Job->id;
-			$process_id = CakeResque::enqueue(
-					'default',
-					'EventShell',
-					array('alertemail', $this->Auth->user('org'), $this->_isSiteAdmin(), $jobId, $id)
-			);
-			$this->Job->saveField('process_id', $process_id);
-			return true;
-		} else {
-			return ($this->Event->sendAlertEmail($id, $this->Auth->user('org'), $this->_isSiteAdmin()));
 		}
 	}
 
@@ -1084,7 +1006,7 @@ class EventsController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$message = $this->request->data['Event']['message'];
 			$all = $this->request->data['Event']['person'];
-			if ($this->__sendContactEmail($id, $message, $all)) {
+			if ($this->Event->sendContactEmailRouter($id, $message, $all, $this->Auth->user(), $this->_isSiteAdmin())) {
 				// redirect to the view event page
 				$this->Session->setFlash(__('Email sent to the reporter.', true));
 			} else {
@@ -1096,27 +1018,6 @@ class EventsController extends AppController {
 		if (empty($this->data)) {
 			$this->data = $this->Event->read(null, $id);
 		}
-	}
-
-	/**
-	 *
-	 * Sends out an email to all people within the same org
-	 * with the request to be contacted about a specific event.
-	 * @todo move __sendContactEmail($id, $message) to a better place. (components?)
-	 *
-	 * @param unknown_type $id The id of the event for wich you want to contact the org.
-	 * @param unknown_type $message The custom message that will be appended to the email.
-	 * @param unknown_type $all, true: send to org, false: send to person.
-	 *
-	 * @codingStandardsIgnoreStart
-	 * @throws \UnauthorizedException as well. // TODO Exception NotFoundException
-	 * @codingStandardsIgnoreEnd
-	 *
-	 * @return True if success, False if error
-	 */
-	private function __sendContactEmail($id, $message, $all) {
-		$result = $this->Event->sendContactEmail($id, $message, $all, $this->Auth->user, $this->_isSiteAdmin());
-		return $result;
 	}
 
 	public function automation() {
@@ -1595,11 +1496,11 @@ class EventsController extends AppController {
 			if (isset($xmlArray['response']['Event'][0])) {
 				foreach ($xmlArray['response']['Event'] as $event) {
 					$temp['Event'] = $event;
-					$this->_add($temp, true);
+					$this->Event->_add($temp, true, $this->Auth->user());
 				}
 			} else {
 				$temp['Event'] = $xmlArray['response']['Event'];
-				$this->_add($temp, true);
+				$this->Event->_add($temp, true, $this->Auth->user());
 			}
 		}
 	}
@@ -1952,7 +1853,7 @@ class EventsController extends AppController {
 				);
 			}
 		}
-		$this->_add($data, false);
+		$this->Event->_add($data, false, $this->Auth->user());
 	}
 	
 	public function proposalEventIndex() {
@@ -1991,5 +1892,10 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
+	}
+	
+	private function __setHeaderForAdd($eventId) {
+		$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $eventId);
+		$this->response->send();
 	}
 }

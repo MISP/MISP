@@ -98,7 +98,9 @@ class ShadowAttributesController extends AppController {
 			$this->Event->recursive = -1;
 			// Unpublish the event, accepting a proposal is modifying the event after all. Also, reset the lock.
 			$event = $this->Event->read(null, $activeAttribute['Attribute']['event_id']);
-			$fieldList = array('proposal_email_lock', 'id', 'info', 'published');
+			$fieldList = array('proposal_email_lock', 'id', 'info', 'published', 'timestamp');
+			$date = new DateTime();
+			$event['Event']['timestamp'] = $date->getTimestamp();
 			$event['Event']['proposal_email_lock'] = 0;
 			$event['Event']['published'] = 0;
 			$this->Event->save($event, array('fieldList' => $fieldList));

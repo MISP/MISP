@@ -49,14 +49,14 @@
 	</tr><?php
 foreach ($list as $k => $item): ?>
 	<tr>
-		<td class="short"><?php echo h($item['Job']['id']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Job']['process_id']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Job']['worker']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Job']['job_type']); ?>&nbsp;</td>
-		<td><?php echo h($item['Job']['job_input']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Job']['org']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Job']['status']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Job']['retries']); ?>&nbsp;</td>
+		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['id']); ?>&nbsp;</td>
+		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['process_id']); ?>&nbsp;</td>
+		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['worker']); ?>&nbsp;</td>
+		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['job_type']); ?>&nbsp;</td>
+		<td title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['job_input']); ?>&nbsp;</td>
+		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['org']); ?>&nbsp;</td>
+		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['status']); ?>&nbsp;</td>
+		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['retries']); ?>&nbsp;</td>
 		<td style="width:200px;">
 			<div class="progress progress-striped active" style="margin-bottom: 0px;">
 			  <div id="bar<?php echo h($item['Job']['id']); ?>" class="bar" style="width: <?php echo h($item['Job']['progress']); ?>%;">

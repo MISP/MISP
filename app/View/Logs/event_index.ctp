@@ -1,3 +1,7 @@
+<?php
+$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
+$mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
+?>
 <div class="logs index">
 <h2>Logs</h2>
 	<div class="pagination">
@@ -52,5 +56,5 @@
 <?php 
 	// We mimic the $event from some other views to pass the ID back to the sidemenu
 	$event['Event']['id'] = $eventId;
-	echo $this->element('side_menu', array('menuList' => 'event', 'event' => $event, 'menuItem' => 'eventLog'));
+	echo $this->element('side_menu', array('menuList' => 'event', 'event' => $event, 'menuItem' => 'eventLog', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
 ?>
