@@ -19,14 +19,20 @@ class ServerShell extends AppShell
 		$user = $this->User->read(array('id', 'org', 'email'), $userId);
 		$server = $this->Server->read(null, $serverId);
 		$result = $this->Server->pull($user['User'], null, $technique, $server, $jobId);
-		if (is_numeric($result)) {
-			switch ($result) {
+		$this->Job->save(array(
+				'id' => $jobId,
+				'message' => 'Job done.',
+				'progress' => 100,
+				'status' => 4
+		));
+		if (is_numeric($result[0])) {
+			switch ($result[0]) {
 				case '1' :
 					$this->Job->saveField('message', 'Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server.');
 					return;
 					break;
 				case '2' :
-					$this->Job->saveField('message', 'Event Ids: ' . $eventIds);
+					$this->Job->saveField('message', $result[1]);
 					return;
 					break;
 				case '3' :
@@ -40,9 +46,6 @@ class ServerShell extends AppShell
 						
 			}
 		}
-		$this->Job->saveField('message', 'Job done.');
-		$this->Job->saveField('progress', 100);
-		$this->Job->saveField('status', 4);
 	}
 	
 	public function push() {
@@ -53,7 +56,12 @@ class ServerShell extends AppShell
 		App::uses('HttpSocket', 'Network/Http');
 		$HttpSocket = new HttpSocket();
 		$result = $this->Server->push($id, 'full', $jobId, $HttpSocket);
-		$this->Job->saveField('message', $result);
+		$this->Job->save(array(
+				'id' => $jobId,
+				'message' => 'Job done.',
+				'progress' => 100,
+				'status' => 4
+		));
 	}
 
 }

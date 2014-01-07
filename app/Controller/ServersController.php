@@ -95,7 +95,8 @@ class ServersController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// say what fields are to be updated
-			$fieldList = array('url', 'push', 'pull', 'organization');
+			$fieldList = array('id', 'url', 'push', 'pull', 'organization');
+			$this->request->data['Server']['id'] = $id;
 			if ("" != $this->request->data['Server']['authkey'])
 				$fieldList[] = 'authkey';
 			// Save the data

@@ -41,7 +41,8 @@
 			<th><?php echo $this->Paginator->sort('process_id');?></th>
 			<th><?php echo $this->Paginator->sort('worker');?></th>
 			<th><?php echo $this->Paginator->sort('job_type');?></th>
-			<th><?php echo $this->Paginator->sort('job_input');?></th>
+			<th><?php echo $this->Paginator->sort('job_input', 'Input');?></th>
+			<th><?php echo $this->Paginator->sort('message');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<th><?php echo $this->Paginator->sort('status');?></th>
 			<th><?php echo $this->Paginator->sort('retries');?></th>
@@ -49,14 +50,15 @@
 	</tr><?php
 foreach ($list as $k => $item): ?>
 	<tr>
-		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['id']); ?>&nbsp;</td>
-		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['process_id']); ?>&nbsp;</td>
-		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['worker']); ?>&nbsp;</td>
-		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['job_type']); ?>&nbsp;</td>
-		<td title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['job_input']); ?>&nbsp;</td>
-		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['org']); ?>&nbsp;</td>
-		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['status']); ?>&nbsp;</td>
-		<td class="short" title="Message: <?php echo h($item['Job']['message']); ?>"><?php echo h($item['Job']['retries']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Job']['id']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Job']['process_id']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Job']['worker']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Job']['job_type']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Job']['job_input']); ?>&nbsp;</td>
+		<td><?php echo h($item['Job']['message']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Job']['org']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Job']['status']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Job']['retries']); ?>&nbsp;</td>
 		<td style="width:200px;">
 			<div class="progress progress-striped active" style="margin-bottom: 0px;">
 			  <div id="bar<?php echo h($item['Job']['id']); ?>" class="bar" style="width: <?php echo h($item['Job']['progress']); ?>%;">

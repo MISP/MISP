@@ -151,7 +151,7 @@ class EventsController extends AppController {
 			'ThreatLevel' => array(
 				'fields' => array(
 					'ThreatLevel.name'))
-			), 'order' => array('Event.timestamp' => 'DESC'),
+			),
 		));
 		$this->set('events', $this->paginate());
 		if (!$this->Auth->user('gpgkey')) {

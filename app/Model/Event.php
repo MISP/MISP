@@ -1146,7 +1146,9 @@ class Event extends AppModel {
 			$this->log($e->getMessage());
  			return $e->getMessage();
  		}
- 
+ 	if ($processId) {
+ 		$this->Job->saveField('message', 'Mails sent.');
+ 	}
  	// LATER check if sending email succeeded and return appropriate result
  	return true;
 	}

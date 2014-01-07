@@ -121,9 +121,9 @@ class Server extends AppModel {
 			$eventIds = $eventModel->getEventIdsFromServer($server);
 			// FIXME this is not clean at all ! needs to be refactored with try catch error handling/communication
 			if ($eventIds === 403) {
-				return 1;
+				return array (1, null);
 			} else if (is_string($eventIds)) {
-				return 2;
+				return array(2, $eventIds);
 			}
 		
 			// reverse array of events, to first get the old ones, and then the new ones
@@ -131,12 +131,12 @@ class Server extends AppModel {
 			$eventCount = count($eventIds);
 		} elseif ("incremental" == $technique) {
 			// TODO incremental pull
-			return 3;
+			return array (3, null);
 		
 		} elseif (true == $technique) {
 			$eventIds[] = intval($technique);
 		} else {
-			return 4;
+			return array (4, null);
 		}
 		// now process the $eventIds to pull each of the events sequentially
 		if (!empty($eventIds)) {
@@ -277,6 +277,9 @@ class Server extends AppModel {
 							}
 						}
 					}
+				}
+				if ($jobId) {
+					$job->saveField('progress', $k * 100 / $eventCount);
 				}
 			}
 		}
