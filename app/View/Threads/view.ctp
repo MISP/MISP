@@ -1,5 +1,5 @@
 <div class="threads view">
-	<h3><?php echo $thread_title; ?></h3>
+	<h3><?php echo h($thread_title); ?></h3>
 <?php
 	echo $this->element('eventdiscussion');
 ?>
