@@ -40,7 +40,7 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <pre>
 <?php
 foreach ($sigTypes as $sigType) {
-	echo Configure::read('CyDefSIG.baseurl').'/events/text/'.$me['authkey'].'/'.$sigType . "\n";
+	echo Configure::read('CyDefSIG.baseurl').'/attributes/text/'.$me['authkey'].'/'.$sigType . "\n";
 }
 ?>
 </pre>

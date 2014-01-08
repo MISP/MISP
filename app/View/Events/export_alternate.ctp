@@ -57,7 +57,7 @@
 	<?php
 	foreach ($sigTypes as $sigType): ?>
 		<li class="actions" style="text-align:center; width: auto; padding: 7px 2px;">
-		<?php echo $this->Html->link($sigType, array('action' => 'text', 'download' ,$sigType), array('class' => 'btn')) ?>
+		<?php echo $this->Html->link($sigType, array('controller' => 'attributes', 'action' => 'text', 'download' ,$sigType), array('class' => 'btn')) ?>
 		</li>
 	<?php endforeach; ?>
 	</ul>
