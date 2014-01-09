@@ -746,8 +746,9 @@ class UsersController extends AppController {
 
 	// shows some statistics about the instance
 	public function statistics() {
-		$this->User->recursive = -1;
-		$orgs = $this->User->find('all', array('fields' => array('DISTINCT (org) AS org')));
+		
+		// set all of the data up for the heatmaps
+		$orgs = $this->User->find('all', array('fields' => array('DISTINCT (org) AS org'), 'recursive' => -1));
 		$this->loadModel('Log');
 		$year = date('Y');
 		$month = date('n');
@@ -757,6 +758,33 @@ class UsersController extends AppController {
 			$year--;
 			$month = 12 + $month;
 		}
+
+		// Some additional satistics
+		$this_month = strtotime('first day of this month');
+		$stats[0] = $this->User->Event->find('count', null);
+		$stats[1] = $this->User->Event->find('count', array('conditions' => array('Event.timestamp >' => $this_month)));
+
+		$stats[2] = $this->User->Event->Attribute->find('count', null);
+		$stats[3] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month)));
+		
+		$this->loadModel('Correlation');
+		$this->Correlation->recursive = -1;
+		$stats[4] = $this->Correlation->find('count', null);
+		$stats[4] = $stats[4] / 2;
+		
+		$stats[5] = $this->User->Event->ShadowAttribute->find('count', null);
+		
+		$stats[6] = $this->User->find('count', null);
+		$stats[7] = count($orgs);
+		
+		$this->loadModel('Thread');
+		$stats[8] = $this->Thread->find('count', null);
+		$stats[9] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s",$this_month))));
+
+		$stats[10] = $this->Thread->Post->find('count', null);
+		$stats[11] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s",$this_month))));
+		
+		$this->set('stats', $stats);
 		$this->set('orgs', $orgs);
 		$this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
 		$this->set('end', strtotime(date('Y-m-d H:i:s')));

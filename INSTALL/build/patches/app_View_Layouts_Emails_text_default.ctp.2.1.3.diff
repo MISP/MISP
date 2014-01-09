@@ -1,8 +1,0 @@
---- app/View/Layouts/Emails/text/default.ctp.orig	2012-09-20 15:29:00.464648980 +0200
-+++ app/View/Layouts/Emails/text/default.ctp	2012-09-06 13:45:12.635544956 +0200
-@@ -17,5 +17,3 @@
-  */
- ?>
- <?php echo $content_for_layout;?>
--
--This email was sent using the CakePHP Framework, http://cakephp.org.
