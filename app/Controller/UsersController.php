@@ -743,4 +743,23 @@ class UsersController extends AppController {
 		}
 		// User didn't see the contact form yet. Present it to him.
 	}
+
+	// shows some statistics about the instance
+	public function statistics() {
+		$this->User->recursive = -1;
+		$orgs = $this->User->find('all', array('fields' => array('DISTINCT (org) AS org')));
+		$this->loadModel('Log');
+		$year = date('Y');
+		$month = date('n');
+		$day = date('j');
+		$month = $month - 5;
+		if ($month < 1) {
+			$year--;
+			$month = 12 + $month;
+		}
+		$this->set('orgs', $orgs);
+		$this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
+		$this->set('end', strtotime(date('Y-m-d H:i:s')));
+		$this->set('startDateCal', $year . ', ' . $month . ', 01');
+	}
 }

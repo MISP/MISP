@@ -107,6 +107,7 @@
 					<li <?php if ($menuItem === 'members') echo 'class="active";'?>><a href="/users/memberslist">Members List</a></li>
 					<li <?php if ($menuItem === 'userGuide') echo 'class="active";'?>><a href="/pages/display/doc/general">User Guide</a></li>
 					<li <?php if ($menuItem === 'terms') echo 'class="active";'?>><a href="/users/terms">Terms &amp; Conditions</a></li>
+					<li <?php if ($menuItem === 'statistics') echo 'class="active";'?>><a href="/users/statistics">Statistics</a></li>
 					<?php 
 				break;
 				

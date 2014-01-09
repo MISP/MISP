@@ -221,4 +221,27 @@ class LogsController extends AppController {
 			$this->render('admin_index');
 		}
 	}
+
+	public function returnDates($startDate, $endDate, $org = 'all') {
+		$startDate = date('Y-m-d H:i:s', $startDate);
+		$endDate = date('Y-m-d H:i:s', $endDate);
+		$conditions = array();
+		$conditions = array('created <' => $endDate, 'created >' => $startDate);
+		if ($org !== 'all') $conditions['org'] = $org;
+		$validDates = $this->Log->find('all', array(
+				'fields' => array('created'),
+				'conditions' => $conditions,
+		));
+		$data = array();
+		foreach ($validDates as $k => $date) {
+			$temp = strtotime("0:00", strtotime($date['Log']['created']));
+			if (array_key_exists($temp, $data)) {
+				$data[$temp]++;
+			} else {
+				$data[$temp] = 1;
+			}
+		}
+		$this->set('data', $data);
+		$this->set('_serialize', 'data');
+	}
 }
