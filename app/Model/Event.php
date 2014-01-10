@@ -839,7 +839,6 @@ class Event extends AppModel {
 		// if we come from automation, we may not be logged in - instead we used an auth key in the URL.
 		
 		$conditionsAttributes = array();
-		$conditionsShadowAttributes = array();
 		//restricting to non-private or same org if the user is not a site-admin.
 		if (!$isSiteAdmin) {
 			$conditions['AND']['OR'] = array(
@@ -849,13 +848,6 @@ class Event extends AppModel {
 			$conditionsAttributes['OR'] = array(
 				'Attribute.distribution >' => 0,
 				'(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org
-			);
-			$conditionsShadowAttributes['OR'] = array(
-			// We are currently looking at events.org matching the user's org, but later on, once we start syncing shadow attributes, we may want to change this to orgc
-			// Right now the org that currently owns the event on an instance can see, accept and decline these requests, but in the long run once we can distribute
-			// the requests back to the creator, we may want to leave these decisions up to them.
-				array('(SELECT events.org FROM events WHERE events.id = ShadowAttribute.event_id) LIKE' => $org),
-				array('ShadowAttribute.org LIKE' => $org),
 			);
 		}
 			
@@ -871,7 +863,7 @@ class Event extends AppModel {
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked');
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
-		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment');
+		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org');
 			
 		$params = array('conditions' => $conditions,
 			'recursive' => 0,
@@ -886,7 +878,6 @@ class Event extends AppModel {
 				),
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,
-					'conditions' => $conditionsShadowAttributes,
 				),
 			)
 		);

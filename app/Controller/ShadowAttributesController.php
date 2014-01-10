@@ -199,7 +199,17 @@ class ShadowAttributesController extends AppController {
  * @throws NotFoundException // TODO Exception
  */
 	public function add($eventId = null) {
+		$event = $this->ShadowAttribute->Event->find('first', array(
+				'conditions' => array('Event.id' => $eventId),
+				'recursive' => -1,
+				'fields' => array('id', 'orgc', 'distribution', 'org'),
+		));
+		if ((($event['Event']['distribution'] == 0 && !$event['Event']['org'] != $this->Auth->user('org'))) || ($event['Event']['orgc'] == $this->Auth->user('org'))) {
+			$this->Session->setFlash(__('Invalid Event.'));
+			$this->redirect(array('controller' => 'events', 'action' => 'index'));
+		}
 		if ($this->request->is('post')) {
+				
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
 			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
 			if (isset($this->request->data['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($this->request->data['ShadowAttribute']['type'])) {
@@ -340,6 +350,15 @@ class ShadowAttributesController extends AppController {
  * @throws InternalErrorException
  */
 	public function add_attachment($eventId = null) {
+		$event = $this->ShadowAttribute->Event->find('first', array(
+				'conditions' => array('Event.id' => $eventId),
+				'recursive' => -1,
+				'fields' => array('id', 'orgc', 'distribution', 'org'),
+		));
+		if ((($event['Event']['distribution'] == 0 && !$event['Event']['org'] != $this->Auth->user('org'))) || ($event['Event']['orgc'] == $this->Auth->user('org'))) {
+			$this->Session->setFlash(__('Invalid Event.'));
+			$this->redirect(array('controller' => 'events', 'action' => 'index'));
+		}
 		if ($this->request->is('post')) {
 			// Check if there were problems with the file upload
 			// only keep the last part of the filename, this should prevent directory attacks
@@ -496,7 +515,10 @@ class ShadowAttributesController extends AppController {
 		}
 		$uuid = $this->Attribute->data['Attribute']['uuid'];
 		if (!$this->_isSiteAdmin()) {
-			if (($this->Attribute->data['Attribute']['distribution'] == 0) || ($this->Attribute->data['Event']['orgc'] == $this->Auth->user('org'))) {
+			// If the attribute's distribution is private and the user is not the owner of the event or if the user is of the original creator org -> exception
+			// The owner should be able to create a shadow attribute, since a pushed community event would be private and tied to a single organisation on a synced instance
+			// The users of that organisation can only view but not edit the event, but they should be able to propose a change 
+			if ((($this->Attribute->data['Attribute']['distribution'] == 0 && !$this->Attribute->data['Event']['org'] != $this->Auth->user('org'))) || ($this->Attribute->data['Event']['orgc'] == $this->Auth->user('org'))) {
 				$this->Session->setFlash(__('Invalid Attribute.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
