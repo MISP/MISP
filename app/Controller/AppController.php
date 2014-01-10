@@ -69,6 +69,11 @@ class AppController extends Controller {
 	);
 
 	public function beforeFilter() {
+		
+		// send users away that are using ancient versions of IE
+		// Make sure to update this if IE 20 comes out :)
+		if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE.');
+		
 		// REST authentication
 		if ($this->_isRest() || $this->isJson()) {
 			// disable CSRF for REST access

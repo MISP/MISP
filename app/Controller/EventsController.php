@@ -1141,7 +1141,7 @@ class EventsController extends AppController {
 			// display the full xml
 			$this->response->type('xml');	// set the content type
 			$this->layout = 'xml/default';
-			$this->header('Content-Disposition: inline; filename="misp.xml"');
+			$this->header('Content-Disposition: download; filename="misp.xml"');
 		} else {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
@@ -1197,7 +1197,7 @@ class EventsController extends AppController {
 
 		if ($key != 'download') {
 			$this->response->type('txt');	// set the content type
-			$this->header('Content-Disposition: inline; filename="misp.rules"');
+			$this->header('Content-Disposition: download; filename="misp.rules"');
 			$this->layout = 'text/default';
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1230,7 +1230,7 @@ class EventsController extends AppController {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
 			$this->response->type('txt');	// set the content type
-			$this->header('Content-Disposition: inline; filename="misp.' . $type . '.rules"');
+			$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
 			$this->layout = 'text/default';
 		} else {
 			// check if there's a user logged in or not
@@ -1261,11 +1261,11 @@ class EventsController extends AppController {
 			}
 			$this->response->type('csv');	// set the content type
 			if ($eventid == 0) {
-				$this->header('Content-Disposition: inline; filename="misp.all_attributes.csv"');
+				$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
 			} else if ($eventid === 'search') {
-				$this->header('Content-Disposition: inline; filename="misp.search_result.csv"');
+				$this->header('Content-Disposition: download; filename="misp.search_result.csv"');
 			} else {
-				$this->header('Content-Disposition: inline; filename="misp.event_' . $eventid . '.csv"');
+				$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
 			}
 			$this->layout = 'text/default';
 			$isSiteAdmin = $user['User']['siteAdmin'];

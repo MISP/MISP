@@ -60,6 +60,7 @@
 							<li><a href="/users/memberslist">Members List</a></li>
 							<li><a href="/pages/display/doc/quickstart">User Guide</a></li>
 							<li><a href="/users/terms">Terms &amp; Conditions</a></li>
+							<li><a href="/users/statistics">Statistics</a></li>
 							<li class="divider"></li>
 							<li><a href="/users/logout">Log out</a></li>
 						</ul>
