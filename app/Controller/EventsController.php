@@ -109,11 +109,11 @@ class EventsController extends AppController {
 						break;
 					case 'Datefrom' :
 						if (!$v) continue 2;
-						$this->paginate['conditions'][] = array('Event.date' . ' >' => $v);
+						$this->paginate['conditions'][] = array('Event.date >=' => $v);
 						break;
 					case 'Dateuntil' :
 						if (!$v) continue 2;
-						$this->paginate['conditions'][] = array('Event.date' . ' <' => $v);
+						$this->paginate['conditions'][] = array('Event.date <=' => $v);
 						break;
 					case 'org' :
 						if (!$v) continue 2;
