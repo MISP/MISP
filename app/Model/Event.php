@@ -1009,7 +1009,7 @@ class Event extends AppModel {
 		
 		// The mail body, h() is NOT needed as we are sending plain-text mails.
 		$body = "";
-		$body .= '----------------------------------------------' . "\n";
+		$body .= '==============================================' . "\n";
 		$appendlen = 20;
 		$body .= 'URL         : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
 		$body .= 'Event       : ' . $event['Event']['id'] . "\n";
@@ -1024,21 +1024,21 @@ class Event extends AppModel {
 		$user['org'] = $org;
 		$relatedEvents = $this->getRelatedEvents($user, false);
 		if (!empty($relatedEvents)) {
-			$body .= '----------------------------------------------' . "\n";
+			$body .= '==============================================' . "\n";
 			$body .= 'Related to : '. "\n";
 			foreach ($relatedEvents as &$relatedEvent) {
 				$body .= Configure::read('CyDefSIG.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
 			}
-			$body .= '----------------------------------------------' . "\n";
+			$body .= '==============================================' . "\n";
 		}
-		$body .= 'Attributes  :' . "\n";
+		$body .= 'Attributes (* infront of the attribute type   :' . "\n";
 		$bodyTempOther = "";
 		if (isset($event['Attribute'])) {
 			foreach ($event['Attribute'] as &$attribute) {
 				if (isset($event['Event']['publish_timestamp']) && isset($attribute['timestamp']) && $attribute['timestamp'] > $event['Event']['publish_timestamp']) {
-					$line = '(NEW!)- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] ."\n";					
+					$line = '*' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] ."\n";					
 				} else {
-					$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . "\n";
+					$line = $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . "\n";
 				}
 				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
 					$bodyTempOther .= $line;
@@ -1049,7 +1049,7 @@ class Event extends AppModel {
 			$body .= "\n";
 		}
 		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
-		$body .= '----------------------------------------------' . "\n";
+		$body .= '==============================================' . "\n";
 		// find out whether the event is private, to limit the alerted user's list to the org only
 		if ($event['Event']['distribution'] == 0) {
 			$eventIsPrivate = true;

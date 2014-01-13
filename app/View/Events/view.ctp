@@ -255,12 +255,7 @@ if (!empty($event['Attribute'])):?>
 			$extra = 'highlight2';
 			foreach ($attribute['ShadowAttribute'] as $shadowAttribute): ?>
 				<tr class="highlight2">
-					<td class= "short <?php echo $extra; ?>">
-						<?php 
-							if (isset($event['Event']['publish_timestamp'])) echo date('Y-m-d', $shadowAttribute['timestamp']);
-							else echo '&nbsp';				
-						?>
-					</td>
+					<td class= "short <?php echo $extra; ?>">&nbsp</td>
 					<td class="short highlight2" title="
 						<?php if('' != $shadowAttribute['category']) echo $categoryDefinitions[$shadowAttribute['category']]['desc'];?>
 					">
