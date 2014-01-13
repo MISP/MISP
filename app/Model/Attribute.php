@@ -844,7 +844,7 @@ class Attribute extends AppModel {
  *
  * @return void
  */
-	public function uploadAttachment($fileP, $realFileName, $malware, $eventId = null, $category = null, $extraPath = '', $fullFileName = '', $fromGFI = false) {
+	public function uploadAttachment($fileP, $realFileName, $malware, $eventId = null, $category = null, $extraPath = '', $fullFileName = '', $dist, $fromGFI = false) {
 		// Check if there were problems with the file upload
 		// only keep the last part of the filename, this should prevent directory attacks
 		$filename = basename($fileP);
@@ -853,19 +853,20 @@ class Attribute extends AppModel {
 		// save the file-info in the database
 		$this->create();
 		$this->data['Attribute']['event_id'] = $eventId;
+		$this->data['Attribute']['distribution'] = $dist;
 		if ($malware) {
 			$md5 = !$tmpfile->size() ? md5_file($fileP) : $tmpfile->md5();
 			$this->data['Attribute']['category'] = $category ? $category : "Payload delivery";
 			$this->data['Attribute']['type'] = "malware-sample";
 			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $md5 : $filename . '|' . $md5; // TODO gives problems with bigger files
 			$this->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
-			if ($fromGFI) $this->data['Attribute']['comment'] = 'GFI import';
+			if ($fromGFI)$this->data['Attribute']['comment'] = 'GFI import';
 		} else {
 			$this->data['Attribute']['category'] = $category ? $category : "Artifacts dropped";
 			$this->data['Attribute']['type'] = "attachment";
 			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName : $realFileName;
 			$this->data['Attribute']['to_ids'] = 0;
-			if ($fromGFI) $this->data['Attribute']['comment'] = 'GFI import';
+			if ($fromGFI)$this->data['Attribute']['comment'] = 'GFI import';
 		}
 
 		//???
@@ -879,11 +880,8 @@ class Attribute extends AppModel {
 		// no sanitization is required on the filename, path or type as we save
 		// create directory structure
 		// ???
-		if (PHP_OS == 'WINNT') {
-			$rootDir = APP . "files" . DS . $eventId;
-		} else {
-			$rootDir = APP . "files" . DS . $eventId;
-		}
+		$rootDir = APP . "files" . DS . $eventId;
+		
 		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
 		$destpath = $rootDir . DS . $this->getId(); // id of the new attribute in the database

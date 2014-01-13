@@ -1508,7 +1508,9 @@ class EventsController extends AppController {
 
 	public function _readGfiXML($data, $id) {
 		$this->loadModel('Attribute');
-
+		$this->Event->recursive = -1;
+		$this->Event->read(array('id', 'uuid', 'distribution'), $id);
+		
 		// import XML class
 		App::uses('Xml', 'Utility');
 		// now parse it
@@ -1516,6 +1518,15 @@ class EventsController extends AppController {
 
 		// xpath..
 
+		if (Configure::read('MISP.default_attribute_distribution') != null) {
+			if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+				$dist = $this->Event->data['Event']['distribution'];
+			} else {
+				$dist = '';
+				$dist .= Configure::read('MISP.default_attribute_distribution');
+			}
+		}
+		
 		//Payload delivery -- malware-sample
 		$results = $parsedXml->xpath('/analysis');
 		foreach ($results as $result) {
@@ -1526,13 +1537,13 @@ class EventsController extends AppController {
 		$realMalware = $realFileName;
 		$rootDir = APP . "files" . DS . $id . DS;
 		$malware = $rootDir . DS . 'sample';
-		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id, null, '', '', true);
-
+		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id, null, '', $this->Event->data['Event']['uuid'] . '-sample', $dist, true);
+		
 		//Network activity -- .pcap
 		$realFileName = 'analysis.pcap';
 		$rootDir = APP . "files" . DS . $id . DS;
 		$malware = $rootDir . DS . 'Analysis' . DS . 'analysis.pcap';
-		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	false, $id, 'Network activity', '', '', true);
+		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	false, $id, 'Network activity', '', $this->Event->data['Event']['uuid'] . '-analysis.pcap', $dist, true);
 
 		//Artifacts dropped -- filename|md5
 		$files = array();
@@ -1581,7 +1592,7 @@ class EventsController extends AppController {
 			$extraPath = 'Analysis' . DS . 'proc_' . $index . DS . 'modified_files' . DS;
 			$file = new File($actualFile);
 			if ($file->exists()) { // TODO put in array for test later
-				$this->Event->Attribute->uploadAttachment($actualFile, $realFileName, true, $id, null, $extraPath, $keyName, true); // TODO was false
+				$this->Event->Attribute->uploadAttachment($actualFile, $realFileName, true, $id, null, $extraPath, $keyName, $dist, true); // TODO was false
 			} else {
 			}
 		}
@@ -1607,6 +1618,7 @@ class EventsController extends AppController {
 					'type' => 'ip-dst',
 					'value' => $ip,
 					'to_ids' => false,
+					'distribution' => $dist,
 					'comment' => 'GFI import',
 					));
 		}
@@ -1619,6 +1631,7 @@ class EventsController extends AppController {
 					'type' => 'hostname',
 					'value' => $hostname,
 					'to_ids' => false,
+					'distribution' => $dist,
 					'comment' => 'GFI import',
 			));
 		}
@@ -1640,29 +1653,18 @@ class EventsController extends AppController {
 		foreach ($regs as $key => $val) {
 			// add attribute..
 			$this->Attribute->create();
-			if ($val == '[binary_data]') {
-				$itsCategory = 'Artifacts dropped';
-				$itsType = 'regkey';
-				$itsValue = $key;
-			} else {
-				if ($this->strposarray($val,$actualFileNameArray)) {
-					$itsCategory = 'Persistence mechanism';
-					$itsType = 'regkey|value';
-					$itsValue = $key . '|' . $val;
-				} else {
-					$itsCategory = 'Artifacts dropped'; // Persistence mechanism
-					$itsType = 'regkey|value';
-					$itsValue = $key . '|' . $val;
-				}
-			}
-			$this->Attribute->save(array(
+
+			if ($this->strposarray($val,$actualFileNameArray)) {
+				$this->Attribute->save(array(
 					'event_id' => $id,
-					'category' => $itsCategory, // 'Persistence mechanism'
-					'type' => $itsType,
-					'value' => $itsValue,
-					'to_ids' => false,
 					'comment' => 'GFI import',
-			));
+					'category' => 'Persistence mechanism', // 'Persistence mechanism'
+					'type' => 'regkey|value',
+					'value' => $key . '|' . $val,
+					'distribution' => $dist,
+					'to_ids' => false
+				));
+			}
 		}
 	}
 
