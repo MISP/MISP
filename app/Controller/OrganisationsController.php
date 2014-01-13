@@ -35,6 +35,8 @@ class OrganisationsController extends AppController {
                 $this->Session->setFlash(__('The organisation could not be saved. Please, try again.'), 'flash_message', array('type' => 'alert-error'));
             }
         }
+        $sharingGroups = $this->Organisation->SharingGroup->find('list');
+        $this->set(compact('sharingGroups'));
     }
 
     public function admin_edit($id = null) {
@@ -52,6 +54,8 @@ class OrganisationsController extends AppController {
             $options = array('conditions' => array('Organisation.' . $this->Organisation->primaryKey => $id));
             $this->request->data = $this->Organisation->find('first', $options);
         }
+        $sharingGroups = $this->Organisation->SharingGroup->find('list');
+        $this->set(compact('sharingGroups'));
     }
 
     public function admin_delete($id = null) {

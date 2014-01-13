@@ -6,6 +6,7 @@
 		echo $this->Form->input('email');
 		echo $this->Form->input('password');
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
+        echo $this->Form->input('organisation_id', array('label' => 'Organisation'));
 		if ($isSiteAdmin) {
 			echo $this->Form->input('org', array('label' => 'Organisation'));
 		}
@@ -21,6 +22,15 @@
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'addUser'));
 ?>
+<script>
+(function(){
+    'use strict';
+    $('#UserOrg').val($('#UserOrganisation option:selected').text());
+    $('#UserAdminAddForm').on('change', '#UserOrganisation', function(){
+        $('#UserOrg').val($('#UserOrganisation option:selected').text());
+    });
+}());
+</script>

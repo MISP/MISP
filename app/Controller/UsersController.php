@@ -230,7 +230,8 @@ class UsersController extends AppController {
 			$this->newkey = $this->User->generateAuthKey();
 			$this->set('authkey', $this->newkey);
 		}
-		$this->set(compact('roles'));
+        $organisations = $this->User->Organisation->find('list');
+		$this->set(compact('roles', 'organisations'));
 	}
 
 /**
@@ -323,8 +324,9 @@ class UsersController extends AppController {
 			$this->request->data = $this->User->data; // TODO CHECK
 
 		}
+        $organisations = $this->User->Organisation->find('list');
 		$this->set('id', $id);
-		$this->set(compact('roles'));
+		$this->set(compact('roles', 'organisations'));
 	}
 
 /**
@@ -388,7 +390,7 @@ class UsersController extends AppController {
 					'perm_regexp_access' => 1,
 				));
 				$this->Role->save($siteAdmin);
-			}	
+			}
 			// populate the DB with the first user if it's empty
 			if ($this->User->find('count') == 0 ) {
 				$admin = array('User' => array(

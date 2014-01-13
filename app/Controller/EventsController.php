@@ -150,10 +150,32 @@ class EventsController extends AppController {
 				}
 			}
 		}
-		$this->paginate = array('contain' => array(
-			'ThreatLevel' => array(
-				'fields' => array(
-					'ThreatLevel.name'))
+        $org = $this->Event->User->Organisation->read(null, $this->Auth->user('organisation_id'));
+
+		$this->paginate = array(
+            //Only show events for $this->Auth->user() sharing group
+            /*
+            'joins' => array(
+                array(
+                    'table' => 'events_sharing_groups',
+                    'alias' => 'EventsSharingGroup',
+                    'type' => 'inner',
+                    'conditions'=> array('EventsSharingGroup.event_id = Event.id')
+                ),
+                array(
+                    'table' => 'sharing_groups',
+                    'alias' => 'SharingGroup',
+                    'type' => 'inner',
+                    'conditions'=> array(
+                        'SharingGroup.id = EventsSharingGroup.sharing_group_id',
+                        'SharingGroup.id' => $org['SharingGroup']['id']
+                        )
+                )
+            ),*/
+            'contain' => array(
+    			'ThreatLevel' => array(
+    				'fields' => array(
+    					'ThreatLevel.name'))
 		));
 		$this->set('events', $this->paginate());
 		if (!$this->Auth->user('gpgkey')) {
@@ -817,7 +839,7 @@ class EventsController extends AppController {
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
-
+        $this->set('sharingGroups', $this->Event->SharingGroup->find('list'));
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 
 		$this->set('event', $this->Event->data);

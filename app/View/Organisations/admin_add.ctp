@@ -2,7 +2,9 @@
 <?php echo $this->Form->create('Organisation'); ?>
     <fieldset>
         <legend><?php echo __('Add Organisation'); ?></legend>
-    <?php echo $this->Form->input('name', array('class' => 'input-xxlarge')); ?>
+    <?php echo $this->Form->input('name', array('class' => 'input-xxlarge'));
+    echo $this->Form->input('sharing_group_id', array('div' => 'clear'));
+     ?>
     </fieldset>
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary')); ?>
 <?php echo $this->Form->end(); ?>

@@ -19,7 +19,7 @@ class User extends AppModel {
 
 	public $orgField = 'org';	// TODO Audit, LogableBehaviour + org
 
-	
+
 /**
  * Validation rules
  *
@@ -207,7 +207,11 @@ class User extends AppModel {
 			'conditions' => '',
 			'fields' => '',
 			'order' => ''
-		)
+		),
+        'Organisation' => array(
+            'className' => 'Organisation',
+            'foreignKey' => 'organisation_id'
+        )
 	);
 
 /**
