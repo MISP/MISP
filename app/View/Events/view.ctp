@@ -6,7 +6,6 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
 ?>
 
-
 <div class="events view">
 
 	<?php
@@ -134,6 +133,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 if (!empty($event['Attribute'])):?>
 		<table class="table table-striped table-condensed">
 		<tr>
+			<th>Date</th>
 			<th>Category</th>
 			<th>Type</th>
 			<th>Value</th>
@@ -151,6 +151,12 @@ if (!empty($event['Attribute'])):?>
 			if (count($attribute['ShadowAttribute'])) $extra .= 'highlight1';
 		?>
 		<tr>
+			<td class= "short <?php echo $extra; ?>">
+			<?php 
+				if (isset($attribute['timestamp'])) echo date('Y-m-d', $attribute['timestamp']);
+				else echo '&nbsp';				
+			?>
+			</td>
 			<?php if($first): ?>
 			<td class= "short <?php echo $extra; ?>" title="<?php if('' != $attribute['category']) echo $categoryDefinitions[$attribute['category']]['desc'];?>">
 				<?php
@@ -249,6 +255,7 @@ if (!empty($event['Attribute'])):?>
 			$extra = 'highlight2';
 			foreach ($attribute['ShadowAttribute'] as $shadowAttribute): ?>
 				<tr class="highlight2">
+					<td class= "short <?php echo $extra; ?>">&nbsp</td>
 					<td class="short highlight2" title="
 						<?php if('' != $shadowAttribute['category']) echo $categoryDefinitions[$shadowAttribute['category']]['desc'];?>
 					">
@@ -333,6 +340,11 @@ if (!empty($event['Attribute'])):?>
 								//if ($remain === end($remaining)) $extra .= ' highlightBottom';
 								?>
 							<tr class="highlight2">
+								<td class= "short <?php echo $extra; ?>">
+									<?php 
+										echo '&nbsp';				
+									?>
+								</td>
 								<td class="highlight2" title="<?php if('' != $remain['category']) echo $categoryDefinitions[$remain['category']]['desc'];?>">
 								<?php
 									echo h($remain['category']);

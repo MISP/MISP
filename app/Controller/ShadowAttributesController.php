@@ -119,7 +119,7 @@ class ShadowAttributesController extends AppController {
 			$event = $this->Event->read(null, $shadow['event_id']);
 			
 			if (!$this->_isSiteAdmin()) {
-				if ((($event['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $shadow['org'])) || (!$this->userRole['perm_modify'])) {
+				if (($event['Event']['orgc'] != $this->Auth->user('org')) || (!$this->userRole['perm_modify'])) {
 					$this->Session->setFlash('You don\'t have permission to do that');
 					$this->redirect(array('controller' => 'events', 'action' => 'index'));
 				}
