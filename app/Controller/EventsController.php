@@ -921,7 +921,7 @@ class EventsController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// Performs all the actions required to publish an event
 			$result = $this->Event->publish($id);
-			if (Configure::read('MISP.background_jobs')) {
+			if (!Configure::read('MISP.background_jobs')) {
 				if (!is_array($result)) {
 					// redirect to the view event page
 					$this->Session->setFlash(__('Event published, but NO mail sent to any participants.', true));

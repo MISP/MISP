@@ -861,7 +861,7 @@ class Event extends AppModel {
 		// $conditions['AND'][] = array('Event.published =' => 1);
 		
 		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked');
+		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp');
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org');
 			
@@ -1033,10 +1033,13 @@ class Event extends AppModel {
 		}
 		$body .= 'Attributes  :' . "\n";
 		$bodyTempOther = "";
-	
 		if (isset($event['Attribute'])) {
 			foreach ($event['Attribute'] as &$attribute) {
-				$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . "\n";
+				if (isset($event['Event']['publish_timestamp']) && isset($attribute['timestamp']) && $attribute['timestamp'] > $event['Event']['publish_timestamp']) {
+					$line = '(NEW!)- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] ."\n";					
+				} else {
+					$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . "\n";
+				}
 				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
 					$bodyTempOther .= $line;
 				else $body .= $line;
@@ -1470,8 +1473,9 @@ class Event extends AppModel {
 		$this->recursive = 0;
 		$event = $this->read(null, $id);
 		// update the DB to set the published flag
-		$fieldList = array('published', 'id', 'info');
+		$fieldList = array('published', 'id', 'info', 'publish_timestamp');
 		$event['Event']['published'] = 1;
+		$event['Event']['publish_timestamp'] = time();
 		$this->save($event, array('fieldList' => $fieldList));
 		$uploaded = false;
 		if ('true' == Configure::read('CyDefSIG.sync') && $event['Event']['distribution'] > 1) {
