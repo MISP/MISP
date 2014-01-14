@@ -150,12 +150,9 @@ class EventsController extends AppController {
 				}
 			}
 		}
-        $org = $this->Event->User->Organisation->read(null, $this->Auth->user('organisation_id'));
-
-		$this->paginate = array(
-            //Only show events for $this->Auth->user() sharing group
-            /*
-            'joins' => array(
+        if (!$this->_IsSiteAdmin()) {
+            $org = $this->Event->User->Organisation->read(null, $this->Auth->user('organisation_id'));
+            $this->paginate['joins'] = array(
                 array(
                     'table' => 'events_sharing_groups',
                     'alias' => 'EventsSharingGroup',
@@ -171,12 +168,15 @@ class EventsController extends AppController {
                         'SharingGroup.id' => $org['SharingGroup']['id']
                         )
                 )
-            ),*/
-            'contain' => array(
-    			'ThreatLevel' => array(
-    				'fields' => array(
-    					'ThreatLevel.name'))
-		));
+            );
+        }
+
+
+		$this->paginate['contain'] = array(
+			'ThreatLevel' => array(
+				'fields' => array(
+					'ThreatLevel.name'))
+		);
 		$this->set('events', $this->paginate());
 		if (!$this->Auth->user('gpgkey')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
@@ -698,6 +698,12 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
+
+        if(!$this->_isInMySharingGroup($id)){
+            $this->Session->setFlash(__('This event is not part of your sharing group, you are not authorized to view it.'));
+            $this->redirect(array('controller' => 'events', 'action' => 'index'));
+        }
+
 		$this->Event->read(null, $id);
 		// check for if private and user not authorised to edit, go away
 		if (!$this->_isSiteAdmin() && !($this->userRole['perm_sync'] && $this->_isRest())) {
@@ -1525,7 +1531,27 @@ class EventsController extends AppController {
 						),
 				)
 		);
-		if ($isSiteAdmin) $params['contain']['User'] = array('fields' => 'email');
+		if($isSiteAdmin){
+            $org_sharing = $this->Event->User->Organisation->read(null, $this->Auth->user('organisation_id'));
+            $params['contain']['User'] = array('fields' => 'email');
+            $params['joins'] = array(
+                    array(
+                        'table' => 'events_sharing_groups',
+                        'alias' => 'EventsSharingGroup',
+                        'type' => 'inner',
+                        'conditions'=> array('EventsSharingGroup.event_id = Event.id')
+                    ),
+                    array(
+                        'table' => 'sharing_groups',
+                        'alias' => 'SharingGroup',
+                        'type' => 'inner',
+                        'conditions'=> array(
+                            'SharingGroup.id = EventsSharingGroup.sharing_group_id',
+                            'SharingGroup.id' => $org_sharing['SharingGroup']['id']
+                            )
+                    )
+                );
+        }
 		$results = $this->Event->find('all', $params);
 		// Do some refactoring with the event
 		foreach ($results as $eventKey => &$event) {

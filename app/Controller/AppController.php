@@ -188,6 +188,34 @@ class AppController extends Controller {
 		return $this->Auth->user('org');
 	}
 
+    protected function _isInMySharingGroup($event_id){
+        $org = ClassRegistry::init('Organisation')->read(null, $this->Auth->user('organisation_id'));
+        $e = ClassRegistry::init('Event')->find('first', array(
+            'joins' => array(
+                array(
+                    'table' => 'events_sharing_groups',
+                    'alias' => 'EventsSharingGroup',
+                    'type' => 'inner',
+                    'conditions'=> array('EventsSharingGroup.event_id = Event.id')
+                ),
+                array(
+                    'table' => 'sharing_groups',
+                    'alias' => 'SharingGroup',
+                    'type' => 'inner',
+                    'conditions'=> array(
+                        'SharingGroup.id = EventsSharingGroup.sharing_group_id',
+                        'SharingGroup.id' => $org['SharingGroup']['id']
+                        )
+                )
+            ),
+            'conditions' => array(
+                'Event.id' => $event_id
+            )
+        ));
+        if(!empty($e)) return true;
+        return false;
+    }
+
 /**
  * Refreshes the Auth session with new/updated data
  * @return void
