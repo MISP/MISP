@@ -1031,14 +1031,16 @@ class Event extends AppModel {
 			}
 			$body .= '==============================================' . "\n";
 		}
-		$body .= 'Attributes (* infront of the attribute type   :' . "\n";
+		$body .= 'Attributes (* indicates a new or modified attribute)  :' . "\n";
 		$bodyTempOther = "";
 		if (isset($event['Attribute'])) {
 			foreach ($event['Attribute'] as &$attribute) {
+				$ids = '';
+				if ($attribute['to_ids']) $ids = ' (IDS)';
 				if (isset($event['Event']['publish_timestamp']) && isset($attribute['timestamp']) && $attribute['timestamp'] > $event['Event']['publish_timestamp']) {
-					$line = '*' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] ."\n";					
+					$line = '*' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids . "\n";					
 				} else {
-					$line = $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . "\n";
+					$line = $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids .  "\n";
 				}
 				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
 					$bodyTempOther .= $line;
