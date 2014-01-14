@@ -656,7 +656,7 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'vulnerability':
-				if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4}$#", $value)) {
+				if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,6}$#", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Invalid format. Expected: CVE-xxxx-xxxx.';
