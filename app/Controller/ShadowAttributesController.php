@@ -64,6 +64,9 @@ class ShadowAttributesController extends AppController {
  */
 	// Accept a proposed edit and update the attribute
 	public function accept($id = null) {
+		if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException();
+		}
 		if ($this->_isRest()) {
 			throw new Exception('This feature is limited to interactive users only.');
 		}
@@ -168,6 +171,9 @@ class ShadowAttributesController extends AppController {
  */
 	// This method will discard a proposed change. Users that can delete the proposals are the publishing users of the org that created the event and of the ones that created the proposal - in addition to site admins of course
 	public function discard($id = null) {
+		if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException();
+		}
 		if ($this->_isRest()) {
 			throw new Exception('This feature is limited to interactive users only.');
 		}
