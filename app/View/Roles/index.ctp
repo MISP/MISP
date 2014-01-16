@@ -60,5 +60,5 @@ endforeach; ?>
     </div>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'indexRole'));
+	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'roles'));
 ?>

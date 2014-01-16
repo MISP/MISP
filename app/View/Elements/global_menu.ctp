@@ -58,6 +58,7 @@
 							<li><a href="/users/news">News</a></li>
 							<li><a href="/users/view/me">My Profile</a></li>
 							<li><a href="/users/memberslist">Members List</a></li>
+							<li><a href="/roles/index">Role Permissions</a></li>
 							<li><a href="/pages/display/doc/quickstart">User Guide</a></li>
 							<li><a href="/users/terms">Terms &amp; Conditions</a></li>
 							<li><a href="/users/statistics">Statistics</a></li>

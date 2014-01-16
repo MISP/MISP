@@ -105,6 +105,7 @@
 					<li <?php if ($menuItem === 'news') echo 'class="active";'?>><a href="/users/news">News</a></li>
 					<li <?php if ($menuItem === 'view') echo 'class="active";'?>><a href="/users/view/me">My Profile</a></li>
 					<li <?php if ($menuItem === 'members') echo 'class="active";'?>><a href="/users/memberslist">Members List</a></li>
+					<li <?php if ($menuItem === 'roles') echo 'class="active";'?>><a href="/roles/index">Role Permissions</a></li>
 					<li <?php if ($menuItem === 'userGuide') echo 'class="active";'?>><a href="/pages/display/doc/general">User Guide</a></li>
 					<li <?php if ($menuItem === 'terms') echo 'class="active";'?>><a href="/users/terms">Terms &amp; Conditions</a></li>
 					<li <?php if ($menuItem === 'statistics') echo 'class="active";'?>><a href="/users/statistics">Statistics</a></li>
@@ -133,11 +134,11 @@
 					<li class="active"><?php echo $this->Html->link('Edit Role', array('controller' => 'roles', 'action' => 'edit', 'admin' => true, $id)); ?> </li>
 					<li><?php echo $this->Form->postLink('Delete Role', array('controller' => 'roles', 'admin' => true, 'action' => 'delete', $id), null, __('Are you sure you want to delete # %s?', $id));?></li>
 					<li class="divider"></li>
-					<?php endif; ?>
+					<?php endif; 
+					if ($isSiteAdmin): ?>
 					<li <?php if ($menuItem === 'addUser') echo 'class="active";'?>><?php echo $this->Html->link('New User', array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
 					<li <?php if ($menuItem === 'indexUser') echo 'class="active";'?>><?php echo $this->Html->link('List Users', array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
 					<li class="divider"></li>
-					<?php if ($isSiteAdmin): ?>
 					<li <?php if ($menuItem === 'addRole') echo 'class="active";'?>><?php echo $this->Html->link('New Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
 					<?php endif; ?>
 					<li <?php if ($menuItem === 'indexRole') echo 'class="active";'?>><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
