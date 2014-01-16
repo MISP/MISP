@@ -87,8 +87,7 @@ class AppController extends Controller {
 				    // User found in the db, add the user info to the session
 				    $this->Session->renew();
 				    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
-				}
-				else {
+				} else {
 					// User not authenticated correctly
 					// reset the session information
 					$this->Session->destroy();
@@ -109,6 +108,7 @@ class AppController extends Controller {
 		// instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
 		// getActions returns all the flags in a single SQL query
 		if ($this->Auth->user()) {
+			$this->Session->renew();
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
 			$this->set('isAdmin', $role['perm_admin']);
@@ -224,99 +224,6 @@ class AppController extends Controller {
 		$this->User->recursive = -1;
 		$user = $this->User->findById($this->Auth->user('id'));
 		$this->Auth->login($user['User']);
-	}
-
-	
-	public function queuegenerateCorrelation() {
-		if (!$this->_isSiteAdmin()) throw new NotFoundException();
-		$process_id = CakeResque::enqueue(
-			'default',
-			'AdminShell',
-			array('jobGenerateCorrelation'),
-			true				
-		);
-		debug($process_id);
-		debug(CakeResque::getJobStatus($process_id));
-		debug(CakeResque::getJobStatus('f80f51ee76dd22194a0dd6cd28c15f46'));
-		throw new Exception();
-		$this->Session->setFlash('Job queued.');
-		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-	}
-	
-	public function generateCorrelation() {
-		$this->loadModel('Correlation');
-		$this->Correlation->deleteAll(array('id !=' => ''), false);
-		$this->loadModel('Attribute');
-		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.type', 'Attribute.category', 'Attribute.value1', 'Attribute.value2');
-		// get all attributes..
-		$attributes = $this->Attribute->find('all', array('recursive' => -1, 'fields' => $fields));
-		// for all attributes..
-		foreach ($attributes as $attribute) {
-			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
-		}
-	}
-	
-	
-	/*public function generateCorrelation() {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
-
-		$this->loadModel('Correlation');
-		$this->Correlation->deleteAll(array('id !=' => ''), false);
-		$this->loadModel('Attribute');
-		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.cluster', 'Event.date', 'Event.org');
-		// get all attributes..
-		$attributes = $this->Attribute->find('all', array('recursive' => -1));
-		// for all attributes..
-		foreach ($attributes as $attribute) {
-			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
-		}
-		$this->Session->setFlash(__('All done.'));
-		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-	}*/
-	
-	public function generateLocked() {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		$this->loadModel('User');
-		$this->User->recursive = -1;
-		$localOrgs = array();
-		$conditions = array();
-		$orgs = $this->User->find('all', array('fields' => array('DISTINCT org')));
-		foreach ($orgs as $k => $org) {
-			$orgs[$k]['User']['count'] = $this->User->find('count', array(
-							'conditions' => array(
-									'org =' => $orgs[$k]['User']['org'],
-			)));
-			if ($orgs[$k]['User']['count'] > 1) {
-				$localOrgs[] = $orgs[$k]['User']['org'];
-				$conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org']);
-			} else if ($orgs[$k]['User']['count'] == 1) {
-				// If we only have a single user for an org, check if that user is a sync user. If not, then it is a valid local org and the events created by him/her should be unlocked.
-				$this->User->recursive = 1;
-				$user = ($this->User->find('first', array(
-						'fields' => array('id', 'role_id'),
-						'conditions' => array('org' => $org['User']['org']),
-						'contain' => array('Role' => array(
-								'fields' => array('id', 'perm_sync'),
-				))
-				)));
-				if (!$user['Role']['perm_sync']) {
-					$conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org']);
-				}
-			}
-		}
-		// Don't lock stuff that's already locked
-		$conditions['AND'][] = array('locked !=' => true);
-		$this->loadModel('Event');
-		$this->Event->recursive = -1;
-		$toBeUpdated = $this->Event->find('count', array(
-				'conditions' => $conditions
-		));
-		$this->Event->updateAll(
-				array('Event.locked' => 1),
-				$conditions
-		);
-		$this->Session->setFlash('Events updated, '. $toBeUpdated . ' record(s) altered.');
-		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 
 /**
@@ -481,61 +388,4 @@ class AppController extends Controller {
 		//}
 		return false;
 	}
-
-
-	public function reportValidationIssuesEvents() {
-		// search for validation problems in the events
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		print ("<h2>Listing invalid event validations</h2>");
-		$this->loadModel('Event');
-		// first remove executing some Behaviors because of Noud's crappy code
-		$this->Event->Behaviors->detach('Regexp');
-		// get all events..
-		$events = $this->Event->find('all', array('recursive' => -1));
-		// for all events..
-		foreach ($events as $event) {
-		    $this->Event->set($event);
-		    if ($this->Event->validates()) {
-		        // validates
-		    } else {
-		        $errors = $this->Event->validationErrors;
-		        print ("<h3>Validation errors for event: " . $event['Event']['id'] . "</h3><pre>");
-		        print_r($errors);
-		        print ("</pre><p>Event details:</p><pre>");
-		        print_r($event);
-		        print ("</pre><br/>");
-		    }
-		}
-	}
-
-	public function reportValidationIssuesAttributes() {
-		// TODO improve performance of this function by eliminating the additional SQL query per attribute
-		// search for validation problems in the attributes
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		print ("<h2>Listing invalid attribute validations</h2>");
-		$this->loadModel('Attribute');
-		// for efficiency reasons remove the unique requirement
-		$this->Attribute->validator()->remove('value', 'unique');
-
-		// get all attributes..
-		$attributes = $this->Attribute->find('all', array('recursive' => -1));
-		// for all attributes..
-		foreach ($attributes as $attribute) {
-		    $this->Attribute->set($attribute);
-		    if ($this->Attribute->validates()) {
-		        // validates
-		    } else {
-		        $errors = $this->Attribute->validationErrors;
-		        print ("<h3>Validation errors for attribute: " . $attribute['Attribute']['id'] . "</h3><pre>");
-		        print_r($errors['value'][0]);
-		        print ("</pre><p>Attribute details:</p><pre>");
-		        print($attribute['Attribute']['event_id']."\n");
-		        print($attribute['Attribute']['category']."\n");
-		        print($attribute['Attribute']['type']."\n");
-		        print($attribute['Attribute']['value']."\n");
-		        print ("</pre><br/>");
-		    }
-		}
-	}
-
 }

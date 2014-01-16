@@ -1095,8 +1095,13 @@ class AttributesController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key, $value=null, $type=null, $category=null, $org=null) {
-		$user = $this->checkAuthUser($key);
+	public function restSearch($key='download', $value=null, $type=null, $category=null, $org=null) {
+		if ($key!=null && $key!='download') {
+			$user = $this->checkAuthUser($key);
+		} else {
+			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
+			$user = $this->checkAuthUser($this->Auth->user('authkey'));
+		}
 		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
@@ -1168,6 +1173,7 @@ class AttributesController extends AppController {
 
 		$results = $this->Attribute->find('all', $params);
 		$this->loadModel('Whitelist');
+		$this->response->type('xml');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
 		if (empty($results)) throw new NotFoundException('No matches.');
 		$this->set('results', $results);
@@ -1258,8 +1264,13 @@ class AttributesController extends AppController {
 		$this->set('results', $attributes);
 	}
 
-	public function downloadAttachment($key, $id) {
-		$user = $this->checkAuthUser($key);
+	public function downloadAttachment($key='download', $id) {
+		if ($key!=null && $key!='download') {
+			$user = $this->checkAuthUser($key);
+		} else {
+			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
+			$user = $this->checkAuthUser($this->Auth->user('authkey'));
+		}
 		// if the user is authorised to use the api key then user will be populated with the user's account
 		// in addition we also set a flag indicating whether the user is a site admin or not.
 		if (!$user) {
@@ -1280,7 +1291,7 @@ class AttributesController extends AppController {
 		$this->__downloadAttachment($this->Attribute->data['Attribute']);
 	}
 
-	public function text($key, $type="") {
+	public function text($key='download', $type="") {
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1300,5 +1311,66 @@ class AttributesController extends AppController {
 		$this->loadModel('Whitelist');
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		$this->set('attributes', $attributes);
+	}
+	
+
+	public function reportValidationIssuesAttributes() {
+		// TODO improve performance of this function by eliminating the additional SQL query per attribute
+		// search for validation problems in the attributes
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		print ("<h2>Listing invalid attribute validations</h2>");
+		$this->loadModel('Attribute');
+		// for efficiency reasons remove the unique requirement
+		$this->Attribute->validator()->remove('value', 'unique');
+	
+		// get all attributes..
+		$attributes = $this->Attribute->find('all', array('recursive' => -1));
+		// for all attributes..
+		foreach ($attributes as $attribute) {
+			$this->Attribute->set($attribute);
+			if ($this->Attribute->validates()) {
+				// validates
+			} else {
+				$errors = $this->Attribute->validationErrors;
+				print ("<h3>Validation errors for attribute: " . $attribute['Attribute']['id'] . "</h3><pre>");
+				print_r($errors['value'][0]);
+				print ("</pre><p>Attribute details:</p><pre>");
+				print($attribute['Attribute']['event_id']."\n");
+				print($attribute['Attribute']['category']."\n");
+				print($attribute['Attribute']['type']."\n");
+				print($attribute['Attribute']['value']."\n");
+				print ("</pre><br/>");
+			}
+		}
+	}
+	/*
+	public function generateCorrelation() {
+		$this->loadModel('Correlation');
+		$this->Correlation->deleteAll(array('id !=' => ''), false);
+		$this->loadModel('Attribute');
+		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.type', 'Attribute.category', 'Attribute.value1', 'Attribute.value2');
+		// get all attributes..
+		$attributes = $this->Attribute->find('all', array('recursive' => -1, 'fields' => $fields));
+		// for all attributes..
+		foreach ($attributes as $attribute) {
+			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
+		}
+	}
+	*/
+	public function generateCorrelation() {
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
+	
+		$this->loadModel('Correlation');
+		$this->Correlation->deleteAll(array('id !=' => ''), false);
+		$this->loadModel('Attribute');
+		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.cluster', 'Event.date', 'Event.org');
+		// get all attributes..
+		$attributes = $this->Attribute->find('all', array('recursive' => -1));
+		// for all attributes..
+		foreach ($attributes as $attribute) {
+			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
+		}
+		$this->Session->setFlash(__('All done.'));
+		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 	}
 }

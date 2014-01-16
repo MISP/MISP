@@ -1169,6 +1169,12 @@ class EventsController extends AppController {
 		// Whitelist check
 		$this->loadModel('Whitelist');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
+		if ($eventid) {
+			$this->header('Content-Disposition: download; filename="misp.event' . $eventid . '.export.xml"');
+		} else {
+			$this->header('Content-Disposition: download; filename="misp.export.xml"');
+		}
+		$this->response->type('xml');
 		$this->set('results', $results);
 	}
 
@@ -1195,26 +1201,21 @@ class EventsController extends AppController {
 			$key = $format;
 			$format = 'suricata'; // default format
 		}
-
+		$this->response->type('txt');	// set the content type
+		$this->header('Content-Disposition: download; filename="misp.rules"');
+		$this->layout = 'text/default';
 		if ($key != 'download') {
-			$this->response->type('txt');	// set the content type
-			$this->header('Content-Disposition: download; filename="misp.rules"');
-			$this->layout = 'text/default';
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
 		} else {
-			//$this->autoRender = false;
-			$this->response->type('txt');	// set the content type
-			$this->header('Content-Disposition: download; filename="misp.nids.rules"');
-			$this->layout = 'text/default';
 			// check if there's a user logged in or not
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$user = $this->Auth->user;
+			$user = $this->checkAuthUser($this->Auth->user('authkey'));
 		}
 
 		// display the full snort rulebase
@@ -1224,24 +1225,21 @@ class EventsController extends AppController {
 	}
 
 	public function hids($type, $key) {
+		$this->response->type('txt');	// set the content type
+		$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
+		$this->layout = 'text/default';
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
-			$this->response->type('txt');	// set the content type
-			$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
-			$this->layout = 'text/default';
 		} else {
 			// check if there's a user logged in or not
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$user = $this->Auth->user;
-			$this->response->type(array('txt' => 'text/html'));	// set the content type
-			$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
-			$this->layout = 'text/default';
+			$user = $this->checkAuthUser($this->Auth->user('authkey'));
 		}
 		$this->loadModel('Attribute');
 
@@ -1254,37 +1252,23 @@ class EventsController extends AppController {
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
 	public function csv($key, $eventid=0, $ignore=0) {
 		$list = array();
+		
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
-			$this->response->type('csv');	// set the content type
-			if ($eventid == 0) {
-				$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
-			} else if ($eventid === 'search') {
-				$this->header('Content-Disposition: download; filename="misp.search_result.csv"');
-			} else {
-				$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
-			}
-			$this->layout = 'text/default';
 			$isSiteAdmin = $user['User']['siteAdmin'];
 			$org = $user['User']['org'];
 		} else {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$this->response->type('csv');	// set the content type
-			if ($eventid == 0) {
-				$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
-			} else {
-				$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
-			}
-			$this->layout = 'text/default';
 			$isSiteAdmin = $this->_isSiteAdmin();
 			$org = $this->Auth->user('org');
-		}
+		}		
+		
 		// if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
 		// We don't need to look out for permissions since that's filtered by the search itself
 		// We just want all the attributes found by the search
@@ -1298,6 +1282,17 @@ class EventsController extends AppController {
 		foreach ($attributes as $attribute) {
 			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'];
 		}
+		
+		$this->response->type('csv');	// set the content type
+		if ($eventid == 0) {
+			$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
+		} else if ($eventid === 'search') {
+			$this->header('Content-Disposition: download; filename="misp.search_result.csv"');
+		} else {
+			$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
+		}
+		$this->layout = 'text/default';
+		$this->set('headers', array('uuid', 'event_id', 'category', 'type', 'value'));
 		$this->set('final', $final);
 	}
 
@@ -1703,8 +1698,13 @@ class EventsController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key, $value=null, $type=null, $category=null, $org=null) {
-		$user = $this->checkAuthUser($key);
+	public function restSearch($key=null, $value=null, $type=null, $category=null, $org=null) {
+		if ($key!=null && $key!='download') {
+			$user = $this->checkAuthUser($key);
+		} else {
+			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
+			$user = $this->checkAuthUser($this->Auth->user('authkey'));
+		}
 		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
@@ -1782,6 +1782,7 @@ class EventsController extends AppController {
 		}
 		$this->loadModel('Whitelist');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+		$this->response->type('xml');
 		$this->set('results', $results);
 	}
 
@@ -1924,5 +1925,76 @@ class EventsController extends AppController {
 	private function __setHeaderForAdd($eventId) {
 		$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $eventId);
 		$this->response->send();
+	}
+	
+	public function reportValidationIssuesEvents() {
+		// search for validation problems in the events
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		print ("<h2>Listing invalid event validations</h2>");
+		$this->loadModel('Event');
+		// first remove executing some Behaviors because of Noud's crappy code
+		$this->Event->Behaviors->detach('Regexp');
+		// get all events..
+		$events = $this->Event->find('all', array('recursive' => -1));
+		// for all events..
+		foreach ($events as $event) {
+			$this->Event->set($event);
+			if ($this->Event->validates()) {
+				// validates
+			} else {
+				$errors = $this->Event->validationErrors;
+				print ("<h3>Validation errors for event: " . $event['Event']['id'] . "</h3><pre>");
+				print_r($errors);
+				print ("</pre><p>Event details:</p><pre>");
+				print_r($event);
+				print ("</pre><br/>");
+			}
+		}
+	}
+	
+
+	public function generateLocked() {
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		$this->loadModel('User');
+		$this->User->recursive = -1;
+		$localOrgs = array();
+		$conditions = array();
+		$orgs = $this->User->find('all', array('fields' => array('DISTINCT org')));
+		foreach ($orgs as $k => $org) {
+			$orgs[$k]['User']['count'] = $this->User->find('count', array(
+					'conditions' => array(
+							'org =' => $orgs[$k]['User']['org'],
+					)));
+			if ($orgs[$k]['User']['count'] > 1) {
+				$localOrgs[] = $orgs[$k]['User']['org'];
+				$conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org']);
+			} else if ($orgs[$k]['User']['count'] == 1) {
+				// If we only have a single user for an org, check if that user is a sync user. If not, then it is a valid local org and the events created by him/her should be unlocked.
+				$this->User->recursive = 1;
+				$user = ($this->User->find('first', array(
+						'fields' => array('id', 'role_id'),
+						'conditions' => array('org' => $org['User']['org']),
+						'contain' => array('Role' => array(
+								'fields' => array('id', 'perm_sync'),
+						))
+				)));
+				if (!$user['Role']['perm_sync']) {
+					$conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org']);
+				}
+			}
+		}
+		// Don't lock stuff that's already locked
+		$conditions['AND'][] = array('locked !=' => true);
+		$this->loadModel('Event');
+		$this->Event->recursive = -1;
+		$toBeUpdated = $this->Event->find('count', array(
+				'conditions' => $conditions
+		));
+		$this->Event->updateAll(
+				array('Event.locked' => 1),
+				$conditions
+		);
+		$this->Session->setFlash('Events updated, '. $toBeUpdated . ' record(s) altered.');
+		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 }
