@@ -69,9 +69,31 @@ class ServersController extends AppController {
 		if ($this->request->is('post')) {
 			// force check userid and orgname to be from yourself
 			$this->request->data['Server']['org'] = $this->Auth->user('org');
-
-			$this->Server->create();
 			if ($this->Server->save($this->request->data)) {
+				if (isset($this->data['Server']['submitted_cert'])) {
+					$ext = '';
+					App::uses('File', 'Utility');
+					$file = new File($this->data['Server']['submitted_cert']['name']);
+					$ext = $file->ext();
+					if (($ext != 'pem') || !$this->data['Server']['submitted_cert']['size'] > 0) {
+						$this->Session->setFlash('Incorrect extension of empty file.');
+						$this->redirect(array('action' => 'index'));
+					}
+				}
+				if (isset($this->data['Server']['submitted_cert']) && ($ext != 'pem') && $this->data['Server']['submitted_cert']['size'] > 0 &&
+				is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
+					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
+				} else {
+					$pemData = fread(fopen($this->data['Server']['submitted_cert']['tmp_name'], "r"),
+							$this->data['Server']['submitted_cert']['size']);
+					$destpath = APP . "files" . DS . "certs" . DS;
+					if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
+					$pemfile = new File ($destpath . $this->Server->id . '.' . $ext);
+					$result = $pemfile->write($pemData);
+					$s = $this->Server->read(null, $this->Server->id);
+					$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
+					if ($result) $this->Server->save($s);
+				}
 				$this->Session->setFlash(__('The server has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
@@ -221,10 +243,11 @@ class ServersController extends AppController {
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
 		}
-		
 		if (!Configure::read('MISP.background_jobs')) {
-			App::uses('HttpSocket', 'Network/Http');
-			$HttpSocket = new HttpSocket();
+			$server = $this->Server->read(null, $id);
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
 			$result = $this->Server->push($id, $technique, false, $HttpSocket);
 			$this->set('successes', $result[0]);
 			$this->set('fails', $result[1]);

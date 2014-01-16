@@ -1020,8 +1020,9 @@ class Attribute extends AppModel {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
-			App::uses('HttpSocket', 'Network/Http');
-			$HttpSocket = new HttpSocket();
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
 		}
 		$request = array(
 				'header' => array(
@@ -1095,8 +1096,9 @@ class Attribute extends AppModel {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
-			App::uses('HttpSocket', 'Network/Http');
-			$HttpSocket = new HttpSocket();
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
 		}
 		$request = array(
 				'header' => array(

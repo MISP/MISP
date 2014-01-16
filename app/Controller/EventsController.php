@@ -892,9 +892,10 @@ class EventsController extends AppController {
 		if(empty($servers))
 			return;
 
-		App::uses('HttpSocket', 'Network/Http');
-		$HttpSocket = new HttpSocket();
+		App::uses('SyncTool', 'Tools');
 		foreach ($servers as &$server) {
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
 			$this->Event->deleteEventFromServer($uuid, $server, $HttpSocket);
 		}
 	}

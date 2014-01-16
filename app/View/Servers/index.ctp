@@ -23,11 +23,16 @@
 			<th><?php echo $this->Paginator->sort('url');?></th>
 			<th>From</th>
 			<?php
-
-if ($isAdmin): ?>
+				if ($isSiteAdmin): ?>
+					<th><?php echo $this->Paginator->sort('cert_file');?></th>
+			<?php 
+				endif;
+				if ($isAdmin): 
+			?>
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<?php
-endif; ?>
+				endif; 
+			?>
 			<th>Last Pulled ID</th>
 			<th>Last Pushed ID</th>
 			<th class="actions">Actions</th>
@@ -40,6 +45,10 @@ foreach ($servers as $server): ?>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
 		<td><?php echo h($server['Server']['organization']); ?>&nbsp;</td>
 		<?php
+			if ($isSiteAdmin): ?>
+			<td class="short"><?php echo h($server['Server']['cert_file']); ?>&nbsp;</td>
+		<?php 
+			endif;
 	if ($isAdmin): ?>
 		<td class="short"><?php echo h($server['Server']['org']); ?>&nbsp;</td>
 		<?php

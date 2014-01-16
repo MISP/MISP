@@ -53,8 +53,10 @@ class ServerShell extends AppShell
 		$technique = $this->args[1];
 		$jobId = $this->args[2];
 		$this->Job->read(null, $jobId);
-		App::uses('HttpSocket', 'Network/Http');
-		$HttpSocket = new HttpSocket();
+		$server = $this->Server->find(null, $serverId);
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		$HttpSocket = $syncTool->setupHttpSocket($server);
 		$result = $this->Server->push($id, 'full', $jobId, $HttpSocket);
 		$this->Job->save(array(
 				'id' => $jobId,

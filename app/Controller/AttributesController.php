@@ -822,10 +822,10 @@ class AttributesController extends AppController {
 		// iterate over the servers and upload the attribute
 		if (empty($servers))
 			return;
-
-		App::uses('HttpSocket', 'Network/Http');
-		$HttpSocket = new HttpSocket();
+		App::uses('SyncTool', 'Tools');
 		foreach ($servers as &$server) {
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
 			$this->Attribute->deleteAttributeFromServer($uuid, $server, $HttpSocket);
 		}
 	}

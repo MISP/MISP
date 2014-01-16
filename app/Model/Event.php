@@ -559,12 +559,12 @@ class Event extends AppModel {
 		if('true' == Configure::read('CyDefSIG.taxii_sync')){
 			return $this->taxii_publish($event['Event']['id'], $server, Configure::read('CyDefSIG.taxii_client_path'));
 		}
-
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
-			App::uses('HttpSocket', 'Network/Http');
-			$HttpSocket = new HttpSocket();
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
 		}
 		$request = array(
 				'header' => array(
@@ -680,8 +680,9 @@ class Event extends AppModel {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
-			App::uses('HttpSocket', 'Network/Http');
-			$HttpSocket = new HttpSocket();
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
 		}
 		$request = array(
 				'header' => array(
@@ -712,11 +713,12 @@ class Event extends AppModel {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
-			App::uses('HttpSocket', 'Network/Http');
 			//$HttpSocket = new HttpSocket(array(
 			//		'ssl_verify_peer' => false
 			//		));
-			$HttpSocket = new HttpSocket();
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
 		}
 		$request = array(
 				'header' => array(
@@ -751,11 +753,12 @@ class Event extends AppModel {
 		$authkey = $server['Server']['authkey'];
 
 		if (null == $HttpSocket) {
-			App::uses('HttpSocket', 'Network/Http');
 			//$HttpSocket = new HttpSocket(array(
 			//		'ssl_verify_peer' => false
 			//		));
-			$HttpSocket = new HttpSocket();
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
 		}
 		$request = array(
 				'header' => array(
@@ -1418,9 +1421,10 @@ class Event extends AppModel {
 	
 		$uploaded = true;
 		$failedServers = array();
-		App::uses('HttpSocket', 'Network/Http');
-		$HttpSocket = new HttpSocket();
+		App::uses('SyncTool', 'Tools');
 		foreach ($servers as &$server) {
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
 			//Skip servers where the event has come from.
 			if (($passAlong != $server)) {
 				$thisUploaded = $this->uploadEventToServer($this->data, $server, $HttpSocket);
@@ -1470,7 +1474,7 @@ class Event extends AppModel {
 	 *
 	 * @param unknown_type $id
 	 */
-	public function publish($id, $passAlong = null, $processId) {
+	public function publish($id, $passAlong = null, $processId = null) {
 		$this->id = $id;
 		$this->recursive = 0;
 		$event = $this->read(null, $id);

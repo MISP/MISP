@@ -145,7 +145,9 @@ class Server extends AppModel {
 			$pulledProposals = array();
 			// download each event
 			if (null != $eventIds) {
-				$HttpSocket = new HttpSocket();
+				App::uses('SyncTool', 'Tools');
+				$syncTool = new SyncTool();
+				$HttpSocket = $syncTool->setupHttpSocket($server);
 				foreach ($eventIds as $k => &$eventId) {
 					$event = $eventModel->downloadEventFromServer(
 							$eventId,
