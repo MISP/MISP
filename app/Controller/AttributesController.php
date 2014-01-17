@@ -1318,59 +1318,42 @@ class AttributesController extends AppController {
 		// TODO improve performance of this function by eliminating the additional SQL query per attribute
 		// search for validation problems in the attributes
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		print ("<h2>Listing invalid attribute validations</h2>");
-		$this->loadModel('Attribute');
 		// for efficiency reasons remove the unique requirement
 		$this->Attribute->validator()->remove('value', 'unique');
 	
 		// get all attributes..
 		$attributes = $this->Attribute->find('all', array('recursive' => -1));
 		// for all attributes..
+		$result = array();
+		$i = 0;
 		foreach ($attributes as $attribute) {
 			$this->Attribute->set($attribute);
 			if ($this->Attribute->validates()) {
 				// validates
 			} else {
 				$errors = $this->Attribute->validationErrors;
-				print ("<h3>Validation errors for attribute: " . $attribute['Attribute']['id'] . "</h3><pre>");
-				print_r($errors['value'][0]);
-				print ("</pre><p>Attribute details:</p><pre>");
-				print($attribute['Attribute']['event_id']."\n");
-				print($attribute['Attribute']['category']."\n");
-				print($attribute['Attribute']['type']."\n");
-				print($attribute['Attribute']['value']."\n");
-				print ("</pre><br/>");
+				$result[$i]['id'] = $attribute['Attribute']['id'];
+				// print_r
+				$result[$i]['error'] = $errors['value'][0];
+				$result[$i]['details'] = 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']';
+				$i++;
 			}
 		}
+		$this->set('result', $result);
 	}
-	/*
+	
 	public function generateCorrelation() {
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$this->loadModel('Correlation');
 		$this->Correlation->deleteAll(array('id !=' => ''), false);
-		$this->loadModel('Attribute');
 		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.type', 'Attribute.category', 'Attribute.value1', 'Attribute.value2');
 		// get all attributes..
 		$attributes = $this->Attribute->find('all', array('recursive' => -1, 'fields' => $fields));
 		// for all attributes..
-		foreach ($attributes as $attribute) {
+		foreach ($attributes as $k => $attribute) {
 			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
 		}
-	}
-	*/
-	public function generateCorrelation() {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
-	
-		$this->loadModel('Correlation');
-		$this->Correlation->deleteAll(array('id !=' => ''), false);
-		$this->loadModel('Attribute');
-		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.cluster', 'Event.date', 'Event.org');
-		// get all attributes..
-		$attributes = $this->Attribute->find('all', array('recursive' => -1));
-		// for all attributes..
-		foreach ($attributes as $attribute) {
-			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
-		}
-		$this->Session->setFlash(__('All done.'));
-		$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+		$this->Session->setFlash(__('All done. ' . $k . ' attributes processed.'));
+		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 }

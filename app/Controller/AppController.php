@@ -108,7 +108,6 @@ class AppController extends Controller {
 		// instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
 		// getActions returns all the flags in a single SQL query
 		if ($this->Auth->user()) {
-			$this->Session->renew();
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
 			$this->set('isAdmin', $role['perm_admin']);
@@ -322,13 +321,18 @@ class AppController extends Controller {
 		// do one SQL query with the counts
 		// loop over events, update in db
 		$this->loadModel('Attribute');
-		$events = $this->Attribute->query('SELECT event_id, count(event_id) as attribute_count FROM attributes GROUP BY event_id');
-		foreach ($events as $event) {
-			$this->Event->read(null, $event['attributes']['event_id']);
+		$events = $this->Attribute->find('all', array(
+			'recursive' => -1,
+			'fields' => array('event_id', 'count(event_id) as attribute_count'),
+			'group' => array('Attribute.event_id'),
+			'order' => array('Attribute.event_id ASC'),
+		));
+		foreach ($events as $k => $event) {
+			$this->Event->read(null, $event['Attribute']['event_id']);
 			$this->Event->set('attribute_count', $event[0]['attribute_count']);
 			$this->Event->save();
 		}
-		$this->Session->setFlash(__('All done. attribute_count generated from scratch.'));
+		$this->Session->setFlash(__('All done. attribute_count generated from scratch for ' . $k . ' events.'));
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 

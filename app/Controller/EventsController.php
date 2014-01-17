@@ -1930,26 +1930,27 @@ class EventsController extends AppController {
 	public function reportValidationIssuesEvents() {
 		// search for validation problems in the events
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		print ("<h2>Listing invalid event validations</h2>");
-		$this->loadModel('Event');
-		// first remove executing some Behaviors because of Noud's crappy code
 		$this->Event->Behaviors->detach('Regexp');
 		// get all events..
 		$events = $this->Event->find('all', array('recursive' => -1));
 		// for all events..
+		$result = array();
+		$i = 0;
 		foreach ($events as $event) {
 			$this->Event->set($event);
 			if ($this->Event->validates()) {
 				// validates
 			} else {
 				$errors = $this->Event->validationErrors;
-				print ("<h3>Validation errors for event: " . $event['Event']['id'] . "</h3><pre>");
-				print_r($errors);
-				print ("</pre><p>Event details:</p><pre>");
-				print_r($event);
-				print ("</pre><br/>");
+				
+				$result[$i]['id'] = $event['Event']['id'];
+				// print_r
+				$result[$i]['error'] = $errors;
+				$result[$i]['details'] = $event;
+				$i++;
 			}
 		}
+		$this->set('result', $result);
 	}
 	
 
