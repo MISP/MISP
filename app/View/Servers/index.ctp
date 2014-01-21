@@ -22,17 +22,8 @@
 			<th><?php echo $this->Paginator->sort('pull');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
 			<th>From</th>
-			<?php
-				if ($isSiteAdmin): ?>
-					<th><?php echo $this->Paginator->sort('cert_file');?></th>
-			<?php 
-				endif;
-				if ($isAdmin): 
-			?>
+			<th><?php echo $this->Paginator->sort('cert_file');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
-			<?php
-				endif; 
-			?>
 			<th>Last Pulled ID</th>
 			<th>Last Pushed ID</th>
 			<th class="actions">Actions</th>
@@ -44,27 +35,20 @@ foreach ($servers as $server): ?>
 		<td class="short" style="text-align: center;"><?php echo ($server['Server']['pull'])? 'Yes' : 'No'; ?>&nbsp;</td>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
 		<td><?php echo h($server['Server']['organization']); ?>&nbsp;</td>
-		<?php
-			if ($isSiteAdmin): ?>
-			<td class="short"><?php echo h($server['Server']['cert_file']); ?>&nbsp;</td>
-		<?php 
-			endif;
-	if ($isAdmin): ?>
+		<td class="short"><?php echo h($server['Server']['cert_file']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($server['Server']['org']); ?>&nbsp;</td>
-		<?php
-	endif; ?>
 		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="short action-links">
 			<?php
-			if ($server['Server']['pull'] && $isSiteAdmin)
+			if ($server['Server']['pull'])
 				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'full'), array('class' => 'icon-download', 'title' => 'Pull all'));
-			if ($server['Server']['push'] && $isSiteAdmin)
+			if ($server['Server']['push'])
 				echo $this->Html->link('', array('action' => 'push', $server['Server']['id'], 'full'), array('class' => 'icon-upload', 'title' => 'Push all'));
 			?>
 			&nbsp;
 			<?php
-			$mayModify = ($isSiteAdmin || $me['org'] == $server['Server']['organization']) || ($isAdmin && ($server['Server']['organization'] == $me['org']));
+			$mayModify = ($isSiteAdmin || ($isAdmin && ($server['Server']['org'] == $me['org'])));
 			if ($mayModify) echo $this->Html->link('', array('action' => 'edit', $server['Server']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
 			if ($mayModify) echo $this->Form->postLink('', array('action' => 'delete', $server['Server']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $server['Server']['id']));
 			?>

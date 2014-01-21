@@ -1,20 +1,16 @@
 <div class="servers form">
-<?php echo $this->Form->create('Server', array('novalidate'=>true));?>
+<?php echo $this->Form->create('Server', array('type' => 'file', 'novalidate'=>true));?>
 	<fieldset>
-		<legend>Edit Server</legend>
+		<legend>Add Server</legend>
 	<?php
 		echo $this->Form->input('url', array(
 				'label' => 'Base URL',
 			));
-	?>
-		<div class = "input clear"></div>
-	<?php
+		
 		echo $this->Form->input('organization', array(
 				'label' => 'Organization',
 			));
-	?>
-		<div class = "input clear"></div>
-	<?php		
+
 		echo $this->Form->input('authkey', array(
 			));
 	?>
@@ -22,10 +18,20 @@
 	<?php
 		echo $this->Form->input('push', array(
 			));
+
+		echo $this->Form->input('pull', array(
+			));
 	?>
 		<div class = "input clear"></div>
-	<?php 
-		echo $this->Form->input('pull', array(
+	<?php
+		echo $this->Form->input('self_signed', array(
+				'type' => 'checkbox',
+			));
+
+		echo $this->Form->input('Server.submitted_cert', array(
+				'label' => '<b>Certificate file</b>',
+				'type' => 'file',
+				'div' => 'clear'
 			));
 	?>
 	</fieldset>

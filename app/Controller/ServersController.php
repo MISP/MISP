@@ -65,34 +65,13 @@ class ServersController extends AppController {
  * @return void
  */
 	public function add() {
-		if ((!$this->_IsSiteAdmin()) && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post')) {
 			// force check userid and orgname to be from yourself
 			$this->request->data['Server']['org'] = $this->Auth->user('org');
 			if ($this->Server->save($this->request->data)) {
-				if (isset($this->data['Server']['submitted_cert'])) {
-					$ext = '';
-					App::uses('File', 'Utility');
-					$file = new File($this->data['Server']['submitted_cert']['name']);
-					$ext = $file->ext();
-					if (($ext != 'pem') || !$this->data['Server']['submitted_cert']['size'] > 0) {
-						$this->Session->setFlash('Incorrect extension of empty file.');
-						$this->redirect(array('action' => 'index'));
-					}
-				}
-				if (isset($this->data['Server']['submitted_cert']) && ($ext != 'pem') && $this->data['Server']['submitted_cert']['size'] > 0 &&
-				is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
-					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
-				} else {
-					$pemData = fread(fopen($this->data['Server']['submitted_cert']['tmp_name'], "r"),
-							$this->data['Server']['submitted_cert']['size']);
-					$destpath = APP . "files" . DS . "certs" . DS;
-					if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
-					$pemfile = new File ($destpath . $this->Server->id . '.' . $ext);
-					$result = $pemfile->write($pemData);
-					$s = $this->Server->read(null, $this->Server->id);
-					$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
-					if ($result) $this->Server->save($s);
+				if (isset($this->request->data['Server']['submitted_cert'])) {
+					$this->__saveCert($this->request->data, $this->Server->id);
 				}
 				$this->Session->setFlash(__('The server has been saved'));
 				$this->redirect(array('action' => 'index'));
@@ -110,11 +89,12 @@ class ServersController extends AppController {
  * @throws NotFoundException
  */
 	public function edit($id = null) {
-		if (!$this->_IsSiteAdmin() && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
 		}
+		$s = $this->Server->read(null, $id);
+		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// say what fields are to be updated
 			$fieldList = array('id', 'url', 'push', 'pull', 'organization');
@@ -123,6 +103,9 @@ class ServersController extends AppController {
 				$fieldList[] = 'authkey';
 			// Save the data
 			if ($this->Server->save($this->request->data, true, $fieldList)) {
+				if (isset($this->request->data['Server']['submitted_cert'])) {
+					$this->__saveCert($this->request->data, $this->Server->id);
+				}
 				$this->Session->setFlash(__('The server has been saved'));
 				$this->redirect(array('action' => 'index'));
 			} else {
@@ -144,7 +127,6 @@ class ServersController extends AppController {
  * @throws NotFoundException
  */
 	public function delete($id = null) {
-		if(!$this->_IsSiteAdmin() && !($this->Server->id == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
 		}
@@ -152,6 +134,8 @@ class ServersController extends AppController {
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
 		}
+		$s = $this->Server->read(null, $id);
+		if (!$this->_isSiteAdmin() || !($s['Server']['org'] == $this->Auth->user('org') && $this->_isSiteAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->Server->delete()) {
 			$this->Session->setFlash(__('Server deleted'));
 			$this->redirect(array('action' => 'index'));
@@ -173,13 +157,17 @@ class ServersController extends AppController {
 	 * @throws NotFoundException
 	 */
 	public function pull($id = null, $technique=false) {
-		if (!$this->_isSiteAdmin() && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		$this->Server->id = $id;
+		if (!$this->Server->exists()) {
+			throw new NotFoundException(__('Invalid server'));
+		}
+		$s = $this->Server->read(null, $id);
+		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isSiteAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
 		}
 
-		$s = $this->Server->read(null, $id);
 		if (false == $this->Server->data['Server']['pull']) {
 			$this->Session->setFlash(__('Pull setting not enabled for this server.'));
 			$this->redirect(array('action' => 'index'));
@@ -238,11 +226,12 @@ class ServersController extends AppController {
 	}
 
 	public function push($id = null, $technique=false) {
-		if (!$this->_isSiteAdmin() && !($this->Server->organization == $this->Auth->user('org') && $this->userRole['perm_sync'])) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
 		}
+		$s = $this->Server->read(null, $id);
+		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isSiteAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if (!Configure::read('MISP.background_jobs')) {
 			$server = $this->Server->read(null, $id);
 			App::uses('SyncTool', 'Tools');
@@ -274,5 +263,25 @@ class ServersController extends AppController {
 			$this->Session->setFlash('Push queued for background execution.');
 			$this->redirect(array('action' => 'index'));
 		}
+	}
+	
+	public function __saveCert($server, $id) {
+		$ext = '';
+		App::uses('File', 'Utility');
+		$file = new File($server['Server']['submitted_cert']['name']);
+		$ext = $file->ext();
+		if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
+			$this->Session->setFlash('Incorrect extension of empty file.');
+			$this->redirect(array('action' => 'index'));
+		}
+		$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),
+				$server['Server']['submitted_cert']['size']);
+		$destpath = APP . "files" . DS . "certs" . DS;
+		if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
+		$pemfile = new File ($destpath . $id . '.' . $ext);
+		$result = $pemfile->write($pemData);
+		$s = $this->Server->read(null, $id);
+		$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
+		if ($result) $this->Server->save($s);
 	}
 }
