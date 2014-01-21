@@ -1540,4 +1540,68 @@ class Event extends AppModel {
 			return $result;
 		}
 	}
+	
+	public function generateLocked() {
+		$this->User = ClassRegistry::init('User');
+		$this->User->recursive = -1;
+		$localOrgs = array();
+		$conditions = array();
+		//$orgs = $this->User->getOrgs();
+		$orgs = $this->User->find('all', array('fields' => array('DISTINCT org')));
+		foreach ($orgs as $k => $org) {
+			$orgs[$k]['User']['count'] = $this->User->getOrgMemberCount($orgs[$k]['User']['org']);
+			if ($orgs[$k]['User']['count'] > 1) {
+				$localOrgs[] = $orgs[$k]['User']['org'];
+				$conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org']);
+			} else if ($orgs[$k]['User']['count'] == 1) {
+				// If we only have a single user for an org, check if that user is a sync user. If not, then it is a valid local org and the events created by him/her should be unlocked.
+				$this->User->recursive = 1;
+				$user = ($this->User->find('first', array(
+						'fields' => array('id', 'role_id'),
+						'conditions' => array('org' => $org['User']['org']),
+						'contain' => array('Role' => array(
+								'fields' => array('id', 'perm_sync'),
+						))
+				)));
+				if (!$user['Role']['perm_sync']) {
+					$conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org']);
+				}
+			}
+		}
+		// Don't lock stuff that's already locked
+		$conditions['AND'][] = array('locked !=' => true);
+		$this->recursive = -1;
+		$toBeUpdated = $this->find('count', array(
+				'conditions' => $conditions
+		));
+		$this->updateAll(
+				array('Event.locked' => 1),
+				$conditions
+		);
+		return $toBeUpdated;
+	}
+	
+	public function reportValidationIssuesEvents() {
+		$this->Behaviors->detach('Regexp');
+		// get all events..
+		$events = $this->find('all', array('recursive' => -1));
+		// for all events..
+		$result = array();
+		$i = 0;
+		foreach ($events as $k => $event) {
+			$this->set($event);
+			if ($this->validates()) {
+				// validates
+			} else {
+				$errors = $this->validationErrors;
+		
+				$result[$i]['id'] = $event['Event']['id'];
+				// print_r
+				$result[$i]['error'] = $errors;
+				$result[$i]['details'] = $event;
+				$i++;
+			}
+		}
+		return array($result, $k);
+	}
 }

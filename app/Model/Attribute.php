@@ -1220,4 +1220,42 @@ class Attribute extends AppModel {
 	 	);
 	 	return $this->find('all', $params);
 	 }
+	 
+	 public function generateCorrelation() {
+	 	$this->Correlation = ClassRegistry::init('Correlation');
+	 	$this->Correlation->deleteAll(array('id !=' => ''), false);
+	 	$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.type', 'Attribute.category', 'Attribute.value1', 'Attribute.value2');
+	 	// get all attributes..
+	 	$attributes = $this->find('all', array('recursive' => -1, 'fields' => $fields));
+	 	// for all attributes..
+	 	foreach ($attributes as $k => $attribute) {
+	 		$this->__afterSaveCorrelation($attribute['Attribute']);
+	 	}
+	 	return $k;
+	 }
+	 
+	 public function reportValidationIssuesAttributes() {
+	 	// for efficiency reasons remove the unique requirement
+	 	$this->validator()->remove('value', 'unique');
+	 
+	 	// get all attributes..
+	 	$attributes = $this->find('all', array('recursive' => -1));
+	 	// for all attributes..
+	 	$result = array();
+	 	$i = 0;
+	 	foreach ($attributes as $attribute) {
+	 		$this->set($attribute);
+	 		if ($this->validates()) {
+	 			// validates
+	 		} else {
+	 			$errors = $this->validationErrors;
+	 			$result[$i]['id'] = $attribute['Attribute']['id'];
+	 			// print_r
+	 			$result[$i]['error'] = $errors['value'][0];
+	 			$result[$i]['details'] = 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']';
+	 			$i++;
+	 		}
+	 	}
+	 	return $result;
+	 }
 }

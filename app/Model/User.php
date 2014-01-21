@@ -261,6 +261,8 @@ class User extends AppModel {
  * Checks if the GPG key is a valid key
  * But also import it in the keychain.
  */
+	// TODO: this will NOT fail on keys that can only be used for signing but not encryption!
+	// the method in verifyUsers will fail in that case.
 	public function validateGpgkey($check) {
 		// LATER first remove the old gpgkey from the keychain
 
@@ -367,5 +369,36 @@ class User extends AppModel {
 			$orgNames[] = $org['User']['org'];
 		}
 		return $orgNames;
+	}
+	
+	public function getOrgMemberCount($org) {
+		return $this->find('count', array(
+				'conditions' => array(
+						'org =' => $org,
+				)));
+	}
+	
+	public function verifyGPG() {
+		require_once 'Crypt/GPG.php';
+		$this->Behaviors->detach('Trim');
+		$results = array();
+		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+		$users = $this->find('all', array(
+			'conditions' => array('not' => array('gpgkey' => '')),
+			//'fields' => array('id', 'email', 'gpgkey'),
+			'recursive' => -1,
+		));
+		foreach ($users as $k => $user) {
+			$key = $gpg->importKey($user['User']['gpgkey']);
+			$gpg->addEncryptKey($key['fingerprint']); // use the key that was given in the import
+			try {
+				$enc = $gpg->encrypt('test', true);
+				$verified = $gpg->verify($enc);
+			} catch (Exception $e){
+				$results[$user['User']['id']][0] = true;
+			}
+			$results[$user['User']['id']][1] = $user['User']['email'];
+		}
+		return $results;
 	}
 }

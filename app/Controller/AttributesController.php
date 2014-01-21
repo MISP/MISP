@@ -1318,41 +1318,12 @@ class AttributesController extends AppController {
 		// TODO improve performance of this function by eliminating the additional SQL query per attribute
 		// search for validation problems in the attributes
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		// for efficiency reasons remove the unique requirement
-		$this->Attribute->validator()->remove('value', 'unique');
-	
-		// get all attributes..
-		$attributes = $this->Attribute->find('all', array('recursive' => -1));
-		// for all attributes..
-		$result = array();
-		$i = 0;
-		foreach ($attributes as $attribute) {
-			$this->Attribute->set($attribute);
-			if ($this->Attribute->validates()) {
-				// validates
-			} else {
-				$errors = $this->Attribute->validationErrors;
-				$result[$i]['id'] = $attribute['Attribute']['id'];
-				// print_r
-				$result[$i]['error'] = $errors['value'][0];
-				$result[$i]['details'] = 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']';
-				$i++;
-			}
-		}
-		$this->set('result', $result);
+		$this->set('result', $this->Attribute->reportValidationIssuesAttributes());
 	}
 	
 	public function generateCorrelation() {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		$this->loadModel('Correlation');
-		$this->Correlation->deleteAll(array('id !=' => ''), false);
-		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.type', 'Attribute.category', 'Attribute.value1', 'Attribute.value2');
-		// get all attributes..
-		$attributes = $this->Attribute->find('all', array('recursive' => -1, 'fields' => $fields));
-		// for all attributes..
-		foreach ($attributes as $k => $attribute) {
-			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
-		}
+		$k = $this->Attribute->generateCorrelation();
 		$this->Session->setFlash(__('All done. ' . $k . ' attributes processed.'));
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}

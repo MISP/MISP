@@ -695,7 +695,7 @@ class UsersController extends AppController {
 			$i = 0;
 			foreach ($recipients as $recipient) {
 				if (!empty($recipientGPG[$i])) {
-					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
+					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'debug' => true));	// , 'debug' => true
 					$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 					$messageSigned = $gpg->sign($message[$i], Crypt_GPG::SIGN_MODE_CLEAR);
 					$keyImportOutput = $gpg->importKey($recipientGPG[$i]);
@@ -789,5 +789,11 @@ class UsersController extends AppController {
 		$this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
 		$this->set('end', strtotime(date('Y-m-d H:i:s')));
 		$this->set('startDateCal', $year . ', ' . $month . ', 01');
+	}
+
+	public function verifyGPG() {
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		$user_results = $this->User->verifyGPG();
+		$this->set('users', $user_results);
 	}
 }

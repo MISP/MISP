@@ -1930,71 +1930,17 @@ class EventsController extends AppController {
 	public function reportValidationIssuesEvents() {
 		// search for validation problems in the events
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		$this->Event->Behaviors->detach('Regexp');
-		// get all events..
-		$events = $this->Event->find('all', array('recursive' => -1));
-		// for all events..
-		$result = array();
-		$i = 0;
-		foreach ($events as $event) {
-			$this->Event->set($event);
-			if ($this->Event->validates()) {
-				// validates
-			} else {
-				$errors = $this->Event->validationErrors;
-				
-				$result[$i]['id'] = $event['Event']['id'];
-				// print_r
-				$result[$i]['error'] = $errors;
-				$result[$i]['details'] = $event;
-				$i++;
-			}
-		}
+		$results = $this->Event->reportValidationIssuesEvents();
+		$result = $results[0];
+		$count = $results[1];
 		$this->set('result', $result);
+		$this->set('count', $count);
 	}
 	
 
 	public function generateLocked() {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		$this->loadModel('User');
-		$this->User->recursive = -1;
-		$localOrgs = array();
-		$conditions = array();
-		$orgs = $this->User->find('all', array('fields' => array('DISTINCT org')));
-		foreach ($orgs as $k => $org) {
-			$orgs[$k]['User']['count'] = $this->User->find('count', array(
-					'conditions' => array(
-							'org =' => $orgs[$k]['User']['org'],
-					)));
-			if ($orgs[$k]['User']['count'] > 1) {
-				$localOrgs[] = $orgs[$k]['User']['org'];
-				$conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org']);
-			} else if ($orgs[$k]['User']['count'] == 1) {
-				// If we only have a single user for an org, check if that user is a sync user. If not, then it is a valid local org and the events created by him/her should be unlocked.
-				$this->User->recursive = 1;
-				$user = ($this->User->find('first', array(
-						'fields' => array('id', 'role_id'),
-						'conditions' => array('org' => $org['User']['org']),
-						'contain' => array('Role' => array(
-								'fields' => array('id', 'perm_sync'),
-						))
-				)));
-				if (!$user['Role']['perm_sync']) {
-					$conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org']);
-				}
-			}
-		}
-		// Don't lock stuff that's already locked
-		$conditions['AND'][] = array('locked !=' => true);
-		$this->loadModel('Event');
-		$this->Event->recursive = -1;
-		$toBeUpdated = $this->Event->find('count', array(
-				'conditions' => $conditions
-		));
-		$this->Event->updateAll(
-				array('Event.locked' => 1),
-				$conditions
-		);
+		$toBeUpdated = $this->Event->generateLocked();
 		$this->Session->setFlash('Events updated, '. $toBeUpdated . ' record(s) altered.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
