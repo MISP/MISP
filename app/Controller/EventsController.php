@@ -1944,4 +1944,11 @@ class EventsController extends AppController {
 		$this->Session->setFlash('Events updated, '. $toBeUpdated . ' record(s) altered.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
+	
+	public function generateThreatLevelFromRisk() {
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		$updated = $this->Event->generateThreatLevelFromRisk();
+		$this->Session->setFlash('Events updated, '. $updated . ' record(s) altered.');
+		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+	}
 }

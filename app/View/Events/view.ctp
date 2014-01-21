@@ -55,7 +55,10 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 				</dd>
 				<dt title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>">Risk</dt>
 				<dd>
-					<?php echo h($event['ThreatLevel']['name']); ?>
+					<?php 
+						if ($event['ThreatLevel']['name']) echo h($event['ThreatLevel']['name']);
+						else echo h($event['Event']['threat_level_id']);
+					?>
 					&nbsp;
 				</dd>
 				<dt title="<?php echo $eventDescriptions['analysis']['desc'];?>">Analysis</dt>

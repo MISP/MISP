@@ -1604,4 +1604,16 @@ class Event extends AppModel {
 		}
 		return array($result, $k);
 	}
+	
+	public function generateThreatLevelFromRisk() {
+		$risk = array('Undefined' => 4, 'Low' => 3, 'Medium' => 2, 'High' => 1);
+		$events = $this->find('all', array('recursive' => -1));
+		foreach ($events as $k => $event) {
+			if ($event['Event']['threat_level_id'] == 0 && isset($event['Event']['risk'])) {
+				$event['Event']['threat_level_id'] = $risk[$event['Event']['risk']];
+				$this->save($event);
+			}
+		}
+		return $k;
+	}
 }

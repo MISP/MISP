@@ -246,7 +246,10 @@
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
 			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
-				<?php echo $event['ThreatLevel']['name']; ?>&nbsp;
+				<?php 
+				if ($event['ThreatLevel']['name']) echo h($event['ThreatLevel']['name']);
+				else echo h($event['Event']['threat_level_id']);
+				?>&nbsp;
 			</td>
 			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $analysisLevels[$event['Event']['analysis']]; ?>&nbsp;
