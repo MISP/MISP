@@ -25,6 +25,7 @@
 			<th><?php echo $this->Paginator->sort('perm_audit', 'Audit Actions');?></th>
 			<th><?php echo $this->Paginator->sort('perm_regexp', 'Regexp Actions');?></th>			
 			<th><?php echo $this->Paginator->sort('perm_auth', 'Auth Key Access');?></th>
+			<th><?php echo $this->Paginator->sort('perm_tagger', 'Tag Editor');?></th>
 			<th><?php echo $this->Paginator->sort('perm_admin', 'Admin');?></th>
 			<th><?php echo $this->Paginator->sort('perm_site_admin', 'Site Admin');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
@@ -38,6 +39,7 @@ foreach ($list as $item): ?>
 		<td class="short"><?php echo h($item['Role']['perm_audit']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_regexp_access']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_auth']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Role']['perm_tagger']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_admin']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Role']['perm_site_admin']); ?>&nbsp;</td>
 		<td class="short action-links">

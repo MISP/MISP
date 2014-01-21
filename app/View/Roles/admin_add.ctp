@@ -13,6 +13,7 @@
 		<?php echo $this->Form->input('perm_auth', array('type' => 'checkbox', 'checked' => false));?>
 		<?php echo $this->Form->input('perm_site_admin', array('type' => 'checkbox', 'checked' => false));?>
 		<?php echo $this->Form->input('perm_regexp_access', array('type' => 'checkbox', 'checked' => false));?>
+		<?php echo $this->Form->input('perm_tagger', array('type' => 'checkbox', 'checked' => false));?>
 	</fieldset>
 <?php
 echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
@@ -30,6 +31,7 @@ $this->Js->get('#RolePermAdmin')->event('change', 'checkPerms("RolePermAdmin")')
 $this->Js->get('#RolePermAudit')->event('change', 'checkPerms("RolePermAudit")');
 $this->Js->get('#RolePermSiteAdmin')->event('change', 'checkPerms("RolePermSiteAdmin");activateAll();');
 $this->Js->get('#RolePermRegexpAccess')->event('change', 'checkPerms("RolePermRegexpAccess")');
+$this->Js->get('#RolePermTagger')->event('change', 'checkPerms("RolePermTagger")');
 ?>
 
 <script type="text/javascript">
@@ -43,6 +45,7 @@ function deactivateActions() {
 		document.getElementById("RolePermAudit").checked = false;
 		document.getElementById("RolePermSiteAdmin").checked = false;
 		document.getElementById("RolePermRegexpAccess").checked = false;
+		document.getElementById("RolePermRegexpTagger").checked = false;
 	}
 }
 
@@ -53,6 +56,7 @@ function activateAll() {
 		document.getElementById("RolePermAudit").checked = true;
 		document.getElementById("RolePermAuth").checked = true;
 		document.getElementById("RolePermRegexpAccess").checked = true;
+		document.getElementById("RolePermTagger").checked = true;
 	}
 }
 

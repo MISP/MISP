@@ -121,6 +121,7 @@ class AppController extends Controller {
 			$this->set('isAclAudit', $role['perm_audit']);
 			$this->set('isAclAuth', $role['perm_auth']);
 			$this->set('isAclRegexp', $role['perm_regexp_access']);
+			$this->set('isAclTagger', $role['perm_tagger']);
 			$this->userRole = $role;
 		} else {
 			$this->set('me', false);
@@ -135,6 +136,7 @@ class AppController extends Controller {
 			$this->set('isAclAudit', false);
 			$this->set('isAclAuth', false);
 			$this->set('isAclRegexp', false);
+			$this->set('isAclTagger', false);
 		}
 		if (Configure::read('debug') > 0) {
 			$this->debugMode = 'debugOn';
