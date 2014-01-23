@@ -302,6 +302,9 @@ class Event extends AppModel {
 				'exclusive' => '',
 				'finderQuery' => '',
 				'counterQuery' => ''
+		),
+		'EventTag' => array(
+				'className' => 'EventTag',
 		)
 	);
 

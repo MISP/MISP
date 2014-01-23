@@ -595,6 +595,49 @@ a.proposal_link_red:hover {
 	color:red;
 }
 
+.tag {
+	display: inline-block;
+	padding: 2px 4px;
+	font-size: 12px;
+	font-weight: bold;
+	line-height: 14px;
+	-webkit-border-radius: 3px;
+	-moz-border-radius: 3px;
+	border-radius: 3px;
+	box-shadow: 3px 3px 3px #888888;
+}
+
+.tagFirstHalf {
+	display: inline-block;
+	padding: 2px 4px;
+	font-size: 12px;
+	font-weight: bold;
+	line-height: 14px;
+	-webkit-border-top-left-radius: 3px;
+	-moz-border-top-left-radius: 3px;
+	border-top-left-radius: 3px;
+	-webkit-border-bottom-left-radius: 3px;
+	-moz-border-bottom-left-radius: 3px;
+	border-bottom-left-radius: 3px;
+	box-shadow: 3px 3px 3px #888888;
+}
+
+.tagSecondHalf {
+	display: inline-block;
+	padding:2px 4px;
+	font-size: 12px;
+	font-weight: bold;
+	line-height: 14px;
+	-webkit-border-top-right-radius: 3px;
+	-moz-border-top-right-radius: 3px;
+	border-top-right-radius: 3px;
+	-webkit-border-bottom-right-radius: 3px;
+	-moz-border-bottom-right-radius: 3px;
+	border-bottom-right-radius: 3px;
+	box-shadow: 3px 3px 3px #888888;
+	background-color:black;
+	color:white;
+}
 
 
 @-webkit-keyframes rotation {

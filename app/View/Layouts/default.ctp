@@ -14,6 +14,7 @@
 		echo $this->Html->css('bootstrap'); // see http://twitter.github.io/bootstrap/base-css.html
 		echo $this->Html->css('datepicker');
 		echo $this->Html->css('bootstrap-timepicker');
+		echo $this->Html->css('bootstrap-colorpicker.min');
 		echo $this->Html->css('main');
 
 		// FIXME chri: re-add print stylesheet
@@ -60,6 +61,7 @@
 	// echo $this->Html->script('bootstrap.min');
 	echo $this->Html->script('bootstrap-timepicker');
 	echo $this->Html->script('bootstrap-datepicker');
+	echo $this->Html->script('bootstrap-colorpicker.min');
 	echo $this->Html->script('main');
 	?>
 	</div>

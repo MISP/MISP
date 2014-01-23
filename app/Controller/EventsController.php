@@ -96,8 +96,17 @@ class EventsController extends AppController {
 			//redirect user to the index page including the selected filters
 			$this->redirect(array_merge($url,$filters));
 		}
-		$this->Event->recursive = -1;
-		$this->Event->contain('User.email');
+		if (Configure::read('MISP.tagging') && !$this->_isRest()) {
+			$this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
+			$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
+			$tagNames = array('None');
+			foreach ($tags as $k => $v) {
+				$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
+			}
+			$this->set('tags', $tagNames);
+		} else {
+			$this->Event->contain('User.email');
+		}
 		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
 		foreach ($this->passedArgs as $k => $v) {
 			if (substr($k, 0, 6) === 'search') {
@@ -119,26 +128,46 @@ class EventsController extends AppController {
 						if (!$v) continue 2;
 						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
 						$pieces = explode('|', $v);
+						$test = array();
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
 								$this->paginate['conditions']['AND'][] = array('Event.orgc' . ' NOT LIKE' => '%' . substr($piece, 1) . '%');
 							} else {
-								$this->paginate['conditions']['AND']['OR'][] = array('Event.orgc' . ' LIKE' => '%' . $piece . '%');
+								$test['OR'][] = array('Event.orgc' . ' LIKE' => '%' . $piece . '%');
 							}
 						}
+						$this->paginate['conditions']['AND'][] = $test;
 						break;
 					case 'info' :
 						if (!$v) continue 2;
 						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
 						$pieces = explode('|', $v);
+						$test = array();
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
 								$this->paginate['conditions']['AND'][] = array('Event.info' . ' NOT LIKE' => '%' . substr($piece, 1) . '%');
 							} else {
-								$this->paginate['conditions']['AND']['OR'][] = array('Event.info' . ' LIKE' => '%' . $piece . '%');
+								$test['OR'][] = array('Event.info' . ' LIKE' => '%' . $piece . '%');
 							}
 						}
+						$this->paginate['conditions']['AND'][] = $test;
 						break;
+					case 'tag' :
+						if (!$v || !Configure::read('MISP.tagging') || $v == 0) continue 2;
+						$valid = $this->Event->EventTag->find('all', array(
+								'conditions' => array('tag_id' => $v),
+								'fields' => 'event_id',
+								'recursive' => -1,
+						));
+						if (empty($valid)) {
+							$this->paginate['conditions']['AND'][] = array('Event.id' => '-1');
+						}
+						$test = array();
+						//$valid = array_unique($valid);
+						foreach ($valid as $et) {
+							$test['OR'][] = array('Event.id' => $et['EventTag']['event_id']);
+						}
+						$this->paginate['conditions']['AND'][] = $test;
 						break;
 					default:
 						if (!$v) continue 2;
@@ -298,6 +327,25 @@ class EventsController extends AppController {
 			$this->__arrangePivotVertical($pivot);
 			$this->__setDeletable($pivot, $id, true);
 			$this->set('pivot', $pivot);
+			if (Configure::read('MISP.tagging')) {
+				$this->helpers[] = 'TextColour';
+				$this->loadModel('EventTag');
+				$tags = $this->EventTag->find('all', array(
+						'conditions' => array(
+								'event_id' => $id
+						),
+						'contain' => 'Tag',
+						'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+						));
+				$this->set('tags', $tags);
+				$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
+				$tagNames = array('None');
+				foreach ($tags as $k => $v) {
+					$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
+				}
+				$this->set('allTags', $tagNames);
+				
+			}
 		}
 		$this->set('currentEvent', $id);
 	}
@@ -1950,5 +1998,61 @@ class EventsController extends AppController {
 		$updated = $this->Event->generateThreatLevelFromRisk();
 		$this->Session->setFlash('Events updated, '. $updated . ' record(s) altered.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+	}
+	
+	public function addTag() {
+		if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+		}
+		$tag_id = $this->request->data['Event']['tag'];
+		$id = $this->request->data['Event']['id'];
+		$this->Event->recurisve = -1;
+		$event = $this->Event->read(array('id', 'org', 'orgc'), $id);
+		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
+		if ($this->Auth->user('org') !== $event['Event']['org'] && $this->Auth->user('org') !== $event['Event']['orgc'] && !$this->_isSiteAdmin()) {
+			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+		}
+		$this->Event->EventTag->Tag->id = $tag_id;
+		if(!$this->Event->EventTag->Tag->exists()) {
+			throw NotFoundException('Invalid tag.');
+		}
+		$found = $this->Event->EventTag->find('first', array(
+			'conditions' => array(
+				'event_id' => $id,
+				'tag_id' => $tag_id
+			),
+			'recursive' => -1,
+		));
+		if (!empty($found)) {
+			$this->Session->setFlash('Tag already assigned to this event.');
+			$this->redirect(array('action' => 'view', $id));
+		}
+		$this->Event->EventTag->create();
+		$this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id));
+		$this->Session->setFlash('Tag added.');
+		$this->redirect(array('action' => 'view', $id));
+	}
+	
+	public function removeTag($id, $tag_id) {
+		if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+		}
+		$this->Event->recurisve = -1;
+		$event = $this->Event->read(array('id', 'org', 'orgc'), $id);
+		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
+		if ($this->Auth->user('org') !== $event['Event']['org'] && $this->Auth->user('org') !== $event['Event']['orgc'] && !$this->_isSiteAdmin()) {
+			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+		}
+		$eventTag = $this->Event->EventTag->find('first', array(
+			'conditions' => array(
+				'event_id' => $id,
+				'tag_id' => $tag_id
+			),
+			'recursive' => -1,
+		));
+		if (empty($eventTag)) throw new NotFoundException('Invalid event - tag combination.');
+		$this->Event->EventTag->delete($eventTag['EventTag']['id']);
+		$this->Session->setFlash('Tag removed.');
+		$this->redirect(array('action' => 'view', $id));
 	}
 }
