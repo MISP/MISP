@@ -135,7 +135,7 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 		$s = $this->Server->read(null, $id);
-		if (!$this->_isSiteAdmin() || !($s['Server']['org'] == $this->Auth->user('org') && $this->_isSiteAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isSiteAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->Server->delete()) {
 			$this->Session->setFlash(__('Server deleted'));
 			$this->redirect(array('action' => 'index'));
