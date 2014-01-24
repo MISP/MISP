@@ -185,8 +185,10 @@
 				
 				case 'tags': ?>
 					<li <?php if ($menuItem === 'index') echo 'class="active";'?>><?php echo $this->Html->link('List Tags', array('action' => 'index'));?></li>
+					<?php if ($isAclTagger): ?>
 					<li <?php if ($menuItem === 'add') echo 'class="active";'?>><?php echo $this->Html->link('Add Tag', array('action' => 'add'));?></li>
 					<?php 
+					endif;
 					if ($menuItem === 'edit'): 
 					?>
 					<li class="active"><?php echo $this->Html->link('Search Logs', array('action' => 'edit'));?></li>

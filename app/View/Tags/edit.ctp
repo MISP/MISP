@@ -18,3 +18,8 @@ echo $this->Form->end();
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'tags', 'menuItem' => 'edit'));
 ?>
+<script>
+    $(function(){
+        $('#TagColour').colorpicker();
+    });
+</script>

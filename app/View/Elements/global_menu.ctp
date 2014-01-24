@@ -24,6 +24,11 @@
 							<li><a href="/shadow_attributes/index">View Proposals</a></li>
 							<li><a href="/events/proposalEventIndex">Events with proposals</a></li>
 							<li class="divider"></li>
+							<li><a href="/tags/index">List Tags</a>
+							<?php if ($isAclTagger): ?>
+							<li><a href="/tags/add">Add Tag</a>
+							<?php endif; ?>
+							<li class="divider"></li>
 							<li><a href="/events/export">Export</a></li>
 							<?php if ($isAclAuth): ?>
 							<li><a href="/events/automation">Automation</a></li>

@@ -20,16 +20,20 @@
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
+			<?php if ($isAclTagger): ?>
 			<th class="actions"><?php echo __('Actions');?></th>
+			<?php endif; ?>
 	</tr><?php
 foreach ($list as $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['Tag']['id']); ?>&nbsp;</td>
 		<td><a href="/events/index/searchtag:<?php echo $item['Tag']['id']; ?>" class="tag" style="background-color: <?php echo h($item['Tag']['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']); ?>"><?php echo h($item['Tag']['name']); ?></a></td>
+		<?php if ($isAclTagger): ?>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
 			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>	
 		</td>
+		<?php endif; ?>
 	</tr><?php
 endforeach; ?>
 	</table>
