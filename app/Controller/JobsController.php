@@ -91,7 +91,7 @@ class JobsController extends AppController {
 			$target = 'Events visible to: '.$this->Auth->user('org');
 			$jobOrg = $this->Auth->user('org');
 		}
-		$id = $this->Job->cache($type, $this->_isSiteAdmin(), $this->Auth->user('org'), $target, $jobOrg, $this->Auth->user('sid'));
+		$id = $this->Job->cache($type, $this->_isSiteAdmin(), $this->Auth->user('org'), $target, $jobOrg, $this->Auth->user('nids_sid'));
 		return new CakeResponse(array('body' => json_encode($id)));
 	}
 }
