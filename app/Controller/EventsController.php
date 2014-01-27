@@ -502,6 +502,7 @@ class EventsController extends AppController {
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 		$this->set('sharingGroups', $this->Event->SharingGroup->find('list'));
+        $this->set('servers', $this->Event->Server->find('list'));
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
 
@@ -699,7 +700,7 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event'));
 		}
 
-        if(!$this->_isInMySharingGroup($id)){
+        if(!$this->_isSiteAdmin() && !$this->_isInMySharingGroup($id)){
             $this->Session->setFlash(__('This event is not part of your sharing group, you are not authorized to view it.'));
             $this->redirect(array('controller' => 'events', 'action' => 'index'));
         }
@@ -846,6 +847,7 @@ class EventsController extends AppController {
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('sharingGroups', $this->Event->SharingGroup->find('list'));
+        $this->set('servers', $this->Event->Server->find('list'));
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 
 		$this->set('event', $this->Event->data);
@@ -914,11 +916,14 @@ class EventsController extends AppController {
 		$this->Event->recursive = 1;
 		$this->Event->read();
 		$this->Event->data['Event']['locked'] = 1;
+        //$server_ids = Set::extract('/Server/id', $this->Event->data);
 
 		// get a list of the servers
 		$this->loadModel('Server');
 		$servers = $this->Server->find('all', array(
-				'conditions' => array('Server.push' => true)
+				'conditions' => array(
+                    'Server.id' => Set::extract('/Server/id', $this->Event->data),
+                    'Server.push' => true)
 		));
 		// iterate over the servers and upload the event
 		if(empty($servers))
@@ -1531,7 +1536,8 @@ class EventsController extends AppController {
 						),
 				)
 		);
-		if($isSiteAdmin){
+
+		if(!$isSiteAdmin){
             $org_sharing = $this->Event->User->Organisation->read(null, $this->Auth->user('organisation_id'));
             $params['contain']['User'] = array('fields' => 'email');
             $params['joins'] = array(

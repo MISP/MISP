@@ -45,6 +45,9 @@
         "timestamp": "0"
       }
     ],
+    "SharingGroup": {
+        "SharingGroup": ["1", "2"]
+    },
     "RelatedEvent": [
       {
         "id": "11",

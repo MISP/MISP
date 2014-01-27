@@ -13,8 +13,7 @@
 		<td><?php echo h($sharingGroup['SharingGroup']['name']); ?>&nbsp;</td>
 		<td><?php echo h($sharingGroup['SharingGroup']['description']); ?>&nbsp;</td>
 		<td class="actions">
-			<?php echo $this->Html->link(__('View'), array('action' => 'view', $sharingGroup['SharingGroup']['id']), array('class' => 'btn')); ?>
-			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $sharingGroup['SharingGroup']['id']), array('class' => 'btn')); ?>
+			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $sharingGroup['SharingGroup']['id'], 'admin' => true), array('class' => 'btn')); ?>
 			<?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $sharingGroup['SharingGroup']['id']), array('class' => 'btn'), __('Are you sure you want to delete # %s?', $sharingGroup['SharingGroup']['id'])); ?>
 		</td>
 	</tr>

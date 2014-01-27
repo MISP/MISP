@@ -71,8 +71,20 @@ class AppSchema extends CakeSchema {
 		'indexes' => array(
 			'PRIMARY' => array('column' => 'id', 'unique' => 1)
 		),
-		'tableParameters' => array('charset' => 'latin1', 'collate' => 'latin1_swedish_ci', 'engine' => 'InnoDB')
+		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'InnoDB')
 	);
+
+    public $events_servers = array(
+        'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+        'event_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+        'server_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+        'created' => array('type' => 'datetime', 'null' => true, 'default' => null),
+        'updated' => array('type' => 'datetime', 'null' => true, 'default' => null),
+        'indexes' => array(
+            'PRIMARY' => array('column' => 'id', 'unique' => 1)
+        ),
+        'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'InnoDB')
+    );
 
 	public $logs = array(
 		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),

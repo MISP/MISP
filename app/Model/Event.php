@@ -268,7 +268,13 @@ class Event extends AppModel {
 			'joinTable' => 'events_sharing_groups',
 			'foreignKey' => 'event_id',
 			'associationForeignKey' => 'sharing_group_id',
-		)
+		),
+        'Server' => array(
+            'className' => 'Server',
+            'joinTable' => 'events_servers',
+            'foreignKey' => 'event_id',
+            'associationForeignKey' => 'server_id',
+        )
 	);
 
 	public function beforeDelete($cascade = true) {
