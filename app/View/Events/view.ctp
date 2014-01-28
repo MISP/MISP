@@ -94,6 +94,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 							<?php endif; ?>
 						</tr>
 						</table>
+						&nbsp;
 						</dd>
 				<?php endif; ?>
 				<dt>Date</dt>

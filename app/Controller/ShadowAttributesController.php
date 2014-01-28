@@ -71,6 +71,7 @@ class ShadowAttributesController extends AppController {
 			throw new Exception('This feature is limited to interactive users only.');
 		}
 		$this->loadModel('Attribute');
+		$this->Attribute->Behaviors->detach('SysLogLogable.SysLogLogable');
 		$this->ShadowAttribute->id = $id;
 		$this->ShadowAttribute->recursive = -1;
 		$this->ShadowAttribute->read();
@@ -98,6 +99,7 @@ class ShadowAttributesController extends AppController {
 			$this->Attribute->save($activeAttribute['Attribute']);
 			$this->ShadowAttribute->delete($id, $cascade = false);
 			$this->loadModel('Event');
+			$this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
 			$this->Event->recursive = -1;
 			// Unpublish the event, accepting a proposal is modifying the event after all. Also, reset the lock.
 			$event = $this->Event->read(null, $activeAttribute['Attribute']['event_id']);
@@ -107,17 +109,25 @@ class ShadowAttributesController extends AppController {
 			$event['Event']['proposal_email_lock'] = 0;
 			$event['Event']['published'] = 0;
 			$this->Event->save($event, array('fieldList' => $fieldList));
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => $this->Auth->user('org'),
+					'model' => 'ShadowAttribute',
+					'model_id' => $id,
+					'email' => $this->Auth->user('email'),
+					'action' => 'accept',
+					'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted',
+					));
 			$this->Session->setFlash(__('Proposed change accepted', true), 'default', array());
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $activeAttribute['Attribute']['event_id']));
 			return;
 		} else {
 			// If the old_id is set to 0, then we're dealing with a brand new proposed attribute
 			// The idea is to load the event that the new attribute will be attached to, create an attribute to it and set the distribution equal to that of the event
-			$this->loadModel('Event');
 			$toDeleteId = $shadow['id'];
-
-
 			$this->loadModel('Event');
+			$this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
 			$this->Event->recursive = -1;
 			$event = $this->Event->read(null, $shadow['event_id']);
 			
@@ -127,7 +137,7 @@ class ShadowAttributesController extends AppController {
 					$this->redirect(array('controller' => 'events', 'action' => 'index'));
 				}
 			}
-			
+			$shadowForLog = $shadow;
 			// Stuff that we won't use in its current form for the attribute
 			unset($shadow['email'], $shadow['org'], $shadow['id'], $shadow['old_id']);
 			
@@ -146,6 +156,17 @@ class ShadowAttributesController extends AppController {
 			$event['Event']['proposal_email_lock'] = 0;
 			$event['Event']['published'] = 0;
 			$this->Event->save($event, array('fieldList' => $fieldList));
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => $this->Auth->user('org'),
+					'model' => 'ShadowAttribute',
+					'model_id' => $id,
+					'email' => $this->Auth->user('email'),
+					'action' => 'accept',
+					'title' => 'Proposal (' . $shadowForLog['id'] . ') of ' . $shadowForLog['org'] . ' to Event(' . $shadowForLog['event_id'] . ') accepted',
+					'change' => null,
+					));
 			$this->Session->setFlash(__('Proposed attribute accepted', true), 'default', array());
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->Event->id));
 		}
@@ -181,6 +202,7 @@ class ShadowAttributesController extends AppController {
 		$this->ShadowAttribute->read();
 		$eventId = $this->ShadowAttribute->data['ShadowAttribute']['event_id'];
 		$this->loadModel('Event');
+		$this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
 		$this->Event->recursive = -1;
 		$this->Event->id = $eventId;
 		$this->Event->read();

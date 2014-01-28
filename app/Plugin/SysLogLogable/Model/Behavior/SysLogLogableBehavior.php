@@ -198,6 +198,14 @@ class SysLogLogableBehavior extends LogableBehavior {
 						}
 					}
 					break;
+				case "ShadowAttribute":
+					if (isset($Model->combinedKeys)) {
+						if (is_array($Model->combinedKeys)) {
+							$title = 'Proposal ('. $Model->data[$Model->alias]['id'].') '.'to Event ('. $Model->data[$Model->alias]['event_id'].'): '.  $Model->data[$Model->alias][$Model->combinedKeys[1]].'/'.  $Model->data[$Model->alias][$Model->combinedKeys[2]].' '.  $Model->data[$Model->alias]['value1'];
+							$logData['Log']['title'] = $title;
+						}
+					}
+					break;
 				case "Server":
 					$this->Servers = new ServersController();
         			$this->Servers->constructClasses();

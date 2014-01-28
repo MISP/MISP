@@ -16,10 +16,10 @@ class ShadowAttribute extends AppModel {
 	public $name = 'ShadowAttribute';				// TODO general
 
 	public $actsAs = array(
-//		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
-			//'userModel' => 'User',
-			//'userKey' => 'user_id',
-			//'change' => 'full'),
+		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+			'userModel' => 'User',
+			'userKey' => 'user_id',
+			'change' => 'full'),
 		'Trim',
 		'Containable',
 		'Regexp' => array('fields' => array('value', 'value2')),

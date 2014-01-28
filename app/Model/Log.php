@@ -17,7 +17,9 @@ class Log extends AppModel {
 							'edit',
 							'change_pw',
 							'delete',
-							'publish'
+							'publish',
+							'accept',
+							'discard'
 						)),
 			'message' => 'Options : ...'
 		)

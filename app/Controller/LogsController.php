@@ -81,26 +81,38 @@ class LogsController extends AppController {
 		}
 		$this->set('published', $this->Event->data['Event']['published']);
 		if ($mineOrAdmin && $this->userRole['perm_modify']) $mayModify = true;
-		// get a list of the attributes that belong to the event
-		$this->loadModel('Attribute');
-		$this->Attribute->recursive = -1;
-		$attributes = $this->Attribute->find('all', array(
-				'conditions' => array('event_id' => $id),
-				'fields' => array ('id', 'event_id', 'distribution'),
-				'contain' => 'Event.distribution'
-		));
-		// get a list of all log entries that affect the current event or any of the attributes found above
+		
+		
 		$conditions['OR'][] = array('AND' => array('Log.model LIKE' => 'Event', 'Log.model_id LIKE' => $id));
-		$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'Attribute'));
-		// set a condition for the attribute, otherwise an empty event will show all attributes in the log
-		$conditions['OR'][1]['AND']['OR'][0] = array('Log.model_id LIKE' => null);
-		foreach ($attributes as $a) {
-			// Hop over the attributes that are private if the user should is not of the same org and not an admin
-			if ($mineOrAdmin || ($a['Event']['distribution'] != 0 && $a['Attribute']['distribution'] != 0)) {
-				$conditions['OR'][1]['AND']['OR'][] = array('Log.model_id LIKE' => $a['Attribute']['id']);
+		
+		// if we are not the owners of the event and we aren't site admins, then we should only see the entries for attributes that are not private
+		// This means that we will not be able to see deleted attributes - since those could have been private
+		if (!$mayModify) {
+		// get a list of the attributes that belong to the event
+		
+			$this->loadModel('Attribute');
+			$this->Attribute->recursive = -1;
+			$attributes = $this->Attribute->find('all', array(
+					'conditions' => array('event_id' => $id),
+					'fields' => array ('id', 'event_id', 'distribution'),
+					'contain' => 'Event.distribution'
+			));
+			// get a list of all log entries that affect the current event or any of the attributes found above
+			$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'Attribute'));
+			// set a condition for the attribute, otherwise an empty event will show all attributes in the log
+			$conditions['OR'][1]['AND']['OR'][0] = array('Log.model_id LIKE' => null);
+			foreach ($attributes as $a) {
+				// Hop over the attributes that are private if the user should is not of the same org and not an admin
+				if ($mineOrAdmin || ($a['Event']['distribution'] != 0 && $a['Attribute']['distribution'] != 0)) {
+					$conditions['OR'][1]['AND']['OR'][] = array('Log.model_id LIKE' => $a['Attribute']['id']);
+				}
 			}
+		} else {
+			$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'Attribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
 		}
-		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change');
+		$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'ShadowAttribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
+		//$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'ShadowAttribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
+		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org');
 		$this->paginate = array(
 				'limit' => 60,
 				'conditions' => $conditions,
