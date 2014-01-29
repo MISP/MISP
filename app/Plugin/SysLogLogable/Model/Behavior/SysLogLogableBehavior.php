@@ -64,7 +64,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 					$old = '';
 				}
 				// TODO Audit, removed 'revision' as well
-				if ($key != 'revision' && $key != 'modified' && !in_array($key, $this->settings[$Model->alias]['ignore']) && $value != $old && in_array($key, $db_fields)) {
+				if ($key != 'lastpushedid' && $key!= 'timestamp' && $key != 'revision' && $key != 'modified' && !in_array($key, $this->settings[$Model->alias]['ignore']) && $value != $old && in_array($key, $db_fields)) {
 					if ($this->settings[$Model->alias]['change'] == 'full') {
 						if (($key != 'published') || (($key == 'published') && ($value == '1'))) { // remove (un-)published from edit
 							$changed_fields[] = $key . ' (' . $old . ') => (' . $value . ')';
@@ -183,10 +183,6 @@ class SysLogLogableBehavior extends LogableBehavior {
 					$title = 'User ('. $Model->data[$Model->alias]['id'].') '.  $Model->data[$Model->alias]['email'];
 					break;
 				case "Event":
-					App::uses('EventsController', 'Controller');
-					App::build(array('Controller' => array(APP . DS . 'Controller'), 'EventsController'));
-					$this->Events = new EventsController();
-        			$this->Events->constructClasses();
         			$title = 'Event ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['info'];
 					$logData['Log']['title'] = $title;
 					break;
@@ -207,26 +203,18 @@ class SysLogLogableBehavior extends LogableBehavior {
 					}
 					break;
 				case "Server":
-					$this->Servers = new ServersController();
-        			$this->Servers->constructClasses();
 					$title = 'Server ('. $Model->data[$Model->alias]['id'].'): '. $Model->data[$Model->alias]['url'];
 					$logData['Log']['title'] = $title;
 					break;
 				case "Role":
-					$this->Roles = new RolesController();
-					$this->Roles->constructClasses();
 					$title = 'Role ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
 					$logData['Log']['title'] = $title;
 					break;
 				case "Whitelist":
-					$this->Whitelists = new WhitelistsController();
-					$this->Whitelists->constructClasses();
 					$title = 'Whitelist ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
 					$logData['Log']['title'] = $title;
 					break;
 				case "Regexp":
-						$this->Regexp = new RegexpController();
-						$this->Regexp->constructClasses();
 						$title = 'Regexp ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['regexp'];
 						$logData['Log']['title'] = $title;
 						break;

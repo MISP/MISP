@@ -117,7 +117,7 @@ class ShadowAttributesController extends AppController {
 					'model_id' => $id,
 					'email' => $this->Auth->user('email'),
 					'action' => 'accept',
-					'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted',
+					'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted - ' . $shadow['category'] . '/' . $shadow['type'] . ' ' . $shadow['value'],
 					));
 			$this->Session->setFlash(__('Proposed change accepted', true), 'default', array());
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $activeAttribute['Attribute']['event_id']));

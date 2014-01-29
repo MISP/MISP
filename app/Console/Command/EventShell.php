@@ -139,17 +139,21 @@ class EventShell extends AppShell
 		$extra = $this->args[3];
 		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
 		$eventCount = count($eventIds);
+		$attributes[] = array();
 		foreach ($eventIds as $k => $eventId) {
-			$attributes = $this->Event->csv($org, $isSiteAdmin, $eventId['Event']['id'], $extra);
+			$attributes = array_merge($this->Event->csv($org, $isSiteAdmin, $eventId['Event']['id'], $extra), $attributes);
 			if ($k % 10 == 0) {
 				$this->Job->saveField('progress', $k / $eventCount * 80);
 			}
 		}
 		$this->loadModel('Whitelist');
 		$final = array();
+		$final[] = 'uuid,event_id,category,type,value';
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
-			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'];
+			if (!empty($attribute)) {
+				$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'];
+			}
 		}
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
 		if ($isSiteAdmin) {
@@ -256,7 +260,8 @@ class EventShell extends AppShell
 		// If the next execution time and the timestamp don't match, it means that this task is no longer valid as the time for the execution has since being scheduled
 		// been updated. 
 		if ($task['Task']['next_execution_time'] != $timestamp) return;
-		
+		$task['Task']['scheduled_time'] = date('H:i', $task['Task']['next_execution_time']);
+		$this->Task->save($task);
 		$orgs = $this->User->getOrgs();
 		
 		// Queue a set of exports for admins. This "ADMIN" organisation. The organisation of the admin users doesn't actually matter, it is only used to indentify
@@ -272,10 +277,14 @@ class EventShell extends AppShell
 		}
 		$task['Task']['message'] = $i . ' jobs started at ' . date('d/m/Y - H:i:s') . '.';
 		if ($task['Task']['timer'] > 0) {
-			$task['Task']['next_execution_time'] = strtotime('+' . $task['Task']['timer'] . ' hours', $task['Task']['next_execution_time']);
+			$time = time();
+			// Keep adding the timer's time interval until we get a date that is in the future! We don't want to keep queuing tasks in the past since they will execute until it catches up.
+			while ($task['Task']['next_execution_time'] < $time) {
+				$task['Task']['next_execution_time'] = strtotime('+' . $task['Task']['timer'] . ' hours', $task['Task']['next_execution_time']);
+			}
 			$task['Task']['scheduled_time'] = $this->Task->breakTime($task['Task']['scheduled_time'], $task['Task']['timer']);
+			$this->Task->save($task);
 		}
-		$this->Task->save($task);
 	}
 	
 	public function publish() {

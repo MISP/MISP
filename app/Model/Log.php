@@ -19,7 +19,9 @@ class Log extends AppModel {
 							'delete',
 							'publish',
 							'accept',
-							'discard'
+							'discard',
+							'pull',
+							'push'
 						)),
 			'message' => 'Options : ...'
 		)

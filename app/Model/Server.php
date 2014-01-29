@@ -108,7 +108,7 @@ class Server extends AppModel {
 		return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
 	}
 	
-	public function pull($user, $id = null, $technique=false, $server, $jobId = false) {
+	public function pull($user, $id = null, $technique=false, $server, $jobId = false, $percent = 100, $current = 0) {
 		$eventModel = ClassRegistry::init('Event');
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
@@ -237,9 +237,6 @@ class Server extends AppModel {
 						// error
 						$fails[$eventId] = 'failed downloading the event';
 					}
-					if ($jobId && $k%10 == 0) {
-						$job->saveField('progress', $k * 100 / $eventCount);
-					}
 				}
 				if (count($fails) > 0) {
 					// there are fails, take the lowest fail
@@ -280,11 +277,22 @@ class Server extends AppModel {
 						}
 					}
 				}
-				if ($jobId) {
-					$job->saveField('progress', $k * 100 / $eventCount);
+				if ($jobId && $k%10 == 0) {
+					$job->saveField('progress', $k / $eventCount);
 				}
 			}
 		}
+		$this->Log = ClassRegistry::init('Log');
+		$this->Log->create();
+		$this->Log->save(array(
+			'org' => $user['org'],
+			'model' => 'Server',
+			'model_id' => $id,
+			'email' => $user['email'],
+			'action' => 'pull',
+			'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $user['email'],
+			'change' => count($successes) . ' events and ' . count($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.' 
+		));
 		return array($successes, $fails, $pulledProposals, $lastpulledid);
 	}
 	
@@ -295,6 +303,7 @@ class Server extends AppModel {
 		}
 		$eventModel = ClassRegistry::init('Event');
 		$this->read(null, $id);
+		$url = $this->data['Server']['url'];
 		if ("full" == $technique) {
 			$eventid_conditions_key = 'Event.id >';
 			$eventid_conditions_value = 0;
@@ -328,9 +337,9 @@ class Server extends AppModel {
 			$lowestfailedid = null;
 			foreach ($eventIds as $k => $eventId) {
 				$eventModel->recursive=1;
+				$eventModel->contain(array('Attribute'));
 				$event = $eventModel->findById($eventId['Event']['id']);
 				$event['Event']['locked'] = true;
-				unset($event['User']);
 				$result = $eventModel->uploadEventToServer(
 						$event,
 						$this->data,
@@ -341,7 +350,7 @@ class Server extends AppModel {
 					$fails[$event['Event']['id']] = $result;
 				}
 				if ($jobId && $k%10 == 0) {
-					$job->saveField('progress', $k * 100 / $eventCount);
+					$job->saveField('progress', 100 * $k / $eventCount);
 				}
 			}
 			if (count($fails) > 0) {
@@ -358,18 +367,21 @@ class Server extends AppModel {
 		}
 		if (!isset($successes)) $successes = null;
 		if (!isset($fails)) $fails = null;
+		$this->Log = ClassRegistry::init('Log');
+		$this->Log->create();
+		$this->Log->save(array(
+				'model' => 'Server',
+				'model_id' => $id,
+				'action' => 'push',
+				'title' => 'Push to ' . $url . '.',
+				'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
+		));
 		if ($jobId) {
-			$temp = 'Fails: ';
-			$failCount = count($fails);
-			foreach ($fails as $k => $fail) {
-				if ($k < $failCount) {
-					$temp .= $fail . ', ';
-				} else {
-					$temp .= $fail;
-				}
-			}
-			$job->saveField('message', $temp);
-			return array($temp);
+			$job->id = $jobId;
+			$job->saveField('progress', 100);
+			$job->saveField('message', 'Push to server ' . $id . ' complete.');
+			$job->saveField('status', 4);
+			return;
 		} else {
 			return array($successes, $fails);
 		}

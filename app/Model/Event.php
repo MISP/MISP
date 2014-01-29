@@ -771,7 +771,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		$uri = $url . '/events/index/sort:id/direction:desc/limit:999'; // LATER verify if events are missing because we only selected the last 999
+		$uri = $url . '/events/index/sort:id/direction:desc/limit:9999'; // LATER verify if events are missing because we only selected the last 999
 		try {
 			$response = $HttpSocket->get($uri, $data = '', $request);
 			if ($response->isOk()) {
@@ -1114,7 +1114,7 @@ class Event extends AppModel {
 	 				)
 				);
  			// encrypt the mail for each user and send it separately
- 			foreach ($alertUsers as &$user) {
+ 			foreach ($alertUsers as $k => &$user) {
  				// send the email
  				$Email = new CakeEmail();
  				$Email->from(Configure::read('CyDefSIG.email'));

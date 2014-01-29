@@ -18,7 +18,7 @@
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th class="filter">
-				<?php echo $this->Paginator->sort('published', 'Valid.');?>
+				<?php echo $this->Paginator->sort('published');?>
 			</th>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('attribute_count', 'Proposals');?></th>

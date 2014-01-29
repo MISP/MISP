@@ -3,9 +3,9 @@
 App::uses('AppController', 'Controller');
 
 /**
- * Jobs Controller
+ * Tasks Controller
  *
- * @property Job $Job
+ * @property Task $Task
 */
 class TasksController extends AppController {
 	public $components = array('Security' ,'RequestHandler', 'Session');
@@ -50,11 +50,9 @@ class TasksController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$tasks = $this->Task->find('all', array('fields' => array('id', 'timer', 'scheduled_time', 'type', 'next_execution_time')));
 			foreach ($tasks as $k => $task) {
-				if ($this->request->data['Task'][$task['Task']['id']]['timer'] == $task['Task']['timer']) unset($this->request->data['Task'][$task['Task']['id']]['timer']);
-				if ($this->request->data['Task'][$task['Task']['id']]['scheduled_time'] == $task['Task']['scheduled_time']) unset($this->request->data['Task'][$task['Task']['id']]['scheduled_time']);
-				if (empty($this->request->data['Task'][$task['Task']['id']])) { 
-					unset($this->request->data['Task'][$task['Task']['id']]);
-				} else {
+				if ($this->request->data['Task'][$task['Task']['id']]['timer'] !== $task['Task']['timer'] ||
+				$this->request->data['Task'][$task['Task']['id']]['scheduled_time'] !== $task['Task']['scheduled_time'] ||
+				$this->request->data['Task'][$task['Task']['id']]['next_execution_time'] !== date("Y-m-d", $task['Task']['next_execution_time'])) {
 					$this->request->data['Task'][$task['Task']['id']]['id'] = $task['Task']['id'];
 					if (isset($this->request->data['Task'][$task['Task']['id']]['next_execution_time'])) {
 						$temp = $this->request->data['Task'][$task['Task']['id']]['next_execution_time'];
@@ -67,7 +65,7 @@ class TasksController extends AppController {
 						$this->request->data['Task'][$task['Task']['id']]['next_execution_time'] = strtotime($temp . ' ' . $task['Task']['scheduled_time']);
 					}
 					// schedule task
-					$this->_jobScheduler($task['Task']['type'], $this->request->data['Task'][$task['Task']['id']]['next_execution_time']);
+					$this->_jobScheduler($task['Task']['type'], $this->request->data['Task'][$task['Task']['id']]['next_execution_time'], $task['Task']['id']);
 					$this->Task->save($this->request->data['Task'][$task['Task']['id']]);
 				}
 			}
@@ -80,11 +78,13 @@ class TasksController extends AppController {
 		return strtotime(date("d/m/Y") . ' 00:00:00');
 	}
 	
-	private function _jobScheduler($type, $timestamp) {
-		if ($type === 'cache_exports') $this->_cacheScheduler($timestamp);
+	private function _jobScheduler($type, $timestamp, $id) {
+		if ($type === 'cache_exports') $this->_cacheScheduler($timestamp, $id);
+		if ($type === 'pull_all') $this->_pullScheduler($timestamp, $id);
+		if ($type === 'push_all') $this->_pushScheduler($timestamp, $id);
 	}
 	
-	private function _cacheScheduler($timestamp) {
+	private function _cacheScheduler($timestamp, $id) {
 		CakeResque::enqueueAt(
 				$timestamp,
 				'cache',
@@ -93,4 +93,29 @@ class TasksController extends AppController {
 				true
 		);
 	}
+
+	private function _pushScheduler($timestamp, $id) {
+		$process_id = CakeResque::enqueueAt(
+				$timestamp,
+				'default',
+				'ServerShell',
+				array('enqueuePush', $timestamp, $id, $this->Auth->user('org')),
+				true
+		);
+		$this->Task->id = $id;
+		$this->Task->saveField('job_id', $process_id);
+	}
+	
+	private function _pullScheduler($timestamp, $id) {
+		$process_id = CakeResque::enqueueAt(
+				$timestamp,
+				'default',
+				'ServerShell',
+				array('enqueuePull', $timestamp, $this->Auth->user('id'),  $id),
+				true
+		);
+		$this->Task->id = $id;
+		$this->Task->saveField('job_id', $process_id);
+	}
+
 }

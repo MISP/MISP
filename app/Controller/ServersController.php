@@ -103,7 +103,7 @@ class ServersController extends AppController {
 				$fieldList[] = 'authkey';
 			// Save the data
 			if ($this->Server->save($this->request->data, true, $fieldList)) {
-				if (isset($this->request->data['Server']['submitted_cert'])) {
+				if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
 					$this->__saveCert($this->request->data, $this->Server->id);
 				}
 				$this->Session->setFlash(__('The server has been saved'));
