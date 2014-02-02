@@ -473,6 +473,7 @@ class EventsController extends AppController {
 						is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
+					if ($this->_isRest()) $this->request->data = $this->updateXMLArray($this->request->data, false);
 					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
 					if ($add && !is_numeric($add)) {
 						if ($this->_isRest()) {
@@ -583,7 +584,7 @@ class EventsController extends AppController {
 				}
 				if (isset($this->data['Event']['submittedxml']) && ($ext != 'xml') && $this->data['Event']['submittedxml']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedxml']['tmp_name'])) {
-					$this->Session->setFlash(__('You may only upload OpenIOC ioc files.'));
+					$this->Session->setFlash(__('You may only upload MISP XML files.'));
 				}
 				if (isset($this->data['Event']['submittedxml'])) $this->_addXMLFile();
 
@@ -738,6 +739,7 @@ class EventsController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
 				$saveEvent = false;
+				if ($this->_isRest()) $this->request->data = $this->updateXMLArray($this->request->data, false);
 				// Workaround for different structure in XML/array than what CakePHP expects
 				$this->Event->cleanupEventArrayFromXML($this->request->data);
 
@@ -904,14 +906,12 @@ class EventsController extends AppController {
 				throw new MethodNotAllowedException();
 			}
 		}
-
 		if ($this->Event->delete()) {
 
 			// delete the event from remote servers
 			//if ('true' == Configure::read('CyDefSIG.sync')) {	// TODO test..(!$this->_isRest()) &&
 			//	$this->__deleteEventFromServers($uuid);
 			//}
-
 			$this->Session->setFlash(__('Event deleted'));
 
 			// if coming from index, redirect to referer (to have the filter working)
@@ -1180,7 +1180,7 @@ class EventsController extends AppController {
 		return $difference . " " . $periods[$j] . " ago";
 	}
 
-	public function xml($key, $eventid=null, $withAttachment = false) {
+	public function xml($key, $eventid=null, $withAttachment = false, $tags = '') {
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1204,7 +1204,7 @@ class EventsController extends AppController {
 				$this->header('Content-Disposition: download; filename="misp.export.event' . $eventid . '.xml"');
 			}
 		}
-		$results = $this->__fetchEvent($eventid);
+		$results = $this->__fetchEvent($eventid, null, null, false, $tags);
 		if ($withAttachment) {
 			$this->loadModel('Attribute');
 			foreach ($results[0]['Attribute'] as &$attribute) {
@@ -1228,7 +1228,7 @@ class EventsController extends AppController {
 
 	// Grab an event or a list of events for the event view or any of the XML exports. The returned object includes an array of events (or an array that only includes a single event if an ID was given)
 	// Included with the event are the attached attributes, shadow attributes, related events, related attribute information for the event view and the creating user's email address where appropriate
-	private function __fetchEvent($eventid = null, $idList = null, $orgFromFetch = null, $isSiteAdmin = false) {
+	private function __fetchEvent($eventid = null, $idList = null, $orgFromFetch = null, $isSiteAdmin = false, $tags = '') {
 		// if we come from automation, we may not be logged in - instead we used an auth key in the URL.
 		if (!empty($orgFromFetch)) {
 			$org = $orgFromFetch;
@@ -1238,11 +1238,11 @@ class EventsController extends AppController {
 		}
 		if (!empty($orgFromFetch)) $org = $orgFromFetch;
 		else $org = $this->_checkOrg();
-		$results = $this->Event->fetchEvent($eventid, $idList, $org, $isSiteAdmin);
+		$results = $this->Event->fetchEvent($eventid, $idList, $org, $isSiteAdmin, $tags);
 		return $results;
 	}
 
-	public function nids($format = 'suricata', $key = '', $id = null, $continue = false) {
+	public function nids($format = 'suricata', $key = '', $id = null, $continue = false, $tags = '') {
 
 		// backwards compatibility, swap key and format
 		if ($format != 'snort' && $format != 'suricata') {
@@ -1268,11 +1268,11 @@ class EventsController extends AppController {
 
 		// display the full snort rulebase
 		$this->loadModel('Attribute');
-		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid'], $id, $continue);
+		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid'], $id, $continue, $tags);
 		$this->set('rules', $rules);
 	}
 
-	public function hids($type, $key) {
+	public function hids($type, $key, $tags = '') {
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
 		$this->layout = 'text/default';
@@ -1291,7 +1291,7 @@ class EventsController extends AppController {
 		}
 		$this->loadModel('Attribute');
 
-		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type);
+		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type, $tags);
 		$this->set('rules', $rules);
 	}
 
@@ -1538,6 +1538,9 @@ class EventsController extends AppController {
 			if (!isset($xmlArray['response']) || !isset($xmlArray['response']['Event'])) {
 				throw new Exception('This is not a valid MISP XML file.');
 			}
+			
+			$xmlArray = $this->Event->updateXMLArray($xmlArray);	
+			
 			if (isset($xmlArray['response']['Event'][0])) {
 				foreach ($xmlArray['response']['Event'] as $event) {
 					$temp['Event'] = $event;
@@ -2054,5 +2057,11 @@ class EventsController extends AppController {
 		$this->Event->EventTag->delete($eventTag['EventTag']['id']);
 		$this->Session->setFlash('Tag removed.');
 		$this->redirect(array('action' => 'view', $id));
+	}
+	
+	public function test() {
+		debug($this->Event->find('all', array(
+			'contain' => array('EventTag' => array('Tag'))
+		)));
 	}
 }

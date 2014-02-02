@@ -1095,7 +1095,7 @@ class AttributesController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key='download', $value=null, $type=null, $category=null, $org=null) {
+	public function restSearch($key='download', $value=null, $type=null, $category=null, $org=null, $tags=null) {
 		if ($key!=null && $key!='download') {
 			$user = $this->checkAuthUser($key);
 		} else {
@@ -1117,7 +1117,7 @@ class AttributesController extends AppController {
 		$parameters = array('value', 'type', 'category', 'org');
 		
 		foreach ($parameters as $k => $param) {
-			if (isset(${$parameters[$k]})) {
+			if (isset(${$parameters[$k]}) && ${$parameters[$k]}!=='null') {
 				$elements = explode('&&', ${$parameters[$k]});
 				foreach($elements as $v) {
 					if (substr($v, 0, 1) == '!') {
@@ -1162,15 +1162,30 @@ class AttributesController extends AppController {
 			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
 			array_push($conditions['AND'], $subcondition);
 		}
+		// If we sent any tags along, load the associated tag names for each attribute
+		if ($tags !== '') {
+			$args = $this->Attribute->dissectArgs($tags);
+			$this->loadModel('Tag');
+			$tagArray = $this->Tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			foreach ($tagArray[0] as $accepted) {
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
+			$conditions['AND'][] = $temp;
+			$temp = array();
+			foreach ($tagArray[1] as $rejected) {
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
+			$conditions['AND'][] = $temp;
+		}
 
 		// change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
-
+		
 		$params = array(
 				'conditions' => $conditions,
 				'fields' => array('Attribute.*', 'Event.org', 'Event.distribution'),
-				'contain' => 'Event'
+				'contain' => array('Event' => array())
 		);
-
 		$results = $this->Attribute->find('all', $params);
 		$this->loadModel('Whitelist');
 		$this->response->type('xml');
@@ -1291,7 +1306,7 @@ class AttributesController extends AppController {
 		$this->__downloadAttachment($this->Attribute->data['Attribute']);
 	}
 
-	public function text($key='download', $type="") {
+	public function text($key='download', $type="", $tags='') {
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1306,8 +1321,7 @@ class AttributesController extends AppController {
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.txt"');
 		$this->layout = 'text/default';
-		
-		$attributes = $this->Attribute->text($this->_checkOrg(), $this->_isSiteAdmin(), $type);
+		$attributes = $this->Attribute->text($this->_checkOrg(), $this->_isSiteAdmin(), $type, $tags);
 		$this->loadModel('Whitelist');
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		$this->set('attributes', $attributes);

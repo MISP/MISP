@@ -1133,7 +1133,7 @@ class Attribute extends AppModel {
 		return $fails;
 	}
 	
-	public function hids($isSiteAdmin, $org ,$type) {
+	public function hids($isSiteAdmin, $org ,$type, $tags = '') {
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1') {
 			throw new UnauthorizedException('Invalid hash type.');
@@ -1149,6 +1149,23 @@ class Attribute extends AppModel {
 			$conditions['OR'] = $temp;
 		}
 		
+		// If we sent any tags along, load the associated tag names for each attribute
+		if ($tags !== '') {
+			$tag = ClassRegistry::init('Tag');
+			$args = $this->dissectArgs($tags);
+			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			foreach ($tagArray[0] as $accepted) {
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
+			$conditions['AND'][] = $temp;
+			$temp = array();
+			foreach ($tagArray[1] as $rejected) {
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
+			$conditions['AND'][] = $temp;
+		}
+		
 		$params = array(
 				'conditions' => $conditions, //array of conditions
 				'recursive' => 0, //int
@@ -1161,7 +1178,7 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 	
-	public function nids($isSiteAdmin, $org, $format, $sid, $id = null, $continue = false) {
+	public function nids($isSiteAdmin, $org, $format, $sid, $id = null, $continue = false, $tags = '') {
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
 		if (!$isSiteAdmin) {
@@ -1174,6 +1191,22 @@ class Attribute extends AppModel {
 		
 		if ($id) {
 			array_push($conditions['AND'], array('Event.id' => $id));
+		}
+		// If we sent any tags along, load the associated tag names for each attribute
+		if ($tags !== '') {
+			$tag = ClassRegistry::init('Tag');
+			$args = $this->dissectArgs($tags);
+			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			foreach ($tagArray[0] as $accepted) {
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
+			$conditions['AND'][] = $temp;
+			$temp = array();
+			foreach ($tagArray[1] as $rejected) {
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
+			$conditions['AND'][] = $temp;
 		}
 		
 		$params = array(
@@ -1199,7 +1232,7 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	 public function text($org, $isSiteAdmin, $type) {
+	 public function text($org, $isSiteAdmin, $type, $tags) {
 	 	//restricting to non-private or same org if the user is not a site-admin.
 	 	$conditions['AND'] = array('Attribute.type' => $type, 'Attribute.to_ids =' => 1, 'Event.published =' => 1);
 	 	if (!$isSiteAdmin) {
@@ -1210,15 +1243,36 @@ class Attribute extends AppModel {
 	 		$conditions['OR'] = $temp;
 	 	}
 	 	
+	 	// If we sent any tags along, load the associated tag names for each attribute
+	 	if ($tags !== '') {
+	 		$tag = ClassRegistry::init('Tag');
+	 		$args = $this->dissectArgs($tags);
+	 		$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+	 		$temp = array();
+	 		foreach ($tagArray[0] as $accepted) {
+	 			$temp['OR'][] = array('Event.id' => $accepted);
+	 		}
+	 		$conditions['AND'][] = $temp;
+	 		$temp = array();
+	 		foreach ($tagArray[1] as $rejected) {
+	 			$temp['AND'][] = array('Event.id !=' => $rejected);
+	 		}
+	 		$conditions['AND'][] = $temp;
+	 	}
+	 	
 	 	$params = array(
 	 			'conditions' => $conditions, //array of conditions
-	 			'recursive' => 0, //int
-	 			'fields' => array('Attribute.value'), //array of field names
+	 			//'recursive' => 2, //int
+	 			//'fields' => array('Attribute.value'), //array of field names
 	 			'order' => array('Attribute.value'), //string or array defining order
 	 			'group' => array('Attribute.value'), //fields to GROUP BY
-	 			'contain' => array('Event.id', 'Event.published'),
-	 	);
-	 	return $this->find('all', $params);
+	 			'contain' => array('Event' => array(
+	 					'fields' => array('Event.id', 'Event.published'),
+	 	
+	 			)));
+	 	
+	 	$attributes = $this->find('all', $params);
+	 	return $attributes;
 	 }
 	 
 	 public function generateCorrelation() {
@@ -1256,6 +1310,24 @@ class Attribute extends AppModel {
 	 			$i++;
 	 		}
 	 	}
+	 	return $result;
+	 }
+	 
+	 // This method takes a string from an argument with several elements (separated by '&&' and negated by '!') and returns 2 arrays
+	 // array 1 will have all of the non negated terms and array 2 all the negated terms
+	 public function dissectArgs($args) {
+	 	$argArray = explode('&&', $args);
+	 	$accept = $reject = $result = array();
+	 	$reject = array();
+	 	foreach ($argArray as $arg) {
+	 		if (substr($arg, 0, 1) == '!') {
+	 			$reject[] = substr($arg, 1);
+	 		} else {
+	 			$accept[] = $arg;
+	 		}
+	 	}
+	 	$result[0] = $accept;
+	 	$result[1] = $reject;
 	 	return $result;
 	 }
 }

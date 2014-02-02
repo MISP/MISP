@@ -20,6 +20,7 @@ foreach ($events as $key => $event) {
 
 // display the XML to the user
 $xmlArray['response']['Event'] = $events;
+$xmlArray['response']['xml_version'] = $mispVersion;
 $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 echo $xmlObject->asXML();
 ?><!--

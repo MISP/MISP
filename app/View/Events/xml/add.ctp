@@ -33,5 +33,6 @@ if (isset($relatedEvents)) {
 
 // display the XML to the user
 $xmlArray['response']['Event'][] = $event['Event'];
+$xmlArray['response']['xml_version'] = $mispVersion;
 $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 echo $xmlObject->asXML();

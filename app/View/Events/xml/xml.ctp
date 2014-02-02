@@ -40,6 +40,6 @@ foreach ($results as $result) {
 
 	$xmlArray['response']['Event'][] = $result['Event'];
 }
-
+$xmlArray['response']['xml_version'] = $mispVersion;
 $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 echo $xmlObject->asXML();

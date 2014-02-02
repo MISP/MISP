@@ -67,7 +67,9 @@ class AppController extends Controller {
 				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
 				),
 	);
-
+	
+	public $mispVersion = '2.2.0';
+	
 	public function beforeFilter() {
 		
 		// send users away that are using ancient versions of IE
@@ -147,6 +149,7 @@ class AppController extends Controller {
 		$proposalCount = $this->_getProposalCount();
 		$this->set('proposalCount', $proposalCount[0]);
 		$this->set('proposalEventCount', $proposalCount[1]);
+		$this->set('mispVersion', $this->mispVersion);
 	}
 
 	public $userRole = null;

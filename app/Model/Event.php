@@ -27,6 +27,8 @@ class Event extends AppModel {
 	public $displayField = 'id';
 
 	public $virtualFields = array();
+	
+	public $mispVersion = '2.2.0';
 
 /**
  * Description field
@@ -311,6 +313,10 @@ class Event extends AppModel {
 	public function beforeDelete($cascade = true) {
 		// delete event from the disk
 		$this->read();	// first read the event from the db
+		
+		// delete all of the event->tag combinations that involve the deleted event
+		$this->EventTag->deleteAll(array('event_id' => $this->id));
+		
 		// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 		// only delete the file if it exists
 		$filepath = APP . "files" . DS . $this->data['Event']['id'];
@@ -739,6 +745,7 @@ class Event extends AppModel {
 		$response = $HttpSocket->get($uri, $data = '', $request);
 		if ($response->isOk()) {
 			$xmlArray = Xml::toArray(Xml::build($response->body));
+			$xmlArray = $this->updateXMLArray($xmlArray);
 			return $xmlArray['response'];
 		} else {
 			// TODO parse the XML response and keep the reason why it failed
@@ -831,7 +838,7 @@ class Event extends AppModel {
 	}
 	
 	//Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller.
-	public function fetchEvent($eventid = null, $idList = null, $org, $isSiteAdmin, $bkgrProcess = null) {
+	public function fetchEvent($eventid = null, $idList = null, $org, $isSiteAdmin, $bkgrProcess = null, $tags = '') {
 		if (isset($eventid)) {
 			$this->id = $eventid;
 			if (!$this->exists()) {
@@ -857,9 +864,27 @@ class Event extends AppModel {
 			);
 		}
 			
-		if ($idList) {
+		if ($idList && $tags == '') {
 			$conditions['AND'][] = array('Event.id' => $idList);
 		}
+		// If we sent any tags along, load the associated tag names for each attribute
+		if ($tags !== '') {
+			$tag = ClassRegistry::init('Tag');
+			$args = $this->dissectArgs($tags);
+			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			if ($idList) $tagArray[0] = array_intersect($tagArray[0], $idList);
+			foreach ($tagArray[0] as $accepted) {
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
+			$conditions['AND'][] = $temp;
+			$temp = array();
+			foreach ($tagArray[1] as $rejected) {
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
+			$conditions['AND'][] = $temp;
+		}
+		
 		// removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
 		// $conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 		// Same idea for the published. Just adjust the tools to check for this
@@ -1618,5 +1643,69 @@ class Event extends AppModel {
 			}
 		}
 		return $k;
+	}
+	
+	// check two version strings. If version 1 is older than 2, return -1, if they are the same return 0, if version 2 is older return 1
+	public function compareVersions($version1, $version2) {
+		$version1Array = explode('.', $version1);
+		$version2Array = explode('.', $version2);
+	
+		if ($version1Array[0] != $version2Array[0]) {
+			if ($version1Array[0] > $version2Array[0]) return 1;
+			else return -1;
+		}
+		if ($version1Array[1] != $version2Array[1]) {
+			if ($version1Array[1] > $version2Array[1]) return 1;
+			else return -1;
+		}
+		if ($version1Array[2] != $version2Array[2]) {
+			if ($version1Array[2] > $version2Array[2]) return 1;
+			else return -1;
+		}
+	}
+	
+	// main dispatch method for updating an incoming xmlArray - pass xmlArray to all of the appropriate transformation methods to make all the changes necessary to save the imported event
+	public function updateXMLArray($xmlArray, $response = true) {
+
+		if (isset($xmlArray['xml_version'])) {
+			$xmlArray['response']['xml_version'] = $xmlArray['xml_version'];
+			unset($xmlArray['xml_version']);
+		}
+		
+		// if a version is set, it must be at least 2.2.0 - check the version and save the result of the comparison
+		if (isset($xmlArray['response']['xml_version'])) $version = $this->compareVersions($xmlArray['response']['xml_version'], $this->mispVersion);
+		// if no version is set, set the version to older (-1) manually
+		else $version = -1;
+		// same version, proceed normally
+		if ($version == 0) return $xmlArray;
+
+		// The xml is from an instance that is newer than the local instance, let the user know that the admin needs to upgrade before it could be imported
+		if ($version == 1) throw new Exception('This XML file is from a MISP instance that is newer than the current instance. Please contact your administrator about upgrading this instance.');
+
+		// if the xml contains an event or events from an older MISP instance, let's try to upgrade it!
+		// Let's manually set the version to something below 2.2.0 if there is no version set in the xml		
+		if (!isset($xmlArray['response']['xmlVersion'])) $xmlArray['response']['xmlVersion'] = '2.1.0'; 
+		
+		// Upgrade from versions below 2.2.0 will need to replace the risk field with threat level id
+		if ($this->compareVersions($xmlArray['response']['xmlVersion'], '2.2.0') < 0) {
+			if ($response) $xmlArray['response'] = $this->__updateXMLArray220($xmlArray['response']);
+			else $xmlArray = $this->__updateXMLArray220($xmlArray);
+		}
+
+		unset ($xmlArray['response']['xml_version']);
+		return $xmlArray;
+	}
+
+	// replaces the old risk value with the new threat level id
+	private function __updateXMLArray220($xmlArray) {
+		$risk = array('Undefined' => 4, 'Low' => 3, 'Medium' => 2, 'High' => 1);
+		if (isset($xmlArray['Event'][0])) {
+			foreach ($xmlArray['Event'] as &$event) {
+				$event['Event']['threat_level_id'] = $risk[$event['Event']['risk']];
+			}
+		} else {
+			$xmlArray['Event']['threat_level_id'] = $risk[$xmlArray['Event']['risk']];
+		}
+		return $xmlArray;
 	}
 }
