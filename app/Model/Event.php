@@ -870,7 +870,7 @@ class Event extends AppModel {
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($tags !== '') {
 			$tag = ClassRegistry::init('Tag');
-			$args = $this->dissectArgs($tags);
+			$args = $this->Attribute->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
 			$temp = array();
 			if ($idList) $tagArray[0] = array_intersect($tagArray[0], $idList);
@@ -936,7 +936,7 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	public function csv($org, $isSiteAdmin, $eventid=0, $ignore=0, $attributeIDList = array()) {
+	public function csv($org, $isSiteAdmin, $eventid=0, $ignore=0, $attributeIDList = array(), $tags = '') {
 		$final = array();
 	 	
 		$attributeList = array();
@@ -955,6 +955,22 @@ class Event extends AppModel {
 	 		// If it's a full download (eventid == null) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
 	 		if ($eventid == 0) {
 	 			$this->recursive = -1;
+	 			// If we sent any tags along, load the associated tag names for each attribute
+	 			if ($tags !== '') {
+	 				$tag = ClassRegistry::init('Tag');
+	 				$args = $this->Attribute->dissectArgs($tags);
+	 				$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+	 				$temp = array();
+	 				foreach ($tagArray[0] as $accepted) {
+	 					$temp['OR'][] = array('Event.id' => $accepted);
+	 				}
+	 				$conditions['AND'][] = $temp;
+	 				$temp = array();
+	 				foreach ($tagArray[1] as $rejected) {
+	 					$temp['AND'][] = array('Event.id !=' => $rejected);
+	 				}
+	 				$econditions['AND'][] = $temp;
+	 			}
 	 			// let's add the conditions if we're dealing with a non-siteadmin user
 	 			$params = array(
 	 					'conditions' => $econditions,

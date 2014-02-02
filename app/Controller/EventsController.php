@@ -1298,7 +1298,7 @@ class EventsController extends AppController {
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
-	public function csv($key, $eventid=0, $ignore=0) {
+	public function csv($key, $eventid=0, $ignore=0, $tags = '') {
 		$list = array();
 		
 		if ($key != 'download') {
@@ -1323,7 +1323,7 @@ class EventsController extends AppController {
 		if ($eventid === 'search') {
 			$list = $this->Session->read('search_find_attributeidlist');
 		}
-		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list);
+		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags);
 		$this->loadModel('Whitelist');
 		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
