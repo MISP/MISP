@@ -27,7 +27,7 @@
 			<th>Distribution</th>
 	</tr>
 	<?php
-	$url = Configure::read('CyDefSIG.baseurl');
+	$url = Configure::read('MISP.baseurl');
 foreach ($threads as $thread): 
 	$lastPost = end($thread['Post']);
 	?>

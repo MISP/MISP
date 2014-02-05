@@ -82,7 +82,7 @@ class EventsController extends AppController {
 	public function index() {
 		// list the events
 
-		// TODO information exposure vulnerability - as we don't limit the filter depending on the CyDefSIG.showorg parameter
+		// TODO information exposure vulnerability - as we don't limit the filter depending on the MISP.showorg parameter
 		// this filter will work if showorg=false and users will be able to perform the filtering and see what events were posted by what org.
 		// same goes for orgc in all cases
 		//transform POST into GET
@@ -247,7 +247,7 @@ class EventsController extends AppController {
 		$this->loadModel('Attribute');
 
 		$this->set('authkey', $this->Auth->user('authkey'));
-		$this->set('baseurl', Configure::read('CyDefSIG.baseurl'));
+		$this->set('baseurl', Configure::read('MISP.baseurl'));
 
 		$this->set('relatedAttributes', $result['RelatedAttribute']);
 		// passing decriptions for model fields
@@ -506,7 +506,7 @@ class EventsController extends AppController {
 					} else {
 						if ($this->_isRest()) { // TODO return error if REST
 							if(is_numeric($add)) {
-								$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $add);
+								$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
 								$this->response->send();
 							}
 							// REST users want to see the failed event
@@ -622,7 +622,7 @@ class EventsController extends AppController {
 		$data['Event']['user_id'] = $auth->user('id');
 		$date = new DateTime();
 
-		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('CyDefSIG.org');
+		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
 		//else $data['Event']['org'] = $auth->user('org');
 		$data['Event']['org'] = $auth->user('org');
 		// set these fields if the event is freshly created and not pushed from another instance.
@@ -644,7 +644,7 @@ class EventsController extends AppController {
 				// RESTfull, set responce location header..so client can find right URL to edit
 				if ($fromPull) return false;
 				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
-				$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $existingEvent['Event']['id']);
+				$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $existingEvent['Event']['id']);
 				$this->response->send();
 				return false;
 			}
@@ -905,7 +905,7 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event'));
 		}
 
-		if ('true' == Configure::read('CyDefSIG.sync')) {
+		if ('true' == Configure::read('MISP.sync')) {
 			// find the uuid
 			$result = $this->Event->findById($id);
 			$uuid = $result['Event']['uuid'];
@@ -919,7 +919,7 @@ class EventsController extends AppController {
 		if ($this->Event->delete()) {
 
 			// delete the event from remote servers
-			//if ('true' == Configure::read('CyDefSIG.sync')) {	// TODO test..(!$this->_isRest()) &&
+			//if ('true' == Configure::read('MISP.sync')) {	// TODO test..(!$this->_isRest()) &&
 			//	$this->__deleteEventFromServers($uuid);
 			//}
 			$this->Session->setFlash(__('Event deleted'));
@@ -1365,7 +1365,7 @@ class EventsController extends AppController {
 	//	}
 	//	// display the full snort rulebase
 	//	$this->response->type('txt');	// set the content type
-	//	$this->header('Content-Disposition: inline; filename="cydefsig.rules"');
+	//	$this->header('Content-Disposition: inline; filename="MISP.rules"');
 	//	$this->layout = 'text/default';
 
 	//	$rules= array();
@@ -1984,7 +1984,7 @@ class EventsController extends AppController {
 	}
 	
 	private function __setHeaderForAdd($eventId) {
-		$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $eventId);
+		$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $eventId);
 		$this->response->send();
 	}
 	

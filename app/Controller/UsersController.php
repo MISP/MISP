@@ -637,16 +637,16 @@ class UsersController extends AppController {
 					$message1 .= $this->request->data['User']['message'];
 				} else {
 					$message1 .= "Dear MISP user,\n\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at ";
-					$message1 .= Configure::read('CyDefSIG.baseurl');
+					$message1 .= Configure::read('MISP.baseurl');
 					$message1 .= ", where you will be prompted to manually change your password to something of your own choice.";
 				}
 				//$message .= "\n\nYour temporary password: " . $password;
-				$subject = 'Password reset on ' . Configure::read('CyDefSIG.org') . ' MISP';
+				$subject = 'Password reset on ' . Configure::read('MISP.org') . ' MISP';
 			}
-			if (Configure::read('CyDefSIG.contact')) {
-				$message2 .= "\n\nIf you have any questions, contact us at: " . Configure::read('CyDefSIG.contact') . ".";
+			if (Configure::read('MISP.contact')) {
+				$message2 .= "\n\nIf you have any questions, contact us at: " . Configure::read('MISP.contact') . ".";
 			}
-			$message2 .= "\n\nBest Regards,\n" . Configure::read('CyDefSIG.org') . ' MISP support';
+			$message2 .= "\n\nBest Regards,\n" . Configure::read('MISP.org') . ' MISP support';
 
 			// Return an error message if the action is a password reset for a new user
 
@@ -714,7 +714,7 @@ class UsersController extends AppController {
 				}
 
 				// prepare the email
-				$this->Email->from = Configure::read('CyDefSIG.email');
+				$this->Email->from = Configure::read('MISP.email');
 				$this->Email->to = $recipients[$i];
 				$this->Email->subject = $subject;
 				//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen

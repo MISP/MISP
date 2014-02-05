@@ -8,7 +8,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 
 <div class="events view">
 	<?php
-		if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) {
+		if ('true' == Configure::read('MISP.showorg') || $isAdmin) {
 			echo $this->element('img', array('id' => $event['Event']['orgc']));
 			$left = true;
 		}
@@ -27,7 +27,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					<?php echo h($event['Event']['uuid']); ?>
 					&nbsp;
 				</dd>
-				<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
+				<?php if ('true' == Configure::read('MISP.showorg') || $isAdmin): ?>
 				<dt>Org</dt>
 				<dd>
 					<?php echo h($event['Event']['orgc']); ?>
@@ -45,7 +45,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 				<dd>
 					<?php 
 						foreach($logEntries as $k => $entry) {
-							if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) {
+							if ('true' == Configure::read('MISP.showorg') || $isAdmin) {
 								?>
 									<a href="/logs/event_index/<?php echo $event['Event']['id'] . '/' . h($entry['Log']['org']);?>" style="margin-right:2px;text-decoration: none;">
 								<?php 
@@ -257,8 +257,8 @@ if (!empty($event['Attribute'])):?>
 				echo h($filenameHash[0]);
 				if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 			} elseif ('vulnerability' == $attribute['type']) {
-				if (! is_null(Configure::read('CyDefSig.cveurl'))) {
-					$cveUrl = Configure::read('CyDefSig.cveurl');
+				if (! is_null(Configure::read('MISP.cveurl'))) {
+					$cveUrl = Configure::read('MISP.cveurl');
 				} else {
 					$cveUrl = "http://www.google.com/search?q=";
 				}

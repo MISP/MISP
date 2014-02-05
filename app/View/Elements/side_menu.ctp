@@ -179,7 +179,7 @@
 					}
 					?>
 					<li <?php if ($menuItem === 'index') echo 'class="active";'?>><?php echo $this->Html->link('List Threads', array('controller' => 'threads', 'action' => 'index'));?></li>
-					<li <?php if ($menuItem === 'add' && !isset($thread_id)) echo 'class="active";'?>><a href = "<?php echo Configure::read('CyDefSIG.baseurl');?>/posts/add">New Thread</a></li>
+					<li <?php if ($menuItem === 'add' && !isset($thread_id)) echo 'class="active";'?>><a href = "<?php echo Configure::read('MISP.baseurl');?>/posts/add">New Thread</a></li>
 					<?php 
 				break;	
 				

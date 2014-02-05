@@ -18,7 +18,7 @@ if (isset($relatedEvents)) {
 //
 unset($event['Event']['user_id']);
 // hide the org field is we are not in showorg mode
-if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
+if ('true' != Configure::read('MISP.showorg') && !$isAdmin) {
     unset($event['Event']['org']);
     unset($event['Event']['orgc']);
     unset($event['Event']['from']);
@@ -33,7 +33,7 @@ foreach ($event['Event']['Attribute'] as $key => $value) {
 if (isset($event['Event']['RelatedEvent'])) {
 	foreach ($event['Event']['RelatedEvent'] as $key => $value) {
 		unset($event['Event']['RelatedEvent'][$key]['user_id']);
-		if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
+		if ('true' != Configure::read('MISP.showorg') && !$isAdmin) {
 		    unset($event['Event']['RelatedEvent'][$key]['org']);
 		    unset($event['Event']['RelatedEvent'][$key]['orgc']);
 		}

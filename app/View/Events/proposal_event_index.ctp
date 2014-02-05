@@ -37,7 +37,7 @@
 			<th class="filter">
 				<?php echo $this->Paginator->sort('info');?>
 			</th>
-			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+			<?php if ('true' == Configure::read('MISP.sync')): ?>
 			<th title="<?php echo $eventDescriptions['distribution']['desc'];?>">
 				<?php echo $this->Paginator->sort('distribution');?>
 			</th>
@@ -80,7 +80,7 @@
 			<td onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
 			</td>
-			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+			<?php if ('true' == Configure::read('MISP.sync')): ?>
 			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>
 			</td>

@@ -96,7 +96,7 @@
 				</span>
 			</th>
 			<?php
-			if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) { ?>
+			if ('true' == Configure::read('MISP.showorg') || $isAdmin) { ?>
 			<th class="filter"><?php echo $this->Paginator->sort('org'); ?>
 				<a onclick="toggleField('#searchorg')" class="icon-search"></a>
 				<span id="searchorg"><br/>
@@ -217,7 +217,7 @@
 				?>
 				</span>
 			</th>
-			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+			<?php if ('true' == Configure::read('MISP.sync')): ?>
 			<th title="<?php echo $eventDescriptions['distribution']['desc'];?>">
 				<?php echo $this->Paginator->sort('distribution');?>
 			</th>
@@ -239,7 +239,7 @@
 				<?php
 				}?>&nbsp;
 			</td>
-			<?php if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin): ?>
+			<?php if ('true' == Configure::read('MISP.showorg') || $isAdmin): ?>
 			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php
 					$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
@@ -294,7 +294,7 @@
 			<td onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
 			</td>
-			<?php if ('true' == Configure::read('CyDefSIG.sync')): ?>
+			<?php if ('true' == Configure::read('MISP.sync')): ?>
 			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>
 			</td>

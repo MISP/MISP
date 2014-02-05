@@ -650,7 +650,7 @@ class ShadowAttributesController extends AppController {
 		$body .= "A user of another organisation has proposed a change to an event created by you or your organisation. \n";
 		$body .= "\n";
 		$body .= "To view the event in question, follow this link:";
-		$body .= ' ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $id . "\n";
+		$body .= ' ' . Configure::read('MISP.baseurl') . '/events/view/' . $id . "\n";
 		$body .= "\n";
 		$body .= "You can reach the user at " . $this->Auth->user('email');
 		$body .= "\n";
@@ -694,9 +694,9 @@ class ShadowAttributesController extends AppController {
 				// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
 			}
 			// prepare the email
-			$this->Email->from = Configure::read('CyDefSIG.email');
+			$this->Email->from = Configure::read('MISP.email');
 			$this->Email->to = $reporter['User']['email'];
-			$this->Email->subject = "[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Proposal to event #" . $id;
+			$this->Email->subject = "[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Proposal to event #" . $id;
 			$this->Email->template = 'body';
 			$this->Email->sendAs = 'text';		// both text or html
 			$this->set('body', $bodyEncSig);

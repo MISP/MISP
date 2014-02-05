@@ -102,7 +102,7 @@ service apache2 reload
 ---------------------
 # Configure the fields in the files located in /var/www/MISP/app/Config/:
 database.php : login, port, password, database
-bootstrap.php: CyDefSIG.*, GnuPG.*
+bootstrap.php: MISP.*, GnuPG.*
 core.php : debug, Security.*
 
 # and make sure the file permissions are still OK
@@ -139,13 +139,13 @@ UPDATE INSTRUCTIONS
 
 To be sure, dump your database before updating.
 
-CyDefSIG from 0.2.2 to 0.2.3 needs a database migration and population.
-This is done executing /var/www/cydefsig/app/Console/shell/migrate-0.2.2-0.2.3.sh
+MISP from 0.2.2 to 0.2.3 needs a database migration and population.
+This is done executing /var/www/MISP/app/Console/shell/migrate-0.2.2-0.2.3.sh
 and answer (y)es to all the questions asked
 and afterward run http://<host>:<port>/events/migratemisp11to2/<your org>
 with <your org> being MIL.BE or NCIRC where appropriate.
 
-Import the regexp data in /var/www/cydefsig/app/MYSQL.regexp.sql using phpmyadmin or mysql>.
+Import the regexp data in /var/www/MISP/app/MYSQL.regexp.sql using phpmyadmin or mysql>.
 
 
 Recommended actions

@@ -344,7 +344,7 @@ class AppController extends Controller {
 /**
  * CakePHP returns false if filesize is 0 at lib/cake/Utility/File.php:384
  */
-	public function checkEmpty($fileP = '/var/www/cydefsig/app/files/test') {
+	public function checkEmpty($fileP = '/var/www/MISP/app/files/test') {
 		// Check if there were problems with the file upload
 		// only keep the last part of the filename, this should prevent directory attacks
 		$filename = basename($fileP);

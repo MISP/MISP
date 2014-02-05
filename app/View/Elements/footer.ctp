@@ -11,7 +11,7 @@
 				<?php } ?>
 			</div>
 			<div class = "footerText footerCenterText">
-				<span> <?php if (isset($me)) echo Configure::read('CyDefSIG.footerversion'); else echo Configure::read('CyDefSIG.footer')?></span>
+				<span> <?php if (isset($me)) echo Configure::read('MISP.footerversion'); else echo Configure::read('MISP.footer')?></span>
 			</div>
 			<div class="pull-right" style="position:relative;">
 				<?php if (Configure::read('MISP.footer_logo')): ?>

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 USER=noud
-CY_HOME=../../../../cydefsig
+CY_HOME=../../../../MISP
 
 chown -R ${USER}:www-data ${CY_HOME}
 chmod -R 750 ${CY_HOME}

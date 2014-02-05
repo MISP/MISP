@@ -84,14 +84,14 @@
 											echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['Post']['id'])), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
 										} else {
 		?>
-											<a href = "<?php echo Configure::read('CyDefSIG.baseurl') . '/posts/add/post/' . h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
+											<a href = "<?php echo Configure::read('MISP.baseurl') . '/posts/add/post/' . h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
 		<?php 							
 										}
 									} else {
 										echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['Post']['id'])), array('class' => 'icon-edit', 'title' => 'Edit'));
 										echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['Post']['id'])), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
 		?>
-											<a href = "<?php echo Configure::read('CyDefSIG.baseurl') . '/posts/add/post/' . h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
+											<a href = "<?php echo Configure::read('MISP.baseurl') . '/posts/add/post/' . h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
 		<?php 	
 							
 									}

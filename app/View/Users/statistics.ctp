@@ -64,7 +64,7 @@ cal.init({
 	domain:"month", 
 	subDomain:"x_day",
 	start: new Date(<?php echo $startDateCal; ?>),
-	data: "<?php echo Configure::read('CyDefSIG.baseurl'); ?>/logs/returnDates.json",
+	data: "<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates.json",
 	highlight: "now",
 	domainDynamicDimension: false,
 	cellSize: 20,
@@ -78,9 +78,9 @@ cal.init({
 
 function updateCalendar(org) {
 	if (org == 'all') {
-		cal.update("<?php echo Configure::read('CyDefSIG.baseurl'); ?>/logs/returnDates/all.json");
+		cal.update("<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/all.json");
 	} else {
-		cal.update("<?php echo Configure::read('CyDefSIG.baseurl'); ?>/logs/returnDates/"+org+".json");
+		cal.update("<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+org+".json");
 	}
 }
 </script>

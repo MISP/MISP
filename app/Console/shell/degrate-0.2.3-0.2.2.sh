@@ -3,7 +3,7 @@
 # degrate 0.2.3 to 0.2.2
 
 # step into project and ..
-PRJCT=/var/www/cydefsig/app
+PRJCT=/var/www/MISP/app
 cd ${PRJCT}
 
 # update Schema, remove Users.role_id

@@ -10,7 +10,7 @@
 		echo $this->Form->input('type', array(
 				'empty' => '(first choose category)'
 				));
-		if ('true' == Configure::read('CyDefSIG.sync')) {
+		if ('true' == Configure::read('MISP.sync')) {
 			$initialDistribution = 3;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') === 'event') {

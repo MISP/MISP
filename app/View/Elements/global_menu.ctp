@@ -72,7 +72,7 @@
 						</ul>
 					</li>
 
-					<?php if (('true' == Configure::read('CyDefSIG.sync')) && ($isAclSync || $isAdmin)): ?>
+					<?php if (('true' == Configure::read('MISP.sync')) && ($isAclSync || $isAdmin)): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Sync Actions

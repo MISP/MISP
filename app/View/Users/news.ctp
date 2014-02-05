@@ -31,7 +31,7 @@ Many known bugs have been fixed.</p>
 <h3>March 2012</h3>
 <p><b>Terms and News</b><br>
 Terms and conditions have been enabled. You should only see this page once.<br>
-When new software updates of CyDefSIG are installed you will see the news page.</p>
+When new software updates of MISP are installed you will see the news page.</p>
 
 <h3>February 2012</h3>
 <p><b>Automation</b><br>

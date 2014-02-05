@@ -170,7 +170,7 @@ class AttributesController extends AppController {
 					//$existingAttributeCount = $this->Attribute->find('count', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
 					if ($existingAttribute) {
 						// TODO RESTfull, set responce location header..so client can find right URL to edit
-						$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/attributes/' . $existingAttribute['Attribute']['id']);
+						$this->response->header('Location', Configure::read('MISP.baseurl') . '/attributes/' . $existingAttribute['Attribute']['id']);
 						$this->response->send();
 						$this->view($this->Attribute->getId());
 						$this->render('view');
@@ -769,7 +769,7 @@ class AttributesController extends AppController {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
 
-		if ('true' == Configure::read('CyDefSIG.sync')) {
+		if ('true' == Configure::read('MISP.sync')) {
 			// find the uuid
 			$result = $this->Attribute->findById($id);
 			$uuid = $result['Attribute']['uuid'];
@@ -792,7 +792,7 @@ class AttributesController extends AppController {
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->delete()) {
 			// delete the attribute from remote servers
-			if ('true' == Configure::read('CyDefSIG.sync')) {
+			if ('true' == Configure::read('MISP.sync')) {
 				// find the uuid
 				$this->__deleteAttributeFromServers($uuid);
 			}

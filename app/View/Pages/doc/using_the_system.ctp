@@ -297,7 +297,7 @@ The following table shows the relation of the request type and the resulting act
 <h3>Example - Get single Event</h3>
 <p>In this example we fetch the details of a single Event (and thus also his Attributes).<br/>
 The request should be:</p>
-<pre>GET <?php echo Configure::read('CyDefSIG.baseurl');?>/events/123</pre>
+<pre>GET <?php echo Configure::read('MISP.baseurl');?>/events/123</pre>
 <p>And with the HTTP Headers:</p>
 <pre>Accept: application/xml
 Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
@@ -337,7 +337,7 @@ Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
 <h4>Example - Add new Event</h4>
 <p>In this example we want to add a single Event.<br/>
 The request should be:</p>
-<pre>POST <?php echo Configure::read('CyDefSIG.baseurl');?>/events
+<pre>POST <?php echo Configure::read('MISP.baseurl');?>/events
 Accept: application/xml
 Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
 <p>And the request body:</p>

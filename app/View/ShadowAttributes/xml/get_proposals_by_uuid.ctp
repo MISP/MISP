@@ -16,7 +16,7 @@ foreach ($proposal as &$temp) {
 	unset($temp['ShadowAttribute']['value1']);
 	unset($temp['ShadowAttribute']['value2']);
 	// hide the org field is we are not in showorg mode
-	if ('true' != Configure::read('CyDefSIG.showorg') && !$isAdmin) {
+	if ('true' != Configure::read('MISP.showorg') && !$isAdmin) {
 	    unset($temp['ShadowAttribute']['org']);
 	    unset($temp['ShadowAttribute']['event_org']);
 	}

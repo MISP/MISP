@@ -11,7 +11,7 @@
 		if (Configure::read('MISP.default_event_distribution') != null) {
 			$initialDistribution = Configure::read('MISP.default_event_distribution');
 		}
-		if ('true' == Configure::read('CyDefSIG.sync')) {
+		if ('true' == Configure::read('MISP.sync')) {
 			echo $this->Form->input('distribution', array(
 					'options' => array($distributionLevels),
 					'label' => 'Distribution',

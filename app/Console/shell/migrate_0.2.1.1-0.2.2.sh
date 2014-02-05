@@ -5,7 +5,7 @@
 # Servers.lastpushedid and Servers.lastpulledid
 
 # step into project and ..
-PRJCT=/var/www/cydefsig/app
+PRJCT=/var/www/MISP/app
 cd ${PRJCT}
 
 # update Schema, add Users.role_id

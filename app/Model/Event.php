@@ -541,7 +541,7 @@ class Event extends AppModel {
 
 		$data = json_encode($data);
 		ob_start();
-	    passthru(Configure::read('CyDefSIG.taxii_client_path'). " -t string -th ".
+	    passthru(Configure::read('MISP.taxii_client_path'). " -t string -th ".
 	    	$server['Server']['url']." -d '".$data."'");
 
 	    /**
@@ -565,8 +565,8 @@ class Event extends AppModel {
 			return 403; //"Event is private and non exportable";
 		}
 
-		if('true' == Configure::read('CyDefSIG.taxii_sync')){
-			return $this->taxii_publish($event['Event']['id'], $server, Configure::read('CyDefSIG.taxii_client_path'));
+		if('true' == Configure::read('MISP.taxii_sync')){
+			return $this->taxii_publish($event['Event']['id'], $server, Configure::read('MISP.taxii_client_path'));
 		}
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
@@ -1058,10 +1058,10 @@ class Event extends AppModel {
 		$body = "";
 		$body .= '==============================================' . "\n";
 		$appendlen = 20;
-		$body .= 'URL         : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
+		$body .= 'URL         : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
 		$body .= 'Event       : ' . $event['Event']['id'] . "\n";
 		$body .= 'Date        : ' . $event['Event']['date'] . "\n";
-		if ('true' == Configure::read('CyDefSIG.showorg')) {
+		if ('true' == Configure::read('MISP.showorg')) {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
 		$body .= 'Risk        : ' . $event['ThreatLevel']['name'] . "\n";
@@ -1074,7 +1074,7 @@ class Event extends AppModel {
 			$body .= '==============================================' . "\n";
 			$body .= 'Related to : '. "\n";
 			foreach ($relatedEvents as &$relatedEvent) {
-				$body .= Configure::read('CyDefSIG.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
+				$body .= Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
 			}
 			$body .= '==============================================' . "\n";
 		}
@@ -1129,9 +1129,9 @@ class Event extends AppModel {
 					foreach ($alertUsers as $k => &$user) {
 					// prepare the the unencrypted email
 						$Email = new CakeEmail();
-						$Email->from(Configure::read('CyDefSIG.email'));
+						$Email->from(Configure::read('MISP.email'));
 						$Email->to($user['User']['email']);
-						$Email->subject("[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
+						$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
 						$Email->emailFormat('text');	// both text or html
 						// send it
 						$Email->send($bodySigned);
@@ -1158,9 +1158,9 @@ class Event extends AppModel {
  			foreach ($alertUsers as $k => &$user) {
  				// send the email
  				$Email = new CakeEmail();
- 				$Email->from(Configure::read('CyDefSIG.email'));
+ 				$Email->from(Configure::read('MISP.email'));
  				$Email->to($user['User']['email']);
- 				$Email->subject("[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Event " . $id . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
+ 				$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
  				$Email->emailFormat('text');		// both text or html
   					// import the key of the user into the keyring
  				// this is not really necessary, but it enables us to find
@@ -1234,10 +1234,10 @@ class Event extends AppModel {
 		// print the event in mail-format
 		// LATER place event-to-email-layout in a function
 		$appendlen = 20;
-		$body .= 'URL		 : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
+		$body .= 'URL		 : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
 		$body .= 'Event	   : ' . $event['Event']['id'] . "\n";
 		$body .= 'Date		: ' . $event['Event']['date'] . "\n";
-		if ('true' == Configure::read('CyDefSIG.showorg')) {
+		if ('true' == Configure::read('MISP.showorg')) {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
 		$body .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
@@ -1245,7 +1245,7 @@ class Event extends AppModel {
 		$relatedEvents = $this->getRelatedEvents($user, $isSiteAdmin);
 		if (!empty($relatedEvents)) {
 			foreach ($relatedEvents as &$relatedEvent) {
-				$body .= 'Related to  : ' . Configure::read('CyDefSIG.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
+				$body .= 'Related to  : ' . Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
 	
 			}
 		}
@@ -1303,10 +1303,10 @@ class Event extends AppModel {
 				$bodyEncSig = $bodySigned;
 				// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
 			}
-			$Email->from(Configure::read('CyDefSIG.email'));
+			$Email->from(Configure::read('MISP.email'));
 			$Email->replyTo($user['User']['email']);
 			$Email->to($reporter['User']['email']);
-			$Email->subject("[" . Configure::read('CyDefSIG.org') . " " . Configure::read('CyDefSIG.name') . "] Need info about event " . $id . " - TLP Amber");
+			$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Need info about event " . $id . " - TLP Amber");
 			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
 			$Email->emailFormat('text');		// both text or html
 
@@ -1340,7 +1340,7 @@ class Event extends AppModel {
 		$data['Event']['user_id'] = $user['id'];
 		$date = new DateTime();
 	
-		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('CyDefSIG.org');
+		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
 		//else $data['Event']['org'] = $auth->user('org');
 		$data['Event']['org'] = $user['org'];
 		// set these fields if the event is freshly created and not pushed from another instance.
@@ -1528,7 +1528,7 @@ class Event extends AppModel {
 		$event['Event']['publish_timestamp'] = time();
 		$this->save($event, array('fieldList' => $fieldList));
 		$uploaded = false;
-		if ('true' == Configure::read('CyDefSIG.sync') && $event['Event']['distribution'] > 1) {
+		if ('true' == Configure::read('MISP.sync') && $event['Event']['distribution'] > 1) {
 			$uploaded = $this->uploadEventToServersRouter($id, $passAlong);
 			if (($uploaded == false) || (is_array($uploaded))) {
 				$this->saveField('published', 0);

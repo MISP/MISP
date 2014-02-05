@@ -11,7 +11,7 @@
 		<?php if (Configure::read('MISP.welcome_logo')): ?>
 			<img src="
 					<?php
-					echo Configure::read('CyDefSig.url') . '/img/';
+					echo Configure::read('MISP.url') . '/img/';
 					echo Configure::read('MISP.welcome_logo');
 					?>
 			.png" alt="" />
@@ -57,7 +57,7 @@
 		<?php if (Configure::read('MISP.welcome_logo2')): ?>
 			<img src="
 				<?php
-				echo Configure::read('CyDefSig.url') . '/img/';
+				echo Configure::read('MISP.url') . '/img/';
 				echo Configure::read('MISP.welcome_logo2');
 				?>
 		.png" alt="" />

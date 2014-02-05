@@ -40,7 +40,7 @@ class Dns extends AppModel {
  * @return array of ip numbers
  */
 	public function nametoipl($name = '') {
-		if ('true' == Configure::read('CyDefSIG.dns')) {
+		if ('true' == Configure::read('MISP.dns')) {
 			if (!$ips = gethostbynamel($name)) $ips = array();
 		} else {
 			$ips = array();

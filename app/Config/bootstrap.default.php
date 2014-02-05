@@ -84,35 +84,35 @@
  */
 Cache::config('default', array('engine' => 'File'));
 
-Configure::write('CyDefSIG.baseurl', 'http://localhost:8888');
-if (!Configure::read('CyDefSIG.baseurl')) {
+Configure::write('MISP.baseurl', 'http://localhost:8888');
+if (!Configure::read('MISP.baseurl')) {
 	if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) {
-		Configure::write('CyDefSIG.baseurl', sprintf('https://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
+		Configure::write('MISP.baseurl', sprintf('https://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
 	} else {
-		Configure::write('CyDefSIG.baseurl', sprintf('http://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
+		Configure::write('MISP.baseurl', sprintf('http://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
 	}
 }
-Configure::write('CyDefSIG.name', 'MISP');
-Configure::write('CyDefSIG.version', '2.1');
-Configure::write('CyDefSIG.header', 'MISP: Malware Information Sharing Platform');
-Configure::write('CyDefSIG.footerpart1', 'Powered by MISP');
-Configure::write('CyDefSIG.footerpart2', '&copy; Belgian Defense CERT & NCIRC');
-Configure::write('CyDefSIG.footer', Configure::read('CyDefSIG.footerpart1') . ' ' . Configure::read('CyDefSIG.footerpart2'));
-Configure::write('CyDefSIG.footerversion', Configure::read('CyDefSIG.footerpart1') . ' version ' . Configure::read('CyDefSIG.version') . ' ' . Configure::read('CyDefSIG.footerpart2'));
+Configure::write('MISP.name', 'MISP');
+Configure::write('MISP.version', '2.1');
+Configure::write('MISP.header', 'MISP: Malware Information Sharing Platform');
+Configure::write('MISP.footerpart1', 'Powered by MISP');
+Configure::write('MISP.footerpart2', '&copy; Belgian Defense CERT & NCIRC');
+Configure::write('MISP.footer', Configure::read('MISP.footerpart1') . ' ' . Configure::read('MISP.footerpart2'));
+Configure::write('MISP.footerversion', Configure::read('MISP.footerpart1') . ' version ' . Configure::read('MISP.version') . ' ' . Configure::read('MISP.footerpart2'));
 // The following field is optional
 // Configure::write('MISP.footer_logo', 'imagename');     // Logo for the bottom right corner of the screen
-Configure::write('CyDefSIG.org', 'ORGNAME');                // if sync this will be Event.org content on the peer side
-Configure::write('CyDefSIG.logo', 'orgs/ORGNAME.png');     // used in Events::index for owned events
+Configure::write('MISP.org', 'ORGNAME');                // if sync this will be Event.org content on the peer side
+Configure::write('MISP.logo', 'orgs/ORGNAME.png');     // used in Events::index for owned events
 
 
-Configure::write('CyDefSIG.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
+Configure::write('MISP.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
 
-Configure::write('CyDefSIG.sync', 'true');                 // enable features related to syncing with other CyDefSIG instances - should be always on because of the current distribution model.
-Configure::write('CyDefSIG.taxii_sync', 'true');
-Configure::write('CyDefSIG.taxii_client_path', '/usr/local/taxii-client-vanilla');
+Configure::write('MISP.sync', 'true');                 // enable features related to syncing with other MISP instances - should be always on because of the current distribution model.
+Configure::write('MISP.taxii_sync', 'true');
+Configure::write('MISP.taxii_client_path', '/usr/local/taxii-client-vanilla');
 
-Configure::write('CyDefSIG.email', 'email@address.com'); // email from for all the mails
-Configure::write('CyDefSIG.contact', 'email@address.com'); // contact address for this instance's support person / group
+Configure::write('MISP.email', 'email@address.com'); // email from for all the mails
+Configure::write('MISP.contact', 'email@address.com'); // contact address for this instance's support person / group
 
 Configure::write('GnuPG.onlyencrypted', 'true');         // only allow encrypted email, do not allow plaintext mails
 Configure::write('GnuPG.email', 'email@address.com');
@@ -122,9 +122,9 @@ Configure::write('GnuPG.homedir', '/path/to/your/.gnupg/');
 Configure::write('SecureAuth.amount', 5);              // the maximum amount of failed logins
 Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
 
-Configure::write('CyDefSIG.dns', 'false');				// there is a nameserver available to do resolution.
+Configure::write('MISP.dns', 'false');				// there is a nameserver available to do resolution.
 
-Configure::write('CyDefSig.cveurl', 'http://web.nvd.nist.gov/view/vuln/detail?vulnId='); 	// Default URL for NVD/CVE reference.
+Configure::write('MISP.cveurl', 'http://web.nvd.nist.gov/view/vuln/detail?vulnId='); 	// Default URL for NVD/CVE reference.
 
 // The following 3 fields are optional
 

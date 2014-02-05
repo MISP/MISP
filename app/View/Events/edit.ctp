@@ -12,7 +12,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 			'type' => 'text',
 			'class' => 'datepicker'
 	));
-if ('true' == Configure::read('CyDefSIG.sync')) {
+if ('true' == Configure::read('MISP.sync')) {
 	echo $this->Form->input('distribution', array(
 		'options' => array($distributionLevels),
 		'label' => 'Distribution',
