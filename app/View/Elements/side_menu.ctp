@@ -21,7 +21,7 @@
 					<li class="divider"></li>
 					<li <?php if ($menuItem === 'addAttribute') echo 'class="active";'?>><a href="/attributes/add/<?php echo $event['Event']['id'];?>">Add Attribute</a></li>
 					<li <?php if ($menuItem === 'addAttachment') echo 'class="active";'?>><a href="/attributes/add_attachment/<?php echo $event['Event']['id'];?>">Add Attachment</a></li>
-					<li <?php if ($menuItem === 'addIOC') echo 'class="active";'?>><a href="/events/addIOC/<?php echo $event['Event']['id'];?>">Populate from IOC</a></li>
+					<li <?php if ($menuItem === 'addIOC') echo 'class="active";'?>><a href="/events/addIOC/<?php echo $event['Event']['id'];?>">Populate from OpenIOC</a></li>
 					<li <?php if ($menuItem === 'addThreatConnect') echo 'class="active";'?>><a href="/attributes/add_threatconnect/<?php echo $event['Event']['id']; ?>">Populate from ThreatConnect</a></li>
 					<?php elseif (!isset($mayModify) || !$mayModify): ?>
 					<li class="divider"></li>
