@@ -13,13 +13,13 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `value2` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `to_ids` tinyint(1) NOT NULL DEFAULT '1',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
-  `timestamp` int(11) DEFAULT '0',
+  `timestamp` int(11) NOT NULL DEFAULT '0',
   `distribution` tinyint(4) NOT NULL DEFAULT '0',
-  `comment` text COLLATE utf8_bin,
+  `comment` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
   KEY `uuid` (`uuid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS `correlations` (
   KEY `1_event_id` (`1_event_id`),
   KEY `1_attribute_id` (`1_attribute_id`),
   KEY `attribute_id` (`attribute_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -78,7 +78,6 @@ CREATE TABLE IF NOT EXISTS `correlations` (
 
 CREATE TABLE IF NOT EXISTS `events` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `threat_level_id` int(11) DEFAULT NULL,
   `org` varchar(255) COLLATE utf8_bin NOT NULL,
   `date` date NOT NULL,
   `info` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
@@ -92,10 +91,45 @@ CREATE TABLE IF NOT EXISTS `events` (
   `distribution` tinyint(4) NOT NULL DEFAULT '0',
   `proposal_email_lock` tinyint(1) NOT NULL DEFAULT '0',
   `locked` tinyint(1) NOT NULL DEFAULT '0',
+  `threat_level_id` int(11) NOT NULL,
+  `publish_timestamp` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `uuid` (`uuid`),
   FULLTEXT KEY `info` (`info`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `event_tags`
+--
+
+CREATE TABLE IF NOT EXISTS `event_tags` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `event_id` int(11) NOT NULL,
+  `tag_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `jobs`
+--
+
+CREATE TABLE IF NOT EXISTS `jobs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `worker` varchar(32) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `job_type` varchar(32) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `job_input` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `status` tinyint(4) NOT NULL DEFAULT '0',
+  `retries` int(11) NOT NULL DEFAULT '0',
+  `message` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `progress` int(11) NOT NULL DEFAULT '0',
+  `org` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `process_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -133,7 +167,7 @@ CREATE TABLE IF NOT EXISTS `posts` (
   `post_id` int(11) NOT NULL DEFAULT '0',
   `thread_id` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 ;
 
 -- --------------------------------------------------------
 
@@ -147,7 +181,7 @@ CREATE TABLE IF NOT EXISTS `regexp` (
   `replacement` varchar(255) COLLATE utf8_bin NOT NULL,
   `type` varchar(100) COLLATE utf8_bin NOT NULL DEFAULT 'ALL',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -169,10 +203,11 @@ CREATE TABLE IF NOT EXISTS `roles` (
   `perm_audit` tinyint(1) DEFAULT NULL,
   `perm_full` tinyint(1) DEFAULT NULL,
   `perm_auth` tinyint(1) NOT NULL DEFAULT '0',
-  `perm_regexp_access` tinyint(1) NOT NULL DEFAULT '0',
   `perm_site_admin` tinyint(1) NOT NULL DEFAULT '0',
+  `perm_regexp_access` tinyint(1) NOT NULL DEFAULT '0',
+  `perm_tagger` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=5 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -190,8 +225,10 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `pull` tinyint(1) NOT NULL,
   `lastpulledid` int(11) NOT NULL,
   `lastpushedid` int(11) NOT NULL,
+  `self_signed` tinyint(1) NOT NULL,
+  `cert_file` varchar(255) COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -211,11 +248,40 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   `value2` text COLLATE utf8_bin,
   `org` varchar(255) COLLATE utf8_bin NOT NULL,
   `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `event_org` varchar(255) COLLATE utf8_bin NOT NULL,
+  `comment` text COLLATE utf8_bin NOT NULL,
+  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
   KEY `uuid` (`uuid`),
   KEY `old_id` (`old_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tags`
+--
+
+CREATE TABLE IF NOT EXISTS `tags` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+
+CREATE TABLE IF NOT EXISTS `tasks` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `timer` int(11) NOT NULL,
+  `scheduled_time` varchar(8) NOT NULL DEFAULT '6:00',
+  `job_id` int(11) NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `next_execution_time` int(11) NOT NULL,
+  `message` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+
 
 -- --------------------------------------------------------
 
@@ -234,7 +300,7 @@ CREATE TABLE IF NOT EXISTS `threads` (
   `title` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `org` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ;
 
 -- --------------------------------------------------------
 
@@ -248,7 +314,7 @@ CREATE TABLE IF NOT EXISTS `threat_levels` (
   `description` varchar(255) DEFAULT NULL,
   `form_description` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -274,7 +340,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   PRIMARY KEY (`id`),
   KEY `email` (`email`),
   KEY `password` (`password`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=2 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;
 
 -- --------------------------------------------------------
 
@@ -331,22 +397,30 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
 -- Creating initial roles
 --
 -- 1. Admin - has full access
--- 2. Org Admin - read/write/publish/audit/admin/sync/auth
+-- 2. Org Admin - read/write/publish/audit/admin/sync/auth/tagger
 -- 3. User - User - Read / Write, no other permissions (default)
 -- 4. Sync user - read/write/publish/sync/auth
+-- 5. Automation user - read/write/publish/auth
+-- 6. Read Only - read
 --
 
-INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`)
-VALUES ('1', 'admin', NOW() , NOW() , '1', '1', '1', '1', '1', '1', '1', '1', '1');
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp`, `perm_tagger`, `perm_site_admin`)
+VALUES ('1', 'admin', NOW() , NOW() , '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1');
 
-INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`)
-VALUES ('2', 'Org Admin', NOW() , NOW() , '1', '1', '1' , '1', '1', '1', '1', '0' , '1');
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp`, `perm_tagger`, `perm_site_admin`)
+VALUES ('2', 'Org Admin', NOW() , NOW() , '1', '1', '1' , '1', '1', '1', '1', '0' , '1', `0`, `1`, `0`);
 
-INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`)
-VALUES ('3', 'User', NOW() , NOW() , '1', '1', '1' , '0' , '0' , '0' , '0' , '0' , '0');
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp`, `perm_tagger`, `perm_site_admin`)
+VALUES ('3', 'User', NOW() , NOW() , '1', '1', '1' , '0' , '0' , '0' , '0' , '0' , '0', `0`, `0`, `0`);
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`)
-VALUES ('4', 'Sync user', NOW(), NOW(), '1', '1', '1', '1', '1', '0', '1', '0', '1');
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp`, `perm_tagger`, `perm_site_admin`)
+VALUES ('4', 'Sync user', NOW(), NOW(), '1', '1', '1', '1', '1', '0', '0', '0', '1', `0`, `0`, `0`);
+
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp`, `perm_tagger`, `perm_site_admin`)
+VALUES ('5', 'Automation user', NOW(), NOW(), '1', '1', '1', '1', '0', '0', '0', '0', '1', `0`, `0`, `0`);
+
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp`, `perm_tagger`, `perm_site_admin`)
+VALUES ('6', 'Read Only', NOW(), NOW(), '0', '0', '0', '0', '0', '0', '0', '0', '0', `0`, `0`, `0`);
 
 -- --------------------------------------------------------
 

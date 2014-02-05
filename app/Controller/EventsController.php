@@ -1963,21 +1963,28 @@ class EventsController extends AppController {
 			$conditions['OR'][] = array('Event.id =' => -1);
 		}
 		$this->paginate = array(
+				'fields' => array('Event.id', 'Event.org', 'Event.orgc', 'Event.timestamp', 'Event.distribution', 'Event.info', 'Event.date', 'Event.published'),
 				'conditions' => $conditions,
 				'contain' => array(
-					'ThreatLevel' => array(
-							'fields' => array(
-							'ThreatLevel.name')),
 					'User' => array(
 							'fields' => array(
 								'User.email'	
 					)),
 					'ShadowAttribute'=> array(
 						'fields' => array(
-							'ShadowAttribute.id'
-					)),
+							'ShadowAttribute.id', 'ShadowAttribute.org', 'ShadowAttribute.event_id'
+						),
+					),
 		));
-		$this->set('events', $this->paginate());
+		$events = $this->paginate();
+		foreach ($events as $k => $event) {
+			$orgs = array();
+			foreach ($event['ShadowAttribute'] as $sa) {
+				if (!in_array($sa['org'], $orgs)) $orgs[] = $sa['org'];
+			}
+			$events[$k]['orgArray'] = $orgs;
+		}
+		$this->set('events', $events);
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 		$this->set('distributionLevels', $this->Event->distributionLevels);

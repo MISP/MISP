@@ -22,17 +22,12 @@
 			</th>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('attribute_count', 'Proposals');?></th>
+			<th>Contributors</th>
 			<?php if ($isSiteAdmin): ?>
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 			<?php endif; ?>
 			<th class="filter">
 				<?php echo $this->Paginator->sort('date');?>
-			</th>
-			<th title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>">
-				<?php echo $this->Paginator->sort('threat_level_id');?>
-			</th>
-			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>">
-				<?php echo $this->Paginator->sort('analysis');?>
 			</th>
 			<th class="filter">
 				<?php echo $this->Paginator->sort('info');?>
@@ -63,6 +58,17 @@
 			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'" style="color:red;font-weight:bold;">
 				<?php echo count($event['ShadowAttribute']); ?>&nbsp;
 			</td>
+			<td class="short">
+				<?php
+					foreach ($event['orgArray'] as $org) {
+						$imgRelativePath = 'orgs' . DS . h($org) . '.png';
+						$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
+						if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org) . '.png', array('alt' => h($org), 'title' => h($org), 'style' => 'width:24px; height:24px'));
+						else echo $this->Html->tag('span', h($org), array('class' => 'welcome', 'style' => 'float:left;'));
+					}
+				?>
+				&nbsp;
+			</td>
 			<?php if ('true' == $isSiteAdmin): ?>
 			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo h($event['User']['email']); ?>&nbsp;
@@ -70,12 +76,6 @@
 			<?php endif; ?>
 			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $event['Event']['date']; ?>&nbsp;
-			</td>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
-				<?php echo $event['ThreatLevel']['name']; ?>&nbsp;
-			</td>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
-				<?php echo $analysisLevels[$event['Event']['analysis']]; ?>&nbsp;
 			</td>
 			<td onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
