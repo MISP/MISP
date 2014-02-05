@@ -17,9 +17,9 @@ class AppSchema extends CakeSchema {
 		'value2' => array('type' => 'text', 'null' => false, 'default' => null, 'collate' => 'utf8_unicode_ci', 'charset' => 'utf8'),
 		'to_ids' => array('type' => 'boolean', 'null' => false, 'default' => '1'),
 		'uuid' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 40, 'key' => 'index', 'collate' => 'utf8_bin', 'charset' => 'utf8'),
-		'timestamp' => array('type' => 'integer', 'null' => true, 'default' => '0'),
+		'timestamp' => array('type' => 'integer', 'null' => false, 'default' => '0'),
 		'distribution' => array('type' => 'integer', 'null' => false, 'default' => '0', 'length' => 4),
-		'comment' => array('type' => 'text', 'null' => true, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'comment' => array('type' => 'text', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'indexes' => array(
 			'PRIMARY' => array('column' => 'id', 'unique' => 1),
 			'event_id' => array('column' => 'event_id', 'unique' => 0),
@@ -38,9 +38,18 @@ class AppSchema extends CakeSchema {
 		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'MyISAM')
 	);
 
+	public $event_tags = array(
+		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+		'event_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+		'tag_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+		'indexes' => array(
+			'PRIMARY' => array('column' => 'id', 'unique' => 1)
+		),
+		'tableParameters' => array('charset' => 'latin1', 'collate' => 'latin1_swedish_ci', 'engine' => 'InnoDB')
+	);
+
 	public $events = array(
 		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
-		'threat_level_id' => array('type' => 'integer', 'null' => true, 'default' => null),
 		'org' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'date' => array('type' => 'date', 'null' => false, 'default' => null),
 		'info' => array('type' => 'text', 'null' => false, 'default' => null, 'key' => 'index', 'collate' => 'utf8_unicode_ci', 'charset' => 'utf8'),
@@ -54,12 +63,31 @@ class AppSchema extends CakeSchema {
 		'distribution' => array('type' => 'integer', 'null' => false, 'default' => '0', 'length' => 4),
 		'proposal_email_lock' => array('type' => 'boolean', 'null' => false, 'default' => '0'),
 		'locked' => array('type' => 'boolean', 'null' => false, 'default' => '0'),
+		'threat_level_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+		'publish_timestamp' => array('type' => 'integer', 'null' => false, 'default' => null),
 		'indexes' => array(
 			'PRIMARY' => array('column' => 'id', 'unique' => 1),
 			'uuid' => array('column' => 'uuid', 'unique' => 0),
 			'info' => array('column' => 'info', 'type' => 'fulltext')
 		),
 		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'MyISAM')
+	);
+
+	public $jobs = array(
+		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+		'worker' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 32, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'job_type' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 32, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'job_input' => array('type' => 'text', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'status' => array('type' => 'integer', 'null' => false, 'default' => '0', 'length' => 4),
+		'retries' => array('type' => 'integer', 'null' => false, 'default' => '0'),
+		'message' => array('type' => 'text', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'progress' => array('type' => 'integer', 'null' => false, 'default' => '0'),
+		'org' => array('type' => 'text', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'process_id' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 32, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'indexes' => array(
+			'PRIMARY' => array('column' => 'id', 'unique' => 1)
+		),
+		'tableParameters' => array('charset' => 'latin1', 'collate' => 'latin1_swedish_ci', 'engine' => 'InnoDB')
 	);
 
 	public $logs = array(
@@ -119,8 +147,9 @@ class AppSchema extends CakeSchema {
 		'perm_audit' => array('type' => 'boolean', 'null' => true, 'default' => null),
 		'perm_full' => array('type' => 'boolean', 'null' => true, 'default' => null),
 		'perm_auth' => array('type' => 'boolean', 'null' => false, 'default' => '0'),
-		'perm_regexp_access' => array('type' => 'boolean', 'null' => false, 'default' => '0'),
 		'perm_site_admin' => array('type' => 'boolean', 'null' => false, 'default' => '0'),
+		'perm_regexp_access' => array('type' => 'boolean', 'null' => false, 'default' => '0'),
+		'perm_tagger' => array('type' => 'boolean', 'null' => false, 'default' => '0'),
 		'indexes' => array(
 			'PRIMARY' => array('column' => 'id', 'unique' => 1)
 		),
@@ -137,6 +166,8 @@ class AppSchema extends CakeSchema {
 		'pull' => array('type' => 'boolean', 'null' => false, 'default' => null),
 		'lastpulledid' => array('type' => 'integer', 'null' => false, 'default' => null),
 		'lastpushedid' => array('type' => 'integer', 'null' => false, 'default' => null),
+		'self_signed' => array('type' => 'boolean', 'null' => false, 'default' => null),
+		'cert_file' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'indexes' => array(
 			'PRIMARY' => array('column' => 'id', 'unique' => 1)
 		),
@@ -155,6 +186,9 @@ class AppSchema extends CakeSchema {
 		'value2' => array('type' => 'text', 'null' => true, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'org' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'email' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_unicode_ci', 'charset' => 'utf8'),
+		'event_org' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'comment' => array('type' => 'text', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'event_uuid' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 40, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'indexes' => array(
 			'PRIMARY' => array('column' => 'id', 'unique' => 1),
 			'event_id' => array('column' => 'event_id', 'unique' => 0),
@@ -162,6 +196,31 @@ class AppSchema extends CakeSchema {
 			'old_id' => array('column' => 'old_id', 'unique' => 0)
 		),
 		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'MyISAM')
+	);
+
+	public $tags = array(
+		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+		'name' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'colour' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 7, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'indexes' => array(
+			'PRIMARY' => array('column' => 'id', 'unique' => 1)
+		),
+		'tableParameters' => array('charset' => 'latin1', 'collate' => 'latin1_swedish_ci', 'engine' => 'InnoDB')
+	);
+
+	public $tasks = array(
+		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+		'type' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 100, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'timer' => array('type' => 'integer', 'null' => false, 'default' => null),
+		'scheduled_time' => array('type' => 'string', 'null' => false, 'default' => '6:00', 'length' => 8, 'collate' => 'latin1_swedish_ci', 'charset' => 'latin1'),
+		'job_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+		'description' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'latin1_swedish_ci', 'charset' => 'latin1'),
+		'next_execution_time' => array('type' => 'integer', 'null' => false, 'default' => null),
+		'message' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'indexes' => array(
+			'PRIMARY' => array('column' => 'id', 'unique' => 1)
+		),
+		'tableParameters' => array('charset' => 'latin1', 'collate' => 'latin1_swedish_ci', 'engine' => 'InnoDB')
 	);
 
 	public $threads = array(
@@ -181,10 +240,10 @@ class AppSchema extends CakeSchema {
 	);
 
 	public $threat_levels = array(
-		'id' => array('type' => 'boolean', 'null' => false, 'default' => null, 'key' => 'primary'),
-		'name' => array('type' => 'string', 'null' => false, 'length' => 50, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
-		'description' => array('type' => 'string', 'null' => true, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
-		'form_description' => array('type' => 'string', 'null' => false, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+		'name' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 50, 'collate' => 'latin1_swedish_ci', 'charset' => 'latin1'),
+		'description' => array('type' => 'string', 'null' => true, 'default' => null, 'collate' => 'latin1_swedish_ci', 'charset' => 'latin1'),
+		'form_description' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'latin1_swedish_ci', 'charset' => 'latin1'),
 		'indexes' => array(
 			'PRIMARY' => array('column' => 'id', 'unique' => 1)
 		),
