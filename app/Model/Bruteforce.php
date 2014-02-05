@@ -14,6 +14,18 @@ class Bruteforce extends AppModel {
 		$ip = Sanitize::clean($ip);
 		$username = Sanitize::clean($username);
 		$this->query("INSERT INTO `bruteforces` (`ip` , `username` , `expire` ) VALUES ('$ip', '$username', TIMESTAMPADD(SECOND,$expire, NOW()));");
+		if ($this->isBlacklisted($ip, $username)) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create(); 	
+			$this->Log->save(array(
+				'org' => 'SYSTEM',
+				'model' => 'Blacklist',
+				'model_id' => 0,
+				'email' => $username,
+				'action' => 'blacklist',
+				'title' => 'User from ' . $ip . ' claiming to be ' . $username . ' has been blacklisted after ' . Configure::read('SecureAuth.amount') . ' failed attempts'
+			));
+		}
 	}
 
 	public function clean() {

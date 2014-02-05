@@ -21,7 +21,8 @@ class Log extends AppModel {
 							'accept',
 							'discard',
 							'pull',
-							'push'
+							'push',
+							'blacklisted'
 						)),
 			'message' => 'Options : ...'
 		)
