@@ -1,11 +1,11 @@
 <div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
-		<?php 
+		<?php
 			switch ($menuList) {
-				case 'event': ?>						
+				case 'event': ?>
 					<li <?php if ($menuItem === 'viewEvent') echo 'class="active";'?>><a href="/events/view/<?php echo $event['Event']['id'];?>">View Event</a></li>
 					<li <?php if ($menuItem === 'eventLog') echo 'class="active";'?>><a href="/logs/event_index/<?php echo $event['Event']['id'];?>">View Event History</a></li>
-					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
+					<?php if ($isSiteAdmin || (isset($isAclModify) && $isAclModify)): ?>
 					<li <?php if ($menuItem === 'editEvent') echo 'class="active";'?>><a href="/events/edit/<?php echo $event['Event']['id'];?>">Edit Event</a></li>
 					<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
 					<li class="divider"></li>
@@ -13,7 +13,7 @@
 					<li <?php if ($menuItem === 'addAttachment') echo 'class="active";'?>><a href="/attributes/add_attachment/<?php echo $event['Event']['id'];?>">Add Attachment</a></li>
 					<li <?php if ($menuItem === 'addIOC') echo 'class="active";'?>><a href="/events/addIOC/<?php echo $event['Event']['id'];?>">Populate from IOC</a></li>
 					<li <?php if ($menuItem === 'addThreatConnect') echo 'class="active";'?>><a href="/attributes/add_threatconnect/<?php echo $event['Event']['id']; ?>">Populate from ThreatConnect</a></li>
-					<?php elseif (!isset($mayModify) || !$mayModify): ?>
+					<?php elseif (!isset($isAclModify) || !$isAclModify): ?>
 					<li class="divider"></li>
 					<li <?php if ($menuItem === 'proposeAttribute') echo 'class="active";'?>><a href="/shadow_attributes/add/<?php echo $event['Event']['id'];?>">Propose Attribute</a></li>
 					<li <?php if ($menuItem === 'proposeAttachment') echo 'class="active";'?>><a href="/shadow_attributes/add_attachment/<?php echo $event['Event']['id'];?>">Propose Attachment</a></li>
@@ -58,34 +58,34 @@
 					<li <?php if ($menuItem === 'automation') echo 'class="active";'?>><a href="/events/automation">Automation</a></li>
 					<?php endif;
 				break;
-					
+
 				case 'regexp': ?>
 					<li <?php if ($menuItem === 'index') echo 'class="active";'?>><?php echo $this->Html->link('List Regexp', array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
 					<?php if ($isSiteAdmin): ?>
 					<li <?php if ($menuItem === 'add') echo 'class="active";'?>><?php echo $this->Html->link('New Regexp', array('admin' => true, 'action' => 'add'));?></li>
 					<li><?php echo $this->Html->link('Perform on existing', array('admin' => true, 'action' => 'clean'));?></li>
 					<?php endif;
-					if ($menuItem == 'edit'):?> 
+					if ($menuItem == 'edit'):?>
 					<li class="divider"></li>
 					<li class="active"><?php echo $this->Html->link('Edit Regexp', array('admin' => true, 'action' => 'edit', $id));?></li>
 					<li><?php echo $this->Form->postLink('Delete Regexp', array('admin' => true, 'action' => 'delete', $id), null, __('Are you sure you want to delete # %s?', $id));?></li>
-					<?php 
+					<?php
 					endif;
 				break;
-					
+
 					case 'whitelist':?>
 					<li <?php if ($menuItem === 'index') echo 'class="active";'?>><?php echo $this->Html->link('List Whitelist', array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
 					<?php if ($isSiteAdmin): ?>
 					<li <?php if ($menuItem === 'add') echo 'class="active";'?>><?php echo $this->Html->link('New Whitelist', array('admin' => true, 'action' => 'add'));?></li>
 					<?php endif;
-					if ($menuItem == 'edit'):?> 
+					if ($menuItem == 'edit'):?>
 					<li class="divider"></li>
 					<li class="active"><?php echo $this->Html->link('Edit Whitelist', array('admin' => true, 'action' => 'edit', $id));?></li>
 					<li><?php echo $this->Form->postLink('Delete Whitelist', array('admin' => true, 'action' => 'delete', $id), null, __('Are you sure you want to delete # %s?', $id));?></li>
-					<?php 
+					<?php
 					endif;
 				break;
-					
+
 				case 'globalActions':
 					if ($menuItem === 'edit' || $menuItem === 'view'): ?>
 					<li <?php if ($menuItem === 'edit') echo 'class="active";'?>><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
@@ -96,9 +96,9 @@
 					<li <?php if ($menuItem === 'members') echo 'class="active";'?>><a href="/users/memberslist">Members List</a></li>
 					<li <?php if ($menuItem === 'userGuide') echo 'class="active";'?>><a href="/pages/display/doc/general">User Guide</a></li>
 					<li <?php if ($menuItem === 'terms') echo 'class="active";'?>><a href="/users/terms">Terms &amp; Conditions</a></li>
-					<?php 
+					<?php
 				break;
-				
+
 				case 'sync':
 					if ($menuItem === 'edit' && $isAdmin): ?>
 					<li class="active"><?php if ($isAdmin) echo $this->Html->link('Edit Server', array('controller' => 'servers', 'action' => 'edit')); ?></li>
@@ -107,16 +107,16 @@
 					<?php endif; ?>
 					<li <?php if ($menuItem === 'index') echo 'class="active";'?>><?php echo $this->Html->link('List Servers', array('controller' => 'servers', 'action' => 'index'));?></li>
 					<li <?php if ($menuItem === 'add') echo 'class="active";'?>><?php if ($isAclAdd && $me['org'] == 'ADMIN') echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
-					<?php 
-				break;	
-				
-				case 'admin': 
+					<?php
+				break;
+
+				case 'admin':
 					if ($menuItem === 'editUser' || $menuItem === 'viewUser'): ?>
 					<li <?php if ($menuItem === 'viewUser') echo 'class="active";'?>><?php echo $this->Html->link('View User', array('controller' => 'users', 'action' => 'view', 'admin' => true, $id)); ?> </li>
 					<li <?php if ($menuItem === 'editUser') echo 'class="active";'?>><?php echo $this->Html->link('Edit User', array('controller' => 'users', 'action' => 'edit', 'admin' => true, $id)); ?> </li>
 					<li><?php echo $this->Form->postLink('Delete User', array('admin' => true, 'action' => 'delete', $id), null, __('Are you sure you want to delete # %s?', $id));?></li>
 					<li class="divider"></li>
-					<?php endif; 
+					<?php endif;
 					if ($isSiteAdmin && $menuItem === 'editRole'): ?>
 					<li class="active"><?php echo $this->Html->link('Edit Role', array('controller' => 'roles', 'action' => 'edit', 'admin' => true, $id)); ?> </li>
 					<li><?php echo $this->Form->postLink('Delete Role', array('controller' => 'roles', 'admin' => true, 'action' => 'delete', $id), null, __('Are you sure you want to delete # %s?', $id));?></li>
@@ -133,36 +133,36 @@
 					<li class="divider"></li>
 					<li <?php if ($menuItem === 'contact') echo 'class="active";'?>><?php echo $this->Html->link('Contact users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
 					<li <?php if ($menuItem === 'adminTools') echo 'class="active";'?>><a href="/pages/display/administration">Administrative tools</a></li>
-					<?php endif; 
-				break;	
-				
+					<?php endif;
+				break;
+
 				case 'logs': ?>
 					<li <?php if ($menuItem === 'index') echo 'class="active";'?>><?php echo $this->Html->link('List Logs', array('admin' => true, 'action' => 'index'));?></li>
 					<li <?php if ($menuItem === 'search') echo 'class="active";'?>><?php echo $this->Html->link('Search Logs', array('admin' => true, 'action' => 'search'));?></li>
-					<?php 
-				break;	
-				
-				case 'threads': 
-				
+					<?php
+				break;
+
+				case 'threads':
+
 					if ($menuItem === 'add' || $menuItem === 'view') {
 						if (!(empty($thread_id) && empty($target_type))) { ?>
 					<li  <?php if ($menuItem === 'view') echo 'class="active";'?>><?php echo $this->Html->link('View Thread', array('controller' => 'threads', 'action' => 'view', $thread_id));?></li>
 					<li  <?php if ($menuItem === 'add') echo 'class="active";'?>><?php echo $this->Html->link('Add Post', array('controller' => 'posts', 'action' => 'add', 'thread', $thread_id));?></li>
 					<li class="divider"></li>
-					<?php 
+					<?php
 						}
 					}
 					if ($menuItem === 'edit') { ?>
 						<li><?php echo $this->Html->link('View Thread', array('controller' => 'threads', 'action' => 'view', $thread_id));?></li>
 						<li class="active"><?php echo $this->Html->link('Edit Post', array('controller' => 'threads', 'action' => 'view', $id));?></li>
 						<li class="divider"></li>
-					<?php 
+					<?php
 					}
 					?>
 					<li <?php if ($menuItem === 'index') echo 'class="active";'?>><?php echo $this->Html->link('List Threads', array('controller' => 'threads', 'action' => 'index'));?></li>
 					<li <?php if ($menuItem === 'add' && !isset($thread_id)) echo 'class="active";'?>><a href = "<?php echo Configure::read('CyDefSIG.baseurl');?>/posts/add">New Thread</a></li>
-					<?php 
-				break;	
+					<?php
+				break;
 			}
 		?>
 	</ul>

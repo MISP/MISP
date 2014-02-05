@@ -10,11 +10,13 @@
 	<?php foreach ($sharingGroups as $sharingGroup): ?>
 	<tr>
 		<td><?php echo h($sharingGroup['SharingGroup']['id']); ?>&nbsp;</td>
-		<td><?php echo h($sharingGroup['SharingGroup']['name']); ?>&nbsp;</td>
+		<td><b><?php echo h($sharingGroup['SharingGroup']['name']); ?></b>&nbsp;<br>
+            <?php echo implode(', ', Set::extract('/Organisation/name', $sharingGroup));?>
+        </td>
 		<td><?php echo h($sharingGroup['SharingGroup']['description']); ?>&nbsp;</td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $sharingGroup['SharingGroup']['id'], 'admin' => true), array('class' => 'btn')); ?>
-			<?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $sharingGroup['SharingGroup']['id']), array('class' => 'btn'), __('Are you sure you want to delete # %s?', $sharingGroup['SharingGroup']['id'])); ?>
+			<?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', 'admin' => true, $sharingGroup['SharingGroup']['id']), array('class' => 'btn'), __('Are you sure you want to delete # %s?', $sharingGroup['SharingGroup']['id'])); ?>
 		</td>
 	</tr>
 <?php endforeach; ?>

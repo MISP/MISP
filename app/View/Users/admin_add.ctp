@@ -28,9 +28,9 @@
 <script>
 (function(){
     'use strict';
-    $('#UserOrg').val($('#UserOrganisation option:selected').text());
-    $('#UserAdminAddForm').on('change', '#UserOrganisation', function(){
-        $('#UserOrg').val($('#UserOrganisation option:selected').text());
+    $('#UserOrg').val($('#UserOrganisationId option:selected').text());
+    $('#UserAdminAddForm').on('change', '#UserOrganisationId', function(){
+        $('#UserOrg').val($('#UserOrganisationId option:selected').text());
     });
 }());
 </script>

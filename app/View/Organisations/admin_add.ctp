@@ -3,7 +3,7 @@
     <fieldset>
         <legend><?php echo __('Add Organisation'); ?></legend>
     <?php echo $this->Form->input('name', array('class' => 'input-xxlarge'));
-    echo $this->Form->input('sharing_group_id', array('div' => 'clear'));
+    echo $this->Form->input('SharingGroup', array('multiple' => 'checkbox', 'div' => 'input clear'));
      ?>
     </fieldset>
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary')); ?>

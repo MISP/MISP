@@ -5,7 +5,7 @@
     <?php
         echo $this->Form->input('id');
         echo $this->Form->input('name', array('class' => 'input-xxlarge'));
-        echo $this->Form->input('sharing_group_id', array('div' => 'clear'));
+        echo $this->Form->input('SharingGroup', array('multiple' => 'checkbox', 'div' => 'input clear'));
     ?>
     </fieldset>
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary')); ?>
@@ -16,6 +16,6 @@
     <ul>
 
         <li><?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Organisation.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Organisation.id'))); ?></li>
-        <li><?php echo $this->Html->link(__('List Organisations'), array('action' => 'index')); ?></li>
+        <li><?php echo $this->Html->link(__('List Organisations'), array('action' => 'index', 'admin' => true)); ?></li>
     </ul>
 </div>

@@ -4,7 +4,7 @@ App::uses('AppController', 'Controller');
 class SharingGroupsController extends AppController {
 
 	public function admin_index() {
-		$this->SharingGroup->recursive = 0;
+        $this->paginate = array('contain' => array('Organisation'));
 		$this->set('sharingGroups', $this->paginate());
 	}
 

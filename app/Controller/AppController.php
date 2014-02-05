@@ -204,7 +204,7 @@ class AppController extends Controller {
                     'type' => 'inner',
                     'conditions'=> array(
                         'SharingGroup.id = EventsSharingGroup.sharing_group_id',
-                        'SharingGroup.id' => $org['SharingGroup']['id']
+                        'SharingGroup.id' => Set::extract('/SharingGroup/id', $org)
                         )
                 )
             ),

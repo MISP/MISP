@@ -73,6 +73,16 @@ class AppSchema extends CakeSchema {
 		),
 		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'InnoDB')
 	);
+    public $organisations_sharing_groups = array(
+        'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+        'organisation_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+        'created' => array('type' => 'datetime', 'null' => true, 'default' => null),
+        'updated' => array('type' => 'datetime', 'null' => true, 'default' => null),
+        'indexes' => array(
+            'PRIMARY' => array('column' => 'id', 'unique' => 1)
+        ),
+        'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'InnoDB')
+    );
 
     public $events_servers = array(
         'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),

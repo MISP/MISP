@@ -83,6 +83,17 @@ class EventsController extends AppController {
 	 * @return void
 	 */
 	public function index() {
+        /*$alertUsers = $this->Event->User->find('all', array(
+
+                    'contain' => array('Organisation' => array(
+                        'SharingGroup' => array(
+                        'conditions' => array('SharingGroup.id' => 2)))),
+                    'recursive' => -1,
+            ));
+
+        //$this->S = ClassRegistry::init('SharingGroup');
+        //$u = $this->S->find('all', array('contain' => array('Organisation' => array('User'))));
+        die(debug($alertUsers));*/
 		// list the events
 
 		// TODO information exposure vulnerability - as we don't limit the filter depending on the CyDefSIG.showorg parameter
@@ -165,7 +176,7 @@ class EventsController extends AppController {
                     'type' => 'inner',
                     'conditions'=> array(
                         'SharingGroup.id = EventsSharingGroup.sharing_group_id',
-                        'SharingGroup.id' => $org['SharingGroup']['id']
+                        'SharingGroup.id' => Set::extract('/SharingGroup/id', $org)
                         )
                 )
             );
@@ -502,6 +513,9 @@ class EventsController extends AppController {
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 		$this->set('sharingGroups', $this->Event->SharingGroup->find('list'));
+        $org = $this->Event->User->Organisation->read(null, $this->Auth->user('organisation_id'));
+        $this->set('selectedSharingGroups', Set::extract('/SharingGroup/id', $org));
+
         $this->set('servers', $this->Event->Server->find('list'));
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
@@ -1133,7 +1147,7 @@ class EventsController extends AppController {
 			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-			$this->loadModel('User');
+			//$this->loadModel('User');
 
 			//
 			// Build a list of the recipients that get a non-encrypted mail
@@ -1145,10 +1159,22 @@ class EventsController extends AppController {
 				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "");
 			}
 			if ('false' == Configure::read('GnuPG.onlyencrypted')) {
-				$alertUsers = $this->User->find('all', array(
-						'conditions' => $conditions,
-						'recursive' => 0,
-				));
+                $groups = Set::extract('/SharingGroup/id', $event);
+                if(!empty($groups)){
+                    $users = $this->Event->SharingGroup->find('all', array(
+                        'conditions' => array('SharingGroup.id' => $groups),
+                        'contain' => array('Organisation' => array('User')),
+                        'recursive' => -1,
+                    ));
+
+                    $alertUsers = Set::extract('/Organisation/User', $users);
+                }else{
+                    $alertUsers = $this->User->find('all', array(
+                        'conditions' => $conditions,
+                        'recursive' => 0,
+                    ));
+                }
+
 				foreach ($alertUsers as &$user) {
 					// prepare the the unencrypted email
 					$this->Email->from = Configure::read('CyDefSIG.email');
@@ -1172,11 +1198,23 @@ class EventsController extends AppController {
 			} else {
 				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "");
 			}
-			$alertUsers = $this->User->find('all', array(
-					'conditions' => $conditions,
-					'recursive' => 0,
-			)
-			);
+
+            $groups = Set::extract('/SharingGroup/id', $event);
+            if(!empty($groups)){
+                $users = $this->Event->SharingGroup->find('all', array(
+                    'conditions' => array('SharingGroup.id' => $groups),
+                    'contain' => array('Organisation' => array('User')),
+                    'recursive' => -1,
+                ));
+
+                $alertUsers = Set::extract('/Organisation/User', $users);
+            }else{
+                $alertUsers = $this->User->find('all', array(
+                    'conditions' => $conditions,
+                    'recursive' => 0
+                ));
+            }
+
 			// encrypt the mail for each user and send it separately
 			foreach ($alertUsers as &$user) {
 				// send the email
@@ -1540,23 +1578,25 @@ class EventsController extends AppController {
 		if(!$isSiteAdmin){
             $org_sharing = $this->Event->User->Organisation->read(null, $this->Auth->user('organisation_id'));
             $params['contain']['User'] = array('fields' => 'email');
-            $params['joins'] = array(
-                    array(
-                        'table' => 'events_sharing_groups',
-                        'alias' => 'EventsSharingGroup',
-                        'type' => 'inner',
-                        'conditions'=> array('EventsSharingGroup.event_id = Event.id')
-                    ),
-                    array(
-                        'table' => 'sharing_groups',
-                        'alias' => 'SharingGroup',
-                        'type' => 'inner',
-                        'conditions'=> array(
-                            'SharingGroup.id = EventsSharingGroup.sharing_group_id',
-                            'SharingGroup.id' => $org_sharing['SharingGroup']['id']
-                            )
-                    )
-                );
+            if(!empty($org_sharing)){
+                $params['joins'] = array(
+                        array(
+                            'table' => 'events_sharing_groups',
+                            'alias' => 'EventsSharingGroup',
+                            'type' => 'inner',
+                            'conditions'=> array('EventsSharingGroup.event_id = Event.id')
+                        ),
+                        array(
+                            'table' => 'sharing_groups',
+                            'alias' => 'SharingGroup',
+                            'type' => 'inner',
+                            'conditions'=> array(
+                                'SharingGroup.id = EventsSharingGroup.sharing_group_id',
+                                'SharingGroup.id' => Set::extract('/SharingGroup/id', $org_sharing)
+                                )
+                        )
+                    );
+            }
         }
 		$results = $this->Event->find('all', $params);
 		// Do some refactoring with the event
@@ -2346,6 +2386,9 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
+        if(!$this->_isInMySharingGroup($eventid)){
+            throw new UnauthorizedException('You do not have the permission to view this event.');
+        }
 		$this->Event->contain('Attribute');
 		$event = $this->Event->read(null, $eventid);
 		foreach ($event['Attribute'] as $k => $attribute) {

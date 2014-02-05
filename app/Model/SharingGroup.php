@@ -3,6 +3,8 @@ App::uses('AppModel', 'Model');
 
 class SharingGroup extends AppModel {
 
+    public $actsAs = array('Containable');
+
 	public $validate = array(
 		'name' => array(
 			'notempty' => array(
@@ -16,12 +18,12 @@ class SharingGroup extends AppModel {
 		)
 	);
 
-	/*public $hasAndBelongsToMany = array(
-        'Event' => array(
-            'className' => 'Event',
-            'joinTable' => 'events_sharing_groups',
+	public $hasAndBelongsToMany = array(
+        'Organisation' => array(
+            'className' => 'Organisation',
+            'joinTable' => 'organisations_sharing_groups',
             'foreignKey' => 'sharing_group_id',
-            'associationForeignKey' => 'event_id',
+            'associationForeignKey' => 'organisation_id',
         )
-    );*/
+    );
 }
