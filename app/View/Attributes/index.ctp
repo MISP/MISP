@@ -29,6 +29,9 @@ if ($isSearch == 1) {
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('event_id');?></th>
+			<?php if ('true' == Configure::read('MISP.showorg') || $isAdmin): ?>
+			<th><?php echo $this->Paginator->sort('orgc', 'Org');?></th>
+			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
@@ -58,15 +61,26 @@ foreach ($attributes as $attribute):
 			<div onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php
 				if ($attribute['Event']['orgc'] == $me['org']) {
-					$class='class="SameOrgLink"';
+					$style='style="color:red;"';
 				} else {
-					$class='';
+					$style='';
 				}
 				$currentCount++;
 			?>
-				<a href="/events/view/<?php echo $attribute['Event']['id'];?>" <?php echo $class;?>><?php echo $attribute['Event']['id'];?></a>
+				<a href="/events/view/<?php echo $attribute['Event']['id'];?>" <?php echo $style;?>><?php echo $attribute['Event']['id'];?></a>
 			</div>
 		</td>
+		<?php if ('true' == Configure::read('MISP.showorg') || $isAdmin): ?>
+		<td class="short" onclick="document.location.href ='/events/view/<?php echo $attribute['Event']['id'];?>'">
+			<?php
+				$imgRelativePath = 'orgs' . DS . h($attribute['Event']['orgc']) . '.png';
+				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
+				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($attribute['Event']['orgc']) . '.png', array('alt' => h($attribute['Event']['orgc']), 'title' => h($attribute['Event']['orgc']), 'style' => 'width:24px; height:24px'));
+				else echo $this->Html->tag('span', h($attribute['Event']['orgc']), array('class' => 'welcome', 'style' => 'float:left;'));
+			?>
+			&nbsp;
+		</td>
+		<?php endif;?>
 		<td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 		<?php echo $attribute['Attribute']['category']; ?>&nbsp;</td>
 		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
