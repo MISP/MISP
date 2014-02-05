@@ -40,6 +40,7 @@
 		$this->Js->get('#ShadowAttributeType')->event('change', 'showFormInfo("#ShadowAttributeType")');
 	?>
 	</fieldset>
+		<p style="color:red;font-weight:bold;display:none;" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 <?php
 	echo $this->Form->button('Propose', array('class' => 'btn btn-primary'));
 	echo $this->Form->end();
@@ -69,7 +70,6 @@ foreach ($categoryDefinitions as $category => $def) {
 ?>
 
 function formCategoryChanged(id) {
-  showFormInfo(id); // display the tooltip
   // fill in the types
   var options = $('#ShadowAttributeType').prop('options');
   $('option', $('#ShadowAttributeType')).remove();
@@ -81,10 +81,6 @@ function formCategoryChanged(id) {
 }
 
 $(document).ready(function() {
-
-	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
-	});
 
 	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute").on('mouseover', function(e) {
 	    var $e = $(e.target);
@@ -106,7 +102,7 @@ $(document).ready(function() {
 		var $e = $(e.target);
 		$('#'+e.currentTarget.id).popover('destroy');
         $('#'+e.currentTarget.id).popover({
-            trigger: 'manual',
+            trigger: 'focus',
             placement: 'right',
         }).popover('show');
 	});
@@ -115,15 +111,22 @@ $(document).ready(function() {
 	// disadvangate is that user needs to click on the item to see the tooltip.
 	// no solutions exist, except to generate the select completely using html.
 	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute").on('change', function(e) {
+		if (this.id === "ShadowAttributeCategory") {
+			var select = document.getElementById("ShadowAttributeCategory");
+			if (select.value === 'Attribution' || select.value === 'Targeting data') {
+				$("#warning-message").show();
+			} else {
+				$("#warning-message").hide();
+			}
+		}
 	    var $e = $(e.target);
         $('#'+e.currentTarget.id).popover('destroy');
         $('#'+e.currentTarget.id).popover({
-            trigger: 'manual',
+            trigger: 'focus',
             placement: 'right',
             content: formInfoValues[$e.val()],
         }).popover('show');
 	});
-
 });
 
 //

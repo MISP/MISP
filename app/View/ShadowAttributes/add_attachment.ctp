@@ -39,10 +39,6 @@
 
 $(document).ready(function() {
 
-	$("#ShadowAttributeCategory, #ShadowAttribute").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
-	});
-
 	$("#ShadowAttributeCategory, #ShadowAttribute").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {

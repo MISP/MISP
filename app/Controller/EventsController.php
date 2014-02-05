@@ -226,6 +226,16 @@ class EventsController extends AppController {
 			}
 		}
 
+		$this->loadModel('Log');
+		$logEntries = $this->Log->find('all', array(
+			'conditions' => array('title LIKE' => '%Event (' . $id . ')%', 'org !=' => $results[0]['Event']['orgc']),
+			'fields' => array('org'),
+			'group' => 'org'
+		));
+		foreach ($logEntries as $k => $entry) {
+			if (!isset($entry['Log']['org'])) unset ($logEntries[$k]);
+		}
+		$this->set('logEntries', $logEntries);
 		// This happens if the user doesn't have permission to view the event.
 		// TODO change this to NotFoundException to keep it in line with the other invalid event messages, but will have to check if it impacts the sync before doing that
 		if (!isset($results[0])) {

@@ -789,6 +789,15 @@ class UsersController extends AppController {
 		$this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
 		$this->set('end', strtotime(date('Y-m-d H:i:s')));
 		$this->set('startDateCal', $year . ', ' . $month . ', 01');
+		$max = $this->Log->maxDateActivity();
+		$increment = $max / 5;
+		$range = '[';
+		for ($i = 0; $i < 5; $i++) {
+			$range .= intval($i * $increment);
+			if ($i < 4) $range .= ', ';
+			else $range .= ']';
+		}
+		$this->set('range', $range);
 	}
 
 	public function verifyGPG() {

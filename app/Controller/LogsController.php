@@ -59,7 +59,7 @@ class LogsController extends AppController {
 	}
 
 	// Shows a minimalistic history for the currently selected event
-	public function event_index($id) {
+	public function event_index($id, $org = null) {
 		// check if the user has access to this event...
 		$mayModify = false;
 		$mineOrAdmin = false;
@@ -84,7 +84,7 @@ class LogsController extends AppController {
 		
 		
 		$conditions['OR'][] = array('AND' => array('Log.model LIKE' => 'Event', 'Log.model_id LIKE' => $id));
-		
+		if ($org) $conditions['AND'][] = array('Log.org LIKE' => $org);
 		// if we are not the owners of the event and we aren't site admins, then we should only see the entries for attributes that are not private
 		// This means that we will not be able to see deleted attributes - since those could have been private
 		if (!$mayModify) {
@@ -234,26 +234,13 @@ class LogsController extends AppController {
 		}
 	}
 
-	public function returnDates($startDate, $endDate, $org = 'all') {
-		$startDate = date('Y-m-d H:i:s', $startDate);
-		$endDate = date('Y-m-d H:i:s', $endDate);
-		$conditions = array();
-		$conditions = array('created <' => $endDate, 'created >' => $startDate);
-		if ($org !== 'all') $conditions['org'] = $org;
-		$validDates = $this->Log->find('all', array(
-				'fields' => array('created'),
-				'conditions' => $conditions,
-		));
-		$data = array();
-		foreach ($validDates as $k => $date) {
-			$temp = strtotime("0:00", strtotime($date['Log']['created']));
-			if (array_key_exists($temp, $data)) {
-				$data[$temp]++;
-			} else {
-				$data[$temp] = 1;
-			}
-		}
+	public function returnDates($org = 'all') {
+		$data = $this->Log->returnDates($org);
 		$this->set('data', $data);
 		$this->set('_serialize', 'data');
+	}
+	
+	public function maxDateActivity() {
+		return $this->Log->maxDateActivity();
 	}
 }

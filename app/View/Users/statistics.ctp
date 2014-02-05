@@ -54,9 +54,9 @@
 </div>
 <br />
 <br />
-<div id="cal-heatmap"></div>
-
-
+<div style="float:left;margin-top:50px;margin-right:5px;"><button id="goLeft" class="btn"><span class="icon-arrow-left"></span></button></div>
+<div id="cal-heatmap" style="float:left;"></div>
+<div style="float:left;margin-top:50px;margin-left:5px;"><button id="goRight" class="btn"><span class="icon-arrow-right"></span></button></div>
 <script type="text/javascript">
 var cal = new CalHeatMap();
 cal.init({
@@ -64,22 +64,23 @@ cal.init({
 	domain:"month", 
 	subDomain:"x_day",
 	start: new Date(<?php echo $startDateCal; ?>),
-	data: "<?php echo Configure::read('CyDefSIG.baseurl'); ?>/logs/returnDates/<?php echo $start; ?>/<?php echo $end?>.json",
+	data: "<?php echo Configure::read('CyDefSIG.baseurl'); ?>/logs/returnDates.json",
 	highlight: "now",
 	domainDynamicDimension: false,
 	cellSize: 20,
 	cellPadding: 1,
 	domainGutter: 10,
-	//subDomainTextFormat: "%d",
-	legend: [20, 40, 60, 80],
-	legendCellSize: 15
+	legend: <?php echo $range;?>,
+	legendCellSize: 15,
+	previousSelector: "#goLeft",
+	nextSelector: "#goRight"
 });
 
 function updateCalendar(org) {
 	if (org == 'all') {
-		cal.update("<?php echo Configure::read('CyDefSIG.baseurl'); ?>/logs/returnDates/<?php echo $start; ?>/<?php echo $end?>/all.json");
+		cal.update("<?php echo Configure::read('CyDefSIG.baseurl'); ?>/logs/returnDates/all.json");
 	} else {
-		cal.update("<?php echo Configure::read('CyDefSIG.baseurl'); ?>/logs/returnDates/<?php echo $start; ?>/<?php echo $end?>/"+org+".json");
+		cal.update("<?php echo Configure::read('CyDefSIG.baseurl'); ?>/logs/returnDates/"+org+".json");
 	}
 }
 </script>

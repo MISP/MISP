@@ -45,6 +45,7 @@
 		$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
 		?>
 	</fieldset>
+		<p style="color:red;font-weight:bold;display:none;" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 <?php
 echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
@@ -106,10 +107,6 @@ foreach ($distributionDescriptions as $type => $def) {
 
 $(document).ready(function() {
 
-	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
-	});
-
 	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {
@@ -139,6 +136,14 @@ $(document).ready(function() {
 	// disadvangate is that user needs to click on the item to see the tooltip.
 	// no solutions exist, except to generate the select completely using html.
 	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('change', function(e) {
+		if (this.id === "AttributeCategory") {
+			var select = document.getElementById("AttributeCategory");
+			if (select.value === 'Attribution' || select.value === 'Targeting data') {
+				$("#warning-message").show();
+			} else {
+				$("#warning-message").hide();
+			}
+		}
 	    var $e = $(e.target);
         $('#'+e.currentTarget.id).popover('destroy');
         $('#'+e.currentTarget.id).popover({
@@ -147,10 +152,7 @@ $(document).ready(function() {
             content: formInfoValues[$e.val()],
         }).popover('show');
 	});
-
 });
-
-
 
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts

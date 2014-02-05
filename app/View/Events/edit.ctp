@@ -66,10 +66,6 @@ foreach ($analysisDescriptions as $type => $def) {
 
 $(document).ready(function() {
 
-	$("#EventAnalysis, #EventThreatLevelId, #EventDistribution").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
-	});
-
 	$("#EventAnalysis, #EventThreatLevelId, #EventDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {

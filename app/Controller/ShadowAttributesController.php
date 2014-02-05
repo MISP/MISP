@@ -232,7 +232,7 @@ class ShadowAttributesController extends AppController {
 				'recursive' => -1,
 				'fields' => array('id', 'orgc', 'distribution', 'org'),
 		));
-		if ((($event['Event']['distribution'] == 0 && !$event['Event']['org'] != $this->Auth->user('org'))) || ($event['Event']['orgc'] == $this->Auth->user('org'))) {
+		if ((($event['Event']['distribution'] == 0 && $event['Event']['org'] != $this->Auth->user('org'))) || ($event['Event']['orgc'] == $this->Auth->user('org'))) {
 			$this->Session->setFlash(__('Invalid Event.'));
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
@@ -383,7 +383,7 @@ class ShadowAttributesController extends AppController {
 				'recursive' => -1,
 				'fields' => array('id', 'orgc', 'distribution', 'org'),
 		));
-		if ((($event['Event']['distribution'] == 0 && !$event['Event']['org'] != $this->Auth->user('org'))) || ($event['Event']['orgc'] == $this->Auth->user('org'))) {
+		if ((($event['Event']['distribution'] == 0 && $event['Event']['org'] != $this->Auth->user('org'))) || ($event['Event']['orgc'] == $this->Auth->user('org'))) {
 			$this->Session->setFlash(__('Invalid Event.'));
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
@@ -546,7 +546,7 @@ class ShadowAttributesController extends AppController {
 			// If the attribute's distribution is private and the user is not the owner of the event or if the user is of the original creator org -> exception
 			// The owner should be able to create a shadow attribute, since a pushed community event would be private and tied to a single organisation on a synced instance
 			// The users of that organisation can only view but not edit the event, but they should be able to propose a change 
-			if ((($this->Attribute->data['Attribute']['distribution'] == 0 && !$this->Attribute->data['Event']['org'] != $this->Auth->user('org'))) || ($this->Attribute->data['Event']['orgc'] == $this->Auth->user('org'))) {
+			if ((($this->Attribute->data['Attribute']['distribution'] == 0 && $this->Attribute->data['Event']['org'] != $this->Auth->user('org'))) || ($this->Attribute->data['Event']['orgc'] == $this->Auth->user('org'))) {
 				$this->Session->setFlash(__('Invalid Attribute.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}

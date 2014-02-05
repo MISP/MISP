@@ -7,11 +7,11 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 ?>
 
 <div class="events view">
-
 	<?php
-	if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) {
-		echo $this->element('img', array('id' => $event['Event']['orgc']));
-	}
+		if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) {
+			echo $this->element('img', array('id' => $event['Event']['orgc']));
+			$left = true;
+		}
 	?>
 	<div class="row-fluid">
 		<div class="span8">
@@ -41,6 +41,23 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					&nbsp;
 				</dd>
 				<?php endif; ?>
+				<dt>Contributors</dt>
+				<dd>
+					<?php 
+						foreach($logEntries as $k => $entry) {
+							if ('true' == Configure::read('CyDefSIG.showorg') || $isAdmin) {
+								?>
+									<a href="/logs/event_index/<?php echo $event['Event']['id'] . '/' . h($entry['Log']['org']);?>" style="margin-right:2px;text-decoration: none;">
+								<?php 
+									echo $this->element('img', array('id' => $entry['Log']['org'], 'imgSize' => 24, 'imgStyle' => true));
+								?>
+									</a>
+								<?php 
+							}
+						}		
+					?>
+					&nbsp;
+				</dd>
 				<?php if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org'] == $event['Event']['org']))): ?>
 				<dt>Email</dt>
 				<dd>
@@ -91,10 +108,10 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 							<button id="addTagButton" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">+</button>
 					
 							</td>
-							<?php endif; ?>
+							<?php else: echo '&nbsp;'; 
+								endif; ?>
 						</tr>
 						</table>
-						&nbsp;
 						</dd>
 				<?php endif; ?>
 				<dt>Date</dt>
@@ -118,7 +135,6 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 				<dt>Distribution</dt>
 				<dd <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?>>
 					<?php echo h($distributionLevels[$event['Event']['distribution']] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
-					&nbsp;
 				</dd>
 				<dt>Info</dt>
 				<dd>

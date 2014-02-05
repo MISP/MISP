@@ -109,10 +109,6 @@ foreach ($categoryDefinitions as $category => $def) {
 ?>
 $(document).ready(function() {
 	
-	$("#AttributeCategory, #AttributeDistribution").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
-	});
-	
 	$("#AttributeCategory, #AttributeDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {

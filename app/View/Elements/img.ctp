@@ -10,11 +10,14 @@
  */
 
 $imgId = h($id);
+if (!isset($imgSize)) $imgSize = 48;
+if (!isset($imgStyle)) $imgStyle = array('style' => 'float:right');
+else $imgStyle = '';
 $imgRelativePath = 'orgs/' . $imgId . '.png';
 $imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-$imgExtraOptions = array('style' => 'float:right;');
+$imgExtraOptions = $imgStyle;
 if (file_exists($imgAbsolutePath)) {
-	echo $this->Html->image($imgRelativePath, Set::merge(array('alt' => $imgId,'width' => '48', 'height' => '48'), $imgExtraOptions));
+	echo $this->Html->image($imgRelativePath, Set::merge(array('alt' => $imgId,'width' => $imgSize, 'height' => $imgStyle, 'title' => $imgId), $imgExtraOptions));
 } else {
 	echo $this->Html->tag('span', $imgId, Set::merge(array('class' => 'img'), $imgExtraOptions));
 }
