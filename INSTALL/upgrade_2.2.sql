@@ -1,8 +1,7 @@
-ALTER TABLE  `roles` ADD  (
-  `perm_site_admin` TINYINT( 1 ) NOT NULL DEFAULT  '0',
-  `perm_regexp_access` TINYINT( 1 ) NOT NULL DEFAULT  '0',
-  `perm_tagger` TINYINT( 1 ) NOT NULL DEFAULT  '0'
-);
+ALTER TABLE  `roles` 
+  ADD `perm_site_admin` TINYINT( 1 ) NOT NULL DEFAULT  '0',
+  ADD `perm_regexp_access` TINYINT( 1 ) NOT NULL DEFAULT  '0',
+  ADD `perm_tagger` TINYINT( 1 ) NOT NULL DEFAULT  '0';
 
 CREATE TABLE IF NOT EXISTS `threads` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -78,17 +77,15 @@ CREATE TABLE IF NOT EXISTS `jobs` (
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
 
-ALTER TABLE  `attributes` ADD  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;
-ALTER TABLE  `shadow_attributes` ADD  (
-  `event_org` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
-  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
-  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
-);
+ALTER TABLE  `attributes` ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;
+ALTER TABLE  `shadow_attributes` 
+ ADD `event_org` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+ ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+ ADD `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL;
 
-ALTER TABLE `servers` ADD (
-  `self_signed` tinyint(1) NOT NULL,
-  `cert_file` varchar(255) COLLATE utf8_bin NOT NULL,
-);
+ALTER TABLE `servers` 
+  ADD `self_signed` tinyint(1) NOT NULL,
+  ADD `cert_file` varchar(255) COLLATE utf8_bin NOT NULL;
 
 UPDATE `roles` SET `perm_site_admin` = 1 WHERE `id` = 1;
 

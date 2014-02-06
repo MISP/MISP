@@ -110,7 +110,7 @@ Configure::write('MISP.showorg', 'true');             // show the name/flag of t
 Configure::write('MISP.sync', 'true');                 // (Warning, do not disable this!!!) enable features related to syncing with other MISP instances - should be always on because of the current distribution model.
 Configure::write('MISP.taxii_sync', 'false');		 	// Use the taxii demon to offload the synchronisation to a background process - see https://github.com/MISP/MISP-TAXII
 Configure::write('MISP.taxii_client_path', '/usr/local/taxii-client-vanilla');
-Configure::write('MISP.background_jobs', 'false');      // Use CakeResque to delegate jobs to a background worker and to schedule jobs (synchronisation, e-mailing, caching of exports) - Please also enable CakeResque (at the end of this file)
+Configure::write('MISP.background_jobs', false);      // Use CakeResque to delegate jobs to a background worker and to schedule jobs (synchronisation, e-mailing, caching of exports) - Please also enable CakeResque (at the end of this file)
 
 Configure::write('MISP.email', 'email@address.com'); // email from for all the mails
 Configure::write('MISP.contact', 'email@address.com'); // contact address for this instance's support person / group
