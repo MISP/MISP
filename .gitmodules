@@ -1,0 +1,3 @@
+[submodule "app/Plugin/CakeResque"]
+	path = app/Plugin/CakeResque
+	url = git://github.com/kamisama/Cake-Resque.git
