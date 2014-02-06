@@ -1101,7 +1101,7 @@ class EventsController extends AppController {
 				$conditions = null;			
 			} else {
 				$useOrg = $this->Auth->User('org');
-				$conditions = array('orgc' => $this->Auth-user('org'));
+				$conditions = array('orgc' => $this->Auth->user('org'));
 			}
 			$this->Event->recursive = -1;
 			$newestEvent = $this->Event->find('first', array(
