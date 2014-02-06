@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS `jobs` (
 
 
 ALTER TABLE  `attributes` ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;
+ALTER TABLE  `events` ADD `threat_level_id` int(11) NOT NULL;
 ALTER TABLE  `shadow_attributes` 
  ADD `event_org` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
  ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
