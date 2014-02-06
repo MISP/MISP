@@ -19,5 +19,4 @@
 /cakephp
 /app/webroot/gpg.asc
 /app/Plugin/CakeResque/Config/bootstrap.php
-/app/tmp/cached_exports/*
 /app/tmp/logs
