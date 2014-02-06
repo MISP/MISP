@@ -93,23 +93,24 @@ if (!Configure::read('MISP.baseurl')) {
 	}
 }
 Configure::write('MISP.name', 'MISP');
-Configure::write('MISP.version', '2.1');
+Configure::write('MISP.version', '2.2');
 Configure::write('MISP.header', 'MISP: Malware Information Sharing Platform');
 Configure::write('MISP.footerpart1', 'Powered by MISP');
 Configure::write('MISP.footerpart2', '&copy; Belgian Defense CERT & NCIRC');
 Configure::write('MISP.footer', Configure::read('MISP.footerpart1') . ' ' . Configure::read('MISP.footerpart2'));
 Configure::write('MISP.footerversion', Configure::read('MISP.footerpart1') . ' version ' . Configure::read('MISP.version') . ' ' . Configure::read('MISP.footerpart2'));
 // The following field is optional
-// Configure::write('MISP.footer_logo', 'imagename');     // Logo for the bottom right corner of the screen
+// Configure::write('MISP.footer_logo', 'imagename');     // Logo for the bottom right corner of the screen. Place a .png image into your app/webroot/img folder 
 Configure::write('MISP.org', 'ORGNAME');                // if sync this will be Event.org content on the peer side
 Configure::write('MISP.logo', 'orgs/ORGNAME.png');     // used in Events::index for owned events
 
 
 Configure::write('MISP.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
 
-Configure::write('MISP.sync', 'true');                 // enable features related to syncing with other MISP instances - should be always on because of the current distribution model.
-Configure::write('MISP.taxii_sync', 'true');
+Configure::write('MISP.sync', 'true');                 // (Warning, do not disable this!!!) enable features related to syncing with other MISP instances - should be always on because of the current distribution model.
+Configure::write('MISP.taxii_sync', 'false');		 	// Use the taxii demon to offload the synchronisation to a background process - see https://github.com/MISP/MISP-TAXII
 Configure::write('MISP.taxii_client_path', '/usr/local/taxii-client-vanilla');
+Configure::write('MISP.background_jobs', 'false');      // Use CakeResque to delegate jobs to a background worker and to schedule jobs (synchronisation, e-mailing, caching of exports) - Please also enable CakeResque (at the end of this file)
 
 Configure::write('MISP.email', 'email@address.com'); // email from for all the mails
 Configure::write('MISP.contact', 'email@address.com'); // contact address for this instance's support person / group
@@ -126,7 +127,7 @@ Configure::write('MISP.dns', 'false');				// there is a nameserver available to 
 
 Configure::write('MISP.cveurl', 'http://web.nvd.nist.gov/view/vuln/detail?vulnId='); 	// Default URL for NVD/CVE reference.
 
-// The following 3 fields are optional
+// The following 4 fields are optional
 
 // Configure::write('MISP.welcome_text_top', 'Welcome to the Organisation community\'s');     // used in Events::login before the MISP logo
 // Configure::write('MISP.welcome_text_bottom', 'instance');     // used in Events::login after the MISP logo
@@ -138,7 +139,8 @@ Configure::write('MISP.default_event_distribution', '3');
 // Setting this to 'event' will create attributes that take the event's distribution as the initial setting. Valid options: '0', '1', '2', '3', 'event'
 Configure::write('MISP.default_attribute_distribution', 'event');
 
-// Configure::write('MISP.background_jobs', true);
+// Enable the tagging feature, it shou
+Configure::write('MISP.tagging', true);
 
 /**
  * The settings below can be used to set additional paths to models, views and controllers.
@@ -229,3 +231,8 @@ CakeLog::config('error', array(
 	'file' => 'error',
 ));
 
+/*
+CakePlugin::loadAll(array(
+	'CakeResque' => array('bootstrap' => true)
+));
+*/
