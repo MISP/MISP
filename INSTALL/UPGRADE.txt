@@ -1,24 +1,40 @@
 
-Upgrade procedure from v1 to v2
+Upgrade procedure from v2.1 to v2.2
 
-- git pull the latest version of MISP from https://github.com/BeDefCERT/MISP.git
+- git pull the latest version of MISP from https://github.com/MISP/MISP.git
 
-- execute the .sql file called "MYSQL.migrate.sql" found in the www/MISP/INSTALL folder. You can do this by 
-	using the command "mysql -u [username] -p[password] [MISP's database] < MYSQL.migrate.sql
-
-- excecute the following two commands from your www/MISP/app folder:
-	./Console/cake acl create aco root controllers
-	./Console/cake AclExtras.AclExtras aco_sync
+- execute the .sql file called "upgrade_2.2.sql" found in the /MISP/INSTALL folder. You can do this by 
+	using the command "mysql -u [username] -p[password] [MISP's database] < upgrade_2.2.sql
 
 - Log in with the site admin credentials and execute the following commands by changing the url 
 (where <MISP> is the address of your instance):
-	- https://<MISP>/events/generateCorrelation
-	- https://<MISP>/events/generateCount
-	- https://<MISP>/events/generateArosAcos
+	- https://<MISP>/events/generateThreatLevelFromRisk
 
-If all went right, then your MISP instance should now be at version 2. 
+- Replace your current bootstrap.php file found in /MISP/app/Config/ with bootstrap.default.php and change set your instance up to your liking
 
-Check the following:
-	- That your organisation in the bootstrap.php file found in www/MISP/app/Config/ is the correct
-	Organisation identifier used by the users of your organisation and by the sync users of 
-	other hosting organisations that synchronise with your instance. 
+================================================================================================================================================
+
+Enabling background jobs via CakeResque 
+(assuming /var/www/MISP as your installation directory)
+
+- install redis: 
+	- apt-get install redis-server
+	- cp /etc/redis/redis.conf /etc/redis/redis.conf.default
+
+- set up CakeResque:
+	- cd /var/www/MISP/app/Plugin/CakeResque
+	- curl -s https://getcomposer.org/installer | php
+	- php composer.phar install
+	- vim /var/www/MISP/app/bootstrap.php
+	- set Configure::write('MISP.background_jobs', false); to Configure::write('MISP.background_jobs', true); 
+	- uncomment CakePlugin::load('CakeResque', array('bootstrap' => true));
+
+- If you would like to use the scheduled tasks:
+	- vim /var/www/MISP/app/Plugin/CakeResque/Config/config.php
+	- Line 185 ('enabled' => false,) change it to 'enabled' => true,
+	
+- start the background workers
+	- cd /var/www/MISP/app/Console/worker/
+	- ./start.sh
+	
+================================================================================================================================================

@@ -5,7 +5,7 @@ App::uses('File', 'Utility');
 require_once 'AppShell.php';
 class EventShell extends AppShell
 {
-	public $uses = array('Event', 'Attribute', 'Job', 'User', 'Task');
+	public $uses = array('Event', 'Attribute', 'Job', 'User', 'Task', 'Whitelist');
 	
 	public function doPublish() {
 		$id = $this->args[0];
@@ -52,7 +52,6 @@ class EventShell extends AppShell
 		}
 
 		// Whitelist check
-		$this->loadModel('Whitelist');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
 		
 		foreach ($results as $k => $result) {
@@ -146,7 +145,6 @@ class EventShell extends AppShell
 				$this->Job->saveField('progress', $k / $eventCount * 80);
 			}
 		}
-		$this->loadModel('Whitelist');
 		$final = array();
 		$final[] = 'uuid,event_id,category,type,value';
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);

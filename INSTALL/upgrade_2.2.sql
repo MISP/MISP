@@ -78,7 +78,11 @@ CREATE TABLE IF NOT EXISTS `jobs` (
 
 
 ALTER TABLE  `attributes` ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;
-ALTER TABLE  `events` ADD `threat_level_id` int(11) NOT NULL;
+
+ALTER TABLE  `events` 
+  ADD `threat_level_id` int(11) NOT NULL,
+  ADD `publish_timestamp` int(11) NOT NULL;
+
 ALTER TABLE  `shadow_attributes` 
  ADD `event_org` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
  ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
@@ -89,6 +93,13 @@ ALTER TABLE `servers`
   ADD `cert_file` varchar(255) COLLATE utf8_bin NOT NULL;
 
 UPDATE `roles` SET `perm_site_admin` = 1 WHERE `id` = 1;
+
+INSERT INTO `threat_levels` (`id`, `name`, `description`, `form_description`)
+VALUES
+  (1,'High','*high* means sophisticated APT malware or 0-day attack','Sophisticated APT malware or 0-day attack'),
+  (2,'Medium','*medium* means APT malware','APT malware'),
+  (3,'Low','*low* means mass-malware','Mass-malware'),
+  (4,'Undefined','*undefined* no risk','No risk');
 
 INSERT INTO `tasks` (`id`, `type`, `timer`, `scheduled_time`, `job_id`, `description`, `next_execution_time`, `message`) VALUES
 (1, 'cache_exports', 0, '12:00', 0, 'Generates export caches for every export type and for every organisation. This process is heavy, schedule so it might be a good idea to schedule this outside of working hours and before your daily automatic imports on connected services are scheduled.', 1391601600, 'Not scheduled yet.'),
