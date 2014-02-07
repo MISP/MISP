@@ -6,7 +6,7 @@ printf '|                                                      |\n'
 printf '|                  2.1 => 2.2 upgrade                  |\n'
 printf '|                                                      |\n'
 printf '========================================================\n\n'
-read -p 'Do you wish to your database now? [y/n] ' -n 1 -r
+read -p 'Do you wish to upgrade your database now? [y/n] ' -n 1 -r
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
 	printf '\n\nIn order to upgrade your MISP database to version 2.2, enter your database credentials.'
