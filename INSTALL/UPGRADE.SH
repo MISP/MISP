@@ -13,6 +13,7 @@ then
 	read password
 	printf '\nDatabase: '
 	read database
+	mysql -u $name -p$password $database < upgrade_2.2.sql
 	printf '\n\n'
 else
 	printf '\n\nDatabase not updated. You will have to update it manually by executing\n\nmysql -u [username] -p[password] [database name] < upgrade_2.2.sql from the MISP/INSTALL directory\n\n'
