@@ -1,3 +1,4 @@
+git submodule foreach git pull origin master
 cd ../app/Plugin/CakeResque
 apt-get install redis-server
 curl -s https://getcomposer.org/installer | php

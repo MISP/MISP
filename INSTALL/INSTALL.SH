@@ -3,6 +3,7 @@ apt-get install zip php-pear git
 pear install Crypt_GPG
 pear install Net_GeoIP
 git config core.filemode false
+git submodule foreach git pull origin master
 cd ../app/Plugin/CakeResque
 apt-get install redis-server
 curl -s https://getcomposer.org/installer | php
