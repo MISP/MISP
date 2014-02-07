@@ -1,3 +1,8 @@
+printf '=========================================================\n'
+printf '|                                                       |\n'
+printf '|                MISP 2.1 => 2.2 upgrade                |\n'
+printf '|                                                       |\n'
+printf '=========================================================\n\n'
 read -p 'Do you wish to your database now? [y/n] ' -n 1 -r
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
