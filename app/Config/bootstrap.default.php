@@ -187,12 +187,9 @@ Configure::write('MISP.tagging', true);
  *
  */
 
-CakePlugin::load('AclExtras');
-
 CakePlugin::load('SysLog');
 CakePlugin::load('Assets'); // having Logable
 CakePlugin::load('SysLogLogable');
-CakePlugin::load('MagicTools'); // having OrphansProtectable
 CakePlugin::load('UrlCache');
 
 /**
