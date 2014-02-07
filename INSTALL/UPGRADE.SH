@@ -1,3 +1,17 @@
+read -p 'Do you wish to your database now? [y/n] ' -n 1 -r
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+	printf '\n\nIn order to upgrade your MISP database to version 2.2, enter your database credentials.'
+	printf '\nUsername: '
+	read name
+	printf '\nPassword: '
+	read password
+	printf '\nDatabase: '
+	read database
+	printf '\n\n'
+else
+	printf '\n\nDatabase not updated. You will have to update it manually by executing\n\nmysql -u [username] -p[password] [database name] < upgrade_2.2.sql from the MISP/INSTALL directory\n\n'
+fi
 cd ..
 git submodule init
 git submodule update
