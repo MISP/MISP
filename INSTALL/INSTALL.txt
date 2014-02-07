@@ -23,48 +23,6 @@ Once the system is installed you can perform the following steps as root:
 # Because vim is just so practical
 apt-get install vim
 
-# Install the dependencies:
-apt-get install zip php-pear git
-pear install Crypt_GPG    # we need version >1.3.0 
-pear install Net_GeoIP
-
-
-3/ CakePHP
------------
-# Download CakePHP from github
-cd /opt/
-git clone https://github.com/cakephp/cakephp.git
-
-# You should REALLY make sure that you install security updates of CakePHP when your system is in production !
-
-# If you plan to run multiple MISP instances on a single server, only one installation of CakePHP is needed !
-
-4/ MISP code
-------------
-# Download MISP using git in the /var/www/ directory. 
-cd /var/www/
-git clone https://github.com/MISP/MISP.git 
-
-# Make git ignore filesystem permission differences
-cd /var/www/MISP
-git config core.filemode false
-
-
-# Check if the permissions are set correctly using the following commands as root:
-chown -R www-data:www-data /var/www/MISP
-chmod -R 750 /var/www/MISP
-cd /var/www/MISP/app/
-chmod -R g+ws tmp
-chmod -R g+ws files
-cd /var/www/MISP
-
-##
-## FIXME this is not really clean
-## 
-# Currently you will need to copy the plugins to the CakePHP directory.
-cp -r /var/www/MISP/plugins/* /opt/cakephp/plugins/
-chmod -R o+rx /opt/cakephp/plugins
-
 5/ Create a database and user
 -----------------------------
 # Enter the mysql shell

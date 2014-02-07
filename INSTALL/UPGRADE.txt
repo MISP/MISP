@@ -6,6 +6,10 @@ Upgrade procedure from v2.1 to v2.2
 - execute the .sql file called "upgrade_2.2.sql" found in the /MISP/INSTALL folder. You can do this by 
 	using the command "mysql -u [username] -p[password] [MISP's database] < upgrade_2.2.sql
 
+- execute UPGRADE.SH in the MISP/INSTALL folder (this also includes the installation of Redis for CakeResque)   
+	- cd /var/www/MISP/INSTALL
+	- ./UPGRADE.SH
+
 - Log in with the site admin credentials and execute the following commands by changing the url 
 (where <MISP> is the address of your instance):
 	- https://<MISP>/events/generateThreatLevelFromRisk
@@ -17,14 +21,7 @@ Upgrade procedure from v2.1 to v2.2
 Enabling background jobs via CakeResque 
 (assuming /var/www/MISP as your installation directory)
 
-- install redis: 
-	- apt-get install redis-server
-	- cp /etc/redis/redis.conf /etc/redis/redis.conf.default
-
 - set up CakeResque:
-	- cd /var/www/MISP/app/Plugin/CakeResque
-	- curl -s https://getcomposer.org/installer | php
-	- php composer.phar install
 	- vim /var/www/MISP/app/bootstrap.php
 	- set Configure::write('MISP.background_jobs', false); to Configure::write('MISP.background_jobs', true); 
 	- uncomment CakePlugin::load('CakeResque', array('bootstrap' => true));

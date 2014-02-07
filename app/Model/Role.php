@@ -52,7 +52,6 @@ class Role extends AppModel {
  */
 	public $actsAs = array(
 			'Trim',
-			'MagicTools.OrphansProtectable',
 			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
 					'roleModel' => 'Role',
 					'roleKey' => 'role_id',
