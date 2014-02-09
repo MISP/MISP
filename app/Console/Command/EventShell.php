@@ -229,11 +229,12 @@ class EventShell extends AppShell
 	public function alertemail() {
 		$org = $this->args[0];
 		$processId = $this->args[1];
-		$this->Job->id = $processId;
+		$job = $this->Job->read(null, $processId);
 		$eventId = $this->args[2];
 		$result = $this->Event->sendAlertEmail($eventId, $org, $processId);
-		$this->Job->saveField('progress', '100');
-		if ($result != true) $this->Job->saveField('message', 'Job done.');
+		$job['Job']['progress'] = 100;
+		$job['Job']['message'] = 'Emails sent.';
+		$this->Job->save($job);
 	}
 	
 	public function contactemail() {
@@ -289,11 +290,34 @@ class EventShell extends AppShell
 		$id = $this->args[0];
 		$passAlong = $this->args[1];
 		$jobId = $this->args[2];
-		$this->Job->id = $jobId;
+		$org = $this->args[3];
+		$email = $this->args[4];
+		$user = $this->User->find('first', array(
+			'conditions' => array('email' => $email),
+			'fields' => array('email', 'org', 'id'),
+			'recursive' => -1,
+		));
+		$job = $this->Job->read(null, $jobId);
 		$eventId = $this->args[2];
-		$result = $this->Event->publish($id, $passAlong, $jobId);
-		$this->Job->saveField('progress', '100');
-		if ($result != true) $this->Job->saveField('message', 'Job done.');
+		$this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
+		$result = $this->Event->publish($id, $passAlong);
+		$job['Job']['progress'] = 100;
+		if ($result) {
+			$job['Job']['message'] = 'Event published.';
+		} else {
+			$job['Job']['message'] = 'Event published, but the upload to other instances may have failed.';
+		}
+		$this->Job->save($job);
+		$log = ClassRegistry::init('Log');
+		$log->create();
+		$log->save(array(
+				'org' => $user['User']['org'],
+				'email' =>$user['User']['email'],
+				'user_id' => $user['User']['id'],
+				'action' => 'publish',
+				'title' => 'Event (' . $id . '): published.',
+				'change' => 'published () => (1)'));
 	}
+
 }
 

@@ -979,7 +979,7 @@ class EventsController extends AppController {
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// Performs all the actions required to publish an event
-			$result = $this->Event->publishRouter($id, null, $this->Auth->user('org'));
+			$result = $this->Event->publishRouter($id, null, $this->Auth->user('org'), $this->Auth->user('email'));
 			if (!Configure::read('MISP.background_jobs')) {
 				if (!is_array($result)) {
 					// redirect to the view event page
@@ -1021,7 +1021,7 @@ class EventsController extends AppController {
 			$emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user(), $this->_isSiteAdmin());
 			if (is_bool($emailResult) && $emailResult = true) {
 				// Performs all the actions required to publish an event
-				$result = $this->Event->publishRouter($id, null, $this->Auth->user('org'));
+				$result = $this->Event->publishRouter($id, null, $this->Auth->user('org'), $this->Auth->user('email'));
 				if (!is_array($result)) {
 
 					// redirect to the view event page

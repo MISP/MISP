@@ -1137,6 +1137,7 @@ class Event extends AppModel {
 						$Email->send($bodySigned);
 						$Email->reset();
 						if ($processId) {
+							$this->Job->id = $processId;
 							$this->Job->saveField('progress', $k / $max * 50);
 						}
 					}
@@ -1485,7 +1486,7 @@ class Event extends AppModel {
 		}
 	}
 	
-	public function publishRouter($id, $passAlong = null, $org = null) {
+	public function publishRouter($id, $passAlong = null, $org = null, $email = null) {
 		if (Configure::read('MISP.background_jobs')) {
 			$job = ClassRegistry::init('Job');
 			$job->create();
@@ -1503,7 +1504,7 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'default',
 					'EventShell',
-					array('publish', $id, $passAlong, $jobId)
+					array('publish', $id, $passAlong, $jobId, $org, $email)
 			);
 			$job->saveField('process_id', $process_id);
 			return $process_id;
@@ -1518,7 +1519,10 @@ class Event extends AppModel {
 	 *
 	 * @param unknown_type $id
 	 */
-	public function publish($id, $passAlong = null, $processId = null) {
+	public function publish($id, $passAlong = null, $jobId = null) {
+		if ($jobId) {
+			$this->Behaviors->unload('SysLogLogable.SysLogLogable');
+		}
 		$this->id = $id;
 		$this->recursive = 0;
 		$event = $this->read(null, $id);
@@ -1526,7 +1530,7 @@ class Event extends AppModel {
 		$fieldList = array('published', 'id', 'info', 'publish_timestamp');
 		$event['Event']['published'] = 1;
 		$event['Event']['publish_timestamp'] = time();
-		$this->save($event, array('fieldList' => $fieldList));
+		$this->save($event, array('fieldList' => $fieldList));		
 		$uploaded = false;
 		if ('true' == Configure::read('MISP.sync') && $event['Event']['distribution'] > 1) {
 			$uploaded = $this->uploadEventToServersRouter($id, $passAlong);
@@ -1534,12 +1538,6 @@ class Event extends AppModel {
 				$this->saveField('published', 0);
 			}
 		} else {
-			if ($processId != null) {
-				$job = ClassRegistry::init('Job');
-				$job->id = $processId;
-				$job->saveField('progress', 100);
-				$job->saveField('message', 'Event (' . $id . ') published.');
-			}
 			return true;
 		}
 		return $uploaded;
