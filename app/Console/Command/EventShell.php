@@ -288,10 +288,10 @@ class EventShell extends AppShell
 	public function publish() {
 		$id = $this->args[0];
 		$passAlong = $this->args[1];
-		$processId = $this->args[2];
-		$this->Job->id = $processId;
+		$jobId = $this->args[2];
+		$this->Job->id = $jobId;
 		$eventId = $this->args[2];
-		$result = $this->Event->publish($id, $passAlong, $processId);
+		$result = $this->Event->publish($id, $passAlong, $jobId);
 		$this->Job->saveField('progress', '100');
 		if ($result != true) $this->Job->saveField('message', 'Job done.');
 	}

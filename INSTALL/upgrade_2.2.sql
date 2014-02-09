@@ -92,6 +92,11 @@ ALTER TABLE `servers`
   ADD `self_signed` tinyint(1) NOT NULL,
   ADD `cert_file` varchar(255) COLLATE utf8_bin NOT NULL;
 
+ALTER TABLE `regexp`
+  ADD `type` varchar(100) COLLATE utf8_bin NOT NULL DEFAULT 'ALL';
+
+UPDATE `regexp` SET `type` = 'ALL';
+
 UPDATE `roles` SET `perm_site_admin` = 1 WHERE `id` = 1;
 
 INSERT INTO `threat_levels` (`id`, `name`, `description`, `form_description`)

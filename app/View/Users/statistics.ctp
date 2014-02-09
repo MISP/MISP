@@ -54,9 +54,21 @@
 </div>
 <br />
 <br />
-<div style="float:left;margin-top:50px;margin-right:5px;"><button id="goLeft" class="btn"><span class="icon-arrow-left"></span></button></div>
-<div id="cal-heatmap" style="float:left;"></div>
-<div style="float:left;margin-top:50px;margin-left:5px;"><button id="goRight" class="btn"><span class="icon-arrow-right"></span></button></div>
+<div style="margin-top:100px;">
+<table>
+<tr>
+<td style="vertical-align:top;">
+<div style="margin-right:5px;margin-top:40px;"><button id="goLeft" class="btn"><span class="icon-arrow-left"></span></button></div>
+</td>
+<td>
+<div id="cal-heatmap"></div>
+</td>
+<td style="vertical-align:top;">
+<div style="margin-left:5px;margin-top:40px;"><button id="goRight" class="btn"><span class="icon-arrow-right"></span></button></div>
+</td>
+</tr>
+</table>
+</div>
 <script type="text/javascript">
 var cal = new CalHeatMap();
 cal.init({

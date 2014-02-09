@@ -1485,7 +1485,7 @@ class Event extends AppModel {
 		}
 	}
 	
-	public function publishRouter($id, $passAlong = null) {
+	public function publishRouter($id, $passAlong = null, $org = null) {
 		if (Configure::read('MISP.background_jobs')) {
 			$job = ClassRegistry::init('Job');
 			$job->create();
@@ -1495,7 +1495,7 @@ class Event extends AppModel {
 					'job_input' => 'Event ID: ' . $id,
 					'status' => 0,
 					'retries' => 0,
-					'org' => $this->Auth->user('org'),
+					'org' => $org,
 					'message' => 'Publishing.',
 			);
 			$job->save($data);
@@ -1503,10 +1503,10 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'default',
 					'EventShell',
-					array('publish', $id, $passAlong, $process_id)
+					array('publish', $id, $passAlong, $jobId)
 			);
 			$job->saveField('process_id', $process_id);
-			return true;
+			return $process_id;
 		} else {
 			$result = $this->publish($id, $passAlong);
 			return $result;
@@ -1534,6 +1534,12 @@ class Event extends AppModel {
 				$this->saveField('published', 0);
 			}
 		} else {
+			if ($processId != null) {
+				$job = ClassRegistry::init('Job');
+				$job->id = $processId;
+				$job->saveField('progress', 100);
+				$job->saveField('message', 'Event (' . $id . ') published.');
+			}
 			return true;
 		}
 		return $uploaded;
