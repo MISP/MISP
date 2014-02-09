@@ -19,6 +19,7 @@ then
 	read password
 	printf '\nDatabase: '
 	read database
+	cd $(echo $FILE_PATH)
 	mysql -u $name -p$password $database < upgrade_2.2.sql
 	printf '\n\n'
 else
