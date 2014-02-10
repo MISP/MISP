@@ -1,7 +1,34 @@
-ALTER TABLE  `roles` 
-  ADD `perm_site_admin` TINYINT( 1 ) NOT NULL DEFAULT  '0',
-  ADD `perm_regexp_access` TINYINT( 1 ) NOT NULL DEFAULT  '0',
-  ADD `perm_tagger` TINYINT( 1 ) NOT NULL DEFAULT  '0';
+-- Copyright (c) 2009 www.cryer.co.uk
+-- Script is free to use provided this copyright header is included.
+drop procedure if exists AddColumnUnlessExists;
+delimiter '//'
+
+create procedure AddColumnUnlessExists(
+	IN dbName tinytext,
+	IN tableName tinytext,
+	IN fieldName tinytext,
+	IN fieldDef text)
+begin
+	IF NOT EXISTS (
+		SELECT * FROM information_schema.COLUMNS
+		WHERE column_name=fieldName
+		and table_name=tableName
+		and table_schema=dbName
+		)
+	THEN
+		set @ddl=CONCAT('ALTER TABLE ',dbName,'.',tableName,
+			' ADD COLUMN ',fieldName,' ',fieldDef);
+		prepare stmt from @ddl;
+		execute stmt;
+	END IF;
+end;
+//
+
+delimiter ';'
+
+call AddColumnUnlessExists(Database(), 'roles', 'perm_site_admin', 'TINYINT( 1 ) NOT NULL DEFAULT 0');
+call AddColumnUnlessExists(Database(), 'roles', 'perm_regexp_access', 'TINYINT( 1 ) NOT NULL DEFAULT 0');
+call AddColumnUnlessExists(Database(), 'roles', 'perm_tagger', 'TINYINT( 1 ) NOT NULL DEFAULT 0');
 
 CREATE TABLE IF NOT EXISTS `threads` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -77,36 +104,34 @@ CREATE TABLE IF NOT EXISTS `jobs` (
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
 
-ALTER TABLE  `attributes` ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;
+call AddColumnUnlessExists(Database(), 'attributes', 'comment', 'TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL');
 
-ALTER TABLE  `events` 
-  ADD `threat_level_id` int(11) NOT NULL,
-  ADD `publish_timestamp` int(11) NOT NULL;
+call AddColumnUnlessExists(Database(), 'events', 'threat_level_id', 'int(11) NOT NULL');
+call AddColumnUnlessExists(Database(), 'events', 'publish_timestamp', 'int(11) NOT NULL');
 
-ALTER TABLE  `shadow_attributes` 
- ADD `event_org` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
- ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
- ADD `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL;
+call AddColumnUnlessExists(Database(), 'shadow_attributes', 'event_org', 'VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL');
+call AddColumnUnlessExists(Database(), 'shadow_attributes', 'comment', 'TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL');
+call AddColumnUnlessExists(Database(), 'shadow_attributes', 'event_uuid', 'varchar(40) COLLATE utf8_bin NOT NULL');
 
-ALTER TABLE `servers` 
-  ADD `self_signed` tinyint(1) NOT NULL,
-  ADD `cert_file` varchar(255) COLLATE utf8_bin NOT NULL;
+call AddColumnUnlessExists(Database(), 'servers', 'self_signed', ' tinyint(1) NOT NULL');
+call AddColumnUnlessExists(Database(), 'servers', 'cert_file', 'varchar(255) COLLATE utf8_bin NOT NULL');
 
-ALTER TABLE `regexp`
-  ADD `type` varchar(100) COLLATE utf8_bin NOT NULL DEFAULT 'ALL';
+call AddColumnUnlessExists(Database(), 'regexp', 'type', 'COLLATE utf8_bin NOT NULL DEFAULT "ALL"');
+
+drop procedure AddColumnUnlessExists;
 
 UPDATE `regexp` SET `type` = 'ALL';
 
 UPDATE `roles` SET `perm_site_admin` = 1 WHERE `id` = 1;
 
-INSERT INTO `threat_levels` (`id`, `name`, `description`, `form_description`)
+INSERT IGNORE INTO `threat_levels` (`id`, `name`, `description`, `form_description`)
 VALUES
   (1,'High','*high* means sophisticated APT malware or 0-day attack','Sophisticated APT malware or 0-day attack'),
   (2,'Medium','*medium* means APT malware','APT malware'),
   (3,'Low','*low* means mass-malware','Mass-malware'),
   (4,'Undefined','*undefined* no risk','No risk');
 
-INSERT INTO `tasks` (`id`, `type`, `timer`, `scheduled_time`, `job_id`, `description`, `next_execution_time`, `message`) VALUES
+INSERT IGNORE INTO `tasks` (`id`, `type`, `timer`, `scheduled_time`, `job_id`, `description`, `next_execution_time`, `message`) VALUES
 (1, 'cache_exports', 0, '12:00', 0, 'Generates export caches for every export type and for every organisation. This process is heavy, schedule so it might be a good idea to schedule this outside of working hours and before your daily automatic imports on connected services are scheduled.', 1391601600, 'Not scheduled yet.'),
 (2, 'pull_all', 0, '12:00', 0, 'Initiates a full pull for all eligible instances.', 1391601600, 'Not scheduled yet.'),
 (3, 'push_all', 0, '12:00', 0, 'Initiates a full push for all eligible instances.', 1391601600, 'Not scheduled yet.');
