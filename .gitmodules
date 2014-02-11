@@ -1,6 +1,6 @@
 [submodule "app/Plugin/CakeResque"]
 	path = app/Plugin/CakeResque
-	url = git://github.com/kamisama/Cake-Resque.git
+	url = https://github.com/kamisama/Cake-Resque.git
 [submodule "app/Lib/cakephp"]
 	path = app/Lib/cakephp
 	url = https://github.com/cakephp/cakephp.git
