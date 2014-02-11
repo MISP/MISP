@@ -1192,7 +1192,8 @@ class EventsController extends AppController {
 	}
 
 	public function xml($key, $eventid=null, $withAttachment = false, $tags = '') {
-		if ($eventid === 'null') $eventid=null;
+		if ($eventid === 'null' || $eventid ==='false') $eventid=null;
+		if ($withAttachment === 'null' || $withAttachment ==='false') $withAttachment = false;
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1250,12 +1251,14 @@ class EventsController extends AppController {
 		}
 		if (!empty($orgFromFetch)) $org = $orgFromFetch;
 		else $org = $this->_checkOrg();
-		$results = $this->Event->fetchEvent($eventid, $idList, $org, $isSiteAdmin, $tags);
+		$results = $this->Event->fetchEvent($eventid, $idList, $org, $isSiteAdmin, null, $tags);
 		return $results;
 	}
 
 	public function nids($format = 'suricata', $key = '', $id = null, $continue = false, $tags = '') {
-
+		if ($id === 'null') $id = null;
+		if ($continue === 'false') $continue = false;
+		if ($continue === 'true') $continue = true;
 		// backwards compatibility, swap key and format
 		if ($format != 'snort' && $format != 'suricata') {
 			$key = $format;
@@ -1761,7 +1764,11 @@ class EventsController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key=null, $value=null, $type=null, $category=null, $org=null) {
+	public function restSearch($key=null, $value=null, $type=null, $category=null, $org=null, $tags = '') {
+		if ($value === 'null') $value = null;
+		if ($type === 'null') $type = null;
+		if ($category === 'null') $category = null;
+		if ($org === 'null') $org = null;
 		if ($key!=null && $key!='download') {
 			$user = $this->checkAuthUser($key);
 		} else {
@@ -1781,7 +1788,6 @@ class EventsController extends AppController {
 		// add the values as specified in the 2nd parameter to the conditions
 		$values = explode('&&', $value);
 		$parameters = array('value', 'type', 'category', 'org');
-
 		foreach ($parameters as $k => $param) {
 			if (isset(${$parameters[$k]})) {
 				$elements = explode('&&', ${$parameters[$k]});
@@ -1827,6 +1833,23 @@ class EventsController extends AppController {
 			$subcondition['OR'][] = $temp;
 			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
 			array_push($conditions['AND'], $subcondition);
+		}
+		
+		// If we sent any tags along, load the associated tag names for each attribute
+		if ($tags !== '') {
+			$args = $this->Event->Attribute->dissectArgs($tags);
+			$this->loadModel('Tag');
+			$tagArray = $this->Tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			foreach ($tagArray[0] as $accepted) {
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
+			$conditions['AND'][] = $temp;
+			$temp = array();
+			foreach ($tagArray[1] as $rejected) {
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
+			$conditions['AND'][] = $temp;
 		}
 
 		$params = array(
