@@ -1192,6 +1192,7 @@ class EventsController extends AppController {
 	}
 
 	public function xml($key, $eventid=null, $withAttachment = false, $tags = '') {
+		if ($eventid === 'null') $eventid=null;
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -2075,11 +2076,5 @@ class EventsController extends AppController {
 		$this->Event->EventTag->delete($eventTag['EventTag']['id']);
 		$this->Session->setFlash('Tag removed.');
 		$this->redirect(array('action' => 'view', $id));
-	}
-	
-	public function test() {
-		debug($this->Event->find('all', array(
-			'contain' => array('EventTag' => array('Tag'))
-		)));
 	}
 }

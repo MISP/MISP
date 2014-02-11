@@ -16,6 +16,8 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/xml/download</pre>
 <p>If you only want to fetch a specific event append the eventid number:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/xml/download/1</pre>
+<p>The xml download also accepts two additional (optional) parameters: a boolean field that determines whether attachments should be encoded and a second parameter that controls the eligible tags. To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. You can also chain several tag commands together with the '&&' operator. For example, to include tag1 and tag2 but exclude tag3 you would use:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/xml/download/0/</pre>
 <p>Also check out the <?php echo $this->Html->link(__('User Guide', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system', '#' => 'rest')); ?> to read about the REST API.</p>
 <p></p>
 
