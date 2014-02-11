@@ -275,52 +275,6 @@ class AppController extends Controller {
 		return false;
 	}
 
-	public function generatePrivate() {
-		$this->generatePrivateForAttributes();
-		$this->generatePrivateForEvents();
-	}
-
-	public function generatePrivateForAttributes() {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
-
-		$this->loadModel('Attribute');
-		$attributes = $this->Attribute->find('all', array('recursive' => 0));
-		foreach ($attributes as $attribute) {
-			if ($attribute['Attribute']['private']) {
-				$attribute['Attribute']['private'] = true;
-				$attribute['Attribute']['cluster'] = false;
-				$attribute['Attribute']['communitie'] = false;
-			} else {
-				$attribute['Attribute']['private'] = false;
-				$attribute['Attribute']['cluster'] = false;
-				$attribute['Attribute']['communitie'] = false;
-			}
-			$this->Attribute->save($attribute);
-		}
-	}
-
-	public function generatePrivateForEvents() {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
-
-		$this->loadModel('Event');
-		$events = $this->Event->find('all', array('recursive' => 0));
-		foreach ($events as $event) {
-			if ($event['Event']['private']) {
-				$event['Event']['private'] = true;
-				$event['Event']['cluster'] = false;
-				$event['Event']['communitie'] = false;
-			} else {
-				$event['Event']['private'] = false;
-				$event['Event']['cluster'] = false;
-				$event['Event']['communitie'] = false;
-			}
-			$event['Event']['orgc'] = $event['Event']['org'];
-			$event['Event']['dist_change'] = 0;
-			$event['Event']['analysis'] = 2;
-			$this->Event->save($event);
-		}
-	}
-
 	public function generateCount() {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		// do one SQL query with the counts
@@ -339,62 +293,5 @@ class AppController extends Controller {
 		}
 		$this->Session->setFlash(__('All done. attribute_count generated from scratch for ' . $k . ' events.'));
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-	}
-
-/**
- * CakePHP returns false if filesize is 0 at lib/cake/Utility/File.php:384
- */
-	public function checkEmpty($fileP = '/var/www/MISP/app/files/test') {
-		// Check if there were problems with the file upload
-		// only keep the last part of the filename, this should prevent directory attacks
-		$filename = basename($fileP);
-		$tmpfile = new File($fileP);
-
-		debug($fileP);
-		debug($tmpfile);
-		debug($tmpfile->size());
-		debug($tmpfile->md5());
-		debug(md5_file($fileP));
-		$md5 = !$tmpfile->size() ? md5_file($fileP) : $tmpfile->md5();
-		debug($md5);
-	}
-
-/**
- * generateAllFor<FieldName>
- *
- * @throws NotFoundException // TODO Exception
- **/
-	public function generateAllFor($field) {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
-
-		// contain the newValue and oldValue
-		$methodArgs = $this->params['pass'];
-		// use call_user_func_array() to pass the newValue and oldValue
-		$success = call_user_func_array(array($this->{$this->defaultModel}, 'generateAllFor' . $field), $methodArgs);
-
-		// give feedback
-		$this->set('succes', $success);
-		$this->render('succes');
-	}
-
-	public function call($method, $dummySecond) {
-		$this->__call($method, $dummySecond);
-	}
-
-	public function __call($method, $dummySecond) {
-		$args = $this->params['pass']; // TODO this is naughty
-		if (strpos($method, 'generateAllFor') === 0) {
-			// massage the args
-			$methodArgs = $args;
-			$methodArgs[0] = str_replace('generateAllFor', '', $method); // TODO
-			//array_unshift($methodArgs, str_replace('generateAllFor', '', $method));
-			// do the actual call
-			return call_user_func_array(array($this, 'generateAllFor'), $methodArgs);
-		}
-
-		//if (strpos($method, 'findBy') === 0) {
-		//	//debug(true);debug(tru);
-		//}
-		return false;
 	}
 }

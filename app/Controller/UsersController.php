@@ -578,26 +578,6 @@ class UsersController extends AppController {
 		return $result;
 	}
 
-	public function setRoleId($fk = '2') { // TODO generateAllFor<FieldName>
-		$params = array(
-				'conditions' => array('User.role_id' => ''),
-				'recursive' => 0,
-				'fields' => array('User.id'),
-		);
-		$users = $this->User->find('all', $params);
-		foreach ($users as $user) {
-			$this->User->id = $user['User']['id'];
-			$this->User->saveField('role_id', $fk);
-		}
-	}
-
-/**
- * generateAllFor<FieldName>
- **/
-	public function generateAllFor($field) {
-		parent::generateAllFor($field);
-	}
-
 /**
  * @throws NotFoundException
  **/
