@@ -20,8 +20,8 @@ if [[ ! -z $APT_GET_CMD ]]
     apt-get install vim zip php-pear git redis-server
 elif [[ ! -z $YUM_CMD ]] 
   then
-    printf '\n\nInstalling Redis using yum'
-    yum install vim zip php-pear git redis-server
+    printf '\n\nNo redis package with yum, please download and install Redis manually.'
+    yum install vim zip php-pear git
 elif [[ ! -z $OTHER_CMD ]] 
   then
     printf '\n\nInstalling Redis using brew'

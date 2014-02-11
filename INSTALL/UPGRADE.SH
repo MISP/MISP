@@ -39,8 +39,8 @@ if [[ ! -z $APT_GET_CMD ]]
     apt-get install redis-server
 elif [[ ! -z $YUM_CMD ]] 
   then
-    printf '\n\nInstalling Redis using yum'
-    yum install redis-server
+    printf '\n\nNo Redis package available with yum, please install it manually.'
+    yum install redis
 elif [[ ! -z $OTHER_CMD ]] 
   then
     printf '\n\nInstalling Redis using brew'

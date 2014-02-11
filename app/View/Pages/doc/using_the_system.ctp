@@ -87,6 +87,7 @@ Keep in mind that the system searches for regular expressions in the value field
 		<li><b>Distribution:</b> This drop-down list allows you to control who will be able to see this attribute.
 		The distribution is inherited by attributes: the most restrictive setting wins.
 		For more info <a href="#distribution">click here</a>.<br /><br /></li>
+		<li><b>Contextual Comment:</b> Add a comment to the attribute. This will not be used for correlation<br /><br /></li>
 		<li><b>IDS Signature:</b> This option allows the attribute to be used as an IDS signature when exporting the NIDS data, unless it is being overruled by the white-list. For more information about the whitelist, head over to the <?php echo $this->Html->link(__('administration', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration', '#' => 'whitelist')); ?> section.<br /><br /></li>
 		<li><b>Value:</b> The actual value of the attribute, enter data about the value based on what is valid for the chosen attribute type. For example, for an attribute of type ip-src (source IP address), 11.11.11.11 would be a valid value. For more information on types and values, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?>.<br /><br /></li>
 		<li><b>Batch import:</b> If there are several attributes of the same type to enter (such as a list of IP addresses, it is possible to enter them all into the same value-field, separated by a line break between each line. This will allow the system to create separate lines for the each attribute. <br /><br /></li>
@@ -95,6 +96,7 @@ Keep in mind that the system searches for regular expressions in the value field
 <h3>Propose a change to an event that belongs to another organisation</h3>
 If you would like to propose a modification to an attribute, or to propose some additional attributes to the creating organisation, you can do this with the buttons that replace the add attribute field on the left and the edit icon on the right end of each listed attribute in the event view. The creating organisation of the event will be able to see any proposals and discard or accept the changes.
 <p><img src="/img/doc/proposal.png" alt = "Propose attribute" title = "An attribute with a proposal attached will turn blue and the proposal itself will be grey. If there is a grey proposal without a blue attribute infront of it, it means that someone has proposed a new attribute"/></p><br />
+If the organisation that has created the event is on another connected server, they will be able to accept the proposal once they initiate a pull and receive your proposal. After this they can republish the event, sending the altered attribute back to your instance. 
 <hr />
 <h3>Add attachments to the event:</h3>
 You can also upload attachments, such as the malware itself, report files from external analysis or simply artifacts dropped by the malware. Clicking on the add attachment button brings up a form that allows you to quickly attach a file to the event. The following fields need to be filled out:<br /><br />
@@ -128,6 +130,7 @@ On the left menu bar, the option "List events" will generate a list of the last 
 		<li><b>Org:</b> The organisation that created the event.<br /><br /></li>
 		<li><b>Owner Org:</b> The organisation that owns the event on this instance. This field is only visible to administrators. <br /><br /></li>
 		<li><b>ID:</b> The event's ID number, assigned by the system when the event was first entered (or in the case of an event that was synchronized, when it was first copied over - more on synchronisation in chapter xy)<br /><br /></li>
+		<li><b>Tags:</b> Tags that are assigned to this event.<br /><br /></li>
 		<li><b>#:</b> The number of attributes that the event has.<br /><br /></li>
 		<li><b>Email:</b> The e-mail address of the event's reporter.<br /><br /></li>
 		<li><b>Date:</b> The date of the attack.<br /><br /></li>
@@ -159,13 +162,16 @@ On the left menu bar, the option "List events" will generate a list of the last 
 		<li><b>List of related events:</b> Events can be related by having one or more attributes that are exact matches. For example, if two events both contain a source IP attribute of 11.11.11.11 then they are related. The list of events that are related the currently shown one, are listed under "Related Events", as links (titled the related event's date and ID number) to the events themselves.<br /><br /></li>
 		<li><b>Attributes:</b> A list of all attributes attached to the event, including its category, type, value, whether the attribute in itself is related to another event, whether the flag signalling that the attribute can be turned into an IDS signature is on, and a field showing the current privacy setting of the attribute.Attributes can also be modified or deleted via the 3 buttons at the end of each line.<br /><br />
 		Using the modify button will bring up the attribute creation view, with all data filled out with the attribute's currently stored data.<br /><br /></li>
+		<li><b>Event History:</b> View the logs of the event that show how the event has changed over time, including the contribution from other organisations in the form of proposals.<br /><br /></li>
+		<li><b>Contributors:</b> Shows a list of the organisations that have contributed to the event via proposals. If you click any of the logos listed here, you'll get redirected to a filtered event history view, including only the changes made by the organisation.</li>
 	</ul>
 <hr />
 <h3>Listing all attributes:</h3>
 	Apart from having a list of all the events, it is also possible to get a list of all the stored attributes in the system by clicking on the list attributes button. The produced list of attributes will include the followings fields:<br /><br />
 	<img src="/img/doc/list_attributes2.png" alt = "" title = "Use the buttons to the right to view the event that this attribute belongs to or to modify/delete the attribute."/><br /><br />
 	<ul>
-		<li><b>Event:</b> This is the ID number of the event that the attribute is tied to.<br /><br /></li>
+		<li><b>Event:</b> This is the ID number of the event that the attribute is tied to. If an event belongs to your organisation, then this field will be coloured red.<br /><br /></li>
+		<li><b>Org:</b> The organisation that has created the event.</li>
 		<li><b>Category:</b> The category of the attribute, showing what the attribute describes (for example the malware's payload). For more information on categories, go to section xy<br /><br /></li>
 		<li><b>Type:</b> The type of the value contained in the attribute (for example a source IP address). For more information on types, go to section xy<br /><br /></li>
 		<li><b>Value:</b> The actual value of the attribute, describing an aspect, defined by the category and type fields of the malware (for example 11.11.11.11).<br /><br /></li>

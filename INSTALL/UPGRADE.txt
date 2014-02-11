@@ -6,12 +6,12 @@ Upgrade procedure from v2.1 to v2.2
 - execute UPGRADE.SH in the MISP/INSTALL folder (this also includes the installation of Redis for CakeResque)   
 	- cd /var/www/MISP/INSTALL
 	- ./UPGRADE.SH
+	
+- Replace your current bootstrap.php file found in /MISP/app/Config/ with bootstrap.default.php and change set your instance up to your liking
 
 - Log in with the site admin credentials and execute the following commands by changing the url 
 (where <MISP> is the address of your instance):
 	- https://<MISP>/events/generateThreatLevelFromRisk
-
-- Replace your current bootstrap.php file found in /MISP/app/Config/ with bootstrap.default.php and change set your instance up to your liking
 
 ================================================================================================================================================
 

@@ -47,7 +47,6 @@ class Log extends AppModel {
 				'group' => array('DAY(created)'),
 				'order' => array('Date')
 		));
-	
 		$data = array();
 		foreach ($validDates as $k => $date) {
 			$data[$date[0]['Date']] = intval($date[0]['count']);

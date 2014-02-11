@@ -1,6 +1,9 @@
 INSTALLATION INSTRUCTIONS
 ------------------------- for ubuntu 12.04-server
 
+# steps 2 (besides acquiring git), 4, 5 can be skipped by running INSTALL.SH 
+# The correct order in this case is 1/, apt get git, 3/ and then executing INSTALL.SH in /var/www/MISP/INSTALL/INSTALL.SH
+
 1/ Minimal ubuntu install
 -------------------------
 Install a minimal ubuntu 12.04-server system with the software:
@@ -16,14 +19,55 @@ apt-get update
 apt-get upgrade
 
 
-2/ Dependencies
+2/ Dependencies *
 ----------------
 Once the system is installed you can perform the following steps as root:
 
 # Because vim is just so practical
 apt-get install vim
 
-5/ Create a database and user
+# Install the dependencies:
+apt-get install zip php-pear git redis-server
+pear install Crypt_GPG    # we need version >1.3.0 
+pear install Net_GeoIP
+
+# (for Red Hat users, you will have to install Redis manually, http://redis.io/download)
+
+3/ MISP code
+------------
+# Download MISP using git in the /var/www/ directory. 
+cd /var/www/
+git clone https://github.com/MISP/MISP.git 
+
+# Make git ignore filesystem permission differences
+cd /var/www/MISP
+git config core.filemode false
+
+4/ CakePHP (and CakeResque)
+-----------
+# CakePHP is now included as a submodule of MISP, execute the following commands to let git fetch it:
+
+git submodule init
+git submodule update
+
+# Once done, install the dependencies of CakeResque if you intend to use the built in background jobs:
+cd /var/www/MISP/app/Plugin/CakeResque
+curl -s https://getcomposer.org/installer | php
+php composer.phar install
+
+5/ Set the permissions
+----------------------
+
+# Check if the permissions are set correctly using the following commands as root:
+chown -R www-data:www-data /var/www/MISP
+chmod -R 750 /var/www/MISP
+cd /var/www/MISP/app/
+chmod -R g+ws tmp
+chmod -R g+ws files
+
+Red Hat users: Keep in mind that your apache user is called apache, not www-data
+
+6/ Create a database and user
 -----------------------------
 # Enter the mysql shell
 mysql -u root -p
@@ -37,7 +81,7 @@ mysql> exit
 mysql -u misp -p misp < INSTALL/MYSQL.sql
 
 
-6/ Apache configuration
+7/ Apache configuration
 -----------------------
 # Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
 # A sample ghost can be found in /var/www/MISP/INSTALL/apache.misp
@@ -56,7 +100,7 @@ service apache2 reload
 # Check out the apache.misp.ssl file for an example
 
 
-7/ MISP configuration
+8/ MISP configuration
 ---------------------
 # Configure the fields in the files located in /var/www/MISP/app/Config/:
 database.php : login, port, password, database
@@ -66,13 +110,6 @@ core.php : debug, Security.*
 # and make sure the file permissions are still OK
 chown -R www-data:www-data /var/www/MISP/app/Config
 chmod -R 750 /var/www/MISP/app/Config
-
-
-# Let MISP know where the CakePHP libraries are located by editing the file app/webroot/index.php and setting (on line 59):
-	define('CAKE_CORE_INCLUDE_PATH', '/opt/cakephp/lib');
-# OR create a symlink
-ln -s /opt/cakephp/lib /var/www/MISP/lib 
-
 
 # Generate a GPG encryption key.
 mkdir /var/www/MISP/.gnupg
@@ -89,21 +126,6 @@ Now log in using the webinterface:
 The default user/pass = admin@admin.test/admin 
 
 Don't forget to change the email, password and authentication key after installation.
-
-
-
-UPDATE INSTRUCTIONS
--------------------
-
-To be sure, dump your database before updating.
-
-MISP from 0.2.2 to 0.2.3 needs a database migration and population.
-This is done executing /var/www/MISP/app/Console/shell/migrate-0.2.2-0.2.3.sh
-and answer (y)es to all the questions asked
-and afterward run http://<host>:<port>/events/migratemisp11to2/<your org>
-with <your org> being MIL.BE or NCIRC where appropriate.
-
-Import the regexp data in /var/www/MISP/app/MYSQL.regexp.sql using phpmyadmin or mysql>.
 
 
 Recommended actions
