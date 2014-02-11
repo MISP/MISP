@@ -163,6 +163,7 @@ class EventsController extends AppController {
 		}
         if (!$this->_IsSiteAdmin()) {
             $org = $this->Event->User->Organisation->read(null, $this->Auth->user('organisation_id'));
+            $this->paginate['group'] = 'Event.id';
             $this->paginate['joins'] = array(
                 array(
                     'table' => 'events_sharing_groups',
