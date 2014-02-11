@@ -7,6 +7,10 @@ class Organisation extends AppModel{
 
 	public $validate = array(
 		'name' => array(
+			'unique' => array(
+				'rule' => 'isUnique',
+				'message' => 'An organisation with this name already exists.'
+			),
 			'notempty' => array(
 				'rule' => array('notempty'),
 				//'message' => 'Your custom message here',
@@ -18,14 +22,13 @@ class Organisation extends AppModel{
 		)
 	);
 
-    public $hasMany = array(
-        'User' => array(
-            'className' => 'User',
-            'foreignKey' => 'organisation_id'
-        ),
+	public $hasMany = array(
+		'User' => array(
+			'className' => 'User',
+			'foreignKey' => 'organisation_id'
+		),
 
-    );
-
+	);
 
 	public $hasAndBelongsToMany = array(
 		'SharingGroup' => array(
@@ -35,4 +38,12 @@ class Organisation extends AppModel{
 			'associationForeignKey' => 'sharing_group_id',
 		)
 	);
+
+	public function beforeDelete($cascade = false){
+		$count = $this->User->find('count', array(
+			'conditions' => array('organisation_id' => $this->id)
+		));
+		if($count == 0) return true;
+		return false;
+	}
 }

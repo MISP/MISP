@@ -1,9 +1,8 @@
 <?php
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
-?>
-<?php
-	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
+
+echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
 ?>
 
 
@@ -79,6 +78,15 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					<b><?php echo ($event['Event']['published'] == 1 ? 'Yes' : 'No');  ?></b>
 					&nbsp;
 				</dd>
+                <dt>Sharing Groups</dt>
+                <dd>
+                    <?php
+                    if(!empty($event['SharingGroup'])){
+                        echo implode(', ', Set::combine($event['SharingGroup'], '{n}.id', '{n}.name'));
+                    }
+                    ?>
+                    &nbsp;
+                </dd>
 			</dl>
 		</div>
 

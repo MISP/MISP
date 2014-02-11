@@ -1561,6 +1561,7 @@ class EventsController extends AppController {
 				'recursive' => 0,
 				'fields' => $fields,
 				'contain' => array(
+                        'SharingGroup',
 						'ThreatLevel' => array(
 							'fields' => array('ThreatLevel.name')
 						),

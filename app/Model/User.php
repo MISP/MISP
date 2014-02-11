@@ -62,20 +62,10 @@ class User extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'org' => array(
+		'organisation_id' => array(
 			'notempty' => array(
 				'rule' => array('notempty'),
 				'message' => 'Please specify the organisation where you are working.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
-		),
-		'org_id' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				'message' => 'Please specify the organisation ID where you are working.',
 				//'allowEmpty' => false,
 				//'required' => false,
 				//'last' => false, // Stop validation after this rule

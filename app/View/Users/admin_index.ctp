@@ -19,7 +19,7 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
-			<th><?php echo $this->Paginator->sort('org');?></th>
+			<th><?php echo $this->Paginator->sort('organisation_id');?></th>
 			<th><?php echo $this->Paginator->sort('role_id', 'Role');?></th>
 			<th><?php echo $this->Paginator->sort('email');?></th>
 			<th><?php echo $this->Paginator->sort('autoalert');?></th>
@@ -30,13 +30,12 @@
 			<th><?php echo $this->Paginator->sort('newsread');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
-	<?php
-foreach ($users as $user): ?>
+	<?php foreach ($users as $user):?>
 	<tr>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['id']); ?>&nbsp;</td>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
-		<?php echo h($user['User']['org']); ?>&nbsp;</td>
+		<?php echo h($user['Organisation']['name']); ?>&nbsp;</td>
 		<td class="short" onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])); ?></td>
 		<td onclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">

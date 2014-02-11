@@ -68,7 +68,7 @@ class OrganisationsController extends AppController {
             $this->Session->setFlash(__('Organisation deleted'), 'flash_message', array('type' => 'alert-success'));
             $this->redirect(array('action' => 'index'));
         }
-        $this->Session->setFlash(__('Organisation was not deleted'), 'flash_message', array('type' => 'alert-error'));
+        $this->Session->setFlash(__('Organisation was not deleted. Check user count.'), 'flash_message', array('type' => 'alert-error'));
         $this->redirect(array('action' => 'index'));
     }
 }
