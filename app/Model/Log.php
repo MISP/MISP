@@ -42,9 +42,9 @@ class Log extends AppModel {
 		$conditions = array();
 		if ($org !== 'all') $conditions['org'] = $org;
 		$validDates = $this->find('all', array(
-				'fields' => array('UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
+				'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
 				'conditions' => $conditions,
-				'group' => array('DAY(created)'),
+				'group' => array('DATE(created)'),
 				'order' => array('Date')
 		));
 		$data = array();
