@@ -1232,7 +1232,7 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	 public function text($org, $isSiteAdmin, $type, $tags) {
+	 public function text($org, $isSiteAdmin, $type, $tags = '') {
 	 	//restricting to non-private or same org if the user is not a site-admin.
 	 	$conditions['AND'] = array('Attribute.type' => $type, 'Attribute.to_ids =' => 1, 'Event.published =' => 1);
 	 	if (!$isSiteAdmin) {
