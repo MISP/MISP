@@ -6,10 +6,7 @@
 		echo $this->Form->input('email');
 		echo $this->Form->input('password');
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
-		echo $this->Form->input('organisation_id', array('empty' => 'Please select'));
-		if ($isSiteAdmin) {
-			echo $this->Form->input('org', array('type' => 'hidden'));
-		}
+		echo $this->Form->input('organisation_id');
 		echo $this->Form->input('role_id', array('label' => 'Role', 'div' => 'input clear'));
 		echo $this->Form->input('authkey', array('value' => $authkey, 'readonly' => 'readonly'));
 		echo $this->Form->input('nids_sid');
