@@ -78,7 +78,7 @@ mysql> grant all privileges on misp.* to misp@localhost ;
 mysql> exit
 
 # Import the empty MySQL database from MYSQL.sql 
-mysql -u misp -p misp < INSTALL/MYSQL.sql
+mysql -u misp -p<password> misp < INSTALL/MYSQL.sql
 
 
 7/ Apache configuration
