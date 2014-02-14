@@ -507,13 +507,11 @@ class AttributesController extends AppController {
 				}
 				fclose($handle);
 			}
-
 			// verify header of the file (first row)
-			$expected_header = array(
-					'Type', 'Value', 'Rating', 'Confidence', 'DateAdded',
-					'Description', 'Source', 'DNS', 'Whois');
-			if ($header != $expected_header) {
-				$this->Session->setFlash('Incorrect ThreatConnect headers. Expecting: '.implode(',', $expected_header), 'default', array(), 'error');
+			$required_headers = array('Type', 'Value', 'Confidence', 'Description', 'Source');
+			
+			if (count(array_intersect($header, $required_headers)) != count($required_headers)) {
+				$this->Session->setFlash('Incorrect ThreatConnect headers. The minimum required headers are: '.implode(',', $required_headers), 'default', array(), 'error');
 				$this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
 			}
 
