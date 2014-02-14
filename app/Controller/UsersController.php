@@ -760,8 +760,8 @@ class UsersController extends AppController {
 		$stats[7] = count($orgs);
 		
 		$this->loadModel('Thread');
-		$stats[8] = $this->Thread->find('count', null);
-		$stats[9] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s",$this_month))));
+		$stats[8] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0)));
+		$stats[9] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s",$this_month), 'Thread.post_count >' => 0)));
 
 		$stats[10] = $this->Thread->Post->find('count', null);
 		$stats[11] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s",$this_month))));
