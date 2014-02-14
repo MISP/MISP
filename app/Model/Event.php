@@ -1243,7 +1243,7 @@ class Event extends AppModel {
 		}
 		$body .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
 		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
-		$relatedEvents = $this->getRelatedEvents($user, $isSiteAdmin);
+		$relatedEvents = $this->getRelatedEvents($user['User'], $isSiteAdmin);
 		if (!empty($relatedEvents)) {
 			foreach ($relatedEvents as &$relatedEvent) {
 				$body .= 'Related to  : ' . Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
