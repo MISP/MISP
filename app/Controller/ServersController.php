@@ -27,7 +27,7 @@ class ServersController extends AppController {
 		parent::beforeFilter();
 
 		// Disable this feature if the sync configuration option is not active
-		if ('true' != Configure::read('CyDefSIG.sync'))
+		if ('true' != Configure::read('MISP.sync'))
 			throw new ConfigureException("The sync feature is not active in the configuration.");
 
 		// permit reuse of CSRF tokens on some pages.
