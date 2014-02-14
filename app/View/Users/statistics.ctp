@@ -58,19 +58,20 @@
 <table>
 <tr>
 <td style="vertical-align:top;">
-<div style="margin-right:5px;margin-top:40px;"><button id="goLeft" class="btn"><span class="icon-arrow-left"></span></button></div>
+<div style="margin-right:5px;margin-top:40px;"><button id="goLeft" class="btn" onClick="goLeft()"><span class="icon-arrow-left"></span></button></div>
 </td>
 <td>
 <div id="cal-heatmap"></div>
 </td>
 <td style="vertical-align:top;">
-<div style="margin-left:5px;margin-top:40px;"><button id="goRight" class="btn"><span class="icon-arrow-right"></span></button></div>
+<div style="margin-left:5px;margin-top:40px;"><button id="goRight" class="btn" onClick="goRight()"><span class="icon-arrow-right"></span></button></div>
 </td>
 </tr>
 </table>
 </div>
 <script type="text/javascript">
 var cal = new CalHeatMap();
+var orgSelected = "all";
 cal.init({
 	range: 5, 
 	domain:"month", 
@@ -84,16 +85,28 @@ cal.init({
 	domainGutter: 10,
 	legend: <?php echo $range;?>,
 	legendCellSize: 15,
-	previousSelector: "#goLeft",
-	nextSelector: "#goRight"
 });
 
 function updateCalendar(org) {
-	if (org == 'all') {
+	if (org == "all") {
 		cal.update("<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/all.json");
+		orgSelected = "all";
 	} else {
 		cal.update("<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+org+".json");
+		orgSelected = org;
 	}
+}
+
+function goRight() {
+	cal.update("<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+orgSelected+".json");
+	cal.options.data = "<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+orgSelected+".json";
+	cal.next();
+}
+
+function goLeft() {
+	cal.update("<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+orgSelected+".json");
+	cal.options.data = "<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+orgSelected+".json";
+	cal.previous();
 }
 </script>
 </div>
