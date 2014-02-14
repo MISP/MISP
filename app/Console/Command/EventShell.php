@@ -244,7 +244,7 @@ class EventShell extends AppShell
 		$userId = $this->args[3];
 		$isSiteAdmin = $this->args[4];
 		$processId = $this->args[5];
-		$this->Job->id = $ProcessId;
+		$this->Job->id = $processId;
 		$user = $this->User->read(null, $userId);
 		$eventId = $this->args[2];
 		$result = $this->Event->sendContactEmail($id, $message, $all, $user, $isSiteAdmin);
