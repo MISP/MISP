@@ -57,6 +57,7 @@ chown -R www-data:www-data $(echo $MISP_PATH)
 chmod -R 750 $(echo $MISP_PATH)
 chmod -R g+ws $(echo $MISP_PATH)/app/tmp
 chmod -R g+ws $(echo $MISP_PATH)/app/files
+rm app/tmp/cache/*/*
 cp -fa $(echo $FILE_PATH)/setup/config.php $MISP_PATH/app/Plugin/CakeResque/Config/config.php
 printf '\n\n=========================================================\n'
 printf '|               \e[34mI\e[39mnstallation \e[34mC\e[39momplete                   |\n'
