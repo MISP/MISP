@@ -279,8 +279,9 @@ class IOCImportComponent extends Component {
 				break;
 			case 'CookieHistoryItem/HostName':
 			case 'FormHistoryItem/HostName':
-			case 'SystemInfoItem/hostname':
+			case 'SystemInfoItem/Hostname':
 			case 'UrlHistoryItem/HostName':
+			case 'DnsEntryItem/RecordName':
 				return array('Network Activity', 'hostname');
 				break;
 			case 'RegistryItem/Text':
