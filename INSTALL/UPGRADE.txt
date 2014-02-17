@@ -19,16 +19,13 @@ Enabling background jobs via CakeResque
 (assuming /var/www/MISP as your installation directory)
 
 - Enable CakeResque in MISP
-	- vim /var/www/MISP/app/bootstrap.php
+	- vim /var/www/MISP/app/Config/bootstrap.php
 	- set Configure::write('MISP.background_jobs', false); to Configure::write('MISP.background_jobs', true); 
 	- uncomment CakePlugin::load('CakeResque', array('bootstrap' => true));
 
-- If you would like to use the scheduled tasks:
-	- vim /var/www/MISP/app/Plugin/CakeResque/Config/config.php
-	- Line 185 ('enabled' => false,) change it to 'enabled' => true,
-	
 - start the background workers
 	- cd /var/www/MISP/app/Console/worker/
 	- ./start.sh
+	Make sure you configure your OS to start this script as boot time !
 	
 ================================================================================================================================================
