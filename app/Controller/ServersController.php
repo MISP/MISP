@@ -97,7 +97,7 @@ class ServersController extends AppController {
 		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// say what fields are to be updated
-			$fieldList = array('id', 'url', 'push', 'pull', 'organization');
+			$fieldList = array('id', 'url', 'push', 'pull', 'organization', 'self_signed', 'cert_file');
 			$this->request->data['Server']['id'] = $id;
 			if ("" != $this->request->data['Server']['authkey'])
 				$fieldList[] = 'authkey';
@@ -268,6 +268,7 @@ class ServersController extends AppController {
 	public function __saveCert($server, $id) {
 		$ext = '';
 		App::uses('File', 'Utility');
+		App::uses('Folder', 'Utility');
 		$file = new File($server['Server']['submitted_cert']['name']);
 		$ext = $file->ext();
 		if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
@@ -277,9 +278,10 @@ class ServersController extends AppController {
 		$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),
 				$server['Server']['submitted_cert']['size']);
 		$destpath = APP . "files" . DS . "certs" . DS;
+		$dir = new Folder(APP . "files" . DS . "certs", true);
 		if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
 		$pemfile = new File ($destpath . $id . '.' . $ext);
-		$result = $pemfile->write($pemData);
+		$result = $pemfile->write($pemData); 
 		$s = $this->Server->read(null, $id);
 		$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
 		if ($result) $this->Server->save($s);
