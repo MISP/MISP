@@ -23,6 +23,7 @@
 			<th><?php echo $this->Paginator->sort('url');?></th>
 			<th>From</th>
 			<th><?php echo $this->Paginator->sort('cert_file');?></th>
+			<th><?php echo $this->Paginator->sort('self_signed');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<th>Last Pulled ID</th>
 			<th>Last Pushed ID</th>
@@ -36,6 +37,7 @@ foreach ($servers as $server): ?>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
 		<td><?php echo h($server['Server']['organization']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($server['Server']['cert_file']); ?>&nbsp;</td>
+		<td class="short"><?php echo ($server['Server']['self_signed'] ? 'Yes' : 'No'); ?>&nbsp;</td>
 		<td class="short"><?php echo h($server['Server']['org']); ?>&nbsp;</td>
 		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
