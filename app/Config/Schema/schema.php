@@ -1,4 +1,4 @@
-<?php 
+<?php
 class AppSchema extends CakeSchema {
 
 	public function before($event = array()) {
@@ -33,7 +33,7 @@ class AppSchema extends CakeSchema {
 		'username' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'expire' => array('type' => 'datetime', 'null' => false, 'default' => null),
 		'indexes' => array(
-			
+
 		),
 		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'MyISAM')
 	);
@@ -90,6 +90,40 @@ class AppSchema extends CakeSchema {
 		'tableParameters' => array('charset' => 'latin1', 'collate' => 'latin1_swedish_ci', 'engine' => 'InnoDB')
 	);
 
+	public $events_sharing_groups = array(
+		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+		'event_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+		'sharing_group_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+		'created' => array('type' => 'datetime', 'null' => true, 'default' => null),
+		'updated' => array('type' => 'datetime', 'null' => true, 'default' => null),
+		'indexes' => array(
+			'PRIMARY' => array('column' => 'id', 'unique' => 1)
+		),
+		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'InnoDB')
+	);
+    public $organisations_sharing_groups = array(
+        'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+        'organisation_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+        'created' => array('type' => 'datetime', 'null' => true, 'default' => null),
+        'updated' => array('type' => 'datetime', 'null' => true, 'default' => null),
+        'indexes' => array(
+            'PRIMARY' => array('column' => 'id', 'unique' => 1)
+        ),
+        'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'InnoDB')
+    );
+
+    public $events_servers = array(
+        'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+        'event_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+        'server_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+        'created' => array('type' => 'datetime', 'null' => true, 'default' => null),
+        'updated' => array('type' => 'datetime', 'null' => true, 'default' => null),
+        'indexes' => array(
+            'PRIMARY' => array('column' => 'id', 'unique' => 1)
+        ),
+        'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'InnoDB')
+    );
+
 	public $logs = array(
 		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
 		'title' => array('type' => 'string', 'null' => true, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
@@ -106,6 +140,18 @@ class AppSchema extends CakeSchema {
 			'PRIMARY' => array('column' => 'id', 'unique' => 1)
 		),
 		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_bin', 'engine' => 'MyISAM')
+	);
+
+	public $organisations = array(
+		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+		'sharing_group_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+		'name' => array('type' => 'string', 'null' => false, 'collate' => 'utf8_general_ci', 'charset' => 'utf8'),
+		'created' => array('type' => 'datetime', 'null' => true, 'default' => null),
+		'updated' => array('type' => 'datetime', 'null' => true, 'default' => null),
+		'indexes' => array(
+			'PRIMARY' => array('column' => 'id', 'unique' => 1)
+		),
+		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_general_ci', 'engine' => 'InnoDB')
 	);
 
 	public $posts = array(
@@ -223,6 +269,18 @@ class AppSchema extends CakeSchema {
 		'tableParameters' => array('charset' => 'latin1', 'collate' => 'latin1_swedish_ci', 'engine' => 'InnoDB')
 	);
 
+	public $sharing_groups = array(
+		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+		'name' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'latin1'),
+		'description' => array('type' => 'text', 'null' => true, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'latin1'),
+		'created' => array('type' => 'datetime', 'null' => true, 'default' => null),
+		'updated' => array('type' => 'datetime', 'null' => true, 'default' => null),
+		'indexes' => array(
+			'id' => array('column' => 'id', 'unique' => 0)
+		),
+		'tableParameters' => array('charset' => 'latin1', 'collate' => 'utf8_bin', 'engine' => 'InnoDB')
+	);
+
 	public $threads = array(
 		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
 		'date_created' => array('type' => 'datetime', 'null' => false, 'default' => null),
@@ -252,6 +310,7 @@ class AppSchema extends CakeSchema {
 
 	public $users = array(
 		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
+        'organisation_id' => array('type' => 'integer', 'null' => true, 'default' => null),
 		'password' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 40, 'key' => 'index', 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'org' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'email' => array('type' => 'string', 'null' => false, 'default' => null, 'key' => 'index', 'collate' => 'utf8_unicode_ci', 'charset' => 'utf8'),

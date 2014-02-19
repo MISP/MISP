@@ -19,7 +19,16 @@
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();?>
 </div>
-<?php 
+<?php
 	$user['User']['id'] = $id;
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'edit', 'user' => $user));
 ?>
+<script>
+(function(){
+    'use strict';
+    $('#UserOrg').val($('#UserOrganisationId option:selected').text());
+    $('#UserAdminAddForm').on('change', '#UserOrganisationId', function(){
+        $('#UserOrg').val($('#UserOrganisationId option:selected').text());
+    });
+}());
+</script>

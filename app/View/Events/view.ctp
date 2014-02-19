@@ -146,6 +146,15 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					<b><?php echo ($event['Event']['published'] == 1 ? 'Yes' : 'No');  ?></b>
 					&nbsp;
 				</dd>
+                <dt>Sharing Groups</dt>
+                <dd>
+                    <?php
+                    if(!empty($event['SharingGroup'])){
+                        echo implode(', ', Set::combine($event['SharingGroup'], '{n}.id', '{n}.name'));
+                    }
+                    ?>
+                    &nbsp;
+                </dd>
 			</dl>
 		</div>
 

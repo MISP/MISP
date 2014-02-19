@@ -49,14 +49,40 @@ class AttributesController extends AppController {
 	// do not show private to other orgs
 		// if not admin or own org, check private as well..
 		if (!$this->_isSiteAdmin()) {
+            $org = $this->Attribute->Event->User->Organisation->read(null, $this->Auth->user('organisation_id'));
+            if(!empty($org)){
+                $my_events = $this->Attribute->Event->find('list', array('joins' => array(
+                    array(
+                        'table' => 'events_sharing_groups',
+                        'alias' => 'EventsSharingGroup',
+                        'type' => 'inner',
+                        'conditions'=> array('EventsSharingGroup.event_id = Event.id')
+                    ),
+                    array(
+                        'table' => 'sharing_groups',
+                        'alias' => 'SharingGroup',
+                        'type' => 'inner',
+                        'conditions'=> array(
+                            'SharingGroup.id = EventsSharingGroup.sharing_group_id',
+                            'SharingGroup.id' => Set::extract('/SharingGroup/id', $org)
+                            )
+                    )
+                )));
+                if(!empty($my_events)){
+                    $this->paginate = Set::merge($this->paginate, array(
+                        'conditions' => array('AND' => array('Event.id' => $my_events))));
+                }
+            }
+
 			$this->paginate = Set::merge($this->paginate,array(
 			'conditions' =>
-					array('OR' =>
+					array(
+                        'OR' =>
 							array(
 								'Event.org =' => $this->Auth->user('org'),
 								'AND' => array(
 										'Attribute.distribution >' => 0,
-										'Event.distribution >' => 0,
+										'Event.distribution >' => 0
 			)))));
 		}
 
@@ -252,6 +278,9 @@ class AttributesController extends AppController {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
 		$this->Attribute->read();
+        if(!$this->_isInMySharingGroup($this->Attribute->data['Event']['id'])){
+            throw new UnauthorizedException('You do not have the permission to view this event.');
+        }
 		if (!$this->_isSiteAdmin() &&
 			$this->Auth->user('org') !=
 			$this->Attribute->data['Event']['org'] &&
@@ -1119,7 +1148,7 @@ class AttributesController extends AppController {
 		// add the values as specified in the 2nd parameter to the conditions
 		$values = explode('&&', $value);
 		$parameters = array('value', 'type', 'category', 'org');
-		
+
 		foreach ($parameters as $k => $param) {
 			if (isset(${$parameters[$k]}) && ${$parameters[$k]}!=='null') {
 				$elements = explode('&&', ${$parameters[$k]});

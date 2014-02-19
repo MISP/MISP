@@ -109,6 +109,16 @@
 									<li class="divider"></li>
 									<li><a href="/tasks">Scheduled Tasks</a></li>
 								<?php endif; ?>						
+                            <li class="divider"></li>
+                            <li><a href="/admin/sharing_groups/index">List Sharing Groups</a></li>
+                            <li><a href="/admin/sharing_groups/add">Add Sharing Groups</a></li>
+                            <li class="divider"></li>
+                            <li><a href="/admin/organisations/index">List Organisations</a></li>
+                            <li><a href="/admin/organisations/add">Add Organisation</a></li>
+							<li class="divider"></li>
+							<li><a href="/admin/users/email">Contact Users</a></li>
+							<li class="divider"></li>
+							<li><a href="/pages/display/administration">Administrative tools</a></li>
 							<?php endif; ?>
 						</ul>
 					</li>

@@ -310,6 +310,21 @@ class Event extends AppModel {
 		)
 	);
 
+	public $hasAndBelongsToMany = array(
+		'SharingGroup' => array(
+			'className' => 'SharingGroup',
+			'joinTable' => 'events_sharing_groups',
+			'foreignKey' => 'event_id',
+			'associationForeignKey' => 'sharing_group_id',
+		),
+        'Server' => array(
+            'className' => 'Server',
+            'joinTable' => 'events_servers',
+            'foreignKey' => 'event_id',
+            'associationForeignKey' => 'server_id',
+        )
+	);
+
 	public function beforeDelete($cascade = true) {
 		// delete event from the disk
 		$this->read();	// first read the event from the db

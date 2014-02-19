@@ -24,6 +24,8 @@ if ('true' == Configure::read('MISP.sync')) {
 	echo $this->Form->input('analysis', array(
 			'options' => array($analysisLevels),
 			));
+    echo $this->Form->input('SharingGroup', array('multiple' => 'checkbox', 'div' => 'input clear'));
+    echo $this->Form->input('Server', array('multiple' => 'checkbox', 'div' => 'input clear'));
 	echo $this->Form->input('info', array(
 			'div' => 'clear',
 			'class' => 'input-xxlarge'

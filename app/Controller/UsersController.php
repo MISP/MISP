@@ -208,6 +208,8 @@ class UsersController extends AppController {
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
 			$this->request->data['User']['change_pw'] = 1;
 			$this->request->data['User']['newsread'] = '2000-01-01';
+			$org_compat = $this->User->Organisation->read(array('name'), $this->request->data['User']['organisation_id']);
+			$this->request->data['User']['org'] = $org_compat['Organisation']['name'];
 			if (!$this->_isSiteAdmin()) {
 				$this->request->data['User']['org'] = $this->Auth->User('org');
 				$this->loadModel('Role');
@@ -230,7 +232,8 @@ class UsersController extends AppController {
 			$this->newkey = $this->User->generateAuthKey();
 			$this->set('authkey', $this->newkey);
 		}
-		$this->set(compact('roles'));
+		$organisations = $this->User->Organisation->find('list');
+		$this->set(compact('roles', 'organisations'));
 	}
 
 /**
@@ -254,6 +257,8 @@ class UsersController extends AppController {
 		$roles = $this->User->Role->find('list', $params);
 		$this->set('currentId', $id);
 		if ($this->request->is('post') || $this->request->is('put')) {
+			$org_compat = $this->User->Organisation->read(array('name'), $this->request->data['User']['organisation_id']);
+			$this->request->data['User']['org'] = $org_compat['Organisation']['name'];
 			$fields = array();
 			foreach (array_keys($this->request->data['User']) as $field) {
 				if($field != 'password') array_push($fields, $field);
@@ -323,8 +328,9 @@ class UsersController extends AppController {
 			$this->request->data = $this->User->data; // TODO CHECK
 
 		}
+		$organisations = $this->User->Organisation->find('list');
 		$this->set('id', $id);
-		$this->set(compact('roles'));
+		$this->set(compact('roles', 'organisations'));
 	}
 
 /**
@@ -390,7 +396,7 @@ class UsersController extends AppController {
 					'perm_site_admin' => 1
 				));
 				$this->Role->save($siteAdmin);
-			}	
+			}
 			// populate the DB with the first user if it's empty
 			if ($this->User->find('count') == 0 ) {
 				$admin = array('User' => array(

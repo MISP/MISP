@@ -13,14 +13,7 @@ class ThreatLevelTest extends CakeTestCase {
  * @var array
  */
 	public $fixtures = array(
-		'app.threat_level',
-		'app.event',
-		'app.user',
-		'app.role',
-		'app.post',
-		'app.thread',
-		'app.attribute',
-		'app.shadow_attribute'
+		'app.threat_level'
 	);
 
 /**
