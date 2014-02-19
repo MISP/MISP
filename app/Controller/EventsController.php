@@ -612,6 +612,7 @@ class EventsController extends AppController {
 			unset($this->Event->Attribute->validate['event_id']);
 			unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 		}
+
 		unset ($data['Event']['id']);
 		if (isset($data['Event']['uuid'])) {
 			// check if the uuid already exists
@@ -620,11 +621,14 @@ class EventsController extends AppController {
 				// RESTfull, set responce location header..so client can find right URL to edit
 				if ($fromPull) return false;
 				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
+                // If event is found send 302 Found instead of 404 Not Found
+                $this->response->statusCode(302);
 				$this->response->header('Location', Configure::read('CyDefSIG.baseurl') . '/events/' . $existingEvent['Event']['id']);
 				$this->response->send();
 				return false;
 			}
 		}
+        //die(debug($data));
 		if (isset($data['Attribute'])) {
 			foreach ($data['Attribute'] as &$attribute) {
 				unset ($attribute['id']);
@@ -637,9 +641,21 @@ class EventsController extends AppController {
 		);
 
 		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,
-			'atomic' => true));
+			'atomic' => false));
+
 		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
 		if ($saveResult) {
+            if(!empty($data['Event']['SharingGroup'])){
+                foreach($data['Event']['SharingGroup'] as $dsg){
+                    if($this->Event->SharingGroup->exists($dsg['id'])){
+                        $sg = array();
+                        $sg['sharing_group_id'] = $dsg['id'];
+                        $sg['event_id'] = $this->Event->getId();
+                        $this->Event->EventsSharingGroup->create();
+                        $this->Event->EventsSharingGroup->save($sg);
+                    }
+                }
+            }
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
 				if ('true' != Configure::read('MISP.disablerestalert')) {

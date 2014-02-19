@@ -888,7 +888,7 @@ class Attribute extends AppModel {
 			// now build a correlation array of things that will need to be added in the db
 			// we do this twice, once for value1 and once for value2
 			$correlations = array();   // init variable
-			$value_names = array ('value1', 'value2');
+			$value_names = array('value1', 'value2');
 			// do the correlation for value1 and value2, this needs to be done separately
 			foreach ($value_names as $value_name) {
 			    if (empty($a[$value_name])) continue;  // do not correlate if attribute is empty
