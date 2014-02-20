@@ -74,7 +74,6 @@ class TagsController extends AppController {
 			throw new NotFoundException('Invalid tag');
 		}
 		if ($this->Tag->delete()) {
-			$this->Tag->EventTag->deleteAll(array('EventTag.tag_id' => $id));
 			$this->Session->setFlash(__('Attribute deleted'));
 		} else {
 			$this->Session->setFlash(__('Attribute was not deleted'));
