@@ -2056,9 +2056,9 @@ class EventsController extends AppController {
 		$tag_id = $this->request->data['Event']['tag'];
 		$id = $this->request->data['Event']['id'];
 		$this->Event->recurisve = -1;
-		$event = $this->Event->read(array('id', 'org', 'orgc'), $id);
+		$event = $this->Event->read(array('id', 'org', 'orgc', 'distribution'), $id);
 		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-		if ($this->Auth->user('org') !== $event['Event']['org'] && $this->Auth->user('org') !== $event['Event']['orgc'] && !$this->_isSiteAdmin()) {
+		if (($this->Auth->user('org') !== $event['Event']['org'] && $this->Auth->user('org') !== $event['Event']['orgc'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger']) && !$this->_isSiteAdmin()) {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
 		$this->Event->EventTag->Tag->id = $tag_id;
@@ -2087,9 +2087,9 @@ class EventsController extends AppController {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
 		$this->Event->recurisve = -1;
-		$event = $this->Event->read(array('id', 'org', 'orgc'), $id);
+		$event = $this->Event->read(array('id', 'org', 'orgc', 'distribution'), $id);
 		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-		if ($this->Auth->user('org') !== $event['Event']['org'] && $this->Auth->user('org') !== $event['Event']['orgc'] && !$this->_isSiteAdmin()) {
+		if (($this->Auth->user('org') !== $event['Event']['org'] && $this->Auth->user('org') !== $event['Event']['orgc'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger']) && !$this->_isSiteAdmin()) {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
 		$eventTag = $this->Event->EventTag->find('first', array(

@@ -58,6 +58,12 @@ class Tag extends AppModel {
 			'className' => 'EventTag',
 		)
 	);
+	
+	
+	public function beforeDelete($cascade = true) {
+		$this->EventTag->deleteAll(array('EventTag.tag_id' => $this->id));
+	}
+	
 	public function validateColour($fields) {
 		if (!preg_match('/^#[0-9a-f]{6}$/i', $fields['colour'])) return false;
 		return true;

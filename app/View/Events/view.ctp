@@ -108,7 +108,8 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 							<button id="addTagButton" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">+</button>
 					
 							</td>
-							<?php else: echo '&nbsp;'; 
+							<?php else:
+									if (empty($tags)) echo '&nbsp;'; 
 								endif; ?>
 						</tr>
 						</table>
