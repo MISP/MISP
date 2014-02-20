@@ -19,13 +19,13 @@ then
 	read password
 	printf '\nDatabase: '
 	read database
-	cd $(echo $FILE_PATH)
+	cd "$FILE_PATH"
 	mysql -u $name -p$password $database < upgrade_2.2.sql
 	printf '\n\n'
 else
 	printf '\n\nDatabase not updated. You will have to update it manually by executing\n\nmysql -u [username] -p[password] [database name] < upgrade_2.2.sql from the MISP/INSTALL directory\n\n'
 fi
-cd $(echo $MISP_PATH)
+cd "$MISP_PATH"
 git submodule init
 git submodule update
 
@@ -49,16 +49,16 @@ else
 	echo "Error, you need either apt-get, yum or brew to install Redis using this script. Please install it manually.";
 fi
 
-cd $(echo $MISP_PATH)/app/Plugin/CakeResque
+cd "$MISP_PATH/app/Plugin/CakeResque"
 curl -s https://getcomposer.org/installer | php
 php composer.phar install
-cd $(echo $MISP_PATH)
-chown -R www-data:www-data $(echo $MISP_PATH)
-chmod -R 750 $(echo $MISP_PATH)
-chmod -R g+ws $(echo $MISP_PATH)/app/tmp
-chmod -R g+ws $(echo $MISP_PATH)/app/files
+cd "$MISP_PATH"
+chown -R www-data:www-data "$MISP_PATH"
+chmod -R 750 "$MISP_PATH"
+chmod -R g+ws "$MISP_PATH/app/tmp"
+chmod -R g+ws "$MISP_PATH/app/files"
 rm app/tmp/cache/*/*
-cp -fa $(echo $FILE_PATH)/setup/config.php $MISP_PATH/app/Plugin/CakeResque/Config/config.php
+cp -fa "$FILE_PATH/setup/config.php" "$MISP_PATH/app/Plugin/CakeResque/Config/config.php"
 printf '\n\n=========================================================\n'
 printf '|               \e[34mI\e[39mnstallation \e[34mC\e[39momplete                   |\n'
 printf '=========================================================\n\n'

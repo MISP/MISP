@@ -33,18 +33,18 @@ fi
 pear install Crypt_GPG
 pear install Net_GeoIP
 git config core.filemode false
-cd $(echo $MISP_PATH)
+cd "$MISP_PATH"
 git submodule init
 git submodule update
-cd $(echo $MISP_PATH)/app/Plugin/CakeResque
+cd "$MISP_PATH/app/Plugin/CakeResque"
 curl -s https://getcomposer.org/installer | php
 php composer.phar install
-cd $(echo $MISP_PATH)
-chown -R www-data:www-data $(echo $MISP_PATH)
-chmod -R 750 $(echo $MISP_PATH)
-chmod -R g+ws $(echo $MISP_PATH)/app/tmp
-chmod -R g+ws $(echo $MISP_PATH)/app/files
-cp -fa FILE_PATH/setup/config.php $(echo $MISP_PATH)/app/Plugin/CakeResque/Config/config.php
+cd "$MISP_PATH"
+chown -R www-data:www-data "$MISP_PATH"
+chmod -R 750 "$MISP_PATH"
+chmod -R g+ws "$MISP_PATH/app/tmp"
+chmod -R g+ws "$MISP_PATH/app/files"
+cp -fa "$FILE_PATH/setup/config.php" "$MISP_PATH/app/Plugin/CakeResque/Config/config.php"
 printf '\n\n=========================================================\n'
 printf '|               \e[34mI\e[39mnstallation \e[34mC\e[39momplete                   |\n'
 printf '=========================================================\n\n'
