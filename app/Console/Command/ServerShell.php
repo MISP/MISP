@@ -19,6 +19,7 @@ class ServerShell extends AppShell
 		$user = $this->User->read(array('id', 'org', 'email'), $userId);
 		$server = $this->Server->read(null, $serverId);
 		$result = $this->Server->pull($user['User'], null, $technique, $server, $jobId);
+		$this->Job->id = $jobId;
 		$this->Job->save(array(
 				'id' => $jobId,
 				'message' => 'Job done.',

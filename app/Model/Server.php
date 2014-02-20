@@ -127,7 +127,9 @@ class Server extends AppModel {
 			}
 		
 			// reverse array of events, to first get the old ones, and then the new ones
-			$eventIds = array_reverse($eventIds);
+			if (!empty($eventIds)) {
+				$eventIds = array_reverse($eventIds);
+			}
 			$eventCount = count($eventIds);
 		} elseif ("incremental" == $technique) {
 			// TODO incremental pull
@@ -138,11 +140,11 @@ class Server extends AppModel {
 		} else {
 			return array (4, null);
 		}
+		$successes = array();
+		$fails = array();
+		$pulledProposals = array();
 		// now process the $eventIds to pull each of the events sequentially
 		if (!empty($eventIds)) {
-			$successes = array();
-			$fails = array();
-			$pulledProposals = array();
 			// download each event
 			if (null != $eventIds) {
 				App::uses('SyncTool', 'Tools');
@@ -271,6 +273,11 @@ class Server extends AppModel {
 								} else {
 									$pulledProposals[$event['Event']['id']] = 1;
 								}
+								if (isset($proposal['old_id'])) {
+									$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
+									if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
+									else $proposal['old_id'] = 0;
+								}
 								$shadowAttribute->create();
 								$shadowAttribute->save($proposal);
 							}
@@ -293,6 +300,7 @@ class Server extends AppModel {
 			'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $user['email'],
 			'change' => count($successes) . ' events and ' . count($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.' 
 		));
+		if (!isset($lastpulledid)) $lastpulledid = 0;
 		return array($successes, $fails, $pulledProposals, $lastpulledid);
 	}
 	

@@ -791,19 +791,24 @@ class Event extends AppModel {
 					unset($eventArray['response']['Event']);
 					$eventArray['response']['Event'][0] = $tmp;
 				}
-
 				$eventIds = array();
 				// different actions if it's only 1 event or more
 				// only one event.
 				if (isset($eventArray['response']['Event']['id'])) {
-					$eventIds[] = $eventArray['response']['Event']['id'];
+					if ($this->checkIfNewer($eventArray['response']['Event'])) { 
+						$eventIds[] = $eventArray['response']['Event']['id'];
+					}
 				} else {
 					// multiple events, iterate over the array
 					foreach ($eventArray['response']['Event'] as &$event) {
 						if (1 != $event['published']) {
 							continue; // do not keep non-published events
 						}
-						$eventIds[] = $event['id'];
+						// get rid of events that are the same timestamp as ours or older, we don't want to transfer the attributes for those
+						// The event's timestamp also matches the newest attribute timestamp by default
+						if ($this->checkIfNewer($event)) {
+							$eventIds[] = $event['id'];
+						}
 					}
 				}
 				return $eventIds;
@@ -818,7 +823,7 @@ class Event extends AppModel {
 		// error, so return null
 		return null;
 	}
-	
+
 	public function fetchEventIds($org, $isSiteAdmin) {
 		$conditions = array();
 		if (!$isSiteAdmin) {
@@ -1396,24 +1401,24 @@ class Event extends AppModel {
 	}
 	
 	public function _edit(&$data, $id) {
-		$this->read(null, $id);
+		$localEvent = $this->find('first', array('conditions' => array('Event.id' => $id), 'recursive' => -1, 'contain' => array('Attribute', 'ThreatLevel', 'ShadowAttribute')));
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
-		if ($this->data['Event']['timestamp'] < $data['Event']['timestamp']) {
+		if ($localEvent['Event']['timestamp'] < $data['Event']['timestamp']) {
 	
 		} else {
 			return 'Event exists and is the same or newer.';
 		}
-		if (!$this->data['Event']['locked']) {
+		if (!$localEvent['Event']['locked']) {
 			return 'Event originated on this instance, any changes to it have to be done locally.';
 		}
 		$fieldList = array(
 				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
 		);
-		$data['Event']['id'] = $this->data['Event']['id'];
+		$data['Event']['id'] = $localEvent['Event']['id'];
 		if (isset($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => &$attribute) {
-				$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $this->data);
+				$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $localEvent);
 				if (count($existingAttribute)) {
 					$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
 					// Check if the attribute's timestamp is bigger than the one that already exists.
@@ -1721,11 +1726,23 @@ class Event extends AppModel {
 		$risk = array('Undefined' => 4, 'Low' => 3, 'Medium' => 2, 'High' => 1);
 		if (isset($xmlArray['Event'][0])) {
 			foreach ($xmlArray['Event'] as &$event) {
-				$event['Event']['threat_level_id'] = $risk[$event['Event']['risk']];
+				if (!isset($event['threat_level_id'])) {
+					$event['threat_level_id'] = $risk[$event['risk']];
+				}
 			}
 		} else {
-			$xmlArray['Event']['threat_level_id'] = $risk[$xmlArray['Event']['risk']];
+			if (!isset($xmlArray['Event']['threat_level_id']) && isset($xmlArray['Event']['risk'])) {
+				$xmlArray['Event']['threat_level_id'] = $risk[$xmlArray['Event']['risk']];
+			}
 		}
 		return $xmlArray;
 	}
+	
+
+	public function checkIfNewer($incomingEvent) {
+		$localEvent = $this->find('first', array('conditions' => array('uuid' => $incomingEvent['uuid']), 'recursive' => -1));
+		if (empty($localEvent) || $incomingEvent['timestamp'] > $localEvent['Event']['timestamp']) return true;
+		return false;
+	}
+	
 }
