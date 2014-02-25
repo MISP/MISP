@@ -109,11 +109,14 @@ class Server extends AppModel {
 	}
 	
 	public function pull($user, $id = null, $technique=false, $server, $jobId = false, $percent = 100, $current = 0) {
-		$eventModel = ClassRegistry::init('Event');
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
 			$job->read(null, $jobId);
+			App::import('Component','Auth');
+			$this->Auth = new AuthComponent(new ComponentCollection());
+			$this->Auth->login($user);
 		}
+		$eventModel = ClassRegistry::init('Event');
 		App::uses('HttpSocket', 'Network/Http');
 		$eventIds = array();
 		if ("full" == $technique) {
@@ -127,7 +130,9 @@ class Server extends AppModel {
 			}
 		
 			// reverse array of events, to first get the old ones, and then the new ones
-			$eventIds = array_reverse($eventIds);
+			if (!empty($eventIds)) {
+				$eventIds = array_reverse($eventIds);
+			}
 			$eventCount = count($eventIds);
 		} elseif ("incremental" == $technique) {
 			// TODO incremental pull
@@ -138,11 +143,11 @@ class Server extends AppModel {
 		} else {
 			return array (4, null);
 		}
+		$successes = array();
+		$fails = array();
+		$pulledProposals = array();
 		// now process the $eventIds to pull each of the events sequentially
 		if (!empty($eventIds)) {
-			$successes = array();
-			$fails = array();
-			$pulledProposals = array();
 			// download each event
 			if (null != $eventIds) {
 				App::uses('SyncTool', 'Tools');
@@ -223,19 +228,23 @@ class Server extends AppModel {
 						if (!$existingEvent) {
 							// add data for newly imported events
 							$passAlong = $server['Server']['url'];
-							$result = $eventModel->_add($event, $fromXml = true, $user, $server['Server']['organization'], $passAlong, true);
+							$result = $eventModel->_add($event, $fromXml = true, $user, $server['Server']['organization'], $passAlong, true, $jobId);
 							if ($result) $successes[] = $eventId;
 							else {
 								$fails[$eventId] = 'Failed (partially?) because of validation errors: '. print_r($eventModel->validationErrors, true);
 							}
 						} else {
-							$result = $eventModel->_edit($event, $existingEvent['Event']['id']);
+							$result = $eventModel->_edit($event, $existingEvent['Event']['id'], $jobId);
 							if ($result === 'success') $successes[] = $eventId;
 							else $fails[$eventId] = $result;
 						}
 					} else {
 						// error
 						$fails[$eventId] = 'failed downloading the event';
+					}
+					if ($jobId) {
+						$job->id = $jobId;
+						$job->saveField('progress', 100 * (($k + 1) / $eventCount));
 					}
 				}
 				if (count($fails) > 0) {
@@ -271,14 +280,16 @@ class Server extends AppModel {
 								} else {
 									$pulledProposals[$event['Event']['id']] = 1;
 								}
+								if (isset($proposal['old_id'])) {
+									$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
+									if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
+									else $proposal['old_id'] = 0;
+								}
 								$shadowAttribute->create();
 								$shadowAttribute->save($proposal);
 							}
 						}
 					}
-				}
-				if ($jobId && $k%10 == 0) {
-					$job->saveField('progress', $k / $eventCount);
 				}
 			}
 		}
@@ -293,6 +304,7 @@ class Server extends AppModel {
 			'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $user['email'],
 			'change' => count($successes) . ' events and ' . count($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.' 
 		));
+		if (!isset($lastpulledid)) $lastpulledid = 0;
 		return array($successes, $fails, $pulledProposals, $lastpulledid);
 	}
 	

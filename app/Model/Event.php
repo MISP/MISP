@@ -791,19 +791,24 @@ class Event extends AppModel {
 					unset($eventArray['response']['Event']);
 					$eventArray['response']['Event'][0] = $tmp;
 				}
-
 				$eventIds = array();
 				// different actions if it's only 1 event or more
 				// only one event.
 				if (isset($eventArray['response']['Event']['id'])) {
-					$eventIds[] = $eventArray['response']['Event']['id'];
+					if ($this->checkIfNewer($eventArray['response']['Event'])) { 
+						$eventIds[] = $eventArray['response']['Event']['id'];
+					}
 				} else {
 					// multiple events, iterate over the array
 					foreach ($eventArray['response']['Event'] as &$event) {
 						if (1 != $event['published']) {
 							continue; // do not keep non-published events
 						}
-						$eventIds[] = $event['id'];
+						// get rid of events that are the same timestamp as ours or older, we don't want to transfer the attributes for those
+						// The event's timestamp also matches the newest attribute timestamp by default
+						if ($this->checkIfNewer($event)) {
+							$eventIds[] = $event['id'];
+						}
 					}
 				}
 				return $eventIds;
@@ -818,7 +823,7 @@ class Event extends AppModel {
 		// error, so return null
 		return null;
 	}
-	
+
 	public function fetchEventIds($org, $isSiteAdmin) {
 		$conditions = array();
 		if (!$isSiteAdmin) {
@@ -1335,7 +1340,10 @@ class Event extends AppModel {
 	 *
 	 * @return bool true if success
 	 */
-	public function _add(&$data, $fromXml, $user, $or='', $passAlong = null, $fromPull = false) {
+	public function _add(&$data, $fromXml, $user, $or='', $passAlong = null, $fromPull = false, $jobId = null) {
+		if ($jobId) {
+			App::import('Component','Auth');
+		}
 		$this->create();
 		// force check userid and orgname to be from yourself
 		$data['Event']['user_id'] = $user['id'];
@@ -1376,7 +1384,6 @@ class Event extends AppModel {
 				'Event' => array('org', 'orgc', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
 		);
-	
 		$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,
 				'atomic' => true));
 		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
@@ -1395,43 +1402,52 @@ class Event extends AppModel {
 		}
 	}
 	
-	public function _edit(&$data, $id) {
-		$this->read(null, $id);
+	public function _edit(&$data, $id, $jobId = null) {
+		if ($jobId) {
+			App::import('Component','Auth');
+		}
+		$localEvent = $this->find('first', array('conditions' => array('Event.id' => $id), 'recursive' => -1, 'contain' => array('Attribute', 'ThreatLevel', 'ShadowAttribute')));
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
-		if ($this->data['Event']['timestamp'] < $data['Event']['timestamp']) {
+		if ($localEvent['Event']['timestamp'] < $data['Event']['timestamp']) {
 	
 		} else {
 			return 'Event exists and is the same or newer.';
 		}
-		if (!$this->data['Event']['locked']) {
+		if (!$localEvent['Event']['locked']) {
 			return 'Event originated on this instance, any changes to it have to be done locally.';
 		}
 		$fieldList = array(
 				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp')
 		);
-		$data['Event']['id'] = $this->data['Event']['id'];
+		$data['Event']['id'] = $localEvent['Event']['id'];
 		if (isset($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => &$attribute) {
-				$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $this->data);
+				$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $localEvent);
 				if (count($existingAttribute)) {
 					$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
 					// Check if the attribute's timestamp is bigger than the one that already exists.
 					// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
 					// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
 					if ($data['Event']['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-	
+						$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
+						$data['Attribute'][] = $data['Event']['Attribute'][$k];
+						unset($data['Event']['Attribute'][$k]);
 					} else {
 					unset($data['Event']['Attribute'][$k]);
 					}
-					} else {
+				} else {
 					unset($data['Event']['Attribute'][$k]['id']);
-					}
-					}
-	}
+					$data['Attribute'][] = $data['Event']['Attribute'][$k];
+					unset($data['Event']['Attribute'][$k]);
+				}
+			}
+		}
 	$this->cleanupEventArrayFromXML($data);
 	$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
-	if ($saveResult) return 'success';
+	if ($saveResult) {
+		return 'success';
+	}
 		else return 'Saving the event has failed.';
 	}
 	
@@ -1721,11 +1737,22 @@ class Event extends AppModel {
 		$risk = array('Undefined' => 4, 'Low' => 3, 'Medium' => 2, 'High' => 1);
 		if (isset($xmlArray['Event'][0])) {
 			foreach ($xmlArray['Event'] as &$event) {
-				$event['Event']['threat_level_id'] = $risk[$event['Event']['risk']];
+				if (!isset($event['threat_level_id'])) {
+					$event['threat_level_id'] = $risk[$event['risk']];
+				}
 			}
 		} else {
-			$xmlArray['Event']['threat_level_id'] = $risk[$xmlArray['Event']['risk']];
+			if (!isset($xmlArray['Event']['threat_level_id']) && isset($xmlArray['Event']['risk'])) {
+				$xmlArray['Event']['threat_level_id'] = $risk[$xmlArray['Event']['risk']];
+			}
 		}
 		return $xmlArray;
+	}
+	
+
+	public function checkIfNewer($incomingEvent) {
+		$localEvent = $this->find('first', array('conditions' => array('uuid' => $incomingEvent['uuid']), 'recursive' => -1));
+		if (empty($localEvent) || $incomingEvent['timestamp'] > $localEvent['Event']['timestamp']) return true;
+		return false;
 	}
 }

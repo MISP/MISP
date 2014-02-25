@@ -1557,7 +1557,6 @@ class EventsController extends AppController {
 			if (!isset($xmlArray['response']) || !isset($xmlArray['response']['Event'])) {
 				throw new Exception('This is not a valid MISP XML file.');
 			}
-			
 			$xmlArray = $this->Event->updateXMLArray($xmlArray);	
 			
 			if (isset($xmlArray['response']['Event'][0])) {
