@@ -1094,6 +1094,15 @@ class Event extends AppModel {
 				} else {
 					$line = $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids .  "\n";
 				}
+				//Defanging URLs (Not "links") emails domains/ips in notification emails
+				if ('url' == $attribute['type']) {
+                                $line = str_ireplace("http","hxxp", $line);
+                                }
+                                elseif ('email-src' == $attribute['type'] or 'email-dst' == $attribute['type']) {
+                                $line = str_replace("@","[at]", $line);
+                                }
+                                elseif ('domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
+                                $line = str_replace(".","_", $line);
 				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
 					$bodyTempOther .= $line;
 				else $body .= $line;
