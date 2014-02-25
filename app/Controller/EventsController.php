@@ -1025,7 +1025,11 @@ class EventsController extends AppController {
 				if (!is_array($result)) {
 
 					// redirect to the view event page
-					$this->Session->setFlash(__('Email sent to all participants.', true));
+					if (Configure::read('MISP.background_jobs')) {
+						$this->Session->setFlash(__('Job queued.', true));
+					} else {
+						$this->Session->setFlash(__('Email sent to all participants.', true));
+					}
 				} else {
 					$lastResult = array_pop($result);
 					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
@@ -1205,6 +1209,7 @@ class EventsController extends AppController {
 			$this->response->type('xml');	// set the content type
 			$this->layout = 'xml/default';
 			$this->header('Content-Disposition: download; filename="misp.xml"');
+			$results = $this->__fetchEvent($eventid, null, $user['User']['org'], $user['User']['siteAdmin'], $tags);
 		} else {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
@@ -1217,8 +1222,9 @@ class EventsController extends AppController {
 			} else {
 				$this->header('Content-Disposition: download; filename="misp.export.event' . $eventid . '.xml"');
 			}
+			$results = $this->__fetchEvent($eventid, null, null, false, $tags);
 		}
-		$results = $this->__fetchEvent($eventid, null, null, false, $tags);
+
 		if ($withAttachment) {
 			$this->loadModel('Attribute');
 			foreach ($results[0]['Attribute'] as &$attribute) {
