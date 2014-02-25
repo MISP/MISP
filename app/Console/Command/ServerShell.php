@@ -16,7 +16,7 @@ class ServerShell extends AppShell
 		$this->Job->read(null, $jobId);
 		$this->Server->id = $serverId;
 		$this->User->recursive = -1;
-		$user = $this->User->read(array('id', 'org', 'email'), $userId);
+		$user = $this->User->read(null, $userId);
 		$server = $this->Server->read(null, $serverId);
 		$result = $this->Server->pull($user['User'], null, $technique, $server, $jobId);
 		$this->Job->id = $jobId;

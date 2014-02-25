@@ -1340,7 +1340,10 @@ class Event extends AppModel {
 	 *
 	 * @return bool true if success
 	 */
-	public function _add(&$data, $fromXml, $user, $or='', $passAlong = null, $fromPull = false) {
+	public function _add(&$data, $fromXml, $user, $or='', $passAlong = null, $fromPull = false, $jobId = null) {
+		if ($jobId) {
+			App::import('Component','Auth');
+		}
 		$this->create();
 		// force check userid and orgname to be from yourself
 		$data['Event']['user_id'] = $user['id'];
@@ -1381,7 +1384,6 @@ class Event extends AppModel {
 				'Event' => array('org', 'orgc', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
 		);
-	
 		$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,
 				'atomic' => true));
 		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
@@ -1400,7 +1402,10 @@ class Event extends AppModel {
 		}
 	}
 	
-	public function _edit(&$data, $id) {
+	public function _edit(&$data, $id, $jobId = null) {
+		if ($jobId) {
+			App::import('Component','Auth');
+		}
 		$localEvent = $this->find('first', array('conditions' => array('Event.id' => $id), 'recursive' => -1, 'contain' => array('Attribute', 'ThreatLevel', 'ShadowAttribute')));
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
 		if ($localEvent['Event']['timestamp'] < $data['Event']['timestamp']) {
@@ -1413,7 +1418,7 @@ class Event extends AppModel {
 		}
 		$fieldList = array(
 				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp')
 		);
 		$data['Event']['id'] = $localEvent['Event']['id'];
 		if (isset($data['Event']['Attribute'])) {
@@ -1425,18 +1430,24 @@ class Event extends AppModel {
 					// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
 					// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
 					if ($data['Event']['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-	
+						$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
+						$data['Attribute'][] = $data['Event']['Attribute'][$k];
+						unset($data['Event']['Attribute'][$k]);
 					} else {
 					unset($data['Event']['Attribute'][$k]);
 					}
-					} else {
+				} else {
 					unset($data['Event']['Attribute'][$k]['id']);
-					}
-					}
-	}
+					$data['Attribute'][] = $data['Event']['Attribute'][$k];
+					unset($data['Event']['Attribute'][$k]);
+				}
+			}
+		}
 	$this->cleanupEventArrayFromXML($data);
 	$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
-	if ($saveResult) return 'success';
+	if ($saveResult) {
+		return 'success';
+	}
 		else return 'Saving the event has failed.';
 	}
 	
@@ -1744,5 +1755,4 @@ class Event extends AppModel {
 		if (empty($localEvent) || $incomingEvent['timestamp'] > $localEvent['Event']['timestamp']) return true;
 		return false;
 	}
-	
 }
