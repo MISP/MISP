@@ -1102,7 +1102,7 @@ class Event extends AppModel {
                                 $line = str_replace("@","[at]", $line);
                                 }
                                 elseif ('domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
-                                $line = str_replace(".","_", $line);
+                                $line = str_replace(".","[.]", $line);
 				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
 					$bodyTempOther .= $line;
 				else $body .= $line;
