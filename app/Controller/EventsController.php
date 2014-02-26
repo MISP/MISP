@@ -483,7 +483,7 @@ class EventsController extends AppController {
 						is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
-					if ($this->_isRest()) $this->request->data = $this->updateXMLArray($this->request->data, false);
+					if ($this->_isRest()) $this->request->data = $this->Event->updateXMLArray($this->request->data, false);
 					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
 					if ($add && !is_numeric($add)) {
 						if ($this->_isRest()) {
@@ -749,7 +749,7 @@ class EventsController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
 				$saveEvent = false;
-				if ($this->_isRest()) $this->request->data = $this->updateXMLArray($this->request->data, false);
+				if ($this->_isRest()) $this->request->data = $this->Event->updateXMLArray($this->request->data, false);
 				// Workaround for different structure in XML/array than what CakePHP expects
 				$this->Event->cleanupEventArrayFromXML($this->request->data);
 
