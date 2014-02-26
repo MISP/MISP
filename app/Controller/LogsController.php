@@ -84,7 +84,7 @@ class LogsController extends AppController {
 		
 		
 		$conditions['OR'][] = array('AND' => array('Log.model LIKE' => 'Event', 'Log.model_id LIKE' => $id));
-		if ($org) $conditions['AND'][] = array('Log.org LIKE' => $org);
+		if ($org) $conditions['AND'][] = array('Log.org LIKE' => $org, 'Log.model LIKE' => 'ShadowAttribute');
 		// if we are not the owners of the event and we aren't site admins, then we should only see the entries for attributes that are not private
 		// This means that we will not be able to see deleted attributes - since those could have been private
 		if (!$mayModify) {
