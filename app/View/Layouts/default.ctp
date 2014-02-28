@@ -16,6 +16,7 @@
 		echo $this->Html->css('bootstrap-timepicker');
 		echo $this->Html->css('bootstrap-colorpicker.min');
 		echo $this->Html->css('main');
+		echo $this->Html->css('print', 'stylesheet', array('media' => 'print'));
 
 		// FIXME chri: re-add print stylesheet
 		//echo $this->Html->css(array('print'), 'stylesheet', array('media' => 'print'));
