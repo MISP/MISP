@@ -323,6 +323,13 @@ class EventsController extends AppController {
 					'contain' => 'User'
 			);
 			$posts = $this->paginate('Post');
+			if (!$this->_isSiteAdmin()) {
+				foreach ($posts as &$post) {
+					if ($post['User']['org'] != $this->Auth->user('org')) {
+						$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org'] . ')';
+					}
+				}
+			}
 			// Show the discussion
 			$this->set('posts', $posts);
 			$this->set('thread_id', $thread['Thread']['id']);
