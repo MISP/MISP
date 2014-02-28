@@ -123,6 +123,8 @@ drop procedure AddColumnUnlessExists;
 UPDATE `regexp` SET `type` = 'ALL';
 
 UPDATE `roles` SET `perm_site_admin` = 1 WHERE `id` = 1;
+UPDATE `roles` SET `perm_tagger` = 1 WHERE `id` = 1;
+UPDATE `roles` SET `perm_regexp_access` = 1 WHERE `id` = 1;
 
 INSERT IGNORE INTO `threat_levels` (`id`, `name`, `description`, `form_description`)
 VALUES
