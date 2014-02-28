@@ -96,6 +96,9 @@ class AttributesController extends AppController {
  * @throws NotFoundException // TODO Exception
  */
 	public function add($eventId = null) {
+		if (!$this->userRole['perm_add']) {
+			throw new MethodNotAllowedException('You don\'t have permissions to create attributes');
+		}
 		if ($this->request->is('post')) {
 			$this->loadModel('Event');
 			$date = new DateTime();

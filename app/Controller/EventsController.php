@@ -474,7 +474,7 @@ class EventsController extends AppController {
 	 * @return void
 	 */
 	public function add() {
-		if (!$this->role['perm_add']) {
+		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create events');
 		}
 		if ($this->request->is('post')) {
