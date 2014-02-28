@@ -474,6 +474,9 @@ class EventsController extends AppController {
 	 * @return void
 	 */
 	public function add() {
+		if (!$this->role['perm_add']) {
+			throw new MethodNotAllowedException('You don\'t have permissions to create events');
+		}
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
 				// Distribution, reporter for the events pushed will be the owner of the authentication key
