@@ -1237,10 +1237,12 @@ class EventsController extends AppController {
 
 		if ($withAttachment) {
 			$this->loadModel('Attribute');
-			foreach ($results[0]['Attribute'] as &$attribute) {
-				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-					$attribute['data'] = $encodedFile;
+			foreach ($results as &$result) {
+				foreach ($result['Attribute'] as &$attribute) {
+					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+						$attribute['data'] = $encodedFile;
+					}
 				}
 			}
 		}

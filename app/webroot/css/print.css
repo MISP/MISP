@@ -3,7 +3,11 @@
 	display: none;
 }
 
-div.view{
+.topGap {
+	padding-top:0px;
+}
+
+div.view, div.index{
 	width: 99% !important;
 }
 
@@ -11,6 +15,6 @@ div.view{
 	display: none;
 }
 
-a[href]:after{
+a[href]:after, .tagSecondHalf{
 	content:none;
 }

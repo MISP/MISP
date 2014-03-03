@@ -50,7 +50,7 @@
 		</div>
 		<div
 			<?php
-				if (Configure::read('debug') == 0) echo "style=\"padding-top:100px;\"";
+				if (Configure::read('debug') == 0) echo 'class="topGap"';
 			?>
 		>	
 			<?php echo $this->fetch('content'); ?>
