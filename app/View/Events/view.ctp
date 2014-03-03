@@ -172,7 +172,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	<?php endif; ?>
 	</div>
 	<br />
-	<div>
+	<div class="toggleButtons">
 		<button class="btn btn-inverse toggle-left btn.active qet" id="pivots_active">
 			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Pivots
 		</button>

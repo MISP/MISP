@@ -109,6 +109,19 @@ function goLeft() {
 	cal.previous();
 }
 </script>
+<?php 
+if (preg_match('/(?i)msie [2-9]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) {
+	if (preg_match('%(?i)Trident/(.*?).0%', $_SERVER['HTTP_USER_AGENT'], $matches) && isset($matches[1]) && $matches[1] > 5) {
+		?>
+			<br /><br /><p style="color:red;font-size:11px;">The above graph will not work correctly in Compatibility mode. Please make sure that it is disabled in your Internet Explorer settings.</p>	
+		<?php 
+	} else {
+		?>
+			<br /><br /><p style="color:red;font-size:11px;">The above graph will not work correctly on Internet Explorer 9.0 and earlier. Please download Chrome, Firefox or upgrade to a newer version of Internet Explorer.</p>	
+		<?php
+	}
+}
+?>
 </div>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));

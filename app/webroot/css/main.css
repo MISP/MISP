@@ -639,6 +639,9 @@ a.proposal_link_red:hover {
 	color:white;
 }
 
+.topGap {
+	padding-top:100px;
+}
 
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
