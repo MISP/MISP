@@ -413,6 +413,13 @@ class ShadowAttribute extends AppModel {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
 				break;
+			case 'sha256':
+				if (preg_match("#^[0-9a-f]{64}$#", $value)) {
+					$returnValue = true;
+				} else {
+					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
+				}
+				break;
 			case 'filename':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
@@ -430,6 +437,14 @@ class ShadowAttribute extends AppModel {
 			case 'filename|sha1':
 				// no newline
 				if (preg_match("#^.+\|[0-9a-f]{40}$#", $value)) {
+					$returnValue = true;
+				} else {
+					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
+				}
+				break;
+			case 'filename|sha256':
+				// no newline
+				if (preg_match("#^.+\|[0-9a-f]{64}$#", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
