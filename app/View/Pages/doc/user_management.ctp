@@ -52,10 +52,19 @@ MISP also provides its users with some information about itself and its users th
 	<li><b>Member statistics:</b> By using the Members List menu button on the left, you can get a quick overview over how many users each organisation has registered on your server, and a histogram, depicting the distribution of attribute types created by each organisation.<br /><br /></li>
 	<li><b>User Guide:</b> The user guide is also accessible via the Global Actions menu. You can find out more about how to use the system by reading this.<br /><br /></li>
 	<li><b>Terms &amp; Conditions:</b> It is possible to review the terms &amp; conditions that were shown during the first run of the system by clicking on the terms &amp; conditions link in the Global Actions menu.<br /><br /></li>
-	<li><b>Statistics:</b> View statistics about the users and the data contained within this instance.</li>
+	<li><b>Statistics:</b> View statistics about the users and the data contained within this instance.
+		<ul>
+			<li>
+				<b>General Statistics:</b> View a set of statistics such as the number of Events and Attributes currently in existance on the platform. The number in the bracket shows the number of new items added during this week.
+			</li>
+			<li>
+				<b>Activity Heatmap:</b> This graph shows a heatmap of all activity related to creating event related data on a day by day basis. By default, the graph shows the sum of the contributions of all organisations, but using the buttons representing each organisation in existance on the platform you can switch to the activity heatmap of a single organisation. If you'd like to see the activity further back in the past, just use the arrow buttons to navigate the heatmap.
+			</li>
+		</ul>
+	</li>
 </ul>
  <a id="filters"></a><h3>Inspecting the input filters:</h3>
-All the events and attributes that get entered into MISP will be run through a series of input filters. These are defined by the site administrators, but every user can take a look at the currently active lists.<br><br>
+All the events and attributes that get entered into MISP will be run through a series of input filters. These are defined by the site administrators or users with special privileges to edit the filters, but every user can take a look at the currently active lists.<br><br>
 <ul>
 	<li><b>Import Regexp:</b> All Attribute value and Event info fields will be parsed for a set of regular expressions and replaced based on the replacement values contained in this section. This has many uses, such as unifying similar data for better correlation, removing personal data from file-paths or simply for clarity. It is also possible to blacklist data by not defining a replacement for a regular expression. <br /><br /></li>
 	<li><b>Signature Whitelist:</b> This list (can) contain a set of addresses that are allowed to be entered as attribute values but will be blocked from being exported to NIDS-es.<br /><br /> </li>

@@ -23,6 +23,8 @@
 		<li><b>Sync Actions:</b> With administrator access rights, shows a list of the connected instances and allows the initiation of a push and a pull (more about the synchronisation mechanisms later).</li>
 		<li><b>Administration:</b> Administrators can add, edit or remove user accounts and user roles. Roles define the access rights to certain features such as publishing of events, usage of the REST interface or synchronisation of any user belonging to the given role. Site administrators can also access a contact form, through which it is possible to reset the passwords of users, or to just get in touch with them via encrypted e-mails.</li>
 		<li><b>Audit:</b> If you have audit permissions, you can view the logs for your organisation (or for site admins for the entire system) here or even search the logs if you are interested in something specific.</li>
+		<li><b>Discussions:</b> Link to the discussion threads.</li>
+		<li><b>Proposal Notifications: </b> This shows how many proposals your organisation has received and across how many events they are spread out. Clicking this will take you to the list of proposals.</li>
 		<li><b>Log out:</b> Logs you out of the system.</li>
 	</ul>
 
@@ -35,16 +37,16 @@
 		<li><b>Search Attributes:</b> You can set search terms for a filtered attribute index view here.</li>
 		<li><b>View Proposals:</b> Shows a list of all proposals that you are eligible to see.</li>
 		<li><b>Events with proposals: </b> Shows all of the events created by your organsiation that has pending proposals.</li>
-		<li><b>List Tags:</b>List all the tags that have been created by users with tag creation rights on this instance</li>
-		<li><b>Add Tag:</b>Create a new tag</li>
+		<li><b>List Tags:</b>List all the tags that have been created by users with tag creation rights on this instance.</li>
+		<li><b>Add Tag:</b>Create a new tag.</li>
 		<li><b>Export:</b> Export the data accessible to you in various formats.</li>
 		<li><b>Automation:</b> If you have authentication key access, you can view how to use your key to use the REST interface for automation here.</li>
 	</ul>
 
 	<h5>Input filters</h5>
 	<ul>
-		<li><b>Import Whitelist:</b> You can view the whitelist rules, which contain the values that are blocked from being used for exports and automation on this instance. Site administrators have access to editing this list.</li>
 		<li><b>Import Regexp:</b> You can view the Regular Expression rules, which modify the data that can be entered into the system. This can and should be used to help filter out personal information from automatic imports (such as removing the username from windows file paths), having unified representation for certain common values for easier correlation or simply standardising certain input. It is also possible to block certain values from being inserted. As a site administrator or a user with regex permission, you can also edit these rules.</li>
+		<li><b>Signature Whitelist:</b> You can view the whitelist rules, which contain the values that are blocked from being used for exports and automation on this instance. Site administrators have access to editing this list.</li>
 	</ul>
 
 	<h5>Global Actions</h5>
@@ -55,7 +57,7 @@
 		<li><b>Role Permissions:</b> You can view the role permissions here. </li>
 		<li><b>User Guide:</b> A link to this user guide.</li>
 		<li><b>Terms &amp; Conditions:</b> View the terms &amp; conditions again.</li>
-		<li><b>Statistics: </b> View a series of statistics about the users and the data on this instane</li>
+		<li><b>Statistics: </b> View a series of statistics about the users and the data on this instance.</li>
 		<li><b>Log out:</b> Logs the current user out.</li>
 	</ul>
 
