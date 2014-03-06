@@ -1,6 +1,7 @@
 <div class="footer <?php echo $debugMode;?>">
-	<div class="navbar navbar-inverse" style="padding-left:20px;">
-		<div class="navbar-inner row">
+	<div class="navbar navbar-inverse">
+		<div class="glass"></div>
+		<div class="navbar-inner" style="border-radius: 10px;">
 			<div class="pull-left footerText" style="float:left;position:absolute;padding-top:12px;z-index:2;">
 				<?php
 				$gpgpath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'gpg.asc';

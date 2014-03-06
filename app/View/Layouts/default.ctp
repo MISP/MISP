@@ -8,7 +8,6 @@
 	</title>
 	<?php
 		echo $this->Html->meta('icon');
-
 // 		echo $this->Html->css('cake.generic');
 		echo $this->Html->css('roboto');
 		echo $this->Html->css('bootstrap'); // see http://twitter.github.io/bootstrap/base-css.html
@@ -33,6 +32,7 @@
 <body>
 	<div id="container">
 		<?php echo $this->element('global_menu');
+		//throw new Exception(serialize($this->Session->read('Message.flash.message')));
 			if ($debugMode == 'debugOff') {
 				?>
 					<div class="container-fluid debugOff" style="padding-top:50px;width:98%;">
@@ -50,7 +50,11 @@
 		</div>
 		<div
 			<?php
-				if (Configure::read('debug') == 0) echo 'class="topGap"';
+			//echo 'class="topGap"';
+			$message = $this->Session->check('Message');
+				if (Configure::read('debug') == 0 && $this->Session->check('Message')) {
+					echo 'class="topGap"';
+				}
 			?>
 		>	
 			<?php echo $this->fetch('content'); ?>
@@ -70,10 +74,16 @@
 		<div class="spinner"></div>
 		<div class="loadingText">Loading</div>
 	</div>
+	<?php
+		if ($debugMode == 'debugOff'):
+	?>
 	<script type="text/javascript">
 		$(window).scroll(function(e) {
 			$('.actions').css('left',-$(window).scrollLeft());
 		});
 	</script>
+	<?php 
+		endif;
+	?>
 </body>
 </html>

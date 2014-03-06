@@ -26,10 +26,10 @@
 				echo Configure::read('MISP.welcome_text_top');
 			}?></span><br /><br />
 		<div class="nav" style="font-weight:bold; font-size:30px;text-align:center;">
-			<span style="color: #0088cc;">M</span><span style="color: #000000;">alware</span>
-			<span style="color: #0088cc;">I</span><span style="color: #000000;">nformation </span>
-			<span style="color: #0088cc;">S</span><span style="color: #000000;">haring</span>
-			<span style="color: #0088cc;">P</span><span style="color: #000000;">latform</span>
+			<span class="logoBlueBig">M</span><span style="color: #000000;">alware</span>
+			<span class="logoBlueBig">I</span><span style="color: #000000;">nformation </span>
+			<span class="logoBlueBig">S</span><span style="color: #000000;">haring</span>
+			<span class="logoBlueBig">P</span><span style="color: #000000;">latform</span>
 		</div>
 		<?php
 			if (true == Configure::read('MISP.welcome_text_bottom')) {

@@ -1,12 +1,18 @@
-<div class="navbar-wrapper header <?php echo $debugMode;?>">
+<div class="navbar-wrapper header <?php echo $debugMode;?>" style="height:42px;">
+	<div class="glass"></div>
 	<div class="navbar navbar-inverse">
-		<div class="navbar-inner">
+		<div class="navbar-inner" style="border-radius: 10px;">
+		  <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+	    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+	      <span class="icon-bar"></span>
+	      <span class="icon-bar"></span>
+	      <span class="icon-bar"></span>
+	    </a>
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
 				<ul class="nav">
-					<li class="active"><a href="/">home
+					<li><a href="/" style="color:white">Home
 					</a></li>
-
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Event Actions
@@ -140,24 +146,47 @@
 			</div>
 			<div class="nav-collapse collapse pull-right">
 				<ul class="nav">
+					<li>
+						<a href ="/events/proposalEventIndex" <?php if ($proposalCount > 0) echo 'style="font-weight:bold;"'; ?>>
+							<?php 
+								$proposalPluralOrZero = 's';
+								if ($proposalCount == 1) $proposalPluralOrZero = '';
+								$proposalEventPluralOrZero = 's';
+								if ($proposalEventCount == 1) $proposalEventPluralOrZero = '';
+								echo $proposalCount . ' proposal' . $proposalPluralOrZero . ' in ' . $proposalEventCount . ' event' . $proposalEventPluralOrZero; 
+							?>
+						</a>
+					</li>
+					<li>
+						<a href="/" id="fullLogo" style="font-weight:bold;">
+							<span class="logoBlue">M</span><span class="logoGray">alware</span>
+							<span class="logoBlue">I</span><span class="logoGray">nformation </span>
+							<span class="logoBlue">S</span><span class="logoGray">haring</span>
+							<span class="logoBlue">P</span><span class="logoGray">latform</span>
+						</a>
+						<a href="/" id="smallLogo" style="display:none;font-weight:bold;">
+							<span class="logoBlue">MISP</span>
+						</a>
+					</li>
 					<li><a href="/users/logout">Log out</a></li>
 				</ul>
-			</div>
-
-			<div class="nav-collapse collapse pull-right" style="margin-top:10px">
-				<div class="nav" style="font-weight:bold">
-					<?php if ($proposalCount > 0): ?>
-						<span class="proposal_span"><a href="/events/proposalEventIndex" class="proposal_link"><?php echo $proposalCount . ' proposals in ' . $proposalEventCount; ?> events</a></span>
-					<?php else: ?>
-						<span><a href="/events/proposalEventIndex" class="proposal_link"><?php echo $proposalCount . ' proposals in ' . $proposalEventCount; ?> events</a></span>
-					<?php endif;?>
-					<span class="logoBlue">M</span><span class="logoGray">alware</span>
-					<span class="logoBlue">I</span><span class="logoGray">nformation </span>
-					<span class="logoBlue">S</span><span class="logoGray">haring</span>
-					<span class="logoBlue">P</span><span class="logoGray">latform</span>
-				</div>
 			</div>
 		<?php endif;?>
 		</div>
 	</div>
 </div>
+<script>
+window.onload = resizeLogo;
+window.onresize = resizeLogo;
+
+function resizeLogo() {
+	if ($(window).width() < 1400) {
+		document.getElementById('fullLogo').style.display='none';
+		document.getElementById('smallLogo').style.display='block';
+	}
+	if ($(window).width() > 1399) {
+		document.getElementById('fullLogo').style.display='block';
+		document.getElementById('smallLogo').style.display='none';	
+	}
+}
+</script>
