@@ -663,7 +663,7 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'named pipe':
-				if (preg_match('#^(\\\\\\\\.\\\\pipe\\\\)#', $value) && !preg_match("#\n#", $value)) {
+				if (!preg_match("#\n#", $value)) {
 					$returnValue = true;
 				}
 				break;

@@ -193,6 +193,7 @@ The "Jobs" menu item within the Administration menu allows site admins to get an
 <li><b>Retries</b>: Currently unused, it is planned to introduced automatic delayed retries for the background processing to add resilience.</li>
 <li><b>Progress</b>: A progress bar showing how the job is coming along.</li>
 </ul>
+<br /><img src="/img/doc/jobs.png" alt = "" title = "Site administrators can monitor the process of all queued jobs here."/><br />
 <h3>Scheduling Jobs and Recurring Jobs</h3>
 Apart from off-loading long-lasting jobs to the background workers, there is a second major benefit of enabling the background workers: Site-administrators can schedule recurring tasks for the jobs that generally take the longest to execute. At the moment this includes pushing / pulling other instances and generating a full export cache for every organisation and export type. MISP comes with these 3 tasks pre-defined, but further tasks are planned. The following fields make up the scheduled tasks table: <br /><br />
 <ul>
@@ -204,4 +205,5 @@ Apart from off-loading long-lasting jobs to the background workers, there is a s
 <li><b>Description</b>: A brief description of the task.</li>
 <li><b>Message</b>: This field shows when the job was queued by the scheduler for execution. </li><br />
 </ul>
+<br /><img src="/img/doc/schedule.png" alt = "" title = "Site administrators can schedule reccuring tasks on this page."/><br />
 </div>

@@ -25,8 +25,11 @@
 				'options' => array($analysisLevels),
 				));
 		echo $this->Form->input('info', array(
-				'div' => 'clear',
-				'class' => 'input-xxlarge'
+					'label' => 'Event Description',
+					'div' => 'clear',
+					'type' => 'text',
+					'class' => 'form-control span6',
+					'placeholder' => 'Quick Event Description or Tracking Info'
 				));
 		echo $this->Form->input('Event.submittedgfi', array(
 				'label' => '<b>GFI sandbox</b>',

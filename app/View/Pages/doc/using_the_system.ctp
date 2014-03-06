@@ -72,7 +72,7 @@ and attachments and finally publishing it.<br /><br />
 			<li><i>Ongoing:</i> The analysis is in progress</li>
 			<li><i>Completed:</i> The analysis is complete<br /><br /></li>
 		</ul></li>
-		<li><b>Info:</b> The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event's creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server's administrator(s). <br /><br /></li>
+		<li><b>Event Description:</b> The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event's creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server's administrator(s). <br /><br /></li>
 		<li><b>GFI Sandbox:</b> It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event's creation, it is important to manually look over all the data that is being entered. <br /><br /></li>
 	</ul>
 <hr />
@@ -294,6 +294,7 @@ A quick description of each of the fields in the table:<br /><br />
 <li><b>Progress</b>: Shows the progress of the last initiated generation process.</li><br />
 <li><b>Actions</b>: Download or Generate the given cache with these buttons. </li><br />
 </ul>
+<br /><img src="/img/doc/export_bg.png" alt = "" title = "Use the export features here to quickly download data in various formats"/><br />
 <br /><h4>Exporting search results and individual events</h4>
 Apart from the options offered by the export pages, it's also possible to export all events involved in a search attribute result table, by using the "Download results as XML" button on the left menu bar. <br /><br />
 <br /><img src="/img/doc/export_search.png" alt = "" title = "Download a .xml from all the events that are shown through an attribute in the search results."/><br /><br />

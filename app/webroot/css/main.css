@@ -406,31 +406,31 @@ dd {
 /* fonts for logo */
 
 .logoBlue {
+	animation-name: bluePulse;
+	animation-duration: 10s;
+	animation-iteration-count: infinite;
+	-moz-animation-name: bluePulse;
+	-moz-animation-duration: 10s;
+	-moz-animation-iteration-count: infinite;
 	-webkit-animation-name: bluePulse;
-	-webkit-animation-duration: 7s;
-	-webkit-animation-iteration-count: infinite;
-}
-
-@-webkit-keyframes bluePulse {
-  from { color: #007d9a; text-shadow: #333 0 0 9px; }
-  50% { color: #0088cc; text-shadow: #0088cc 0 0 18px; }
-  to { color: #007d9a; text-shadow: #333 0 0 9px; }
-}
-
-.logoGray {
-	color: #999999;
-}
-
-.logoBlueBig {
-	-webkit-animation-name: bluePulseBig;
 	-webkit-animation-duration: 10s;
 	-webkit-animation-iteration-count: infinite;
 }
 
-@-webkit-keyframes bluePulseBig {
-  from { color: #007d9a; text-shadow: #0088cc 0 0 3px; }
-  50% { color: #0088cc; text-shadow: #0088cc 0 0 6px; }
-  to { color: #007d9a; text-shadow: #0088cc 0 0 3px; }
+@-webkit-keyframes bluePulse {
+  from { color: #007d9a; text-shadow: #333 0 0 1px; }
+  50% { color: #0088cc; text-shadow: #0099E6 0 0 3px; }
+  to { color: #007d9a; text-shadow: #333 0 0 1px; }
+}
+
+@keyframes bluePulse {
+  from { color: #007d9a; text-shadow: #333 0 0 1px; }
+  50% { color: #0088cc; text-shadow: #0099E6 0 0 3px; }
+  to { color: #007d9a; text-shadow: #333 0 0 1px; }
+}
+
+.logoGray {
+	color: #999999;
 }
 
 .glass {

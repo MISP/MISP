@@ -32,14 +32,13 @@
 <body>
 	<div id="container">
 		<?php echo $this->element('global_menu');
-		//throw new Exception(serialize($this->Session->read('Message.flash.message')));
 			if ($debugMode == 'debugOff') {
 				?>
 					<div class="container-fluid debugOff" style="padding-top:50px;width:98%;">
 				<?php
 			} else {
 				?>
-					<div class="container-fluid debugOn" style="width:98%;">
+					<div class="container-fluid debugOn" style="padding-top:10px;width:98%;">
 				<?php
 			}
 			echo $this->Session->flash('auth');
@@ -50,11 +49,7 @@
 		</div>
 		<div
 			<?php
-			//echo 'class="topGap"';
-			$message = $this->Session->check('Message');
-				if (Configure::read('debug') == 0 && $this->Session->check('Message')) {
-					echo 'class="topGap"';
-				}
+				if (Configure::read('debug') == 0) echo 'class="topGap"';
 			?>
 		>	
 			<?php echo $this->fetch('content'); ?>

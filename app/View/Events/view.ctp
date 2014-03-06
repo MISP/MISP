@@ -12,12 +12,14 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 			echo $this->element('img', array('id' => $event['Event']['orgc']));
 			$left = true;
 		}
+		$title = $event['Event']['info'];
+		if (strlen($title) > 55) $title = substr($title, 0, 55) . '...';
 	?>
 	<div class="row-fluid">
 		<div class="span8">
-			<h2>Event</h2>
+			<h2><?php echo nl2br(h($title)); ?></h2>
 			<dl>
-				<dt>ID</dt>
+				<dt>Event ID</dt>
 				<dd>
 					<?php echo h($event['Event']['id']); ?>
 					&nbsp;
@@ -120,7 +122,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					<?php echo h($event['Event']['date']); ?>
 					&nbsp;
 				</dd>
-				<dt title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>">Risk</dt>
+				<dt title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>">Threat Level</dt>
 				<dd>
 					<?php 
 						if ($event['ThreatLevel']['name']) echo h($event['ThreatLevel']['name']);
@@ -137,7 +139,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 				<dd <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?>>
 					<?php echo h($distributionLevels[$event['Event']['distribution']] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
 				</dd>
-				<dt>Info</dt>
+				<dt>Description</dt>
 				<dd>
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
@@ -199,7 +201,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	</div>
 	<div id="attributes_div">
 		<?php
-if (!empty($event['Attribute'])):?>
+if (!empty($event['Attribute']) || !empty($remaining)):?>
 		<table class="table table-striped table-condensed">
 		<tr>
 			<th>Date</th>
