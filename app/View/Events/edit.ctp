@@ -26,7 +26,11 @@ if ('true' == Configure::read('MISP.sync')) {
 			));
 	echo $this->Form->input('info', array(
 			'div' => 'clear',
-			'class' => 'input-xxlarge'
+			'label' => 'Event Description',
+			'div' => 'clear',
+			'type' => 'text',
+			'class' => 'form-control span6',
+			'placeholder' => 'Quick Event Description or Tracking Info'
 			));
 
 ?>
