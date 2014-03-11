@@ -37,6 +37,7 @@ class EventsController extends AppController {
 
 		// what pages are allowed for non-logged-in users
 		$this->Auth->allow('xml');
+		$this->Auth->allow('csv');
 		$this->Auth->allow('nids');
 		$this->Auth->allow('hids_md5');
 		$this->Auth->allow('hids_sha1');
