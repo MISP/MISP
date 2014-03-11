@@ -18,9 +18,18 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/xml/download/1</pre>
 <p>The xml download also accepts two additional (optional) parameters: a boolean field that determines whether attachments should be encoded and a second parameter that controls the eligible tags. To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. You can also chain several tag commands together with the '&&' operator. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/xml/download/null/true/tag1&&tag2&&!tag3</pre>
-<p>Also check out the <?php echo $this->Html->link(__('User Guide', true), array('controller' => 'pages', 'action' => 'display', 'using_the_system', '#' => 'rest')); ?> to read about the REST API.</p>
+<p>Also check out the <a href="/pages/display/doc/using_the_system#rest">User Guide</a> to read about the REST API.</p>
 <p></p>
-
+<h3>CSV Export</h3>
+<p>An automatic export of attributes is available as CSV. Only attributes that are flagged "to_ids" will get exported.</p>
+<p>You can configure your tools to automatically download the following file:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/</pre>
+<p>You can specify additional flags for CSV exports as follows::</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/[event_id]/[event_id_ignore]/[tags]/[type]</pre>
+<p>For example, to only download a csv generated of the "domain" type and the "Network Activity" category attributes all events except for the one with ID 7 and further restricting it to events that are tagged "tag1" or "tag2" but not "tag3", use the following syntax:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/0/7/tag1&&tag2&&!tag3/Network%20Activity/domain</pre>
+<p>To export the attributes of all events that are of the type "domain", use the following syntax:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/0/0/null/null/domain</pre>
 <h3>NIDS rules export</h3>
 <p>Automatic export of all network related attributes is available under the Snort rule format. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
 <p>You can configure your tools to automatically download the following file:</p>

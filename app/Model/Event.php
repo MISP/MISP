@@ -941,9 +941,8 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	public function csv($org, $isSiteAdmin, $eventid=0, $ignore=0, $attributeIDList = array(), $tags = '') {
+	public function csv($org, $isSiteAdmin, $eventid=0, $ignore=0, $attributeIDList = array(), $tags = '', $category = null, $type = null) {
 		$final = array();
-	 	
 		$attributeList = array();
 		$conditions = array();
 	 	$econditions = array();
@@ -997,6 +996,15 @@ class Event extends AppModel {
 	 		if ($ignore == 0) {
 	 			$conditions['AND'][] = array('Attribute.to_ids =' => 1);
 	 		}
+	 		
+	 		if ($type!=null) {
+	 			$conditions['AND'][] = array('Attribute.type' => $type);
+	 		}
+	 		
+	 		if ($category!=null) {
+	 			$conditions['AND'][] = array('Attribute.category' => $category);
+	 		}
+	 		
 	 		if (!$isSiteAdmin) {
 	 			$temp = array();
 	 			$distribution = array();
@@ -1015,9 +1023,8 @@ class Event extends AppModel {
 	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid'),
 	 	);
 	 	$attributes = $this->Attribute->find('all', $params);
-	 	foreach ($attributes as $attribute) {
-	 		$attribute['Attribute']['value'] = str_replace("\r", "", $attribute['Attribute']['value']);
-	 		$attribute['Attribute']['value'] = str_replace("\n", "", $attribute['Attribute']['value']);
+	 	foreach ($attributes as &$attribute) {
+	 		$attribute['Attribute']['value'] = str_replace(array("\r\n", "\n", "\r"), "", $attribute['Attribute']['value']);
 	 	}
 	 	return $attributes;
 	 }
