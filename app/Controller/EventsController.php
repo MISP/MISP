@@ -1334,10 +1334,12 @@ class EventsController extends AppController {
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
-	public function csv($key, $eventid=0, $ignore=0, $tags = '') {
+	public function csv($key, $eventid=0, $ignore=0, $tags = '', $category=null, $type=null) {
+		if ($category == 'null') $category = null;
+		if ($type == 'null') $type = null;
+		if ($tags == 'null') $tags = '';
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
 		$list = array();
-		
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1353,14 +1355,13 @@ class EventsController extends AppController {
 			$isSiteAdmin = $this->_isSiteAdmin();
 			$org = $this->Auth->user('org');
 		}		
-		
 		// if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
 		// We don't need to look out for permissions since that's filtered by the search itself
 		// We just want all the attributes found by the search
 		if ($eventid === 'search') {
 			$list = $this->Session->read('search_find_attributeidlist');
 		}
-		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags);
+		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type);
 		$this->loadModel('Whitelist');
 		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
