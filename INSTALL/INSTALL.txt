@@ -122,6 +122,10 @@ sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 # And export the public key to the webroot
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
 
+# Start the workers to enable background jobs 
+cd /var/www/MISP/app/Console/worker/
+./start.sh
+
 Now log in using the webinterface:
 The default user/pass = admin@admin.test/admin 
 
