@@ -184,7 +184,7 @@ class EventsController extends AppController {
 			),
 		));
 		$this->set('events', $this->paginate());
-		if (!$this->Auth->user('gpgkey')) {
+		if (!$this->Auth->user('gpgkey') and Configure::read('GnuPG.onlyencrypted') == 'true') {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
 		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
