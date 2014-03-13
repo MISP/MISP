@@ -1071,15 +1071,14 @@ class Event extends AppModel {
 		$body .= '==============================================' . "\n";
 		$appendlen = 20;
 		$body .= 'URL         : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
-		$body .= 'Event       : ' . $event['Event']['id'] . "\n";
+		$body .= 'Event ID    : ' . $event['Event']['id'] . "\n";
 		$body .= 'Date        : ' . $event['Event']['date'] . "\n";
 		if ('true' == Configure::read('MISP.showorg')) {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
-		$body .= 'Risk        : ' . $event['ThreatLevel']['name'] . "\n";
+		$body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
 		$body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
-		$body .= 'Info  : ' . "\n";
-		$body .= $event['Event']['info'] . "\n";
+		$body .= 'Description : ' . $event['Event']['info'] . "\n\n";
 		$user['org'] = $org;
 		$relatedEvents = $this->getRelatedEvents($user, false);
 		if (!empty($relatedEvents)) {
@@ -1120,6 +1119,10 @@ class Event extends AppModel {
 		if (!empty($bodyTempOther)) {
 			$body .= "\n";
 		}
+		$subject = preg_replace( "/\r|\n/", "", $event['Event']['info']);
+		if (strlen($subject) > 55) {
+			$subject = substr($subject, 0, 55) . '...';
+		}
 		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$body .= '==============================================' . "\n";
 		// find out whether the event is private, to limit the alerted user's list to the org only
@@ -1154,7 +1157,7 @@ class Event extends AppModel {
 						$Email = new CakeEmail();
 						$Email->from(Configure::read('MISP.email'));
 						$Email->to($user['User']['email']);
-						$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
+						$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $subject . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
 						$Email->emailFormat('text');	// both text or html
 						// send it
 						$Email->send($bodySigned);
@@ -1184,7 +1187,7 @@ class Event extends AppModel {
  				$Email = new CakeEmail();
  				$Email->from(Configure::read('MISP.email'));
  				$Email->to($user['User']['email']);
- 				$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
+				$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $subject . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
  				$Email->emailFormat('text');		// both text or html
   					// import the key of the user into the keyring
  				// this is not really necessary, but it enables us to find
@@ -1453,7 +1456,7 @@ class Event extends AppModel {
 						unset($data['Event']['Attribute'][$k]);
 					} else {
 					unset($data['Event']['Attribute'][$k]);
-					}
+						}
 				} else {
 					unset($data['Event']['Attribute'][$k]['id']);
 					$data['Attribute'][] = $data['Event']['Attribute'][$k];
