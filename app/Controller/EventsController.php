@@ -794,7 +794,7 @@ class EventsController extends AppController {
 				}
 				$fieldList = array(
 						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
-						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
+						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment')
 				);
 
 				$c = 0;
@@ -1335,6 +1335,7 @@ class EventsController extends AppController {
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
+	// $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything. 
 	public function csv($key, $eventid=0, $ignore=0, $tags = '', $category=null, $type=null) {
 		if ($category == 'null') $category = null;
 		if ($type == 'null') $type = null;
@@ -1367,7 +1368,7 @@ class EventsController extends AppController {
 		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
-			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'];
+			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']);
 		}
 		
 		$this->response->type('csv');	// set the content type
@@ -1379,7 +1380,7 @@ class EventsController extends AppController {
 			$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
 		}
 		$this->layout = 'text/default';
-		$this->set('headers', array('uuid', 'event_id', 'category', 'type', 'value'));
+		$this->set('headers', array('uuid', 'event_id', 'category', 'type', 'value', 'to_ids'));
 		$this->set('final', $final);
 	}
 
