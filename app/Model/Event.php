@@ -1020,7 +1020,7 @@ class Event extends AppModel {
 	 	}
 	 	$params = array(
 	 			'conditions' => $conditions, //array of conditions
-	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid'),
+	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid', 'Attribute.to_ids'),
 	 	);
 	 	$attributes = $this->Attribute->find('all', $params);
 	 	foreach ($attributes as &$attribute) {

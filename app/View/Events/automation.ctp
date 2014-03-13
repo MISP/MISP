@@ -25,9 +25,9 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <p>You can configure your tools to automatically download the following file:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/</pre>
 <p>You can specify additional flags for CSV exports as follows::</p>
-<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/[event_id]/[event_id_ignore]/[tags]/[type]</pre>
-<p>For example, to only download a csv generated of the "domain" type and the "Network Activity" category attributes all events except for the one with ID 7 and further restricting it to events that are tagged "tag1" or "tag2" but not "tag3", use the following syntax:</p>
-<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/0/7/tag1&&tag2&&!tag3/Network%20Activity/domain</pre>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/[event_id]/[ignore_ids_signatures_only_rule]/[tags]/[type]</pre>
+<p>For example, to only download a csv generated of the "domain" type and the "Network Activity" category attributes all events except for the one and further restricting it to events that are tagged "tag1" or "tag2" but not "tag3", only allowing attributes that are IDS flagged use the following syntax:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/0/0/tag1&&tag2&&!tag3/Network%20Activity/domain</pre>
 <p>To export the attributes of all events that are of the type "domain", use the following syntax:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/0/0/null/null/domain</pre>
 <h3>NIDS rules export</h3>
