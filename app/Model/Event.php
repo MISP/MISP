@@ -1403,7 +1403,7 @@ class Event extends AppModel {
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
 				'Event' => array('org', 'orgc', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution', 'comment')
 		);
 		$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,
 				'atomic' => true));
@@ -1439,7 +1439,7 @@ class Event extends AppModel {
 		}
 		$fieldList = array(
 				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp')
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp', 'comment')
 		);
 		$data['Event']['id'] = $localEvent['Event']['id'];
 		if (isset($data['Event']['Attribute'])) {
