@@ -961,54 +961,59 @@ class AttributesController extends AppController {
 						$conditions['AND'][] = $temp;
 					}
 				}
-				$this->Attribute->recursive = 0;
-				$this->paginate = array(
-					'limit' => 60,
-					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
-					'conditions' => $conditions,
-					'contain' => array('Event.orgc', 'Event.id', 'Event.org')
-				);
-				if (!$this->_isSiteAdmin()) {
-					// merge in private conditions
-					$this->paginate = Set::merge($this->paginate, array(
-						'conditions' =>
-							array("OR" => array(
-							array('Event.org =' => $this->Auth->user('org')),
-							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Attribute.distribution !=' => 0)))),
-						)
+				if ($this->request->data['Attribute']['alternate']) {
+					$events = $this->searchAlternate($conditions);
+					$this->set('events', $events);
+					$this->render('alternate_search_result');
+				} else {
+					$this->Attribute->recursive = 0;
+					$this->paginate = array(
+						'limit' => 60,
+						'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
+						'conditions' => $conditions,
+						'contain' => array('Event.orgc', 'Event.id', 'Event.org')
 					);
-				}
-
-				$idList = array();
-				$attributeIdList = array();
-				$attributes = $this->paginate();
-				// if we searched for IOCs only, apply the whitelist to the search result!
-
-				if ($ioc) {
-					$this->loadModel('Whitelist');
-					$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
-				}
-
-				foreach ($attributes as &$attribute) {
-					$attributeIdList[] = $attribute['Attribute']['id'];
-					if (!in_array($attribute['Attribute']['event_id'], $idList)) {
-						$idList[] = $attribute['Attribute']['event_id'];
+					if (!$this->_isSiteAdmin()) {
+						// merge in private conditions
+						$this->paginate = Set::merge($this->paginate, array(
+							'conditions' =>
+								array("OR" => array(
+								array('Event.org =' => $this->Auth->user('org')),
+								array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Attribute.distribution !=' => 0)))),
+							)
+						);
 					}
+					$idList = array();
+					$attributeIdList = array();
+					$attributes = $this->paginate();
+					// if we searched for IOCs only, apply the whitelist to the search result!
+	
+					if ($ioc) {
+						$this->loadModel('Whitelist');
+						$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
+					}
+	
+					foreach ($attributes as &$attribute) {
+						$attributeIdList[] = $attribute['Attribute']['id'];
+						if (!in_array($attribute['Attribute']['event_id'], $idList)) {
+							$idList[] = $attribute['Attribute']['event_id'];
+						}
+					}
+					$this->set('attributes', $attributes);
+	
+					// and store into session
+					$this->Session->write('paginate_conditions', $this->paginate);
+					$this->Session->write('paginate_conditions_keyword', $keyword);
+					$this->Session->write('paginate_conditions_keyword2', $keyword2);
+					$this->Session->write('paginate_conditions_org', $org);
+					$this->Session->write('paginate_conditions_type', $type);
+					$this->Session->write('paginate_conditions_category', $category);
+					$this->Session->write('search_find_idlist', $idList);
+					$this->Session->write('search_find_attributeidlist', $attributeIdList);
+	
+					// set the same view as the index page
+					$this->render('index');
 				}
-				$this->set('attributes', $attributes);
-
-				// and store into session
-				$this->Session->write('paginate_conditions', $this->paginate);
-				$this->Session->write('paginate_conditions_keyword', $keyword);
-				$this->Session->write('paginate_conditions_keyword2', $keyword2);
-				$this->Session->write('paginate_conditions_org', $org);
-				$this->Session->write('paginate_conditions_type', $type);
-				$this->Session->write('paginate_conditions_category', $category);
-				$this->Session->write('search_find_idlist', $idList);
-				$this->Session->write('search_find_attributeidlist', $attributeIdList);
-
-				// set the same view as the index page
-				$this->render('index');
 			} else {
 				// no search keyword is given, show the search form
 
@@ -1050,6 +1055,58 @@ class AttributesController extends AppController {
 			// set the same view as the index page
 			$this->render('index');
 		}
+	}
+	
+	// If the checkbox for the alternate search is ticked, then this method is called to return the data to be represented
+	// This alternate view will show a list of events with matching search results and the percentage of those matched attributes being marked as to_ids
+	// events are sorted based on relevance (as in the percentage of matches being flagged as indicators for IDS)
+	public function searchAlternate($data) {
+		$data['AND'][] = array(
+				"OR" => array(
+					array('Event.org =' => $this->Auth->user('org')),
+					array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Attribute.distribution !=' => 0))));
+		$attributes = $this->Attribute->find('all', array(
+			'conditions' => $data,
+			'fields' => array(
+				'Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids', 'Attribute.value', 'Attribute.distribution',
+				'Event.id', 'Event.org', 'Event.orgc', 'Event.info', 'Event.distribution', 'Event.attribute_count' 	
+		)));
+		$events = array();
+		foreach ($attributes as $attribute) {
+			if (isset($events[$attribute['Event']['id']])) {
+				if ($attribute['Attribute']['to_ids']) {
+					$events[$attribute['Event']['id']]['to_ids']++;
+				} else {
+					$events[$attribute['Event']['id']]['no_ids']++;
+				}
+			} else {
+				$events[$attribute['Event']['id']]['Event'] = $attribute['Event'];
+				$events[$attribute['Event']['id']]['to_ids'] = 0;
+				$events[$attribute['Event']['id']]['no_ids'] = 0;
+				if ($attribute['Attribute']['to_ids']) {
+					$events[$attribute['Event']['id']]['to_ids']++;
+				} else {
+					$events[$attribute['Event']['id']]['no_ids']++;
+				}
+			}
+		}
+		foreach ($events as &$event) {
+			$event['relevance'] = 100 * $event['to_ids'] / ($event['no_ids'] + $event['to_ids']);
+		}
+		$events = $this->__subval_sort($events, 'relevance');
+		return $events;
+	}
+	
+	// Sort the array of arrays based on a value of a sub-array 
+	private function __subval_sort($a,$subkey) {
+		foreach($a as $k=>$v) {
+			$b[$k] = strtolower($v[$subkey]);
+		}
+		arsort($b);
+		foreach($b as $key=>$val) {
+			$c[] = $a[$key];
+		}
+		return $c;
 	}
 
 	public function downloadAttributes() {

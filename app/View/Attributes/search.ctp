@@ -28,6 +28,10 @@
 				'type' => 'checkbox',
 				'label' => 'Only find valid IOCs',
 			));
+			echo $this->Form->input('alternate', array(
+					'type' => 'checkbox',
+					'label' => 'Alternate Search Result (Events)',
+			));
 		?>
 	</fieldset>
 <?php
