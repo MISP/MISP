@@ -136,8 +136,10 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					&nbsp;
 				</dd>
 				<dt>Distribution</dt>
-				<dd <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?>>
-					<?php echo h($distributionLevels[$event['Event']['distribution']] . ', ' . strtolower(substr(($distributionDescriptions[$event['Event']['distribution']]['formdesc']), 0, 1)) . substr($distributionDescriptions[$event['Event']['distribution']]['formdesc'], 1) . '.'); ?>
+				<dd <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?> title = "<?php echo h($distributionDescriptions[$event['Event']['distribution']]['formdesc'])?>">
+					<?php 
+						echo h($distributionLevels[$event['Event']['distribution']]); 
+					?>
 				</dd>
 				<dt>Description</dt>
 				<dd>
