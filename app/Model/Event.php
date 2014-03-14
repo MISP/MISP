@@ -1119,9 +1119,16 @@ class Event extends AppModel {
 		if (!empty($bodyTempOther)) {
 			$body .= "\n";
 		}
-		$subject = preg_replace( "/\r|\n/", "", $event['Event']['info']);
-		if (strlen($subject) > 55) {
-			$subject = substr($subject, 0, 55) . '...';
+		
+		if (Configure::read('MISP.extended_alert_subject')) {
+			$subject = preg_replace( "/\r|\n/", "", $event['Event']['info']);
+			if (strlen($subject) > 55) {
+				$subject = substr($subject, 0, 55) . '... - ';
+			} else {
+				$subject .= " - ";
+			}
+		} else {
+			$subject = '';
 		}
 		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$body .= '==============================================' . "\n";
@@ -1157,7 +1164,7 @@ class Event extends AppModel {
 						$Email = new CakeEmail();
 						$Email->from(Configure::read('MISP.email'));
 						$Email->to($user['User']['email']);
-						$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $subject . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
+						$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
 						$Email->emailFormat('text');	// both text or html
 						// send it
 						$Email->send($bodySigned);
