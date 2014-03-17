@@ -25,6 +25,7 @@ class AttributesController extends AppController {
 		$this->Auth->allow('restSearch');
 		$this->Auth->allow('returnAttributes');
 		$this->Auth->allow('downloadAttachment');
+		$this->Auth->allow('text');
 
 		// permit reuse of CSRF tokens on the search page.
 		if ('search' == $this->request->params['action']) {
