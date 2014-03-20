@@ -1804,9 +1804,15 @@ class EventsController extends AppController {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		$value = str_replace('|', '/', $value);
-		$this->response->type('xml');	// set the content type
-		$this->layout = 'xml/default';
-		$this->header('Content-Disposition: download; filename="misp.search.events.results.xml"');
+		if (!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') {
+			$this->response->type('xml');	// set the content type
+			$this->layout = 'xml/default';
+			$this->header('Content-Disposition: download; filename="misp.search.events.results.xml"');
+		} else {
+			$this->response->type('json');	// set the content type
+			$this->layout = 'json/default';
+			$this->header('Content-Disposition: download; filename="misp.search.events.results.json"');
+		}
 		$conditions['AND'] = array();
 		$subcondition = array();
 		$this->loadModel('Attribute');
@@ -1861,7 +1867,7 @@ class EventsController extends AppController {
 		}
 		
 		// If we sent any tags along, load the associated tag names for each attribute
-		if ($tags !== '') {
+		if ($tags) {
 			$args = $this->Event->Attribute->dissectArgs($tags);
 			$this->loadModel('Tag');
 			$tagArray = $this->Tag->fetchEventTagIds($args[0], $args[1]);
@@ -1891,7 +1897,7 @@ class EventsController extends AppController {
 			throw new NotFoundException('No matches.');
 		}
 		$this->loadModel('Whitelist');
-		$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
 		$this->response->type('xml');
 		$this->set('results', $results);
 	}
