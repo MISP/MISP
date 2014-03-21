@@ -1210,6 +1210,23 @@ class EventsController extends AppController {
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
 		if ($eventid === 'null' || $eventid ==='false') $eventid=null;
 		if ($withAttachment === 'null' || $withAttachment ==='false') $withAttachment = false;
+		
+		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted xml object.
+		// The correct format for a posted xml is a "request" root element, as shown by the examples below:
+		// For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
+		if ($this->request->is('post')) {
+			if (empty($this->request->data)) {
+				throw new BadRequestException('Either specify the search terms in the url, or POST an xml (with the root element being "request".');
+			} else {
+				$data = $this->request->data;
+			}
+			$paramArray = array('eventid', 'withAttachment', 'tags');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+				else ${$p} = null;
+			}
+		}
+		
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1301,7 +1318,7 @@ class EventsController extends AppController {
 			}
 			$user = $this->checkAuthUser($this->Auth->user('authkey'));
 		}
-
+		
 		// display the full snort rulebase
 		$this->loadModel('Attribute');
 		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid'], $id, $continue, $tags);
@@ -1325,13 +1342,12 @@ class EventsController extends AppController {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
 			$user = $this->checkAuthUser($this->Auth->user('authkey'));
-		}
+		}	
 		$this->loadModel('Attribute');
 
 		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type, $tags);
 		$this->set('rules', $rules);
 	}
-
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
@@ -1356,7 +1372,8 @@ class EventsController extends AppController {
 			}
 			$isSiteAdmin = $this->_isSiteAdmin();
 			$org = $this->Auth->user('org');
-		}		
+		}
+
 		// if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
 		// We don't need to look out for permissions since that's filtered by the search itself
 		// We just want all the attributes found by the search
@@ -1804,6 +1821,26 @@ class EventsController extends AppController {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		$value = str_replace('|', '/', $value);
+		
+		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
+		// The correct format for both is a "request" root element, as shown by the examples below:
+		// For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
+		// For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
+		// the response type is used to determine the parsing method (xml/json)
+		if ($this->request->is('post')) {
+			if ($this->response->type() === 'application/json') {
+				$data = $this->request->input('json_decode', true);
+			} elseif ($this->response->type() === 'application/xml') {
+				$data = $this->request->data;
+			} else {
+				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
+			}
+			$paramArray = array('value', 'type', 'category', 'org', 'tags');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+				else ${$p} = null;
+			}
+		}
 		if (!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') {
 			$this->response->type('xml');	// set the content type
 			$this->layout = 'xml/default';
