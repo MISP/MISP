@@ -30,6 +30,7 @@
 <!--?php echo $scripts_for_layout; ?-->
 </head>
 <body>
+	<div id="gray_out" class="gray_out" style="display:none;"></div>
 	<div id="container">
 		<?php echo $this->element('global_menu');
 			if ($debugMode == 'debugOff') {

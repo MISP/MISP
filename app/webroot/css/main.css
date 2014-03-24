@@ -582,6 +582,7 @@ dd {
    animation: rotation .6s infinite linear;
    border:6px solid rgba(0,174,239,.15);
    border-radius:100%;
+   z-index:15;
 }
 
 .spinner:before {
@@ -597,6 +598,7 @@ dd {
    border-bottom:6px solid transparent;
    border-right:6px solid transparent;
    border-radius:100%;
+   z-index:15;
 }
 
 .qet {
@@ -673,6 +675,69 @@ a.proposal_link_red:hover {
 
 .topGap {
 	padding-top:100px;
+}
+
+.attribute_creation {
+	width: 700px;
+	height: 420px;
+	top:150px;
+	left:calc(50% - 350px);
+	position: fixed;
+	background-color:#f4f4f4;
+	border-radius: 11px 11px 10px 10px;
+	box-shadow: 4px 4px 4px #333;
+	z-index:5;
+}
+
+.attribute_add_form {
+	display:none;
+	width: 700px;
+	top:150px;
+	left:calc(50% - 350px);
+	position: fixed;
+	background-color:#f4f4f4;
+	border-radius: 11px 11px 10px 10px;
+	box-shadow: 4px 4px 4px #333;
+	z-index:5;
+}
+
+.attribute_add_form legend {
+	border-radius: 10px 10px 0px 0px;
+	padding-left:10px;
+	width:690px;
+	background-color:black;
+	color:white;
+}
+
+.attribute_add_form form {
+	margin: 0 0 5px;
+}
+
+.overlay_spacing {
+	padding-left:10px !important;
+}
+
+.attribute_add_form .input-xxlarge {
+	width:665px;
+}
+
+.attribute_add_form textarea {
+	height:120px !important;
+}
+
+.attribute_add_form .add_attribute_fields {
+	padding-left:10px;
+}
+
+.gray_out {
+	display:none;
+	width: 100%;
+	height: 100%;
+	position: fixed;
+	opacity: 0.5;
+	filter: alpha(opacity=50);
+	background-color: #000;
+	z-index:4;
 }
 
 @-webkit-keyframes rotation {

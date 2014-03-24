@@ -136,11 +136,13 @@ class EventShell extends AppShell
 		$id = $this->args[2];
 		$this->Job->id = $id;
 		$extra = $this->args[3];
+		if ($extra == 'csv_all') $ignore = 1;
+		else $ignore = 0;
 		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
 		$eventCount = count($eventIds);
 		$attributes[] = array();
 		foreach ($eventIds as $k => $eventId) {
-			$attributes = array_merge($this->Event->csv($org, $isSiteAdmin, $eventId['Event']['id'], $extra), $attributes);
+			$attributes = array_merge($this->Event->csv($org, $isSiteAdmin, $eventId['Event']['id'], $ignore), $attributes);
 			if ($k % 10 == 0) {
 				$this->Job->saveField('progress', $k / $eventCount * 80);
 			}
@@ -160,7 +162,7 @@ class EventShell extends AppShell
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.csv');
 		}
 		$file->write('');
-		foreach ($final as $line) {
+		foreach ($final as $k => $line) {
 			$file->append($line . PHP_EOL);
 		}
 		$file->close();

@@ -202,6 +202,14 @@ class EventsController extends AppController {
 	 */
 
 	public function view($id = null, $continue=false, $fromEvent=null) {
+		if (isset($this->params['named']['attributesPage'])) $page = $this->params['named']['attributesPage'];
+		else {
+			if ($this->_isRest()) {
+				$page = 'all';
+			} else {
+				$page = 1;
+			}
+		}
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		$perm_publish = $this->userRole['perm_publish'];
 		if (strlen($id) == 36) {
@@ -226,7 +234,6 @@ class EventsController extends AppController {
 				}
 			}
 		}
-
 		$this->loadModel('Log');
 		$logEntries = $this->Log->find('all', array(
 			'conditions' => array('title LIKE' => '%Event (' . $id . ')%', 'org !=' => $results[0]['Event']['orgc'], 'model LIKE' => '%ShadowAttribute%'),
@@ -255,12 +262,43 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('event', $result);
+		
+		if (!$this->_isRest()) {
+			// modify event for attribute pagination
+			$eventArray = array();
+			$shadowAttributeTemp = array();
+			foreach ($this->Attribute->validate['category']['rule'][1] as $category) {
+				foreach ($result['Attribute'] as $attribute) {
+					if ($attribute['category'] == $category) {
+						$shadowAttributeTemp = $attribute['ShadowAttribute'];
+						$attribute['ShadowAttribute'] = null;
+						$attribute['objectType'] = 0;
+						$attribute['hasChildren'] = 0;
+						$eventArray[] = $attribute; 
+						$current = count($eventArray)-1;
+						foreach ($shadowAttributeTemp as $shadowAttribute) {
+							$shadowAttribute['objectType'] = 1;
+							$eventArray[] = $shadowAttribute;
+							$eventArray[$current]['hasChildren'] = 1;
+						}
+					}
+				}
+			}
+			foreach ($result['ShadowAttribute'] as $shadowAttribute) {
+				$shadowAttribute['objectType'] = 2;
+				$eventArray[] = $shadowAttribute;
+			}
+			$this->set('objectCount', count($eventArray));
+			if ($page == 'all') $this->set('eventArray', $eventArray);
+			else {
+				$this->set('eventArray', array_splice($eventArray, (($page-1)*50), 50));
+			}
+		}
+		
 		if(isset($result['ShadowAttribute'])) {
 			$this->set('remaining', $result['ShadowAttribute']);
 		}
 		$this->set('relatedEvents', $result['RelatedEvent']);
-
-		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
 
 		// passing type and category definitions (explanations)
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -292,6 +330,19 @@ class EventsController extends AppController {
 			$this->set('currentEvent', $id);
 
 			$this->set('allPivots', $this->Session->read('pivot_thread'));
+			
+			// set the types + categories for the attribute add/edit ajax overlays
+			$categories = $this->Attribute->validate['category']['rule'][1];
+			array_pop($categories);
+			$categories = $this->_arrayToValuesIndexArray($categories);
+			$this->set('categories', compact('categories'));
+			
+			$types = array_keys($this->Attribute->typeDefinitions);
+			$types = $this->_arrayToValuesIndexArray($types);
+			$this->set('types', $types);
+			$this->set('categoryDefinitions', $this->Event->Attribute->categoryDefinitions);
+			$this->request->data['Attribute']['event_id'] = $id;
+			
 			// Show the discussion
 			$this->loadModel('Thread');
 			$params = array('conditions' => array('event_id' => $id),
@@ -339,7 +390,14 @@ class EventsController extends AppController {
 			if ($this->request->is('ajax')) {
 				$this->disableCache();
 				$this->layout = 'ajax';
-				$this->render('/Elements/eventdiscussion');
+				if (!isset($this->params['named']['attributesPage'])) {
+					$this->render('/Elements/eventdiscussion');
+				} else {
+					$this->set('page', $this->params['named']['attributesPage']);
+					$this->render('/Elements/eventattribute');
+				}
+			} else {
+				$this->set('page', $page);
 			}
 			$pivot = $this->Session->read('pivot_thread');
 			$this->__arrangePivotVertical($pivot);
@@ -366,6 +424,10 @@ class EventsController extends AppController {
 			}
 		}
 		$this->set('currentEvent', $id);
+	}
+	
+	private function __view() {
+		
 	}
 
 	private function __startPivoting($id, $info, $date){

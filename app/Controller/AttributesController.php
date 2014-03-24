@@ -25,6 +25,7 @@ class AttributesController extends AppController {
 		$this->Auth->allow('restSearch');
 		$this->Auth->allow('returnAttributes');
 		$this->Auth->allow('downloadAttachment');
+		$this->Auth->allow('text');
 
 		// permit reuse of CSRF tokens on the search page.
 		if ('search' == $this->request->params['action']) {
@@ -99,7 +100,10 @@ class AttributesController extends AppController {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create attributes');
 		}
+		if ($this->request->is('ajax'))	$this->set('ajax', true);
+		else $this->set('ajax', false);
 		if ($this->request->is('post')) {
+			if ($this->request->is('ajax')) $this->autoRender = false;
 			$this->loadModel('Event');
 			$date = new DateTime();
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
@@ -204,6 +208,9 @@ class AttributesController extends AppController {
 						// REST users want to see the newly created attribute
 						$this->view($this->Attribute->getId());
 						$this->render('view');
+					} elseif ($this->request->is('ajax')) {
+						$this->autoRender = false;
+						return new CakeResponse(array('body'=> json_encode('saved'),'status'=>200));
 					} else {
 						// inform the user and redirect
 						$this->Session->setFlash(__('The attribute has been saved'));
@@ -214,6 +221,9 @@ class AttributesController extends AppController {
 						// REST users want to see the failed attribute
 						$this->view($savedId);
 						$this->render('view');
+					}  elseif ($this->request->is('ajax')) {
+						$this->autoRender = false;
+						return new CakeResponse(array('body'=> json_encode($this->Attribute->validationErrors),'status'=>200));
 					} else {
 						if (!CakeSession::read('Message.flash')) {
 							$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
@@ -237,6 +247,7 @@ class AttributesController extends AppController {
 		$this->set('categories', compact('categories'));
 		$this->loadModel('Event');
 		$events = $this->Event->findById($eventId);
+		$this->set('event_id', $events['Event']['id']);
 		// combobox for distribution
 		$this->set('distributionLevels', $this->Attribute->distributionLevels);
 		$this->set('currentDist', $events['Event']['distribution']); // TODO default distribution
@@ -1228,7 +1239,7 @@ class AttributesController extends AppController {
 			array_push($conditions['AND'], $subcondition);
 		}
 		// If we sent any tags along, load the associated tag names for each attribute
-		if ($tags !== '') {
+		if ($tags) {
 			$args = $this->Attribute->dissectArgs($tags);
 			$this->loadModel('Tag');
 			$tagArray = $this->Tag->fetchEventTagIds($args[0], $args[1]);
