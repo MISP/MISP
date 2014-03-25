@@ -201,19 +201,9 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
 	<div id="create_object_div">
-		<button id="create-button" class="btn btn-inverse">Add Attribute</button>
-		<?php 
-			$this->Js->get('#create-button')->event(
-					'click',
-					$this->Js->request(
-						array('controller' => 'attributes', 'action' => 'add', $event['Event']['id']),
-						array(
-							'before' => '$("#gray_out").show();$("#attribute_add_form").show();',
-							'update' => '#attribute_add_form',
-							'async' => true,
-			)));
-		?>
+		<span id="create-button" class="btn btn-inverse" onClick="clickCreateButton();">Add Attribute</span>
 	</div>
+	<br />
 	<div id="attribute_add_form" class="attribute_add_form"></div>
 	<div id="attribute_creation_div" style="display:none;">
 		<?php 
@@ -276,4 +266,11 @@ $(document).ready(function () {
 	});
 });
 
+function clickCreateButton() {
+	$.get( "/attributes/add/<?php echo $event['Event']['id']; ?>", function(data) {
+		$("#attribute_add_form").show();
+		$("#gray_out").show();
+		$("#attribute_add_form").html(data);
+	});
+}
 </script>

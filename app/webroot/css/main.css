@@ -704,6 +704,7 @@ a.proposal_link_red:hover {
 .attribute_add_form legend {
 	border-radius: 10px 10px 0px 0px;
 	padding-left:10px;
+	margin-bottom:5px;
 	width:690px;
 	background-color:black;
 	color:white;
@@ -738,6 +739,12 @@ a.proposal_link_red:hover {
 	filter: alpha(opacity=50);
 	background-color: #000;
 	z-index:4;
+}
+
+.ajaxMessage {
+	display:none;
+	margin-left:10px;
+	width:665px;
 }
 
 @-webkit-keyframes rotation {

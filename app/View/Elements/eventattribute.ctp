@@ -238,6 +238,31 @@
 			);
 	}
 ?>
+<script>
+function deleteObject(type, id) {
+	$.ajax({
+		success:function (data, textStatus) {
+			updateAttributeIndexOnSuccess();
+		}, 
+		type:"post", 
+		url:"/" + type + "/delete/" + id,
+	});
+}
+
+function updateAttributeIndexOnSuccess() {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		dataType:"html", 
+		success:function (data, textStatus) {
+			$(".loading").hide();
+			$("#attributes_div").html(data);
+		}, 
+		url:"/events/view/<?php echo $event['Event']['id']; ?>/attributesPage:1",
+	});
+}
+</script>
 <?php
 	endif; 
 	echo $this->Js->writeBuffer();

@@ -1,9 +1,9 @@
 <div class="attributes <? if (!$ajax) echo 'form';?>">
 <?php echo $this->Form->create('Attribute', array('id'));?>
+	<legend><?php echo __('Add Attribute'); ?></legend>
 	<fieldset>
-		<legend><?php echo __('Add Attribute'); ?></legend>
+		<div id="formWarning" class="message ajaxMessage"></div>
 		<div class="add_attribute_fields">
-		<div style="width:200px" id="formError"></div>
 			<?php
 			echo $this->Form->hidden('event_id');
 			echo $this->Form->input('category', array(
@@ -63,61 +63,7 @@
 			<table>
 				<tr>
 				<td style="vertical-align:top">
-				<span id="submitButton" class="btn btn-primary" onClick="submitForm()">Submit</span>
-					<?php
-					//echo $this->Form->button('Submit', array('class' => 'btn btn-primary', 'id' => 'submit-button'));
-					//($this->Js->get('#attributes_add_form')->serializeForm(array('isForm' => true, 'inline' => true)));
-					/*
-					echo $this->Js->submit('Submit', array(
-							'class'=>'btn btn-primary',
-							'url' => '/attributes/add/' . $event_id,
-							'success' => "handleAjaxResponse(data);",
-							'complete' => $this->Js->request(
-								array(
-									'controller' => 'events', 
-									'action' => 'view', 
-									$event_id, 
-									'attributesPage:1'
-								),
-								array(
-									'update' => '#attributes_div',
-									'before' => '$(".loading").show();',
-									'success' => '$(".loading").hide();',
-								)
-							),	
-						)
-					);
-*/
-
-					/*
-						echo $this->Js->submit('Submit', array(
-								'complete'=> $this->Js->request(
-										array('controller' => 'events', 'action' => 'view', $event_id, 'attributesPage:1'),
-										array(
-												'update' => '#attributes_div',
-												'before' => '$(".loading").show();', 
-												'success' => '$(".loading").hide();',
-
-													{
-														$("#gray_out").hide();
-														$("#attribute_add_form").hide();
-														$(".loading").hide();		
-													}',
-													
-												//'success' => 'ajaxResponse(data);',
-										)
-								),
-								'class'=>'btn btn-primary',
-								//'success' => 'submitResponse(data);',
-								'success' => "function(data) {
-									alert(data);
-								}",
-								'url' => '/attributes/add/' . $event_id,
-								//'update' => '#attribute_add_form'
-						));
-						*/
-						
-					?>
+					<span id="submitButton" class="btn btn-primary" onClick="submitForm()">Submit</span>
 				</td>
 				<td style="width:540px;">
 					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
@@ -282,16 +228,23 @@ function handleAjaxResponse(response) {
 				$("#attribute_add_form").html(data);
 				responseArray = JSON.parse(response);
 				handleValidationErrors(responseArray);
-				//$("#formError").html(responseArray['value']);
+				if (!isEmpty(responseArray)) {
+					$("#formWarning").show();
+					$("#formWarning").html('The attribute could not be saved. Please, try again.');
+				}
 				recoverValuesFromPersistance(savedArray);
 			}, 
 			url:"/attributes/add/<?php echo $event_id; ?>"
 		});	
-		//$.get("/attributes/add/<?php //echo $event_id; ?>", function(data) {
-			//$("#attribute_add_form").html(data);
-			//responseArray = JSON.parse(response);
-		//});
 	}
+}
+
+function isEmpty(obj) {
+	var name;
+	for (name in obj) {
+		return false;
+	}
+	return true;
 }
 
 function updateAttributeIndexOnSuccess() {
