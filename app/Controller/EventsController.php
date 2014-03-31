@@ -480,6 +480,10 @@ class EventsController extends AppController {
 		}
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
+				
+				// rearrange the response if the event came from an export
+				if(isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
+				
 				// Distribution, reporter for the events pushed will be the owner of the authentication key
 				$this->request->data['Event']['user_id'] = $this->Auth->user('id');
 			}
