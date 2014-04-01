@@ -1730,18 +1730,26 @@ class Event extends AppModel {
 	
 	// main dispatch method for updating an incoming xmlArray - pass xmlArray to all of the appropriate transformation methods to make all the changes necessary to save the imported event
 	public function updateXMLArray($xmlArray, $response = true) {
-
-		if (isset($xmlArray['xml_version'])) {
+		if (isset($xmlArray['xml_version']) && $response) {
 			$xmlArray['response']['xml_version'] = $xmlArray['xml_version'];
 			unset($xmlArray['xml_version']);
 		}
 		
+		if (!$response) {
+			$temp = $xmlArray;
+			$xmlArray = array();
+			$xmlArray['response'] = $temp;
+		}
 		// if a version is set, it must be at least 2.2.0 - check the version and save the result of the comparison
 		if (isset($xmlArray['response']['xml_version'])) $version = $this->compareVersions($xmlArray['response']['xml_version'], $this->mispVersion);
 		// if no version is set, set the version to older (-1) manually
 		else $version = -1;
 		// same version, proceed normally
-		if ($version == 0) return $xmlArray;
+		if ($version == 0) {
+			unset ($xmlArray['response']['xml_version']);
+			if ($response) return $xmlArray;
+			else return $xmlArray['response'];
+		}
 
 		// The xml is from an instance that is newer than the local instance, let the user know that the admin needs to upgrade before it could be imported
 		if ($version == 1) throw new Exception('This XML file is from a MISP instance that is newer than the current instance. Please contact your administrator about upgrading this instance.');
@@ -1755,9 +1763,10 @@ class Event extends AppModel {
 			if ($response) $xmlArray['response'] = $this->__updateXMLArray220($xmlArray['response']);
 			else $xmlArray = $this->__updateXMLArray220($xmlArray);
 		}
-
+		
 		unset ($xmlArray['response']['xml_version']);
-		return $xmlArray;
+		if ($response) return $xmlArray;
+		else return $xmlArray['response'];
 	}
 
 	// replaces the old risk value with the new threat level id
