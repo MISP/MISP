@@ -51,7 +51,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<dt><?php echo __('Gpgkey'); ?></dt>
 			<dd>
 				<?php
-if (h($user['User']['gpgkey']) != 0) {
+if (h($user['User']['gpgkey'])) {
 						echo "<code>" . nl2br(h($user['User']['gpgkey'])) . "</code>";
 } else {
 						echo "N/A";

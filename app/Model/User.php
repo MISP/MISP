@@ -401,4 +401,12 @@ class User extends AppModel {
 		}
 		return $results;
 	}
+	
+	public function getPGP($id) {
+		$result = $this->find('first', array(
+			'recursive' => -1,
+			'fields' => array('id', 'gpgkey'),
+		));
+		return $result['User']['gpgkey'];
+	}
 }
