@@ -667,7 +667,7 @@ class ShadowAttributesController extends AppController {
 			// save the gpg key to a temporary file
 			$tmpfname = tempnam(TMP, "GPGkey");
 			$handle = fopen($tmpfname, "w");
-			fwrite($handle, $this->User->getPGP($this->Auth->user('id'));
+			fwrite($handle, $this->User->getPGP($this->Auth->user('id')));
 			fclose($handle);
 			// attach it
 			$this->Email->attachments = array(
@@ -703,7 +703,7 @@ class ShadowAttributesController extends AppController {
 			$this->set('body', $bodyEncSig);
 			// Add the GPG key of the user as attachment
 			// LATER sign the attached GPG key
-			if (null != ($this->User->getPGP($this->Auth->user('id'))) {
+			if (null != ($this->User->getPGP($this->Auth->user('id')))) {
 				// attach the gpg key
 				$this->Email->attachments = array(
 					'gpgkey.asc' => $tmpfname
