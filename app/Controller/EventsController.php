@@ -341,6 +341,13 @@ class EventsController extends AppController {
 			$types = $this->_arrayToValuesIndexArray($types);
 			$this->set('types', $types);
 			$this->set('categoryDefinitions', $this->Event->Attribute->categoryDefinitions);
+			$typeCategory = array();
+			foreach ($this->Attribute->categoryDefinitions as $k => $category) {
+				foreach ($category['types'] as $type) {
+					$typeCategory[$type][] = $k;
+				}
+			}
+			$this->set('typeCategory', $typeCategory);
 			$this->request->data['Attribute']['event_id'] = $id;
 			
 			// Show the discussion

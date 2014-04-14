@@ -747,6 +747,61 @@ a.proposal_link_red:hover {
 	width:665px;
 }
 
+.inline-input {
+	width:100% !important;
+	margin-bottom:0px !important;
+	padding: 0px 0px !important;
+	font-size: 12px !important;
+	position:relative;
+}
+
+.inline-input textarea{
+	padding-left: 3px !important;
+}
+
+.inline-input-button {
+	width:19px;
+	height:17px;
+	bottom:-17px;
+	background-color: #fff;
+	position:absolute;
+	z-index:100;
+}
+
+.inline-input-active {
+	border-bottom: 1px solid rgba(82, 168, 236, 0.8);
+	border-right: 1px solid rgba(82, 168, 236, 0.8);
+	border-left: 1px solid rgba(82, 168, 236, 0.8);
+}
+
+.inline-input-passive {
+	border-bottom: 1px solid #cccccc;
+	border-right: 1px solid #cccccc;
+	border-left: 1px solid #cccccc;
+}
+
+.inline-input-button span {
+	display:block;
+	margin: 0 auto;
+}
+
+.inline-input-accept {
+	right:32px;
+}
+
+.inline-input-decline {
+	right:10px;
+}
+
+.inline-form {
+	display:none;
+	margin-bottom:0px !important;
+}
+
+.inline-delete {
+	margin-bottom:0px !important;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}

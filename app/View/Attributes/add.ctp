@@ -1,5 +1,8 @@
+<? echo $this->Html->script('ajaxification');?>
 <div class="attributes <? if (!$ajax) echo 'form';?>">
-<?php echo $this->Form->create('Attribute', array('id'));?>
+<?php 
+	echo $this->Form->create('Attribute', array('id'));
+?>
 	<legend><?php echo __('Add Attribute'); ?></legend>
 	<fieldset>
 		<div id="formWarning" class="message ajaxMessage"></div>

@@ -761,6 +761,90 @@ class AttributesController extends AppController {
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
+	
+	// ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur. 
+	public function editField($id) {
+		if ((!$this->request->is('post') && !$this->request->is('put')) || !$this->request->is('ajax')) throw new MethodNotAllowedException(); 
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) {
+			throw new NotFoundException(__('Invalid attribute'));
+		}
+		$this->Attribute->recursive = -1;
+		$this->Attribute->contain('Event');
+		$attribute = $this->Attribute->read();
+		
+		if (!$this->_isSiteAdmin()) {
+			//
+			if ($this->Attribute->data['Event']['orgc'] == $this->Auth->user('org')
+			&& (($this->userRole['perm_modify'] && $this->Attribute->data['Event']['user_id'] != $this->Auth->user('id'))
+			|| $this->userRole['perm_modify_org'])) {
+				// Allow the edit
+			} else {
+				$this->Session->setFlash(__('Invalid attribute.'));
+				$this->redirect(array('controller' => 'events', 'action' => 'index'));
+			}
+		}
+		
+		foreach ($this->request->data['Attribute'] as $changedKey => $changedField) {
+			if ($attribute['Attribute'][$changedKey] == $changedField) {
+				$this->autoRender = false;
+				return new CakeResponse(array('body'=> json_encode('nochange'),'status'=>200));
+			}
+			$attribute['Attribute'][$changedKey] = $changedField;
+		}
+		$date = new DateTime();
+		$attribute['Attribute']['timestamp'] = $date->getTimestamp();
+		if ($this->Attribute->save($attribute)) {
+			$event = $this->Attribute->Event->find('first', array(
+				'recursive' => -1,
+				'fields' => array('id', 'published', 'timestamp', 'info'),
+				'conditions' => array(
+					'id' => $attribute['Attribute']['event_id'],	
+			)));
+			$event['Event']['timestamp'] = $date->getTimestamp();
+			$event['Event']['published'] = 0;
+			$res = $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
+			file_put_contents('/tmp/event.txt', serialize($res));
+			$this->autoRender = false;
+			return new CakeResponse(array('body'=> json_encode('saved'),'status'=>200));
+		} else {
+			$this->autoRender = false;
+			return new CakeResponse(array('body'=> json_encode('fail'),'status'=>400));
+		}
+	}
+	
+	public function view($id, $hasChildren = 0) {
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) {
+			throw new NotFoundException('Invalid attribute');
+		}
+		$this->Attribute->recursive = -1;
+		$this->Attribute->contain('Event');
+		$attribute = $this->Attribute->read();
+		if (!$this->_isSiteAdmin()) {
+			//
+			if ($this->Attribute->data['Event']['org'] == $this->Auth->user('org') || (($this->Attribute->data['Event']['distribution'] > 0) &&  $this->Attribute->data['Attribute']['distribution'] > 0)) {
+				throw new MethodNotAllowed('Invalid attribute');
+			}
+		}
+		$eventRelations = $this->Attribute->Event->getRelatedAttributes($this->Auth->user(), $this->_isSiteAdmin(), $attribute['Attribute']['event_id']);
+		$attribute['Attribute']['relations'] = array();
+		if (isset($eventRelations[$id])) {
+			foreach ($eventRelations[$id] as $relations) {
+				$attribute['Attribute']['relations'][] = array($relations['id'], $relations['info'], $relations['org']);
+			}
+		}
+		$object = $attribute['Attribute'];
+		$object['objectType'] = 0;
+		$object['hasChildren'] = $hasChildren;
+		$this->set('object', $object);
+		$this->set('distributionLevels', $this->Attribute->Event->distributionLevels);
+		/*
+		$this->autoRender = false;
+		$responseObject = array();
+		return new CakeResponse(array('body'=> json_encode($attribute['Attribute']),'status'=>200));
+		*/
+	}
 
 /**
  * delete method

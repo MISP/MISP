@@ -3,6 +3,7 @@ $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event
 $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 ?>
 <?php
+	echo $this->Html->script('ajaxification');
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
 ?>
 <div class="events view">
