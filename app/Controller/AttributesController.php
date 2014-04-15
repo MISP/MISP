@@ -962,6 +962,7 @@ class AttributesController extends AppController {
 						$conditions['AND'][] = $temp;
 					}
 				}
+				
 				if ($this->request->data['Attribute']['alternate']) {
 					$events = $this->searchAlternate($conditions);
 					$this->set('events', $events);
@@ -972,7 +973,7 @@ class AttributesController extends AppController {
 						'limit' => 60,
 						'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
 						'conditions' => $conditions,
-						'contain' => array('Event.orgc', 'Event.id', 'Event.org')
+						'contain' => array('Event.orgc', 'Event.id', 'Event.org', 'Event.user_id')
 					);
 					if (!$this->_isSiteAdmin()) {
 						// merge in private conditions
@@ -1008,6 +1009,7 @@ class AttributesController extends AppController {
 					$this->Session->write('paginate_conditions_keyword2', $keyword2);
 					$this->Session->write('paginate_conditions_org', $org);
 					$this->Session->write('paginate_conditions_type', $type);
+					$this->Session->write('paginate_conditions_ioc', $ioc);
 					$this->Session->write('paginate_conditions_category', $category);
 					$this->Session->write('search_find_idlist', $idList);
 					$this->Session->write('search_find_attributeidlist', $attributeIdList);
@@ -1094,7 +1096,7 @@ class AttributesController extends AppController {
 		foreach ($events as &$event) {
 			$event['relevance'] = 100 * $event['to_ids'] / ($event['no_ids'] + $event['to_ids']);
 		}
-		$events = $this->__subval_sort($events, 'relevance');
+		if (!empty($events)) $events = $this->__subval_sort($events, 'relevance');
 		return $events;
 	}
 	
@@ -1158,6 +1160,7 @@ class AttributesController extends AppController {
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
 	public function restSearch($key='download', $value=null, $type=null, $category=null, $org=null, $tags=null) {
 		if ($tags) $tags = str_replace(';', ':', $tags);
+		if ($tags === 'null') $tags = null;
 		if ($value === 'null') $value = null;
 		if ($type === 'null') $type = null;
 		if ($category === 'null') $category = null;
