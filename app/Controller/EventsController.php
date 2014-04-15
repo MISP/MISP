@@ -1214,6 +1214,7 @@ class EventsController extends AppController {
 
 	public function xml($key, $eventid=null, $withAttachment = false, $tags = '') {
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
+		if ($tags === 'null') $tags = null;
 		if ($eventid === 'null' || $eventid ==='false') $eventid=null;
 		if ($withAttachment === 'null' || $withAttachment ==='false') $withAttachment = false;
 		if ($key != 'download') {
@@ -1283,6 +1284,7 @@ class EventsController extends AppController {
 
 	public function nids($format = 'suricata', $key = '', $id = null, $continue = false, $tags = '') {
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
+		if ($tags === 'null') $tags = null;
 		if ($id === 'null') $id = null;
 		if ($continue === 'false') $continue = false;
 		if ($continue === 'true') $continue = true;
@@ -1316,6 +1318,7 @@ class EventsController extends AppController {
 
 	public function hids($type, $key, $tags = '') {
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
+		if ($tags === 'null') $tags = null;
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
 		$this->layout = 'text/default';
@@ -1367,7 +1370,20 @@ class EventsController extends AppController {
 		// We don't need to look out for permissions since that's filtered by the search itself
 		// We just want all the attributes found by the search
 		if ($eventid === 'search') {
-			$list = $this->Session->read('search_find_attributeidlist');
+			$ioc = $this->Session->read('paginate_conditions_ioc');
+			$paginateConditions = $this->Session->read('paginate_conditions');
+			$attributes = $this->Event->Attribute->find('all', array(
+				'conditions' => $paginateConditions['conditions'],
+				'contain' => $paginateConditions['contain'],
+			));
+			if ($ioc) {
+				$this->loadModel('Whitelist');
+				$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
+			}
+			$list = array();
+			foreach ($attributes as &$attribute) {
+				$list[] = $attribute['Attribute']['id'];
+			}
 		}
 		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type);
 		$this->loadModel('Whitelist');
@@ -1771,17 +1787,28 @@ class EventsController extends AppController {
 	}
 
 	public function downloadSearchResult() {
-		$idList = $this->Session->read('search_find_idlist');
-		$this->Session->write('search_find_idlist', '');
+		$ioc = $this->Session->read('paginate_conditions_ioc');
+		$paginateConditions = $this->Session->read('paginate_conditions');
+		$attributes = $this->Event->Attribute->find('all', array(
+			'conditions' => $paginateConditions['conditions'],
+			'contain' => $paginateConditions['contain'],
+		));
+		if ($ioc) {
+			$this->loadModel('Whitelist');
+			$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
+		}
+		$idList = array();
+		foreach ($attributes as &$attribute) {
+			if (!in_array($attribute['Attribute']['event_id'], $idList)) {
+				$idList[] = $attribute['Attribute']['event_id'];
+			}
+		}
 		// display the full xml
 		$this->response->type('xml');	// set the content type
 		$this->layout = 'xml/default';
 		$this->header('Content-Disposition: download; filename="misp.search.results.xml"');
 
 		$results = $this->__fetchEvent(null, $idList);
-		// Whitelist check
-		$this->loadModel('Whitelist');
-		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
 
 		$this->set('results', $results);
 		$this->render('xml');
@@ -1798,6 +1825,7 @@ class EventsController extends AppController {
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
 		if ($value === 'null') $value = null;
 		if ($type === 'null') $type = null;
+		if ($tags === 'null') $tags = null;
 		if ($category === 'null') $category = null;
 		if ($org === 'null') $org = null;
 		if ($key!=null && $key!='download') {
