@@ -201,10 +201,6 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	<div id="pivots_div">
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
-	<div id="create_object_div">
-		<span id="create-button" class="btn btn-inverse" onClick="clickCreateButton();">Add Attribute</span>
-	</div>
-	<br />
 	<div id="attribute_add_form" class="attribute_add_form"></div>
 	<div id="attribute_creation_div" style="display:none;">
 		<?php 

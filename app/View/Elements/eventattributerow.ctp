@@ -11,7 +11,13 @@ if ($object['objectType'] == 0 ) {
 if ($object['objectType'] == 1) $extra2 = '1';
 ?>
 <tr id = "<?php echo $currentType . '_' . $object['id'] . '_tr'; ?>">
-	<td style="width: <?php echo $extra2; ?>0px;padding:0px;border:0px;"></td>
+	<?php if ($mayModify): ?>
+		<td class="<?php echo $extra; ?>" style="width:10px;">
+			<?php if ($object['objectType'] == 0): ?>
+			<input id = "select_<?php echo $object['id']; ?>" class="select_attribute" type="checkbox" data-id="<?php echo $object['id'];?>" />
+			<?php endif; ?>
+		</td>
+	<?php endif; ?>
 	<td class="short <?php echo $extra; ?>">
 	<?php 
 		if (isset($object['timestamp'])) echo date('Y-m-d', $object['timestamp']);
@@ -20,7 +26,7 @@ if ($object['objectType'] == 1) $extra2 = '1';
 	</td>
 	<td class="shortish <?php echo $extra; ?>">
 		<?php 
-			echo $this->Form->create($currentType, array('class' => 'inline-form inline-field-form', 'id' => $currentType . '_' . $object['id'] . '_category_form', 'action' => 'editField', 'onSubmit=\'activateField("' . $currentType . '", "' . $object['id'] . '", "' . $event['Event']['id'] . '")\''));
+			echo $this->Form->create($currentType, array('class' => 'inline-form inline-field-form', 'id' => $currentType . '_' . $object['id'] . '_category_form', 'action' => 'editField'));
 		?>
 		<div class='inline-input inline-input-container'>	
 		<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok"></span></div>	
@@ -44,7 +50,7 @@ if ($object['objectType'] == 1) $extra2 = '1';
 	</td>
 	<td class="shortish <?php echo $extra; ?>">
 		<?php 
-			echo $this->Form->create($currentType, array('class' => 'inline-form inline-field-form', 'id' => $currentType . '_' . $object['id'] . '_type_form', 'action' => 'editField', 'onSubmit=\'activateField("' . $currentType . '", "' . $object['id'] . '", "' . $event['Event']['id'] . '")\''));
+			echo $this->Form->create($currentType, array('class' => 'inline-form inline-field-form', 'id' => $currentType . '_' . $object['id'] . '_type_form', 'action' => 'editField'));
 		?>
 		<div class='inline-input inline-input-container'>	
 			<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok"></span></div>	
@@ -158,10 +164,8 @@ if ($object['objectType'] == 1) $extra2 = '1';
 		</div>	
 		<div id = "<?php echo $currentType . '_' . $object['id'] . '_ids_solid'; ?>" class="inline-field-solid" onClick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'ids', <?php echo $event['Event']['id'];?>);">
 			<?php 
-				if ($object['objectType'] != 1 && $object['objectType'] != 2) {
-					if ($object['to_ids']) echo 'Yes';
-					else echo 'No';
-				}
+				if ($object['to_ids']) echo 'Yes';
+				else echo 'No';
 			?>
 		</div>
 	</td>

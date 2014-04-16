@@ -433,9 +433,6 @@ class EventsController extends AppController {
 		$this->set('currentEvent', $id);
 	}
 	
-	private function __view() {
-		
-	}
 
 	private function __startPivoting($id, $info, $date){
 		$this->Session->write('pivot_thread', null);

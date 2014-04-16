@@ -802,6 +802,32 @@ a.proposal_link_red:hover {
 	margin-bottom:0px !important;
 }
 
+.tabMenu {
+	position:absolute;
+	top:-21px;
+	height:20px;
+	margin-left:5px;
+	padding-left:10px;
+	padding-right:10px;
+	-webkit-border-radius: 4px 4px 0 0;
+	-moz-border-radius: 4px 4px 0 0;
+	border-radius: 4px 4px 0 0;
+	border: 1px solid #ddd;
+	border-bottom-color: transparent;
+	background-color: #f9f9f9;
+	border-collapse: separate !important;
+}
+
+.tabMenu [class^="icon-"] {
+	vertical-align:baseline;
+	margin-top:3px;
+}
+
+.attributeListContainer{
+	position:relative;
+	margin-top:10px;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}

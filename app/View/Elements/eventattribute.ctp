@@ -1,4 +1,5 @@
 <?php
+	echo $this->Html->script('ajaxification');
 	$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 	$mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	if (!empty($eventArray)):
@@ -41,25 +42,35 @@
 <?php 
 	endif;
 ?>
-<table class="table table-striped table-condensed">
-	<tr>
-		<th style="width:0px;padding:0px;border:0px;"></th>
-		<th>Date</th>
-		<th>Category</th>
-		<th>Type</th>
-		<th>Value</th>
-		<th>Comment</th>
-		<th>Related Events</th>
-		<th title="<?php echo $attrDescriptions['signature']['desc'];?>">IDS</th>
-		<th title="<?php echo $attrDescriptions['distribution']['desc'];?>">Distribution</th>
-		<th class="actions">Actions</th>
-	</tr>
-	<?php 
-		foreach($eventArray as $k => $object):
-			echo $this->element('eventattributerow', array('object' => $object));
-		endforeach;
-	?>
-</table>
+
+<div id="attributeList" class="attributeListContainer">
+	<div class="tabMenu">
+		<span id="create-button" class="icon-plus" onClick="clickCreateButton();"></span>
+		<span id="multi-edit-button" class="icon-edit mass-select" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+		<span id="multi-delete-button" class = "icon-trash mass-select" onClick="deleteSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+	</div>
+	<table class="table table-striped table-condensed">
+		<tr>
+			<?php if ($mayModify): ?>
+				<th><input class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
+			<?php endif;?>
+			<th>Date</th>
+			<th>Category</th>
+			<th>Type</th>
+			<th>Value</th>
+			<th>Comment</th>
+			<th>Related Events</th>
+			<th title="<?php echo $attrDescriptions['signature']['desc'];?>">IDS</th>
+			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>">Distribution</th>
+			<th class="actions">Actions</th>
+		</tr>
+		<?php 
+			foreach($eventArray as $k => $object):
+				echo $this->element('eventattributerow', array('object' => $object, 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
+			endforeach;
+		?>
+	</table>
+</div>
 <?php if ($pageCount > 1): ?>
 <span id = "current_page" style="visibility:hidden;"><?php echo $page;?></span>
 <p>Page <?php echo $page; ?> of <?php echo $pageCount;?>, showing <?php echo count($eventArray); ?> records out of <?php echo $objectCount; ?> total, starting on <?php echo (($page-1) * 50) + 1;?>, ending on <?php echo (($page-1) * 50) + count($eventArray); ?></p>
@@ -97,6 +108,20 @@
 </div>
 <?php
 	endif; 
+	?>
+	<div id="edit_object_div">
+		<?php 
+			echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'action' => 'deleteSelected'));
+			echo $this->Form->input('ids', array(
+				'type' => 'text',
+				'value' => 'test',
+				'style' => 'display:none;',
+				'label' => false,
+			)); 
+			echo $this->Form->end();
+		?>
+	</div>
+	<?php 
 	for ($j = 0; $j < 2; $j++) {
 		$side = 'a';
 		if ($j == 1) $side = 'b'; 
@@ -152,5 +177,15 @@
 			);
 	}
 	endif; 
+	?>
+		<script>
+			$(document).ready(function(){
+				$('.mass-select').hide();
+				$('input[type="checkbox"]').click(function(){
+					attributeListAnyCheckBoxesChecked();
+				});
+			});
+		</script>
+	<?php 
 	echo $this->Js->writeBuffer();
 ?>

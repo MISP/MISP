@@ -153,23 +153,28 @@ class AttributesController extends AppController {
 						//	debug(tru);
 					}
 				}
-				// we added all the attributes,
-				if ($fails) {
-					// list the ones that failed
-					if (!CakeSession::read('Message.flash')) {
-						$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. Please, try again.', true), 'default', array(), 'error');
-					} else {
-						$existingFlash = CakeSession::read('Message.flash');
-						$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. ' . $existingFlash['message'], true), 'default', array(), 'error');
+				if ($this->request->is('ajax')) {
+					$this->autoRender = false;
+					// handle it if some of them failed!!!!
+					return new CakeResponse(array('body'=> json_encode('saved'),'status'=>200));
+				} else {
+					// we added all the attributes,
+					if ($fails) {
+						// list the ones that failed
+						if (!CakeSession::read('Message.flash')) {
+							$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. Please, try again.', true), 'default', array(), 'error');
+						} else {
+							$existingFlash = CakeSession::read('Message.flash');
+							$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. ' . $existingFlash['message'], true), 'default', array(), 'error');
+						}
 					}
+					if ($successes) {
+						// list the ones that succeeded
+						$this->Session->setFlash(__('The lines' . $successes . ' have been saved', true));
+					}
+	
+					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 				}
-				if ($successes) {
-					// list the ones that succeeded
-					$this->Session->setFlash(__('The lines' . $successes . ' have been saved', true));
-				}
-
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
-
 			} else {
 				if (isset($this->request->data['Attribute']['uuid'])) {	// TODO here we should start RESTful dialog
 					// check if the uuid already exists and also save the existing attribute for further checks
@@ -860,18 +865,38 @@ class AttributesController extends AppController {
 		if (!$this->request->is('post') && !$this->_isRest()) {
 			throw new MethodNotAllowedException();
 		}
-
+		if ($this->__delete($id)) {
+			$this->Session->setFlash(__('Attribute deleted'));
+		} else {
+			$this->Session->setFlash(__('Attribute was not deleted'));
+		}
+		
+		if (!$this->_isRest()) $this->redirect($this->referer());	// TODO check
+		else $this->redirect(array('action' => 'index'));
+	}
+	
+/**
+ * unification of the actual delete for the multi-select
+ * 
+ * @param unknown $id
+ * @throws NotFoundException
+ * @throws MethodNotAllowedException
+ * @return boolean
+ * 
+ * returns true/false based on success
+ */
+	private function __delete($id) {
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
-
+		
 		if ('true' == Configure::read('MISP.sync')) {
 			// find the uuid
 			$result = $this->Attribute->findById($id);
 			$uuid = $result['Attribute']['uuid'];
 		}
-
+		
 		// check for permissions
 		if (!$this->_isSiteAdmin()) {
 			$this->Attribute->read();
@@ -885,7 +910,7 @@ class AttributesController extends AppController {
 				}
 			}
 		}
-
+		
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->delete()) {
 			// delete the attribute from remote servers
@@ -893,17 +918,30 @@ class AttributesController extends AppController {
 				// find the uuid
 				$this->__deleteAttributeFromServers($uuid);
 			}
-
+		
 			// We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
 			$this->loadModel('ShadowAttribute');
 			$this->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
-			$this->Session->setFlash(__('Attribute deleted'));
+			return true;
 		} else {
-			$this->Session->setFlash(__('Attribute was not deleted'));
+			return false;
 		}
-
-		if (!$this->_isRest()) $this->redirect($this->referer());	// TODO check
-		else $this->redirect(array('action' => 'index'));
+		
+	}
+	
+	public function deleteSelected() {
+		//if (!$this->request->is('post') && !$this->request->is('ajax')) {
+		if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException();
+		}
+		// get a json object with a list of attribute IDs to be deleted
+		// check each of them and return a json object with the successful deletes and the failed ones.
+		$ids = json_decode($this->request->data['Attribute']['ids']);
+		foreach ($ids as $id) {
+			$this->__delete($id);
+		}
+		$this->autoRender = false;
+		return new CakeResponse(array('body'=> json_encode('saved'),'status'=>200));
 	}
 
 /**

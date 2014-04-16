@@ -119,6 +119,13 @@ function handleAjaxEditResponse(data, event) {
 	}
 }
 
+function handleAjaxMassDeleteResponse(data, event) {
+	if (data == "\"saved\"") updateAttributeIndexOnSuccess(event);
+	else {
+		updateAttributeIndexOnSuccess(event);
+	}
+}
+
 $(function(){
     $('a:contains("Delete")').removeAttr('onclick');
     $('a:contains("Delete")').click(function(e){
@@ -129,3 +136,41 @@ $(function(){
         return false;
     });
 });
+
+function toggleAllAttributeCheckboxes() {
+	if ($(".select_all").is(":checked")) {
+		$(".select_attribute").prop("checked", true);
+	} else {
+		$(".select_attribute").prop("checked", false);
+	}
+}
+
+function attributeListAnyCheckBoxesChecked() {
+	if ($('input[type="checkbox"]:checked').length > 0) $('.mass-select').show();
+	else $('.mass-select').hide();
+}
+
+
+function deleteSelectedAttributes(event) {
+	var answer = confirm("Are you sure you want to delete all selected attributes?");
+	if (answer) {
+		var selected = [];
+		$(".select_attribute").each(function() {
+			if ($(this).is(":checked")) {
+				var test = $(this).data("id");
+				selected.push(test);
+			}
+		});
+		$('#AttributeIds').attr('value', JSON.stringify(selected));
+		var formData = $('#delete_selected').serialize();
+		$.ajax({
+			data: formData, 
+			type:"POST", 
+			url:"/attributes/deleteSelected/",
+			success:function (data, textStatus) {
+				handleAjaxMassDeleteResponse(data, event);
+			}, 
+		});
+	}
+	return false;
+}
