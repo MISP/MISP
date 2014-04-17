@@ -27,9 +27,86 @@ function updateAttributeIndexOnSuccess(event) {
 	});
 }
 
+function updateAttributeFieldOnSuccess(name, type, id, field, event) {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			if (field != 'timestamp') {
+				$(".loading").show();
+			}
+		}, 
+		dataType:"html", 
+		success:function (data, textStatus) {
+			if (field != 'timestamp') {
+				$(".loading").hide();
+				$(name + '_solid').html(data);
+				$(name + '_placeholder').empty();
+				$(name + '_solid').show();
+			} else {
+				$('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
+			}
+		}, 
+		url:"/attributes/fetchViewValue/" + id + "/" + field,
+	});
+}
+
+function activateField(type, id, field, event) {
+	var name = '#' + type + '_' + id + '_' + field;
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		dataType:"html", 
+		success:function (data, textStatus) {
+			$(".loading").hide();
+			$(name + '_placeholder').html(data);
+			postActivationScripts(name, type, id, field, event);
+		}, 
+		url:"/attributes/fetchEditForm/" + id + "/" + field,
+	});
+}
+
+function postActivationScripts(name, type, id, field, event) {
+	$(name + '_field').focus();
+	inputFieldButtonActive(name + '_field');
+	if (field == 'value' || field == 'comment') {
+		$(name + '_field').on('keyup mouseover', function () {
+		    autoresize(this);
+		});
+	}
+	$(name + '_form').submit(function(e){ 
+		e.preventDefault();
+		submitForm(type, id, field, event);
+		return false;
+	});
+	
+	$(name + '_form').bind("focusout", function() {
+		inputFieldButtonPassive(name + '_field');
+	});
+
+	$(name + '_form').bind("focusin", function(){
+		inputFieldButtonActive(name + '_field');
+	});
+	
+	$(name + '_form').bind("keydown", function(e) {
+		if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
+			submitForm(type, id, field, event);
+		}
+	});
+	$(name + '_field').closest('.inline-input-container').children('.inline-input-accept').bind('click', function() {
+		submitForm(type, id, field, event);
+	});
+	
+	$(name + '_field').closest('.inline-input-container').children('.inline-input-decline').bind('click', function() {
+		resetForms();
+	});
+
+	$(name + '_solid').hide();
+}
+
+
 // if someone clicks an inactive field, replace it with the hidden form field. Also, focus it and bind a focusout event, so that it gets saved if the user clicks away.
 // If a user presses enter, submit the form
-function activateField(type, id, field, event) {
+function activateField2(type, id, field, event) {
 	resetForms();
 	var name = '#' + type + '_' + id + '_' + field;
 	$(name + '_form').show();
@@ -73,7 +150,7 @@ function activateField(type, id, field, event) {
 
 function resetForms() {
 	$('.inline-field-solid').show();
-	$('.inline-field-form').hide();
+	$('.inline-field-placeholder').empty();
 }
 
 function inputFieldButtonActive(selector) {
@@ -98,7 +175,7 @@ function submitForm(type, id, field, event) {
 	$.ajax({
 		data: $(name + '_field').closest("form").serialize(), 
 		success:function (data, textStatus) {
-			handleAjaxEditResponse(data, event);
+			handleAjaxEditResponse(data, name, type, id, field, event);
 		}, 
 		error:function() {
 			alert('Request failed. This may be caused by the CSRF protection blocking your request. The forms will now be refreshed to resolve the issue.');
@@ -112,10 +189,12 @@ function submitForm(type, id, field, event) {
 	return false;
 };
 
-function handleAjaxEditResponse(data, event) {
-	if (data == "\"saved\"") updateAttributeIndexOnSuccess(event);
-	else {
-		updateAttributeIndexOnSuccess(event);
+function handleAjaxEditResponse(data, name, type, id, field, event) {
+	if (data == "\"saved\"") {
+		updateAttributeFieldOnSuccess(name, type, id, field, event);
+		updateAttributeFieldOnSuccess(name, type, id, 'timestamp', event);
+	} else {
+		updateAttributeFieldOnSuccess(name, type, id, field, event);
 	}
 }
 

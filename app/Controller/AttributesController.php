@@ -1539,4 +1539,96 @@ class AttributesController extends AppController {
 		$this->Session->setFlash(__('All done. ' . $k . ' attributes processed.'));
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
+	
+	public function fetchViewValue($id, $field = null) {
+		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp');
+		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
+		//if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) {
+			throw new NotFoundException(__('Invalid attribute'));
+		}
+		$attribute = $this->Attribute->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('Attribute.id' => $id),
+				'fields' => array('id', 'distribution', 'event_id', $field),
+				'contain' => array(
+						'Event' => array(
+								'fields' => array('distribution', 'id', 'org'),
+						)
+				)
+		));
+		if (!$this->_isSiteAdmin()) {
+			//
+			if (!($this->Attribute->data['Event']['org'] == $this->Auth->user('org') || ($this->Attribute->data['Event']['distribution'] > 0 && $this->Attribute->data['Attribute']['distribution'] > 0))) {
+				throw new NotFoundException(__('Invalid attribute'));
+			}
+		}
+		$result = $attribute['Attribute'][$field];
+		if ($field == 'distribution') $result=$this->Attribute->distributionLevels[$result];
+		if ($field == 'to_ids') $result = ($result == 0 ? 'No' : 'Yes');
+		if ($field == 'timestamp') {
+			if (isset($result)) $result = date('Y-m-d', $result);
+			else echo '&nbsp';
+		}
+		$this->set('value', $result);
+		$this->layout = 'ajax';
+		$this->render('ajax/attributeViewFieldForm');
+	}
+	
+	public function fetchEditForm($id, $field = null) {
+		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution');
+		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) {
+			throw new NotFoundException(__('Invalid attribute'));
+		}
+
+		$fields = array('id', 'distribution', 'event_id');
+		$additionalFieldsToLoad = $field;
+		if ($field == 'category' || $field == 'type') {
+			$fields[] = 'type';
+			$fields[] = 'category';
+		} else {
+			$fields[] = $field;
+		}
+		$attribute = $this->Attribute->find('first', array(
+			'recursive' => -1,
+			'conditions' => array('Attribute.id' => $id),
+			'fields' => $fields,
+			'contain' => array(
+				'Event' => array(
+					'fields' => array('distribution', 'id', 'user_id', 'orgc'),	
+				)
+			)
+		));
+		if (!$this->_isSiteAdmin()) {
+			//
+			if ($this->Attribute->data['Event']['orgc'] == $this->Auth->user('org')
+					&& (($this->userRole['perm_modify'] && $this->Attribute->data['Event']['user_id'] != $this->Auth->user('id'))
+							|| $this->userRole['perm_modify_org'])) {
+							// Allow the edit
+			} else {
+				throw new NotFoundException(__('Invalid attribute'));
+			}
+		}
+		$this->layout = 'ajax';
+		if ($field == 'distribution') $this->set('distributionLevels', $this->Attribute->distributionLevels);
+		if ($field == 'category') {
+			$typeCategory = array();
+			foreach ($this->Attribute->categoryDefinitions as $k => $category) {
+				foreach ($category['types'] as $type) {
+					$typeCategory[$type][] = $k;
+				}
+			}
+			$this->set('typeCategory', $typeCategory);
+		}
+		if ($field == 'type') {
+			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+		}
+		$this->set('object', $attribute['Attribute']);
+		$fieldURL = ucfirst($field);
+		$this->render('ajax/attributeEdit' . $fieldURL . 'Form');
+	}
 }

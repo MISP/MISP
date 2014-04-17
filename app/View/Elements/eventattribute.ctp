@@ -39,10 +39,10 @@
 	</ul>
 	</ul>
 </div>
+<br />
 <?php 
 	endif;
 ?>
-
 <div id="attributeList" class="attributeListContainer">
 	<div class="tabMenu">
 		<span id="create-button" class="icon-plus" onClick="clickCreateButton();"></span>
