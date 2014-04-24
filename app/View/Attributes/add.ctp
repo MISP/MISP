@@ -66,7 +66,7 @@
 			<table>
 				<tr>
 				<td style="vertical-align:top">
-					<span id="submitButton" class="btn btn-primary" onClick="submitForm()">Submit</span>
+					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'add')">Submit</span>
 				</td>
 				<td style="width:540px;">
 					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
@@ -204,90 +204,5 @@ $(document).ready(function() {
 
 	<?php endif; ?>
 });
-
-// Submit button should post the form results to the add action and check the response
-function submitForm() {
-	$.ajax({
-		data: $("#submitButton").closest("form").serialize(), 
-		success:function (data, textStatus) {
-			handleAjaxResponse(data);
-		}, 
-		type:"post", 
-		url:"/attributes/add/<?php echo $event_id; ?>"
-	});
-};
-
-function handleAjaxResponse(response) {
-	if (response === "\"saved\"") {	
-		$("#gray_out").hide();
-		$("#attribute_add_form").hide();
-		updateAttributeIndexOnSuccess();
-	} else {
-		var savedArray = saveValuesForPersistance();
-		$.ajax({
-			async:true, 
-			dataType:"html", 
-			success:function (data, textStatus) {
-				$("#attribute_add_form").html(data);
-				responseArray = JSON.parse(response);
-				handleValidationErrors(responseArray);
-				if (!isEmpty(responseArray)) {
-					$("#formWarning").show();
-					$("#formWarning").html('The attribute could not be saved. Please, try again.');
-				}
-				recoverValuesFromPersistance(savedArray);
-			}, 
-			url:"/attributes/add/<?php echo $event_id; ?>"
-		});	
-	}
-}
-
-function isEmpty(obj) {
-	var name;
-	for (name in obj) {
-		return false;
-	}
-	return true;
-}
-
-function updateAttributeIndexOnSuccess() {
-	$.ajax({
-		beforeSend: function (XMLHttpRequest) {
-			$(".loading").show();
-		}, 
-		dataType:"html", 
-		success:function (data, textStatus) {
-			$(".loading").hide();
-			$("#attributes_div").html(data);
-		}, 
-		url:"/events/view/<?php echo $event_id; ?>/attributesPage:1"
-	});
-}
-
-
-
-// before we update the form (in case the action failed), we want to retrieve the data from every field, so that we can set the fields in the new form that we fetch 
-function saveValuesForPersistance() {
-	var formPersistanceArray = new Array();
-	for (i = 0; i < fieldsArrayAttribute.length; i++) {
-		formPersistanceArray[fieldsArrayAttribute[i]] = document.getElementById(fieldsArrayAttribute[i]).value;
-	}
-	return formPersistanceArray;
-}
-
-function recoverValuesFromPersistance(formPersistanceArray) {
-	for (i = 0; i < fieldsArrayAttribute.length; i++) {
-		 document.getElementById(fieldsArrayAttribute[i]).value = formPersistanceArray[fieldsArrayAttribute[i]];
-	}
-}
-
-function handleValidationErrors(responseArray) {
-	for (var k in responseArray) {
-		var elementName = k.charAt(0).toUpperCase() + k.slice(1);
-		$("#Attribute" + elementName).parent().addClass("error");
-		$("#Attribute" + elementName).parent().append("<div class=\"error-message\">" + responseArray[k] + "</div>");
-	}
-
-}
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts

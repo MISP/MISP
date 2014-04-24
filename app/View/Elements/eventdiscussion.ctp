@@ -1,8 +1,10 @@
 <div id="top">
 	<div class="pagination">
-        <ul>
         <?php
         if (!empty($posts)):
+        ?>
+			<ul>
+        <?php
 	        $this->Paginator->options(array(
 	            'update' => '#top',
 	            'evalScripts' => true,

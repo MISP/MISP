@@ -70,51 +70,8 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 				<?php 
 					if (Configure::read('MISP.tagging')): ?>
 						<dt>Tags</dt>
-						<dd>
-						<table>
-							<tr>
-						<?php 
-							foreach ($tags as $tag): ?>
-							<td style="padding-right:0px;">
-								<?php if ($isAclTagger): ?>
-								<a href="/events/index/searchtag:<?php echo $tag['Tag']['id']; ?>" class=tagFirstHalf style="background-color:<?php echo $tag['Tag']['colour'];?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>"><?php echo h($tag['Tag']['name']); ?></a>
-								<?php else: ?>
-								<a href="/events/index/searchtag:<?php echo $tag['Tag']['id']; ?>" class=tag style="background-color:<?php echo $tag['Tag']['colour'];?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>"><?php echo h($tag['Tag']['name']); ?></a>
-								<?php endif; ?>
-							</td>
-							<?php if ($isAclTagger): ?>
-							<td style="padding-left:0px;padding-right:5px;">
-							<?php 
-							echo $this->Form->postLink('x', array('action' => 'removeTag', $event['Event']['id'], $tag['Tag']['id']), array('class' => 'tagSecondHalf', 'title' => 'Delete'), ('Are you sure you want to delete this tag?'));
-							?>
-							</td>
-							<?php endif; ?>
-							<?php 
-							endforeach;
-							if ($isAclTagger) : ?>
-							<td id ="addTagTD" style="display:none;">
-								<?php
-									echo $this->Form->create('', array('action' => 'addTag', 'style' => 'margin:0px;'));
-									echo $this->Form->hidden('id', array('value' => $event['Event']['id']));
-									echo $this->Form->input('tag', array(
-										'options' => array($allTags),
-										'value' => 0,
-										'label' => false,
-										'style' => array('height:22px;padding:0px;margin-bottom:0px;'),
-										'onChange' => 'this.form.submit()',
-										'class' => 'input-large'));
-									echo $this->Form->end();
-								?>
-							</td>
-							<td>
-							<button id="addTagButton" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">+</button>
-					
-							</td>
-							<?php else:
-									if (empty($tags)) echo '&nbsp;'; 
-								endif; ?>
-						</tr>
-						</table>
+						<dd class="eventTagContainer">
+							<?php echo $this->element('ajaxTags', array('event' => $event, 'tags' => $tags)); ?>
 						</dd>
 				<?php endif; ?>
 				<dt>Date</dt>
@@ -221,6 +178,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 <script type="text/javascript">
 // tooltips
 $(document).ready(function () {
+	//loadEventTags("<?php echo $event['Event']['id']; ?>");	
 	$("th, td, dt, div, span, li").tooltip({
 		'placement': 'top',
 		'container' : 'body',
@@ -262,12 +220,4 @@ $(document).ready(function () {
 		$('#addTagButton').hide();
 	});
 });
-
-function clickCreateButton() {
-	$.get( "/attributes/add/<?php echo $event['Event']['id']; ?>", function(data) {
-		$("#attribute_add_form").show();
-		$("#gray_out").show();
-		$("#attribute_add_form").html(data);
-	});
-}
 </script>

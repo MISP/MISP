@@ -30,13 +30,13 @@
 		<?php else: ?>
 			<li class="next"><a href="" id = "anext">next »</a></li>
 		<?php endif; ?>
+	</ul>
 	<ul style="margin-left:20px;">
 		<?php if ($page == 'all'): ?>
 			<li class="all"><span>View All</span></li>
 		<?php else: ?>
 			<li class="all"><a href="" id = "aall">View All</a></li>
 		<?php endif; ?>
-	</ul>
 	</ul>
 </div>
 <br />
@@ -45,7 +45,7 @@
 ?>
 <div id="attributeList" class="attributeListContainer">
 	<div class="tabMenu">
-		<span id="create-button" class="icon-plus" onClick="clickCreateButton();"></span>
+		<span id="create-button" class="icon-plus" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>);"></span>
 		<span id="multi-edit-button" class="icon-edit mass-select" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
 		<span id="multi-delete-button" class = "icon-trash mass-select" onClick="deleteSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
 	</div>
@@ -88,7 +88,7 @@
 		<?php
 			else:
 		?>
-				<li><span id = "apageCurrent"><?php echo $i; ?></span></li>
+				<li><span id = "bpageCurrent"><?php echo $i; ?></span></li>
 		<?php 
 			endif;
 		endfor;
@@ -178,8 +178,9 @@
 	}
 	endif; 
 	?>
-		<script>
+		<script type="text/javascript">
 			$(document).ready(function(){
+				$('input:checkbox').removeAttr('checked');
 				$('.mass-select').hide();
 				$('input[type="checkbox"]').click(function(){
 					attributeListAnyCheckBoxesChecked();

@@ -89,10 +89,9 @@ if ($object['objectType'] == 1) $extra2 = '1';
 			if ($object['objectType'] == 0) {
 				if ($isSiteAdmin || $mayModify) {
 					echo $this->Form->create('Attribute', array('class' => 'inline-delete', 'id' => $currentType . '_' . $object['id'] . '_delete', 'action' => 'delete'));
-					echo $this->Form->end();
 		?>
 			<a href="/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit"></a>
-			<span id = "<?php echo $currentType . '_' . $object['id'] . '_delete'; ?>" class="icon-trash" onClick="deleteObject('attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+			<span class="icon-trash" onClick="deleteObject('attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 		<?php 
 					echo $this->Form->end();					
 				} else {

@@ -80,4 +80,27 @@ class TagsController extends AppController {
 		}
 		$this->redirect(array('action' => 'index'));
 	}
+	
+	public function showEventTag($id) {
+		$this->helpers[] = 'TextColour';
+		$this->loadModel('EventTag');
+		$tags = $this->EventTag->find('all', array(
+				'conditions' => array(
+						'event_id' => $id
+				),
+				'contain' => 'Tag',
+				'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+		));
+		$this->set('tags', $tags);
+		$tags = $this->Tag->find('all', array('recursive' => -1));
+		$tagNames = array('None');
+		foreach ($tags as $k => $v) {
+			$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
+		}
+		$this->set('allTags', $tagNames);
+		$event['Event']['id'] = $id;
+		$this->set('event', $event);
+		$this->layout = 'ajax';
+		$this->render('/Events/ajax/ajaxTags');
+	}
 }

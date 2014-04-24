@@ -2135,7 +2135,7 @@ class EventsController extends AppController {
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 	
-	public function addTag() {
+	public function addTag($id = null) {
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
@@ -2158,14 +2158,16 @@ class EventsController extends AppController {
 			),
 			'recursive' => -1,
 		));
+		$this->autoRender = false;
 		if (!empty($found)) {
-			$this->Session->setFlash('Tag already assigned to this event.');
-			$this->redirect(array('action' => 'view', $id));
+			return;
+			//$this->Session->setFlash('Tag already assigned to this event.');
+			//$this->redirect(array('action' => 'view', $id));
 		}
 		$this->Event->EventTag->create();
 		$this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id));
-		$this->Session->setFlash('Tag added.');
-		$this->redirect(array('action' => 'view', $id));
+		//$this->Session->setFlash('Tag added.');
+		//$this->redirect(array('action' => 'view', $id));
 	}
 	
 	public function removeTag($id, $tag_id) {
@@ -2185,9 +2187,10 @@ class EventsController extends AppController {
 			),
 			'recursive' => -1,
 		));
+		$this->autoRender = false;
 		if (empty($eventTag)) throw new NotFoundException('Invalid event - tag combination.');
 		$this->Event->EventTag->delete($eventTag['EventTag']['id']);
-		$this->Session->setFlash('Tag removed.');
-		$this->redirect(array('action' => 'view', $id));
+		//$this->Session->setFlash('Tag removed.');
+		//$this->redirect(array('action' => 'view', $id));
 	}
 }
