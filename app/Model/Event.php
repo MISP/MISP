@@ -1020,11 +1020,12 @@ class Event extends AppModel {
 	 	}
 	 	$params = array(
 	 			'conditions' => $conditions, //array of conditions
-	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid', 'Attribute.to_ids'),
+	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp'),
 	 	);
 	 	$attributes = $this->Attribute->find('all', $params);
 	 	foreach ($attributes as &$attribute) {
 	 		$attribute['Attribute']['value'] = str_replace(array("\r\n", "\n", "\r"), "", $attribute['Attribute']['value']);
+	 		$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
 	 	}
 	 	return $attributes;
 	 }

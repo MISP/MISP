@@ -1407,7 +1407,7 @@ class EventsController extends AppController {
 		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
-			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']);
+			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
 		}
 		
 		$this->response->type('csv');	// set the content type
@@ -1419,7 +1419,7 @@ class EventsController extends AppController {
 			$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
 		}
 		$this->layout = 'text/default';
-		$this->set('headers', array('uuid', 'event_id', 'category', 'type', 'value', 'to_ids'));
+		$this->set('headers', array('uuid', 'event_id', 'category', 'type', 'value', 'to_ids', 'date'));
 		$this->set('final', $final);
 	}
 

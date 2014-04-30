@@ -148,11 +148,11 @@ class EventShell extends AppShell
 			}
 		}
 		$final = array();
-		$final[] = 'uuid,event_id,category,type,value,to_ids';
+		$final[] = 'uuid,event_id,category,type,value,to_ids,date';
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
 			if (!empty($attribute)) {
-				$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']);
+				$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
 			}
 		}
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
