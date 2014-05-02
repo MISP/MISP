@@ -1,19 +1,30 @@
 <?php 
 $extra = '';
 $extra2 = '';
+$extra3 = '';
 $currentType = 'denyForm';
 // 0 = attribute
 // 1 = shadow_attribute
 if ($object['objectType'] == 0 ) {
 	$currentType = 'Attribute';
-	if ($object['hasChildren'] == 1) $extra = 'highlight1';
+	if ($object['hasChildren'] == 1) {
+		$extra = 'highlight1';
+		$extra3 = 'highlightBlueSides highlightBlueTop';
+	}
 	if (!$mayModify) $currentType = 'ShadowAttribute';
 } else $extra = 'highlight2';
 if ($object['objectType'] == 1) {
 	$extra2 = '1';
+	$extra3 = 'highlightBlueSides';
+	if (isset($object['firstChild'])) {
+		$extra3 .= ' highlightBlueTop';
+	}
+	if (isset($object['lastChild'])) {
+		$extra3 .= ' highlightBlueBottom';
+	}
 }
 ?>
-<tr id = "<?php echo $currentType . '_' . $object['id'] . '_tr'; ?>">
+<tr id = "<?php echo $currentType . '_' . $object['id'] . '_tr'; ?>" class="<? echo $extra3; ?>">
 	<?php if ($mayModify): ?>
 		<td class="<?php echo $extra; ?>" style="width:10px;">
 			<?php if ($object['objectType'] == 0): ?>

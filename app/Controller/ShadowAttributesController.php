@@ -885,9 +885,9 @@ class ShadowAttributesController extends AppController {
 		$proposal['org'] = $this->Auth->user('org');
 		$proposal['event_uuid'] = $attribute['Event']['uuid'];
 		$proposal['event_org'] = $attribute['Event']['orgc'];
-		$proposal['old_id'] = $attribute['Event']['id'];
+		$proposal['old_id'] = $attribute['Attribute']['id'];
 		foreach ($this->request->data['ShadowAttribute'] as $changedKey => $changedField) {
-			if ($proposal[$changedKey] == $changedField) {
+			if ($proposal[$changedKey] == $changedFiseld) {
 				$this->autoRender = false;
 				return new CakeResponse(array('body'=> json_encode('nochange'),'status'=>200));
 			}
@@ -902,5 +902,4 @@ class ShadowAttributesController extends AppController {
 			return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => $this->ShadowAttribute->validationErrors)),'status'=>200));
 		}
 	}
-	
 }

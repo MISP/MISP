@@ -256,6 +256,19 @@ td.highlight2 {
 	
 }
 
+tr.highlightBlueSides {
+	border-left:2px solid #0088cc;
+	border-right:2px solid #0088cc;
+}
+
+tr.highlightBlueTop {
+	border-top:2px solid #0088cc;
+}
+
+tr.highlightBlueBottom {
+	border-bottom:2px solid #0088cc;
+}
+
 table.fullwidth {
 		 border:1px solid #f0f0f0;
 }

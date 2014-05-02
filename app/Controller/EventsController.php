@@ -276,14 +276,17 @@ class EventsController extends AppController {
 						$attribute['hasChildren'] = 0;
 						$eventArray[] = $attribute; 
 						$current = count($eventArray)-1;
-						foreach ($shadowAttributeTemp as $shadowAttribute) {
+						foreach ($shadowAttributeTemp as $k => $shadowAttribute) {
 							$shadowAttribute['objectType'] = 1;
+							if ($k == 0) $shadowAttribute['firstChild'] = true;
+							if (($k + 1) == count($shadowAttributeTemp)) $shadowAttribute['lastChild'] = true;
 							$eventArray[] = $shadowAttribute;
 							$eventArray[$current]['hasChildren'] = 1;
 						}
 					}
 				}
 			}
+
 			foreach ($result['ShadowAttribute'] as $shadowAttribute) {
 				$shadowAttribute['objectType'] = 2;
 				$eventArray[] = $shadowAttribute;
