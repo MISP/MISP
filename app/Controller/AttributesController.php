@@ -100,7 +100,10 @@ class AttributesController extends AppController {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create attributes');
 		}
-		if ($this->request->is('ajax'))	$this->set('ajax', true);
+		if ($this->request->is('ajax'))	{
+			$this->set('ajax', true);
+			$this->layout = 'ajax';
+		}
 		else $this->set('ajax', false);
 		if ($this->request->is('post')) {
 			if ($this->request->is('ajax')) $this->autoRender = false;
@@ -132,6 +135,8 @@ class AttributesController extends AppController {
 
 				$fails = "";	// will be used to keep a list of the lines that failed or succeeded
 				$successes = "";
+				$failCount = 0;
+				$successCount = 0;
 				// TODO loop-holes,
 				// the value null value thing
 				foreach ($attributes as $key => $attribute) {
@@ -147,20 +152,19 @@ class AttributesController extends AppController {
 					$this->Attribute->id = null;
 					if ($this->Attribute->save($this->request->data)) {
 						$successes .= " " . ($key + 1);
+						$successCount++;
 					} else {
 						$fails .= " " . ($key + 1);
-						//debug(CakeSession::read('Message.flash'));
-						//	debug(tru);
+						$failCount++;
 					}
 				}
 				if ($this->request->is('ajax')) {
 					$this->autoRender = false;
-					// handle it if some of them failed!!!!
 					if ($fails) {
 						$error_message = 'The lines' . $fails . ' could not be saved. Please, try again.';
-						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status' => 200));
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $error_message)), 'status' => 200));
 					} else {
-						return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200));
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $successCount . ' Attributes added')), 'status' => 200));
 					}
 				} else {
 					// we added all the attributes,
@@ -220,7 +224,7 @@ class AttributesController extends AppController {
 						$this->render('view');
 					} elseif ($this->request->is('ajax')) {
 						$this->autoRender = false;
-						return new CakeResponse(array('body'=> json_encode(array('saved' => true)),'status'=>200));
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute added.')),'status'=>200));
 					} else {
 						// inform the user and redirect
 						$this->Session->setFlash(__('The attribute has been saved'));
@@ -777,7 +781,7 @@ class AttributesController extends AppController {
 		if ((!$this->request->is('post') && !$this->request->is('put')) || !$this->request->is('ajax')) throw new MethodNotAllowedException(); 
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
-			throw new NotFoundException(__('Invalid attribute'));
+			return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')),'status'=>200));
 		}
 		$this->Attribute->recursive = -1;
 		$this->Attribute->contain('Event');
@@ -790,8 +794,7 @@ class AttributesController extends AppController {
 			|| $this->userRole['perm_modify_org'])) {
 				// Allow the edit
 			} else {
-				$this->Session->setFlash(__('Invalid attribute.'));
-				$this->redirect(array('controller' => 'events', 'action' => 'index'));
+				return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')),'status'=>200));
 			}
 		}
 		
@@ -813,13 +816,12 @@ class AttributesController extends AppController {
 			)));
 			$event['Event']['timestamp'] = $date->getTimestamp();
 			$event['Event']['published'] = 0;
-			$res = $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
-			file_put_contents('/tmp/event.txt', serialize($res));
+			$this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
 			$this->autoRender = false;
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true)),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')),'status'=>200));
 		} else {
 			$this->autoRender = false;
-			return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => $this->Attribute->validationErrors)),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)),'status'=>200));
 		}
 	}
 	
@@ -870,14 +872,22 @@ class AttributesController extends AppController {
 		if (!$this->request->is('post') && !$this->_isRest()) {
 			throw new MethodNotAllowedException();
 		}
-		if ($this->__delete($id)) {
-			$this->Session->setFlash(__('Attribute deleted'));
+		if ($this->request->is('ajax')) {
+			if ($this->__delete($id)) {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')),'status'=>200));
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')),'status'=>200));
+			}
 		} else {
-			$this->Session->setFlash(__('Attribute was not deleted'));
+			if ($this->__delete($id)) {
+				$this->Session->setFlash(__('Attribute deleted'));
+			} else {
+				$this->Session->setFlash(__('Attribute was not deleted'));
+			}
+			
+			if (!$this->_isRest()) $this->redirect($this->referer());	// TODO check
+			else $this->redirect(array('action' => 'index'));
 		}
-		
-		if (!$this->_isRest()) $this->redirect($this->referer());	// TODO check
-		else $this->redirect(array('action' => 'index'));
 	}
 	
 /**
@@ -893,7 +903,7 @@ class AttributesController extends AppController {
 	private function __delete($id) {
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
-			throw new NotFoundException(__('Invalid attribute'));
+			return false;
 		}
 		
 		if ('true' == Configure::read('MISP.sync')) {
@@ -960,12 +970,17 @@ class AttributesController extends AppController {
 			'conditions' => array('id' => $ids, 'event_id' => $id),
 			'fields' => array('id', 'event_id')
 		));
-		
+		$successes = array();
 		foreach ($attributes as $a) {
-			$this->__delete($a['Attribute']['id']);
+			if ($this->__delete($a['Attribute']['id'])) $successes[] = $a['Attribute']['id'];
 		}
+		$fails = array_diff($ids, $successes);
 		$this->autoRender = false;
-		return new CakeResponse(array('body'=> json_encode(array('saved' => true)),'status'=>200));
+		if (count($fails) == 0 && count($successes) > 0) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted.')),'status'=>200));
+		} else {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' attribute' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.')),'status'=>200));
+		}
 	}
 	
 	public function editSelected($id) {

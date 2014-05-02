@@ -585,6 +585,7 @@ class EventsController extends AppController {
 							if(is_numeric($add)) {
 								$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
 								$this->response->send();
+								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
 							}
 							// REST users want to see the failed event
 							$this->view($this->Event->getId());
@@ -698,7 +699,6 @@ class EventsController extends AppController {
 		$auth = $this->Auth;
 		$data['Event']['user_id'] = $auth->user('id');
 		$date = new DateTime();
-
 		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
 		//else $data['Event']['org'] = $auth->user('org');
 		$data['Event']['org'] = $auth->user('org');
@@ -2160,25 +2160,27 @@ class EventsController extends AppController {
 		));
 		$this->autoRender = false;
 		if (!empty($found)) {
-			return;
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this event.')), 'status'=>200));
 			//$this->Session->setFlash('Tag already assigned to this event.');
 			//$this->redirect(array('action' => 'view', $id));
 		}
 		$this->Event->EventTag->create();
-		$this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id));
-		//$this->Session->setFlash('Tag added.');
-		//$this->redirect(array('action' => 'view', $id));
+		if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.')), 'status'=>200));
+		} else {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')),'status'=>200));
+		}
 	}
 	
 	public function removeTag($id, $tag_id) {
-		if (!$this->request->is('post')) {
+		if (!$this->request->is('post') || !$this->request->is('ajax')) {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
 		$this->Event->recurisve = -1;
 		$event = $this->Event->read(array('id', 'org', 'orgc', 'distribution'), $id);
 		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
 		if (($this->Auth->user('org') !== $event['Event']['org'] && $this->Auth->user('org') !== $event['Event']['orgc'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger']) && !$this->_isSiteAdmin()) {
-			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
 		}
 		$eventTag = $this->Event->EventTag->find('first', array(
 			'conditions' => array(
@@ -2188,9 +2190,11 @@ class EventsController extends AppController {
 			'recursive' => -1,
 		));
 		$this->autoRender = false;
-		if (empty($eventTag)) throw new NotFoundException('Invalid event - tag combination.');
-		$this->Event->EventTag->delete($eventTag['EventTag']['id']);
-		//$this->Session->setFlash('Tag removed.');
-		//$this->redirect(array('action' => 'view', $id));
+		if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - tag combination.')),'status'=>200));
+		if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.')), 'status'=>200));
+		} else {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')),'status'=>200));
+		}
 	}
 }

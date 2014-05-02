@@ -198,8 +198,8 @@ $(document).ready(function() {
 
 	<?php if ($ajax): ?>
 		$('#cancel_attribute_add').click(function() {
-			$('#gray_out').hide();
-			$('#attribute_add_form').hide();
+			$('#gray_out').fadeOut();
+			$('#attribute_add_form').fadeOut();
 		});	
 
 	<?php endif; ?>

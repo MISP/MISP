@@ -108,20 +108,21 @@ class ShadowAttributesController extends AppController {
 			$event['Event']['timestamp'] = $date->getTimestamp();
 			$event['Event']['proposal_email_lock'] = 0;
 			$event['Event']['published'] = 0;
-			$this->Event->save($event, array('fieldList' => $fieldList));
-			$this->Log = ClassRegistry::init('Log');
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => $this->Auth->user('org'),
-					'model' => 'ShadowAttribute',
-					'model_id' => $id,
-					'email' => $this->Auth->user('email'),
-					'action' => 'accept',
-					'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted - ' . $shadow['category'] . '/' . $shadow['type'] . ' ' . $shadow['value'],
-					));
-			$this->Session->setFlash(__('Proposed change accepted', true), 'default', array());
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $activeAttribute['Attribute']['event_id']));
-			return;
+			if ($this->Event->save($event, array('fieldList' => $fieldList))) {
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => $this->Auth->user('org'),
+						'model' => 'ShadowAttribute',
+						'model_id' => $id,
+						'email' => $this->Auth->user('email'),
+						'action' => 'accept',
+						'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted - ' . $shadow['category'] . '/' . $shadow['type'] . ' ' . $shadow['value'],
+						));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposed change accepted.')),'status'=>200));
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not accept proposal.')),'status'=>200));
+			}
 		} else {
 			// If the old_id is set to 0, then we're dealing with a brand new proposed attribute
 			// The idea is to load the event that the new attribute will be attached to, create an attribute to it and set the distribution equal to that of the event
@@ -155,10 +156,11 @@ class ShadowAttributesController extends AppController {
 			$fieldList = array('proposal_email_lock', 'id', 'info', 'published');
 			$event['Event']['proposal_email_lock'] = 0;
 			$event['Event']['published'] = 0;
-			$this->Event->save($event, array('fieldList' => $fieldList));
-			$this->Log = ClassRegistry::init('Log');
-			$this->Log->create();
-			$this->Log->save(array(
+			$this->autoRender = false;
+			if ($this->Event->save($event, array('fieldList' => $fieldList))) {
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$this->Log->save(array(
 					'org' => $this->Auth->user('org'),
 					'model' => 'ShadowAttribute',
 					'model_id' => $id,
@@ -166,9 +168,11 @@ class ShadowAttributesController extends AppController {
 					'action' => 'accept',
 					'title' => 'Proposal (' . $shadowForLog['id'] . ') of ' . $shadowForLog['org'] . ' to Event(' . $shadowForLog['event_id'] . ') accepted',
 					'change' => null,
-					));
-			$this->Session->setFlash(__('Proposed attribute accepted', true), 'default', array());
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->Event->id));
+				));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal accepted.')),'status'=>200));
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not accept proposal.')),'status'=>200));
+			}
 		}
 	}
 
@@ -192,11 +196,8 @@ class ShadowAttributesController extends AppController {
  */
 	// This method will discard a proposed change. Users that can delete the proposals are the publishing users of the org that created the event and of the ones that created the proposal - in addition to site admins of course
 	public function discard($id = null) {
-		if (!$this->request->is('post')) {
+		if (!$this->request->is('post') || !$this->request->is('ajax')) {
 			throw new MethodNotAllowedException();
-		}
-		if ($this->_isRest()) {
-			throw new Exception('This feature is limited to interactive users only.');
 		}
 		$this->ShadowAttribute->id = $id;
 		$this->ShadowAttribute->read();
@@ -213,10 +214,13 @@ class ShadowAttributesController extends AppController {
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 			}
 		}
-		$this->ShadowAttribute->delete($id, $cascade = false);
-		$this->_setProposalLock($eventId, false);
-		$this->Session->setFlash(__('Proposed change discarded', true), 'default', array());
-		$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+		if ($this->ShadowAttribute->delete($id, $cascade = false)) {
+			$this->_setProposalLock($eventId, false);
+			$this->autoRender = false;
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal discarded.')),'status'=>200));
+		} else {
+			return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not discard proposal.')),'status'=>200));
+		}
 	}
 
 /**
@@ -227,6 +231,12 @@ class ShadowAttributesController extends AppController {
  * @throws NotFoundException // TODO Exception
  */
 	public function add($eventId = null) {
+		if ($this->request->is('ajax'))	{
+			$this->set('ajax', true);
+			//$this->autoRender = false;
+			$this->layout = 'ajax';
+		}
+		else $this->set('ajax', false);
 		$event = $this->ShadowAttribute->Event->find('first', array(
 				'conditions' => array('Event.id' => $eventId),
 				'recursive' => -1,
@@ -237,7 +247,7 @@ class ShadowAttributesController extends AppController {
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
 		if ($this->request->is('post')) {
-				
+			if ($this->request->is('ajax')) $this->autoRender = false;
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
 			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
 			if (isset($this->request->data['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($this->request->data['ShadowAttribute']['type'])) {
@@ -279,19 +289,30 @@ class ShadowAttributesController extends AppController {
 					}
 				}
 				// we added all the attributes,
-				if ($fails) {
-					// list the ones that failed
-					if (!CakeSession::read('Message.flash')) {
-						$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. Please, try again.', true), 'default', array(), 'error');
+				if ($this->request->is('ajax')) {
+					$this->autoRender = false;
+					// handle it if some of them failed!!!!
+					if ($fails) {
+						$error_message = 'The lines' . $fails . ' could not be saved. Please, try again.';
+						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status' => 200));
 					} else {
-						$existingFlash = CakeSession::read('Message.flash');
-						$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. ' . $existingFlash['message'], true), 'default', array(), 'error');
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200));
 					}
-				}
-				if ($successes) {
-					// list the ones that succeeded
-					$this->Session->setFlash(__('The lines' . $successes . ' have been saved', true));
-					$this->__sendProposalAlertEmail($eventId);
+				} else {
+					if ($fails) {
+						// list the ones that failed
+						if (!CakeSession::read('Message.flash')) {
+							$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. Please, try again.', true), 'default', array(), 'error');
+						} else {
+							$existingFlash = CakeSession::read('Message.flash');
+							$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. ' . $existingFlash['message'], true), 'default', array(), 'error');
+						}
+					}
+					if ($successes) {
+						// list the ones that succeeded
+						$this->Session->setFlash(__('The lines' . $successes . ' have been saved', true));
+						$this->__sendProposalAlertEmail($eventId);
+					}
 				}
 
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
@@ -314,11 +335,21 @@ class ShadowAttributesController extends AppController {
 				if ($this->ShadowAttribute->save($this->request->data)) {
 					$this->__sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id']);
 					// inform the user and redirect
-					$this->Session->setFlash(__('The proposal has been saved'));
-					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
+					if ($this->request->is('ajax')) {
+						$this->autoRender = false;
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true)),'status'=>200));
+					} else {
+						$this->Session->setFlash(__('The proposal has been saved'));
+						$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
+					}
 				} else {
-					if (!CakeSession::read('Message.flash')) {
-						$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
+					if ($this->request->is('ajax')) {
+						$this->autoRender = false;
+						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)),'status'=>200));
+					} else {
+						if (!CakeSession::read('Message.flash')) {
+							$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
+						}
 					}
 				}
 			}
@@ -326,6 +357,8 @@ class ShadowAttributesController extends AppController {
 			// set the event_id in the form
 			$this->request->data['ShadowAttribute']['event_id'] = $eventId;
 		}
+		
+		$this->set('event_id', $eventId);
 
 		// combobox for types
 		$types = array_keys($this->ShadowAttribute->typeDefinitions);
@@ -768,4 +801,106 @@ class ShadowAttributesController extends AppController {
 		$this->set('proposal', $temp);
 		$this->render('get_proposals_by_uuid');
 	}
+	
+	public function fetchEditForm($id, $field = null) {
+		$validFields = array('value', 'comment', 'type', 'category', 'to_ids');
+		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
+		//if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+		$this->loadModel('Attribute');
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) {
+			throw new NotFoundException(__('Invalid attribute'));
+		}
+	
+		$fields = array('id', 'distribution', 'event_id');
+		$additionalFieldsToLoad = $field;
+		if ($field == 'category' || $field == 'type') {
+			$fields[] = 'type';
+			$fields[] = 'category';
+		} else {
+			$fields[] = $field;
+		}
+		$attribute = $this->Attribute->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('Attribute.id' => $id),
+				'fields' => $fields,
+				'contain' => array(
+						'Event' => array(
+								'fields' => array('distribution', 'id', 'user_id', 'orgc', 'org'),
+						)
+				)
+		));
+		if (!$this->_isSiteAdmin()) {
+			//
+			if ($attribute['Event']['orgc'] != $this->Auth->user('org')	&& ($attribute['Event']['org'] == $this->Auth->user('org') || $attribute['Event']['distribution'] > 0)) {
+							// Allow the edit
+			} else {
+				throw new NotFoundException(__('Invalid attribute'));
+			}
+		}
+		$this->layout = 'ajax';
+		if ($field == 'distribution') $this->set('distributionLevels', $this->Attribute->distributionLevels);
+		if ($field == 'category') {
+			$typeCategory = array();
+			foreach ($this->Attribute->categoryDefinitions as $k => $category) {
+				foreach ($category['types'] as $type) {
+					$typeCategory[$type][] = $k;
+				}
+			}
+			$this->set('typeCategory', $typeCategory);
+		}
+		if ($field == 'type') {
+			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+		}
+		$this->set('object', $attribute['Attribute']);
+		$fieldURL = ucfirst($field);
+		$this->render('ajax/attributeEdit' . $fieldURL . 'Form');
+	}
+	
+	// ajax edit - post a single edited field and this method will attempt to create a proposal and return a json with the validation errors if they occur.
+	public function editField($id) {
+		if ((!$this->request->is('post') && !$this->request->is('put')) || !$this->request->is('ajax')) throw new MethodNotAllowedException();
+		$this->LoadModel('Attribute');
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) {
+			throw new NotFoundException(__('Invalid attribute'));
+		}
+		$this->Attribute->recursive = -1;
+		$this->Attribute->contain('Event');
+		$attribute = $this->Attribute->read();
+	
+		if (!$this->_isSiteAdmin()) {
+			//
+			if ($attribute['Event']['orgc'] != $this->Auth->user('org')	&& ($attribute['Event']['org'] == $this->Auth->user('org') || $attribute['Event']['distribution'] > 0)) {
+				// Allow the edit
+			} else {
+				throw new NotFoundException(__('Invalid attribute'));
+			}
+		}
+
+		$keys = array_flip(array('uuid', 'event_id', 'value', 'type', 'category', 'to_ids'));
+		
+		$proposal = array_intersect_key($attribute['Attribute'], $keys);
+		$proposal['email'] = $this->Auth->user('email');
+		$proposal['org'] = $this->Auth->user('org');
+		$proposal['event_uuid'] = $attribute['Event']['uuid'];
+		$proposal['event_org'] = $attribute['Event']['orgc'];
+		$proposal['old_id'] = $attribute['Event']['id'];
+		foreach ($this->request->data['ShadowAttribute'] as $changedKey => $changedField) {
+			if ($proposal[$changedKey] == $changedField) {
+				$this->autoRender = false;
+				return new CakeResponse(array('body'=> json_encode('nochange'),'status'=>200));
+			}
+			$proposal[$changedKey] = $changedField;
+		}
+		
+		if ($this->ShadowAttribute->save($proposal)) {
+			$this->autoRender = false;
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true)),'status'=>200));
+		} else {
+			$this->autoRender = false;
+			return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => $this->ShadowAttribute->validationErrors)),'status'=>200));
+		}
+	}
+	
 }

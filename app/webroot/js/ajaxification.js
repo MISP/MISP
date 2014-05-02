@@ -1,18 +1,44 @@
 function deleteObject(type, id, event) {
-	if (confirm("Are you sure you want to delete Attribute #" + id + "?")) {
-		var name = '#Attribute' + '_' + id + '_delete';
+	var typeMessage, name, action;
+	if (type == 'attributes') {
+		action = 'delete';
+		typeMessage = 'Attribute';
+		name = '#Attribute' + '_' + id + '_delete';
+	}
+	if (type == 'shadow_attributes') {
+		action = 'discard';
+		typeMessage = 'Proposal';
+		name = '#ShadowAttribute' + '_' + id + '_delete';
+	}
+	if (confirm("Are you sure you want to delete " + typeMessage + " #" + id + "?")) {
 		var formData = $(name).serialize();
 		$.ajax({
 			data: formData, 
 			success:function (data, textStatus) {
 				updateAttributeIndexOnSuccess(event);
+				handleGenericAjaxResponse(data);
 			}, 
 			type:"post", 
 			cache: false,
-			url:"/" + type + "/delete/" + id,
+			url:"/" + type + "/" + action + "/" + id,
 		});
 	}	
 }
+
+function acceptObject(type, id, event) {
+	name = '#ShadowAttribute_' + id + '_accept';
+	var formData = $(name).serialize();
+	$.ajax({
+		data: formData, 
+		success:function (data, textStatus) {
+			updateAttributeIndexOnSuccess(event);
+			handleGenericAjaxResponse(data);
+		}, 
+		type:"post", 
+		cache: false,
+		url:"/shadow_attributes/accept/" + id,
+	});
+}	
 
 function updateAttributeIndexOnSuccess(event) {
 	$.ajax({
@@ -53,6 +79,12 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
 }
 
 function activateField(type, id, field, event) {
+	resetForms();
+	if (type == 'denyForm') return;
+	var objectType = 'attributes';
+	if (type == 'ShadowAttribute') {
+		objectType = 'shadow_attributes';
+	}
 	var name = '#' + type + '_' + id + '_' + field;
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
@@ -65,7 +97,7 @@ function activateField(type, id, field, event) {
 			$(name + '_placeholder').html(data);
 			postActivationScripts(name, type, id, field, event);
 		}, 
-		url:"/attributes/fetchEditForm/" + id + "/" + field,
+		url:"/" + objectType + "/fetchEditForm/" + id + "/" + field,
 	});
 }
 
@@ -121,7 +153,7 @@ function inputFieldButtonActive(selector) {
 
 function inputFieldButtonPassive(selector) {
 	$(selector).closest('.inline-input-container').children('.inline-input-accept').addClass('inline-input-passive').removeClass('inline-input-active');
-	$(selector).closest('.inline-input-container').children('.inline-input-decline').addClass('inline-input-passive').removeClass('inline-input-active');
+	$(selector).closest('.inline-input-container').children('.inline-input-daecline').addClass('inline-input-passive').removeClass('inline-input-active');
 }
 
 function autoresize(textarea) {
@@ -132,6 +164,8 @@ function autoresize(textarea) {
 // submit the form - this can be triggered by unfocusing the activated form field or by submitting the form (hitting enter)
 // after the form is submitted, intercept the response and act on it 
 function submitForm(type, id, field, event) {
+	var object_type = 'attributes';
+	if (type == 'ShadowAttribute') object_type = 'shadow_attributes';
 	var name = '#' + type + '_' + id + '_' + field;
 	$.ajax({
 		data: $(name + '_field').closest("form").serialize(),
@@ -140,11 +174,11 @@ function submitForm(type, id, field, event) {
 			handleAjaxEditResponse(data, name, type, id, field, event);
 		}, 
 		error:function() {
-			alert('Request failed. This may be caused by the CSRF protection blocking your request. The forms will now be refreshed to resolve the issue.');
+			showMessage('fail', 'Request failed for an unknown reason.');
 			updateAttributeIndexOnSuccess(event);
 		},
 		type:"post", 
-		url:"/attributes/editField/" + id
+		url:"/" + object_type + "/editField/" + id
 	});
 	$(name + '_field').unbind("keyup");
 	$(name + '_form').unbind("focusout");
@@ -159,9 +193,10 @@ function submitTagForm(id) {
 		}, 
 		success:function (data, textStatus) {
 			loadEventTags(id);
+			handleGenericAjaxResponse(data);
 		}, 
 		error:function() {
-			alert('Could not add tag.');
+			showMessage('fail', 'Could not add tag.');
 			loadEventTags(id);
 		},
 		complete:function() {
@@ -175,21 +210,27 @@ function submitTagForm(id) {
 
 function handleAjaxEditResponse(data, name, type, id, field, event) {
 	responseArray = JSON.parse(data);
-	if (responseArray.saved) {
-		updateAttributeFieldOnSuccess(name, type, id, field, event);
-		updateAttributeFieldOnSuccess(name, type, id, 'timestamp', event);
-	} else {
-		alert(responseArray.errors[field]);
-		updateAttributeFieldOnSuccess(name, type, id, field, event);
+	if (type == 'Attribute') {
+		if (responseArray.saved) {
+			showMessage('success', responseArray.success);
+			updateAttributeFieldOnSuccess(name, type, id, field, event);
+			updateAttributeFieldOnSuccess(name, type, id, 'timestamp', event);
+		} else {
+			showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
+			updateAttributeFieldOnSuccess(name, type, id, field, event);
+		}
+	}
+	if (type == 'ShadowAttribute') {
+		updateAttributeIndexOnSuccess(event);
 	}
 }
 
-function handleAjaxMassDeleteResponse(data, event) {
+function handleGenericAjaxResponse(data) {
 	responseArray = JSON.parse(data);
 	if (responseArray.saved) {
-		updateAttributeIndexOnSuccess(event);
+		showMessage('success', responseArray.success);
 	} else {
-		updateAttributeIndexOnSuccess(event);
+		showMessage('fail', responseArray.errors);
 	}
 }
 
@@ -225,7 +266,8 @@ function deleteSelectedAttributes(event) {
 			type:"POST", 
 			url:"/attributes/deleteSelected/" + event,
 			success:function (data, textStatus) {
-				handleAjaxMassDeleteResponse(data, event);
+				updateAttributeIndexOnSuccess(event);
+				handleGenericAjaxResponse(data);
 			}, 
 		});
 	}
@@ -234,8 +276,8 @@ function deleteSelectedAttributes(event) {
 
 function editSelectedAttributes(event) {
 	$.get("/attributes/editSelected/"+event, function(data) {
-		$("#attribute_add_form").show();
-		$("#gray_out").show();
+		$("#attribute_add_form").fadeIn();
+		$("#gray_out").fadeIn();
 		$("#attribute_add_form").html(data);
 	});
 }
@@ -249,31 +291,6 @@ function getSelected() {
 		}
 	});
 	return JSON.stringify(selected);
-}
-
-function editSelectedAttributes2(event) {
-	var selected = [];
-	$(".select_attribute").each(function() {
-		if ($(this).is(":checked")) {
-			var test = $(this).data("id");
-			selected.push(test);
-		}
-	});
-	$('#AttributeIds').attr('value', JSON.stringify(selected));
-	var formData = $('#delete_selected').serialize();
-	
-	$.ajax({
-		data: formData, 
-		cache: false,
-		type:"POST", 
-		url:"/attributes/editSelected/"+event,
-		success:function (data, textStatus) {
-			$("#attribute_add_form").show();
-			$("#gray_out").show();
-			$("#attribute_add_form").html(data);
-			//handleAjaxMassDeleteResponse(data, event);
-		}, 
-	});
 }
 
 function loadEventTags(id) {
@@ -301,7 +318,7 @@ function removeEventTag(event, tag) {
 			url:"/events/removeTag/" + event + '/' + tag,
 			success:function (data, textStatus) {
 				loadEventTags(event);
-				//handleAjaxMassDeleteResponse(data, event);
+				handleGenericAjaxResponse(data);
 			}, 
 			complete:function() {
 				$(".loading").hide();
@@ -311,10 +328,12 @@ function removeEventTag(event, tag) {
 	return false;
 }
 
-function clickCreateButton(event) {
-	$.get( "/attributes/add/" + event, function(data) {
-		$("#attribute_add_form").show();
-		$("#gray_out").show();
+function clickCreateButton(event, type) {
+	var destination = 'attributes';
+	if (type == 'Proposal') destination = 'shadow_attributes';
+	$.get( "/" + destination + "/add/" + event, function(data) {
+		$("#attribute_add_form").fadeIn();
+		$("#gray_out").fadeIn();
 		$("#attribute_add_form").html(data);
 	});
 }
@@ -322,17 +341,18 @@ function clickCreateButton(event) {
 function submitPopoverForm(event, referer) {
 	var url = null;
 	if (referer == 'add') url = "/attributes/add/" + event;
+	if (referer == 'propose') url = "/shadow_attributes/add/" + event;
 	if (referer == 'massEdit') url = "/attributes/editSelected/" + event;
 	if (url !== null) {
 		$.ajax({
 			beforeSend: function (XMLHttpRequest) {
 				$(".loading").show();
-				$("#gray_out").hide();
-				$("#attribute_add_form").hide();
+				$("#gray_out").fadeOut();
+				$("#attribute_add_form").fadeOut();
 			}, 
 			data: $("#submitButton").closest("form").serialize(), 
 			success:function (data, textStatus) {
-				handleAjaxPopoverResponse(data, event, url);
+				handleAjaxPopoverResponse(data, event, url, referer);
 				$(".loading").show();
 			}, 
 			type:"post", 
@@ -341,18 +361,28 @@ function submitPopoverForm(event, referer) {
 	}
 };
 
-function handleAjaxPopoverResponse(response, event, url) {
+function handleAjaxPopoverResponse(response, event, url, referer) {
 	responseArray = JSON.parse(response);
-	if (responseArray.saved) {	
+	var message = null;
+	if (responseArray.saved) {
+		//if (referer == 'add') message = "Attribute added.";
+		//if (referer == 'propose') message = "Proposal added.";
+		//if (referer == 'massEdit') message = "Attributes updated.";
 		updateAttributeIndexOnSuccess(event);
+		if (responseArray.success) {
+			showMessage("success", responseArray.success);
+		}
+		if (responseArray.errors) {
+			showMessage("fail", responseArray.errors);
+		}
 	} else {
 		var savedArray = saveValuesForPersistance();
 		$.ajax({
 			async:true, 
 			dataType:"html", 
 			success:function (data, textStatus) {
-				$("#gray_out").show();
-				$("#attribute_add_form").show();
+				$("#gray_out").fadeIn();
+				$("#attribute_add_form").fadeIn();
 				$("#attribute_add_form").html(data);
 				handleValidationErrors(responseArray.errors);
 				if (!isEmpty(responseArray)) {
@@ -396,5 +426,38 @@ function handleValidationErrors(responseArray) {
 		$("#Attribute" + elementName).parent().addClass("error");
 		$("#Attribute" + elementName).parent().append("<div class=\"error-message\">" + responseArray[k] + "</div>");
 	}
+}
 
+function toggleHistogramType(type, old) {
+	var done = false;
+	old.forEach(function(entry) {
+		if (type == entry) {
+			done = true;
+			old.splice(old.indexOf(entry), 1);
+		}
+	});
+	if (done == false) old.push(type);
+	updateHistogram(JSON.stringify(old));
+}
+
+function updateHistogram(selected) {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		dataType:"html", 
+		cache: false,
+		success:function (data, textStatus) {
+			$(".loading").hide();
+			$("#histogram").html(data);
+		}, 
+		url:"/users/histogram/" + selected,
+	});
+}
+
+function showMessage(success, message) {
+	$("#ajax_" + success).html(message);
+	var duration = 1000 + (message.length * 40);
+	$("#ajax_" + success + "_container").fadeIn("slow");
+	$("#ajax_" + success + "_container").delay(duration).fadeOut("slow");
 }

@@ -5,6 +5,8 @@
 	if (!empty($eventArray)):
 	$pageCount = intval($objectCount / 50);
 	if ($objectCount%50 != 0) $pageCount++;
+	$possibleAction = 'Proposal';
+	if ($mayModify) $possibleAction = 'Attribute';
 	if ($pageCount > 1):
 ?>
 <div class="pagination">
@@ -44,10 +46,10 @@
 	endif;
 ?>
 <div id="attributeList" class="attributeListContainer">
-	<div class="tabMenu">
-		<span id="create-button" class="icon-plus" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>);"></span>
-		<span id="multi-edit-button" class="icon-edit mass-select" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
-		<span id="multi-delete-button" class = "icon-trash mass-select" onClick="deleteSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+	<div class="tabMenu noPrint">
+		<span id="create-button" class="icon-plus useCursorPointer" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>, '<?php echo $possibleAction; ?>');"></span>
+		<span id="multi-edit-button" class="icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+		<span id="multi-delete-button" class = "icon-trash mass-select useCursorPointer" onClick="deleteSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
 	</div>
 	<table class="table table-striped table-condensed">
 		<tr>

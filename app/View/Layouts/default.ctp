@@ -30,7 +30,7 @@
 <!--?php echo $scripts_for_layout; ?-->
 </head>
 <body>
-	<div id="gray_out" class="gray_out" style="display:none;"></div>
+	<div id="gray_out" class="gray_out"></div>
 	<div id="container">
 		<?php echo $this->element('global_menu');
 			if ($debugMode == 'debugOff') {
@@ -66,6 +66,12 @@
 	echo $this->Html->script('bootstrap-colorpicker.min');
 	echo $this->Html->script('main');
 	?>
+	</div>
+	<div id = "ajax_success_container" class="ajax_container">
+		<div id="ajax_success" class="ajax_result ajax_success"></div>
+	</div>
+	<div id = "ajax_fail_container" class="ajax_container">
+		<div id="ajax_fail" class="ajax_result ajax_fail"></div>
 	</div>
 	<div class="loading">
 		<div class="spinner"></div>

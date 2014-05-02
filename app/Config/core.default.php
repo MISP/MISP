@@ -173,7 +173,7 @@
  *
  */
 	Configure::write('Session', array(
-		'timeout' => 3600,	// Session timeout, default is 1 hour
+		'timeout' => 60,	// Session timeout, default is 1 hour
 		'defaults' => 'database'
 	));
 

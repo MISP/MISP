@@ -716,6 +716,7 @@ a.proposal_link_red:hover {
 
 .overlay_spacing {
 	padding-left:10px !important;
+	padding-right:10px !important;
 }
 
 .attribute_add_form .input-xxlarge {
@@ -735,10 +736,43 @@ a.proposal_link_red:hover {
 	width: 100%;
 	height: 100%;
 	position: fixed;
-	opacity: 0.5;
-	filter: alpha(opacity=50);
+	opacity: 0.75;
+	filter: alpha(opacity=75);
 	background-color: #000;
 	z-index:4;
+}
+
+.ajax_container {
+	display:none;
+	bottom:50px;
+	left:0;
+	right:0;
+	position: fixed;
+	text-align:center;
+}
+
+.ajax_result {
+	display: inline-block;
+	text-align: left;
+	height: 20px;
+	z-index:-100;
+	color: #fff;
+	padding-left:10px;
+	padding-right:10px;
+	border-radius: 6px;
+	-webkit-border-radius: 6px;
+	-moz-border-radius: 6px;
+	box-shadow: 2px 2px 2px #888888;
+} 
+
+.ajax_fail {
+	background-color: red;
+	z-index:-11;
+}
+
+.ajax_success {
+	background-color: #0088cc;
+	z-index:-111;
 }
 
 .ajaxMessage {
@@ -823,9 +857,53 @@ a.proposal_link_red:hover {
 	margin-top:3px;
 }
 
+.memberslistBar {
+	overflow: hidden;
+	height:30px;
+	-webkit-border-radius: 2px;
+	-moz-border-radius: 2px;
+	border-radius: 2px;
+	box-shadow: 2px 2px 2px #888888;
+	margin-left:0px;
+}
+
+.membersList-histogram-left-table {
+	padding-right:15px;
+}
+
+.membersList-histogram-canvas {
+	border-left:1px solid;
+	border-bottom:1px solid;
+}
+
+.membersList-histogram-legend {
+	float: left;
+	padding:5px;	
+	border:1px solid;
+}
+
+.membersList-histogram-last {
+	border-bottom:1px solid;
+}
+
+.membersList-histogram-legend-box {
+	display:inline-block;
+	width:10px;
+	height:10px;
+	-webkit-border-radius: 2px;
+	-moz-border-radius: 2px;
+	border-radius: 2px;
+	box-shadow: 1px 1px 1px #888888;
+}
+
 .attributeListContainer{
 	position:relative;
 	margin-top:10px;
+}
+
+.useCursorPointer {
+	cursor: pointer; 
+	cursor: hand;
 }
 
 @-webkit-keyframes rotation {
