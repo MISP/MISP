@@ -41,6 +41,13 @@ class AppController extends Controller {
 	public $defaultModel = '';
 
 	public $debugMode = false;
+	
+	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
+	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats 
+	public $automationArray = array(
+		'events' => array('csv', 'nids', 'hids'),
+		'attributes' => array('text', 'downloadAttachment'),
+	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
@@ -71,13 +78,12 @@ class AppController extends Controller {
 	public $mispVersion = '2.2.0';
 	
 	public function beforeFilter() {
-		
 		// send users away that are using ancient versions of IE
 		// Make sure to update this if IE 20 comes out :)
 		if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
 		
 		// REST authentication
-		if ($this->_isRest() || $this->isJson()) {
+		if ($this->_isRest() || $this->_isAutomation()) {
 			// disable CSRF for REST access
 			if (array_key_exists('Security', $this->components))
 				$this->Security->csrfCheck = false;
@@ -154,7 +160,7 @@ class AppController extends Controller {
 
 	public $userRole = null;
 
-	public function isJson(){
+	protected function _isJson(){
 		return $this->request->header('Accept') === 'application/json';
 	}
 
@@ -165,7 +171,14 @@ class AppController extends Controller {
 	//}
 
 	protected function _isRest() {
-		return (isset($this->RequestHandler) && ($this->RequestHandler->isXml() || $this->isJson()));
+		return (isset($this->RequestHandler) && ($this->RequestHandler->isXml() || $this->_isJson()));
+	}
+	
+	protected function _isAutomation() {
+		foreach ($this->automationArray as $controllerName => $controllerActions) {
+			if ($this->params['controller'] == $controllerName && in_array($this->params['action'], $controllerActions)) return true;
+		}
+		return false;
 	}
 
 	private function _getProposalCount() {

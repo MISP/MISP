@@ -179,13 +179,16 @@ window.onload = resizeLogo;
 window.onresize = resizeLogo;
 
 function resizeLogo() {
-	if ($(window).width() < 1400) {
-		document.getElementById('fullLogo').style.display='none';
-		document.getElementById('smallLogo').style.display='block';
-	}
-	if ($(window).width() > 1399) {
-		document.getElementById('fullLogo').style.display='block';
-		document.getElementById('smallLogo').style.display='none';	
+	var testElem = document.getElementById('fullLogo');
+	if (testElem != null) {
+		if ($(window).width() < 1400) {
+			document.getElementById('fullLogo').style.display='none';
+			document.getElementById('smallLogo').style.display='block';
+		}
+		if ($(window).width() > 1399) {
+			document.getElementById('fullLogo').style.display='block';
+			document.getElementById('smallLogo').style.display='none';	
+		}
 	}
 }
 </script>

@@ -18,7 +18,6 @@ class SecureAuthComponent extends AuthComponent {
  */
 	public function login($user = null) {
 		$this->_setDefaults();
-
 		if (empty($user)) {
 			$this->Bruteforce = ClassRegistry::init('Bruteforce');
 			// do the anti-bruteforce checks
@@ -29,6 +28,7 @@ class SecureAuthComponent extends AuthComponent {
 					// user - ip combination is not blacklisted
 					// check if the user credentials are valid
 					$user = $this->identify($this->request, $this->response);
+					unset($user['gpgkey']);
 					if ($user === false) {
 						// insert row in Bruteforce table
 						$this->Bruteforce->insert($_SERVER['REMOTE_ADDR'], $username);

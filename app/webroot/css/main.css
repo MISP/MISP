@@ -410,6 +410,12 @@ dd {
 	position:relative;
 }
 
+@media screen and (max-height:600px) {
+	.debugOff.sideMenu {
+		position:relative !important;
+	}
+}
+
 /* header */
 .header {
 	width:100%;

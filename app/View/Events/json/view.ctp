@@ -33,4 +33,5 @@ if (isset($relatedEvents)) {
         $event['Event']['RelatedEvent'][] = $relatedEvent['Event'];
     }
 }
-echo json_encode($event);
+$result['Event'] = $event['Event'];
+echo json_encode($result);

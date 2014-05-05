@@ -1138,9 +1138,8 @@ class Attribute extends AppModel {
 		if ($type != 'md5' && $type != 'sha1') {
 			throw new UnauthorizedException('Invalid hash type.');
 		}
-		
 		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
+		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $type);
 		if (!$isSiteAdmin) {
 			$temp = array();
 			$distribution = array();

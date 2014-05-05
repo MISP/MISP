@@ -96,6 +96,8 @@ class ShadowAttributesController extends AppController {
 			$activeAttribute['Attribute']['type'] = $shadow['type'];
 			$activeAttribute['Attribute']['category'] = $shadow['category'];
 			$activeAttribute['Attribute']['to_ids'] = $shadow['to_ids'];
+			$date = new DateTime();
+			$activeAttribute['Attribute']['timestamp'] = $date->getTimestamp();
 			$this->Attribute->save($activeAttribute['Attribute']);
 			$this->ShadowAttribute->delete($id, $cascade = false);
 			$this->loadModel('Event');
@@ -104,7 +106,6 @@ class ShadowAttributesController extends AppController {
 			// Unpublish the event, accepting a proposal is modifying the event after all. Also, reset the lock.
 			$event = $this->Event->read(null, $activeAttribute['Attribute']['event_id']);
 			$fieldList = array('proposal_email_lock', 'id', 'info', 'published', 'timestamp');
-			$date = new DateTime();
 			$event['Event']['timestamp'] = $date->getTimestamp();
 			$event['Event']['proposal_email_lock'] = 0;
 			$event['Event']['published'] = 0;
@@ -695,11 +696,11 @@ class ShadowAttributesController extends AppController {
 		$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
 		// Add the GPG key of the user as attachment
 		// LATER sign the attached GPG key
-		if (null != ($this->Auth->user('gpgkey'))) {
+		if (null != (!$this->User->getPGP($this->Auth->user('id')))) {
 			// save the gpg key to a temporary file
 			$tmpfname = tempnam(TMP, "GPGkey");
 			$handle = fopen($tmpfname, "w");
-			fwrite($handle, $this->Auth->user('gpgkey'));
+			fwrite($handle, $this->User->getPGP($this->Auth->user('id')));
 			fclose($handle);
 			// attach it
 			$this->Email->attachments = array(
@@ -735,7 +736,7 @@ class ShadowAttributesController extends AppController {
 			$this->set('body', $bodyEncSig);
 			// Add the GPG key of the user as attachment
 			// LATER sign the attached GPG key
-			if (null != ($this->Auth->user('gpgkey'))) {
+			if (null != ($this->User->getPGP($this->Auth->user('id')))) {
 				// attach the gpg key
 				$this->Email->attachments = array(
 					'gpgkey.asc' => $tmpfname

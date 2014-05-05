@@ -184,7 +184,7 @@ class EventsController extends AppController {
 			),
 		));
 		$this->set('events', $this->paginate());
-		if (!$this->Auth->user('gpgkey') and Configure::read('GnuPG.onlyencrypted') == 'true') {
+		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted') == 'true') {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
 		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
@@ -549,6 +549,10 @@ class EventsController extends AppController {
 		}
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
+				
+				// rearrange the response if the event came from an export
+				if(isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
+				
 				// Distribution, reporter for the events pushed will be the owner of the authentication key
 				$this->request->data['Event']['user_id'] = $this->Auth->user('id');
 			}
@@ -1150,7 +1154,9 @@ class EventsController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$message = $this->request->data['Event']['message'];
 			$all = $this->request->data['Event']['person'];
-			if ($this->Event->sendContactEmailRouter($id, $message, $all, $this->Auth->user(), $this->_isSiteAdmin())) {
+			$user = $this->Auth->user();
+			$user['gpgkey'] = $this->Event->User->getPGP($user['id']);
+			if ($this->Event->sendContactEmailRouter($id, $message, $all, $user, $this->_isSiteAdmin())) {
 				// redirect to the view event page
 				$this->Session->setFlash(__('Email sent to the reporter.', true));
 			} else {
@@ -1277,8 +1283,26 @@ class EventsController extends AppController {
 
 	public function xml($key, $eventid=null, $withAttachment = false, $tags = '') {
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
+		if ($tags === 'null') $tags = null;
 		if ($eventid === 'null' || $eventid ==='false') $eventid=null;
 		if ($withAttachment === 'null' || $withAttachment ==='false') $withAttachment = false;
+		
+		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted xml object.
+		// The correct format for a posted xml is a "request" root element, as shown by the examples below:
+		// For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
+		if ($this->request->is('post')) {
+			if (empty($this->request->data)) {
+				throw new BadRequestException('Either specify the search terms in the url, or POST an xml (with the root element being "request".');
+			} else {
+				$data = $this->request->data;
+			}
+			$paramArray = array('eventid', 'withAttachment', 'tags');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+				else ${$p} = null;
+			}
+		}
+		
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1346,6 +1370,7 @@ class EventsController extends AppController {
 
 	public function nids($format = 'suricata', $key = '', $id = null, $continue = false, $tags = '') {
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
+		if ($tags === 'null') $tags = null;
 		if ($id === 'null') $id = null;
 		if ($continue === 'false') $continue = false;
 		if ($continue === 'true') $continue = true;
@@ -1370,7 +1395,7 @@ class EventsController extends AppController {
 			}
 			$user = $this->checkAuthUser($this->Auth->user('authkey'));
 		}
-
+		
 		// display the full snort rulebase
 		$this->loadModel('Attribute');
 		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid'], $id, $continue, $tags);
@@ -1379,6 +1404,7 @@ class EventsController extends AppController {
 
 	public function hids($type, $key, $tags = '') {
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
+		if ($tags === 'null') $tags = null;
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
 		$this->layout = 'text/default';
@@ -1394,13 +1420,12 @@ class EventsController extends AppController {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
 			$user = $this->checkAuthUser($this->Auth->user('authkey'));
-		}
+		}	
 		$this->loadModel('Attribute');
 
 		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type, $tags);
 		$this->set('rules', $rules);
 	}
-
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
@@ -1425,19 +1450,33 @@ class EventsController extends AppController {
 			}
 			$isSiteAdmin = $this->_isSiteAdmin();
 			$org = $this->Auth->user('org');
-		}		
+		}
+
 		// if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
 		// We don't need to look out for permissions since that's filtered by the search itself
 		// We just want all the attributes found by the search
 		if ($eventid === 'search') {
-			$list = $this->Session->read('search_find_attributeidlist');
+			$ioc = $this->Session->read('paginate_conditions_ioc');
+			$paginateConditions = $this->Session->read('paginate_conditions');
+			$attributes = $this->Event->Attribute->find('all', array(
+				'conditions' => $paginateConditions['conditions'],
+				'contain' => $paginateConditions['contain'],
+			));
+			if ($ioc) {
+				$this->loadModel('Whitelist');
+				$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
+			}
+			$list = array();
+			foreach ($attributes as &$attribute) {
+				$list[] = $attribute['Attribute']['id'];
+			}
 		}
 		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type);
 		$this->loadModel('Whitelist');
 		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
-			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']);
+			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
 		}
 		
 		$this->response->type('csv');	// set the content type
@@ -1449,7 +1488,7 @@ class EventsController extends AppController {
 			$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
 		}
 		$this->layout = 'text/default';
-		$this->set('headers', array('uuid', 'event_id', 'category', 'type', 'value', 'to_ids'));
+		$this->set('headers', array('uuid', 'event_id', 'category', 'type', 'value', 'to_ids', 'date'));
 		$this->set('final', $final);
 	}
 
@@ -1834,17 +1873,28 @@ class EventsController extends AppController {
 	}
 
 	public function downloadSearchResult() {
-		$idList = $this->Session->read('search_find_idlist');
-		$this->Session->write('search_find_idlist', '');
+		$ioc = $this->Session->read('paginate_conditions_ioc');
+		$paginateConditions = $this->Session->read('paginate_conditions');
+		$attributes = $this->Event->Attribute->find('all', array(
+			'conditions' => $paginateConditions['conditions'],
+			'contain' => $paginateConditions['contain'],
+		));
+		if ($ioc) {
+			$this->loadModel('Whitelist');
+			$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
+		}
+		$idList = array();
+		foreach ($attributes as &$attribute) {
+			if (!in_array($attribute['Attribute']['event_id'], $idList)) {
+				$idList[] = $attribute['Attribute']['event_id'];
+			}
+		}
 		// display the full xml
 		$this->response->type('xml');	// set the content type
 		$this->layout = 'xml/default';
 		$this->header('Content-Disposition: download; filename="misp.search.results.xml"');
 
 		$results = $this->__fetchEvent(null, $idList);
-		// Whitelist check
-		$this->loadModel('Whitelist');
-		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
 
 		$this->set('results', $results);
 		$this->render('xml');
@@ -1861,6 +1911,7 @@ class EventsController extends AppController {
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
 		if ($value === 'null') $value = null;
 		if ($type === 'null') $type = null;
+		if ($tags === 'null') $tags = null;
 		if ($category === 'null') $category = null;
 		if ($org === 'null') $org = null;
 		if ($key!=null && $key!='download') {
@@ -1873,9 +1924,35 @@ class EventsController extends AppController {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		$value = str_replace('|', '/', $value);
-		$this->response->type('xml');	// set the content type
-		$this->layout = 'xml/default';
-		$this->header('Content-Disposition: download; filename="misp.search.events.results.xml"');
+		
+		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
+		// The correct format for both is a "request" root element, as shown by the examples below:
+		// For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
+		// For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
+		// the response type is used to determine the parsing method (xml/json)
+		if ($this->request->is('post')) {
+			if ($this->response->type() === 'application/json') {
+				$data = $this->request->input('json_decode', true);
+			} elseif ($this->response->type() === 'application/xml') {
+				$data = $this->request->data;
+			} else {
+				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
+			}
+			$paramArray = array('value', 'type', 'category', 'org', 'tags');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+				else ${$p} = null;
+			}
+		}
+		if (!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') {
+			$this->response->type('xml');	// set the content type
+			$this->layout = 'xml/default';
+			$this->header('Content-Disposition: download; filename="misp.search.events.results.xml"');
+		} else {
+			$this->response->type('json');	// set the content type
+			$this->layout = 'json/default';
+			$this->header('Content-Disposition: download; filename="misp.search.events.results.json"');
+		}
 		$conditions['AND'] = array();
 		$subcondition = array();
 		$this->loadModel('Attribute');
@@ -1930,7 +2007,7 @@ class EventsController extends AppController {
 		}
 		
 		// If we sent any tags along, load the associated tag names for each attribute
-		if ($tags !== '') {
+		if ($tags) {
 			$args = $this->Event->Attribute->dissectArgs($tags);
 			$this->loadModel('Tag');
 			$tagArray = $this->Tag->fetchEventTagIds($args[0], $args[1]);
@@ -1960,7 +2037,7 @@ class EventsController extends AppController {
 			throw new NotFoundException('No matches.');
 		}
 		$this->loadModel('Whitelist');
-		$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
 		$this->response->type('xml');
 		$this->set('results', $results);
 	}
