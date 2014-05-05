@@ -11,7 +11,7 @@ if ($object['objectType'] == 0 ) {
 		$extra = 'highlight1';
 		$extra3 = 'highlightBlueSides highlightBlueTop';
 	}
-	if (!$mayModify) $currentType = 'ShadowAttribute';
+	if (!$mayModify && !$isSiteAdmin) $currentType = 'ShadowAttribute';
 } else $extra = 'highlight2';
 if ($object['objectType'] == 1) {
 	$extra2 = '1';

@@ -286,7 +286,6 @@ class EventsController extends AppController {
 					}
 				}
 			}
-
 			foreach ($result['ShadowAttribute'] as $shadowAttribute) {
 				$shadowAttribute['objectType'] = 2;
 				$eventArray[] = $shadowAttribute;
