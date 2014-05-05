@@ -888,7 +888,7 @@ class ShadowAttributesController extends AppController {
 		$proposal['event_org'] = $attribute['Event']['orgc'];
 		$proposal['old_id'] = $attribute['Attribute']['id'];
 		foreach ($this->request->data['ShadowAttribute'] as $changedKey => $changedField) {
-			if ($proposal[$changedKey] == $changedFiseld) {
+			if ($proposal[$changedKey] == $changedField) {
 				$this->autoRender = false;
 				return new CakeResponse(array('body'=> json_encode('nochange'),'status'=>200));
 			}
