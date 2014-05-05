@@ -878,7 +878,7 @@ class EventsController extends AppController {
 							// Check if the attribute's timestamp is bigger than the one that already exists.
 							// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
 							// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-							if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['id']) {
+							if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
 
 							} else {
 								unset($this->request->data['Attribute'][$c]);
