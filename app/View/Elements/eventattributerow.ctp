@@ -3,6 +3,7 @@ $extra = '';
 $extra2 = '';
 $extra3 = '';
 $currentType = 'denyForm';
+if ($isSiteAdmin) $mayModify = true;
 // 0 = attribute
 // 1 = shadow_attribute
 if ($object['objectType'] == 0 ) {
@@ -11,7 +12,7 @@ if ($object['objectType'] == 0 ) {
 		$extra = 'highlight1';
 		$extra3 = 'highlightBlueSides highlightBlueTop';
 	}
-	if (!$mayModify && !$isSiteAdmin) $currentType = 'ShadowAttribute';
+	if (!$mayModify) $currentType = 'ShadowAttribute';
 } else $extra = 'highlight2';
 if ($object['objectType'] == 1) {
 	$extra2 = '1';
