@@ -458,9 +458,6 @@ class UsersController extends AppController {
 	}
 
 	public function memberslist() {
-		$this->loadModel('Attribute');
-		$this->loadModel('Event');
-
 		// Orglist
 		$fields = array('User.org', 'count(User.id) as `num_members`');
 		$params = array('recursive' => 0,
@@ -470,43 +467,106 @@ class UsersController extends AppController {
 		);
 		$orgs = $this->User->find('all', $params);
 		$this->set('orgs', $orgs);
-
+	}
+	
+	public function histogram($selected = null) {
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+		if ($selected == '[]') $selected = null;
+		$selectedTypes = array();
+		if ($selected) $selectedTypes = json_decode($selected);
+		$temp = $this->User->Event->find('all', array(
+			'recursive' => -1,
+			'fields' => array('distinct(orgc)'),
+		));
+		$orgs = array();
+		foreach ($temp as $t) {
+			$orgs[] = $t['Event']['orgc'];
+		}
 		// What org posted what type of attribute
 		$this->loadModel('Attribute');
+		$conditions = array();
+		if ($selected) $conditions[] = array('Attribute.type' => $selectedTypes);
 		$fields = array('Event.orgc', 'Attribute.type', 'count(Attribute.type) as `num_types`');
 		$params = array('recursive' => 0,
-							'fields' => $fields,
-							'group' => array('Attribute.type', 'Event.orgc'),
-							'order' => array('Event.orgc', 'num_types DESC'),
+				'fields' => $fields,
+				'group' => array('Attribute.type', 'Event.orgc'),
+				'order' => array('Event.orgc', 'num_types DESC'),
+				'conditions' => $conditions,
 		);
-		$typesHistogram = $this->Attribute->find('all', $params);
-		$this->set('typesHistogram', $typesHistogram);
-
+		$temp = $this->Attribute->find('all', $params);
+		$data = array();
+		foreach ($orgs as $k => $org) {
+			$data[$org]['total'] = 0;
+			$data[$org]['data'] = array();
+			foreach ($temp as $t) {
+				if ($t['Event']['orgc'] == $org) {
+					$data[$org]['data'][$t['Attribute']['type']] = $t[0]['num_types'];
+				}
+			}
+		}
+		$max = 1;
+		foreach ($data as &$d) {
+			foreach ($d['data'] as $t) {
+				$d['total'] += $t;
+			}
+			if ($d['total'] > $max) $max = $d['total'];
+		}
+		$this->set('data', $data);
+		$this->set('max', $max);
+		$this->set('selectedTypes', $selectedTypes);
+		
 		// Nice graphical histogram
 		$this->loadModel('Attribute');
 		$sigTypes = array_keys($this->Attribute->typeDefinitions);
-		$replace = array('-', '|');
-		$graphFields = '';
-		foreach ($sigTypes as &$sigType) {
-			if ($graphFields != "") $graphFields .= ", ";
-			$graphFields .= "'" . $sigType . "'";
-		}
-		$graphFields = str_replace($replace, "_", $graphFields);
-		$this->set('graphFields', $graphFields);
 
-		$graphData = array();
-		$prevRowOrg = "";
-		$i = -1;
-		foreach ($typesHistogram as &$row) {
-			if ($prevRowOrg != $row['Event']['orgc']) {
-				$i++;
-				$graphData[] = "";
-				$prevRowOrg = $row['Event']['orgc'];
-				$graphData[$i] .= "org: '" . $row['Event']['orgc'] . "'";
-			}
-			$graphData[$i] .= ', ' . str_replace($replace, "_", $row['Attribute']['type']) . ': ' . $row[0]['num_types'];
+		App::uses('ColourPaletteTool', 'Tools');
+		$paletteTool = new ColourPaletteTool();
+		$colours = $paletteTool->createColourPalette(count($sigTypes));
+		$typeDb = array();
+		foreach($sigTypes as $k => $type) {
+			$typeDb[$type] = $colours[$k]; 
 		}
-		$this->set('graphData', $graphData);
+		$this->set('typeDb', $typeDb);
+		$this->set('sigTypes', $sigTypes);
+		$graphInterval = $this->_getIntervals($max);
+		$this->layout = 'ajax';
+	}
+	
+	private function _getIntervals($max) {
+		$intervals = array();
+		if ($max > 5) {
+			$maxDecimals = strlen((string) $max);
+			//$graphInterval = $max / 10;
+			$graphInterval = round($max, -($maxDecimals-2), PHP_ROUND_HALF_DOWN);
+			$graphInterval = round($graphInterval / 5);
+			for ($i=0; $i<$max; $i+=$graphInterval) {
+				$intervals[] = $i;
+			}
+		} else {
+			for ($i=0; $i<$max; $i++) $intervals[] = $i;
+		}
+		return $intervals;
+	}
+	
+	private function _generateColours($count){
+		$pallette = 16777216;
+		$array = array();
+		$interval = ceil($pallette / $count);
+		$colours = array();
+		for ($i = 0; $i < $count; $i++) {
+			$temp = $i * $interval;
+			$array[$i] = $temp;
+			$colours[$i] = $this->_convertToHex($temp);
+		}
+		return $colours;
+	}
+	
+	private function _convertToHex($int) {
+		$hex = strval(dechex($int));
+		$filler = '';
+		for ($i = 0; $i < 6 - (strlen($hex)); $i++) $filler .= '0';
+		$filler = '#' . $filler . $hex;
+		return $filler;
 	}
 
 	public function terms() {

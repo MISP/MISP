@@ -994,7 +994,7 @@ class Event extends AppModel {
 	 		}
 	 		//restricting to non-private or same org if the user is not a site-admin.
 	 		if ($ignore == 0) {
-	 			$conditions['AND'][] = array('Attribute.to_ids =' => 1);
+	 			$conditions['AND'][] = array('Attribute.to_ids' => 1);
 	 		}
 	 		
 	 		if ($type!=null) {
@@ -1386,7 +1386,7 @@ class Event extends AppModel {
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
 		if ($fromXml) {
 			// Workaround for different structure in XML/array than what CakePHP expects
-			$this->cleanupEventArrayFromXML($data);
+			$data = $this->cleanupEventArrayFromXML($data);
 			// the event_id field is not set (normal) so make sure no validation errors are thrown
 			// LATER do this with	 $this->validator()->remove('event_id');
 			unset($this->Attribute->validate['event_id']);
@@ -1472,7 +1472,7 @@ class Event extends AppModel {
 				}
 			}
 		}
-	$this->cleanupEventArrayFromXML($data);
+	$data = $this->cleanupEventArrayFromXML($data);
 	$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
 	if ($saveResult) {
 		return 'success';

@@ -16,4 +16,7 @@
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 ?>
-<?php echo $content_for_layout; ?>
+<?php 
+echo $this->Html->css('bootstrap');
+echo $this->Html->css('main');
+echo $content_for_layout; ?>

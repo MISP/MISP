@@ -162,7 +162,7 @@ class EventShell extends AppShell
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.csv');
 		}
 		$file->write('');
-		foreach ($final as $line) {
+		foreach ($final as $k => $line) {
 			$file->append($line . PHP_EOL);
 		}
 		$file->close();

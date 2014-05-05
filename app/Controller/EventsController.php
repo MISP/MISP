@@ -202,6 +202,14 @@ class EventsController extends AppController {
 	 */
 
 	public function view($id = null, $continue=false, $fromEvent=null) {
+		if (isset($this->params['named']['attributesPage'])) $page = $this->params['named']['attributesPage'];
+		else {
+			if ($this->_isRest()) {
+				$page = 'all';
+			} else {
+				$page = 1;
+			}
+		}
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		$perm_publish = $this->userRole['perm_publish'];
 		if (strlen($id) == 36) {
@@ -226,7 +234,6 @@ class EventsController extends AppController {
 				}
 			}
 		}
-
 		$this->loadModel('Log');
 		$logEntries = $this->Log->find('all', array(
 			'conditions' => array('title LIKE' => '%Event (' . $id . ')%', 'org !=' => $results[0]['Event']['orgc'], 'model LIKE' => '%ShadowAttribute%'),
@@ -255,12 +262,46 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('event', $result);
+		
+		if (!$this->_isRest()) {
+			// modify event for attribute pagination
+			$eventArray = array();
+			$shadowAttributeTemp = array();
+			foreach ($this->Attribute->validate['category']['rule'][1] as $category) {
+				foreach ($result['Attribute'] as $attribute) {
+					if ($attribute['category'] == $category) {
+						$shadowAttributeTemp = $attribute['ShadowAttribute'];
+						$attribute['ShadowAttribute'] = null;
+						$attribute['objectType'] = 0;
+						$attribute['hasChildren'] = 0;
+						$eventArray[] = $attribute; 
+						$current = count($eventArray)-1;
+						foreach ($shadowAttributeTemp as $k => $shadowAttribute) {
+							$shadowAttribute['objectType'] = 1;
+							if ($k == 0) $shadowAttribute['firstChild'] = true;
+							if (($k + 1) == count($shadowAttributeTemp)) $shadowAttribute['lastChild'] = true;
+							$eventArray[] = $shadowAttribute;
+							$eventArray[$current]['hasChildren'] = 1;
+						}
+					}
+				}
+			}
+
+			foreach ($result['ShadowAttribute'] as $shadowAttribute) {
+				$shadowAttribute['objectType'] = 2;
+				$eventArray[] = $shadowAttribute;
+			}
+			$this->set('objectCount', count($eventArray));
+			if ($page == 'all') $this->set('eventArray', $eventArray);
+			else {
+				$this->set('eventArray', array_splice($eventArray, (($page-1)*50), 50));
+			}
+		}
+		
 		if(isset($result['ShadowAttribute'])) {
 			$this->set('remaining', $result['ShadowAttribute']);
 		}
 		$this->set('relatedEvents', $result['RelatedEvent']);
-
-		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
 
 		// passing type and category definitions (explanations)
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -292,6 +333,26 @@ class EventsController extends AppController {
 			$this->set('currentEvent', $id);
 
 			$this->set('allPivots', $this->Session->read('pivot_thread'));
+			
+			// set the types + categories for the attribute add/edit ajax overlays
+			$categories = $this->Attribute->validate['category']['rule'][1];
+			array_pop($categories);
+			$categories = $this->_arrayToValuesIndexArray($categories);
+			$this->set('categories', compact('categories'));
+			
+			$types = array_keys($this->Attribute->typeDefinitions);
+			$types = $this->_arrayToValuesIndexArray($types);
+			$this->set('types', $types);
+			$this->set('categoryDefinitions', $this->Event->Attribute->categoryDefinitions);
+			$typeCategory = array();
+			foreach ($this->Attribute->categoryDefinitions as $k => $category) {
+				foreach ($category['types'] as $type) {
+					$typeCategory[$type][] = $k;
+				}
+			}
+			$this->set('typeCategory', $typeCategory);
+			$this->request->data['Attribute']['event_id'] = $id;
+			
 			// Show the discussion
 			$this->loadModel('Thread');
 			$params = array('conditions' => array('event_id' => $id),
@@ -339,7 +400,14 @@ class EventsController extends AppController {
 			if ($this->request->is('ajax')) {
 				$this->disableCache();
 				$this->layout = 'ajax';
-				$this->render('/Elements/eventdiscussion');
+				if (!isset($this->params['named']['attributesPage'])) {
+					$this->render('/Elements/eventdiscussion');
+				} else {
+					$this->set('page', $this->params['named']['attributesPage']);
+					$this->render('/Elements/eventattribute');
+				}
+			} else {
+				$this->set('page', $page);
 			}
 			$pivot = $this->Session->read('pivot_thread');
 			$this->__arrangePivotVertical($pivot);
@@ -367,6 +435,7 @@ class EventsController extends AppController {
 		}
 		$this->set('currentEvent', $id);
 	}
+	
 
 	private function __startPivoting($id, $info, $date){
 		$this->Session->write('pivot_thread', null);
@@ -523,6 +592,7 @@ class EventsController extends AppController {
 							if(is_numeric($add)) {
 								$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
 								$this->response->send();
+								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
 							}
 							// REST users want to see the failed event
 							$this->view($this->Event->getId());
@@ -636,7 +706,6 @@ class EventsController extends AppController {
 		$auth = $this->Auth;
 		$data['Event']['user_id'] = $auth->user('id');
 		$date = new DateTime();
-
 		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
 		//else $data['Event']['org'] = $auth->user('org');
 		$data['Event']['org'] = $auth->user('org');
@@ -2146,7 +2215,7 @@ class EventsController extends AppController {
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 	
-	public function addTag() {
+	public function addTag($id = null) {
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
@@ -2169,25 +2238,29 @@ class EventsController extends AppController {
 			),
 			'recursive' => -1,
 		));
+		$this->autoRender = false;
 		if (!empty($found)) {
-			$this->Session->setFlash('Tag already assigned to this event.');
-			$this->redirect(array('action' => 'view', $id));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this event.')), 'status'=>200));
+			//$this->Session->setFlash('Tag already assigned to this event.');
+			//$this->redirect(array('action' => 'view', $id));
 		}
 		$this->Event->EventTag->create();
-		$this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id));
-		$this->Session->setFlash('Tag added.');
-		$this->redirect(array('action' => 'view', $id));
+		if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.')), 'status'=>200));
+		} else {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')),'status'=>200));
+		}
 	}
 	
 	public function removeTag($id, $tag_id) {
-		if (!$this->request->is('post')) {
+		if (!$this->request->is('post') || !$this->request->is('ajax')) {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
 		$this->Event->recurisve = -1;
 		$event = $this->Event->read(array('id', 'org', 'orgc', 'distribution'), $id);
 		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
 		if (($this->Auth->user('org') !== $event['Event']['org'] && $this->Auth->user('org') !== $event['Event']['orgc'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger']) && !$this->_isSiteAdmin()) {
-			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
 		}
 		$eventTag = $this->Event->EventTag->find('first', array(
 			'conditions' => array(
@@ -2196,9 +2269,12 @@ class EventsController extends AppController {
 			),
 			'recursive' => -1,
 		));
-		if (empty($eventTag)) throw new NotFoundException('Invalid event - tag combination.');
-		$this->Event->EventTag->delete($eventTag['EventTag']['id']);
-		$this->Session->setFlash('Tag removed.');
-		$this->redirect(array('action' => 'view', $id));
+		$this->autoRender = false;
+		if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - tag combination.')),'status'=>200));
+		if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.')), 'status'=>200));
+		} else {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')),'status'=>200));
+		}
 	}
 }
