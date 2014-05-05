@@ -55,6 +55,16 @@ cd /var/www/MISP/app/Plugin/CakeResque
 curl -s https://getcomposer.org/installer | php
 php composer.phar install
 
+# CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis
+pecl install redis
+# After installing it, enable it in your php.ini file
+vim /etc/php5/apache2/php.ini
+# add the following line:
+extension=redis.so 
+
+# To use the scheduler worker for scheduled tasks, do the following:
+cp -fa /var/www/MISP/INSTALL/setup/config.php var/www/MISP/app/Plugin/CakeResque/Config/config.php
+
 5/ Set the permissions
 ----------------------
 
@@ -87,6 +97,11 @@ mysql -u misp -p<password> misp < INSTALL/MYSQL.sql
 # A sample ghost can be found in /var/www/MISP/INSTALL/apache.misp
 
 cp /var/www/MISP/INSTALL/apache.misp /etc/apache2/sites-available/misp
+
+# Be aware that the configuration files for apache 2.4 and up have changed. 
+# The configuration file has to have the .conf extension in the sites-available directory
+# For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
+ 
 a2dissite default
 a2ensite misp
 
@@ -102,7 +117,13 @@ service apache2 reload
 
 8/ MISP configuration
 ---------------------
-# Configure the fields in the files located in /var/www/MISP/app/Config/:
+# There are 3 sample configuration files in /var/www/MISP/app/Config that need to be copied and filled out
+cd /var/www/MISP/app/Config
+cp -a bootstrap.default.php bootstrap.php
+cp -a database.default.php database.php
+cp -a core.default.php core.php
+ 
+# Configure the fields in the newly created filed:
 database.php : login, port, password, database
 bootstrap.php: MISP.*, GnuPG.*
 core.php : debug, Security.*
@@ -116,7 +137,7 @@ mkdir /var/www/MISP/.gnupg
 chown www-data:www-data /var/www/MISP/.gnupg
 chmod 700 /var/www/MISP/.gnupg
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
-# Recommended key type: RSA (sign only)
+# Recommended key type: RSA
 # The email address should match the one set int he bootstrap.php configuration file
 
 # And export the public key to the webroot
@@ -125,6 +146,12 @@ sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL 
 # Start the workers to enable background jobs 
 cd /var/www/MISP/app/Console/worker/
 ./start.sh
+
+# To make the background workers start on boot
+chmod +x /var/www/MISP/app/Console/worker/start.sh
+sudo vim /etc/rc.local
+# Add the following line before the last line (exit 0):
+bash /var/www/MISP/app/Console/worker/start.sh
 
 Now log in using the webinterface:
 The default user/pass = admin@admin.test/admin 
@@ -141,5 +168,3 @@ Recommended actions
 - You should really harden the configuration of MySQL
 - Keep your software up2date (MISP, CakePHP and everything else)
 - Log and audit
-
-
