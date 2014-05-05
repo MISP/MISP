@@ -1,6 +1,6 @@
 <?php
 	echo $this->Html->script('ajaxification');
-	$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
+	$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 	$mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	if (!empty($eventArray)):
 	$pageCount = intval($objectCount / 50);

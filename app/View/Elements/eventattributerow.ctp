@@ -3,7 +3,6 @@ $extra = '';
 $extra2 = '';
 $extra3 = '';
 $currentType = 'denyForm';
-if ($isSiteAdmin) $mayModify = true;
 // 0 = attribute
 // 1 = shadow_attribute
 if ($object['objectType'] == 0 ) {
