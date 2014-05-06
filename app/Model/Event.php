@@ -1757,10 +1757,10 @@ class Event extends AppModel {
 
 		// if the xml contains an event or events from an older MISP instance, let's try to upgrade it!
 		// Let's manually set the version to something below 2.2.0 if there is no version set in the xml		
-		if (!isset($xmlArray['response']['xmlVersion'])) $xmlArray['response']['xmlVersion'] = '2.1.0'; 
+		if (!isset($xmlArray['response']['xml_version'])) $xmlArray['response']['xml_version'] = '2.1.0'; 
 		
 		// Upgrade from versions below 2.2.0 will need to replace the risk field with threat level id
-		if ($this->compareVersions($xmlArray['response']['xmlVersion'], '2.2.0') < 0) {
+		if ($this->compareVersions($xmlArray['response']['xml_version'], '2.2.0') < 0) {
 			if ($response) $xmlArray['response'] = $this->__updateXMLArray220($xmlArray['response']);
 			else $xmlArray = $this->__updateXMLArray220($xmlArray);
 		}
