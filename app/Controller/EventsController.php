@@ -832,10 +832,13 @@ class EventsController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
 				$saveEvent = false;
-				if ($this->_isRest()) $this->request->data = $this->Event->updateXMLArray($this->request->data, false);
+				if ($this->_isRest()) {
+					if (isset($this->request->data['response'])) $this->request->data = $this->Event->updateXMLArray($this->request->data, true);
+					else $this->request->data = $this->Event->updateXMLArray($this->request->data, false);
+				}
 				// Workaround for different structure in XML/array than what CakePHP expects
-				$this->Event->cleanupEventArrayFromXML($this->request->data);
-
+				$this->request->data = $this->Event->cleanupEventArrayFromXML($this->request->data);
+				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
 				// the event_id field is not set (normal) so make sure no validation errors are thrown
 				// LATER do this with	 $this->validator()->remove('event_id');
 				unset($this->Event->Attribute->validate['event_id']);
