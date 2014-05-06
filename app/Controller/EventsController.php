@@ -793,12 +793,12 @@ class EventsController extends AppController {
 						// For users that are of the creating org of the event, always allow the edit
 						// For users that are sync users, only allow the edit if the event is locked
 						if ($existingEvent['Event']['orgc'] === $this->_checkOrg()
-								|| ($this->userRole['perm_sync'] && $existingEvent['Event']['locked'])) {
+								|| ($this->userRole['perm_sync'] && $existingEvent['Event']['locked']) || $this->_isSiteAdmin()) {
 							// Only allow an edit if this is true!
 							$saveEvent = true;
-						}
-					}
-				}
+						} throw new MethodNotAllowedException('Event could not be saved: The user used to edit the event is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the event whilst also not being a site administrator.');
+					} throw new MethodNotAllowedException('Event could not be saved: No timestamp on the pushed edit or event in the request not newer than the local copy.');
+				} throw new MethodNotAllowedException('Event could not be saved: Could not find the local event.');
 				$fieldList = array(
 						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment')
