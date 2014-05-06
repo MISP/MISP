@@ -107,7 +107,8 @@ function postActivationScripts(name, type, id, field, event) {
 	$(name + '_field').focus();
 	inputFieldButtonActive(name + '_field');
 	if (field == 'value' || field == 'comment') {
-		$(name + '_field').on('keyup mouseover', function () {
+		autoresize($(name + '_field')[0]);
+		$(name + '_field').on('keyup', function () {
 		    autoresize(this);
 		});
 	}
