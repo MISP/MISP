@@ -27,7 +27,7 @@ Once the system is installed you can perform the following steps as root:
 apt-get install vim
 
 # Install the dependencies:
-apt-get install zip php-pear git redis-server
+apt-get install zip php-pear git redis-server make
 pear install Crypt_GPG    # we need version >1.3.0 
 pear install Net_GeoIP
 
@@ -63,7 +63,7 @@ vim /etc/php5/apache2/php.ini
 extension=redis.so 
 
 # To use the scheduler worker for scheduled tasks, do the following:
-cp -fa /var/www/MISP/INSTALL/setup/config.php var/www/MISP/app/Plugin/CakeResque/Config/config.php
+cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
 
 5/ Set the permissions
 ----------------------
