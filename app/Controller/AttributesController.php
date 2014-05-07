@@ -869,22 +869,25 @@ class AttributesController extends AppController {
  * and is able to delete w/o question
  */
 	public function delete($id = null) {
-		if (!$this->request->is('post') && !$this->_isRest()) {
-			throw new MethodNotAllowedException();
-		}
 		if ($this->request->is('ajax')) {
-			if ($this->__delete($id)) {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')),'status'=>200));
+			if ($this->request->is('post')) {
+				if ($this->__delete($id)) {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')),'status'=>200));
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')),'status'=>200));
+				}
 			} else {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')),'status'=>200));
+				$this->set('id', $id);
 			}
 		} else {
+			if (!$this->request->is('post') && !$this->_isRest()) {
+				throw new MethodNotAllowedException();
+			}
 			if ($this->__delete($id)) {
 				$this->Session->setFlash(__('Attribute deleted'));
 			} else {
 				$this->Session->setFlash(__('Attribute was not deleted'));
 			}
-			
 			if (!$this->_isRest()) $this->redirect($this->referer());	// TODO check
 			else $this->redirect(array('action' => 'index'));
 		}
@@ -955,7 +958,7 @@ class AttributesController extends AppController {
 
 		if (!$this->_isSiteAdmin()) {
 			$event = $this->Attribute->Event->find('first', array(
-					'conditions' => $id,
+					'conditions' => array('id' => $id),
 					'recursive' => -1,
 					'fields' => array('id', 'orgc', 'user_id')
 			));
@@ -993,7 +996,7 @@ class AttributesController extends AppController {
 				'fields' => array('id', 'orgc', 'user_id')
 			));
 			if (!$this->_isSiteAdmin()) {
-				if ($event['orgc'] != $this->Auth->user('org') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['user_id'] == $this->Auth->user('id')))) {
+				if ($event['Event']['orgc'] != $this->Auth->user('org') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['user_id'] == $this->Auth->user('id')))) {
 					throw new MethodNotAllowedException('You are not authorized to edit this event.');
 				}
 			}
@@ -1711,7 +1714,7 @@ class AttributesController extends AppController {
 		));
 		if (!$this->_isSiteAdmin()) {
 			//
-			if (!($this->Attribute->data['Event']['org'] == $this->Auth->user('org') || ($this->Attribute->data['Event']['distribution'] > 0 && $this->Attribute->data['Attribute']['distribution'] > 0))) {
+			if (!($attribute['Event']['org'] == $this->Auth->user('org') || ($attribute['Event']['distribution'] > 0 && $attribute['Attribute']['distribution'] > 0))) {
 				throw new NotFoundException(__('Invalid attribute'));
 			}
 		}
@@ -1756,9 +1759,9 @@ class AttributesController extends AppController {
 		));
 		if (!$this->_isSiteAdmin()) {
 			//
-			if ($this->Attribute->data['Event']['orgc'] == $this->Auth->user('org')
-					&& (($this->userRole['perm_modify'] && $this->Attribute->data['Event']['user_id'] != $this->Auth->user('id'))
-							|| $this->userRole['perm_modify_org'])) {
+			if ($attribute['Event']['orgc'] == $this->Auth->user('org')
+			&& (($this->userRole['perm_modify'] && $attribute['Event']['user_id'] != $this->Auth->user('id'))
+					|| $this->userRole['perm_modify_org'])) {
 							// Allow the edit
 			} else {
 				throw new NotFoundException(__('Invalid attribute'));
