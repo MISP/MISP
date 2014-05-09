@@ -1,4 +1,4 @@
-function deleteObject(type, id, event) {
+function deleteObject2(type, id, event) {
 	var typeMessage, name, action;
 	if (type == 'attributes') {
 		action = 'delete';
@@ -23,6 +23,50 @@ function deleteObject(type, id, event) {
 			url:"/" + type + "/" + action + "/" + id,
 		});
 	}	
+}
+
+function deleteObject(type, action, id, event) {
+	var destination = 'attributes';
+	if (type == 'shadow_attributes') destination = 'shadow_attributes';
+	$.get( "/" + destination + "/" + action + "/" + id, function(data) {
+		$("#confirmation_box").fadeIn();
+		$("#gray_out").fadeIn();
+		$("#confirmation_box").html(data);
+		$(window).bind('keypress', function(e) {
+			var code = e.keyCode || e.which;
+			if (code == 13) {
+				submitDeletion(event, action, type, id);
+			}
+		});
+	});
+}
+
+function cancelPrompt() {
+	$("#confirmation_box").fadeIn();
+	$("#gray_out").fadeOut();
+	$("#confirmation_box").empty();
+}
+
+function submitDeletion(event, action, type, id) {
+	var formData = $('#PromptForm').serialize();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		data: formData, 
+		success:function (data, textStatus) {
+			updateAttributeIndexOnSuccess(event);
+			handleGenericAjaxResponse(data);
+		}, 
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+		},
+		type:"post", 
+		cache: false,
+		url:"/" + type + "/" + action + "/" + id,
+	});
 }
 
 function acceptObject(type, id, event) {

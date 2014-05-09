@@ -708,6 +708,27 @@ a.proposal_link_red:hover {
 	z-index:5;
 }
 
+.confirmation_box {
+	display:none;
+	width: 300px;
+	top:calc(50% - 50px);
+	left:calc(50% - 150px);
+	position: fixed;
+	background-color:#f4f4f4;
+	border-radius: 5px;
+	box-shadow: 4px 4px 4px #333;
+	z-index:5;
+}
+
+.confirmation_box legend {
+	border-radius: 5px 5px 0px 0px;
+	margin-bottom:5px;
+	padding-left:5px;
+	width:295px;
+	background-color:black;
+	color:white;
+}
+
 .attribute_add_form {
 	display:none;
 	width: 700px;

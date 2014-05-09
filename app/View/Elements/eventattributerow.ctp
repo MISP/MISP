@@ -54,8 +54,43 @@ if ($object['objectType'] == 1) {
 	</td>
 	<td class="showspaces <?php echo $extra; ?>">
 		<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
+		<?php if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ): ?>
+		<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">
+		<?php else: ?>
 		<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid" onClick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'value', <?php echo $event['Event']['id'];?>);">
-			<?php echo nl2br(h($object['value'])); ?>
+			<?php 
+			endif;
+				$sigDisplay = $object['value'];
+				if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
+					$t = ($currentType == 'Attribute' ? 'attributes' : 'shadow_attributes');
+					$filenameHash = explode('|', nl2br(h($object['value'])));
+					if (strrpos($filenameHash[0], '\\')) {
+						$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
+						$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
+						echo h($filepath);
+						echo $this->Html->link($filename, array('controller' => $t, 'action' => 'download', $object['id']));
+					} else {
+						echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
+					}
+					if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
+				} elseif (strpos($object['type'], '|') !== false) {
+					$filenameHash = explode('|', $object['value']);
+					echo h($filenameHash[0]);
+					if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
+				} elseif ('vulnerability' == $object['type']) {
+					if (! is_null(Configure::read('MISP.cveurl'))) {
+						$cveUrl = Configure::read('MISP.cveurl');
+					} else {
+						$cveUrl = "http://www.google.com/search?q=";
+					}
+					echo $this->Html->link(h($sigDisplay), h($cveUrl) . h($sigDisplay), array('target' => '_blank'));
+				} elseif ('link' == $object['type']) {
+					echo $this->Html->link(h($sigDisplay), h($sigDisplay));
+				} else {
+					$sigDisplay = str_replace("\r", '', $sigDisplay);
+					echo nl2br(h($sigDisplay));
+				}
+			?>
 		</div>
 	</td>
 	<td class="showspaces bitwider <?php echo $extra; ?>">
@@ -92,7 +127,7 @@ if ($object['objectType'] == 1) {
 			?>
 		</div>
 	</td>
-	<td class="<?php echo $extra; ?>" style="width:150px;">
+	<td class="<?php echo $extra; ?> shortish">
 		<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class = "inline-field-placeholder"></div>
 		<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" class="inline-field-solid" onClick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
 			<?php if ($object['objectType'] != 1 && $object['objectType'] != 2) echo h($distributionLevels[$object['distribution']]); ?>&nbsp;
@@ -105,7 +140,7 @@ if ($object['objectType'] == 1) {
 					echo $this->Form->create('Attribute', array('class' => 'inline-delete', 'id' => $currentType . '_' . $object['id'] . '_delete', 'action' => 'delete'));
 		?>
 			<a href="/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
-			<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+			<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 		<?php 
 					echo $this->Form->end();					
 				} else {
@@ -123,7 +158,7 @@ if ($object['objectType'] == 1) {
 				if (($event['Event']['orgc'] == $me['org'] && $mayModify) || $isSiteAdmin || ($object['org'] == $me['org'])) {
 					echo $this->Form->create('ShadowAttribute', array('class' => 'inline-delete', 'style' => 'display:inline-block;', 'id' => 'ShadowAttribute_' . $object['id'] . '_delete', 'action' => 'delete'));
 				?>
-					<span class="icon-trash useCursorPointer" onClick="deleteObject('shadow_attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+					<span class="icon-trash useCursorPointer" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 				<?php 
 					echo $this->Form->end();
 				}

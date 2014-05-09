@@ -197,30 +197,41 @@ class ShadowAttributesController extends AppController {
  */
 	// This method will discard a proposed change. Users that can delete the proposals are the publishing users of the org that created the event and of the ones that created the proposal - in addition to site admins of course
 	public function discard($id = null) {
-		if (!$this->request->is('post') || !$this->request->is('ajax')) {
+		if (!$this->request->is('ajax')) {
 			throw new MethodNotAllowedException();
 		}
-		$this->ShadowAttribute->id = $id;
-		$this->ShadowAttribute->read();
-		$eventId = $this->ShadowAttribute->data['ShadowAttribute']['event_id'];
-		$this->loadModel('Event');
-		$this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
-		$this->Event->recursive = -1;
-		$this->Event->id = $eventId;
-		$this->Event->read();
-		// Send those away that shouldn't be able to see this
-		if (!$this->_isSiteAdmin()) {
-			if ((($this->Event->data['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org'])) || (!$this->userRole['perm_modify'])) {
-				$this->Session->setFlash('You don\'t have permission to do that');
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+		if ($this->request->is('post')) {
+			$this->ShadowAttribute->id = $id;
+			$this->ShadowAttribute->read();
+			$eventId = $this->ShadowAttribute->data['ShadowAttribute']['event_id'];
+			$this->loadModel('Event');
+			$this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
+			$this->Event->recursive = -1;
+			$this->Event->id = $eventId;
+			$this->Event->read();
+			// Send those away that shouldn't be able to see this
+			if (!$this->_isSiteAdmin()) {
+				if ((($this->Event->data['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org'])) || (!$this->userRole['perm_modify'])) {
+					$this->Session->setFlash('You don\'t have permission to do that');
+					$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+				}
 			}
-		}
-		if ($this->ShadowAttribute->delete($id, $cascade = false)) {
-			$this->_setProposalLock($eventId, false);
-			$this->autoRender = false;
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal discarded.')),'status'=>200));
+			if ($this->ShadowAttribute->delete($id, $cascade = false)) {
+				$this->_setProposalLock($eventId, false);
+				$this->autoRender = false;
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal discarded.')),'status'=>200));
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not discard proposal.')),'status'=>200));
+			}
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not discard proposal.')),'status'=>200));
+			$this->set('id', $id);
+			$shadowAttribute = $this->ShadowAttribute->find('first', array(
+					'conditions' => array('id' => $id),
+					'recursive' => -1,
+					'fields' => array('id', 'event_id'),
+			));
+			$this->set('event_id', $shadowAttribute['ShadowAttribute']['event_id']);
+			$this->render('ajax/shadowAttributeConfirmationForm');
 		}
 	}
 

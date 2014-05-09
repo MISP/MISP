@@ -1,4 +1,3 @@
-<? echo $this->Html->script('ajaxification');?>
 <div class="attributes <? if (!$ajax) echo 'form';?>">
 <?php 
 	echo $this->Form->create('Attribute', array('id'));

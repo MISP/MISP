@@ -878,6 +878,13 @@ class AttributesController extends AppController {
 				}
 			} else {
 				$this->set('id', $id);
+				$attribute = $this->Attribute->find('first', array(
+					'conditions' => array('id' => $id),
+					'recursive' => -1,
+					'fields' => array('id', 'event_id'),
+				));
+				$this->set('event_id', $attribute['Attribute']['event_id']);
+				$this->render('ajax/attributeConfirmationForm');
 			}
 		} else {
 			if (!$this->request->is('post') && !$this->_isRest()) {
