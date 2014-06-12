@@ -15,7 +15,7 @@ function deleteObject2(type, id, event) {
 		$.ajax({
 			data: formData, 
 			success:function (data, textStatus) {
-				updateAttributeIndexOnSuccess(event);
+				updateIndex(event);
 				handleGenericAjaxResponse(data);
 			}, 
 			type:"post", 
@@ -55,7 +55,7 @@ function submitDeletion(event, action, type, id) {
 		}, 
 		data: formData, 
 		success:function (data, textStatus) {
-			updateAttributeIndexOnSuccess(event);
+			updateIndex(event);
 			handleGenericAjaxResponse(data);
 		}, 
 		complete:function() {
@@ -75,7 +75,7 @@ function acceptObject(type, id, event) {
 	$.ajax({
 		data: formData, 
 		success:function (data, textStatus) {
-			updateAttributeIndexOnSuccess(event);
+			updateIndex(event);
 			handleGenericAjaxResponse(data);
 		}, 
 		type:"post", 
@@ -84,7 +84,16 @@ function acceptObject(type, id, event) {
 	});
 }	
 
-function updateAttributeIndexOnSuccess(event) {
+function updateIndex(id, context) {
+	var url, div;
+	if (context == 'event') {
+		url = "/events/view/" + id + "/attributesPage:1";
+		div = "#attributes_div";
+	}
+	if (context == 'template') {
+		url = "/template_elements/index/" + id;
+		div = "#templateElements";
+	}
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -93,9 +102,9 @@ function updateAttributeIndexOnSuccess(event) {
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
-			$("#attributes_div").html(data);
+			$(div).html(data);
 		}, 
-		url:"/events/view/" + event + "/attributesPage:1",
+		url: url,
 	});
 }
 
@@ -220,7 +229,7 @@ function submitForm(type, id, field, event) {
 		}, 
 		error:function() {
 			showMessage('fail', 'Request failed for an unknown reason.');
-			updateAttributeIndexOnSuccess(event);
+			updateIndex(event);
 		},
 		type:"post", 
 		url:"/" + object_type + "/editField/" + id
@@ -266,12 +275,16 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 		}
 	}
 	if (type == 'ShadowAttribute') {
-		updateAttributeIndexOnSuccess(event);
+		updateIndex(event);
 	}
 }
 
 function handleGenericAjaxResponse(data) {
-	responseArray = JSON.parse(data);
+	if (typeof data == 'string') {
+		responseArray = JSON.parse(data);
+	} else {
+		responseArray = data;
+	}
 	if (responseArray.saved) {
 		showMessage('success', responseArray.success);
 	} else {
@@ -311,7 +324,7 @@ function deleteSelectedAttributes(event) {
 			type:"POST", 
 			url:"/attributes/deleteSelected/" + event,
 			success:function (data, textStatus) {
-				updateAttributeIndexOnSuccess(event);
+				updateIndex(event);
 				handleGenericAjaxResponse(data);
 			}, 
 		});
@@ -321,9 +334,9 @@ function deleteSelectedAttributes(event) {
 
 function editSelectedAttributes(event) {
 	$.get("/attributes/editSelected/"+event, function(data) {
-		$("#attribute_add_form").fadeIn();
+		$("#popover_form").fadeIn();
 		$("#gray_out").fadeIn();
-		$("#attribute_add_form").html(data);
+		$("#popover_form").html(data);
 	});
 }
 
@@ -377,27 +390,40 @@ function clickCreateButton(event, type) {
 	var destination = 'attributes';
 	if (type == 'Proposal') destination = 'shadow_attributes';
 	$.get( "/" + destination + "/add/" + event, function(data) {
-		$("#attribute_add_form").fadeIn();
+		$("#popover_form").fadeIn();
 		$("#gray_out").fadeIn();
-		$("#attribute_add_form").html(data);
+		$("#popover_form").html(data);
 	});
 }
 
-function submitPopoverForm(event, referer) {
+function submitPopoverForm(context_id, referer) {
 	var url = null;
-	if (referer == 'add') url = "/attributes/add/" + event;
-	if (referer == 'propose') url = "/shadow_attributes/add/" + event;
-	if (referer == 'massEdit') url = "/attributes/editSelected/" + event;
+	var context = 'event';
+	var contextNamingConvention = 'Attribute';
+	if (referer == 'add') url = "/attributes/add/" + context_id;
+	if (referer == 'propose') url = "/shadow_attributes/add/" + context_id;
+	if (referer == 'massEdit') url = "/attributes/editSelected/" + context_id;
+	if (referer == 'addTextElement') {
+		url = "/templateElements/templateElementAdd/text/" + context_id;
+		context = 'template';
+		contextNamingConvention = 'TemplateElementText';
+	}
+	if (referer == 'addAttributeElement') {
+		url = "/templateElements/templateElementAdd/attribute/" + context_id;
+		context = 'template';
+		referer = 'TemplateElementAttribute';
+		contextNamingConvention = 'TemplateElementAttribute';
+	}
 	if (url !== null) {
 		$.ajax({
 			beforeSend: function (XMLHttpRequest) {
 				$(".loading").show();
 				$("#gray_out").fadeOut();
-				$("#attribute_add_form").fadeOut();
+				$("#popover_form").fadeOut();
 			}, 
 			data: $("#submitButton").closest("form").serialize(), 
 			success:function (data, textStatus) {
-				handleAjaxPopoverResponse(data, event, url, referer);
+				handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
 				$(".loading").show();
 			}, 
 			type:"post", 
@@ -406,14 +432,11 @@ function submitPopoverForm(event, referer) {
 	}
 };
 
-function handleAjaxPopoverResponse(response, event, url, referer) {
+function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
 	responseArray = JSON.parse(response);
 	var message = null;
 	if (responseArray.saved) {
-		//if (referer == 'add') message = "Attribute added.";
-		//if (referer == 'propose') message = "Proposal added.";
-		//if (referer == 'massEdit') message = "Attributes updated.";
-		updateAttributeIndexOnSuccess(event);
+		updateIndex(context_id, context);
 		if (responseArray.success) {
 			showMessage("success", responseArray.success);
 		}
@@ -427,12 +450,13 @@ function handleAjaxPopoverResponse(response, event, url, referer) {
 			dataType:"html", 
 			success:function (data, textStatus) {
 				$("#gray_out").fadeIn();
-				$("#attribute_add_form").fadeIn();
-				$("#attribute_add_form").html(data);
-				handleValidationErrors(responseArray.errors);
+				$("#popover_form").fadeIn();
+				$("#popover_form").html(data);
+				var error_context = context.charAt(0).toUpperCase() + context.slice(1);
+				handleValidationErrors(responseArray.errors, context, contextNamingConvention);
 				if (!isEmpty(responseArray)) {
 					$("#formWarning").show();
-					$("#formWarning").html('The attribute(s) could not be saved. Please, try again.');
+					$("#formWarning").html('The object(s) could not be saved. Please, try again.');
 				}
 				recoverValuesFromPersistance(savedArray);
 				$(".loading").hide();
@@ -453,23 +477,24 @@ function isEmpty(obj) {
 //before we update the form (in case the action failed), we want to retrieve the data from every field, so that we can set the fields in the new form that we fetch 
 function saveValuesForPersistance() {
 	var formPersistanceArray = new Array();
-	for (i = 0; i < fieldsArrayAttribute.length; i++) {
-		formPersistanceArray[fieldsArrayAttribute[i]] = document.getElementById(fieldsArrayAttribute[i]).value;
+	for (i = 0; i < fieldsArray.length; i++) {
+		formPersistanceArray[fieldsArray[i]] = document.getElementById(fieldsArray[i]).value;
 	}
 	return formPersistanceArray;
 }
 
 function recoverValuesFromPersistance(formPersistanceArray) {
-	for (i = 0; i < fieldsArrayAttribute.length; i++) {
-		 document.getElementById(fieldsArrayAttribute[i]).value = formPersistanceArray[fieldsArrayAttribute[i]];
+	for (i = 0; i < fieldsArray.length; i++) {
+		 document.getElementById(fieldsArray[i]).value = formPersistanceArray[fieldsArray[i]];
 	}
 }
 
-function handleValidationErrors(responseArray) {
+function handleValidationErrors(responseArray, context, contextNamingConvention) {
 	for (var k in responseArray) {
 		var elementName = k.charAt(0).toUpperCase() + k.slice(1);
-		$("#Attribute" + elementName).parent().addClass("error");
-		$("#Attribute" + elementName).parent().append("<div class=\"error-message\">" + responseArray[k] + "</div>");
+		console.log("#" + contextNamingConvention + elementName);
+		$("#" + contextNamingConvention + elementName).parent().addClass("error");
+		$("#" + contextNamingConvention + elementName).parent().append("<div class=\"error-message\">" + responseArray[k] + "</div>");
 	}
 }
 
@@ -505,4 +530,183 @@ function showMessage(success, message) {
 	var duration = 1000 + (message.length * 40);
 	$("#ajax_" + success + "_container").fadeIn("slow");
 	$("#ajax_" + success + "_container").delay(duration).fadeOut("slow");
+}
+
+function cancelPopoverForm() {
+	$("#popover_form").empty();
+	$('#gray_out').fadeOut();
+	$('#popover_form').fadeOut();
+}
+
+function activateTagField() {
+	$("#addTagButton").hide();
+	$("#addTagField").show();
+}
+
+function tagFieldChange() {
+	if ($("#addTagField :selected").val() > 0) {
+		var selected = $("#addTagField :selected").text();
+		if ($.inArray(selected, selectedTags)==-1) {
+			selectedTags.push(selected);
+			appendTemplateTag(selected);
+		}
+	}
+	$("#addTagButton").show();
+	$("#addTagField").hide();
+}
+
+function appendTemplateTag(selected) {
+	var selectedTag;
+	allTags.forEach(function(tag) {
+		if (tag.name == selected) {
+			$.ajax({
+				beforeSend: function (XMLHttpRequest) {
+					$(".loading").show();
+				}, 
+				dataType:"html", 
+				cache: false,
+				success:function (data, textStatus) {
+					$(".loading").hide();
+					$("#tags").append(data);
+				}, 
+				url:"/tags/viewTag/" + tag.id,
+			});
+			updateSelectedTags();
+		}
+	});
+}
+
+function addAllTags(tagArray) {
+	parsedTagArray = JSON.parse(tagArray);
+	parsedTagArray.forEach(function(tag) {
+		appendTemplateTag(tag);
+	});
+}
+
+function removeTemplateTag(id, name) {
+	selectedTags.forEach(function(tag) {
+		if (tag == name) {
+			var index = selectedTags.indexOf(name);
+			if (index > -1) {
+				selectedTags.splice(index, 1);
+				updateSelectedTags();
+			}
+		}
+	});
+	$('#tag_bubble_' + id).remove();
+}
+
+function updateSelectedTags() {
+	$('#hiddenTags').attr("value", JSON.stringify(selectedTags));
+}
+
+function saveElementSorting(order) {
+	$.ajax({
+		data: order, 
+		dataType:"json",
+		contentType: "application/json",
+		cache: false,
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+		}, 
+		type:"post", 
+		cache: false,
+		url:"/templates/saveElementSorting/",
+	});
+}
+
+function templateAddElementClicked(id) {
+	$("#gray_out").fadeIn();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		dataType:"html", 
+		cache: false,
+		success:function (data, textStatus) {
+			$(".loading").hide();
+			$("#popover_form").html(data);
+			$("#popover_form").fadeIn();
+		}, 
+		url:"/template_elements/templateElementAddChoices/" + id,
+	});
+}
+
+function templateAddElement(type, id) {
+	$.ajax({
+		dataType:"html", 
+		cache: false,
+		success:function (data, textStatus) {
+			$("#popover_form").html(data);
+		}, 
+		url:"/template_elements/templateElementAdd/" + type + "/" + id,
+	});
+}
+
+function templateUpdateAvailableTypes() {
+	$("#innerTypes").empty();
+	var type = $("#TemplateElementAttributeType option:selected").text();
+	var complex = $('#TemplateElementAttributeComplex:checked').val();
+	if (complex && type != 'Select Type') {
+		currentTypes.forEach(function(entry) {
+			$("#innerTypes").append("<div class=\"templateTypeBox\" id=\"" + entry + "TypeBox\">" + entry + "</div>");
+		});
+		$('#outerTypes').show();
+	}
+	else $('#outerTypes').hide();
+}
+
+function populateTemplateTypeDropdown() {
+	var cat = $("#TemplateElementAttributeCategory option:selected").text();
+	currentTypes = [];
+	if (cat == 'Select Category') {
+		$('#TemplateElementAttributeType').html("<option>Select Type</option>");
+	} else {
+		var complex = $('#TemplateElementAttributeComplex:checked').val();
+		if (cat in typeGroupCategoryMapping) {
+			$('#TemplateElementAttributeType').html("<option>Select Type</option>");
+			typeGroupCategoryMapping[cat].forEach(function(entry) {
+				$('#TemplateElementAttributeType').append("<option>" + entry + "</option>");
+			});
+		} else {
+			complex = false;
+		}
+		if (!complex) {
+			$('#TemplateElementAttributeType').html("<option>Select Type</option>");
+			categoryTypes[cat].forEach(function(entry) {
+				$('#TemplateElementAttributeType').append("<option>" + entry + "</option>");
+			});
+		}
+	}
+}
+
+function templateElementAttributeTypeChange() {
+	var complex = $('#TemplateElementAttributeComplex:checked').val();
+	var type = $("#TemplateElementAttributeType option:selected").text();
+	currentTypes = [];
+	if (type != 'Select Type') {
+		if (complex) {
+			complexTypes[type]["types"].forEach(function(entry) {
+				currentTypes.push(entry);
+			});
+		} else {
+			currentTypes.push(type);
+		}
+	} else {
+		currentTypes = [];
+	}
+	$("#typeJSON").html(JSON.stringify(currentTypes));
+	templateUpdateAvailableTypes();
+}
+
+function templateElementAttributeCategoryChange(category) {
+	if (category in typeGroupCategoryMapping) {
+		$('#complexToggle').show();
+	} else {
+		$('#complexToggle').hide();
+	}
+	if (category != 'Select Type') {
+		populateTemplateTypeDropdown();
+	}
+	templateUpdateAvailableTypes();
 }

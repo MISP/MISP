@@ -998,7 +998,7 @@ class EventsController extends AppController {
 		}
 		if (!$this->_isSiteAdmin()) {
 			$this->Event->read();
-			if (!$this->Event->data['Event']['orgc'] == $this->_checkOrg()) {
+			if ($this->Event->data['Event']['orgc'] != $this->_checkOrg()) {
 				throw new MethodNotAllowedException();
 			}
 		}

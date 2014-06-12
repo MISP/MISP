@@ -125,7 +125,7 @@ function formCategoryChanged(id) {
 // Generate tooltip information
 //
 var formInfoValues = new Array();
-var fieldsArrayAttribute = new Array('AttributeCategory', 'AttributeType', 'AttributeDistribution', 'AttributeValue', 'AttributeComment', 'AttributeToIds', 'AttributeBatchImport');
+var fieldsArray = new Array('AttributeCategory', 'AttributeType', 'AttributeDistribution', 'AttributeValue', 'AttributeComment', 'AttributeToIds', 'AttributeBatchImport');
 <?php
 foreach ($typeDefinitions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
@@ -197,8 +197,7 @@ $(document).ready(function() {
 
 	<?php if ($ajax): ?>
 		$('#cancel_attribute_add').click(function() {
-			$('#gray_out').fadeOut();
-			$('#attribute_add_form').fadeOut();
+			cancelPopoverForm();
 		});	
 
 	<?php endif; ?>

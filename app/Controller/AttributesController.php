@@ -439,8 +439,6 @@ class AttributesController extends AppController {
 				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids', 'comment')));
 			}
 
-
-
 			// everything is done, now redirect to event view
 			$this->Session->setFlash(__('The attachment has been uploaded'));
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));

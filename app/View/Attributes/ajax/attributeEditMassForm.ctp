@@ -119,7 +119,7 @@ $(document).ready(function() {
 	});
 	$('#cancel_attribute_add').click(function() {
 		$('#gray_out').fadeOut();
-		$('#attribute_add_form').fadeOut();
+		$('#popover_form').fadeOut();
 	});	
 });
 

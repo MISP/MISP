@@ -176,7 +176,7 @@ $('#ShadowAttributeType').prop('disabled', true);
 <?php if ($ajax): ?>
 $('#cancel_attribute_add').click(function() {
 	$('#gray_out').fadeOut();
-	$('#attribute_add_form').fadeOut();
+	$('#popover_form').fadeOut();
 });	
 
 <?php endif; ?>

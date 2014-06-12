@@ -16,20 +16,24 @@
 		</tr>
 		<tr>
 			<td class="templateTableTDName  templateTableCellFirst">
-				<?php echo $element['TemplateElementAttribute'][0]['name']; ?>&nbsp;
+				<?php echo h($element['TemplateElementAttribute'][0]['name']); ?>&nbsp;
 			</td>
 			<td class="templateTableTDDescription templateTableCell">
-				<?php echo $element['TemplateElementAttribute'][0]['description']; ?>&nbsp;
+				<?php echo h($element['TemplateElementAttribute'][0]['description']); ?>&nbsp;
 			</td>
 			<td class="templateTableNormal templateTableCell">
-				<?php echo $element['TemplateElementAttribute'][0]['category']; ?>&nbsp;
+				<?php echo h($element['TemplateElementAttribute'][0]['category']); ?>&nbsp;
 			</td>
 			<td class="templateTableTDTypes templateTableCell">
 				<?php 
-					foreach ($element['TemplateElementAttribute'][0]['type'] as $k => $type) {
-						if ($k != 0) echo ', ' . $type;
-						else echo $type;
-					} 
+					if ($element['TemplateElementAttribute'][0]['complex']) {
+						echo '<span style="color:red;font-weight:bold;">' . h($element['TemplateElementAttribute'][0]['type']) . '</span> ('; 
+						foreach ($validTypeGroups[$element['TemplateElementAttribute'][0]['type']]['types'] as $k => $type) {
+							if ($k != 0) echo ', ' . h($type);
+							else echo h($type);
+						} 
+						echo ')';
+					} else echo h($element['TemplateElementAttribute'][0]['type']);
 				?>&nbsp;
 			</td>
 			<td class="templateTableTDShort templateTableCell">
@@ -47,7 +51,7 @@
 			<td class="templateTableTDShort templateTableCell">
 				<?php 
 					$ids_text = array('No', 'Yes', 'User');
-					echo $ids_text[$element['TemplateElementAttribute'][0]['to_ids']];
+					echo h($ids_text[$element['TemplateElementAttribute'][0]['to_ids']]);
 				?>&nbsp;
 			</td>
 			<td class="templateTableTDActions templateTableCell">

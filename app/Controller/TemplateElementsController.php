@@ -40,11 +40,8 @@ class TemplateElementsController extends AppController {
 			),
 			'order' => array('TemplateElement.position ASC')
 		));
-		foreach ($templateElements as &$e) {
-			if (!empty($e['TemplateElementAttribute'])) {
-				$e['TemplateElementAttribute'][0]['type'] = json_decode($e['TemplateElementAttribute'][0]['type']);
-			}
-		}
+		$this->loadModel('Attribute');
+		$this->set('validTypeGroups', $this->Attribute->validTypeGroups);
 		$this->set('id', $id);
 		$this->layout = 'ajaxTemplate';
 		$this->set('elements', $templateElements);
@@ -62,13 +59,38 @@ class TemplateElementsController extends AppController {
 	}
 	
 	public function templateElementAdd($type, $id) {
-		
+		$ModelType = 'TemplateElement' . ucfirst($type);
 		//check permissions
 		
 		if (!$this->request->is('ajax')) Throw new MethodNotAllowedException('This action is for ajax requests only.');
 		
 		if ($this->request->is('get')) {
 			$this->set('id', $id);
+			if ($type == 'attribute') {
+				$this->loadModel('Attribute');
+				// combobox for types
+				$types = array_keys($this->Attribute->typeDefinitions);
+				$types = $this->_arrayToValuesIndexArray($types);
+				$this->set('types', $types);
+				// combobos for categories
+				$categories = $this->Attribute->validate['category']['rule'][1];
+				array_pop($categories);
+				$categories = $this->_arrayToValuesIndexArray($categories);
+				$this->set('categories', compact('categories'));
+				$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+				$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+				$categoryDefinitions = $this->Attribute->categoryDefinitions;
+				foreach ($categoryDefinitions as $k => &$catDef) {
+					foreach ($catDef['types'] as $l => $t) {
+						if ($type == 'malware-sample' || $t == 'attachment') {
+							array_splice($catDef['types'], $l, 1);
+						}
+					}
+				}
+				$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+				$this->set('validTypeGroups', $this->Attribute->validTypeGroups);
+				$this->set('typeGroupCategoryMapping', $this->Attribute->typeGroupCategoryMapping);
+			}
 			$this->layout = 'ajaxTemplate';
 			$this->render('ajax/template_element_add_' . $type);
 		} else if ($this->request->is('post')) {
@@ -82,16 +104,20 @@ class TemplateElementsController extends AppController {
 					'element_definition' => $type
 				),
 			);
+			$errorMessage = 'The element could not be added.';
 			if ($this->TemplateElement->save($templateElement)) {
-				$this->request->data['TemplateElementText']['template_element_id'] = $this->TemplateElement->id;
-				$this->TemplateElement->TemplateElementText->create();
-				if ($this->TemplateElement->TemplateElementText->save($this->request->data)) {
+				$this->request->data[$ModelType]['template_element_id'] = $this->TemplateElement->id;
+				$this->TemplateElement->$ModelType->create();
+				if ($this->TemplateElement->$ModelType->save($this->request->data)) {
 					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Element successfully added to template.')), 'status' => 200));
 				} else {
 					$this->TemplateElement->delete($this->TemplateElement->id);
+					$errorMessage = $this->TemplateElement->$ModelType->validationErrors;
 				}
+			} else {
+				$errorMessage = $this->TemplateElement->validationErrors;
 			}
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'The element could not be added.')), 'status' => 200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errorMessage)), 'status' => 200));
 		}
 	}
 }

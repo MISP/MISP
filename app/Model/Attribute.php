@@ -306,6 +306,27 @@ class Attribute extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 		),
 	);
+	
+	// automatic resolution of complex types
+	// If the complex type "file" is chosen for example, then the system will try to categorise the values entered into a complex template field based 
+	// on the regular expression rules
+	public $validTypeGroups = array(
+			'File' => array(
+				'description' => '',
+				'types' => array('filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'md5', 'sha1', 'sha256'),
+			),
+			'CnC' => array(
+				'description' => '',
+				'types' => array('url', 'domain', 'hostname', 'ip-dst'),
+			),
+	);
+	
+	public $typeGroupCategoryMapping = array(
+			'Payload delviery' => array('File', 'CnC'),
+			'Payload installation' => array('File'),
+			'Artifacts dropped' => array('File'),
+			'Network activity' => array('CnC'),
+	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
