@@ -1350,4 +1350,13 @@ class Attribute extends AppModel {
 	 	$result[1] = $reject;
 	 	return $result;
 	 }
+	 
+	 public function checkForvalidationIssues($attribute) {
+	 	$this->set($attribute);
+	 	if ($this->validates()) {
+	 		return false;
+	 	} else {
+	 		return $this->validationErrors;
+	 	}
+	 }
 }

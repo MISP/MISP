@@ -14,6 +14,7 @@
 		<?php echo $this->Form->input('perm_site_admin', array('type' => 'checkbox', 'checked' => false));?>
 		<?php echo $this->Form->input('perm_regexp_access', array('type' => 'checkbox', 'checked' => false));?>
 		<?php echo $this->Form->input('perm_tagger', array('type' => 'checkbox', 'checked' => false));?>
+		<?php echo $this->Form->input('perm_template', array('type' => 'checkbox', 'checked' => false));?>
 	</fieldset>
 <?php
 echo $this->Form->button('Add', array('class' => 'btn btn-primary'));

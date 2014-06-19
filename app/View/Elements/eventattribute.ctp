@@ -46,10 +46,13 @@
 	endif;
 ?>
 <div id="attributeList" class="attributeListContainer">
-	<div class="tabMenu noPrint">
-		<span id="create-button" class="icon-plus useCursorPointer" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>, '<?php echo $possibleAction; ?>');"></span>
-		<span id="multi-edit-button" class="icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
-		<span id="multi-delete-button" class = "icon-trash mass-select useCursorPointer" onClick="deleteSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+	<div class="tabMenu tabMenuEditBlock noPrint">
+		<span id="create-button" title="Add attribute" class="icon-plus useCursorPointer" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>, '<?php echo $possibleAction; ?>');"></span>
+		<span id="multi-edit-button" title="Edit selected" class="icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+		<span id="multi-delete-button" title="Delete selected" class = "icon-trash mass-select useCursorPointer" onClick="deleteSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+	</div>
+	<div class="tabMenu tabMenuToolsBlock noPrint">
+		<span id="create-button" title="Populate using a template" class="icon-list-alt useCursorPointer" onClick="getTemplateChoicePopup(<?php echo $event['Event']['id']; ?>);"></span>
 	</div>
 	<table class="table table-striped table-condensed">
 		<tr>

@@ -34,6 +34,11 @@
 							<li><a href="/tags/add">Add Tag</a></li>
 							<?php endif; ?>
 							<li class="divider"></li>
+							<li><a href="/templates/index">List Templates</a></li>
+							<?php if ($isAclTemplate): ?>
+							<li><a href="/templates/add">Add Template</a></li>
+							<?php endif; ?>
+							<li class="divider"></li>
 							<li><a href="/events/export">Export</a></li>
 							<?php if ($isAclAuth): ?>
 							<li><a href="/events/automation">Automation</a></li>

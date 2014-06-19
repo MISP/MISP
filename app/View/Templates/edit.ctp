@@ -4,7 +4,7 @@
 	echo $this->Form->create('Template');
 ?>
 	<fieldset>
-		<legend><?php echo __('Create Template'); ?></legend>
+		<legend><?php echo __('Edit Template'); ?></legend>
 	<?php
 		echo ($this->Form->input('name', array('div' => 'clear')));
 		echo ($this->Form->input('tags', array('id' => 'hiddenTags','div' => 'clear', 'label' => false, 'type' => 'text', 'value' => '[]', 'style' => 'display:none;')));
@@ -18,7 +18,7 @@
 							<span onClick="activateTagField()" id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;">+</span>
 						</td>
 						<td id = "addTagFieldTD">
-							<?php
+							<?
 								echo $this->Form->input('tagsPusher', array(
 									'div' => 'clear',
 									'id' => 'addTagField',
@@ -46,14 +46,21 @@
 		));
 	?>
 	</fieldset>
-<?php echo $this->Form->button(__('Create'), array('class' => 'btn btn-primary'));
+<?php echo $this->Form->button(__('Edit'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();?>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'templates', 'menuItem' => 'add'));
+	echo $this->element('side_menu', array('menuList' => 'templates', 'menuItem' => 'edit', 'id' => $id, 'mayModify' => $mayModify));
 ?>
 <script type="text/javascript">
-var selectedTags = [];
+var selectedTags = [
+	<?php 
+		foreach ($currentTags as $k => $t) {
+			if ($k != 0) echo ', ';
+			echo '"' . $t['Tag']['name'] . '"';
+		}
+	?>
+];
 var allTags = [
 	<?php 
 		foreach ($tagInfo as $tag) {
@@ -61,5 +68,10 @@ var allTags = [
 		}
 	?>
 ];
+$(document).ready( function () {
+	for (var i = 0, len = selectedTags.length; i < len; i++) {
+		appendTemplateTag(selectedTags[i], 'yes');
+	}
+});
 </script>
 <?php echo $this->Js->writeBuffer();

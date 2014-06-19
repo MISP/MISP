@@ -1,33 +1,7 @@
-function deleteObject2(type, id, event) {
-	var typeMessage, name, action;
-	if (type == 'attributes') {
-		action = 'delete';
-		typeMessage = 'Attribute';
-		name = '#Attribute' + '_' + id + '_delete';
-	}
-	if (type == 'shadow_attributes') {
-		action = 'discard';
-		typeMessage = 'Proposal';
-		name = '#ShadowAttribute' + '_' + id + '_delete';
-	}
-	if (confirm("Are you sure you want to delete " + typeMessage + " #" + id + "?")) {
-		var formData = $(name).serialize();
-		$.ajax({
-			data: formData, 
-			success:function (data, textStatus) {
-				updateIndex(event);
-				handleGenericAjaxResponse(data);
-			}, 
-			type:"post", 
-			cache: false,
-			url:"/" + type + "/" + action + "/" + id,
-		});
-	}	
-}
-
 function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
 	if (type == 'shadow_attributes') destination = 'shadow_attributes';
+	if (type == 'template_elements') destination = 'template_elements';
 	$.get( "/" + destination + "/" + action + "/" + id, function(data) {
 		$("#confirmation_box").fadeIn();
 		$("#gray_out").fadeIn();
@@ -41,13 +15,24 @@ function deleteObject(type, action, id, event) {
 	});
 }
 
+function editTemplateElement(type, id) {
+	$.get( "/template_elements/edit/" + type + "/" + id, function(data) {
+		$("#popover_form").fadeIn();
+		$("#gray_out").fadeIn();
+		$("#popover_form").html(data);
+
+	});
+}
+
 function cancelPrompt() {
 	$("#confirmation_box").fadeIn();
 	$("#gray_out").fadeOut();
 	$("#confirmation_box").empty();
 }
 
-function submitDeletion(event, action, type, id) {
+function submitDeletion(context_id, action, type, id) {
+	var context = 'event';
+	if (type == 'template_elements') context = 'template';
 	var formData = $('#PromptForm').serialize();
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
@@ -55,7 +40,7 @@ function submitDeletion(event, action, type, id) {
 		}, 
 		data: formData, 
 		success:function (data, textStatus) {
-			updateIndex(event);
+			updateIndex(context_id, context);
 			handleGenericAjaxResponse(data);
 		}, 
 		complete:function() {
@@ -75,7 +60,7 @@ function acceptObject(type, id, event) {
 	$.ajax({
 		data: formData, 
 		success:function (data, textStatus) {
-			updateIndex(event);
+			updateIndex(event, 'event');
 			handleGenericAjaxResponse(data);
 		}, 
 		type:"post", 
@@ -229,7 +214,7 @@ function submitForm(type, id, field, event) {
 		}, 
 		error:function() {
 			showMessage('fail', 'Request failed for an unknown reason.');
-			updateIndex(event);
+			updateIndex(event, 'event');
 		},
 		type:"post", 
 		url:"/" + object_type + "/editField/" + id
@@ -275,7 +260,7 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 		}
 	}
 	if (type == 'ShadowAttribute') {
-		updateIndex(event);
+		updateIndex(event, 'event');
 	}
 }
 
@@ -324,7 +309,7 @@ function deleteSelectedAttributes(event) {
 			type:"POST", 
 			url:"/attributes/deleteSelected/" + event,
 			success:function (data, textStatus) {
-				updateIndex(event);
+				updateIndex(event, 'event');
 				handleGenericAjaxResponse(data);
 			}, 
 		});
@@ -396,24 +381,55 @@ function clickCreateButton(event, type) {
 	});
 }
 
-function submitPopoverForm(context_id, referer) {
+function submitPopoverForm(context_id, referer, update_context_id) {
 	var url = null;
 	var context = 'event';
 	var contextNamingConvention = 'Attribute';
-	if (referer == 'add') url = "/attributes/add/" + context_id;
-	if (referer == 'propose') url = "/shadow_attributes/add/" + context_id;
-	if (referer == 'massEdit') url = "/attributes/editSelected/" + context_id;
-	if (referer == 'addTextElement') {
-		url = "/templateElements/templateElementAdd/text/" + context_id;
-		context = 'template';
-		contextNamingConvention = 'TemplateElementText';
+	switch (referer) {
+		case 'add': 
+			url = "/attributes/add/" + context_id;
+			break;
+		case 'propose':
+			url = "/shadow_attributes/add/" + context_id;
+			break;
+		case 'massEdit':
+			url = "/attributes/editSelected/" + context_id;
+			break;
+		case 'addTextElement':
+			url = "/templateElements/add/text/" + context_id;
+			context = 'template';
+			contextNamingConvention = 'TemplateElementText';
+			break;
+		case 'editTextElement':
+			url = "/templateElements/edit/text/" + context_id;
+			context = 'template';
+			context_id = update_context_id;
+			contextNamingConvention = 'TemplateElementText';
+			break;
+		case 'addAttributeElement':
+			url = "/templateElements/add/attribute/" + context_id;
+			context = 'template';
+			contextNamingConvention = 'TemplateElementAttribute';
+			break;
+		case 'editAttributeElement':
+			url = "/templateElements/edit/attribute/" + context_id;
+			context = 'template';
+			context_id = update_context_id;
+			contextNamingConvention = 'TemplateElementAttribute';
+			break;
+		case 'addFileElement':
+			url = "/templateElements/add/file/" + context_id;
+			context = 'template';
+			contextNamingConvention = 'TemplateElementFile';
+			break;
+		case 'editFileElement':
+			url = "/templateElements/edit/file/" + context_id;
+			context = 'template';
+			context_id = update_context_id;
+			contextNamingConvention = 'TemplateElementFile';
+			break;
 	}
-	if (referer == 'addAttributeElement') {
-		url = "/templateElements/templateElementAdd/attribute/" + context_id;
-		context = 'template';
-		referer = 'TemplateElementAttribute';
-		contextNamingConvention = 'TemplateElementAttribute';
-	}
+	
 	if (url !== null) {
 		$.ajax({
 			beforeSend: function (XMLHttpRequest) {
@@ -639,7 +655,7 @@ function templateAddElement(type, id) {
 		success:function (data, textStatus) {
 			$("#popover_form").html(data);
 		}, 
-		url:"/template_elements/templateElementAdd/" + type + "/" + id,
+		url:"/template_elements/add/" + type + "/" + id,
 	});
 }
 
@@ -709,4 +725,44 @@ function templateElementAttributeCategoryChange(category) {
 		populateTemplateTypeDropdown();
 	}
 	templateUpdateAvailableTypes();
+}
+
+function templateElementFileCategoryChange(category) {
+	if (category == '') {
+		$("#TemplateElementFileMalware")[0].disabled = true;
+		$("#TemplateElementFileMalware")[0].checked = false;
+	} else {
+		if (categoryArray[category].length == 2) {
+			$("#TemplateElementFileMalware")[0].disabled = false;
+			$("#TemplateElementFileMalware")[0].checked = true;
+		} else {
+			$("#TemplateElementFileMalware")[0].disabled = true;
+			if (categoryArray[category] == 'attachment') $("#TemplateElementFileMalware")[0].checked = false;
+			else $("#TemplateElementFileMalware")[0].checked = true;
+		}
+	}
+}
+
+function getTemplateChoicePopup(id) {
+	$("#gray_out").fadeIn();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		dataType:"html", 
+		cache: false,
+		success:function (data, textStatus) {
+			$(".loading").hide();
+			$("#popover_form").html(data);
+			$("#popover_form").fadeIn();
+		}, 
+		url:"/templates/templateChoices/" + id,
+	});
+}
+
+function resizePopoverBody() {
+	var bodyheight = $(window).height();
+	bodyheight = 3 * bodyheight / 4 - 150;
+	console.log(bodyheight);
+	$("#popover_choice_main").css({"max-height": bodyheight});
 }

@@ -26,7 +26,7 @@
 					<?php 
 						if (!empty($template['TemplateTag'])) {
 							foreach ($template['TemplateTag'] as $tag) {
-								echo $this->element('ajaxTemplateTag', array('tag' => $tag));
+								echo $this->element('ajaxTemplateTag', array('tag' => $tag, 'editable' => 'no'));
 							}
 						} else echo '&nbsp';
 					?>
@@ -48,10 +48,11 @@
 	</dl>
 	<div id="templateElements">
 	</div>
-	<div id="popover_form" class="ajax_popover_form">aaa</div>
+	<div id="popover_form" class="ajax_popover_form"></div>
+	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'roles'));
+	echo $this->element('side_menu', array('menuList' => 'templates', 'menuItem' => 'view', 'mayModify' => $mayModify));
 ?>
 <script type="text/javascript">
 $(document).ready( function () {

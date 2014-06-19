@@ -191,8 +191,24 @@
 					endif;
 					if ($menuItem === 'edit'): 
 					?>
-					<li class="active"><?php echo $this->Html->link('Search Logs', array('action' => 'edit'));?></li>
+					<li class="active"><?php echo $this->Html->link('Edit Tag', array('action' => 'edit'));?></li>
 					<?php 
+					endif;
+				break;	
+				
+				case 'templates': ?>
+					<li <?php if ($menuItem === 'index') echo 'class="active"';?>><a href="/templates/index">List Templates</a></li>
+					<?php if ($isSiteAdmin || $isAclTemplate): ?>
+					<li <?php if ($menuItem === 'add') echo 'class="active"';?>><a href="/templates/add">Add Template</a></li>
+					<?php 
+					endif;
+					if (($menuItem === 'view' || $menuItem === 'edit')): 
+					?>
+					<li <?php if ($menuItem === 'view') echo 'class="active"';?>><a href="/templates/view/<?php echo $id; ?>">View Template</a></li>
+					<?php if ($mayModify): ?>
+					<li <?php if ($menuItem === 'edit') echo 'class="active"';?>><a href="/templates/edit/<?php echo $id; ?>">Edit Template</a></li>
+					<?php
+					endif; 
 					endif;
 				break;	
 			}

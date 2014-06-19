@@ -6,7 +6,7 @@ App::uses('AppModel', 'Model');
  * TemplateElementAttribute Model
  *
 */
-class TemplateElementAttribute extends AppModel {
+class TemplateElementFile extends AppModel {
 	public $actsAs = array('Containable');
 	public $belongsTo = array('TemplateElement');
 	
@@ -20,12 +20,14 @@ class TemplateElementAttribute extends AppModel {
 				'message' => 'Please enter a Description',
 			),
 			'category' => array(
-				'rule'    => array('comparison', '!=', 'Select Category'),
-				'message' => 'Please choose a category.'
-			),
-			'type' => array(
-				'rule'    => array('comparison', '!=', 'Select Type'),
-				'message' => 'Please choose a type.'
+				'notDefault' => array(
+					'rule'    => array('comparison', '!=', 'Select Category'),
+					'message' => 'Please choose a category.'
+				),
+				'notEmpty' => array(
+					'rule' => 'notEmpty',
+					'message' => 'Please choose a category.'
+				)
 			),
 	);
 	public function beforeValidate($options = array()) {
