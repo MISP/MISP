@@ -43,7 +43,6 @@ class EventShell extends AppShell
 		$id = $this->args[2];
 		$this->Job->id = $id;
 		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
-		$results = array();
 		$result = array();
 		$eventCount = count($eventIds);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/xml');
@@ -53,8 +52,6 @@ class EventShell extends AppShell
 			$file = new File($dir->pwd() . DS . 'misp.xml' . '.' . $org . '.xml');
 		}
 		$file->write('<?xml version="1.0" encoding="UTF-8"?><response>');
-		App::uses('XMLTool', 'Tools');
-		$xmlTool = new XMLTool();
 		foreach ($eventIds as $k => $eventId) {
 			$temp = $this->Event->fetchEvent($eventId['Event']['id'], null, $org, $isSiteAdmin, $this->Job->id);
 			$result = $temp[0];
