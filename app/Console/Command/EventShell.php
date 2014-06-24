@@ -44,21 +44,24 @@ class EventShell extends AppShell
 		$this->Job->id = $id;
 		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
 		$results = array();
+		$result = array();
 		$eventCount = count($eventIds);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/xml');
+		if ($isSiteAdmin) {
+			$file = new File($dir->pwd() . DS . 'misp.xml' . '.ADMIN.xml');
+		} else {
+			$file = new File($dir->pwd() . DS . 'misp.xml' . '.' . $org . '.xml');
+		}
+		$file->write('<?xml version="1.0" encoding="UTF-8"?><response>');
+		App::uses('XMLTool', 'Tools');
+		$xmlTool = new XMLTool();
 		foreach ($eventIds as $k => $eventId) {
 			$temp = $this->Event->fetchEvent($eventId['Event']['id'], null, $org, $isSiteAdmin, $this->Job->id);
-			$results[$k] = $temp[0];
-			$this->Job->saveField('progress', ($k+1) / $eventCount * 80);
-		}
-
-		// Whitelist check
-		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
-		
-		foreach ($results as $k => $result) {
+			$result = $temp[0];
 			$result['Event']['Attribute'] = $result['Attribute'];
 			$result['Event']['ShadowAttribute'] = $result['ShadowAttribute'];
 			$result['Event']['RelatedEvent'] = $result['RelatedEvent'];
-		
+			
 			//
 			// cleanup the array from things we do not want to expose
 			//
@@ -80,7 +83,7 @@ class EventShell extends AppShell
 			foreach($result['Event']['ShadowAttribute'] as $key => $value) {
 				$result['Event']['ShadowAttribute'][$key]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['ShadowAttribute'][$key]['value']);
 			}
-		
+			
 			if (isset($result['Event']['RelatedEvent'])) {
 				foreach ($result['Event']['RelatedEvent'] as $key => $value) {
 					unset($result['Event']['RelatedEvent'][$key]['user_id']);
@@ -90,21 +93,17 @@ class EventShell extends AppShell
 					}
 				}
 			}
-			$xmlArray['response']['Event'][] = $result['Event'];
-			if ($k % 20 == 0) {
-				$this->Job->saveField('progress', (($k+1) / $eventCount * 10) + 79);
-			}
+			
+			$xmlArray['Event'] = $result['Event'];
+			$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
+
+			$string = $xmlObject->asXML();
+			$string = preg_replace('/<\?xml.+\?>/', '', $string);
+			$file->append($string);
+			$this->Job->saveField('progress', ($k+1) / $eventCount * 100);
 		}
-		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/xml');
-		if ($isSiteAdmin) {
-			$file = new File($dir->pwd() . DS . 'misp.xml' . '.ADMIN.xml');
-		} else {
-			$file = new File($dir->pwd() . DS . 'misp.xml' . '.' . $org . '.xml');
-		}
-		$file->write($xmlObject->asXML());
+		$file->append('</response>');
 		$file->close();
-		$this->Job->saveField('progress', '100');
 	}
 	
 	public function cachehids() {
