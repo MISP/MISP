@@ -22,7 +22,7 @@ foreach ($attributes as $item):?>
 endforeach;?>
 	</table>
 	<div style="float:left;">
-		<?php echo $this->Form->create('Template');?>
+		<?php echo $this->Form->create('Template', array('url' => '/templates/submitEventPopulation/' . $template_id . '/' . $event_id));?>
 			<fieldset>
 				<?php 
 					echo $this->Form->input('attributes', array(
@@ -44,12 +44,18 @@ endforeach;?>
 			<fieldset>
 				<?php 
 					foreach ($template['Template'] as $k => $v) {
+						if (strpos($k, 'ile_')) $v = serialize($v);
 						echo $this->Form->input($k, array(
 							'label' => false,
 							'type' => 'hidden',
 							'value' => $v,
 						));
 					}
+					echo $this->Form->input('modify', array(
+							'label' => false,
+							'type' => 'hidden',
+							'value' => true,
+					));
 				?>
 			</fieldset>
 		<?php

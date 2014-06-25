@@ -1,7 +1,6 @@
 <?php
 
 App::uses('AppController', 'Controller');
-App::uses('ComplexTypeTool', 'Tools');
 
 /**
  * Templates Controller
@@ -21,7 +20,7 @@ class TemplatesController extends AppController {
 
 	public function beforeFilter() { // TODO REMOVE
 		parent::beforeFilter();
-		$this->Security->unlockedActions = array('saveElementSorting');
+		$this->Security->unlockedActions = array('saveElementSorting', 'populateEventFromTemplate');
 	}
 	
 	public function fetchFormFromTemplate($id) {
@@ -209,7 +208,16 @@ class TemplatesController extends AppController {
 	}
 	
 	public function delete($id) {
-		
+		$template = $this->Template->checkAuthorisation($id, $this->Auth->user(), true);
+		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action can only be invoked via a post request.');
+		if (!$this->_isSiteAdmin() && !$template) throw new MethodNotAllowedException('No template with the provided ID exists, or you are not authorised to edit it.');
+		if ($this->Template->delete($id, true)) {
+			$this->Session->setFlash('Template deleted.');
+			$this->redirect(array('action' => 'index'));
+		} else {
+			$this->Session->setFlash('The template could not be deleted.');
+			$this->redirect(array('action' => 'index'));
+		}
 	}
 	
 
@@ -255,47 +263,53 @@ class TemplatesController extends AppController {
 			'recursive' => -1,
 			'fields' => array('id', 'orgc', 'distribution'),
 		));
+		
+		if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
+		if (empty($template)) throw new MethodNotAllowedException('Template not found or you are not authorised to edit it.');
+		
+		if (!$this->_isSiteAdmin()) {
+			if ($event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
+			if ($template['Template']['org'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');	
+		}
+		
+		$this->set('template_id', $template_id);
+		$this->set('event_id', $event_id);
 		if ($this->request->is('post')) {
-			if (!isset($this->request->data['Template']['attributes'])) {
-				$result = array();
-				$errors = array();
-				$attributes = array();
-				foreach ($template['TemplateElement'] as $element) {
-					if ($element['element_definition'] == 'attribute') {
-						$result = $this->_resolveElementAttribute($element['TemplateElementAttribute'][0], $this->request->data['Template']['value_' . $element['id']]);
-						if ($result['errors']) {
-							$errors[$element['id']] = $result['errors'];
-						} else {
-							foreach ($result['attributes'] as &$a) {
-								$a['event_id'] = $event_id;
-								$a['distribution'] = $event['Event']['distribution'];
-								$test = $this->Event->Attribute->checkForvalidationIssues(array('Attribute' => $a));
-								if ($test) {
-									foreach ($test['value'] as $e) {
-										$errors[$element['id']] = $e;
-									}
-								} else {
-									$attributes[] = $a;
-								}
-							}
-						}
-					} else if ($element['element_definition'] == 'file') {
-						//$result = $this->_resolveElementFile($element['TemplateElementFile'][0], $this->request->data['Template']['value_' . $element['id']]);
-					}
-				}
-				if (empty($errors)) {
-					$this->set('template', $this->request->data);
-					$this->set('attributes', $attributes);
-					$this->set('distributionLevels', $this->Event->distributionLevels);
-					$this->render('populate_event_from_template_attributes');
-				} else {
-					$this->set('template', $this->request->data);
-					$this->set('errors', $errors);
-					$this->set('templateData', $template);
-					$this->loadModel('Attribute');
-					$this->set('validTypeGroups', $this->Attribute->validTypeGroups);
-				}
+			$result = $this->Event->Attribute->checkTemplateAttributes($template, $this->request->data, $event_id, $event['Event']['distribution']);
+			$errors = $result['errors'];
+			$attributes = $result['attributes'];
+			
+			if (empty($errors) && empty($this->request->data['Template']['modify'])) {
+				$this->set('template', $this->request->data);
+				$this->set('attributes', $attributes);
+				$this->set('distributionLevels', $this->Event->distributionLevels);
+				$this->render('populate_event_from_template_attributes');
 			} else {
+				$this->set('template', $this->request->data);
+				$this->set('errors', $errors);
+				$this->set('templateData', $template);
+				$this->set('validTypeGroups', $this->Event->Attribute->validTypeGroups);
+			}
+		} else {
+			$this->set('templateData', $template);
+			$this->set('validTypeGroups', $this->Event->Attribute->validTypeGroups);
+		}
+	}
+	
+	public function submitEventPopulation($template_id, $event_id) {
+		if ($this->request->is('post')) {
+			$this->loadModel('Event');
+			$event = $this->Event->find('first', array(
+					'conditions' => array('id' => $event_id),
+					'recursive' => -1,
+					'fields' => array('id', 'orgc', 'distribution'),
+			));
+			if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
+			if (!$this->_isSiteAdmin()) {
+				if ($event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
+			}
+			
+			if (isset($this->request->data['Template']['attributes'])) {
 				$attributes = unserialize($this->request->data['Template']['attributes']);
 				$this->loadModel('Attribute');
 				$fails = 0;
@@ -303,77 +317,15 @@ class TemplatesController extends AppController {
 					$this->Attribute->create();
 					if (!$this->Attribute->save(array('Attribute' => $attribute))) $fails++;
 				}
-				if ($fails == 0) $this->Session->setFlash(__('Event populated, ' . $k . ' attributes successfully created.'));
+				$count = $k + 1;
+				if ($fails == 0) $this->Session->setFlash(__('Event populated, ' . $count . ' attributes successfully created.'));
 				else $this->Session->setFlash(__('Event populated, but ' . $fails . ' attributes could not be saved.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $event_id));
+			} else { 
+				throw new MethodNotAllowedException('No attributes submitted for creation.');
 			}
 		} else {
-			$this->set('templateData', $template);
-			$this->loadModel('Attribute');
-			$this->set('validTypeGroups', $this->Attribute->validTypeGroups);
+			throw new MethodNotAllowedException();
 		}
-	}
-	
-	private function _resolveElementAttribute($element, $value) {
-		$attributes = array();
-		$results = array();
-		$errors=null;
-		if (!empty($value)) {
-			if ($element['batch']) {
-				$values = explode("\n", $value);
-				foreach ($values as $v) {
-					$v = trim($v);
-					$attributes[] = $this->_createAttribute($element, $v);
-				}
-			} else {
-				$attributes[] = $this->_createAttribute($element, trim($value));
-			}
-			foreach ($attributes as $att) {
-				if (isset($att['multi'])) {
-					foreach ($att['multi'] as $a) {
-						$results[] = $a;
-					}
-				} else {
-					$results[] = $att;
-				}
-			}
-		} else {
-			if ($element['mandatory']) $errors = 'This field is mandatory.';
-		}
-		return array('attributes' => $results, 'errors' => $errors);
-	}
-	
-	private function _createAttribute($element, $value) {
-		$attribute = array(
-			'comment' => $element['name'],
-			'to_ids' => $element['to_ids'],
-			'category' => $element['category'],	
-			'value' => $value,
-		);
-		if ($element['complex']) {
-			$complexTypeTool = new ComplexTypeTool();
-			$result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type']));
-			if (isset($result['multi'])) {
-				$temp = $attribute;
-				$attribute = array();
-				foreach($result['multi'] as $k => $r) {
-					$attribute['multi'][] = $temp;
-					$attribute['multi'][$k]['type'] = $r['type'];
-					$attribute['multi'][$k]['value'] = $r['value'];
-				}
-			} else if ($result != false) {
-				$attribute['type'] = $result['type'];
-				$attribute['value'] = $result['value'];
-			} else {
-				return false;
-			}
-		} else {
-			$attribute['type'] = $element['type'];
-		}
-		return $attribute;
-	}
-	
-	private function _resolveElementFile($element, $value) {
-	
 	}
 }

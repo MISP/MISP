@@ -6,12 +6,6 @@ function deleteObject(type, action, id, event) {
 		$("#confirmation_box").fadeIn();
 		$("#gray_out").fadeIn();
 		$("#confirmation_box").html(data);
-		$(window).bind('keypress', function(e) {
-			var code = e.keyCode || e.which;
-			if (code == 13) {
-				submitDeletion(event, action, type, id);
-			}
-		});
 	});
 }
 
@@ -297,12 +291,13 @@ function deleteSelectedAttributes(event) {
 		var selected = [];
 		$(".select_attribute").each(function() {
 			if ($(this).is(":checked")) {
-				var test = $(this).data("id");
-				selected.push(test);
+				var temp= $(this).data("id");
+				selected.push(temp);
 			}
 		});
 		$('#AttributeIds').attr('value', JSON.stringify(selected));
 		var formData = $('#delete_selected').serialize();
+		console.log(formData);
 		$.ajax({
 			data: formData, 
 			cache: false,
@@ -765,4 +760,31 @@ function resizePopoverBody() {
 	bodyheight = 3 * bodyheight / 4 - 150;
 	console.log(bodyheight);
 	$("#popover_choice_main").css({"max-height": bodyheight});
+}
+
+
+function populateTemplateBindChangeEvent(name, filenameContainer, e, i, batch) {
+	$(name).change(
+		function(){
+			if (batch == 'yes') {
+				var files = $(this)[0].files;
+				 for (var i = 0; i < files.length; i++) {
+					 $(filenameContainer).append('<div class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + files[i].name + '</span><span class="tagSecondHalf useCursorPointer">x</span></div>');
+				    }
+				$(name).hide();
+				i++;
+				populateTemplateCreateFileUpload(e, i, batch);
+			} else {
+				$(filenameContainer).html('<span class="tagFirstHalf">' + $(this).val() + '<span class="icon-remove"></span></span>');
+			}
+	});
+}
+
+function populateTemplateCreateFileUpload(e, i, batch) {
+	if (batch == 'yes') {
+		$('#file_container_' + e).append('<input id="Template' + e + 'File' + i + '" type="file" name="data[Template][file_' + e + '][' + i + '][]" multiple="multiple">');
+	} else {
+		$('#file_container_' + e).append('<input id="Template' + e + 'File' + i + '" type="file" name="data[Template][file_' + e + '][' + i + '][]">');
+	}
+	populateTemplateBindChangeEvent('#Template' + e + 'File' + i, '#filenames_' + e, e, i, batch);
 }

@@ -1188,6 +1188,25 @@ a.proposal_link_red:hover {
 	font-weight:bold;
 }
 
+.template_file_box {
+	background-color:#0088cc;
+	color:white;
+	white-space:nowrap;
+}
+
+.template_file_box_container {
+	float:left;
+	padding:3px;
+}
+
+.drop {
+  min-height: 150px;
+  width: 250px;
+  border: 1px solid blue;
+  margin: 10px;
+  padding: 10px;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}

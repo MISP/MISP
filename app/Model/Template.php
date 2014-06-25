@@ -9,9 +9,12 @@ App::uses('AppModel', 'Model');
 class Template extends AppModel {
 	public $actsAs = array('Containable');
 	public $hasMany = array(
-		'TemplateTag', 
+		'TemplateTag' => array(
+			'dependent' => true,		
+		), 
 		'TemplateElement' => array(
-			'order' => 'TemplateElement.position'
+			'order' => 'TemplateElement.position',
+			'dependent' => true,
 		)
 	);
 	

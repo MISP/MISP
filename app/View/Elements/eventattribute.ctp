@@ -2,7 +2,6 @@
 	echo $this->Html->script('ajaxification');
 	$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 	$mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
-	if (!empty($eventArray)):
 	$pageCount = intval($objectCount / 50);
 	if ($objectCount%50 != 0) $pageCount++;
 	$possibleAction = 'Proposal';
@@ -45,6 +44,18 @@
 <?php 
 	endif;
 ?>
+<div id="edit_object_div">
+	<?php 
+		echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'action' => 'deleteSelected'));
+		echo $this->Form->input('ids', array(
+			'type' => 'text',
+			'value' => 'test',
+			'style' => 'display:none;',
+			'label' => false,
+		)); 
+		echo $this->Form->end();
+	?>
+</div>
 <div id="attributeList" class="attributeListContainer">
 	<div class="tabMenu tabMenuEditBlock noPrint">
 		<span id="create-button" title="Add attribute" class="icon-plus useCursorPointer" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>, '<?php echo $possibleAction; ?>');"></span>
@@ -56,7 +67,7 @@
 	</div>
 	<table class="table table-striped table-condensed">
 		<tr>
-			<?php if ($mayModify): ?>
+			<?php if ($mayModify && !empty($eventArray)): ?>
 				<th><input class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
 			<?php endif;?>
 			<th>Date</th>
@@ -111,22 +122,7 @@
 		<?php endif; ?>
 	</ul>
 </div>
-<?php
-	endif; 
-	?>
-	<div id="edit_object_div">
-		<?php 
-			echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'action' => 'deleteSelected'));
-			echo $this->Form->input('ids', array(
-				'type' => 'text',
-				'value' => 'test',
-				'style' => 'display:none;',
-				'label' => false,
-			)); 
-			echo $this->Form->end();
-		?>
-	</div>
-	<?php 
+<?php 
 	for ($j = 0; $j < 2; $j++) {
 		$side = 'a';
 		if ($j == 1) $side = 'b'; 
@@ -182,16 +178,16 @@
 			);
 	}
 	endif; 
-	?>
-		<script type="text/javascript">
-			$(document).ready(function(){
-				$('input:checkbox').removeAttr('checked');
-				$('.mass-select').hide();
-				$('input[type="checkbox"]').click(function(){
-					attributeListAnyCheckBoxesChecked();
-				});
-			});
-		</script>
-	<?php 
+?>
+<script type="text/javascript">
+	$(document).ready(function(){
+		$('input:checkbox').removeAttr('checked');
+		$('.mass-select').hide();
+		$('input[type="checkbox"]').click(function(){
+			attributeListAnyCheckBoxesChecked();
+		});
+	});
+</script>
+<?php 
 	echo $this->Js->writeBuffer();
 ?>

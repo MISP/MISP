@@ -1351,12 +1351,169 @@ class Attribute extends AppModel {
 	 	return $result;
 	 }
 	 
-	 public function checkForvalidationIssues($attribute) {
+	 public function checkForValidationIssues($attribute) {
 	 	$this->set($attribute);
 	 	if ($this->validates()) {
 	 		return false;
 	 	} else {
 	 		return $this->validationErrors;
 	 	}
+	 }
+	 
+	 
+	 public function checkTemplateAttributes($template, $data, $event_id, $distribution) {
+		 $result = array();
+		 $errors = array();
+		 $attributes = array();
+		 foreach ($template['TemplateElement'] as $element) {
+		 	if ($element['element_definition'] == 'attribute') {
+		 		$result = $this->__resolveElementAttribute($element['TemplateElementAttribute'][0], $data['Template']['value_' . $element['id']]);
+		 	} else if ($element['element_definition'] == 'file') {
+		 		$temp = array();
+		 		foreach ($data['Template']['file_' . $element['id']] as $fileArray) {
+		 			foreach ($fileArray as $k => $file) {
+		 				if (($file['name'] != '' && $file['size'] > 0) || ($k + 1 == count($fileArray))) {
+		 					$temp[] = $file;
+		 				}
+		 			}
+		 		}
+		 		$result = $this->__resolveElementFile($element['TemplateElementFile'][0], $temp);
+		 	}
+		 	if ($element['element_definition'] == 'file' || $element['element_definition'] == 'attribute') {
+		 		if ($result['errors']) {
+		 			$errors[$element['id']] = $result['errors'];
+		 		} else {
+		 			foreach ($result['attributes'] as &$a) {
+		 				$a['event_id'] = $event_id;
+		 				$a['distribution'] = $distribution;
+		 				$test = $this->checkForValidationIssues(array('Attribute' => $a));
+		 				if ($test) {
+		 					foreach ($test['value'] as $e) {
+		 						$errors[$element['id']] = $e;
+		 					}
+		 				} else {
+		 					$attributes[] = $a;
+		 				}
+		 			}
+		 		}
+			}
+		 }
+		 return array('attributes' => $attributes, 'errors' => $errors);
+	 }
+	 
+
+	 private function __resolveElementAttribute($element, $value) {
+	 	$attributes = array();
+	 	$results = array();
+	 	$errors=null;
+	 	if (!empty($value)) {
+	 		if ($element['batch']) {
+	 			$values = explode("\n", $value);
+	 			foreach ($values as $v) {
+	 				$v = trim($v);
+	 				$attributes[] = $this->__createAttribute($element, $v);
+	 			}
+	 		} else {
+	 			$attributes[] = $this->__createAttribute($element, trim($value));
+	 		}
+	 		foreach ($attributes as $att) {
+	 			if (isset($att['multi'])) {
+	 				foreach ($att['multi'] as $a) {
+	 					$results[] = $a;
+	 				}
+	 			} else {
+	 				$results[] = $att;
+	 			}
+	 		}
+	 	} else {
+	 		if ($element['mandatory']) $errors = 'This field is mandatory.';
+	 	}
+	 	return array('attributes' => $results, 'errors' => $errors);
+	 }
+	 
+	 private function __resolveElementFile($element, $value) {
+	 	$attributes = array();
+	 	$errors = null;
+	 	$results = array();
+	 	$count = count($value);
+	 	$element['complex'] = false;
+	 	if ($element['malware']) {
+	 		$element['type'] = 'malware-sample';
+	 		$element['to_ids'] = true;
+	 	} else {
+	 		$element['type'] = 'attachment';
+	 		$element['to_ids'] = false;
+	 	}
+	 	if ($count == 1 && $value[0]['size'] == 0) {
+	 		if ($element['mandatory']) $errors = 'This field is mandatory.';
+	 	} else {
+	 		if ($count > 1) unset($value[$count-1]);
+	 		foreach ($value as $v) {
+	 			if (!($v['size'] > 0 && $v['error'] == 0)) {
+	 				$errors = 'File upload failed or the file was empty.';
+	 			} else if (!preg_match('@^[\w\-. ]+$@', $v['name'])) {
+	 				$errors = 'Filename not allowed.';
+	 			} else  {
+		 			if ($element['malware']) {
+		 				$malwareName = $v['name'] . '|' . hash_file('md5', $v['tmp_name']);
+		 				$attributes[] = $this->__createAttribute($element, $malwareName);
+		 				$file = new File($v['tmp_name']);
+		 				if (!$file->exists()) {
+		 					$errors = 'File cannot be read.';
+		 				} else {
+			 				$content = $file->read();
+			 				$attributes[count($attributes) - 1]['data'] = base64_encode($content);
+			 				$element['type'] = 'filename|sha256';
+			 				$sha256 = $v['name'] . '|' . (hash_file('sha256', $v['tmp_name']));
+			 				$attributes[] = $this->__createAttribute($element, $sha256);
+			 				$element['type'] = 'filename|sha1';
+			 				$sha1 = $v['name'] . '|' . (hash_file('sha1', $v['tmp_name']));
+			 				$attributes[] = $this->__createAttribute($element, $sha1);
+		 				}
+		 			} else {
+		 				$attributes[] = $this->__createAttribute($element, $v['name']);
+		 				$file = new File($v['tmp_name']);
+		 				if (!$file->exists()) {
+		 					$errors = 'File cannot be read.';
+		 				} else {
+		 					$content = $file->read();
+		 					$attributes[count($attributes) - 1]['data'] = base64_encode($content);
+		 				}
+		 			}
+	 			}
+	 		}
+	 	}
+	 	return array('attributes' => $attributes, 'errors' => $errors);
+	 }
+	 
+	 private function __createAttribute($element, $value) {
+	 	$attribute = array(
+	 			'comment' => $element['name'],
+	 			'to_ids' => $element['to_ids'],
+	 			'category' => $element['category'],
+	 			'value' => $value,
+	 	);
+	 	if ($element['complex']) {
+	 		App::uses('ComplexTypeTool', 'Tools');
+	 		$complexTypeTool = new ComplexTypeTool();
+	 		$result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type']));
+	 		if (isset($result['multi'])) {
+	 			$temp = $attribute;
+	 			$attribute = array();
+	 			foreach($result['multi'] as $k => $r) {
+	 				$attribute['multi'][] = $temp;
+	 				$attribute['multi'][$k]['type'] = $r['type'];
+	 				$attribute['multi'][$k]['value'] = $r['value'];
+	 			}
+	 		} else if ($result != false) {
+	 			$attribute['type'] = $result['type'];
+	 			$attribute['value'] = $result['value'];
+	 		} else {
+	 			return false;
+	 		}
+	 	} else {
+	 		$attribute['type'] = $element['type'];
+	 	}
+	 	return $attribute;
 	 }
 }

@@ -8,7 +8,17 @@ App::uses('AppModel', 'Model');
 */
 class TemplateElement extends AppModel {
 	public $actsAs = array('Containable');
-	public $hasMany = array('TemplateElementAttribute', 'TemplateElementText', 'TemplateElementFile');
+	public $hasMany = array(
+		'TemplateElementAttribute' => array(
+			'dependent' => true
+		), 
+		'TemplateElementText' => array(
+			'dependent' => true
+		), 		
+		'TemplateElementFile' => array(
+			'dependent' => true
+		)
+	);
 	public $belongsTo = array('Template');
 	
 	public function lastPosition($template_id) {
