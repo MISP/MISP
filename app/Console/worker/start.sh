@@ -1,4 +1,5 @@
 #!/bin/bash
+cd "${0%/*}"
 ../cake CakeResque.CakeResque stop --all
 ../cake CakeResque.CakeResque start --interval 5 --queue default
 ../cake CakeResque.CakeResque start --interval 5 --queue cache
