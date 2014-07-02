@@ -56,6 +56,16 @@ endforeach;?>
 							'type' => 'hidden',
 							'value' => true,
 					));
+					echo $this->Form->input('errors', array(
+							'label' => false,
+							'type' => 'hidden',
+							'value' => serialize($errors),
+					));
+					echo $this->Form->input('fileArray', array(
+							'label' => false,
+							'type' => 'hidden',
+							'value' => $fileArray,
+					));
 				?>
 			</fieldset>
 		<?php

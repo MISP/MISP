@@ -1,6 +1,8 @@
 <?php
 
 App::uses('AppController', 'Controller');
+App::uses('Folder', 'Utility');
+App::uses('File', 'Utility');
 
 /**
  * Templates Controller
@@ -20,7 +22,7 @@ class TemplatesController extends AppController {
 
 	public function beforeFilter() { // TODO REMOVE
 		parent::beforeFilter();
-		$this->Security->unlockedActions = array('saveElementSorting', 'populateEventFromTemplate');
+		$this->Security->unlockedActions = array('saveElementSorting', 'populateEventFromTemplate', 'uploadFile', 'deleteTemporaryFile');
 	}
 	
 	public function fetchFormFromTemplate($id) {
@@ -275,20 +277,22 @@ class TemplatesController extends AppController {
 		$this->set('template_id', $template_id);
 		$this->set('event_id', $event_id);
 		if ($this->request->is('post')) {
+			$errors = array();
+			$this->set('template', $this->request->data);
 			$result = $this->Event->Attribute->checkTemplateAttributes($template, $this->request->data, $event_id, $event['Event']['distribution']);
-			$errors = $result['errors'];
-			$attributes = $result['attributes'];
-			
-			if (empty($errors) && empty($this->request->data['Template']['modify'])) {
-				$this->set('template', $this->request->data);
-				$this->set('attributes', $attributes);
-				$this->set('distributionLevels', $this->Event->distributionLevels);
-				$this->render('populate_event_from_template_attributes');
-			} else {
-				$this->set('template', $this->request->data);
-				$this->set('errors', $errors);
+			if (isset($this->request->data['Template']['modify']) || !empty($result['errors'])) {
+				$fileArray = $this->request->data['Template']['fileArray'];
+				$this->set('fileArray', $fileArray);
+				$this->set('errors', $result['errors']);
 				$this->set('templateData', $template);
 				$this->set('validTypeGroups', $this->Event->Attribute->validTypeGroups);
+			} else {
+				$this->set('errors', $result['errors']);
+				$this->set('attributes', $result['attributes']);
+				$fileArray = $this->request->data['Template']['fileArray'];
+				$this->set('fileArray', $fileArray);
+				$this->set('distributionLevels', $this->Event->distributionLevels);
+				$this->render('populate_event_from_template_attributes');
 			}
 		} else {
 			$this->set('templateData', $template);
@@ -303,17 +307,42 @@ class TemplatesController extends AppController {
 					'conditions' => array('id' => $event_id),
 					'recursive' => -1,
 					'fields' => array('id', 'orgc', 'distribution'),
+					'contain' => 'EventTag',
 			));
 			if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 			if (!$this->_isSiteAdmin()) {
 				if ($event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
+			}
+
+			$template = $this->Template->find('first', array(
+					'id' => $template_id,
+					'recursive' => -1,
+					'contain' => 'TemplateTag',
+					'fields' => 'id',
+			));
+			
+			foreach ($template['TemplateTag'] as $tag) {
+				$exists = false;
+				foreach ($event['EventTag'] as $eventTag) {
+					if ($eventTag['tag_id'] == $tag['tag_id']) $exists = true;
+				}
+				if (!$exists) {
+					$this->Event->EventTag->create();
+					$this->Event->EventTag->save(array('event_id' => $event_id, 'tag_id' => $tag['tag_id']));
+				}
 			}
 			
 			if (isset($this->request->data['Template']['attributes'])) {
 				$attributes = unserialize($this->request->data['Template']['attributes']);
 				$this->loadModel('Attribute');
 				$fails = 0;
-				foreach($attributes as $k => $attribute) {
+				foreach($attributes as $k => &$attribute) {
+					if (isset($attribute['data'])) {
+						$file = new File(APP . 'tmp/files/' . $attribute['data']);
+						$content = $file->read();
+						$attribute['data'] = base64_encode($content);
+						$file->delete();
+					}
 					$this->Attribute->create();
 					if (!$this->Attribute->save(array('Attribute' => $attribute))) $fails++;
 				}
@@ -326,6 +355,67 @@ class TemplatesController extends AppController {
 			}
 		} else {
 			throw new MethodNotAllowedException();
+		}
+	}
+	
+	public function uploadFile($elementId, $batch) {
+		$this->layout = 'iframe';
+		$this->set('batch', $batch);
+		$this->set('element_id', $elementId);
+		if ($this->request->is('get')) {
+			$this->set('element_id', $elementId);
+		} else if ($this->request->is('post')) {
+			$fileArray = array();
+			$filenames = array();
+			$tmp_names = array();
+			$element_ids = array();
+			$result = array();
+			$added = 0;
+			$failed = 0;
+			// filename checks
+			foreach ($this->request->data['Template']['file'] as $k => $file) {
+				if ($file['size'] > 0 && $file['error'] == 0) {
+					if (preg_match('@^[\w\-. ]+$@', $file['name'])) {
+						$fn = $this->Template->generateRandomFileName();
+						move_uploaded_file($file['tmp_name'], APP . 'tmp/files/' . $fn);
+						$filenames[] =$file['name'];
+						$fileArray[] = array('filename' => $file['name'], 'tmp_name' => $fn, 'element_id' => $elementId);
+						$added++;
+					} else $failed++;
+				} else $failed ++;
+			}
+			$result = $added . ' files uploaded.';
+			if ($failed) {
+				$result .= ' ' . $failed . ' files either failed to upload, or were empty.';
+				$this->set('upload_error', true);
+			} else {
+				$this->set('upload_error', false);
+			}
+			
+			$this->set('result', $result);
+			$this->set('filenames', $filenames);
+			$this->set('fileArray', json_encode($fileArray));
+		}
+	}
+	
+	private function __combineArrays($array, $array2) {
+		foreach ($array2 as $element) {
+			if (!in_array($element, $array)) {
+				$array[] = $element;
+			}
+		}
+		return $array;
+	}
+
+	public function deleteTemporaryFile($filename) {
+		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is restricted to accepting POST requests only.');
+		//if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible through AJAX.');
+		$this->autoRender = false;
+		if (preg_match('/^[a-zA-Z0-9]{12}$/', $filename)) {
+			$file = new File(APP . 'tmp/files/' . $filename);
+			if ($file->exists()) {
+				$file->delete();
+			}
 		}
 	}
 }

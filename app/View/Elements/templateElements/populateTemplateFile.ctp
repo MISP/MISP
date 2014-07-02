@@ -1,25 +1,30 @@
-<?php //debug($element_id); ?>
 <div id="populate_template_info" class="templateTableRow templateTableRow80">
 	<div class="templateElementHeader" style="width:100%; position:relative;">
 		<div class="templateGlass"></div>
-		<div class ="templateElementHeaderText"><?php echo h($element['name']); ?></div>
+		<div class ="templateElementHeaderText">
+			<?php echo h($element['name']);
+			if ($element['mandatory']): ?>
+				<span class="template_mandatory">(*)</span>
+			<?php endif;?>
+		</div>
 	</div>
 	<div id="populate_template_info_body" class="populate_template_div_body">
 		<div class="left">Description:</div>
 		<div class="right"><?php echo h($element['description']); ?></div><br />
-		<div class="left">File<?php if ($element['batch']) echo 's'?>:</div>
-		<div class="right" id ="filenames_<?php echo $element_id; ?>">&nbsp;</div><br />
+		<div class="left" style="height:26px;">File<?php if ($element['batch']) echo 's'?>:</div>
+		<div class="right" id ="filenames_<?php echo $element_id; ?>" style="height:26px;">
+			&nbsp;
+		</div><br />
 		<div class="input file" id="file_container_<?php echo $element_id;?>">
+		</div>
+		<iframe id="iframe_<?php echo $element_id; ?>" src="/templates/uploadFile/<?php echo $element_id; ?>/<?php echo ($element['batch'] ? 'yes' : 'no'); ?>" style="border:0px;height:30px;width:100%;overflow:hidden;" scrolling="no"></iframe>
+		<div class="error-message populateTemplateErrorField" <?php if(!isset($errors[$element_id])) echo 'style="display:none;"';?>>
+			<?php echo 'Error: ' . $errors[$element_id]; ?>
 		</div>
 	</div>
 </div>
 <script type="text/javascript">
-var i_<?php echo $element_id; ?> = 0;
-var element_id_<?php echo $element_id; ?> = <?php echo $element_id; ?>;
-var batch_<?php echo $element_id; ?> = "<?php echo ($element['batch'] ? 'yes' : 'no'); ?>"; 
-
-$(document).ready(function() {
-	populateTemplateCreateFileUpload(element_id_<?php echo $element_id; ?>, i_<?php echo $element_id; ?>, batch_<?php echo $element_id; ?>);
-}); 
-
+	var i_<?php echo $element_id; ?> = 0;
+	var element_id_<?php echo $element_id; ?> = <?php echo $element_id; ?>;
+	var batch_<?php echo $element_id; ?> = "<?php echo ($element['batch'] ? 'yes' : 'no'); ?>";
 </script>

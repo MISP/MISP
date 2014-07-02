@@ -1361,23 +1361,27 @@ class Attribute extends AppModel {
 	 }
 	 
 	 
-	 public function checkTemplateAttributes($template, $data, $event_id, $distribution) {
+	 public function checkTemplateAttributes($template, &$data, $event_id, $distribution) {
 		 $result = array();
 		 $errors = array();
 		 $attributes = array();
+		 $files = array();
+		 $savedFiles = array();
+		 if (isset($data['Template']['fileArray'])) $fileArray = json_decode($data['Template']['fileArray'], true);
 		 foreach ($template['TemplateElement'] as $element) {
 		 	if ($element['element_definition'] == 'attribute') {
 		 		$result = $this->__resolveElementAttribute($element['TemplateElementAttribute'][0], $data['Template']['value_' . $element['id']]);
 		 	} else if ($element['element_definition'] == 'file') {
 		 		$temp = array();
-		 		foreach ($data['Template']['file_' . $element['id']] as $fileArray) {
-		 			foreach ($fileArray as $k => $file) {
-		 				if (($file['name'] != '' && $file['size'] > 0) || ($k + 1 == count($fileArray))) {
-		 					$temp[] = $file;
-		 				}
-		 			}
+		 		if (isset($fileArray)) {
+			 		foreach ($fileArray as $fileArrayElement) {
+			 			if ($fileArrayElement['element_id'] == $element['id']) {
+			 				$temp[] = $fileArrayElement;
+			 			}
+			 		}
 		 		}
 		 		$result = $this->__resolveElementFile($element['TemplateElementFile'][0], $temp);
+		 		if ($element['TemplateElementFile'][0]['mandatory'] && empty($temp) && empty($errors[$element['id']])) $errors[$element['id']] = 'Error: This field is mandatory.';
 		 	}
 		 	if ($element['element_definition'] == 'file' || $element['element_definition'] == 'attribute') {
 		 		if ($result['errors']) {
@@ -1431,11 +1435,11 @@ class Attribute extends AppModel {
 	 	return array('attributes' => $results, 'errors' => $errors);
 	 }
 	 
-	 private function __resolveElementFile($element, $value) {
+	 private function __resolveElementFile($element, $files) {
 	 	$attributes = array();
 	 	$errors = null;
 	 	$results = array();
-	 	$count = count($value);
+	 	$count = count($files);
 	 	$element['complex'] = false;
 	 	if ($element['malware']) {
 	 		$element['type'] = 'malware-sample';
@@ -1444,48 +1448,41 @@ class Attribute extends AppModel {
 	 		$element['type'] = 'attachment';
 	 		$element['to_ids'] = false;
 	 	}
-	 	if ($count == 1 && $value[0]['size'] == 0) {
-	 		if ($element['mandatory']) $errors = 'This field is mandatory.';
-	 	} else {
-	 		if ($count > 1) unset($value[$count-1]);
-	 		foreach ($value as $v) {
-	 			if (!($v['size'] > 0 && $v['error'] == 0)) {
-	 				$errors = 'File upload failed or the file was empty.';
-	 			} else if (!preg_match('@^[\w\-. ]+$@', $v['name'])) {
-	 				$errors = 'Filename not allowed.';
-	 			} else  {
-		 			if ($element['malware']) {
-		 				$malwareName = $v['name'] . '|' . hash_file('md5', $v['tmp_name']);
-		 				$attributes[] = $this->__createAttribute($element, $malwareName);
-		 				$file = new File($v['tmp_name']);
-		 				if (!$file->exists()) {
-		 					$errors = 'File cannot be read.';
-		 				} else {
-			 				$content = $file->read();
-			 				$attributes[count($attributes) - 1]['data'] = base64_encode($content);
-			 				$element['type'] = 'filename|sha256';
-			 				$sha256 = $v['name'] . '|' . (hash_file('sha256', $v['tmp_name']));
-			 				$attributes[] = $this->__createAttribute($element, $sha256);
-			 				$element['type'] = 'filename|sha1';
-			 				$sha1 = $v['name'] . '|' . (hash_file('sha1', $v['tmp_name']));
-			 				$attributes[] = $this->__createAttribute($element, $sha1);
-		 				}
-		 			} else {
-		 				$attributes[] = $this->__createAttribute($element, $v['name']);
-		 				$file = new File($v['tmp_name']);
-		 				if (!$file->exists()) {
-		 					$errors = 'File cannot be read.';
-		 				} else {
-		 					$content = $file->read();
-		 					$attributes[count($attributes) - 1]['data'] = base64_encode($content);
-		 				}
-		 			}
-	 			}
-	 		}
+	 	foreach ($files as $file) {	
+ 			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) {
+ 				$errors = 'Filename not allowed.';
+ 				continue;
+ 			}
+ 			if ($element['malware']) {
+ 				$malwareName = $file['filename'] . '|' . hash_file('md5', APP . 'tmp/files/' . $file['tmp_name']);
+ 				$tmp_file = new File(APP . 'tmp/files/' . $file['tmp_name']);
+ 				if (!$tmp_file->exists()) {
+ 					$errors = 'File cannot be read.';
+ 				} else {
+ 					$attributes[] = $this->__createAttribute($element, $malwareName);
+	 				$content = $tmp_file->read();
+	 				$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];
+	 				$element['type'] = 'filename|sha256';
+	 				$sha256 = $file['filename'] . '|' . (hash_file('sha256', APP . 'tmp/files/' . $file['tmp_name']));
+	 				$attributes[] = $this->__createAttribute($element, $sha256);
+	 				$element['type'] = 'filename|sha1';
+	 				$sha1 = $file['filename'] . '|' . (hash_file('sha1', APP . 'tmp/files/' . $file['tmp_name']));
+	 				$attributes[] = $this->__createAttribute($element, $sha1);
+ 				}
+ 			} else {
+ 				$attributes[] = $this->__createAttribute($element, $file['filename']);
+ 				$tmp_file = new File(APP . 'tmp/files/' . $file['tmp_name']);
+ 				if (!$tmp_file->exists()) {
+				$errors = 'File cannot be read.';
+ 				} else {
+ 					$content = $tmp_file->read();
+ 					$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];
+ 				}
+ 			}
 	 	}
-	 	return array('attributes' => $attributes, 'errors' => $errors);
+	 	return array('attributes' => $attributes, 'errors' => $errors, 'files' => $files);
 	 }
-	 
+
 	 private function __createAttribute($element, $value) {
 	 	$attribute = array(
 	 			'comment' => $element['name'],

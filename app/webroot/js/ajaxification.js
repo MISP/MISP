@@ -297,7 +297,6 @@ function deleteSelectedAttributes(event) {
 		});
 		$('#AttributeIds').attr('value', JSON.stringify(selected));
 		var formData = $('#delete_selected').serialize();
-		console.log(formData);
 		$.ajax({
 			data: formData, 
 			cache: false,
@@ -503,7 +502,6 @@ function recoverValuesFromPersistance(formPersistanceArray) {
 function handleValidationErrors(responseArray, context, contextNamingConvention) {
 	for (var k in responseArray) {
 		var elementName = k.charAt(0).toUpperCase() + k.slice(1);
-		console.log("#" + contextNamingConvention + elementName);
 		$("#" + contextNamingConvention + elementName).parent().addClass("error");
 		$("#" + contextNamingConvention + elementName).parent().append("<div class=\"error-message\">" + responseArray[k] + "</div>");
 	}
@@ -536,7 +534,13 @@ function updateHistogram(selected) {
 	});
 }
 
-function showMessage(success, message) {
+function showMessage(success, message, context) {
+	if (typeof context !== "undefined") {
+		$("#ajax_" + success, window.parent.document).html(message);
+		var duration = 1000 + (message.length * 40);
+		$("#ajax_" + success + "_container", window.parent.document).fadeIn("slow");
+		$("#ajax_" + success + "_container", window.parent.document).delay(duration).fadeOut("slow");
+	}
 	$("#ajax_" + success).html(message);
 	var duration = 1000 + (message.length * 40);
 	$("#ajax_" + success + "_container").fadeIn("slow");
@@ -758,33 +762,97 @@ function getTemplateChoicePopup(id) {
 function resizePopoverBody() {
 	var bodyheight = $(window).height();
 	bodyheight = 3 * bodyheight / 4 - 150;
-	console.log(bodyheight);
 	$("#popover_choice_main").css({"max-height": bodyheight});
 }
 
+function populateTemplateHiddenFileDiv(files) {
+	$('#TemplateFileArray').val(JSON.stringify(files));
+}
 
-function populateTemplateBindChangeEvent(name, filenameContainer, e, i, batch) {
-	$(name).change(
-		function(){
-			if (batch == 'yes') {
-				var files = $(this)[0].files;
-				 for (var i = 0; i < files.length; i++) {
-					 $(filenameContainer).append('<div class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + files[i].name + '</span><span class="tagSecondHalf useCursorPointer">x</span></div>');
-				    }
-				$(name).hide();
-				i++;
-				populateTemplateCreateFileUpload(e, i, batch);
-			} else {
-				$(filenameContainer).html('<span class="tagFirstHalf">' + $(this).val() + '<span class="icon-remove"></span></span>');
-			}
+function populateTemplateFileBubbles() {
+	var fileObjectArray = JSON.parse($('#TemplateFileArray').val());
+	fileObjectArray.forEach(function(entry) {
+		templateAddFileBubble(entry.element_id, false, entry.filename, entry.tmp_name, 'yes');
 	});
 }
 
-function populateTemplateCreateFileUpload(e, i, batch) {
-	if (batch == 'yes') {
-		$('#file_container_' + e).append('<input id="Template' + e + 'File' + i + '" type="file" name="data[Template][file_' + e + '][' + i + '][]" multiple="multiple">');
-	} else {
-		$('#file_container_' + e).append('<input id="Template' + e + 'File' + i + '" type="file" name="data[Template][file_' + e + '][' + i + '][]">');
+function templateFileHiddenAdd(files, element_id, batch) {
+	var fileArray = $.parseJSON($('#TemplateFileArray', window.parent.document).val());
+	var contained = false;
+	for (var j=0; j< files.length; j++) {
+		for (var i=0; i< fileArray.length; i++) {
+			if (fileArray[i].filename == files[j].filename) {
+				contained = true;
+			}
+			if (batch == 'no' && fileArray[i].element_id == element_id) {
+				templateDeleteFileBubble(fileArray[i].filename, fileArray[i].tmp_name, fileArray[i].element_id, 'iframe', batch);
+				contained = false;
+				var removeId = i;
+			}
+		}
+		if (batch == 'no') fileArray.splice(removeId, 1);
+		if (contained == false) {
+			fileArray.push(files[j]);
+			templateAddFileBubble(element_id, true, files[j].filename, files[j].tmp_name, batch);
+			$('#TemplateFileArray', window.parent.document).val(JSON.stringify(fileArray));
+		}
 	}
-	populateTemplateBindChangeEvent('#Template' + e + 'File' + i, '#filenames_' + e, e, i, batch);
+}
+
+function templateAddFileBubble(element_id, iframe, filename, tmp_name, batch) {
+	if (batch == 'no') {
+		if (iframe == true) {
+			$('#filenames_' + element_id, window.parent.document).html('<div id ="' + tmp_name + '_container" class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + filename + '</span><span onClick="templateDeleteFileBubble(\'' + filename + '\', \'' + tmp_name + '\', \'' + element_id + '\', \'normal\', \'no\');" class="tagSecondHalf useCursorPointer">x</span></div>');
+		} else {
+			$('#filenames_' + element_id).html('<div id ="' + tmp_name + '_container" class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + filename + '</span><span onClick="templateDeleteFileBubble(\'' + filename + '\', \'' + tmp_name + '\', \'' + element_id + '\', \'normal\', \'no\');" class="tagSecondHalf useCursorPointer">x</span></div>');
+		}
+	} else {
+		if (iframe == true) {
+			$('#filenames_' + element_id, window.parent.document).append('<div id ="' + tmp_name + '_container" class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + filename + '</span><span onClick="templateDeleteFileBubble(\'' + filename + '\', \'' + tmp_name + '\', \'' + element_id + '\', \'normal\', \'yes\');" class="tagSecondHalf useCursorPointer">x</span></div>');
+		} else {
+			$('#filenames_' + element_id).append('<div id ="' + tmp_name + '_container" class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + filename + '</span><span onClick="templateDeleteFileBubble(\'' + filename + '\', \'' + tmp_name + '\', \'' + element_id + '\', \'normal\', \'yes\');" class="tagSecondHalf useCursorPointer">x</span></div>');
+		}
+	}
+}
+
+function templateDeleteFileBubble(filename, tmp_name, element_id, context, batch) {
+	$(".loading").show();
+	$.ajax({
+		type:"post", 
+		cache: false,
+		url:"/templates/deleteTemporaryFile/" + tmp_name,
+	});
+	var c = this;
+	if (context == 'iframe') {
+		$('#' + tmp_name + '_container', window.parent.document).remove();
+		var oldArray = JSON.parse($('#TemplateFileArray', window.parent.document).val());
+	} else {
+		$('#' + tmp_name + '_container').remove();
+		var oldArray = JSON.parse($('#TemplateFileArray').val());
+	}
+	var newArray = [];
+	oldArray.forEach(function(entry) {
+		if (batch == 'no') {
+			if (entry.element_id != element_id) {
+				newArray.push(entry);
+			}
+		} else {
+			if (entry.tmp_name != tmp_name) {
+				newArray.push(entry);
+			}
+		}
+	}); 
+	if (batch == 'no') {
+		$('#fileUploadButton_' + element_id, $('#iframe_' + element_id).contents()).html('Upload File');
+	}
+	if (context == 'iframe') {
+		$('#TemplateFileArray', window.parent.document).val(JSON.stringify(newArray));
+	} else {
+		$('#TemplateFileArray').val(JSON.stringify(newArray));
+	}
+	$(".loading").hide();
+}
+	
+function templateFileUploadTriggerBrowse(id) {
+	$('#upload_' + id + '_file').click();
 }

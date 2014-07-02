@@ -11,6 +11,11 @@
 			foreach ($templateData['TemplateElement'] as $k => $element) {
 				echo $this->element('templateElements/populateTemplate' . ucfirst($element['element_definition']), array('element' => $element['TemplateElement' . ucfirst($element['element_definition'])][0], 'k' => $k, 'element_id' => $element['id'], 'value' => ''));
 			}
+			echo $this->Form->input('fileArray', array(
+				'label' => false,
+				'style' => 'display:none;',
+				'value' => '[]',
+			));
 		?>
 	</fieldset>
 <?php
@@ -18,3 +23,11 @@ echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
+<script type="text/javascript">
+$(document).ready(function() {
+	<?php if (isset($fileArray)): ?>
+		populateTemplateHiddenFileDiv(<?php echo $fileArray; ?>);
+	<?php endif; ?>
+	populateTemplateFileBubbles();
+}); 
+</script>

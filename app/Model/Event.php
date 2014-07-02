@@ -1150,45 +1150,46 @@ class Event extends AppModel {
 			// But only do this if it is allowed in the bootstrap.php file.
 			//
 			if ($eventIsPrivate) {
-			$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "", 'User.org =' => $event['Event']['org']);
+				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "", 'User.org =' => $event['Event']['org']);
 			} else {
-			$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "");
+				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "");
 			}
-				if ('false' == Configure::read('GnuPG.onlyencrypted')) {
-					$alertUsers = $this->User->find('all', array(
-							'conditions' => $conditions,
-							'recursive' => 0,
-					));
-					$max = count($alertUsers);
-					foreach ($alertUsers as $k => &$user) {
-					// prepare the the unencrypted email
-						$Email = new CakeEmail();
-						$Email->from(Configure::read('MISP.email'));
-						$Email->to($user['User']['email']);
-						$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
-						$Email->emailFormat('text');	// both text or html
-						// send it
-						$Email->send($bodySigned);
-						$Email->reset();
-						if ($processId) {
-							$this->Job->id = $processId;
-							$this->Job->saveField('progress', $k / $max * 50);
-						}
+			if ('false' == Configure::read('GnuPG.onlyencrypted')) {
+				$alertUsers = $this->User->find('all', array(
+						'conditions' => $conditions,
+						'recursive' => 0,
+				));
+				$max = count($alertUsers);
+				foreach ($alertUsers as $k => &$user) {
+				// prepare the the unencrypted email
+					$Email = new CakeEmail();
+					$Email->from(Configure::read('MISP.email'));
+					$Email->to($user['User']['email']);
+					$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
+					$Email->emailFormat('text');	// both text or html
+					// send it
+					$Email->send($bodySigned);
+					$Email->reset();
+					if ($processId) {
+						$this->Job->id = $processId;
+						$this->Job->saveField('progress', $k / $max * 50);
 					}
 				}
-					//
-					// Build a list of the recipients that wish to receive encrypted mails.
-					//
-				if ($eventIsPrivate) {
-					$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "", 'User.org =' => $event['Event']['org']);
-				} else {
-					$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "");
-				}
-	 			$alertUsers = $this->User->find('all', array(
-	 					'conditions' => $conditions,
-	 					'recursive' => 0,
-	 				)
-				);
+			}
+			//
+			// Build a list of the recipients that wish to receive encrypted mails.
+			//
+			if ($eventIsPrivate) {
+				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "", 'User.org =' => $event['Event']['org']);
+			} else {
+				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "");
+			}
+	 		$alertUsers = $this->User->find('all', array(
+	 				'conditions' => $conditions,
+	 				'recursive' => 0,
+	 			)
+			);
+	 		$max = count($alertUsers);
  			// encrypt the mail for each user and send it separately
  			foreach ($alertUsers as $k => &$user) {
  				// send the email
