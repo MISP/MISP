@@ -513,7 +513,6 @@ class Attribute extends AppModel {
 	public function validateAttributeValue($fields) {
 		$value = $fields['value'];
 		$returnValue = false;
-
 		// check data validation
 		switch($this->data['Attribute']['type']) {
 			case 'md5':
@@ -1381,7 +1380,7 @@ class Attribute extends AppModel {
 			 		}
 		 		}
 		 		$result = $this->__resolveElementFile($element['TemplateElementFile'][0], $temp);
-		 		if ($element['TemplateElementFile'][0]['mandatory'] && empty($temp) && empty($errors[$element['id']])) $errors[$element['id']] = 'Error: This field is mandatory.';
+		 		if ($element['TemplateElementFile'][0]['mandatory'] && empty($temp) && empty($errors[$element['id']])) $errors[$element['id']] = 'This field is mandatory.';
 		 	}
 		 	if ($element['element_definition'] == 'file' || $element['element_definition'] == 'attribute') {
 		 		if ($result['errors']) {
@@ -1459,6 +1458,7 @@ class Attribute extends AppModel {
  				if (!$tmp_file->exists()) {
  					$errors = 'File cannot be read.';
  				} else {
+ 					$element['type'] = 'malware-sample';
  					$attributes[] = $this->__createAttribute($element, $malwareName);
 	 				$content = $tmp_file->read();
 	 				$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];

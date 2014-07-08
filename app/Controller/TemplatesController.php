@@ -230,7 +230,7 @@ class TemplatesController extends AppController {
 				'recursive' => -1,
 				'fields' => array('orgc', 'id'),
 		));
-		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc'] != $this->Auth->user('org'))) throw new MethodNotFoundException('Event not found or you are not authorised to edit it.');
+		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc'] != $this->Auth->user('org'))) throw new NotFoundException('Event not found or you are not authorised to edit it.');
 	
 		$conditions = array();
 		if (!$this->_isSiteAdmin) {
@@ -268,10 +268,9 @@ class TemplatesController extends AppController {
 		
 		if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 		if (empty($template)) throw new MethodNotAllowedException('Template not found or you are not authorised to edit it.');
-		
 		if (!$this->_isSiteAdmin()) {
 			if ($event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
-			if ($template['Template']['org'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');	
+			if ($template['Template']['org'] != $this->Auth->user('org') && !$template['Template']['share']) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');	
 		}
 		
 		$this->set('template_id', $template_id);
@@ -306,7 +305,7 @@ class TemplatesController extends AppController {
 			$event = $this->Event->find('first', array(
 					'conditions' => array('id' => $event_id),
 					'recursive' => -1,
-					'fields' => array('id', 'orgc', 'distribution'),
+					'fields' => array('id', 'orgc', 'distribution', 'published'),
 					'contain' => 'EventTag',
 			));
 			if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');

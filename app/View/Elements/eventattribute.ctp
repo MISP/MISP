@@ -62,9 +62,11 @@
 		<span id="multi-edit-button" title="Edit selected" class="icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
 		<span id="multi-delete-button" title="Delete selected" class = "icon-trash mass-select useCursorPointer" onClick="deleteSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
 	</div>
+	<?php if ($mayModify): ?>
 	<div class="tabMenu tabMenuToolsBlock noPrint">
 		<span id="create-button" title="Populate using a template" class="icon-list-alt useCursorPointer" onClick="getTemplateChoicePopup(<?php echo $event['Event']['id']; ?>);"></span>
 	</div>
+	<?php endif; ?>
 	<table class="table table-striped table-condensed">
 		<tr>
 			<?php if ($mayModify && !empty($eventArray)): ?>

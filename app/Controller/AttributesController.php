@@ -913,22 +913,26 @@ class AttributesController extends AppController {
 		if (!$this->Attribute->exists()) {
 			return false;
 		}
-		
+		$result = $this->Attribute->find('first', array(
+			'conditions' => array('Attribute.id' => $id),
+			'fields' => array('Attribute.id, Attribute.event_id', 'Attribute.uuid'),
+			'contain' => array('Event' => array(
+				'fields' => array('Event.id', 'Event.orgc', 'Event.org', 'Event.locked')
+			)),
+		));
 		if ('true' == Configure::read('MISP.sync')) {
 			// find the uuid
-			$result = $this->Attribute->findById($id);
 			$uuid = $result['Attribute']['uuid'];
 		}
 		
 		// check for permissions
 		if (!$this->_isSiteAdmin()) {
-			$this->Attribute->read();
-			if ($this->Attribute->data['Event']['locked']) {
-				if ($this->_checkOrg() != $this->Attribute->data['Event']['org'] || !$this->userRole['perm_sync']) {
+			if ($result['Event']['locked']) {
+				if ($this->_checkOrg() != $result['Event']['org'] || !$this->userRole['perm_sync']) {
 					throw new MethodNotAllowedException();
 				}
 			} else {
-				if ($this->_checkOrg() != $this->Attribute->data['Event']['orgc']) {
+				if ($this->_checkOrg() != $result['Event']['orgc']) {
 					throw new MethodNotAllowedException();
 				}
 			}

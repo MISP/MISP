@@ -1,7 +1,6 @@
 <?php
 
 class ComplexTypeTool {
-	
 	public function checkComplexRouter($input, $type) {
 		switch ($type) {
 			case 'File':
@@ -18,6 +17,7 @@ class ComplexTypeTool {
 	
 	// checks if the passed input matches a valid file description attribute's pattern (filename, md5, sha1, sha256, filename|md5, filename|sha1, filename|sha256)		
 	public function checkComplexFile($input) {
+		$original = $input;
 		$type = '';
 		$composite = false;
 		if (strpos($input, '|')) {
@@ -33,7 +33,7 @@ class ComplexTypeTool {
 		if (strlen($input) == 64 && preg_match("#[0-9a-f]{64}$#", $input)) $type .= 'sha256';
 		if ($type == '' && !$composite && preg_match("#^.+#", $input)) $type = 'filename';
 		if ($type == '') $type = 'other';
-		return array('type' => $type, 'value' => $input);
+		return array('type' => $type, 'value' => $original);
 	}
 	
 	public function checkComplexCnC($input) {
