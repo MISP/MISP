@@ -1,5 +1,4 @@
 <?php
-	echo $this->Html->script('ajaxification');
 	$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
 	$mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	$pageCount = intval($objectCount / 50);
@@ -64,7 +63,8 @@
 	</div>
 	<?php if ($mayModify): ?>
 	<div class="tabMenu tabMenuToolsBlock noPrint">
-		<span id="create-button" title="Populate using a template" class="icon-list-alt useCursorPointer" onClick="getTemplateChoicePopup(<?php echo $event['Event']['id']; ?>);"></span>
+		<span id="create-button" title="Populate using a template" class="icon-list-alt useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'templates', 'templateChoices');"></span>
+		<span id="freetext-button" title="Populate using the freetext import tool" class="icon-exclamation-sign useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'events', 'freeTextImport');"></span>
 	</div>
 	<?php endif; ?>
 	<table class="table table-striped table-condensed">

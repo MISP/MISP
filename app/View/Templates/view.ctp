@@ -1,7 +1,4 @@
 <div class="templates view">
-<?php 
-	echo $this->Html->script('ajaxification');
-?>
 <h2><?php  echo __('Template');?></h2>
 	<dl>
 		<dt><?php echo __('Id'); ?></dt>

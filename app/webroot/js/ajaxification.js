@@ -742,7 +742,7 @@ function templateElementFileCategoryChange(category) {
 	}
 }
 
-function getTemplateChoicePopup(id) {
+function getPopup(id, context, target) {
 	$("#gray_out").fadeIn();
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
@@ -755,7 +755,8 @@ function getTemplateChoicePopup(id) {
 			$("#popover_form").html(data);
 			$("#popover_form").fadeIn();
 		}, 
-		url:"/templates/templateChoices/" + id,
+		url:"/" + context + "/" + target + "/" + id,
+		//url:"/templates/templateChoices/" + id,
 	});
 }
 
@@ -856,3 +857,9 @@ function templateDeleteFileBubble(filename, tmp_name, element_id, context, batch
 function templateFileUploadTriggerBrowse(id) {
 	$('#upload_' + id + '_file').click();
 }
+
+function freetextRemoveRow(id) {
+	$('#row_' + id).hide();
+	$('#Attribute' + id + 'Save').attr("value", "0");
+}
+

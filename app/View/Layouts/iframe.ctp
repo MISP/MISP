@@ -20,4 +20,5 @@
 echo $this->Html->css('bootstrap');
 echo $this->Html->css('main');
 echo $this->Html->script('jquery-2.1.0.min');
+echo $this->Html->script('ajaxification');
 echo $content_for_layout; ?>

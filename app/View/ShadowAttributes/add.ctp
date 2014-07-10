@@ -1,8 +1,7 @@
-<? echo $this->Html->script('ajaxification');?>
 <div class="shadow_attributes <? if (!$ajax) echo 'form';?>">
 <?php echo $this->Form->create('ShadowAttribute');?>
-	<legend><?php echo __('Add Proposal'); ?></legend>
 	<fieldset>
+	<legend><?php echo __('Add Proposal'); ?></legend>
 	<div id="formWarning" class="message ajaxMessage"></div>
 	<div class="add_attribute_fields">
 		<?php

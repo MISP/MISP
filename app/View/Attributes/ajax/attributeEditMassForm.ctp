@@ -1,10 +1,9 @@
-<? echo $this->Html->script('ajaxification');?>
 <div class="attributes">
 <?php 
 	echo $this->Form->create('Attribute', array('action' => 'editSelected'));
 ?>
-	<legend><?php echo __('Mass Edit Attributes'); ?></legend>
 	<fieldset>
+		<legend><?php echo __('Mass Edit Attributes'); ?></legend>
 		<div id="formWarning" class="message ajaxMessage"></div>
 		<div class="add_attribute_fields">
 			<?php

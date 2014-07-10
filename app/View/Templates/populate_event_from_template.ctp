@@ -1,4 +1,3 @@
-<?php echo $this->Html->script('ajaxification'); ?>
 <div class="populate_from_template form">
 <?php echo $this->Form->create('', array('type' => 'file'));?>
 	<fieldset>

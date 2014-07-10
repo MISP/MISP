@@ -1,5 +1,4 @@
-<?php 
-echo $this->Html->script('ajaxification'); 
+<?php
 if ($batch == 'yes') {
 	$buttonText = 'Upload Files';
 	$multiple = true;

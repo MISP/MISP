@@ -1,6 +1,5 @@
 <div class="templates form">
 <?php 
-	echo $this->Html->script('ajaxification');
 	echo $this->Form->create('Template');
 ?>
 	<fieldset>

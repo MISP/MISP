@@ -2279,4 +2279,90 @@ class EventsController extends AppController {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')),'status'=>200));
 		}
 	}
+	
+	public function freeTextImport($id) {
+		if (!$this->userRole['perm_add']) {
+			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		}
+		$event = $this->Event->find('first', array(
+				'conditions' => array('Event.id' => $id),
+				'fields' => array('id', 'orgc'),
+				'recursive' => -1
+		));
+		if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		$this->set('event_id', $id);
+		if ($this->request->is('get')) {
+			$this->layout = 'ajax';
+			$this->request->data['Attribute']['event_id'] = $id;
+		}
+		
+		if ($this->request->is('post')) {
+			App::uses('ComplexTypeTool', 'Tools');
+			$complexTypeTool = new ComplexTypeTool();
+			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'FreeText');
+			foreach ($resultArray as &$r) {
+				$temp = array();
+				foreach ($r['types'] as $type) {
+					$temp[$type] = $type;
+				}
+				$r['types'] = $temp;
+			}
+			$typeCategoryMapping = array();
+			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
+				foreach ($cat['types'] as $type) {
+					$typeCategoryMapping[$type][$k] = $k;
+				}
+			}
+			$defaultCategories = array(
+					'md5' => 'Payload delivery',
+					'sha1' => 'Payload delivery',
+					'sha256' => 'Payload delivery',
+					'regkey' => 'Persistence mechanism',
+					'filename' => 'Payload delivery',
+					'ip-src' => 'Network activity',
+					'ip-dst' => 'Network activity',
+					'hostname' => 'Network activity',
+					'domain' => 'Network activity',
+					'url' => 'Network activity',
+					'link' => 'Network activity',
+					'email-src' => 'Payload delivery',
+					'email-dst' => 'Payload delivery',
+					'text' => 'Other',
+			);
+			$this->set('defaultCategories', $defaultCategories);
+			$this->set('typeCategoryMapping', $typeCategoryMapping);
+			$this->set('resultArray', $resultArray);
+			//$this->autoRender = false;
+			$this->render('free_text_results');
+		}
+	}
+	
+	public function saveFreeText($id) {
+		if ($this->request->is('post')) {
+			$event = $this->Event->find('first', array(
+				'conditions' => array('id' => $id),
+				'recursive' => -1,
+				'fields' => array('orgc', 'id', 'distribution'),
+			));
+			$saved = 0;
+			$failed = 0;
+			foreach ($this->request->data['Attribute'] as $k => $attribute) {
+				if ($attribute['save'] == '1') {
+					$this->Event->Attribute->create();
+					$attribute['distribution'] = $event['Event']['distribution'];
+					$attribute['comment'] = 'Imported via the freetext import.';
+					$attribute['event_id'] = $id;
+					if ($this->Event->Attribute->save($attribute)) {
+						$saved++;
+					} else {
+						$failed++;
+					}
+				}
+			}
+			$this->Session->setFlash($saved . ' attributes created. ' . $failed . ' attributes could not be saved. This may be due to attributes with similar values already existing.');
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+		} else {
+			throw new MethodNotAllowedException();
+		}
+	}
 }

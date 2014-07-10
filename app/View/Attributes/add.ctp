@@ -2,8 +2,8 @@
 <?php 
 	echo $this->Form->create('Attribute', array('id'));
 ?>
-	<legend><?php echo __('Add Attribute'); ?></legend>
 	<fieldset>
+		<legend><?php echo __('Add Attribute'); ?></legend>
 		<div id="formWarning" class="message ajaxMessage"></div>
 		<div class="add_attribute_fields">
 			<?php
