@@ -2337,12 +2337,16 @@ class EventsController extends AppController {
 	}
 	
 	public function saveFreeText($id) {
+		if (!$this->userRole['perm_add']) {
+			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		}
 		if ($this->request->is('post')) {
 			$event = $this->Event->find('first', array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
 				'fields' => array('orgc', 'id', 'distribution'),
 			));
+			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 			$saved = 0;
 			$failed = 0;
 			foreach ($this->request->data['Attribute'] as $k => $attribute) {
