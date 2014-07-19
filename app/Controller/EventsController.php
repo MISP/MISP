@@ -2363,5 +2363,18 @@ class EventsController extends AppController {
 		} else {
 			throw new MethodNotAllowedException();
 		}
-	}	
+	}
+	
+	public function stix($id = null) {
+		$event = $this->Event->find('first', array(
+			'conditions' => array('id' => $id),
+			'recursive' => -1,
+			'fields'  => array('orgc', 'id'),
+		));
+		if (!$this->userRole['perm_add']) {
+			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		}
+		if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		$this->Event->stix($id, $this->_isSiteAdmin(), $this->Auth->user('org'));
+	}
 }
