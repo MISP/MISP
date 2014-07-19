@@ -1176,20 +1176,21 @@ class Event extends AppModel {
 					}
 				}
 			}
-				//
-				// Build a list of the recipients that wish to receive encrypted mails.
-				//
+
+			//
+			// Build a list of the recipients that wish to receive encrypted mails.
+			//
 			if ($eventIsPrivate) {
 				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "", 'User.org =' => $event['Event']['org']);
 			} else {
 				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "");
 			}
- 			$alertUsers = $this->User->find('all', array(
- 					'conditions' => $conditions,
- 					'recursive' => 0,
- 				)
+	 		$alertUsers = $this->User->find('all', array(
+	 				'conditions' => $conditions,
+	 				'recursive' => 0,
+	 			)
 			);
- 			$max = count($alertUsers);
+	 		$max = count($alertUsers);
  			// encrypt the mail for each user and send it separately
  			foreach ($alertUsers as $k => &$user) {
  				// send the email

@@ -138,3 +138,41 @@ INSERT IGNORE INTO `tasks` (`id`, `type`, `timer`, `scheduled_time`, `job_id`, `
 (2, 'pull_all', 0, '12:00', 0, 'Initiates a full pull for all eligible instances.', 1391601600, 'Not scheduled yet.'),
 (3, 'push_all', 0, '12:00', 0, 'Initiates a full push for all eligible instances.', 1391601600, 'Not scheduled yet.');
 
+CREATE TABLE IF NOT EXISTS `templates` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `description` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `org` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `share` tinyint(1) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+CREATE TABLE IF NOT EXISTS `template_elements` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `template_id` int(11) NOT NULL,
+  `position` int(11) NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `description` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `to_ids` tinyint(1) NOT NULL DEFAULT '1',
+  `category` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `mandatory` tinyint(1) NOT NULL,
+  `batch` tinyint(1) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+CREATE TABLE IF NOT EXISTS `template_tags` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `template_id` int(11) NOT NULL,
+  `tag_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+CREATE TABLE IF NOT EXISTS `template_element_types` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `template_element_id` int(11) NOT NULL,
+  `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+

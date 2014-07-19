@@ -1,8 +1,7 @@
-<? echo $this->Html->script('ajaxification');?>
 <div class="shadow_attributes <? if (!$ajax) echo 'form';?>">
 <?php echo $this->Form->create('ShadowAttribute');?>
-	<legend><?php echo __('Add Proposal'); ?></legend>
 	<fieldset>
+	<legend><?php echo __('Add Proposal'); ?></legend>
 	<div id="formWarning" class="message ajaxMessage"></div>
 	<div class="add_attribute_fields">
 		<?php
@@ -176,7 +175,7 @@ $('#ShadowAttributeType').prop('disabled', true);
 <?php if ($ajax): ?>
 $('#cancel_attribute_add').click(function() {
 	$('#gray_out').fadeOut();
-	$('#attribute_add_form').fadeOut();
+	$('#popover_form').fadeOut();
 });	
 
 <?php endif; ?>

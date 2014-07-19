@@ -1,4 +1,3 @@
-<?php echo $this->Html->script('ajaxification'); ?>
 <div class="users index">
 	<h2>Members</h2>
  	<table class="table table-striped table-condensed table-bordered" style="width:300px;">

@@ -3,7 +3,6 @@ $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event
 $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 ?>
 <?php
-	echo $this->Html->script('ajaxification');
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
 ?>
 <div class="events view">
@@ -103,11 +102,19 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
 				</dd>
+				<?php if ($isAclPublish && $event['Event']['published'] == 0) :?>
+				<dt class="visibleDL">Published</dt>
+				<dd  class="visibleDL">
+					<?php echo ($event['Event']['published'] == 1 ? 'Yes' : 'No');  ?>
+					&nbsp;
+				</dd>
+				<?php else: ?>
 				<dt>Published</dt>
-				<dd style="color: red;">
+				<dd style="color: <?php echo ($event['Event']['published'] == 1 ? 'green' : 'red'); ?>">
 					<b><?php echo ($event['Event']['published'] == 1 ? 'Yes' : 'No');  ?></b>
 					&nbsp;
 				</dd>
+				<?php endif; ?>
 			</dl>
 		</div>
 
@@ -158,7 +165,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	<div id="pivots_div">
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
-	<div id="attribute_add_form" class="attribute_add_form"></div>
+	<div id="popover_form" class="ajax_popover_form"></div>
 	<div id="confirmation_box" class="confirmation_box"></div>
 	<div id="attribute_creation_div" style="display:none;">
 		<?php 

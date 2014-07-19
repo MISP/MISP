@@ -1,10 +1,9 @@
-<? echo $this->Html->script('ajaxification');?>
 <div class="attributes">
 <?php 
 	echo $this->Form->create('Attribute', array('action' => 'editSelected'));
 ?>
-	<legend><?php echo __('Mass Edit Attributes'); ?></legend>
 	<fieldset>
+		<legend><?php echo __('Mass Edit Attributes'); ?></legend>
 		<div id="formWarning" class="message ajaxMessage"></div>
 		<div class="add_attribute_fields">
 			<?php
@@ -119,7 +118,7 @@ $(document).ready(function() {
 	});
 	$('#cancel_attribute_add').click(function() {
 		$('#gray_out').fadeOut();
-		$('#attribute_add_form').fadeOut();
+		$('#popover_form').fadeOut();
 	});	
 });
 
