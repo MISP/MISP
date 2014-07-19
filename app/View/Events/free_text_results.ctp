@@ -23,7 +23,7 @@
 				echo $this->Form->input('Attribute.' . $k . '.value', array(
 						'label' => false,
 						'type' => 'hidden',
-						'value' => $item['value'],
+						'value' => h($item['value']),
 				));
 			?>
 			<td><?php echo h($item['value']); ?></td>

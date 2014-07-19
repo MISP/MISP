@@ -2332,7 +2332,6 @@ class EventsController extends AppController {
 			$this->set('defaultCategories', $defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
 			$this->set('resultArray', $resultArray);
-			//$this->autoRender = false;
 			$this->render('free_text_results');
 		}
 	}
@@ -2364,5 +2363,5 @@ class EventsController extends AppController {
 		} else {
 			throw new MethodNotAllowedException();
 		}
-	}
+	}	
 }

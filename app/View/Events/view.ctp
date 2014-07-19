@@ -102,11 +102,19 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
 				</dd>
+				<?php if ($isAclPublish && $event['Event']['published'] == 0) :?>
+				<dt class="visibleDL">Published</dt>
+				<dd  class="visibleDL">
+					<?php echo ($event['Event']['published'] == 1 ? 'Yes' : 'No');  ?>
+					&nbsp;
+				</dd>
+				<?php else: ?>
 				<dt>Published</dt>
-				<dd style="color: red;">
+				<dd style="color: <?php echo ($event['Event']['published'] == 1 ? 'green' : 'red'); ?>">
 					<b><?php echo ($event['Event']['published'] == 1 ? 'Yes' : 'No');  ?></b>
 					&nbsp;
 				</dd>
+				<?php endif; ?>
 			</dl>
 		</div>
 

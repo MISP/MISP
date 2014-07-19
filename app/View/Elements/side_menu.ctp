@@ -6,13 +6,14 @@
 					if ($menuItem === 'addAttribute' || 
 						$menuItem === 'addAttachment' || 
 						$menuItem === 'addIOC' || 
-						$menuItem === 'addThreatConnect'
+						$menuItem === 'addThreatConnect' ||
+						$menuItem === 'populateFromtemplate'
 					) {
 						// we can safely assume that mayModify is true if comming from these actions, as they require it in the controller and the user has already passed that check
 						$mayModify = true;
 						if ($isAclPublish) $mayPublish = true;
 					}
-					?>						
+					?>
 					<li <?php if ($menuItem === 'viewEvent') echo 'class="active"';?>><a href="/events/view/<?php echo $event['Event']['id'];?>">View Event</a></li>
 					<li <?php if ($menuItem === 'eventLog') echo 'class="active"';?>><a href="/logs/event_index/<?php echo $event['Event']['id'];?>">View Event History</a></li>
 					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
@@ -23,6 +24,9 @@
 					<li <?php if ($menuItem === 'addAttachment') echo 'class="active"';;?>><a href="/attributes/add_attachment/<?php echo $event['Event']['id'];?>">Add Attachment</a></li>
 					<li <?php if ($menuItem === 'addIOC') echo 'class="active"';?>><a href="/events/addIOC/<?php echo $event['Event']['id'];?>">Populate from OpenIOC</a></li>
 					<li <?php if ($menuItem === 'addThreatConnect') echo 'class="active"';?>><a href="/attributes/add_threatconnect/<?php echo $event['Event']['id']; ?>">Populate from ThreatConnect</a></li>
+					<?php if ($menuItem === 'populateFromtemplate'): ?>
+						<li class="active"><a href="/templates/populateEventFromTemplate/<?php echo $template_id . '/' . $event['Event']['id']; ?>">Populate From Template</a></li>
+					<?php endif; ?>
 					<?php elseif (!isset($mayModify) || !$mayModify): ?>
 					<li class="divider"></li>
 					<li <?php if ($menuItem === 'proposeAttribute') echo 'class="active"';?>><a href="/shadow_attributes/add/<?php echo $event['Event']['id'];?>">Propose Attribute</a></li>

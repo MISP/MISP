@@ -128,9 +128,13 @@ if ($object['objectType'] == 1) {
 		</div>
 	</td>
 	<td class="<?php echo $extra; ?> shortish">
+		<?php 
+			$turnRed = '';
+			if ($object['objectType'] == 0 && $object['distribution'] == 0) $turnRed = 'style="color:red"';
+		?>
 		<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class = "inline-field-placeholder"></div>
-		<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" class="inline-field-solid" onClick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
-			<?php if ($object['objectType'] != 1 && $object['objectType'] != 2) echo h($distributionLevels[$object['distribution']]); ?>&nbsp;
+		<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid" onClick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
+			<?php if ($object['objectType'] == 0) echo h($distributionLevels[$object['distribution']]); ?>&nbsp;
 		</div>
 	</td>
 	<td class="short action-links <?php echo $extra;?>">

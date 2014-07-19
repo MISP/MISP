@@ -970,6 +970,7 @@ class Attribute extends AppModel {
 			            		'Attribute.type !=' => 'comment',
 						)),
 			            'recursive' => 0,
+			    		//'contain' => 'Event',
 			            //'fields' => '', // we want to have the Attribute AND Event, so do not filter here
 			    );
 			    // search for the related attributes for that "value(1|2)"

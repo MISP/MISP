@@ -422,6 +422,9 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			context_id = update_context_id;
 			contextNamingConvention = 'TemplateElementFile';
 			break;
+		case 'replaceAttributes':
+			url = "/attributes/attributeReplace/" + context_id;
+			break;
 	}
 	
 	if (url !== null) {

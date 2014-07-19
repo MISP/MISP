@@ -1697,9 +1697,13 @@ class AttributesController extends AppController {
 	}
 	
 	public function generateCorrelation() {
+		$start = microtime(true);
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$k = $this->Attribute->generateCorrelation();
 		$this->Session->setFlash(__('All done. ' . $k . ' attributes processed.'));
+		$time_elapsed_us = microtime(true) - $start;
+		debug($time_elapsed_us);
+		throw new Exception();
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 	
@@ -1794,4 +1798,118 @@ class AttributesController extends AppController {
 		$fieldURL = ucfirst($field);
 		$this->render('ajax/attributeEdit' . $fieldURL . 'Form');
 	}
+	
+
+	public function attributeReplace($id) {
+		if (!$this->userRole['perm_add']) {
+			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		}
+		$event = $this->Attribute->Event->find('first', array(
+				'conditions' => array('Event.id' => $id),
+				'fields' => array('id', 'orgc', 'distribution'),
+				'recursive' => -1
+		));
+		if (empty($event) || (!$this->_isSiteAdmin() && ($event['Event']['orgc'] != $this->Auth->user('org') || !$this->userRole['perm_add']))) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		$this->set('event_id', $id);
+		if ($this->request->is('get')) {
+			$this->layout = 'ajax';
+			$this->request->data['Attribute']['event_id'] = $id;
+				
+			// combobox for types
+			$types = array_keys($this->Attribute->typeDefinitions);
+			$types = $this->_arrayToValuesIndexArray($types);
+			$this->set('types', $types);
+			// combobos for categories
+			$categories = $this->Attribute->validate['category']['rule'][1];
+			array_pop($categories);
+			$categories = $this->_arrayToValuesIndexArray($categories);
+			$this->set('categories', compact('categories'));
+			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+			$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+		}
+		if ($this->request->is('post')) {
+			if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action can only be accessed via AJAX.');
+				
+			$newValues = explode(PHP_EOL, $this->request->data['Attribute']['value']);
+			$category = $this->request->data['Attribute']['category'];
+			$type = $this->request->data['Attribute']['type'];
+			$to_ids = $this->request->data['Attribute']['to_ids'];
+			
+			if (!$this->_isSiteAdmin() && $this->Auth->user('org') != $event['Event']['orgc'] && !$this->userRole['perm_add']) throw new MethodNotAllowedException('You are not authorised to do that.');
+				
+			$oldAttributes = $this->Attribute->find('all', array(
+					'conditions' => array(
+							'event_id' => $id,
+							'category' => $category,
+							'type' => $type,
+					),
+					'fields' => array('id', 'event_id', 'category', 'type', 'value'),
+					'recursive' => -1,
+			));
+			$results = array('untouched' => count($oldAttributes), 'created' => 0, 'deleted' => 0, 'createdFail' => 0, 'deletedFail' => 0);
+				
+			foreach ($newValues as &$value) {
+				$value = trim($value);
+				$found = false;
+				foreach ($oldAttributes as &$old) {
+					if ($value == $old['Attribute']['value']) {
+						$found = true;
+					}
+				}
+				if (!$found) {
+					$attribute = array(
+							'value' => $value,
+							'event_id' => $id,
+							'category' => $category,
+							'type' => $type,
+							'distribution' => $event['Event']['distribution'],
+							'to_ids' => $to_ids,
+					);
+					$this->Attribute->create();
+					if ($this->Attribute->save(array('Attribute' => $attribute))) {
+						$results['created']++;
+					} else {
+						$results['createdFail']++;
+					}
+				}
+			}
+	
+			foreach ($oldAttributes as &$old) {
+				if (!in_array($old['Attribute']['value'], $newValues)) {
+					if ($this->Attribute->delete($old['Attribute']['id'])) {
+						$results['deleted']++;
+						$results['untouched']--;
+					} else {
+						$results['deletedFail']++;
+					}
+				}
+			}
+			$message = '';
+			$success = true;
+			if (($results['created'] > 0 || $results['deleted'] > 0) && $results['createdFail'] == 0 && $results['deletedFail'] == 0) {
+				$message .= 'Update completed without any issues.';
+			} else {
+				$message .= 'Update completed with some errors.';
+				$success = false;
+			}
+				
+			if ($results['created']) $message .= $results['created'] . ' attribute' . $this->__checkCountForOne($results['created']) . ' created. ';
+			if ($results['createdFail']) $message .= $results['createdFail'] . ' attribute' . $this->__checkCountForOne($results['createdFail']) . ' could not be created. ';
+			if ($results['deleted']) $message .= $results['deleted'] . ' attribute' . $this->__checkCountForOne($results['deleted']) . ' deleted.';
+			if ($results['deletedFail']) $message .= $results['deletedFail'] . ' attribute' . $this->__checkCountForOne($results['deletedFail']) . ' could not be deleted. ';
+			$message .= $results['untouched'] . ' attributes left untouched. ';
+				
+			$this->autoRender = false;
+			$this->layout = 'ajax';
+			if ($success) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)),'status'=>200));
+			else return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $message)),'status'=>200));
+		}
+	}
+	
+	private function __checkCountForOne($number) {
+		if ($number != 1) return 's';
+		return '';
+	}
+	
 }

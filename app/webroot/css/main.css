@@ -1200,11 +1200,21 @@ a.proposal_link_red:hover {
 }
 
 .drop {
-  min-height: 150px;
-  width: 250px;
-  border: 1px solid blue;
-  margin: 10px;
-  padding: 10px;
+	min-height: 150px;
+	width: 250px;
+	border: 1px solid blue;
+	margin: 10px;
+	padding: 10px;
+}
+
+.visibleDL {
+	background-color: red !important;
+	color: white;
+	font-weight: bold;
+}
+
+.red {
+	color: red;
 }
 
 @-webkit-keyframes rotation {

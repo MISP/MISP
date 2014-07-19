@@ -27,7 +27,7 @@ echo $this->Form->create('Attribute', array('id'));
 					<button id="submitButton" class="btn btn-primary">Submit</button>
 				</td>
 				<td style="width:540px;">
-					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message"></p>
 				</td>
 				<td style="vertical-align:top;">
 					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
