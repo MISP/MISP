@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS `logs` (
   `org` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   `description` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -206,6 +206,7 @@ CREATE TABLE IF NOT EXISTS `roles` (
   `perm_site_admin` tinyint(1) NOT NULL DEFAULT '0',
   `perm_regexp_access` tinyint(1) NOT NULL DEFAULT '0',
   `perm_tagger` tinyint(1) NOT NULL DEFAULT '0',
+  `perm_template` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
@@ -282,6 +283,118 @@ CREATE TABLE IF NOT EXISTS `tasks` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tasks`
+--
+
+CREATE TABLE IF NOT EXISTS `tasks` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `timer` int(11) NOT NULL,
+  `scheduled_time` varchar(8) NOT NULL DEFAULT '6:00',
+  `job_id` int(11) NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `next_execution_time` int(11) NOT NULL,
+  `message` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `templates`
+--
+
+CREATE TABLE IF NOT EXISTS `templates` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `description` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `org` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `share` tinyint(1) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `template_elements`
+--
+
+CREATE TABLE IF NOT EXISTS `template_elements` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `template_id` int(11) NOT NULL,
+  `position` int(11) NOT NULL,
+  `element_definition` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `template_element_attributes`
+--
+
+CREATE TABLE IF NOT EXISTS `template_element_attributes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `template_element_id` int(11) NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `description` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `to_ids` tinyint(1) NOT NULL DEFAULT '1',
+  `category` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `complex` tinyint(1) NOT NULL,
+  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `mandatory` tinyint(1) NOT NULL,
+  `batch` tinyint(1) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `template_element_files`
+--
+
+CREATE TABLE IF NOT EXISTS `template_element_files` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `template_element_id` int(11) NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `description` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `category` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `malware` tinyint(1) NOT NULL,
+  `mandatory` tinyint(1) NOT NULL,
+  `batch` tinyint(1) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `template_element_texts`
+--
+
+CREATE TABLE IF NOT EXISTS `template_element_texts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `template_element_id` int(11) NOT NULL,
+  `text` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `template_tags`
+--
+
+CREATE TABLE IF NOT EXISTS `template_tags` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `template_id` int(11) NOT NULL,
+  `tag_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
