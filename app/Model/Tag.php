@@ -56,7 +56,8 @@ class Tag extends AppModel {
 	public $hasMany = array(
 		'EventTag' => array(
 			'className' => 'EventTag',
-		)
+		),
+		'TemplateTag',
 	);
 	
 	

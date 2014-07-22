@@ -1,69 +1,94 @@
-<div class="attributes form">
-<?php echo $this->Form->create('Attribute');?>
+<div class="attributes <? if (!$ajax) echo 'form';?>">
+<?php 
+	echo $this->Form->create('Attribute', array('id'));
+?>
 	<fieldset>
 		<legend><?php echo __('Add Attribute'); ?></legend>
-		<?php
-		echo $this->Form->hidden('event_id');
-		echo $this->Form->input('category', array(
-				'empty' => '(choose one)'
-				));
-		echo $this->Form->input('type', array(
-				'empty' => '(first choose category)'
-				));
-		if ('true' == Configure::read('MISP.sync')) {
-			$initialDistribution = 3;
-			if (Configure::read('MISP.default_attribute_distribution') != null) {
-				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-					$initialDistribution = $currentDist;	
-				} else {
-					$initialDistribution = Configure::read('MISP.default_attribute_distribution');
+		<div id="formWarning" class="message ajaxMessage"></div>
+		<div class="add_attribute_fields">
+			<?php
+			echo $this->Form->hidden('event_id');
+			echo $this->Form->input('category', array(
+					'empty' => '(choose one)'
+					));
+			echo $this->Form->input('type', array(
+					'empty' => '(first choose category)'
+					));
+			if ('true' == Configure::read('MISP.sync')) {
+				$initialDistribution = 3;
+				if (Configure::read('MISP.default_attribute_distribution') != null) {
+					if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+						$initialDistribution = $currentDist;	
+					} else {
+						$initialDistribution = Configure::read('MISP.default_attribute_distribution');
+					}
 				}
+				echo $this->Form->input('distribution', array(
+					'options' => array($distributionLevels),
+					'label' => 'Distribution',
+					'selected' => $initialDistribution,
+				));
 			}
-			echo $this->Form->input('distribution', array(
-				'options' => array($distributionLevels),
-				'label' => 'Distribution',
-				'selected' => $initialDistribution,
+			echo $this->Form->input('value', array(
+					'type' => 'textarea',
+					'error' => array('escape' => false),
+					'div' => 'input clear',
+					'class' => 'input-xxlarge'
 			));
-		}
-		echo $this->Form->input('value', array(
-				'type' => 'textarea',
-				'error' => array('escape' => false),
-				'div' => 'input clear',
-				'class' => 'input-xxlarge'
-		));
-		echo $this->Form->input('comment', array(
-				'type' => 'text',
-				'label' => 'Contextual Comment',
-				'error' => array('escape' => false),
-				'div' => 'input clear',
-				'class' => 'input-xxlarge'
-		));
+			echo $this->Form->input('comment', array(
+					'type' => 'text',
+					'label' => 'Contextual Comment',
+					'error' => array('escape' => false),
+					'div' => 'input clear',
+					'class' => 'input-xxlarge'
+			));
+			?>
+			<div class="input clear"></div>
+			<?php
+			echo $this->Form->input('to_ids', array(
+						'checked' => false,
+						'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
+						'label' => 'for Intrusion Detection System',
+			));
+			echo $this->Form->input('batch_import', array(
+					'type' => 'checkbox',
+					'data-content' => 'Create multiple attributes one per line',
+			));
+			// link an onchange event to the form elements
+			$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
 		?>
-		<div class="input clear"></div>
-		<?php
-		echo $this->Form->input('to_ids', array(
-					'checked' => false,
-					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
-					'label' => 'for Intrusion Detection System',
-		));
-		echo $this->Form->input('batch_import', array(
-				'type' => 'checkbox',
-				'data-content' => 'Create multiple attributes one per line',
-		));
-		// link an onchange event to the form elements
-		$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
-		?>
+		</div>
 	</fieldset>
 	<p style="color:red;font-weight:bold;display:none;" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
-<?php
-echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
-echo $this->Form->end();
-?>
+	<?php if ($ajax): ?>
+		<div class="overlay_spacing">
+			<table>
+				<tr>
+				<td style="vertical-align:top">
+					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'add')">Submit</span>
+				</td>
+				<td style="width:540px;">
+					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+				</td>
+				<td style="vertical-align:top;">
+					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
+				</td>
+				</tr>
+			</table>
+		</div>
+	<?php 
+		else: 
+			echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
+		endif;
+		echo $this->Form->end();
+	?>
 </div>
 <?php 
-	$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
-	$event['Event']['published'] = $published;
-	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
+	if(!$ajax) {
+		$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
+		$event['Event']['published'] = $published;
+		echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
+	}
 ?>
 
 <script type="text/javascript">
@@ -100,6 +125,7 @@ function formCategoryChanged(id) {
 // Generate tooltip information
 //
 var formInfoValues = new Array();
+var fieldsArray = new Array('AttributeCategory', 'AttributeType', 'AttributeDistribution', 'AttributeValue', 'AttributeComment', 'AttributeToIds', 'AttributeBatchImport');
 <?php
 foreach ($typeDefinitions as $type => $def) {
 	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
@@ -122,8 +148,9 @@ $(document).ready(function() {
 	    if ($e.is('option')) {
 	        $('#'+e.currentTarget.id).popover('destroy');
 	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'manual',
+	            trigger: 'focus',
 	            placement: 'right',
+	            container: 'body',
 	            content: formInfoValues[$e.val()],
 	        }).popover('show');
 	    }
@@ -139,6 +166,7 @@ $(document).ready(function() {
         $('#'+e.currentTarget.id).popover({
             trigger: 'focus',
             placement: 'right',
+            container: 'body',
         }).popover('show');
        // $('#'+e.currentTarget.id).on('mouseleave', $('#'+e.currentTarget.id).popover('destroy');
         //$('#'+e.currentTarget.id).on('mouseout', $('#'+e.currentTarget.id).popover('destroy'));
@@ -162,9 +190,17 @@ $(document).ready(function() {
         $('#'+e.currentTarget.id).popover({
             trigger: 'focus',
             placement: 'right',
+            container: 'body',
             content: formInfoValues[$e.val()],
         }).popover('show');
 	});
+
+	<?php if ($ajax): ?>
+		$('#cancel_attribute_add').click(function() {
+			cancelPopoverForm();
+		});	
+
+	<?php endif; ?>
 });
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts

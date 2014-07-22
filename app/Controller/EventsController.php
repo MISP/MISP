@@ -202,6 +202,14 @@ class EventsController extends AppController {
 	 */
 
 	public function view($id = null, $continue=false, $fromEvent=null) {
+		if (isset($this->params['named']['attributesPage'])) $page = $this->params['named']['attributesPage'];
+		else {
+			if ($this->_isRest()) {
+				$page = 'all';
+			} else {
+				$page = 1;
+			}
+		}
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		$perm_publish = $this->userRole['perm_publish'];
 		if (strlen($id) == 36) {
@@ -226,7 +234,6 @@ class EventsController extends AppController {
 				}
 			}
 		}
-
 		$this->loadModel('Log');
 		$logEntries = $this->Log->find('all', array(
 			'conditions' => array('title LIKE' => '%Event (' . $id . ')%', 'org !=' => $results[0]['Event']['orgc'], 'model LIKE' => '%ShadowAttribute%'),
@@ -255,12 +262,45 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('event', $result);
+		
+		if (!$this->_isRest()) {
+			// modify event for attribute pagination
+			$eventArray = array();
+			$shadowAttributeTemp = array();
+			foreach ($this->Attribute->validate['category']['rule'][1] as $category) {
+				foreach ($result['Attribute'] as $attribute) {
+					if ($attribute['category'] == $category) {
+						$shadowAttributeTemp = $attribute['ShadowAttribute'];
+						$attribute['ShadowAttribute'] = null;
+						$attribute['objectType'] = 0;
+						$attribute['hasChildren'] = 0;
+						$eventArray[] = $attribute; 
+						$current = count($eventArray)-1;
+						foreach ($shadowAttributeTemp as $k => $shadowAttribute) {
+							$shadowAttribute['objectType'] = 1;
+							if ($k == 0) $shadowAttribute['firstChild'] = true;
+							if (($k + 1) == count($shadowAttributeTemp)) $shadowAttribute['lastChild'] = true;
+							$eventArray[] = $shadowAttribute;
+							$eventArray[$current]['hasChildren'] = 1;
+						}
+					}
+				}
+			}
+			foreach ($result['ShadowAttribute'] as $shadowAttribute) {
+				$shadowAttribute['objectType'] = 2;
+				$eventArray[] = $shadowAttribute;
+			}
+			$this->set('objectCount', count($eventArray));
+			if ($page == 'all') $this->set('eventArray', $eventArray);
+			else {
+				$this->set('eventArray', array_splice($eventArray, (($page-1)*50), 50));
+			}
+		}
+		
 		if(isset($result['ShadowAttribute'])) {
 			$this->set('remaining', $result['ShadowAttribute']);
 		}
 		$this->set('relatedEvents', $result['RelatedEvent']);
-
-		$this->set('categories', $this->Attribute->validate['category']['rule'][1]);
 
 		// passing type and category definitions (explanations)
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -292,6 +332,26 @@ class EventsController extends AppController {
 			$this->set('currentEvent', $id);
 
 			$this->set('allPivots', $this->Session->read('pivot_thread'));
+			
+			// set the types + categories for the attribute add/edit ajax overlays
+			$categories = $this->Attribute->validate['category']['rule'][1];
+			array_pop($categories);
+			$categories = $this->_arrayToValuesIndexArray($categories);
+			$this->set('categories', compact('categories'));
+			
+			$types = array_keys($this->Attribute->typeDefinitions);
+			$types = $this->_arrayToValuesIndexArray($types);
+			$this->set('types', $types);
+			$this->set('categoryDefinitions', $this->Event->Attribute->categoryDefinitions);
+			$typeCategory = array();
+			foreach ($this->Attribute->categoryDefinitions as $k => $category) {
+				foreach ($category['types'] as $type) {
+					$typeCategory[$type][] = $k;
+				}
+			}
+			$this->set('typeCategory', $typeCategory);
+			$this->request->data['Attribute']['event_id'] = $id;
+			
 			// Show the discussion
 			$this->loadModel('Thread');
 			$params = array('conditions' => array('event_id' => $id),
@@ -339,7 +399,14 @@ class EventsController extends AppController {
 			if ($this->request->is('ajax')) {
 				$this->disableCache();
 				$this->layout = 'ajax';
-				$this->render('/Elements/eventdiscussion');
+				if (!isset($this->params['named']['attributesPage'])) {
+					$this->render('/Elements/eventdiscussion');
+				} else {
+					$this->set('page', $this->params['named']['attributesPage']);
+					$this->render('/Elements/eventattribute');
+				}
+			} else {
+				$this->set('page', $page);
 			}
 			$pivot = $this->Session->read('pivot_thread');
 			$this->__arrangePivotVertical($pivot);
@@ -367,6 +434,7 @@ class EventsController extends AppController {
 		}
 		$this->set('currentEvent', $id);
 	}
+	
 
 	private function __startPivoting($id, $info, $date){
 		$this->Session->write('pivot_thread', null);
@@ -523,6 +591,7 @@ class EventsController extends AppController {
 							if(is_numeric($add)) {
 								$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
 								$this->response->send();
+								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
 							}
 							// REST users want to see the failed event
 							$this->view($this->Event->getId());
@@ -636,7 +705,6 @@ class EventsController extends AppController {
 		$auth = $this->Auth;
 		$data['Event']['user_id'] = $auth->user('id');
 		$date = new DateTime();
-
 		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
 		//else $data['Event']['org'] = $auth->user('org');
 		$data['Event']['org'] = $auth->user('org');
@@ -1220,6 +1288,23 @@ class EventsController extends AppController {
 		if ($tags === 'null') $tags = null;
 		if ($eventid === 'null' || $eventid ==='false') $eventid=null;
 		if ($withAttachment === 'null' || $withAttachment ==='false') $withAttachment = false;
+		
+		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted xml object.
+		// The correct format for a posted xml is a "request" root element, as shown by the examples below:
+		// For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
+		if ($this->request->is('post')) {
+			if (empty($this->request->data)) {
+				throw new BadRequestException('Either specify the search terms in the url, or POST an xml (with the root element being "request".');
+			} else {
+				$data = $this->request->data;
+			}
+			$paramArray = array('eventid', 'withAttachment', 'tags');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+				else ${$p} = null;
+			}
+		}
+		
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1312,7 +1397,7 @@ class EventsController extends AppController {
 			}
 			$user = $this->checkAuthUser($this->Auth->user('authkey'));
 		}
-
+		
 		// display the full snort rulebase
 		$this->loadModel('Attribute');
 		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid'], $id, $continue, $tags);
@@ -1337,13 +1422,12 @@ class EventsController extends AppController {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
 			$user = $this->checkAuthUser($this->Auth->user('authkey'));
-		}
+		}	
 		$this->loadModel('Attribute');
 
 		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type, $tags);
 		$this->set('rules', $rules);
 	}
-
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
@@ -1368,7 +1452,8 @@ class EventsController extends AppController {
 			}
 			$isSiteAdmin = $this->_isSiteAdmin();
 			$org = $this->Auth->user('org');
-		}		
+		}
+
 		// if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
 		// We don't need to look out for permissions since that's filtered by the search itself
 		// We just want all the attributes found by the search
@@ -1841,6 +1926,26 @@ class EventsController extends AppController {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		$value = str_replace('|', '/', $value);
+		
+		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
+		// The correct format for both is a "request" root element, as shown by the examples below:
+		// For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
+		// For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
+		// the response type is used to determine the parsing method (xml/json)
+		if ($this->request->is('post')) {
+			if ($this->response->type() === 'application/json') {
+				$data = $this->request->input('json_decode', true);
+			} elseif ($this->response->type() === 'application/xml') {
+				$data = $this->request->data;
+			} else {
+				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
+			}
+			$paramArray = array('value', 'type', 'category', 'org', 'tags');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+				else ${$p} = null;
+			}
+		}
 		if (!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') {
 			$this->response->type('xml');	// set the content type
 			$this->layout = 'xml/default';
@@ -2112,7 +2217,7 @@ class EventsController extends AppController {
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 	
-	public function addTag() {
+	public function addTag($id = null) {
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
@@ -2135,25 +2240,29 @@ class EventsController extends AppController {
 			),
 			'recursive' => -1,
 		));
+		$this->autoRender = false;
 		if (!empty($found)) {
-			$this->Session->setFlash('Tag already assigned to this event.');
-			$this->redirect(array('action' => 'view', $id));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this event.')), 'status'=>200));
+			//$this->Session->setFlash('Tag already assigned to this event.');
+			//$this->redirect(array('action' => 'view', $id));
 		}
 		$this->Event->EventTag->create();
-		$this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id));
-		$this->Session->setFlash('Tag added.');
-		$this->redirect(array('action' => 'view', $id));
+		if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.')), 'status'=>200));
+		} else {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')),'status'=>200));
+		}
 	}
 	
 	public function removeTag($id, $tag_id) {
-		if (!$this->request->is('post')) {
+		if (!$this->request->is('post') || !$this->request->is('ajax')) {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
 		$this->Event->recurisve = -1;
 		$event = $this->Event->read(array('id', 'org', 'orgc', 'distribution'), $id);
 		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
 		if (($this->Auth->user('org') !== $event['Event']['org'] && $this->Auth->user('org') !== $event['Event']['orgc'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger']) && !$this->_isSiteAdmin()) {
-			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
 		}
 		$eventTag = $this->Event->EventTag->find('first', array(
 			'conditions' => array(
@@ -2162,9 +2271,101 @@ class EventsController extends AppController {
 			),
 			'recursive' => -1,
 		));
-		if (empty($eventTag)) throw new NotFoundException('Invalid event - tag combination.');
-		$this->Event->EventTag->delete($eventTag['EventTag']['id']);
-		$this->Session->setFlash('Tag removed.');
-		$this->redirect(array('action' => 'view', $id));
+		$this->autoRender = false;
+		if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - tag combination.')),'status'=>200));
+		if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.')), 'status'=>200));
+		} else {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')),'status'=>200));
+		}
 	}
+	
+	public function freeTextImport($id) {
+		if (!$this->userRole['perm_add']) {
+			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		}
+		$event = $this->Event->find('first', array(
+				'conditions' => array('Event.id' => $id),
+				'fields' => array('id', 'orgc'),
+				'recursive' => -1
+		));
+		if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		$this->set('event_id', $id);
+		if ($this->request->is('get')) {
+			$this->layout = 'ajax';
+			$this->request->data['Attribute']['event_id'] = $id;
+		}
+		
+		if ($this->request->is('post')) {
+			App::uses('ComplexTypeTool', 'Tools');
+			$complexTypeTool = new ComplexTypeTool();
+			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'FreeText');
+			foreach ($resultArray as &$r) {
+				$temp = array();
+				foreach ($r['types'] as $type) {
+					$temp[$type] = $type;
+				}
+				$r['types'] = $temp;
+			}
+			$typeCategoryMapping = array();
+			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
+				foreach ($cat['types'] as $type) {
+					$typeCategoryMapping[$type][$k] = $k;
+				}
+			}
+			$defaultCategories = array(
+					'md5' => 'Payload delivery',
+					'sha1' => 'Payload delivery',
+					'sha256' => 'Payload delivery',
+					'regkey' => 'Persistence mechanism',
+					'filename' => 'Payload delivery',
+					'ip-src' => 'Network activity',
+					'ip-dst' => 'Network activity',
+					'hostname' => 'Network activity',
+					'domain' => 'Network activity',
+					'url' => 'Network activity',
+					'link' => 'Network activity',
+					'email-src' => 'Payload delivery',
+					'email-dst' => 'Payload delivery',
+					'text' => 'Other',
+			);
+			$this->set('defaultCategories', $defaultCategories);
+			$this->set('typeCategoryMapping', $typeCategoryMapping);
+			$this->set('resultArray', $resultArray);
+			$this->render('free_text_results');
+		}
+	}
+	
+	public function saveFreeText($id) {
+		if (!$this->userRole['perm_add']) {
+			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		}
+		if ($this->request->is('post')) {
+			$event = $this->Event->find('first', array(
+				'conditions' => array('id' => $id),
+				'recursive' => -1,
+				'fields' => array('orgc', 'id', 'distribution'),
+			));
+			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+			$saved = 0;
+			$failed = 0;
+			foreach ($this->request->data['Attribute'] as $k => $attribute) {
+				if ($attribute['save'] == '1') {
+					$this->Event->Attribute->create();
+					$attribute['distribution'] = $event['Event']['distribution'];
+					$attribute['comment'] = 'Imported via the freetext import.';
+					$attribute['event_id'] = $id;
+					if ($this->Event->Attribute->save($attribute)) {
+						$saved++;
+					} else {
+						$failed++;
+					}
+				}
+			}
+			$this->Session->setFlash($saved . ' attributes created. ' . $failed . ' attributes could not be saved. This may be due to attributes with similar values already existing.');
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+		} else {
+			throw new MethodNotAllowedException();
+		}
+	}	
 }

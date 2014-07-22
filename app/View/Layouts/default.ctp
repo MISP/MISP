@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -30,6 +30,7 @@
 <!--?php echo $scripts_for_layout; ?-->
 </head>
 <body>
+	<div id="gray_out" class="gray_out"></div>
 	<div id="container">
 		<?php echo $this->element('global_menu');
 			if ($debugMode == 'debugOff') {
@@ -54,6 +55,7 @@
 		>	
 			<?php echo $this->fetch('content'); ?>
 		</div>
+	</div>
 	<?php
 	echo $this->element('footer');
 	echo $this->element('sql_dump');
@@ -63,7 +65,14 @@
 	echo $this->Html->script('bootstrap-datepicker');
 	echo $this->Html->script('bootstrap-colorpicker.min');
 	echo $this->Html->script('main');
+	echo $this->Html->script('ajaxification');
 	?>
+	</div>
+	<div id = "ajax_success_container" class="ajax_container">
+		<div id="ajax_success" class="ajax_result ajax_success"></div>
+	</div>
+	<div id = "ajax_fail_container" class="ajax_container">
+		<div id="ajax_fail" class="ajax_result ajax_fail"></div>
 	</div>
 	<div class="loading">
 		<div class="spinner"></div>

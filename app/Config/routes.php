@@ -55,6 +55,9 @@
 	Router::mapResources(array('events', 'attributes'));
 	Router::parseExtensions('xml', 'json');
 
+	Router::connectNamed(
+		array('attributesPage' => array('controller' => 'events', 'action' => 'view'))
+	);
 /**
  * Load all plugin routes.  See the CakePlugin documentation on
  * how to customize the loading of plugin routes.

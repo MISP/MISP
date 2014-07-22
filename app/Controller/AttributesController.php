@@ -100,7 +100,13 @@ class AttributesController extends AppController {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create attributes');
 		}
+		if ($this->request->is('ajax'))	{
+			$this->set('ajax', true);
+			$this->layout = 'ajax';
+		}
+		else $this->set('ajax', false);
 		if ($this->request->is('post')) {
+			if ($this->request->is('ajax')) $this->autoRender = false;
 			$this->loadModel('Event');
 			$date = new DateTime();
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
@@ -129,6 +135,8 @@ class AttributesController extends AppController {
 
 				$fails = "";	// will be used to keep a list of the lines that failed or succeeded
 				$successes = "";
+				$failCount = 0;
+				$successCount = 0;
 				// TODO loop-holes,
 				// the value null value thing
 				foreach ($attributes as $key => $attribute) {
@@ -144,29 +152,38 @@ class AttributesController extends AppController {
 					$this->Attribute->id = null;
 					if ($this->Attribute->save($this->request->data)) {
 						$successes .= " " . ($key + 1);
+						$successCount++;
 					} else {
 						$fails .= " " . ($key + 1);
-						//debug(CakeSession::read('Message.flash'));
-						//	debug(tru);
+						$failCount++;
 					}
 				}
-				// we added all the attributes,
-				if ($fails) {
-					// list the ones that failed
-					if (!CakeSession::read('Message.flash')) {
-						$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. Please, try again.', true), 'default', array(), 'error');
+				if ($this->request->is('ajax')) {
+					$this->autoRender = false;
+					if ($fails) {
+						$error_message = 'The lines' . $fails . ' could not be saved. Please, try again.';
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $error_message)), 'status' => 200));
 					} else {
-						$existingFlash = CakeSession::read('Message.flash');
-						$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. ' . $existingFlash['message'], true), 'default', array(), 'error');
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $successCount . ' Attributes added')), 'status' => 200));
 					}
+				} else {
+					// we added all the attributes,
+					if ($fails) {
+						// list the ones that failed
+						if (!CakeSession::read('Message.flash')) {
+							$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. Please, try again.', true), 'default', array(), 'error');
+						} else {
+							$existingFlash = CakeSession::read('Message.flash');
+							$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. ' . $existingFlash['message'], true), 'default', array(), 'error');
+						}
+					}
+					if ($successes) {
+						// list the ones that succeeded
+						$this->Session->setFlash(__('The lines' . $successes . ' have been saved', true));
+					}
+	
+					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 				}
-				if ($successes) {
-					// list the ones that succeeded
-					$this->Session->setFlash(__('The lines' . $successes . ' have been saved', true));
-				}
-
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
-
 			} else {
 				if (isset($this->request->data['Attribute']['uuid'])) {	// TODO here we should start RESTful dialog
 					// check if the uuid already exists and also save the existing attribute for further checks
@@ -205,6 +222,9 @@ class AttributesController extends AppController {
 						// REST users want to see the newly created attribute
 						$this->view($this->Attribute->getId());
 						$this->render('view');
+					} elseif ($this->request->is('ajax')) {
+						$this->autoRender = false;
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute added.')),'status'=>200));
 					} else {
 						// inform the user and redirect
 						$this->Session->setFlash(__('The attribute has been saved'));
@@ -215,6 +235,9 @@ class AttributesController extends AppController {
 						// REST users want to see the failed attribute
 						$this->view($savedId);
 						$this->render('view');
+					}  elseif ($this->request->is('ajax')) {
+						$this->autoRender = false;
+						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)),'status'=>200));
 					} else {
 						if (!CakeSession::read('Message.flash')) {
 							$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
@@ -238,6 +261,7 @@ class AttributesController extends AppController {
 		$this->set('categories', compact('categories'));
 		$this->loadModel('Event');
 		$events = $this->Event->findById($eventId);
+		$this->set('event_id', $events['Event']['id']);
 		// combobox for distribution
 		$this->set('distributionLevels', $this->Attribute->distributionLevels);
 		$this->set('currentDist', $events['Event']['distribution']); // TODO default distribution
@@ -414,8 +438,6 @@ class AttributesController extends AppController {
 				$temp['Attribute']['uuid'] = String::uuid();
 				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids', 'comment')));
 			}
-
-
 
 			// everything is done, now redirect to event view
 			$this->Session->setFlash(__('The attachment has been uploaded'));
@@ -751,6 +773,88 @@ class AttributesController extends AppController {
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
+	
+	// ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur. 
+	public function editField($id) {
+		if ((!$this->request->is('post') && !$this->request->is('put')) || !$this->request->is('ajax')) throw new MethodNotAllowedException(); 
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) {
+			return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')),'status'=>200));
+		}
+		$this->Attribute->recursive = -1;
+		$this->Attribute->contain('Event');
+		$attribute = $this->Attribute->read();
+		
+		if (!$this->_isSiteAdmin()) {
+			//
+			if ($this->Attribute->data['Event']['orgc'] == $this->Auth->user('org')
+			&& (($this->userRole['perm_modify'] && $this->Attribute->data['Event']['user_id'] != $this->Auth->user('id'))
+			|| $this->userRole['perm_modify_org'])) {
+				// Allow the edit
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')),'status'=>200));
+			}
+		}
+		
+		foreach ($this->request->data['Attribute'] as $changedKey => $changedField) {
+			if ($attribute['Attribute'][$changedKey] == $changedField) {
+				$this->autoRender = false;
+				return new CakeResponse(array('body'=> json_encode('nochange'),'status'=>200));
+			}
+			$attribute['Attribute'][$changedKey] = $changedField;
+		}
+		$date = new DateTime();
+		$attribute['Attribute']['timestamp'] = $date->getTimestamp();
+		if ($this->Attribute->save($attribute)) {
+			$event = $this->Attribute->Event->find('first', array(
+				'recursive' => -1,
+				'fields' => array('id', 'published', 'timestamp', 'info'),
+				'conditions' => array(
+					'id' => $attribute['Attribute']['event_id'],	
+			)));
+			$event['Event']['timestamp'] = $date->getTimestamp();
+			$event['Event']['published'] = 0;
+			$this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
+			$this->autoRender = false;
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')),'status'=>200));
+		} else {
+			$this->autoRender = false;
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)),'status'=>200));
+		}
+	}
+	
+	public function view($id, $hasChildren = 0) {
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) {
+			throw new NotFoundException('Invalid attribute');
+		}
+		$this->Attribute->recursive = -1;
+		$this->Attribute->contain('Event');
+		$attribute = $this->Attribute->read();
+		if (!$this->_isSiteAdmin()) {
+			//
+			if ($this->Attribute->data['Event']['org'] == $this->Auth->user('org') || (($this->Attribute->data['Event']['distribution'] > 0) &&  $this->Attribute->data['Attribute']['distribution'] > 0)) {
+				throw new MethodNotAllowed('Invalid attribute');
+			}
+		}
+		$eventRelations = $this->Attribute->Event->getRelatedAttributes($this->Auth->user(), $this->_isSiteAdmin(), $attribute['Attribute']['event_id']);
+		$attribute['Attribute']['relations'] = array();
+		if (isset($eventRelations[$id])) {
+			foreach ($eventRelations[$id] as $relations) {
+				$attribute['Attribute']['relations'][] = array($relations['id'], $relations['info'], $relations['org']);
+			}
+		}
+		$object = $attribute['Attribute'];
+		$object['objectType'] = 0;
+		$object['hasChildren'] = $hasChildren;
+		$this->set('object', $object);
+		$this->set('distributionLevels', $this->Attribute->Event->distributionLevels);
+		/*
+		$this->autoRender = false;
+		$responseObject = array();
+		return new CakeResponse(array('body'=> json_encode($attribute['Attribute']),'status'=>200));
+		*/
+	}
 
 /**
  * delete method
@@ -763,35 +867,77 @@ class AttributesController extends AppController {
  * and is able to delete w/o question
  */
 	public function delete($id = null) {
-		if (!$this->request->is('post') && !$this->_isRest()) {
-			throw new MethodNotAllowedException();
+		if ($this->request->is('ajax')) {
+			if ($this->request->is('post')) {
+				if ($this->__delete($id)) {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')),'status'=>200));
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')),'status'=>200));
+				}
+			} else {
+				$this->set('id', $id);
+				$attribute = $this->Attribute->find('first', array(
+					'conditions' => array('id' => $id),
+					'recursive' => -1,
+					'fields' => array('id', 'event_id'),
+				));
+				$this->set('event_id', $attribute['Attribute']['event_id']);
+				$this->render('ajax/attributeConfirmationForm');
+			}
+		} else {
+			if (!$this->request->is('post') && !$this->_isRest()) {
+				throw new MethodNotAllowedException();
+			}
+			if ($this->__delete($id)) {
+				$this->Session->setFlash(__('Attribute deleted'));
+			} else {
+				$this->Session->setFlash(__('Attribute was not deleted'));
+			}
+			if (!$this->_isRest()) $this->redirect($this->referer());	// TODO check
+			else $this->redirect(array('action' => 'index'));
 		}
-
+	}
+	
+/**
+ * unification of the actual delete for the multi-select
+ * 
+ * @param unknown $id
+ * @throws NotFoundException
+ * @throws MethodNotAllowedException
+ * @return boolean
+ * 
+ * returns true/false based on success
+ */
+	private function __delete($id) {
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
-			throw new NotFoundException(__('Invalid attribute'));
+			return false;
 		}
-
+		$result = $this->Attribute->find('first', array(
+			'conditions' => array('Attribute.id' => $id),
+			'fields' => array('Attribute.id, Attribute.event_id', 'Attribute.uuid'),
+			'contain' => array('Event' => array(
+				'fields' => array('Event.id', 'Event.orgc', 'Event.org', 'Event.locked')
+			)),
+		));
 		if ('true' == Configure::read('MISP.sync')) {
 			// find the uuid
-			$result = $this->Attribute->findById($id);
 			$uuid = $result['Attribute']['uuid'];
 		}
-
+		
 		// check for permissions
 		if (!$this->_isSiteAdmin()) {
-			$this->Attribute->read();
-			if ($this->Attribute->data['Event']['locked']) {
-				if ($this->_checkOrg() != $this->Attribute->data['Event']['org'] || !$this->userRole['perm_sync']) {
+			if ($result['Event']['locked']) {
+				if ($this->_checkOrg() != $result['Event']['org'] || !$this->userRole['perm_sync']) {
 					throw new MethodNotAllowedException();
 				}
 			} else {
-				if ($this->_checkOrg() != $this->Attribute->data['Event']['orgc']) {
+				if ($this->_checkOrg() != $result['Event']['orgc']) {
 					throw new MethodNotAllowedException();
 				}
 			}
 		}
-
+		
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->delete()) {
 			// delete the attribute from remote servers
@@ -799,17 +945,118 @@ class AttributesController extends AppController {
 				// find the uuid
 				$this->__deleteAttributeFromServers($uuid);
 			}
-
+		
 			// We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
 			$this->loadModel('ShadowAttribute');
 			$this->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
-			$this->Session->setFlash(__('Attribute deleted'));
+			return true;
 		} else {
-			$this->Session->setFlash(__('Attribute was not deleted'));
+			return false;
 		}
+		
+	}
+	
+	public function deleteSelected($id) {
+		if (!$this->request->is('post') && !$this->request->is('ajax')) {
+		//if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException();
+		}
+		// get a json object with a list of attribute IDs to be deleted
+		// check each of them and return a json object with the successful deletes and the failed ones.
+		$ids = json_decode($this->request->data['Attribute']['ids']);
 
-		if (!$this->_isRest()) $this->redirect($this->referer());	// TODO check
-		else $this->redirect(array('action' => 'index'));
+		if (!$this->_isSiteAdmin()) {
+			$event = $this->Attribute->Event->find('first', array(
+					'conditions' => array('id' => $id),
+					'recursive' => -1,
+					'fields' => array('id', 'orgc', 'user_id')
+			));
+			if ($event['Event']['orgc'] != $this->Auth->user('org') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
+				throw new MethodNotAllowedException('Invalid Event.');
+			}
+		}
+		
+		// find all attributes from the ID list that also match the provided event ID.
+		$attributes = $this->Attribute->find('all', array(
+			'recursive' => -1,
+			'conditions' => array('id' => $ids, 'event_id' => $id),
+			'fields' => array('id', 'event_id')
+		));
+		$successes = array();
+		foreach ($attributes as $a) {
+			if ($this->__delete($a['Attribute']['id'])) $successes[] = $a['Attribute']['id'];
+		}
+		$fails = array_diff($ids, $successes);
+		$this->autoRender = false;
+		if (count($fails) == 0 && count($successes) > 0) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted.')),'status'=>200));
+		} else {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' attribute' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.')),'status'=>200));
+		}
+	}
+	
+	public function editSelected($id) {
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This method can only be accessed via AJAX.');
+		
+		if ($this->request->is('post')) {
+			$event = $this->Attribute->Event->find('first', array(
+				'conditions' => array('id' => $id),
+				'recursive' => -1,
+				'fields' => array('id', 'orgc', 'user_id')
+			));
+			if (!$this->_isSiteAdmin()) {
+				if ($event['Event']['orgc'] != $this->Auth->user('org') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['user_id'] == $this->Auth->user('id')))) {
+					throw new MethodNotAllowedException('You are not authorized to edit this event.');
+				}
+			}
+			$attribute_ids = json_decode($this->request->data['Attribute']['attribute_ids']);
+			$attributes = $this->Attribute->find('all', array(
+				'conditions' => array(
+					'id' => $attribute_ids,
+					'event_id' => $id,
+				),
+					//to_ids = true/false, distribution = [0,1,2,3]
+				//'fields' => array('id', 'event_id', 'comment', 'to_ids', 'timestamp', 'distribution'),
+				'recursive' => -1,
+			));
+			
+			if ($this->request->data['Attribute']['to_ids'] == 2 && $this->request->data['Attribute']['distribution'] == 4 && $this->request->data['Attribute']['comment'] == null) {
+				$this->autoRender = false;
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true)),'status' => 200));
+			}
+			
+			if ($this->request->data['Attribute']['to_ids'] != 2) {
+				foreach ($attributes as &$attribute) $attribute['Attribute']['to_ids'] = ($this->request->data['Attribute']['to_ids'] == 0 ? false : true);
+			}
+
+			if ($this->request->data['Attribute']['distribution'] != 4) {
+				foreach ($attributes as &$attribute) $attribute['Attribute']['distribution'] = $this->request->data['Attribute']['distribution'];
+			}
+		
+			if ($this->request->data['Attribute']['comment'] != null) {
+				foreach ($attributes as &$attribute) $attribute['Attribute']['comment'] = $this->request->data['Attribute']['comment'];
+			}
+			
+			$date = new DateTime();
+			$timestamp = $date->getTimestamp();
+			foreach ($attributes as &$attribute) $attribute['Attribute']['timestamp'] = $timestamp;
+			
+			if($this->Attribute->saveMany($attributes)) {
+				$this->autoRender = false;
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true)),'status' => 200));
+			} else {
+				$this->autoRender = false;
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false)),'status' => 200));
+			}
+		} else {
+			if (!isset($id)) throw new MethodNotAllowedException('No event ID provided.');
+			$this->layout = 'ajax';
+			$this->set('id', $id);
+			$this->set('distributionLevels', $this->Attribute->distributionLevels);
+			$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
+			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+			$this->render('ajax/attributeEditMassForm');
+		}
 	}
 
 /**
@@ -962,55 +1209,61 @@ class AttributesController extends AppController {
 						$conditions['AND'][] = $temp;
 					}
 				}
-				$this->Attribute->recursive = 0;
-				$this->paginate = array(
-					'limit' => 60,
-					'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
-					'conditions' => $conditions,
-					'contain' => array('Event.orgc', 'Event.id', 'Event.org', 'Event.user_id')
-				);
-				if (!$this->_isSiteAdmin()) {
-					// merge in private conditions
-					$this->paginate = Set::merge($this->paginate, array(
-						'conditions' =>
-							array("OR" => array(
-							array('Event.org =' => $this->Auth->user('org')),
-							array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Attribute.distribution !=' => 0)))),
-						)
+				
+				if ($this->request->data['Attribute']['alternate']) {
+					$events = $this->searchAlternate($conditions);
+					$this->set('events', $events);
+					$this->render('alternate_search_result');
+				} else {
+					$this->Attribute->recursive = 0;
+					$this->paginate = array(
+						'limit' => 60,
+						'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
+						'conditions' => $conditions,
+						'contain' => array('Event.orgc', 'Event.id', 'Event.org', 'Event.user_id')
 					);
-				}
-
-				$idList = array();
-				$attributeIdList = array();
-				$attributes = $this->paginate();
-				// if we searched for IOCs only, apply the whitelist to the search result!
-
-				if ($ioc) {
-					$this->loadModel('Whitelist');
-					$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
-				}
-
-				foreach ($attributes as &$attribute) {
-					$attributeIdList[] = $attribute['Attribute']['id'];
-					if (!in_array($attribute['Attribute']['event_id'], $idList)) {
-						$idList[] = $attribute['Attribute']['event_id'];
+					if (!$this->_isSiteAdmin()) {
+						// merge in private conditions
+						$this->paginate = Set::merge($this->paginate, array(
+							'conditions' =>
+								array("OR" => array(
+								array('Event.org =' => $this->Auth->user('org')),
+								array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Attribute.distribution !=' => 0)))),
+							)
+						);
 					}
+					$idList = array();
+					$attributeIdList = array();
+					$attributes = $this->paginate();
+					// if we searched for IOCs only, apply the whitelist to the search result!
+	
+					if ($ioc) {
+						$this->loadModel('Whitelist');
+						$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
+					}
+	
+					foreach ($attributes as &$attribute) {
+						$attributeIdList[] = $attribute['Attribute']['id'];
+						if (!in_array($attribute['Attribute']['event_id'], $idList)) {
+							$idList[] = $attribute['Attribute']['event_id'];
+						}
+					}
+					$this->set('attributes', $attributes);
+	
+					// and store into session
+					$this->Session->write('paginate_conditions', $this->paginate);
+					$this->Session->write('paginate_conditions_keyword', $keyword);
+					$this->Session->write('paginate_conditions_keyword2', $keyword2);
+					$this->Session->write('paginate_conditions_org', $org);
+					$this->Session->write('paginate_conditions_type', $type);
+					$this->Session->write('paginate_conditions_ioc', $ioc);
+					$this->Session->write('paginate_conditions_category', $category);
+					$this->Session->write('search_find_idlist', $idList);
+					$this->Session->write('search_find_attributeidlist', $attributeIdList);
+	
+					// set the same view as the index page
+					$this->render('index');
 				}
-				$this->set('attributes', $attributes);
-
-				// and store into session
-				$this->Session->write('paginate_conditions', $this->paginate);
-				$this->Session->write('paginate_conditions_keyword', $keyword);
-				$this->Session->write('paginate_conditions_keyword2', $keyword2);
-				$this->Session->write('paginate_conditions_org', $org);
-				$this->Session->write('paginate_conditions_type', $type);
-				$this->Session->write('paginate_conditions_ioc', $ioc);
-				$this->Session->write('paginate_conditions_category', $category);
-				$this->Session->write('search_find_idlist', $idList);
-				$this->Session->write('search_find_attributeidlist', $attributeIdList);
-
-				// set the same view as the index page
-				$this->render('index');
 			} else {
 				// no search keyword is given, show the search form
 
@@ -1052,6 +1305,58 @@ class AttributesController extends AppController {
 			// set the same view as the index page
 			$this->render('index');
 		}
+	}
+	
+	// If the checkbox for the alternate search is ticked, then this method is called to return the data to be represented
+	// This alternate view will show a list of events with matching search results and the percentage of those matched attributes being marked as to_ids
+	// events are sorted based on relevance (as in the percentage of matches being flagged as indicators for IDS)
+	public function searchAlternate($data) {
+		$data['AND'][] = array(
+				"OR" => array(
+					array('Event.org =' => $this->Auth->user('org')),
+					array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Attribute.distribution !=' => 0))));
+		$attributes = $this->Attribute->find('all', array(
+			'conditions' => $data,
+			'fields' => array(
+				'Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids', 'Attribute.value', 'Attribute.distribution',
+				'Event.id', 'Event.org', 'Event.orgc', 'Event.info', 'Event.distribution', 'Event.attribute_count' 	
+		)));
+		$events = array();
+		foreach ($attributes as $attribute) {
+			if (isset($events[$attribute['Event']['id']])) {
+				if ($attribute['Attribute']['to_ids']) {
+					$events[$attribute['Event']['id']]['to_ids']++;
+				} else {
+					$events[$attribute['Event']['id']]['no_ids']++;
+				}
+			} else {
+				$events[$attribute['Event']['id']]['Event'] = $attribute['Event'];
+				$events[$attribute['Event']['id']]['to_ids'] = 0;
+				$events[$attribute['Event']['id']]['no_ids'] = 0;
+				if ($attribute['Attribute']['to_ids']) {
+					$events[$attribute['Event']['id']]['to_ids']++;
+				} else {
+					$events[$attribute['Event']['id']]['no_ids']++;
+				}
+			}
+		}
+		foreach ($events as &$event) {
+			$event['relevance'] = 100 * $event['to_ids'] / ($event['no_ids'] + $event['to_ids']);
+		}
+		if (!empty($events)) $events = $this->__subval_sort($events, 'relevance');
+		return $events;
+	}
+	
+	// Sort the array of arrays based on a value of a sub-array 
+	private function __subval_sort($a,$subkey) {
+		foreach($a as $k=>$v) {
+			$b[$k] = strtolower($v[$subkey]);
+		}
+		arsort($b);
+		foreach($b as $key=>$val) {
+			$c[] = $a[$key];
+		}
+		return $c;
 	}
 
 	public function downloadAttributes() {
@@ -1117,6 +1422,26 @@ class AttributesController extends AppController {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		$value = str_replace('|', '/', $value);
+		
+		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
+		// The correct format for both is a "request" root element, as shown by the examples below:
+		// For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
+		// For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
+		// the response type is used to determine the parsing method (xml/json)
+		if ($this->request->is('post')) {
+			if ($this->response->type() === 'application/json') {
+				$data = $this->request->input('json_decode', true);
+			} elseif ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
+				$data = $this->request->data;
+			} else {
+				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
+			} 
+			$paramArray = array('value', 'type', 'category', 'org', 'tags');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+				else ${$p} = null;
+			}
+		}
 		if (!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') {
 			$this->response->type('xml');	// set the content type
 			$this->layout = 'xml/default';
@@ -1214,12 +1539,32 @@ class AttributesController extends AppController {
 	// Similar to the restSearch, this parameter can be chained with '&&' and negations are accepted too. For example filename&&!filename|md5 would return all filenames that don't have an md5
 	// The usage of returnAttributes is the following: [MISP-url]/attributes/returnAttributes/<API-key>/<type>/<signature flag>
 	// The signature flag is off by default, enabling it will only return attribugtes that have the to_ids flag set to true.
-	public function returnAttributes($key, $id, $type = null, $sigOnly = false) {
+	public function returnAttributes($key='download', $id, $type = null, $sigOnly = false) {
 		$user = $this->checkAuthUser($key);
 		// if the user is authorised to use the api key then user will be populated with the user's account
 		// in addition we also set a flag indicating whether the user is a site admin or not.
+		if ($key!=null && $key!='download') {
+			$user = $this->checkAuthUser($key);
+		} else {
+			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
+			$user = $this->checkAuthUser($this->Auth->user('authkey'));
+		}
 		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+		}
+		if ($this->request->is('post')) {
+			if ($this->response->type() === 'application/json') {
+				$data = $this->request->input('json_decode', true);
+			} elseif ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
+				$data = $this->request->data;
+			} else {
+				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
+			} 
+			$paramArray = array('type', 'sigOnly');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+				else ${$p} = null;
+			}
 		}
 		$this->loadModel('Event');
 		$this->Event->read(null, $id);
@@ -1352,9 +1697,219 @@ class AttributesController extends AppController {
 	}
 	
 	public function generateCorrelation() {
+		$start = microtime(true);
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$k = $this->Attribute->generateCorrelation();
 		$this->Session->setFlash(__('All done. ' . $k . ' attributes processed.'));
+		$time_elapsed_us = microtime(true) - $start;
+		debug($time_elapsed_us);
+		throw new Exception();
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
+	
+	public function fetchViewValue($id, $field = null) {
+		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp');
+		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
+		//if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) {
+			throw new NotFoundException(__('Invalid attribute'));
+		}
+		$attribute = $this->Attribute->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('Attribute.id' => $id),
+				'fields' => array('id', 'distribution', 'event_id', $field),
+				'contain' => array(
+						'Event' => array(
+								'fields' => array('distribution', 'id', 'org'),
+						)
+				)
+		));
+		if (!$this->_isSiteAdmin()) {
+			//
+			if (!($attribute['Event']['org'] == $this->Auth->user('org') || ($attribute['Event']['distribution'] > 0 && $attribute['Attribute']['distribution'] > 0))) {
+				throw new NotFoundException(__('Invalid attribute'));
+			}
+		}
+		$result = $attribute['Attribute'][$field];
+		if ($field == 'distribution') $result=$this->Attribute->distributionLevels[$result];
+		if ($field == 'to_ids') $result = ($result == 0 ? 'No' : 'Yes');
+		if ($field == 'timestamp') {
+			if (isset($result)) $result = date('Y-m-d', $result);
+			else echo '&nbsp';
+		}
+		$this->set('value', $result);
+		$this->layout = 'ajax';
+		$this->render('ajax/attributeViewFieldForm');
+	}
+	
+	public function fetchEditForm($id, $field = null) {
+		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution');
+		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) {
+			throw new NotFoundException(__('Invalid attribute'));
+		}
+
+		$fields = array('id', 'distribution', 'event_id');
+		$additionalFieldsToLoad = $field;
+		if ($field == 'category' || $field == 'type') {
+			$fields[] = 'type';
+			$fields[] = 'category';
+		} else {
+			$fields[] = $field;
+		}
+		$attribute = $this->Attribute->find('first', array(
+			'recursive' => -1,
+			'conditions' => array('Attribute.id' => $id),
+			'fields' => $fields,
+			'contain' => array(
+				'Event' => array(
+					'fields' => array('distribution', 'id', 'user_id', 'orgc'),	
+				)
+			)
+		));
+		if (!$this->_isSiteAdmin()) {
+			//
+			if ($attribute['Event']['orgc'] == $this->Auth->user('org')
+			&& (($this->userRole['perm_modify'] && $attribute['Event']['user_id'] != $this->Auth->user('id'))
+					|| $this->userRole['perm_modify_org'])) {
+							// Allow the edit
+			} else {
+				throw new NotFoundException(__('Invalid attribute'));
+			}
+		}
+		$this->layout = 'ajax';
+		if ($field == 'distribution') $this->set('distributionLevels', $this->Attribute->distributionLevels);
+		if ($field == 'category') {
+			$typeCategory = array();
+			foreach ($this->Attribute->categoryDefinitions as $k => $category) {
+				foreach ($category['types'] as $type) {
+					$typeCategory[$type][] = $k;
+				}
+			}
+			$this->set('typeCategory', $typeCategory);
+		}
+		if ($field == 'type') {
+			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+		}
+		$this->set('object', $attribute['Attribute']);
+		$fieldURL = ucfirst($field);
+		$this->render('ajax/attributeEdit' . $fieldURL . 'Form');
+	}
+	
+
+	public function attributeReplace($id) {
+		if (!$this->userRole['perm_add']) {
+			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		}
+		$event = $this->Attribute->Event->find('first', array(
+				'conditions' => array('Event.id' => $id),
+				'fields' => array('id', 'orgc', 'distribution'),
+				'recursive' => -1
+		));
+		if (empty($event) || (!$this->_isSiteAdmin() && ($event['Event']['orgc'] != $this->Auth->user('org') || !$this->userRole['perm_add']))) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		$this->set('event_id', $id);
+		if ($this->request->is('get')) {
+			$this->layout = 'ajax';
+			$this->request->data['Attribute']['event_id'] = $id;
+				
+			// combobox for types
+			$types = array_keys($this->Attribute->typeDefinitions);
+			$types = $this->_arrayToValuesIndexArray($types);
+			$this->set('types', $types);
+			// combobos for categories
+			$categories = $this->Attribute->validate['category']['rule'][1];
+			array_pop($categories);
+			$categories = $this->_arrayToValuesIndexArray($categories);
+			$this->set('categories', compact('categories'));
+			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+			$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+		}
+		if ($this->request->is('post')) {
+			if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action can only be accessed via AJAX.');
+				
+			$newValues = explode(PHP_EOL, $this->request->data['Attribute']['value']);
+			$category = $this->request->data['Attribute']['category'];
+			$type = $this->request->data['Attribute']['type'];
+			$to_ids = $this->request->data['Attribute']['to_ids'];
+			
+			if (!$this->_isSiteAdmin() && $this->Auth->user('org') != $event['Event']['orgc'] && !$this->userRole['perm_add']) throw new MethodNotAllowedException('You are not authorised to do that.');
+				
+			$oldAttributes = $this->Attribute->find('all', array(
+					'conditions' => array(
+							'event_id' => $id,
+							'category' => $category,
+							'type' => $type,
+					),
+					'fields' => array('id', 'event_id', 'category', 'type', 'value'),
+					'recursive' => -1,
+			));
+			$results = array('untouched' => count($oldAttributes), 'created' => 0, 'deleted' => 0, 'createdFail' => 0, 'deletedFail' => 0);
+				
+			foreach ($newValues as &$value) {
+				$value = trim($value);
+				$found = false;
+				foreach ($oldAttributes as &$old) {
+					if ($value == $old['Attribute']['value']) {
+						$found = true;
+					}
+				}
+				if (!$found) {
+					$attribute = array(
+							'value' => $value,
+							'event_id' => $id,
+							'category' => $category,
+							'type' => $type,
+							'distribution' => $event['Event']['distribution'],
+							'to_ids' => $to_ids,
+					);
+					$this->Attribute->create();
+					if ($this->Attribute->save(array('Attribute' => $attribute))) {
+						$results['created']++;
+					} else {
+						$results['createdFail']++;
+					}
+				}
+			}
+	
+			foreach ($oldAttributes as &$old) {
+				if (!in_array($old['Attribute']['value'], $newValues)) {
+					if ($this->Attribute->delete($old['Attribute']['id'])) {
+						$results['deleted']++;
+						$results['untouched']--;
+					} else {
+						$results['deletedFail']++;
+					}
+				}
+			}
+			$message = '';
+			$success = true;
+			if (($results['created'] > 0 || $results['deleted'] > 0) && $results['createdFail'] == 0 && $results['deletedFail'] == 0) {
+				$message .= 'Update completed without any issues.';
+			} else {
+				$message .= 'Update completed with some errors.';
+				$success = false;
+			}
+				
+			if ($results['created']) $message .= $results['created'] . ' attribute' . $this->__checkCountForOne($results['created']) . ' created. ';
+			if ($results['createdFail']) $message .= $results['createdFail'] . ' attribute' . $this->__checkCountForOne($results['createdFail']) . ' could not be created. ';
+			if ($results['deleted']) $message .= $results['deleted'] . ' attribute' . $this->__checkCountForOne($results['deleted']) . ' deleted.';
+			if ($results['deletedFail']) $message .= $results['deletedFail'] . ' attribute' . $this->__checkCountForOne($results['deletedFail']) . ' could not be deleted. ';
+			$message .= $results['untouched'] . ' attributes left untouched. ';
+				
+			$this->autoRender = false;
+			$this->layout = 'ajax';
+			if ($success) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)),'status'=>200));
+			else return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $message)),'status'=>200));
+		}
+	}
+	
+	private function __checkCountForOne($number) {
+		if ($number != 1) return 's';
+		return '';
+	}
+	
 }

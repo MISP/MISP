@@ -11,8 +11,7 @@
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
 				<ul class="nav">
-					<li><a href="/" style="color:white">Home
-					</a></li>
+					<li><a href="/" style="color:white">Home</a></li>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Event Actions
@@ -30,9 +29,14 @@
 							<li><a href="/shadow_attributes/index">View Proposals</a></li>
 							<li><a href="/events/proposalEventIndex">Events with proposals</a></li>
 							<li class="divider"></li>
-							<li><a href="/tags/index">List Tags</a>
+							<li><a href="/tags/index">List Tags</a></li>
 							<?php if ($isAclTagger): ?>
-							<li><a href="/tags/add">Add Tag</a>
+							<li><a href="/tags/add">Add Tag</a></li>
+							<?php endif; ?>
+							<li class="divider"></li>
+							<li><a href="/templates/index">List Templates</a></li>
+							<?php if ($isAclTemplate): ?>
+							<li><a href="/templates/add">Add Template</a></li>
 							<?php endif; ?>
 							<li class="divider"></li>
 							<li><a href="/events/export">Export</a></li>
@@ -175,7 +179,7 @@
 		</div>
 	</div>
 </div>
-<script>
+<script type="text/javascript">
 window.onload = resizeLogo;
 window.onresize = resizeLogo;
 
