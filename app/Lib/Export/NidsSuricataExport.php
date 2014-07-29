@@ -14,10 +14,10 @@ class NidsSuricataExport extends NidsExport {
 	public function hostnameRule($ruleFormat, $attribute, &$sid) {
 	    $overruled = $this->checkWhitelist($attribute['value']);
 	    $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-	    $content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . NidsExport::dnsNameToRawFormat($attribute['value'], 'hostname') . '"; fast_pattern; nocase;';
+	    $content = 'dns_query; content:"'.$attribute['value'].'"; nocase; pcre: "/(^|[^A-Za-z0-9-\.])' . preg_quote($attribute['value']) . '$/i";';
 	    $this->rules[] = sprintf($ruleFormat,
 	            ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-	            'udp',							// proto
+	            'dns',							// proto
 	            'any',							// src_ip
 	            'any',							// src_port
 	            '->',							// direction
@@ -30,24 +30,9 @@ class NidsSuricataExport extends NidsExport {
 	            1								// rev
 	    );
 	    $sid++;
-	    $this->rules[] = sprintf($ruleFormat,
-	            ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-	            'tcp',							// proto
-	            'any',							// src_ip
-	            'any',							// src_port
-	            '->',							// direction
-	            'any',							// dst_ip
-	            '53',							// dst_port
-	            'Hostname: ' . $attribute['value'],		// msg
-	            $content. ' flow:established;',			// rule_content
-	            '',								// tag
-	            $sid,							// sid
-	            1								// rev
-	    );
-	    $sid++;
 	    // also do http requests
 	    // warning: only suricata compatible
-	    $content = 'flow:to_server,established; content: "Host|3a| ' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/[^A-Za-z0-9-\.]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
+	    $content = 'flow:to_server,established; content: "Host|3a| ' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-\.])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/Hi";';
 	    $this->rules[] = sprintf($ruleFormat,
 	            ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 	            'http',						// proto
@@ -67,10 +52,10 @@ class NidsSuricataExport extends NidsExport {
 	public function domainRule($ruleFormat, $attribute, &$sid) {
 	    $overruled = $this->checkWhitelist($attribute['value']);
 	    $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-	    $content = 'content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; offset:2; content:"' . NidsExport::dnsNameToRawFormat($attribute['value']) . '"; fast_pattern; nocase;';
+	    $content = 'dns_query; content:"'.$attribute['value'].'"; nocase; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '$/i";';
 	    $this->rules[] = sprintf($ruleFormat,
 	            ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-	            'udp',							// proto
+	            'dns',							// proto
 	            'any',							// src_ip
 	            'any',							// src_port
 	            '->',							// direction
@@ -83,24 +68,9 @@ class NidsSuricataExport extends NidsExport {
 	            1								// rev
 	    );
 	    $sid++;
-	    $this->rules[] = sprintf($ruleFormat,
-	            ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-	            'tcp',							// proto
-	            'any',							// src_ip
-	            'any',							// src_port
-	            '->',							// direction
-	            'any',							// dst_ip
-	            '53',							// dst_port
-	            'Domain: ' . $attribute['value'],		// msg
-	            $content. ' flow:established;',			// rule_content
-	            '',								// tag
-	            $sid,							// sid
-	            1								// rev
-	    );
-	    $sid++;
 	    // also do http requests,
 	    // warning: only suricata compatible
-	    $content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
+	    $content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/Hi";';
 	    $this->rules[] = sprintf($ruleFormat,
 	            ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 	            'http',						// proto
