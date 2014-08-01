@@ -13,8 +13,11 @@
 /app/tmp/cache/views/myapp*
 /app/files/*
 !/app/files/empty
+!/app/files/scripts/
+!/app/files/scripts/tmp/empty
+/app/files/scripts/tmp/*
 /app/tmp/files/*
-!/app/tmp/files/empty
+!/app/files/empty
 /app/webroot/img/logo.png
 /app/Config/bootstrap.php
 /app/Config/database.php

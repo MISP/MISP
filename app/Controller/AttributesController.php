@@ -1697,13 +1697,9 @@ class AttributesController extends AppController {
 	}
 	
 	public function generateCorrelation() {
-		$start = microtime(true);
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$k = $this->Attribute->generateCorrelation();
 		$this->Session->setFlash(__('All done. ' . $k . ' attributes processed.'));
-		$time_elapsed_us = microtime(true) - $start;
-		debug($time_elapsed_us);
-		throw new Exception();
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 	

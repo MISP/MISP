@@ -31,28 +31,35 @@
 </head>
 <body>
 	<div id="gray_out" class="gray_out"></div>
-	<div id="container">
-		<?php echo $this->element('global_menu');
-			if ($debugMode == 'debugOff') {
-				?>
-					<div class="container-fluid debugOff" style="padding-top:50px;width:98%;">
-				<?php
-			} else {
-				?>
-					<div class="container-fluid debugOn" style="padding-top:10px;width:98%;">
-				<?php
-			}
-			echo $this->Session->flash('auth');
-			echo $this->Session->flash('error');
-    		echo $this->Session->flash('gpg');
-			echo $this->Session->flash();
-			echo $this->Session->flash('email'); ?>
-		</div>
-		<div
-			<?php
-				if (Configure::read('debug') == 0) echo 'class="topGap"';
+		<div id="container">
+			<?php echo $this->element('global_menu');
+			    $padding_top = 10;
+			    if ($debugMode == 'debugOff') $padding_top = 50;
 			?>
-		>	
+		<div class="container-fluid debugOff" style="padding-top:<?php echo $padding_top; ?>px;width:98%;">
+			<?php
+				$has_flash = false;
+			    $flash = array();
+			    $flash[] = $this->Session->flash('email');
+			    $flash[] = $this->Session->flash();
+			    $flash[] = $this->Session->flash('gpg');
+			    $flash[] = $this->Session->flash('error');
+			    $flash[] = $this->Session->flash('auth');
+			    foreach ($flash as $f) {
+					if ($f) {
+						echo $f;
+						$has_flash = true;
+						continue;
+					}
+	            }
+			?>
+		</div>
+		<?php
+			$topGap = 50;
+			if (Configure::read('debug') != 0) $topGap = 10;
+	 		if ($has_flash) $topGap += 50;
+		?>
+		<div style="padding-top:<?php echo $topGap; ?>px !important;">	
 			<?php echo $this->fetch('content'); ?>
 		</div>
 	</div>
@@ -67,7 +74,6 @@
 	echo $this->Html->script('main');
 	echo $this->Html->script('ajaxification');
 	?>
-	</div>
 	<div id = "ajax_success_container" class="ajax_container">
 		<div id="ajax_success" class="ajax_result ajax_success"></div>
 	</div>
