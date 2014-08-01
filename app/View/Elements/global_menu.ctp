@@ -1,4 +1,4 @@
-<div class="navbar-wrapper header <?php echo $debugMode;?>" style="height:42px;">
+<div id = "topBar" class="navbar-wrapper header <?php echo $debugMode;?>" style="height:42px;width:100%">
 	<div class="glass"></div>
 	<div class="navbar navbar-inverse">
 		<div class="navbar-inner" style="border-radius: 10px;">
@@ -185,6 +185,8 @@ window.onresize = resizeLogo;
 
 function resizeLogo() {
 	var testElem = document.getElementById('fullLogo');
+	var topBar = document.getElementById('topBar');
+	
 	if (testElem != null) {
 		if ($(window).width() < 1400) {
 			document.getElementById('fullLogo').style.display='none';
@@ -194,6 +196,13 @@ function resizeLogo() {
 			document.getElementById('fullLogo').style.display='block';
 			document.getElementById('smallLogo').style.display='none';	
 		}
+	}
+
+	if ($(window).width() < 1185) {
+		topBar.style.width = '1185px';
+	}
+	if ($(window).width() > 1184) {
+		topBar.style.width = '100%';
 	}
 }
 </script>
