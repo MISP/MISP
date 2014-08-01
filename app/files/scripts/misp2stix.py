@@ -54,7 +54,7 @@ def generateMainPackage(events):
     stix_package = STIXPackage()
     stix_header = STIXHeader()
     stix_header.title="Export from MISP"
-    stix_header.package_intents="Indicators"
+    stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
     return stix_package
 
@@ -64,7 +64,7 @@ def generateEventPackage(event):
     stix_package = STIXPackage(id_=package_name)
     stix_header = STIXHeader()
     stix_header.title="MISP event #" + event["Event"]["id"] + " uuid: " + event["Event"]["uuid"]
-    stix_header.package_intents="Indicators"
+    stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
     objects = generateSTIXObjects(event)
     incident = objects[0]
@@ -218,7 +218,6 @@ def addReference(target, reference):
         target.information_source.add_reference(reference)
 
 # takes an object and applies a TLP marking based on the distribution passed along to it
-# Careful: TTPs do not have handling currently
 def setTLP(target, distribution):
     marking_specification = MarkingSpecification()
     marking_specification.controlled_structure = "../../../descendant-or-self()"

@@ -2,7 +2,6 @@ from stix.extensions.identity.ciq_identity_3_0 import (CIQIdentity3_0Instance, S
 from stix.common import Identity
 
 def resolveIdentityAttribute(incident, attribute):
-    #print attribute["type"]
     ciq_identity = CIQIdentity3_0Instance()
     identity_spec = STIXCIQIdentity3_0()
     if attribute["type"] == 'target-user':

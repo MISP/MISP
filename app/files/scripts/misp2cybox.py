@@ -14,13 +14,10 @@ from cybox.common import Hash, ByteRun, ByteRuns
 from cybox.objects.http_session_object import *
 from cybox.objects.as_object import AutonomousSystem
 from stix.extensions.test_mechanism.snort_test_mechanism import *
-
 import ntpath, socket, sys
 from stix.indicator import Indicator
 
 this_module = sys.modules[__name__]
-
-#complex_type_to_method = {}
 
 simple_type_to_method = {}
 simple_type_to_method.update(dict.fromkeys(["md5", "sha1", "sha256", "filename", "filename|md5", "filename|sha1", "filename|sha256", "malware-sample", "attachment"], "resolveFileObservable"))
