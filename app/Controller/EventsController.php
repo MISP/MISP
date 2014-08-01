@@ -2410,6 +2410,11 @@ class EventsController extends AppController {
 			$tempFile->delete();
 			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
 			// read the output file and pass it to the view
+			if ($id == null) {
+				$this->header('Content-Disposition: download; filename="misp.stix.all.' . $returnType . '"');
+			} else {
+				$this->header('Content-Disposition: download; filename="misp.stix.event' . $id . '.' . $returnType . '"');
+			}
 			$this->set('data', $file->read());
 			// delete the output file
 			$file->delete();
