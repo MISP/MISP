@@ -2365,16 +2365,71 @@ class EventsController extends AppController {
 		}
 	}
 	
-	public function stix($id = null) {
+	public function stix($id, $attachments = false) {
+		if (!$id) throw new MethodNotAllowedException('No event ID given.');
 		$event = $this->Event->find('first', array(
-			'conditions' => array('id' => $id),
-			'recursive' => -1,
-			'fields'  => array('orgc', 'id'),
+				'conditions' => array('id' => $id),
+				'recursive' => -1,
+				'fields'  => array('orgc', 'id'),
 		));
-		if (!$this->userRole['perm_add']) {
-			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
-		}
+		
+		// 
 		if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
-		$this->Event->stix($id, $this->_isSiteAdmin(), $this->Auth->user('org'));
+		
+		$events = $this->Event->fetchEvent($id, null, $this->Auth->user('org'), $this->_isSiteAdmin());
+		
+		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments 
+		if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
+			foreach ($events as &$event) {
+				foreach ($event['Attribute'] as &$attribute) {
+					if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
+						$encodedFile = $this->Event->Attribute->base64EncodeAttachment($attribute);
+						$attribute['data'] = $encodedFile;
+					}
+				}
+			}
+		}
+		// generate a randomised filename for the temporary file that will be passed to the python script
+		$randomFileName = $this->__generateRandomFileName();
+		$tempFile = new File (APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
+		
+		// save the json_encoded event(s) to the temporary file
+		$result = $tempFile->write(json_encode($events));
+		$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
+		$returnType = 'xml';
+		if ($this->response->type() === 'application/json') $returnType = 'json';
+		
+		// Execute the python script and point it to the temporary filename
+		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType);
+		
+		// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
+		// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
+		$result = json_decode($result);
+		if ($result->success == 1) {
+			// delete the temporary file containing the json from MISP to the stix script
+			$tempFile->delete();
+			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
+			// read the output file and pass it to the view
+			$this->set('data', $file->read());
+			// delete the output file
+			$file->delete();
+		} else {
+			// delete all of the created temporary files even if the import failed. 
+			$tempFile->delete();
+			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
+			$file->delete();
+			throw new Exception(h($result->message));
+		}
+	}
+	
+	private function __generateRandomFileName() {
+		$length = 12;
+		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		$charLen = strlen($characters) - 1;
+		$fn = '';
+		for ($p = 0; $p < $length; $p++) {
+			$fn .= $characters[rand(0, $charLen)];
+		}
+		return $fn;
 	}
 }

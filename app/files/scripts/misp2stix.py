@@ -1,12 +1,14 @@
 import sys, json, uuid, os, time, datetime
 from misp2cybox import *
+from misp2ciq import *
 from dateutil.tz import tzutc
 from stix.indicator import Indicator
 from stix.ttp import TTP, Behavior
 from stix.ttp.malware_instance import MalwareInstance
-from stix.incident import Incident, Time, ImpactAssessment
+from stix.incident import Incident, Time, ImpactAssessment, ExternalID, AffectedAsset
+from stix.exploit_target import ExploitTarget, Vulnerability
+from stix.incident.history import JournalEntry, History, HistoryItem
 from stix.threat_actor import ThreatActor
-from stix.incident import ExternalID
 from stix.core import STIXPackage, STIXHeader
 from stix.common import InformationSource, Identity, Confidence
 from stix.data_marking import Marking, MarkingSpecification
@@ -20,14 +22,11 @@ status_mapping = {'0' : 'New', '1' : 'Open', '2' : 'Closed'}
 TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN'}
 confidence_mapping = {'0' : 'None', '1' : 'High'}
 
-non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine', 'target-org', 'taget-location', 'target-external', 'email-target']
+not_implemented_attributes = ['yara', 'pattern-in-traffic', 'pattern-in-memory']
 
-#special_type_category_method = {('link', 'Antivirus detection') : "generateIncidentReference"}
-#special_type_category_method.update(dict.fromkeys([("comment", "Payload type"), ("text", "Payload type"), ("comment", "Payload type")], "generateIPObservable"))
-
+non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'email-target', 'vulnerability', 'attachment']
 
 # Load the array from MISP. MISP will call this script with a parameter containing the temporary file it creates for the export (using a generated 12 char alphanumeric name)
-# return ERROR:1 if the file cannot be read or decoded
 def loadEvent(args, pathname):
     try:
         filename = pathname + "/tmp/" + args[1]
@@ -35,7 +34,19 @@ def loadEvent(args, pathname):
         events = json.loads(tempFile.read())
         return events
     except:
-        print "ERROR:1"
+        print json.dumps({'success' : 0, 'message' : 'The temporary MISP export file could not be read'})
+        sys.exit(1)
+
+def saveFile(args, pathname, package):
+    try:
+        filename = pathname + "/tmp/" + args[1] + ".out"
+        with open(filename, 'w') as f:
+            if args[2] == 'json':
+                f.write(package.to_json())
+            else:
+                f.write(package.to_xml())
+    except:
+        print json.dumps({'success' : 0, 'message' : 'The STIX file could not be written'})
         sys.exit(1)
 
 #generate a package that will contain all of the event-packages
@@ -43,7 +54,7 @@ def generateMainPackage(events):
     stix_package = STIXPackage()
     stix_header = STIXHeader()
     stix_header.title="Export from MISP"
-    stix_header.package_intents="Collective Threat Intelligence"
+    stix_header.package_intents="Indicators"
     stix_package.stix_header = stix_header
     return stix_package
 
@@ -52,12 +63,11 @@ def generateEventPackage(event):
     package_name = 'example:STIXPackage-' + event["Event"]["uuid"]
     stix_package = STIXPackage(id_=package_name)
     stix_header = STIXHeader()
-    stix_header.title="MISP event #" + event["Event"]["id"]
-    stix_header.package_intents="Collective Threat Intelligence"
+    stix_header.title="MISP event #" + event["Event"]["id"] + " uuid: " + event["Event"]["uuid"]
+    stix_header.package_intents="Indicators"
     stix_package.stix_header = stix_header
     objects = generateSTIXObjects(event)
     incident = objects[0]
-    incident = setTLP(incident, event["Event"]["distribution"])
     ttps = objects[1]
     stix_package.add_incident(incident)
     for ttp in ttps:
@@ -67,18 +77,17 @@ def generateEventPackage(event):
 # generate the incident information. MISP events are currently mapped to incidents with the event metadata being stored in the incident information
 def generateSTIXObjects(event):
     incident = Incident(id_ = "example:STIXPackage-" + event["Event"]["uuid"], description=event["Event"]["info"])
-    incident = setDates(incident, event["Event"]["date"], int(event["Event"]["publish_timestamp"]))
+    setDates(incident, event["Event"]["date"], int(event["Event"]["publish_timestamp"]))
+    addJournalEntry(incident, "Event Threat Level: " + event["ThreatLevel"]["name"])
     ttps = []
     external_id = ExternalID(value=event["Event"]["id"], source="MISP Event")
     incident.add_external_id(external_id)
     incident_status_name = status_mapping.get(event["Event"]["analysis"], None)
     if incident_status_name is not None:
         incident.status = IncidentStatus(incident_status_name)
-    incident = setTLP(incident, event["Event"]["distribution"])
-    incident = setSources(incident, event["Event"]["org"], event["Event"]["id"])
-    objects = resolveAttributes(incident, ttps, event["Attribute"])
-    incident = objects[0]
-    ttps = objects[1]
+    setTLP(incident, event["Event"]["distribution"])
+    setOrg(incident, event["Event"]["org"])
+    resolveAttributes(incident, ttps, event["Attribute"])
     return [incident, ttps]
 
 
@@ -90,66 +99,99 @@ def setDates(incident, date, published):
     incident_time.incident_discovery = convertToStixDate(date)
     incident_time.incident_reported = timestamp
     incident.time = incident_time
-    return incident
 
 # decide what to do with the attribute, as not all of them will become indicators
 def resolveAttributes(incident, ttps, attributes):
     for attribute in attributes:
-        if (attribute["type"] in non_indicator_attributes):
+        if (attribute["type"] in not_implemented_attributes):
+            addJournalEntry(incident, "!Not implemented attribute category/type combination caught! attribute[" + attribute["category"] + "][" + attribute["type"] + "]: " + attribute["value"])
+        elif (attribute["type"] in non_indicator_attributes):
             #types that will definitely not become indicators
-            objects = handleNonIndicatorAttribute(incident, ttps, attribute)
-            incident = objects[0]
-            ttps = objects[1]
+            handleNonIndicatorAttribute(incident, ttps, attribute)
         else:
             #types that may become indicators
-            objectRelationship = attribute["category"]
-            indicator = generateIndicator(attribute)
-            indicator.title = "MISP attribute #" + attribute["id"]
-            indicator=generateObservable(indicator, attribute)
-            relatedIndicator = RelatedIndicator(indicator, relationship=objectRelationship)
-            incident.related_indicators.append(relatedIndicator)
+            handleIndicatorAttribute(incident, ttps, attribute)
     return [incident, ttps]
 
+# Create the indicator and pass the attribute further for observable creation - this can be called from resolveattributes directly or from handleNonindicatorAttribute, for some special cases
+def handleIndicatorAttribute(incident, ttps, attribute):
+    indicator = generateIndicator(attribute)
+    indicator.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
+    if attribute["type"] == "email-attachment":
+        generateEmailAttachmentObject(indicator, attribute["value"])
+    else:
+        generateObservable(indicator, attribute)
+    if "data" in attribute:
+        if attribute["type"] == "malware-sample":
+            createArtifactObject(indicator, attribute)
+    relatedIndicator = RelatedIndicator(indicator, relationship=attribute["category"])
+    incident.related_indicators.append(relatedIndicator)
 
+# Handle the attributes that do not fit into an indicator
 def handleNonIndicatorAttribute(incident, ttps, attribute):
     if attribute["type"] in ("comment", "text", "other"):
         if attribute["category"] == "Payload type":
-            ttp = generateTTP(attribute)
-            ttps.append(ttp)
-            relatedTTP = RelatedTTP(TTP(idref=ttp.id_), relationship="Uses Malware")
-            incident.leveraged_ttps.append(relatedTTP)
-       # elif attribute["category"] == "Attribution":
-           # ta = generateThreatActor(attribute)
-            #relatedTTP
-        #else:
+            generateTTP(incident, attribute)
+        elif attribute["category"] == "Attribution":
+            ta = generateThreatActor(attribute)
+            rta = RelatedThreatActor(ta, relationship="Attribution")
+            incident.attributed_threat_actors.append(rta)
+        else:
+            entry_line = "attribute[" + attribute["category"] + "][" + attribute["type"] + "]: " + attribute["value"]
+            addJournalEntry(incident, entry_line)
+    elif attribute["type"] == "target-machine":
+        aa = AffectedAsset()
+        aa.description = attribute["value"]
+        incident.affected_assets.append(aa)
+    elif attribute["type"] == "vulnerability":
+        generateTTP(incident, attribute)
+    elif attribute["type"] == "link":
+        if attribute["category"] == "Payload delivery":
+            handleIndicatorAttribute(incident, ttps, attribute)
+        else:
+            addReference(incident, attribute["value"])
+    elif attribute["type"].startswith('target-'):
+        resolveIdentityAttribute(incident, attribute)
+    elif attribute["type"] == "attachment":
+        observable = returnAttachmentComposition(attribute)
+        related_observable = RelatedObservable(observable, relationship=attribute["category"])
+        incident.related_observables.append(related_observable)
     return [incident, ttps]
 
 # TTPs are only used to describe malware names currently (attribute with category Payload Type and type text/comment/other)
-def generateTTP(attribute):
+def generateTTP(incident, attribute):
     ttp = TTP()
-    ttp.id_="example:indicator-" + attribute["uuid"]
-    ttp = setTLP(ttp, attribute["distribution"])
-    ttp.title = "MISP attribute #" + attribute["id"]
-    # here comes the part that is specific to this cat/type combination, branch it out in the future if we want to store other types in here
-    malware = MalwareInstance()
-    malware.add_name(attribute["value"])
-    ttp.behavior = Behavior()
-    ttp.behavior.add_malware_instance(malware)
-    return ttp
+    ttp.id_="example:ttp-" + attribute["uuid"]
+    setTLP(ttp, attribute["distribution"])
+    ttp.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
+    if attribute["type"] == "vulnerability":
+        vulnerability = Vulnerability()
+        vulnerability.cve_id = attribute["value"]
+        et = ExploitTarget()
+        et.add_vulnerability(vulnerability)
+        ttp.exploit_targets.append(et)
+    else:
+        malware = MalwareInstance()
+        malware.add_name(attribute["value"])
+        ttp.behavior = Behavior()
+        ttp.behavior.add_malware_instance(malware)
+    relatedTTP = RelatedTTP(ttp, relationship=attribute["category"])
+    incident.leveraged_ttps.append(relatedTTP)
 
 # Threat actors are currently only used for the category:attribution / type:(text|comment|other) attributes 
 def generateThreatActor(attribute):
     ta = ThreatActor()
     ta.id_="example:threatactor-" + attribute["uuid"]
-    ta.title = attribute["value"]
+    ta.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
+    ta.description = attribute["value"]
     return ta
 
 # generate the indicator and add the relevant information
 def generateIndicator(attribute):
     indicator = Indicator()
     indicator.id_="example:indicator-" + attribute["uuid"]
-    indicator = setTLP(indicator, attribute["distribution"])
-    indicator.information_source = setSourceDescription("Attribute", attribute["id"])
+    setTLP(indicator, attribute["distribution"])
+    indicator.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
     confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
     confidence_value = confidence_mapping.get(attribute["to_ids"], None)
     if confidence_value is None:
@@ -166,18 +208,17 @@ def convertToStixDate(date):
     return getDateFromTimestamp(time.mktime(datetime.datetime.strptime(date, "%Y-%m-%d").timetuple()))
 
 # takes an object and adds the passed organisation as the information_source.identity to it. 
-def setSources(target, org, event_id):
+def setOrg(target, org):
     ident = Identity(name=org)
-    information_source = setSourceDescription("Event", event_id)
-    information_source.identity = ident
+    information_source = InformationSource(identity = ident)
     target.information_source = information_source
-    return target
 
-def setSourceDescription(sourceObject, sourceID):
-    return InformationSource(description = "MISP " + sourceObject + " #" + sourceID)
+def addReference(target, reference):
+    if hasattr(target.information_source, "references"):
+        target.information_source.add_reference(reference)
 
 # takes an object and applies a TLP marking based on the distribution passed along to it
-# Careful: Incidents do not have handling currently
+# Careful: TTPs do not have handling currently
 def setTLP(target, distribution):
     marking_specification = MarkingSpecification()
     marking_specification.controlled_structure = "../../../descendant-or-self()"
@@ -190,7 +231,14 @@ def setTLP(target, distribution):
     handling = Marking()
     handling.add_marking(marking_specification)
     target.handling = handling
-    return target
+
+# add a journal entry to an incident
+def addJournalEntry(incident, entry_line):
+    if hasattr(incident.history, "value"):
+        incident.history.value += "\n" + entry_line
+    else:
+        je = JournalEntry(value = entry_line)
+        incident.history = je
 
 # main
 def main(args):
@@ -199,10 +247,9 @@ def main(args):
     stix_package = generateMainPackage(events)
     for event in events:
         sub_package = generateEventPackage(event)
-        #stix_package.related_packages.append(sub_package)
-    #print(stix_package.to_xml()) 
-    print(sub_package.to_xml())
-    #print(sub_package.to_json())
+        stix_package.related_packages.append(sub_package)
+    saveFile(args, pathname, stix_package)
+    print json.dumps({'success' : 1, 'message' : ''})
 
 if __name__ == "__main__":
     main(sys.argv)

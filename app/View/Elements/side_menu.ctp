@@ -42,6 +42,8 @@
 					<?php if (isset($event['Event']['published']) && $event['Event']['published']): ?>
 					<li><a href="/events/downloadOpenIOCEvent/<?php echo $event['Event']['id'];?>">Download as IOC</a></li>
 					<li><a href="/events/csv/download/<?php echo $event['Event']['id'];?>/1">Download as CSV</a></li>
+					<li><a href="/events/stix/<?php echo $event['Event']['id'];?>.xml">Download as STIX XML</a></li>
+					<li><a href="/events/stix/<?php echo $event['Event']['id'];?>.json">Download as STIX JSON</a></li>
 					<?php endif; ?>
 					<li class="divider"></li>
 					<li><a href="/events/index">List Events</a></li>
