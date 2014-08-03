@@ -36,7 +36,7 @@
 			    $padding_top = 10;
 			    if ($debugMode == 'debugOff') $padding_top = 50;
 			?>
-		<div class="container-fluid debugOff" style="padding-top:<?php echo $padding_top; ?>px;width:98%;">
+		<div class="container-fluid <?php echo $debugMode; ?>" style="padding-top:<?php echo $padding_top; ?>px;width:98%;">
 			<?php
 				$has_flash = false;
 			    $flash = array();
@@ -56,8 +56,11 @@
 		</div>
 		<?php
 			$topGap = 50;
-			if (Configure::read('debug') != 0) $topGap = 10;
-	 		if ($has_flash) $topGap += 50;
+			if (Configure::read('debug') != 0) {
+				$topGap = 10;
+			} else {
+	 			if ($has_flash) $topGap += 50;
+	 		}
 		?>
 		<div style="padding-top:<?php echo $topGap; ?>px !important;">	
 			<?php echo $this->fetch('content'); ?>
