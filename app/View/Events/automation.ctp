@@ -48,7 +48,22 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/hids/sha1/download</pre>
 <p>You can also use the tag syntax similar to the XML import. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). For example, to only show sha1 values from events tagged tag1, use:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/hids/sha1/download/tag1</pre>
-
+<h3>STIX export</h3>
+<p>You can export MISP events in Mitre's STIX format (to read more about STIX, click <a href="https://stix.mitre.org/">here</a>). The STIX XML export is currently very slow and can lead to timeouts with larger events or collections of events. The JSON return format does not suffer from this issue. Usage:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download</pre>
+<p>Search parameters can be passed to the function via url parameters or by POSTing an xml or json object (depending on the return type). The following parameters can be passed to the STIX export tool: <code>id</code>, <code>withAttachments</code>, <code>tags</code>. Both <code>id</code> and <code>tags</code> can use the <code>&&</code> (and) and <code>!</code> (not) operators to build queries. Using the url parameters, the syntax is as follows:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download/[id]/[withAttachments]/[tags]</pre>
+<h4>Various ways to narrow down the search results of the STIX export</h4>
+<p>For example, to retrieve all events tagged "APT1" but excluding events tagged "OSINT" and excluding events #51 and #62 without any attachments:
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download/!51&&!62/false/APT1&&!OSINT</pre>
+<p>To export the same events using a POST request use:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download.json</pre>
+<p>Together with this JSON object in the POST message:</p>
+<code>{"request": {"id":["!51","!62"],"tags":["APT1","!OSINT"]}}</code><br /><br />
+<p>XML is automatically assumed when using the stix export:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download</pre>
+<p>The same search could be accomplished using the following POSTed XML object (note that ampersands need to be escaped, or alternatively separate id and tag elements can be used): </p>
+<code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;/request&gt;</code>
 <h3>Text export</h3>
 <p>An automatic export of all attributes of a specific type to a plain text file.</p>
 <p>You can configure your tools to automatically download the following files:</p>

@@ -44,6 +44,7 @@ class EventsController extends AppController {
 		$this->Auth->allow('text');
 		$this->Auth->allow('dot');
 		$this->Auth->allow('restSearch');
+		$this->Auth->allow('stix');
 
 		// TODO Audit, activate logable in a Controller
 		if (count($this->uses) && $this->{$this->modelClass}->Behaviors->attached('SysLogLogable')) {
@@ -2369,76 +2370,64 @@ class EventsController extends AppController {
 		}
 	}
 	
-	public function stix($id, $attachments = false) {
-		if (!$id) throw new MethodNotAllowedException('No event ID given.');
-		$event = $this->Event->find('first', array(
-				'conditions' => array('id' => $id),
-				'recursive' => -1,
-				'fields'  => array('orgc', 'id'),
-		));
-		
-		// 
-		if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
-		
-		$events = $this->Event->fetchEvent($id, null, $this->Auth->user('org'), $this->_isSiteAdmin());
-		
-		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments 
-		if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
-			foreach ($events as &$event) {
-				foreach ($event['Attribute'] as &$attribute) {
-					if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
-						$encodedFile = $this->Event->Attribute->base64EncodeAttachment($attribute);
-						$attribute['data'] = $encodedFile;
-					}
-				}
+	public function stix($key, $id = null, $withAttachments = false, $tags = null) {
+		if ($key != 'download') {
+			// check if the key is valid -> search for users based on key
+			$user = $this->checkAuthUser($key);
+			if (!$user) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
+			$isSiteAdmin = $user['User']['siteAdmin'];
+			$org = $user['User']['org'];
+		} else {
+			if (!$this->Auth->user('id')) {
+				throw new UnauthorizedException('You have to be logged in to do that.');
+			}
+			$isSiteAdmin = $this->_isSiteAdmin();
+			$org = $this->Auth->user('org');
+		}
+
+		// set null if a null string is passed
+		if ($id == 'false' || $id == 'null') $id = null;
+		$numeric = false;
+		if (is_numeric($id)) $numeric = true;
+		if ($tags == 'false' || $tags == 'null') $tags = null;
+		if ($withAttachments == 'false' || 'null') $withAttachments = false;
+		// set the export type based on the request
+		if ($this->response->type() === 'application/json') $returnType = 'json';
+		else {
+			$returnType = 'xml';
+			$this->response->type('xml');	// set the content type
+			$this->layout = 'xml/default';
+		}
+		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted xml object.
+		// The correct format for a posted xml is a "request" root element, as shown by the examples below:
+		// For XML: <request><id>!3&amp;!4</id><tags>OSINT</tags></request>
+		// This would return all OSINT tagged events except for event #3 and #4
+		if ($this->request->is('post')) {
+			if (empty($this->request->data)) {
+				throw new BadRequestException('Either specify the search terms in the url, or POST an xml (with the root element being "request".');
+			} else {
+				$data = $this->request->data;
+			}
+			$paramArray = array('id', 'withAttachment', 'tags');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+				else ${$p} = null;
 			}
 		}
-		// generate a randomised filename for the temporary file that will be passed to the python script
-		$randomFileName = $this->__generateRandomFileName();
-		$tempFile = new File (APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
+		$result = $this->Event->stix($id, $tags, $withAttachments, $this->Auth->user('org'), $this->_isSiteAdmin(), $returnType);
 		
-		// save the json_encoded event(s) to the temporary file
-		$result = $tempFile->write(json_encode($events));
-		$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-		$returnType = 'xml';
-		if ($this->response->type() === 'application/json') $returnType = 'json';
-		
-		// Execute the python script and point it to the temporary filename
-		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType);
-		
-		// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
-		// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
-		$result = json_decode($result);
-		if ($result->success == 1) {
-			// delete the temporary file containing the json from MISP to the stix script
-			$tempFile->delete();
-			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
+		if ($result['success'] == 1) {
 			// read the output file and pass it to the view
-			if ($id == null) {
-				$this->header('Content-Disposition: download; filename="misp.stix.all.' . $returnType . '"');
+			if (!$numeric) {
+				$this->header('Content-Disposition: download; filename="misp.stix.event.collection.' . $returnType . '"');
 			} else {
 				$this->header('Content-Disposition: download; filename="misp.stix.event' . $id . '.' . $returnType . '"');
 			}
-			$this->set('data', $file->read());
-			// delete the output file
-			$file->delete();
+			$this->set('data', $result['data']);
 		} else {
-			// delete all of the created temporary files even if the import failed. 
-			$tempFile->delete();
-			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-			$file->delete();
-			throw new Exception(h($result->message));
+			throw new Exception(h($result['message']));
 		}
-	}
-	
-	private function __generateRandomFileName() {
-		$length = 12;
-		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-		$charLen = strlen($characters) - 1;
-		$fn = '';
-		for ($p = 0; $p < $length; $p++) {
-			$fn .= $characters[rand(0, $charLen)];
-		}
-		return $fn;
 	}
 }

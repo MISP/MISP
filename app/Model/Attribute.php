@@ -1336,7 +1336,12 @@ class Attribute extends AppModel {
 	 // This method takes a string from an argument with several elements (separated by '&&' and negated by '!') and returns 2 arrays
 	 // array 1 will have all of the non negated terms and array 2 all the negated terms
 	 public function dissectArgs($args) {
-	 	$argArray = explode('&&', $args);
+	 	if (!$args) return array(null, null);
+	 	if (is_array($args)) {
+	 		$argArray = $args;
+	 	} else {
+	 		$argArray = explode('&&', $args);
+	 	}
 	 	$accept = $reject = $result = array();
 	 	$reject = array();
 	 	foreach ($argArray as $arg) {
