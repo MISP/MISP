@@ -17,7 +17,7 @@
 							<span onClick="activateTagField()" id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;">+</span>
 						</td>
 						<td id = "addTagFieldTD">
-							<?
+							<?php
 								echo $this->Form->input('tagsPusher', array(
 									'div' => 'clear',
 									'id' => 'addTagField',
