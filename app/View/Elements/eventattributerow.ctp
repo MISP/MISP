@@ -24,7 +24,7 @@ if ($object['objectType'] == 1) {
 	}
 }
 ?>
-<tr id = "<?php echo $currentType . '_' . $object['id'] . '_tr'; ?>" class="<? echo $extra3; ?>">
+<tr id = "<?php echo $currentType . '_' . $object['id'] . '_tr'; ?>" class="<?php echo $extra3; ?>">
 	<?php if ($mayModify): ?>
 		<td class="<?php echo $extra; ?>" style="width:10px;">
 			<?php if ($object['objectType'] == 0): ?>

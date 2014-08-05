@@ -1,4 +1,4 @@
-<div class="attributes <? if (!$ajax) echo 'form';?>">
+<div class="attributes <?php if (!$ajax) echo 'form';?>">
 <?php 
 	echo $this->Form->create('Attribute', array('id'));
 ?>

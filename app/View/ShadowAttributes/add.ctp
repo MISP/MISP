@@ -1,4 +1,4 @@
-<div class="shadow_attributes <? if (!$ajax) echo 'form';?>">
+<div class="shadow_attributes <?php if (!$ajax) echo 'form';?>">
 <?php echo $this->Form->create('ShadowAttribute');?>
 	<fieldset>
 	<legend><?php echo __('Add Proposal'); ?></legend>
