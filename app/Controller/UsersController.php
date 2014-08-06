@@ -157,6 +157,7 @@ class UsersController extends AppController {
  */
 	public function admin_index() {
 		$this->User->recursive = 0;
+		$conditions = array();
 		if ($this->_isSiteAdmin()) {
 			$this->set('users', $this->paginate());
 		} else {
