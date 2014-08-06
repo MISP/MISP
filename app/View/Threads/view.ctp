@@ -1,5 +1,11 @@
 <div class="threads view">
-	<h3><?php echo h($thread_title); ?></h3>
+	<h3><?php 
+		if (isset($event_id)) {
+			echo '<a href="/events/view/' . $event_id . '">' . h($thread_title) . '</a>';
+		} else {
+			echo h($thread_title); 
+		}
+	?></h3>
 <?php
 	echo $this->element('eventdiscussion');
 ?>
