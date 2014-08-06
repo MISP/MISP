@@ -237,7 +237,7 @@ class EventsController extends AppController {
 		}
 		$this->loadModel('Log');
 		$logEntries = $this->Log->find('all', array(
-			'conditions' => array('title LIKE' => '%Event (' . $id . ')%', 'org !=' => $results[0]['Event']['orgc'], 'model LIKE' => '%ShadowAttribute%'),
+			'conditions' => array('model LIKE' => '%ShadowAttribute%', 'org !=' => $results[0]['Event']['orgc'], 'title LIKE' => '%Event (' . $id . ')%'),
 			'fields' => array('org'),
 			'group' => 'org'
 		));
