@@ -25,7 +25,7 @@
 		if ($isAclTagger) : ?>
 			<td id ="addTagTD" style="display:none;">
 				<?php
-					echo $this->Form->create('Event', array('url' => '/events/addTag', 'style' => 'margin:0px;'));
+					echo $this->Form->create('Event', array('url' => '/events/addTag/' . $event['Event']['id'], 'style' => 'margin:0px;'));
 					echo $this->Form->hidden('id', array('value' => $event['Event']['id']));
 					echo $this->Form->input('tag', array(
 						'options' => array($allTags),

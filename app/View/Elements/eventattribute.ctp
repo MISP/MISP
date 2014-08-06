@@ -45,7 +45,7 @@
 ?>
 <div id="edit_object_div">
 	<?php 
-		echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'action' => 'deleteSelected'));
+		echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'url' => '/attributes/deleteSelected/' . $event['Event']['id']));
 		echo $this->Form->input('ids', array(
 			'type' => 'text',
 			'value' => 'test',

@@ -1,5 +1,5 @@
 <?php 
-	echo $this->Form->create('Attribute', array('class' => 'inline-form inline-field-form', 'id' => 'Attribute_' . $object['id'] . '_category_form', 'action' => 'editField'));
+	echo $this->Form->create('Attribute', array('class' => 'inline-form inline-field-form', 'id' => 'Attribute_' . $object['id'] . '_category_form', 'url' => '/attributes/editField/' . $object['id']));
 ?>
 <div class='inline-input inline-input-container'>	
 <div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok"></span></div>	

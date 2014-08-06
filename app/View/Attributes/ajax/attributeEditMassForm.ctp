@@ -1,6 +1,6 @@
 <div class="attributes">
 <?php 
-	echo $this->Form->create('Attribute', array('action' => 'editSelected'));
+	echo $this->Form->create('Attribute', array('url' => '/attributes/editSelected/' . $id));
 ?>
 	<fieldset>
 		<legend><?php echo __('Mass Edit Attributes'); ?></legend>

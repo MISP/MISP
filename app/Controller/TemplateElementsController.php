@@ -154,6 +154,10 @@ class TemplateElementsController extends AppController {
 			$this->request->data[$ModelType] = $templateElement[$ModelType][0];
 			if ($type == 'attribute') {
 				$this->loadModel('Attribute');
+				// combobox for types
+				$types = array_keys($this->Attribute->typeDefinitions);
+				$types = $this->_arrayToValuesIndexArray($types);
+				$this->set('types', $types);
 				// combobox for categories
 				$categories = $this->Attribute->validate['category']['rule'][1];
 				array_pop($categories);
@@ -170,7 +174,7 @@ class TemplateElementsController extends AppController {
 				if ($this->request->data['TemplateElementAttribute']['complex']) {
 					$this->set('initialTypes', $this->_arrayToValuesIndexArray($this->Attribute->typeGroupCategoryMapping[$templateElement['TemplateElementAttribute'][0]['category']]));
 				} else {
-					$this->set('initialTypes', $categoryDefinitions[$templateElement['TemplateElementAttribute'][0]['category']]['types']);
+					$this->set('initialTypes', $this->_arrayToValuesIndexArray($categoryDefinitions[$templateElement['TemplateElementAttribute'][0]['category']]['types']));
 				}
 				$this->set('initialValues', $templateElement['TemplateElementAttribute'][0]);
 				$this->set('categoryDefinitions', $categoryDefinitions);
