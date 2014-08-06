@@ -6,9 +6,11 @@ INSTALLATION INSTRUCTIONS
 
 1/ Minimal ubuntu install
 -------------------------
+
 Install a minimal ubuntu 12.04-server system with the software:
+
 - OpenSSH server
-- LAMP server
+- LAMP server (don't forget php5-mysql)
 - Mail server
 
 You will get some questions, you will probably want to set:
