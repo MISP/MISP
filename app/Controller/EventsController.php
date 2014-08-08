@@ -83,21 +83,6 @@ class EventsController extends AppController {
 	 */
 	public function index() {
 		// list the events
-
-		// TODO information exposure vulnerability - as we don't limit the filter depending on the MISP.showorg parameter
-		// this filter will work if showorg=false and users will be able to perform the filtering and see what events were posted by what org.
-		// same goes for orgc in all cases
-		//transform POST into GET
-		if($this->request->is("post")) {
-			$url = array('action'=>'index');
-			$filters = array();
-			if (isset($this->data['Event'])) {
-				$filters = $this->data['Event'];
-			}
-
-			//redirect user to the index page including the selected filters
-			$this->redirect(array_merge($url,$filters));
-		}
 		if (Configure::read('MISP.tagging') && !$this->_isRest()) {
 			$this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
 			$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
@@ -109,25 +94,30 @@ class EventsController extends AppController {
 		} else {
 			$this->Event->contain('User.email');
 		}
+		$passedArgsArray = array();
+		$urlparams = "";
 		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
 		foreach ($this->passedArgs as $k => $v) {
 			if (substr($k, 0, 6) === 'search') {
+				if ($urlparams != "") $urlparams .= "/"; 
+				$urlparams .= $k . ":" . $v;
 				$searchTerm = substr($k, 6);
 				switch ($searchTerm) {
 					case 'published' :
 						if ($v == 2) continue 2;
-						else $this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' =' => $v);
+						$this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' =' => $v);
 						break;
 					case 'Datefrom' :
-						if (!$v) continue 2;
+						if ($v == "") continue 2;
 						$this->paginate['conditions'][] = array('Event.date >=' => $v);
 						break;
 					case 'Dateuntil' :
-						if (!$v) continue 2;
+						if ($v == "") continue 2;
 						$this->paginate['conditions'][] = array('Event.date <=' => $v);
 						break;
 					case 'org' :
-						if (!$v) continue 2;
+						if ($v == "") continue 2;
+						if (Configure::read('MISP.showorg') == 'false') continue 2;
 						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
 						$pieces = explode('|', $v);
 						$test = array();
@@ -140,8 +130,8 @@ class EventsController extends AppController {
 						}
 						$this->paginate['conditions']['AND'][] = $test;
 						break;
-					case 'info' :
-						if (!$v) continue 2;
+					case 'eventinfo' :
+						if ($v == "") continue 2;
 						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
 						$pieces = explode('|', $v);
 						$test = array();
@@ -171,13 +161,43 @@ class EventsController extends AppController {
 						}
 						$this->paginate['conditions']['AND'][] = $test;
 						break;
+					case 'threatlevel' :
+						if ($v == "") continue 2;
+						$pieces = explode('|', $v);
+						$test = array();
+						foreach ($pieces as $piece) {
+							if ($piece[0] == '!') {
+								$this->paginate['conditions']['AND'][] = array('Event.threat_level_id !=' => substr($piece, 1));
+							} else {
+								$test['OR'][] = array('Event.threat_level_id' => $piece);
+							}
+						}
+						$this->paginate['conditions']['AND'][] = $test;
+						break;
+					case 'distribution' :
+					case 'analysis' :
+						if ($v == "") continue 2;
+						$pieces = explode('|', $v);
+						$test = array();
+						foreach ($pieces as $piece) {
+							if ($piece[0] == '!') {
+								$this->paginate['conditions']['AND'][] = array('Event.' . $searchTerm . ' !=' => substr($piece, 1));
+							} else {
+								$test['OR'][] = array('Event.' . $searchTerm => $piece);
+							}
+						}
+						$this->paginate['conditions']['AND'][] = $test;
+						break;
 					default:
-						if (!$v) continue 2;
+						if ($v == "") continue 2;
 						$this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' LIKE' => '%' . $v . '%');
 						break;
 				}
+				$passedArgsArray[$searchTerm] = $v;
 			}
 		}
+		$this->set('urlparams', $urlparams);
+		$this->set('passedArgsArray', $passedArgsArray);
 		$this->paginate = Set::merge($this->paginate, array('contain' => array(
 			'ThreatLevel' => array(
 				'fields' => array(
@@ -193,7 +213,94 @@ class EventsController extends AppController {
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 	}
 
+	public function filterEventIndex() {
+		$passedArgsArray = array();
+		
+		$filtering = array(
+			'published' => 2,
+			'org' => array('OR' => array(), 'NOT' => array()),
+			'tag' => array('OR' => array(), 'NOT' => array()),
+			'date' => array('from' => "", 'until' => ""),
+			'eventinfo' => array('OR' => array(), 'NOT' => array()),
+			'threatlevel' => array('OR' => array(), 'NOT' => array()),
+			'distribution' => array('OR' => array(), 'NOT' => array()),
+			'analysis' => array('OR' => array(), 'NOT' => array()),
+		);
 
+		foreach ($this->passedArgs as $k => $v) {
+			if (substr($k, 0, 6) === 'search') {
+				$searchTerm = substr($k, 6);
+				switch ($searchTerm) {
+					case 'published' :
+						$filtering['published'] = $v;
+						break;
+					case 'Datefrom' :
+						$filtering['date']['from'] = $v;
+						break;
+					case 'Dateuntil' :
+						$filtering['date']['until'] = $v;
+						break;
+					case 'org' :
+					case 'tag' :
+					case 'eventinfo' :
+					case 'threatlevel' :
+					case 'distribution' :
+					case 'analysis' :
+						if ($v == "") continue 2;
+						
+						$pieces = explode('|', $v);
+						foreach ($pieces as $piece) {
+							if ($piece[0] == '!') {
+								$filtering[$searchTerm]['NOT'][] = substr($piece, 1);
+							} else {
+								$filtering[$searchTerm]['OR'][] = $piece;
+							}
+						}
+						break;
+				}
+				$passedArgsArray[$searchTerm] = $v;
+			}
+		}
+		$this->set('filtering', json_encode($filtering));
+		$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
+		$tagNames = array();
+		$tagJSON = array();
+		foreach ($tags as $k => $v) {
+			$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
+			$tagJSON[] = array('id' => $v['Tag']['id'], 'value' => $v['Tag']['name']);
+		}
+		$conditions = array();
+		if (!$this->_isSiteAdmin()) {
+			$conditions = array('OR' => array('orgc' => $this->Auth->User('org'), 'distribution' > 0));
+		}
+		$events = $this->Event->find('all', array(
+			'recursive' => -1,
+			'fields' => array('orgc', 'distribution'),
+			'conditions' => $conditions,
+			'group' => 'orgc'
+		));
+		$rules = array('published', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis');
+		if (Configure::read('MISP.showorg') != 'false') {
+			$orgs = array();
+			foreach ($events as $e) {
+				$orgs[] = $e['Event']['orgc'];
+			}
+			$orgs = $this->_arrayToValuesIndexArray($orgs);
+			$this->set('showorg', true);
+			$this->set('orgs', $orgs);
+			$rules[] = 'org';
+		} else {
+			$this->set('showorg', false);
+		}
+
+		$rules = $this->_arrayToValuesIndexArray($rules);
+		$this->set('tags', $tagNames);
+		$this->set('tagJSON', json_encode($tagJSON));
+		$this->set('rules', $rules);
+		$this->set('baseurl', Configure::read('MISP.baseurl'));
+		$this->layout = 'ajax';
+	}
+	
 	/**
 	 * view method
 	 *
@@ -436,7 +543,6 @@ class EventsController extends AppController {
 		$this->set('currentEvent', $id);
 	}
 	
-
 	private function __startPivoting($id, $info, $date){
 		$this->Session->write('pivot_thread', null);
 		$initial_pivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => 0, 'height' => 0, 'children' => array(), 'deletable' => true);

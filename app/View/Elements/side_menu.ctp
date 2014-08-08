@@ -34,8 +34,8 @@
 					<?php endif; ?>
 					<li class="divider"></li>
 					<?php if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isAdmin || (isset($mayPublish) && $mayPublish))): ?>
-					<li><?php echo $this->Form->postLink('Publish Event', array('action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?'); ?></li>
-					<li><?php echo $this->Form->postLink('Publish (no email)', array('action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!'); ?></li>
+					<li><?php echo $this->Form->postLink('Publish Event', array('controller' => 'events', 'action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?'); ?></li>
+					<li><?php echo $this->Form->postLink('Publish (no email)', array('controller' => 'events', 'action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!'); ?></li>
 					<?php endif; ?>
 					<li <?php if ($menuItem === 'contact') echo 'class="active"';?>><a href="/events/contact/<?php echo $event['Event']['id'];?>">Contact Reporter</a></li>
 					<li><a href="/events/xml/download/<?php echo $event['Event']['id'];?>">Download as XML</a></li>

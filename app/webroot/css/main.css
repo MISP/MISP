@@ -905,6 +905,58 @@ a.proposal_link_red:hover {
 	border-collapse: separate !important;
 }
 
+.tabMenuFixedContainer {
+	position:relative;
+	left:10px;
+	bottom:-1px;
+	z-index:2;
+}
+
+.tabMenuFixed {
+	border-bottom:1px solid #f5f5f5;
+	position:relative;
+	padding-top:3px;
+	padding-bottom:3px;
+	border-left: 1px solid #ddd;
+	padding-left:5px;
+	padding-right:5px;
+}
+
+.tabMenuSides {
+	background-color: #white;
+	border-top: 1px solid #ddd;
+}
+
+.tabMenuFixedLeft {
+	-webkit-border-radius: 4px 0 0 0;
+	-moz-border-radius: 4px 0 0 0;
+	border-radius: 4px 0 0 0;
+	padding-left:10px;
+}
+
+.tabMenuFixedRight {
+	-webkit-border-radius: 0 4px 0 0;
+	-moz-border-radius: 0 4px 0 0;
+	border-radius: 0 4px 0 0;
+	border-right: 1px solid #ddd;
+	padding-right:10px;
+}
+
+.tabMenuFixedCenter {
+	padding-right:10px;
+	padding-left:10px;
+	border-right: 1px solid #ddd;
+	border-left: 1px solid #ddd;
+	-webkit-border-radius: 4px 4px 0 0;
+	-moz-border-radius: 4px 4px 0 0;
+	border-radius: 4px 4px 0 0;
+}
+
+.tabMenuFixedElement {
+	background-color: #f9f9f9 !important;
+	border-top: 1px solid #ddd;
+}
+
 .tabMenuEditBlock {
 	margin-left:5px;
 }
@@ -1217,6 +1269,18 @@ a.proposal_link_red:hover {
 
 .red {
 	color: red;
+}
+
+.green {
+	color: green;
+}
+
+.bold {
+	font-weight: bold;
+}
+
+.hidden {
+	display:none;
 }
 
 @-webkit-keyframes rotation {

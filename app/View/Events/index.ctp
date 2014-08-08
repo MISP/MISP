@@ -1,9 +1,3 @@
-<?php if(empty($this->passedArgs['searchinfo'])) $this->passedArgs['searchinfo'] = '';?>
-<?php if(empty($this->passedArgs['searchorg'])) $this->passedArgs['searchorg'] = '';?>
-<?php if(empty($this->passedArgs['searchDatefrom'])) $this->passedArgs['searchDatefrom'] = '';?>
-<?php if(empty($this->passedArgs['searchDateuntil'])) $this->passedArgs['searchDateuntil'] = '';?>
-<?php if(empty($this->passedArgs['searchpublished'])) $this->passedArgs['searchpublished'] = '2';?>
-<?php if(empty($this->passedArgs['searchtag'])) $this->passedArgs['searchtag'] = '';?>
 <div class="events index">
 	<h2>Events</h2>
 	<div class="pagination">
@@ -22,108 +16,38 @@
         </ul>
     </div>
 	<?php
-	// Let's output a small label of each filter
-	$count = 0;
+		$tab = "Center";
+		$filtered = false;
+		if (count($passedArgsArray) > 0) {
+			$tab = "Left";
+			$filtered = true;
+		}
 	?>
-	<table>
-		<tr>
-			<?php
-			foreach ($this->passedArgs as $k => $v) {
-				if ((substr($k, 0, 6) === 'search')) {
-					$searchTerm = substr($k, 6);
-					if ($searchTerm === 'published') {
-						switch ($v) {
-							case '0' :
-								$value = 'No';
-								break;
-							case '1' :
-								$value = 'Yes';
-								break;
-							case '2' :
-								continue 2;
-								break;
-						}
-	 				} else {
-						if (!$v) {
-							continue;
-						}
-						$value = $v;
-					}
-				?>
-				<td class="<?php echo (($count < 1) ? 'searchLabelFirst' : 'searchLabel');?>">
-					<?php echo $searchTerm; ?> : <?php echo h($value); ?>
-				</td>
-				<?php
-				$count++;
-				}
-			}
-			if ($count > 0) {
-			?>
-			<td class="searchLabelCancel">
-				<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
-			</td>
-			<?php
-			}
-			?>
-		</tr>
-	</table>
+	<div class="tabMenuFixedContainer">
+	<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
+		<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo $urlparams;?>', 'events', 'filterEventIndex');"></span>
+	</span>
+	<?php if ($filtered):
+		foreach ($passedArgsArray as $k => $v):?>
+			<span class="tabMenuFixed tabMenuFixedElement">
+				<?php echo h(ucfirst($k)) . " : " . h($v); ?>
+			</span>
+		<?php endforeach; ?>
+	<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
+		<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
+	</span>
+	<?php endif;?>
+	</div>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th class="filter">
 				<?php echo $this->Paginator->sort('published');?>
-				<a onclick="$('#searchpublished').toggle();" class="icon-search"></a>
-				<?php
-				// on change jquery will submit the form
-				echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
-				echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden', 'id' => false));
-				echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden', 'id' => false));
-				echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden', 'id' => false));
-				echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden', 'id' => false));
-				echo $this->Form->input('searchtag', array('value' => $this->passedArgs['searchtag'], 'type' => 'hidden', 'id' => false));
-				?>
-				<span id="searchpublished">
-					<?php 
-					echo $this->Form->input('searchpublished', array(
-							'options' => array('0' => 'No', '1' => 'Yes', '2' => 'Any'),
-							'default' => 2,
-							'label' => '',
-							'class' => 'input-mini',
-							'onchange' => "$('#EventIndexForm').submit()"
-							));
-					?>
-						<input type="submit" style="visibility:collapse;" />
-				</span>
-				<?php
-					echo $this->Form->end();
-				?>
 			</th>
 			<?php
-			if ('true' == Configure::read('MISP.showorg') || $isAdmin) { ?>
-			<th class="filter"><?php echo $this->Paginator->sort('org'); ?>
-				<a onclick="toggleField('#searchorg')" class="icon-search"></a>
-				<?php
-				echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
-				echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden', 'id' => false));
-				echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden', 'id' => false));
-				echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden', 'id' => false));
-				echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden', 'id' => false));
-				echo $this->Form->input('searchtag', array('value' => $this->passedArgs['searchtag'], 'type' => 'hidden', 'id' => false));
-				?>
-				<span id="searchorg">
-				<?php 
-				echo $this->Form->input('searchorg', array(
-					'value' => $this->passedArgs['searchorg'],
-					'label' => '',
-					'class' => 'input-mini'));
-				?>
-					<input type="submit" style="visibility:collapse;" />
-				</span>
-				<?php
-					echo $this->Form->end();
-				?>
-			</th>
-				<?php
-				}
+			if ('true' == Configure::read('MISP.showorg') || $isAdmin): ?>
+				<th class="filter"><?php echo $this->Paginator->sort('org'); ?></th>
+			<?php
+			endif;
 			?>
 			<?php if ($isSiteAdmin): ?>
 			<th class="filter">
@@ -132,101 +56,18 @@
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<?php if (Configure::read('MISP.tagging')): ?>
-			<th class="filter">Tags
-				<a onclick="toggleField('#searchtag')" class="icon-search"></a>
-				<?php
-					echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
-					echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden', 'id' => false));
-					echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden', 'id' => false));
-					echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden', 'id' => false));
-					echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden', 'id' => false));
-					echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden'));
-					?>
-					<span id="searchtag">
-					<?php 
-					echo $this->Form->input('searchtag', array(
-							'options' => array($tags),
-							'value' => $this->passedArgs['searchtag'],
-							'label' => '',
-							'onChange' => 'this.form.submit()',
-							'class' => 'input-large'));
-				?>
-					<input type="submit" style="visibility:collapse;" />
-				</span>
-				<?php
-					echo $this->Form->end();
-				?>
-			</th>
+				<th class="filter">Tags</th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
 			<?php if ($isSiteAdmin): ?>
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 			<?php endif; ?>
-			<th class="filter">
-				<?php echo $this->Paginator->sort('date');?>
-				<a onclick="toggleField('#searchdate')" class="icon-search"></a>
-				<br/>
-				<div id="searchdate" class="input-append input-prepend">
-							<?php
-							echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
-							echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden', 'id' => false));
-							echo $this->Form->input('searchinfo', array('value' => $this->passedArgs['searchinfo'], 'type' => 'hidden', 'id' => false));
-							echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden', 'id' => false));
-							echo $this->Form->input('searchtag', array('value' => $this->passedArgs['searchtag'], 'type' => 'hidden', 'id' => false));
-							echo $this->Form->input('searchDatefrom', array(
-									'value' => $this->passedArgs['searchDatefrom'],
-									'label' => false,
-									'div' => false,
-									'class' => 'span1 datepicker',
-									));
-							?>
-							<input type="submit" class="btn" value="&gt;" style="margin-top:1px;" />
-							<?php
-							echo $this->Form->input('searchDateuntil', array(
-									'value' => $this->passedArgs['searchDateuntil'],
-									'label' => false,
-									'class' => 'span1 datepicker',
-									'div' => false
-									));
-							?>
-								<input type="submit" style="visibility:collapse;" />
-							<?php
-								echo $this->Form->end();
-							?>
-				</div>
-			</th>
-			<th title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>">
-				<?php echo $this->Paginator->sort('threat_level_id');?>
-			</th>
+			<th class="filter"><?php echo $this->Paginator->sort('date');?></th>
+			<th class="filter" title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo $this->Paginator->sort('threat_level_id');?></th>
 			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>">
 				<?php echo $this->Paginator->sort('analysis');?>
 			</th>
-			<th class="filter">
-				<?php echo $this->Paginator->sort('info');?>
-				<a onclick="toggleField('#searchinfo')" class="icon-search"></a>
-				<?php
-					echo $this->Form->create('', array('action' => 'index', 'style' => 'margin-bottom:0px'));
-					echo $this->Form->input('searchorg', array('value' => $this->passedArgs['searchorg'], 'type' => 'hidden', 'id' => false));
-					echo $this->Form->input('searchpublished', array('value' => $this->passedArgs['searchpublished'], 'type' => 'hidden', 'id' => false));
-					echo $this->Form->input('searchDatefrom', array('value' => $this->passedArgs['searchDatefrom'], 'type' => 'hidden', 'id' => false));
-					echo $this->Form->input('searchDateuntil', array('value' => $this->passedArgs['searchDateuntil'], 'type' => 'hidden', 'id' => false));
-					echo $this->Form->input('searchtag', array('value' => $this->passedArgs['searchtag'], 'type' => 'hidden', 'id' => false));
-					?>
-					<span id="searchinfo">
-					<?php 
-					echo $this->Form->input('searchinfo', array(
-							'value' => $this->passedArgs['searchinfo'],
-							'label' => '',
-							'class' => 'input-large',
-							'div' => false			
-					));
-				?>
-					<input type="submit" style="visibility:collapse;" />
-					</span>
-				<?php
-					echo $this->Form->end();
-				?>
-			</th>
+			<th class="filter"><?php echo $this->Paginator->sort('info');?></th>
 			<?php if ('true' == Configure::read('MISP.sync')): ?>
 			<th title="<?php echo $eventDescriptions['distribution']['desc'];?>">
 				<?php echo $this->Paginator->sort('distribution');?>
@@ -343,26 +184,8 @@
         ?>
         </ul>
     </div>
+    <div id="popover_form" class="ajax_popover_form"></div>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));
 ?>
-
-<script type="text/javascript">
-$(document).ready( function () {
-	// onload hide all buttons
-	$('#searchinfo').hide();
-	$('#searchorg').hide();
-	$('#searchdate').hide();
-	$('#searchpublished').hide();
-	$('#searchtag').hide();
-
-});
-
-function toggleField(field) {
-	$(field).toggle();
-	$(field +" input").focus();
-}
-
-
-</script>
