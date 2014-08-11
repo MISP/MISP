@@ -99,7 +99,7 @@ class ShadowAttributesController extends AppController {
 			$date = new DateTime();
 			$activeAttribute['Attribute']['timestamp'] = $date->getTimestamp();
 			$this->Attribute->save($activeAttribute['Attribute']);
-			$this->ShadowAttribute->delete($id, $cascade = false);
+			$this->ShadowAttribute->setDeleted($id);
 			$this->loadModel('Event');
 			$this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
 			$this->Event->recursive = -1;
@@ -152,7 +152,7 @@ class ShadowAttributesController extends AppController {
 			if ($this->ShadowAttribute->typeIsAttachment($shadow['type'])) {
 				$this->_moveFile($toDeleteId, $this->Attribute->id, $shadow['event_id']);
 			}
-			$this->ShadowAttribute->delete($toDeleteId, $cascade = false);
+			$this->ShadowAttribute->setDeleted($toDeleteId);
 
 			$fieldList = array('proposal_email_lock', 'id', 'info', 'published');
 			$event['Event']['proposal_email_lock'] = 0;
@@ -216,7 +216,7 @@ class ShadowAttributesController extends AppController {
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 				}
 			}
-			if ($this->ShadowAttribute->delete($id, $cascade = false)) {
+			if ($this->ShadowAttribute->setDeleted($id)) {
 				$this->_setProposalLock($eventId, false);
 				$this->autoRender = false;
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal discarded.')),'status'=>200));
@@ -766,9 +766,10 @@ class ShadowAttributesController extends AppController {
 		if (!$this->_isSiteAdmin()) {
 			$conditions = array('Event.org =' => $this->Auth->user('org'));
 		}
+		$conditions[] = array('deleted' => 0);
 		$this->paginate = array(
 				'conditions' => $conditions,
-				'fields' => array('id', 'org', 'old_id'),
+				'fields' => array('id', 'org', 'old_id', 'deleted'),
 				'contain' => array(
 						'Event' => array(
 								'fields' => array('id', 'org', 'info', 'orgc'),
@@ -777,19 +778,6 @@ class ShadowAttributesController extends AppController {
 				'recursive' => 1	
 		);
 		$this->set('shadowAttributes', $this->paginate());
-	}
-	
-	public function eventIndex() {
-		$result = $this->ShadowAttribute->find('all', array(
-			'fields' => array('event_id'),
-			'group' => 'event_id',
-			'conditions' => array(
-				'ShadowAttribute.event_org =' => $this->Auth->user('org'),			
-		)));
-		$this->loadModel('Event');
-		foreach ($result as $eventId) {
-			
-		}
 	}
 	
 	private function _getEventData($event_id) {

@@ -914,6 +914,7 @@ class Event extends AppModel {
 				),
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,
+					'conditions' => array('deleted' => 0),
 				),
 			)
 		);

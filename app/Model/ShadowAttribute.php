@@ -756,5 +756,10 @@ class ShadowAttribute extends AppModel {
 		}
 		return $fails;
 	}
+	
+	public function setDeleted($id) {
+		$this->id = $id;
+		$this->saveField('deleted', 1);
+	}
 }
 

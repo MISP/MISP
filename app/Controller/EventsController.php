@@ -2252,12 +2252,13 @@ class EventsController extends AppController {
 	public function proposalEventIndex() {
 		$this->loadModel('ShadowAttribute');
 		$this->ShadowAttribute->recursive = -1;
+		$conditions = array('ShadowAttribute.deleted' => 0);
+		if (!$this->_isSiteAdmin()) $conditions[] = array('ShadowAttribute.event_org' => $this->Auth->user('org'));
 		$result = $this->ShadowAttribute->find('all', array(
 				'fields' => array('event_id'),
 				'group' => 'event_id',
-				'conditions' => array(
-						'ShadowAttribute.event_org =' => $this->Auth->user('org'),
-				)));
+				'conditions' => $conditions
+		));
 		$this->Event->recursive = -1;
 		$conditions = array();
 		foreach ($result as $eventId) {
