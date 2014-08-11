@@ -1022,7 +1022,6 @@ class EventsController extends AppController {
 						}
 					}
 				}
-				
 				// this saveAssociated() function will save not only the event, but also the attributes
 				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
 				if ($saveEvent) {

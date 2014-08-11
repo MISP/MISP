@@ -619,6 +619,17 @@ class Event extends AppModel {
 			// solves the issue and a new attribute is always created.
 			unset($attribute['id']);
 		}
+		
+		foreach ($event['Event']['ShadowAttribute'] as $k => &$v) {
+			if ($this->ShadowAttribute->typeIsAttachment($v['type'])) {
+				$encodedFile = $this->ShadowAttribute->base64EncodeAttachment($v);
+				$v['data'] = $encodedFile;
+			}
+			unset($v['id']);
+			unset($v['value1']);
+			unset($v['value2']);
+		}
+		
 		// Distribution, correct All to Community in Event
 		if ($event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
