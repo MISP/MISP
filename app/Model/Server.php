@@ -257,38 +257,37 @@ class Server extends AppModel {
 				// increment lastid based on the highest ID seen
 				$this->save($event, array('fieldList' => array('lastpulledid', 'url')));
 				// grab all of the shadow attributes that are relevant to us
-		
-				$events = $eventModel->find('all', array(
-						'fields' => array('id', 'uuid'),
-						'recursive' => -1,
-				));
-				$shadowAttribute = ClassRegistry::init('ShadowAttribute');
-				$shadowAttribute->recursive = -1;
-				foreach ($events as &$event) {
-					$proposals = $eventModel->downloadEventFromServer($event['Event']['uuid'], $server, null, true);
-					if (null != $proposals) {
-						if (isset($proposals['ShadowAttribute']['id'])) {
-							$temp = $proposals['ShadowAttribute'];
-							$proposals['ShadowAttribute'] = array(0 => $temp);
+			}
+		}
+		$events = $eventModel->find('all', array(
+				'fields' => array('id', 'uuid'),
+				'recursive' => -1,
+		));
+		$shadowAttribute = ClassRegistry::init('ShadowAttribute');
+		$shadowAttribute->recursive = -1;
+		foreach ($events as &$event) {
+			$proposals = $eventModel->downloadEventFromServer($event['Event']['uuid'], $server, null, true);
+			if (null != $proposals) {
+				if (isset($proposals['ShadowAttribute']['id'])) {
+					$temp = $proposals['ShadowAttribute'];
+					$proposals['ShadowAttribute'] = array(0 => $temp);
+				}
+				foreach($proposals['ShadowAttribute'] as &$proposal) {
+					unset($proposal['id']);
+					$proposal['event_id'] = $event['Event']['id'];
+					if (!$shadowAttribute->findByUuid($proposal['uuid'])) {
+						if (isset($pulledProposals[$event['Event']['id']])) {
+							$pulledProposals[$event['Event']['id']]++;
+						} else {
+							$pulledProposals[$event['Event']['id']] = 1;
 						}
-						foreach($proposals['ShadowAttribute'] as &$proposal) {
-							unset($proposal['id']);
-							$proposal['event_id'] = $event['Event']['id'];
-							if (!$shadowAttribute->findByUuid($proposal['uuid'])) {
-								if (isset($pulledProposals[$event['Event']['id']])) {
-									$pulledProposals[$event['Event']['id']]++;
-								} else {
-									$pulledProposals[$event['Event']['id']] = 1;
-								}
-								if (isset($proposal['old_id'])) {
-									$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
-									if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
-									else $proposal['old_id'] = 0;
-								}
-								$shadowAttribute->create();
-								$shadowAttribute->save($proposal);
-							}
+						if (isset($proposal['old_id'])) {
+							$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
+							if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
+							else $proposal['old_id'] = 0;
 						}
+						$shadowAttribute->create();
+						$shadowAttribute->save($proposal);
 					}
 				}
 			}

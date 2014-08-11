@@ -589,6 +589,8 @@ class Event extends AppModel {
 		// rearrange things to be compatible with the Xml::fromArray()
 		$event['Event']['Attribute'] = $event['Attribute'];
 		unset($event['Attribute']);
+		$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
+		unset($event['ShadowAttribute']);
 
 		// cleanup the array from things we do not want to expose
 		//unset($event['Event']['org']);
@@ -621,7 +623,6 @@ class Event extends AppModel {
 		if ($event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
 		}
-
 		// display the XML to the user
 		$xmlArray['Event'][] = $event['Event'];
 		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));

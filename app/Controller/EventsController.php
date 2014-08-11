@@ -976,7 +976,8 @@ class EventsController extends AppController {
 				} else throw new MethodNotAllowedException('Event could not be saved: Could not find the local event.');
 				$fieldList = array(
 						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
-						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment')
+						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment'),
+						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org', 'event_org', 'comment', 'event_uuid', 'deleted', 'to_ids')
 				);
 
 				$c = 0;
@@ -998,6 +999,30 @@ class EventsController extends AppController {
 						$c++;
 					}
 				}
+				
+				// check if the exact proposal exists, if yes check if the incoming one is deleted or not. If it is deleted, remove the old proposal and replace it with the one marked for being deleted
+				// otherwise throw the new one away.
+				if (isset($this->request->data['ShadowAttribute'])) {
+					foreach ($this->request->data['ShadowAttribute'] as &$proposal) {
+						$existingProposal = $this->Event->ShadowAttribute->find('first', array(
+							'recursive' => -1,
+							'conditions' => array(
+								'value' => $proposal['value'],
+								'category' => $proposal['category'],
+								'to_ids' => $proposal['to_ids'],
+								'type' => $proposal['type'],
+								'event_uuid' => $event_uuid,
+								'uuid' => $uuid
+							)
+						));
+						if ($existingProposal['ShadowAttribute']['deleted'] == 1) {
+							$this->Event->ShadowAttribute->delete($existingProposal['ShadowAttribute']['id'], false);
+						} else {
+							unset($proposal);
+						}
+					}
+				}
+				
 				// this saveAssociated() function will save not only the event, but also the attributes
 				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
 				if ($saveEvent) {
