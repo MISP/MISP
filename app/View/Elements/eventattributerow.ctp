@@ -152,7 +152,7 @@ if ($object['objectType'] == 1) {
 				}
 			} else {
 				if (($event['Event']['orgc'] == $me['org'] && $mayModify) || $isSiteAdmin) {
-					echo $this->Form->create('ShadowAttribute', array('class' => 'inline-delete', 'style' => 'display:inline-block;', 'id' => 'ShadowAttribute_' . $object['id'] . '_accept', 'action' => 'accept'));
+					echo $this->Form->create('ShadowAttribute', array('class' => 'inline-delete', 'style' => 'display:inline-block;', 'id' => 'ShadowAttribute_' . $object['id'] . '_accept', 'url' => '/shadow_attributes/accept/' . $object['id']));
 				?>
 					<span class="icon-ok useCursorPointer" onClick="acceptObject('shadow_attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 				<?php 
@@ -160,11 +160,9 @@ if ($object['objectType'] == 1) {
 					//echo $this->Form->postLink('', array('controller' => 'shadow_attributes', 'action' => 'accept', $object['id']), array('class' => 'icon-ok', 'title' => 'Accept'), 'Are you sure you want to accept this proposal?');
 				}
 				if (($event['Event']['orgc'] == $me['org'] && $mayModify) || $isSiteAdmin || ($object['org'] == $me['org'])) {
-					echo $this->Form->create('ShadowAttribute', array('class' => 'inline-delete', 'style' => 'display:inline-block;', 'id' => 'ShadowAttribute_' . $object['id'] . '_delete', 'action' => 'delete'));
 				?>
 					<span class="icon-trash useCursorPointer" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 				<?php 
-					echo $this->Form->end();
 				}
 			}
 		?>
