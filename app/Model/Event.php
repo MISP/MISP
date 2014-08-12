@@ -456,18 +456,21 @@ class Event extends AppModel {
  * @throws InternalErrorException
  */
 	public function cleanupEventArrayFromXML(&$data) {
-		// Workaround for different structure in XML/array than what CakePHP expects
-		if (isset($data['Event']['Attribute']) && is_array($data['Event']['Attribute']) && count($data['Event']['Attribute'])) {
-			if (is_numeric(implode(array_keys($data['Event']['Attribute']), ''))) {
-				// normal array of multiple Attributes
-				$data['Attribute'] = $data['Event']['Attribute'];
-			} else {
-				// single attribute
-				$data['Attribute'][0] = $data['Event']['Attribute'];
+		$objects = array('Attribute', 'ShadowAttribute');
+		
+		foreach ($objects as $object) {
+			// Workaround for different structure in XML/array than what CakePHP expects
+			if (isset($data['Event'][$object]) && is_array($data['Event'][$object]) && count($data['Event'][$object])) {
+				if (is_numeric(implode(array_keys($data['Event'][$object]), ''))) {
+					// normal array of multiple Attributes
+					$data[$object] = $data['Event'][$object];
+				} else {
+					// single attribute
+					$data[$object][0] = $data['Event'][$object];
+				}
 			}
+			unset($data['Event'][$object]);
 		}
-		unset($data['Event']['Attribute']);
-
 		return $data;
 	}
 
@@ -587,49 +590,41 @@ class Event extends AppModel {
 		// LATER try to do this using a separate EventsController and renderAs() function
 		$xmlArray = array();
 		// rearrange things to be compatible with the Xml::fromArray()
-		$event['Event']['Attribute'] = $event['Attribute'];
-		unset($event['Attribute']);
-		$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
-		unset($event['ShadowAttribute']);
+		if (isset($event['Attribute'])) {
+			$event['Event']['Attribute'] = $event['Attribute'];
+			unset($event['Attribute']);
+		}
 
 		// cleanup the array from things we do not want to expose
 		//unset($event['Event']['org']);
 		// remove value1 and value2 from the output
-		foreach ($event['Event']['Attribute'] as $key => &$attribute) {
-			// do not keep attributes that are private, nor cluster
-			if ($attribute['distribution'] < 2) {
-				unset($event['Event']['Attribute'][$key]);
-				continue; // stop processing this
+		if (isset($event['Event']['Attribute'])) {
+			foreach ($event['Event']['Attribute'] as $key => &$attribute) {
+				// do not keep attributes that are private, nor cluster
+				if ($attribute['distribution'] < 2) {
+					unset($event['Event']['Attribute'][$key]);
+					continue; // stop processing this
+				}
+				// Distribution, correct Connected Community to Community in Attribute
+				if ($attribute['distribution'] == 2) {
+					$attribute['distribution'] = 1;
+				}
+				// remove value1 and value2 from the output
+				unset($attribute['value1']);
+				unset($attribute['value2']);
+				// also add the encoded attachment
+				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+					$attribute['data'] = $encodedFile;
+				}
+				// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
+				// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
+				// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
+				// solves the issue and a new attribute is always created.
+				unset($attribute['id']);
 			}
-			// Distribution, correct Connected Community to Community in Attribute
-			if ($attribute['distribution'] == 2) {
-				$attribute['distribution'] = 1;
-			}
-			// remove value1 and value2 from the output
-			unset($attribute['value1']);
-			unset($attribute['value2']);
-			// also add the encoded attachment
-			if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-				$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-				$attribute['data'] = $encodedFile;
-			}
-			// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
-			// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
-			// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
-			// solves the issue and a new attribute is always created.
-			unset($attribute['id']);
 		}
-		
-		foreach ($event['Event']['ShadowAttribute'] as $k => &$v) {
-			if ($this->ShadowAttribute->typeIsAttachment($v['type'])) {
-				$encodedFile = $this->ShadowAttribute->base64EncodeAttachment($v);
-				$v['data'] = $encodedFile;
-			}
-			unset($v['id']);
-			unset($v['value1']);
-			unset($v['value2']);
-		}
-		
+
 		// Distribution, correct All to Community in Event
 		if ($event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
@@ -640,6 +635,7 @@ class Event extends AppModel {
 		$eventsXml = $xmlObject->asXML();
 		// do a REST POST request with the server
 		$data = $eventsXml;
+		
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
 		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {

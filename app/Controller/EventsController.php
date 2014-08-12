@@ -977,7 +977,7 @@ class EventsController extends AppController {
 				$fieldList = array(
 						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment'),
-						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org', 'event_org', 'comment', 'event_uuid', 'deleted', 'to_ids')
+						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org', 'event_org', 'comment', 'event_uuid', 'deleted', 'to_ids', 'uuid')
 				);
 
 				$c = 0;
@@ -1003,7 +1003,7 @@ class EventsController extends AppController {
 				// check if the exact proposal exists, if yes check if the incoming one is deleted or not. If it is deleted, remove the old proposal and replace it with the one marked for being deleted
 				// otherwise throw the new one away.
 				if (isset($this->request->data['ShadowAttribute'])) {
-					foreach ($this->request->data['ShadowAttribute'] as &$proposal) {
+					foreach ($this->request->data['ShadowAttribute'] as $k => &$proposal) {
 						$existingProposal = $this->Event->ShadowAttribute->find('first', array(
 							'recursive' => -1,
 							'conditions' => array(
@@ -1011,14 +1011,14 @@ class EventsController extends AppController {
 								'category' => $proposal['category'],
 								'to_ids' => $proposal['to_ids'],
 								'type' => $proposal['type'],
-								'event_uuid' => $event_uuid,
-								'uuid' => $uuid
+								'event_uuid' => $proposal['event_uuid'],
+								'uuid' => $proposal['uuid']
 							)
 						));
 						if ($existingProposal['ShadowAttribute']['deleted'] == 1) {
 							$this->Event->ShadowAttribute->delete($existingProposal['ShadowAttribute']['id'], false);
 						} else {
-							unset($proposal);
+							unset($this->request->data['ShadowAttribute'][$k]);
 						}
 					}
 				}
@@ -1029,6 +1029,7 @@ class EventsController extends AppController {
 				} else {
 					throw new MethodNotAllowedException();
 				}
+
 				if ($saveResult) {
 					// TODO RESTfull: we now need to compare attributes, to see if we need to do a RESTfull attribute delete
 					$message = 'Saved';
@@ -2559,6 +2560,33 @@ class EventsController extends AppController {
 			$this->set('data', $result['data']);
 		} else {
 			throw new Exception(h($result['message']));
+		}
+	}
+
+	public function filterEventIdsForPush() {
+		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException('You do not have the permission to do that.');
+		if ($this->request->is('post')) {
+			$incomingIDs = array();
+			$incomingEvents = array();
+			foreach ($this->request->data as $event) {
+				$incomingIDs[] = $event['Event']['uuid'];
+				$incomingEvents[$event['Event']['uuid']] = $event['Event']['timestamp'];
+			}
+			$events = $this->Event->find('all', array(
+				'conditions' => array('Event.uuid' => $incomingIDs),
+				'recursive' => -1,
+				'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked'),
+			));
+			foreach ($events as $k => $v) {
+				if (!$v['Event']['timestamp'] < $incomingEvents[$v['Event']['uuid']]) {
+					unset($incomingEvents[$v['Event']['uuid']]);
+					continue;
+				}
+				if ($v['Event']['locked'] == 0) {
+					unset($incomingEvents[$v['Event']['uuid']]);
+				}
+			}
+			$this->set('result', array_keys($incomingEvents));
 		}
 	}
 }

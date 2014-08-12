@@ -335,46 +335,51 @@ class Server extends AppModel {
 							'Event.attribute_count >' => 0
 					), //array of conditions
 					'recursive' => -1, //int
-					'fields' => array('Event.id'), //array of field names
+					'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid'), //array of field names
 			);
 			$eventIds = $eventModel->find('all', $findParams);
 		}
-		$eventCount = count($eventIds);
-		//debug($eventIds);
-		// now process the $eventIds to pull each of the events sequentially
-		if (!empty($eventIds)) {
-			$successes = array();
-			$fails = array();
-			$lowestfailedid = null;
-			foreach ($eventIds as $k => $eventId) {
-				$eventModel->recursive=1;
-				$eventModel->contain(array('Attribute'));
-				$event = $eventModel->findById($eventId['Event']['id']);
-				$event['Event']['locked'] = true;
-				$result = $eventModel->uploadEventToServer(
-						$event,
-						$this->data,
-						$HttpSocket);
-				if ('Success' === $result) {
-					$successes[] = $event['Event']['id'];
+
+		$eventUUIDsFiltered = $this->filterEventIdsForPush($id, $HttpSocket, $eventIds);
+		if (!empty($eventUUIDsFiltered)) {
+			
+			$eventCount = count($eventUUIDsFiltered);
+			//debug($eventIds);
+			// now process the $eventIds to pull each of the events sequentially
+			if (!empty($eventIds)) {
+				$successes = array();
+				$fails = array();
+				$lowestfailedid = null;
+				foreach ($eventUUIDsFiltered as $k => $eventUuid) {
+					$eventModel->recursive=1;
+					$eventModel->contain(array('Attribute'));
+					$event = $eventModel->findByUuid($eventUuid);
+					$event['Event']['locked'] = true;
+					$result = $eventModel->uploadEventToServer(
+							$event,
+							$this->data,
+							$HttpSocket);
+					if ('Success' === $result) {
+						$successes[] = $event['Event']['id'];
+					} else {
+						$fails[$event['Event']['id']] = $result;
+					}
+					if ($jobId && $k%10 == 0) {
+						$job->saveField('progress', 100 * $k / $eventCount);
+					}
+				}
+				if (count($fails) > 0) {
+					// there are fails, take the lowest fail
+					$lastpushedid = min(array_keys($fails));
 				} else {
-					$fails[$event['Event']['id']] = $result;
+					// no fails, take the highest success
+					$lastpushedid = max($successes);
 				}
-				if ($jobId && $k%10 == 0) {
-					$job->saveField('progress', 100 * $k / $eventCount);
-				}
+				// increment lastid based on the highest ID seen
+				// Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
+				$this->data['Server']['lastpushedid'] = $lastpushedid;
+				$this->save($this->data);
 			}
-			if (count($fails) > 0) {
-				// there are fails, take the lowest fail
-				$lastpushedid = min(array_keys($fails));
-			} else {
-				// no fails, take the highest success
-				$lastpushedid = max($successes);
-			}
-			// increment lastid based on the highest ID seen
-			// Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
-			$this->data['Server']['lastpushedid'] = $lastpushedid;
-			$this->save($this->data);
 		}
 		if (!isset($successes)) $successes = null;
 		if (!isset($fails)) $fails = null;
@@ -396,5 +401,33 @@ class Server extends AppModel {
 		} else {
 			return array($successes, $fails);
 		}
+	}
+	
+	public function filterEventIdsForPush($id, $HttpSocket, $eventIds) {
+		foreach ($eventIds as $k => $event) {
+			unset($eventIds[$k]['Event']['id']);
+		}
+		$server = $this->read(null, $id);
+		if (null == $HttpSocket) {
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
+		}
+		$data = json_encode($eventIds);
+		$request = array(
+				'header' => array(
+						'Authorization' => $server['Server']['authkey'],
+						'Accept' => 'application/json',
+						'Content-Type' => 'application/json',
+				)
+		);
+		$uri = $server['Server']['url'] . '/events/filterEventIdsForPush';
+		$response = $HttpSocket->post($uri, $data, $request);
+		if ($response->code == '200') {
+			$uuidList = json_decode($response->body());
+		} else {
+			return false;
+		}
+		return $uuidList;
 	}
 }
