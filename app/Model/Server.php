@@ -341,12 +341,13 @@ class Server extends AppModel {
 		}
 
 		$eventUUIDsFiltered = $this->filterEventIdsForPush($id, $HttpSocket, $eventIds);
+		if ($eventUUIDsFiltered === false) $pushFailed = true;
 		if (!empty($eventUUIDsFiltered)) {
 			
 			$eventCount = count($eventUUIDsFiltered);
 			//debug($eventIds);
 			// now process the $eventIds to pull each of the events sequentially
-			if (!empty($eventIds)) {
+			if (!empty($eventUUIDsFiltered)) {
 				$successes = array();
 				$fails = array();
 				$lowestfailedid = null;
@@ -381,6 +382,9 @@ class Server extends AppModel {
 				$this->save($this->data);
 			}
 		}
+
+		$this->syncProposals($HttpSocket, $this->data, null, $eventIds, $eventModel);
+		
 		if (!isset($successes)) $successes = null;
 		if (!isset($fails)) $fails = null;
 		$this->Log = ClassRegistry::init('Log');
@@ -429,5 +433,39 @@ class Server extends AppModel {
 			return false;
 		}
 		return $uuidList;
+	}
+	
+	public function syncProposals($HttpSocket, $server, $sa_id = null, $eventIds = null, $eventModel){
+		$saModel = ClassRegistry::init('ShadowAttribute');
+		if ($sa_id == null) {
+			$ids = $eventModel->getEventIdsFromServer($server, true, $HttpSocket=null);
+			$conditions = array('event_uuid' => $ids);
+		} else {
+			// connect to checkuuid($uuid)
+			if (null == $HttpSocket) {
+				App::uses('SyncTool', 'Tools');
+				$syncTool = new SyncTool();
+				$HttpSocket = $syncTool->setupHttpSocket($server);
+			}
+			$request = array(
+					'header' => array(
+							'Authorization' => $server['Server']['authkey'],
+							'Accept' => 'application/json',
+							'Content-Type' => 'application/json',
+					)
+			);
+			$uri = $server['Server']['url'] . '/events/checkuuid/' . $sa_id;
+			$response = $HttpSocket->get($uri);
+			if ($response->code == '200') {
+				$uuidList = json_decode($response->body());
+			} else {
+				return false;
+			}
+		}
+		$proposals = $saModel->find('all', array(
+				'conditions' => $conditions,
+				'recursive' => -1,
+		));
+		debug($proposals);
 	}
 }

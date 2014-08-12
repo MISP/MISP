@@ -204,7 +204,31 @@ class EventsController extends AppController {
 					'ThreatLevel.name'))
 			),
 		));
-		$this->set('events', $this->paginate());
+		// for rest, don't use the pagination. With this, we'll escape the limit of events shown on the index.
+		if ($this->_isRest()) {
+			$rules = array();
+			$fieldNames = array_keys($this->Event->getColumnTypes());
+			$directions = array('ASC', 'DESC');
+			if (isset($this->passedArgs['sort']) && in_array($this->passedArgs['sort'], $fieldNames)) {
+				if (isset($this->passedArgs['direction']) && in_array(strtoupper($this->passedArgs['direction']), $directions)) {
+					$rules['order'] = array($this->passedArgs['sort'] => $this->passedArgs['direction']);
+				} else {
+					$rules['order'] = array($this->passedArgs['sort'] => 'ASC');
+				}
+			} else {
+				$rules['order'] = array('Event.id' => 'DESC');
+			}
+			if (isset($this->passedArgs['limit'])) {
+				$rules['limit'] = intval($this->passedArgs['limit']);
+			}
+			$rules['contain'] = $this->paginate['contain'];
+			if (isset($this->paginate['conditions'])) $rules['conditions'] = $this->paginate['conditions'];
+			$events = $this->Event->find('all', $rules);
+			$this->set('events', $events);
+		} else {
+			$this->set('events', $this->paginate());
+		}
+		
 		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted') == 'true') {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
 		}
@@ -2588,5 +2612,15 @@ class EventsController extends AppController {
 			}
 			$this->set('result', array_keys($incomingEvents));
 		}
+	}
+	
+	public function checkuuid($uuid) {
+		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException('You do not have the permission to do that.');
+		$events = $this->Event->find('first', array(
+				'conditions' => array('Event.uuid' => $uuid),
+				'recursive' => -1,
+				'fields' => array('Event.uuid'),
+		));
+		$this->set('result', array('result' => empty($events)));
 	}
 }
