@@ -656,7 +656,7 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function base64EncodeAttachment($attribute) {
-		$filepath = APP . "files" . DS . $attribute['event_id'] . DS . $attribute['id'];
+		$filepath = APP . "files" . DS . $attribute['event_id'] . DS . 'shadow' . DS. $attribute['id'];
 		$file = new File($filepath);
 		if (!$file->exists()) {
 			return '';
@@ -666,7 +666,7 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function saveBase64EncodedAttachment($attribute) {
-		$rootDir = APP . DS . "files" . DS . $attribute['event_id'];
+		$rootDir = APP . DS . "files" . DS . 'shadow' . DS . $attribute['event_id'];
 		$dir = new Folder($rootDir, true);						// create directory structure
 		$destpath = $rootDir . DS . $attribute['id'];
 		$file = new File ($destpath, true);						// create the file

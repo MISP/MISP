@@ -2623,4 +2623,42 @@ class EventsController extends AppController {
 		));
 		$this->set('result', array('result' => empty($events)));
 	}
+	
+	public function pushProposals($uuid) {
+		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException('You do not have the permission to do that.');
+		if ($this->request->is('post')) {
+			$event = $this->Event->find('all', array(
+					'conditions' => array('Event.uuid' => $uuid),
+					'contains' => array('ShadowAttribute', 'Attribute' => array(
+						'fields' => array('id', 'uuid', 'event_id'),
+					)),
+					'fields' => array('Event.uuid', 'Event.id'),
+			));
+			if (empty($event)) {
+				// incorrect uuid?
+			} else {
+				foreach ($this->request->data as $k => $sa) {
+					foreach ($event['ShadowAttribute'] as $oldk => $oldsa) {
+						if ($sa['event_uuid'] == $oldsa['event_uuid'] && $sa['value'] == $oldsa['value'] && $sa['type'] == $oldsa['type'] && $sa['category'] == $oldsa['category'] && $sa['to_ids'] == $oldsa['to_ids']) {
+							if ($oldsa['deleted'] || $sa['deleted'] == $oldsa['deleted']) continue 2;
+							else if ($sa['deleted']) $this->Event->ShadowAttribute->delete($oldsa['id']);
+						}
+					}
+					$sa['event_id'] == $event['id'];
+					if ($sa['old_id'] != 0) {
+						foreach($event['Attribute'] as $attribute) {
+							if ($sa['uuid'] == $attribute['uuid']) {
+								$sa['old_id'] == $attribute['id'];
+							}
+						}
+					}
+					if (isset($sa['id'])) unset($sa['id']);
+					$this->Event->ShadowAttribute->create();
+					$this->Event->ShadowAttribute->save(array('ShadowAttribute' => $sa));
+					if (!$sa['deleted']) $this->Event->ShadowAttribute->__sendProposalAlertEmail($event['Event']['id']);
+				}
+			}
+		}
+	}
+
 }

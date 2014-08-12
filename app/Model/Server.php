@@ -437,16 +437,52 @@ class Server extends AppModel {
 	
 	public function syncProposals($HttpSocket, $server, $sa_id = null, $eventIds = null, $eventModel){
 		$saModel = ClassRegistry::init('ShadowAttribute');
+		if (null == $HttpSocket) {
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
+		}
 		if ($sa_id == null) {
-			$ids = $eventModel->getEventIdsFromServer($server, true, $HttpSocket=null);
-			$conditions = array('event_uuid' => $ids);
+			$ids = $eventModel->getEventIdsFromServer($server, true, $HttpSocket);
+			$conditions = array('uuid' => $ids);
+			$events = $eventModel->find('all', array(
+					'conditions' => $conditions,
+					'recursive' => 1,
+					'contain' => 'ShadowAttribute',
+					'fields' => array('Event.uuid')
+			));
+			foreach ($events as $k => &$event) {
+				if (!empty($event['ShadowAttribute'])) {
+					foreach ($event['ShadowAttribute'] as &$sa) {
+						$sa['data'] = $saModel->base64EncodeAttachment($sa);
+						unset($sa['id']);
+						unset($sa['old_id']);
+						unset($sa['category_order']);
+						unset($sa['value1']);
+						unset($sa['value2']);
+					}
+					
+				}
+				$data = json_encode($event);
+				$request = array(
+						'header' => array(
+								'Authorization' => $server['Server']['authkey'],
+								'Accept' => 'application/json',
+								'Content-Type' => 'application/json',
+						)
+				);
+				$uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
+				$response = $HttpSocket->post($uri, $data, $request);
+				if ($response->code == '200') {
+					$uuidList = json_decode($response->body());
+				} else {
+					return false;
+				}
+			}
+			debug($events);
 		} else {
 			// connect to checkuuid($uuid)
-			if (null == $HttpSocket) {
-				App::uses('SyncTool', 'Tools');
-				$syncTool = new SyncTool();
-				$HttpSocket = $syncTool->setupHttpSocket($server);
-			}
+
 			$request = array(
 					'header' => array(
 							'Authorization' => $server['Server']['authkey'],
@@ -462,10 +498,18 @@ class Server extends AppModel {
 				return false;
 			}
 		}
+
+		/*
 		$proposals = $saModel->find('all', array(
 				'conditions' => $conditions,
 				'recursive' => -1,
 		));
-		debug($proposals);
+		foreach ($proposals as &$proposal) {
+			$proposal['ShadowAttribute']['data'] = $saModel->base64EncodeAttachment($proposal['ShadowAttribute']);
+			unset ($proposal['ShadowAttribute']['event_id']);
+		}
+		$data = json_encode($proposals);
+		*/
+		
 	}
 }
