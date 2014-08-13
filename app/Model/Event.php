@@ -624,7 +624,7 @@ class Event extends AppModel {
 				unset($attribute['id']);
 			}
 		}
-
+		
 		// Distribution, correct All to Community in Event
 		if ($event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
@@ -1509,10 +1509,9 @@ class Event extends AppModel {
 		$this->recursive = 1;
 		$this->read();
 		$this->data['Event']['locked'] = 1;
-	
 		// get a list of the servers
-		$server = ClassRegistry::init('Server');
-		$servers = $server->find('all', array(
+		$serverModel = ClassRegistry::init('Server');
+		$servers = $serverModel->find('all', array(
 				'conditions' => array('Server.push' => true)
 		));
 		// iterate over the servers and upload the event
@@ -1531,6 +1530,9 @@ class Event extends AppModel {
 				if (!$thisUploaded) {
 					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
 					$failedServers[] = $server['Server']['url'];
+				}
+				if (isset($this->data['ShadowAttribute'])) {
+					$serverModel->syncProposals($HttpSocket, $server, null, $id, $this);
 				}
 			}
 		}

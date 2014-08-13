@@ -382,7 +382,7 @@ class Server extends AppModel {
 				$this->save($this->data);
 			}
 		}
-
+		
 		$this->syncProposals($HttpSocket, $this->data, null, $eventIds, $eventModel);
 		
 		if (!isset($successes)) $successes = null;
@@ -435,7 +435,7 @@ class Server extends AppModel {
 		return $uuidList;
 	}
 	
-	public function syncProposals($HttpSocket, $server, $sa_id = null, $eventIds = null, $eventModel){
+	public function syncProposals($HttpSocket, $server, $sa_id = null, $event_id = null, $eventModel){
 		$saModel = ClassRegistry::init('ShadowAttribute');
 		if (null == $HttpSocket) {
 			App::uses('SyncTool', 'Tools');
@@ -443,16 +443,24 @@ class Server extends AppModel {
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 		}
 		if ($sa_id == null) {
-			$ids = $eventModel->getEventIdsFromServer($server, true, $HttpSocket);
-			$conditions = array('uuid' => $ids);
+			if ($event_id == null) {
+				// event_id is null when we are doing a push
+				$ids = $eventModel->getEventIdsFromServer($server, true, $HttpSocket);
+				$conditions = array('uuid' => $ids);
+			} else {
+				$conditions = array('id' => $event_id);
+				// event_id is not null when we are doing a publish
+			}
 			$events = $eventModel->find('all', array(
 					'conditions' => $conditions,
 					'recursive' => 1,
 					'contain' => 'ShadowAttribute',
 					'fields' => array('Event.uuid')
 			));
+
 			$fails = 0;
 			$success = 0;
+			$error_message = "";
 			$unchanged = array();
 			foreach ($events as $k => &$event) {
 				if (!empty($event['ShadowAttribute'])) {
@@ -480,7 +488,8 @@ class Server extends AppModel {
 							$success += intval($result->counter);
 						} else {
 							$fails++;
-							
+							if ($error_message == "") $result->message;
+							else $error_message += " --- " . $result->message; 
 						}
 					} else {
 						$fails++;
@@ -489,7 +498,6 @@ class Server extends AppModel {
 			}
 		} else {
 			// connect to checkuuid($uuid)
-
 			$request = array(
 					'header' => array(
 							'Authorization' => $server['Server']['authkey'],
@@ -505,18 +513,5 @@ class Server extends AppModel {
 				return false;
 			}
 		}
-
-		/*
-		$proposals = $saModel->find('all', array(
-				'conditions' => $conditions,
-				'recursive' => -1,
-		));
-		foreach ($proposals as &$proposal) {
-			$proposal['ShadowAttribute']['data'] = $saModel->base64EncodeAttachment($proposal['ShadowAttribute']);
-			unset ($proposal['ShadowAttribute']['event_id']);
-		}
-		$data = json_encode($proposals);
-		*/
-		
 	}
 }
