@@ -394,7 +394,7 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function validateAttributeValue($fields) {
-		return $this->Attribute->validateAttributeValue($fields);
+		return $this->Event->Attribute->validateAttributeValue($fields);
 	}
 
 	public function getCompositeTypes() {
