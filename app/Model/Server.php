@@ -451,35 +451,42 @@ class Server extends AppModel {
 					'contain' => 'ShadowAttribute',
 					'fields' => array('Event.uuid')
 			));
+			$fails = 0;
+			$success = 0;
+			$unchanged = array();
 			foreach ($events as $k => &$event) {
 				if (!empty($event['ShadowAttribute'])) {
 					foreach ($event['ShadowAttribute'] as &$sa) {
 						$sa['data'] = $saModel->base64EncodeAttachment($sa);
 						unset($sa['id']);
-						unset($sa['old_id']);
 						unset($sa['category_order']);
 						unset($sa['value1']);
 						unset($sa['value2']);
 					}
-					
-				}
-				$data = json_encode($event);
-				$request = array(
-						'header' => array(
-								'Authorization' => $server['Server']['authkey'],
-								'Accept' => 'application/json',
-								'Content-Type' => 'application/json',
-						)
-				);
-				$uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
-				$response = $HttpSocket->post($uri, $data, $request);
-				if ($response->code == '200') {
-					$uuidList = json_decode($response->body());
-				} else {
-					return false;
+						
+					$data = json_encode($event['ShadowAttribute']);
+					$request = array(
+							'header' => array(
+									'Authorization' => $server['Server']['authkey'],
+									'Accept' => 'application/json',
+									'Content-Type' => 'application/json',
+							)
+					);
+					$uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
+					$response = $HttpSocket->post($uri, $data, $request);
+					if ($response->code == '200') {
+						$result = json_decode($response->body());
+						if ($result->success) {
+							$success += intval($result->counter);
+						} else {
+							$fails++;
+							
+						}
+					} else {
+						$fails++;
+					}
 				}
 			}
-			debug($events);
 		} else {
 			// connect to checkuuid($uuid)
 
