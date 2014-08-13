@@ -420,6 +420,13 @@ class ShadowAttribute extends AppModel {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
 				break;
+			case 'http-method':
+				if (preg_match("#(OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|PROPFIND|PROPPATCH|MKCOL|COPY|MOVE|LOCK|UNLOCK|VERSION-CONTROL|REPORT|CHECKOUT|CHECKIN|UNCHECKOUT|MKWORKSPACE|UPDATE|LABEL|MERGE|BASELINE-CONTROL|MKACTIVITY|ORDERPATCH|ACL|PATCH|SEARCH)#", $value)) {
+					$returnValue = true;
+				} else {
+					$returnValue = 'Unknown HTTP method.';
+				}
+			break;
 			case 'filename':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
