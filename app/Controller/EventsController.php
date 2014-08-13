@@ -271,7 +271,7 @@ class EventsController extends AppController {
 		}
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
-			$conditions = array('OR' => array('orgc' => $this->Auth->User('org'), 'distribution' > 0));
+			$conditions = array('OR' => array(array('orgc' => $this->Auth->User('org')), array('distribution' > 0)));
 		}
 		$events = $this->Event->find('all', array(
 			'recursive' => -1,
