@@ -512,9 +512,13 @@ class Attribute extends AppModel {
 
 	public function validateAttributeValue($fields) {
 		$value = $fields['value'];
+		return $this->runValidation($value, $this->data['Attribute']['type']);
+	}
+	
+	public function runValidation($value, $type) {
 		$returnValue = false;
 		// check data validation
-		switch($this->data['Attribute']['type']) {
+		switch($type) {
 			case 'md5':
 				if (preg_match("#^[0-9a-f]{32}$#", $value)) {
 					$returnValue = true;
