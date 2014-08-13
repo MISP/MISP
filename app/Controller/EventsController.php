@@ -2625,9 +2625,12 @@ class EventsController extends AppController {
 	}
 	
 	public function pushProposals($uuid) {
+		$message= "";
+		$success = true;
+		$counter = 0;
 		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException('You do not have the permission to do that.');
 		if ($this->request->is('post')) {
-			$event = $this->Event->find('all', array(
+			$event = $this->Event->find('first', array(
 					'conditions' => array('Event.uuid' => $uuid),
 					'contains' => array('ShadowAttribute', 'Attribute' => array(
 						'fields' => array('id', 'uuid', 'event_id'),
@@ -2635,16 +2638,20 @@ class EventsController extends AppController {
 					'fields' => array('Event.uuid', 'Event.id'),
 			));
 			if (empty($event)) {
-				// incorrect uuid?
+				$message = "Event not found.";
+				$success = false;
 			} else {
 				foreach ($this->request->data as $k => $sa) {
-					foreach ($event['ShadowAttribute'] as $oldk => $oldsa) {
-						if ($sa['event_uuid'] == $oldsa['event_uuid'] && $sa['value'] == $oldsa['value'] && $sa['type'] == $oldsa['type'] && $sa['category'] == $oldsa['category'] && $sa['to_ids'] == $oldsa['to_ids']) {
-							if ($oldsa['deleted'] || $sa['deleted'] == $oldsa['deleted']) continue 2;
-							else if ($sa['deleted']) $this->Event->ShadowAttribute->delete($oldsa['id']);
+					if (isset($event['ShadowAttribute'])) {
+						foreach ($event['ShadowAttribute'] as $oldk => $oldsa) {
+							$temp = json_encode($oldsa);
+							if ($sa['event_uuid'] == $oldsa['event_uuid'] && $sa['value'] == $oldsa['value'] && $sa['type'] == $oldsa['type'] && $sa['category'] == $oldsa['category'] && $sa['to_ids'] == $oldsa['to_ids']) {
+								if ($oldsa['deleted'] || $sa['deleted'] == $oldsa['deleted']) continue 2;
+								else if ($sa['deleted']) $this->Event->ShadowAttribute->delete($oldsa['id']);
+							}
 						}
 					}
-					$sa['event_id'] == $event['id'];
+					$sa['event_id'] = $event['Event']['id'];
 					if ($sa['old_id'] != 0) {
 						foreach($event['Attribute'] as $attribute) {
 							if ($sa['uuid'] == $attribute['uuid']) {
@@ -2654,10 +2661,24 @@ class EventsController extends AppController {
 					}
 					if (isset($sa['id'])) unset($sa['id']);
 					$this->Event->ShadowAttribute->create();
-					$this->Event->ShadowAttribute->save(array('ShadowAttribute' => $sa));
-					if (!$sa['deleted']) $this->Event->ShadowAttribute->__sendProposalAlertEmail($event['Event']['id']);
+					if (!$this->Event->ShadowAttribute->save(array('ShadowAttribute' => $sa))) {
+						$message = "Some of the proposals could not be saved.";
+						$success = false;
+					} else {
+						$counter++;
+					}
+					//if (!$sa['deleted']) $this->Event->ShadowAttribute->__sendProposalAlertEmail($event['Event']['id']);
 				}
 			}
+			if ($success) {
+				if ($counter) {	
+					$message = $counter . " Proposal(s) added.";
+				} else {
+					$message = "Nothing to update.";
+				}
+			}
+			$this->set('data', array('success' => $success, 'message' => $message, 'counter' => $counter));
+			$this->set('_serialize', 'data');
 		}
 	}
 
