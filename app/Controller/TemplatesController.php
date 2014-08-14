@@ -346,6 +346,12 @@ class TemplatesController extends AppController {
 					if (!$this->Attribute->save(array('Attribute' => $attribute))) $fails++;
 				}
 				$count = $k + 1;
+				$event = $this->Event->find('first', array(
+					'conditions' => array('Event.id' => $event_id),
+					'recursive' => -1
+				));
+				$event['Event']['published'] = 0;
+				$this->Event->save($event);
 				if ($fails == 0) $this->Session->setFlash(__('Event populated, ' . $count . ' attributes successfully created.'));
 				else $this->Session->setFlash(__('Event populated, but ' . $fails . ' attributes could not be saved.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $event_id));

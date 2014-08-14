@@ -1885,6 +1885,12 @@ class AttributesController extends AppController {
 			$success = true;
 			if (($results['created'] > 0 || $results['deleted'] > 0) && $results['createdFail'] == 0 && $results['deletedFail'] == 0) {
 				$message .= 'Update completed without any issues.';
+				$event = $this->Attribute->Event->find('first', array(
+					'conditions' => array('Event.id' => $id),
+					'recursive' => -1
+				));
+				$event['Event']['published'] = 0;
+				$this->Attribute->Event->save($event);
 			} else {
 				$message .= 'Update completed with some errors.';
 				$success = false;
