@@ -360,6 +360,11 @@ class ShadowAttribute extends AppModel {
 		if (!isset($this->data['ShadowAttribute']['type'])) {
 			return false;
 		}
+		
+		if (empty($this->data['ShadowAttribute']['timestamp'])) {
+			$date = new DateTime();
+			$this->data['ShadowAttribute']['timestamp'] = $date->getTimestamp();
+		}
 
 		switch($this->data['ShadowAttribute']['type']) {
 			// lowercase these things
@@ -533,6 +538,22 @@ class ShadowAttribute extends AppModel {
 	public function setDeleted($id) {
 		$this->id = $id;
 		$this->saveField('deleted', 1);
+		$date = new DateTime();
+		$this->saveField('timestamp', $date->getTimestamp());
+	}
+	
+	public function findOldProposal($sa) {
+		$oldsa = $this->find('first', array(
+			'conditions' => array(
+				'event_uuid' => $sa['event_uuid'],
+				'value' => $sa['value'],
+				'type' => $sa['type'],
+				'category' => $sa['category'],
+				'to_ids' => $sa['to_ids'],
+			),
+		));
+		if (empty($oldsa)) return false;
+		else return $oldsa['ShadowAttribute'];
 	}
 }
 

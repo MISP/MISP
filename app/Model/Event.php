@@ -28,7 +28,7 @@ class Event extends AppModel {
 
 	public $virtualFields = array();
 	
-	public $mispVersion = '2.2.0';
+	public $mispVersion = '2.3.0';
 
 /**
  * Description field
@@ -726,7 +726,7 @@ class Event extends AppModel {
  * TODO move this to a component
  * @return array|NULL
  */
-	public function downloadEventFromServer($eventId, $server, $HttpSocket=null, $propsalDownload = false) {
+	public function downloadEventFromServer($eventId, $server, $HttpSocket=null, $proposalDownload = false) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
@@ -745,7 +745,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		if (!$propsalDownload) {
+		if (!$proposalDownload) {
 			$uri = $url . '/events/' . $eventId;
 		} else {
 			$uri = $url . '/shadow_attributes/getProposalsByUuid/' . $eventId;

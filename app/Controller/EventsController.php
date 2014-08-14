@@ -2646,8 +2646,8 @@ class EventsController extends AppController {
 						foreach ($event['ShadowAttribute'] as $oldk => $oldsa) {
 							$temp = json_encode($oldsa);
 							if ($sa['event_uuid'] == $oldsa['event_uuid'] && $sa['value'] == $oldsa['value'] && $sa['type'] == $oldsa['type'] && $sa['category'] == $oldsa['category'] && $sa['to_ids'] == $oldsa['to_ids']) {
-								if ($oldsa['deleted'] || $sa['deleted'] == $oldsa['deleted']) continue 2;
-								else if ($sa['deleted']) $this->Event->ShadowAttribute->delete($oldsa['id']);
+								if ($oldsa['timestamp'] < $sa['timestamp']) $this->Event->ShadowAttribute->delete($oldsa['id']);
+								else continue 2;
 							}
 						}
 					}

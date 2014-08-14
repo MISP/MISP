@@ -155,7 +155,9 @@ class ShadowAttributesController extends AppController {
 			$this->ShadowAttribute->setDeleted($toDeleteId);
 
 			$fieldList = array('proposal_email_lock', 'id', 'info', 'published');
-			$event['Event']['proposal_email_lock'] = 0;
+			if ($this->Auth->user('org') == $event['Event']['orgc']) {
+				$event['Event']['proposal_email_lock'] = 0;
+			}
 			$event['Event']['published'] = 0;
 			$this->autoRender = false;
 			if ($this->Event->save($event, array('fieldList' => $fieldList))) {
@@ -217,7 +219,9 @@ class ShadowAttributesController extends AppController {
 				}
 			}
 			if ($this->ShadowAttribute->setDeleted($id)) {
-				$this->_setProposalLock($eventId, false);
+				if ($this->Auth->user('org') == $this->Event->data['Event']['orgc']) {
+					$this->_setProposalLock($eventId, false);
+				}
 				$this->autoRender = false;
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal discarded.')),'status'=>200));
 			} else {

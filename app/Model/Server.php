@@ -274,13 +274,12 @@ class Server extends AppModel {
 				}
 				foreach($proposals['ShadowAttribute'] as &$proposal) {
 					unset($proposal['id']);
+					$oldsa = $shadowAttribute->findOldProposal($proposal);
 					$proposal['event_id'] = $event['Event']['id'];
-					if (!$shadowAttribute->findByUuid($proposal['uuid'])) {
-						if (isset($pulledProposals[$event['Event']['id']])) {
-							$pulledProposals[$event['Event']['id']]++;
-						} else {
-							$pulledProposals[$event['Event']['id']] = 1;
-						}
+					if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
+						if ($oldsa) $shadowAttribute->delete($oldsa['id']);
+						if (!isset($pulledProposals[$event['Event']['id']])) $pulledProposals[$event['Event']['id']] = 0;
+						$pulledProposals[$event['Event']['id']]++;
 						if (isset($proposal['old_id'])) {
 							$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
 							if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
