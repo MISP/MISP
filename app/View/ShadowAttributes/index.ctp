@@ -27,7 +27,16 @@
 				Type
 			</th>
 			<th>
-				<?php echo $this->Paginator->sort('id', 'Info');?>
+				<?php echo $this->Paginator->sort('id', 'Event Info');?>
+			</th>
+			<th>
+				<?php echo $this->Paginator->sort('value', 'Proposed value');?>
+			</th>
+			<th>
+				<?php echo $this->Paginator->sort('category', 'Category');?>
+			</th>
+			<th>
+				<?php echo $this->Paginator->sort('type', 'Type');?>
 			</th>
 		</tr>
 		<?php foreach ($shadowAttributes as $event):?>
@@ -49,6 +58,15 @@
 			</td>
 			<td onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo h($event['Event']['info']); ?>
+			</td>
+			<td onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+				<?php echo h($event['ShadowAttribute']['value']);?>
+			</td>
+			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+				<?php echo h($event['ShadowAttribute']['category']);?>
+			</td>
+			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+				<?php echo h($event['ShadowAttribute']['type']);?>
 			</td>
 		</tr>
 		<?php endforeach; ?>

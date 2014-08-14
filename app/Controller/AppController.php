@@ -190,7 +190,8 @@ class AppController extends Controller {
 				'recursive' => -1,
 				'fields' => array('event_id', 'event_org'),
 				'conditions' => array( 
-					'ShadowAttribute.event_org' => $this->Auth->user('org')
+					'ShadowAttribute.event_org' => $this->Auth->user('org'),
+					'ShadowAttribute.deleted' => 0,
 		)));
 		$results = array();
 		$eventIds = array();

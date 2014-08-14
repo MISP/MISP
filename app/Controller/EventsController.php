@@ -2328,6 +2328,9 @@ class EventsController extends AppController {
 						'fields' => array(
 							'ShadowAttribute.id', 'ShadowAttribute.org', 'ShadowAttribute.event_id'
 						),
+						'conditions' => array(
+							'ShadowAttribute.deleted' => 0
+						),
 					),
 		));
 		$events = $this->paginate();

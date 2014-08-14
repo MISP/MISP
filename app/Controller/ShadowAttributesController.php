@@ -773,7 +773,7 @@ class ShadowAttributesController extends AppController {
 		$conditions[] = array('deleted' => 0);
 		$this->paginate = array(
 				'conditions' => $conditions,
-				'fields' => array('id', 'org', 'old_id', 'deleted'),
+				'fields' => array('id', 'org', 'old_id', 'deleted', 'value', 'category', 'type'),
 				'contain' => array(
 						'Event' => array(
 								'fields' => array('id', 'org', 'info', 'orgc'),
