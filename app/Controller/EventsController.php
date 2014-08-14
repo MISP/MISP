@@ -2501,7 +2501,7 @@ class EventsController extends AppController {
 			$event = $this->Event->find('first', array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
-				'fields' => array('orgc', 'id', 'distribution'),
+				'fields' => array('orgc', 'id', 'distribution', 'published'),
 			));
 			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 			$saved = 0;
@@ -2518,6 +2518,14 @@ class EventsController extends AppController {
 						$failed++;
 					}
 				}
+			}
+			if ($saved > 0 && $event['Event']['published'] == 1) {
+				$event = $this->Event->find('first', array(
+						'conditions' => array('Event.id' => $id),
+						'recursive' => -1
+				));
+				$event['Event']['published'] = 0;
+				$this->Event->save($event);
 			}
 			$this->Session->setFlash($saved . ' attributes created. ' . $failed . ' attributes could not be saved. This may be due to attributes with similar values already existing.');
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
