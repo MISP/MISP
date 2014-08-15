@@ -338,7 +338,6 @@ class Server extends AppModel {
 			);
 			$eventIds = $eventModel->find('all', $findParams);
 		}
-
 		$eventUUIDsFiltered = $this->filterEventIdsForPush($id, $HttpSocket, $eventIds);
 		if ($eventUUIDsFiltered === false) $pushFailed = true;
 		if (!empty($eventUUIDsFiltered)) {
@@ -382,7 +381,7 @@ class Server extends AppModel {
 			}
 		}
 		
-		$this->syncProposals($HttpSocket, $this->data, null, $eventIds, $eventModel);
+		$this->syncProposals($HttpSocket, $this->data, null, null, $eventModel);
 		
 		if (!isset($successes)) $successes = null;
 		if (!isset($fails)) $fails = null;
