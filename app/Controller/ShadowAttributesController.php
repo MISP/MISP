@@ -95,6 +95,7 @@ class ShadowAttributesController extends AppController {
 			$activeAttribute['Attribute']['value'] = $shadow['value'];
 			$activeAttribute['Attribute']['type'] = $shadow['type'];
 			$activeAttribute['Attribute']['category'] = $shadow['category'];
+			$activeAttribute['Attribute']['comment'] = $shadow['comment'];
 			$activeAttribute['Attribute']['to_ids'] = $shadow['to_ids'];
 			$date = new DateTime();
 			$activeAttribute['Attribute']['timestamp'] = $date->getTimestamp();
@@ -326,8 +327,9 @@ class ShadowAttributesController extends AppController {
 					}
 					if ($successes) {
 						// list the ones that succeeded
-						$this->Session->setFlash(__('The lines' . $successes . ' have been saved', true));
-						$this->__sendProposalAlertEmail($eventId);
+						$emailResult = "";
+						if (!$this->__sendProposalAlertEmail($eventId) == false) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+						$this->Session->setFlash(__('The lines' . $successes . ' have been saved' . $emailResult, true));
 					}
 				}
 
@@ -349,11 +351,15 @@ class ShadowAttributesController extends AppController {
 				$this->request->data['ShadowAttribute']['event_uuid'] = $event_uuid;
 				$this->request->data['ShadowAttribute']['event_org'] = $event_org;
 				if ($this->ShadowAttribute->save($this->request->data)) {
-					$this->__sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id']);
+					// list the ones that succeeded
+					$emailResult = "";
+					if (!$this->__sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id'])) {
+						$emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+					}
 					// inform the user and redirect
 					if ($this->request->is('ajax')) {
 						$this->autoRender = false;
-						return new CakeResponse(array('body'=> json_encode(array('saved' => true)),'status'=>200));
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal added' . $emailResult)),'status'=>200));
 					} else {
 						$this->Session->setFlash(__('The proposal has been saved'));
 						$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
@@ -474,12 +480,7 @@ class ShadowAttributesController extends AppController {
 			$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
 			$this->request->data['ShadowAttribute']['event_uuid'] = $event_uuid;
 			$this->request->data['ShadowAttribute']['event_org'] = $event_org;
-			if ($this->ShadowAttribute->save($this->request->data)) {
-				$this->__sendProposalAlertEmail($eventId);
-			} else {
-				$this->Session->setFlash(__('The ShadowAttribute could not be saved. Did you already upload this file?'));
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
-			}
+			$this->ShadowAttribute->save($this->request->data);
 
 			// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
 			// no sanitization is required on the filename, path or type as we save
@@ -534,7 +535,11 @@ class ShadowAttributesController extends AppController {
 			}
 
 			// everything is done, now redirect to event view
-			$this->Session->setFlash(__('The attachment has been uploaded'));
+
+			$emailResult = "";
+			if (!$this->__sendProposalAlertEmail($eventId)) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+
+			$this->Session->setFlash(__('The attachment has been uploaded' . $emailResult));
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
 
 		} else {
@@ -627,8 +632,9 @@ class ShadowAttributesController extends AppController {
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'value', 'org');
 			if ($this->ShadowAttribute->save($this->request->data)) {
-				$this->__sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id']);
-				$this->Session->setFlash(__('The proposed Attribute has been saved'));
+				$emailResult = "";
+				if (!$this->__sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id'])) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+				$this->Session->setFlash(__('The proposed Attribute has been saved' . $emailResult));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 			} else {
 				$this->Session->setFlash(__('The ShadowAttribute could not be saved. Please, try again.'));
@@ -683,86 +689,90 @@ class ShadowAttributesController extends AppController {
 		} else {
 			$this->_setProposalLock($id);
 		}
-		
-		$this->loadModel('User');
-		$this->User->recursive = -1;
-		$orgMembers = array();
-		$temp = $this->User->findAllByOrg($event['Event']['orgc'], array('email', 'gpgkey', 'contactalert', 'id'));
-		foreach ($temp as $tempElement) {
-			if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
-				array_push($orgMembers, $tempElement);
-			}
-		}
-		$body = "";
-		$body .= "Hello, \n";
-		$body .= "\n";
-		$body .= "A user of another organisation has proposed a change to an event created by you or your organisation. \n";
-		$body .= "\n";
-		$body .= "To view the event in question, follow this link:";
-		$body .= ' ' . Configure::read('MISP.baseurl') . '/events/view/' . $id . "\n";
-		$body .= "\n";
-		$body .= "You can reach the user at " . $this->Auth->user('email');
-		$body .= "\n";
-
-		// sign the body
-		require_once 'Crypt/GPG.php';
-		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
-		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-		$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-		// Add the GPG key of the user as attachment
-		// LATER sign the attached GPG key
-		if (null != (!$this->User->getPGP($this->Auth->user('id')))) {
-			// save the gpg key to a temporary file
-			$tmpfname = tempnam(TMP, "GPGkey");
-			$handle = fopen($tmpfname, "w");
-			fwrite($handle, $this->User->getPGP($this->Auth->user('id')));
-			fclose($handle);
-			// attach it
-			$this->Email->attachments = array(
-					'gpgkey.asc' => $tmpfname
-			);
-		}
-
-		foreach ($orgMembers as &$reporter) {
-			if (!empty($reporter['User']['gpgkey'])) {
-				// import the key of the user into the keyring
-				// this isn't really necessary, but it gives it the fingerprint necessary for the next step
-				$keyImportOutput = $gpg->importKey($reporter['User']['gpgkey']);
-				// say what key should be used to encrypt
-				try {
-					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-					$bodyEncSig = $gpg->encrypt($bodySigned, true);
-				} catch (Exception $e){
-					// catch errors like expired PGP keys
-					$this->log($e->getMessage());
-					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
+		try {
+			$this->loadModel('User');
+			$this->User->recursive = -1;
+			$orgMembers = array();
+			$temp = $this->User->findAllByOrg($event['Event']['orgc'], array('email', 'gpgkey', 'contactalert', 'id'));
+			foreach ($temp as $tempElement) {
+				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
+					array_push($orgMembers, $tempElement);
 				}
-			} else {
-				$bodyEncSig = $bodySigned;
-				// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
 			}
-			// prepare the email
-			$this->Email->from = Configure::read('MISP.email');
-			$this->Email->to = $reporter['User']['email'];
-			$this->Email->subject = "[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Proposal to event #" . $id;
-			$this->Email->template = 'body';
-			$this->Email->sendAs = 'text';		// both text or html
-			$this->set('body', $bodyEncSig);
+			$body = "";
+			$body .= "Hello, \n";
+			$body .= "\n";
+			$body .= "A user of another organisation has proposed a change to an event created by you or your organisation. \n";
+			$body .= "\n";
+			$body .= "To view the event in question, follow this link:";
+			$body .= ' ' . Configure::read('MISP.baseurl') . '/events/view/' . $id . "\n";
+			$body .= "\n";
+			$body .= "You can reach the user at " . $this->Auth->user('email');
+			$body .= "\n";
+	
+			// sign the body
+			require_once 'Crypt/GPG.php';
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
+			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
 			// Add the GPG key of the user as attachment
 			// LATER sign the attached GPG key
-			if (null != ($this->User->getPGP($this->Auth->user('id')))) {
-				// attach the gpg key
+			if (null != (!$this->User->getPGP($this->Auth->user('id')))) {
+				// save the gpg key to a temporary file
+				$tmpfname = tempnam(TMP, "GPGkey");
+				$handle = fopen($tmpfname, "w");
+				fwrite($handle, $this->User->getPGP($this->Auth->user('id')));
+				fclose($handle);
+				// attach it
 				$this->Email->attachments = array(
-					'gpgkey.asc' => $tmpfname
+						'gpgkey.asc' => $tmpfname
 				);
 			}
-			// send it
-			$result = $this->Email->send();
-			// If you wish to send multiple emails using a loop, you'll need
-			// to reset the email fields using the reset method of the Email component.
-			$this->Email->reset();
+	
+			foreach ($orgMembers as &$reporter) {
+				if (!empty($reporter['User']['gpgkey'])) {
+					// import the key of the user into the keyring
+					// this isn't really necessary, but it gives it the fingerprint necessary for the next step
+					$keyImportOutput = $gpg->importKey($reporter['User']['gpgkey']);
+					// say what key should be used to encrypt
+					try {
+						$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+						$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
+						$bodyEncSig = $gpg->encrypt($bodySigned, true);
+					} catch (Exception $e){
+						// catch errors like expired PGP keys
+						$this->log($e->getMessage());
+						// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
+					}
+				} else {
+					$bodyEncSig = $bodySigned;
+					// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
+				}
+				// prepare the email
+				$this->Email->from = Configure::read('MISP.email');
+				$this->Email->to = $reporter['User']['email'];
+				$this->Email->subject = "[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Proposal to event #" . $id;
+				$this->Email->template = 'body';
+				$this->Email->sendAs = 'text';		// both text or html
+				$this->set('body', $bodyEncSig);
+				// Add the GPG key of the user as attachment
+				// LATER sign the attached GPG key
+				if (null != ($this->User->getPGP($this->Auth->user('id')))) {
+					// attach the gpg key
+					$this->Email->attachments = array(
+						'gpgkey.asc' => $tmpfname
+					);
+				}
+				// send it
+				$result = $this->Email->send();
+				// If you wish to send multiple emails using a loop, you'll need
+				// to reset the email fields using the reset method of the Email component.
+				$this->Email->reset();
+			}
+		} catch (Exception $e) {
+			return false;
 		}
+		return true;
 	}
 	
 	public function index() {
