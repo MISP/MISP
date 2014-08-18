@@ -2674,7 +2674,7 @@ class EventsController extends AppController {
 					if ($sa['old_id'] != 0) {
 						foreach($event['Attribute'] as $attribute) {
 							if ($sa['uuid'] == $attribute['uuid']) {
-								$sa['old_id'] == $attribute['id'];
+								$sa['old_id'] = $attribute['id'];
 							}
 						}
 					}
