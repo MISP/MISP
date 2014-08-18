@@ -9,6 +9,21 @@ function deleteObject(type, action, id, event) {
 	});
 }
 
+function publishPopup(id, type) {
+	var action = "alert";
+	if (type == "publish") action = "publish";
+	var destination = 'attributes';
+	$.get( "/events/" + action + "/" + id, function(data) {
+		$("#confirmation_box").fadeIn();
+		$("#gray_out").fadeIn();
+		$("#confirmation_box").html(data);
+	});
+}
+
+function submitPublish(id, type) {
+	$("#PromptForm").submit();
+}
+
 function editTemplateElement(type, id) {
 	$.get( "/template_elements/edit/" + type + "/" + id, function(data) {
 		$("#popover_form").fadeIn();

@@ -1235,6 +1235,10 @@ class EventsController extends AppController {
 				$this->Session->setFlash(__('Job queued.'));
 			}
 			$this->redirect(array('action' => 'view', $id));
+		} else {
+			$this->set('id', $id);
+			$this->set('type', 'publish');
+			$this->render('ajax/eventPublishConfirmationForm');
 		}
 	}
 
@@ -1293,6 +1297,10 @@ class EventsController extends AppController {
 				$this->Session->setFlash(__('Sending of email failed', true), 'default', array(), 'error');
 			}
 			$this->redirect(array('action' => 'view', $id));
+		} else {
+			$this->set('id', $id);
+			$this->set('type', 'alert');
+			$this->render('ajax/eventPublishConfirmationForm');
 		}
 	}
 
