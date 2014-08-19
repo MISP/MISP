@@ -45,8 +45,8 @@ class AppController extends Controller {
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats 
 	public $automationArray = array(
-		'events' => array('csv', 'nids', 'hids', 'stix'),
-		'attributes' => array('text', 'downloadAttachment'),
+		'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix'),
+		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch'),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
