@@ -33,18 +33,23 @@
 					<li <?php if ($menuItem === 'proposeAttachment') echo 'class="active"';?>><a href="/shadow_attributes/add_attachment/<?php echo $event['Event']['id'];?>">Propose Attachment</a></li>
 					<?php endif; ?>
 					<li class="divider"></li>
-					<?php if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isAdmin || (isset($mayPublish) && $mayPublish))): ?>
-					<li><?php echo $this->Form->postLink('Publish Event', array('controller' => 'events', 'action' => 'alert', $event['Event']['id']), null, 'Are you sure this event is complete and everyone should be informed?'); ?></li>
-					<li><?php echo $this->Form->postLink('Publish (no email)', array('controller' => 'events', 'action' => 'publish', $event['Event']['id']), null, 'Publish but do NOT send alert email? Only for minor changes!'); ?></li>
-					<?php endif; ?>
+					<?php 
+						$publishButtons = ' style="display:none;"';
+						$exportButtons = ' style="display:none;"';
+						if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
+						if (isset($event['Event']['published']) && $event['Event']['published']) $exportButtons = "";
+					?>
+					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo $event['Event']['id']; ?>', 'alert')">Publish Event</a></li>
+					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo $event['Event']['id']; ?>', 'publish')">Publish (no email)</a></li>
+
 					<li <?php if ($menuItem === 'contact') echo 'class="active"';?>><a href="/events/contact/<?php echo $event['Event']['id'];?>">Contact Reporter</a></li>
 					<li><a href="/events/xml/download/<?php echo $event['Event']['id'];?>">Download as XML</a></li>
-					<?php if (isset($event['Event']['published']) && $event['Event']['published']): ?>
-					<li><a href="/events/downloadOpenIOCEvent/<?php echo $event['Event']['id'];?>">Download as IOC</a></li>
-					<li><a href="/events/csv/download/<?php echo $event['Event']['id'];?>/1">Download as CSV</a></li>
-					<li><a href="/events/stix/download/<?php echo $event['Event']['id'];?>.xml">Download as STIX XML</a></li>
-					<li><a href="/events/stix/download/<?php echo $event['Event']['id'];?>.json">Download as STIX JSON</a></li>
-					<?php endif; ?>
+
+					<li<?php echo $exportButtons; ?> class="exportButtons"><a href="/events/downloadOpenIOCEvent/<?php echo $event['Event']['id'];?>">Download as IOC</a></li>
+					<li<?php echo $exportButtons; ?> class="exportButtons"><a href="/events/csv/download/<?php echo $event['Event']['id'];?>/1">Download as CSV</a></li>
+					<li<?php echo $exportButtons; ?> class="exportButtons"><a href="/events/stix/download/<?php echo $event['Event']['id'];?>.xml">Download as STIX XML</a></li>
+					<li<?php echo $exportButtons; ?> class="exportButtons"><a href="/events/stix/download/<?php echo $event['Event']['id'];?>.json">Download as STIX JSON</a></li>
+
 					<li class="divider"></li>
 					<li><a href="/events/index">List Events</a></li>
 					<?php if ($isAclAdd): ?>

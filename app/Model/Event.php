@@ -28,7 +28,7 @@ class Event extends AppModel {
 
 	public $virtualFields = array();
 	
-	public $mispVersion = '2.2.0';
+	public $mispVersion = '2.3.0';
 
 /**
  * Description field
@@ -456,18 +456,21 @@ class Event extends AppModel {
  * @throws InternalErrorException
  */
 	public function cleanupEventArrayFromXML(&$data) {
-		// Workaround for different structure in XML/array than what CakePHP expects
-		if (isset($data['Event']['Attribute']) && is_array($data['Event']['Attribute']) && count($data['Event']['Attribute'])) {
-			if (is_numeric(implode(array_keys($data['Event']['Attribute']), ''))) {
-				// normal array of multiple Attributes
-				$data['Attribute'] = $data['Event']['Attribute'];
-			} else {
-				// single attribute
-				$data['Attribute'][0] = $data['Event']['Attribute'];
+		$objects = array('Attribute', 'ShadowAttribute');
+		
+		foreach ($objects as $object) {
+			// Workaround for different structure in XML/array than what CakePHP expects
+			if (isset($data['Event'][$object]) && is_array($data['Event'][$object]) && count($data['Event'][$object])) {
+				if (is_numeric(implode(array_keys($data['Event'][$object]), ''))) {
+					// normal array of multiple Attributes
+					$data[$object] = $data['Event'][$object];
+				} else {
+					// single attribute
+					$data[$object][0] = $data['Event'][$object];
+				}
 			}
+			unset($data['Event'][$object]);
 		}
-		unset($data['Event']['Attribute']);
-
 		return $data;
 	}
 
@@ -587,47 +590,52 @@ class Event extends AppModel {
 		// LATER try to do this using a separate EventsController and renderAs() function
 		$xmlArray = array();
 		// rearrange things to be compatible with the Xml::fromArray()
-		$event['Event']['Attribute'] = $event['Attribute'];
-		unset($event['Attribute']);
+		if (isset($event['Attribute'])) {
+			$event['Event']['Attribute'] = $event['Attribute'];
+			unset($event['Attribute']);
+		}
 
 		// cleanup the array from things we do not want to expose
 		//unset($event['Event']['org']);
 		// remove value1 and value2 from the output
-		foreach ($event['Event']['Attribute'] as $key => &$attribute) {
-			// do not keep attributes that are private, nor cluster
-			if ($attribute['distribution'] < 2) {
-				unset($event['Event']['Attribute'][$key]);
-				continue; // stop processing this
+		if (isset($event['Event']['Attribute'])) {
+			foreach ($event['Event']['Attribute'] as $key => &$attribute) {
+				// do not keep attributes that are private, nor cluster
+				if ($attribute['distribution'] < 2) {
+					unset($event['Event']['Attribute'][$key]);
+					continue; // stop processing this
+				}
+				// Distribution, correct Connected Community to Community in Attribute
+				if ($attribute['distribution'] == 2) {
+					$attribute['distribution'] = 1;
+				}
+				// remove value1 and value2 from the output
+				unset($attribute['value1']);
+				unset($attribute['value2']);
+				// also add the encoded attachment
+				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+					$attribute['data'] = $encodedFile;
+				}
+				// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
+				// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
+				// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
+				// solves the issue and a new attribute is always created.
+				unset($attribute['id']);
 			}
-			// Distribution, correct Connected Community to Community in Attribute
-			if ($attribute['distribution'] == 2) {
-				$attribute['distribution'] = 1;
-			}
-			// remove value1 and value2 from the output
-			unset($attribute['value1']);
-			unset($attribute['value2']);
-			// also add the encoded attachment
-			if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-				$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-				$attribute['data'] = $encodedFile;
-			}
-			// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
-			// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
-			// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
-			// solves the issue and a new attribute is always created.
-			unset($attribute['id']);
 		}
+		
 		// Distribution, correct All to Community in Event
 		if ($event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
 		}
-
 		// display the XML to the user
 		$xmlArray['Event'][] = $event['Event'];
 		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 		$eventsXml = $xmlObject->asXML();
 		// do a REST POST request with the server
 		$data = $eventsXml;
+		
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
 		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
@@ -718,7 +726,7 @@ class Event extends AppModel {
  * TODO move this to a component
  * @return array|NULL
  */
-	public function downloadEventFromServer($eventId, $server, $HttpSocket=null, $propsalDownload = false) {
+	public function downloadEventFromServer($eventId, $server, $HttpSocket=null, $proposalDownload = false) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
@@ -737,7 +745,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		if (!$propsalDownload) {
+		if (!$proposalDownload) {
 			$uri = $url . '/events/' . $eventId;
 		} else {
 			$uri = $url . '/shadow_attributes/getProposalsByUuid/' . $eventId;
@@ -758,7 +766,7 @@ class Event extends AppModel {
  * TODO move this to a component
  * @return array of event_ids
  */
-	public function getEventIdsFromServer($server, $HttpSocket=null) {
+	public function getEventIdsFromServer($server, $all = false, $HttpSocket=null) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 
@@ -778,7 +786,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		$uri = $url . '/events/index/sort:id/direction:desc/limit:9999'; // LATER verify if events are missing because we only selected the last 999
+		$uri = $url . '/events/index';
 		try {
 			$response = $HttpSocket->get($uri, $data = '', $request);
 			if ($response->isOk()) {
@@ -792,11 +800,9 @@ class Event extends AppModel {
 					$eventArray['response']['Event'][0] = $tmp;
 				}
 				$eventIds = array();
-				// different actions if it's only 1 event or more
-				// only one event.
-				if (isset($eventArray['response']['Event']['id'])) {
-					if ($this->checkIfNewer($eventArray['response']['Event'])) { 
-						$eventIds[] = $eventArray['response']['Event']['id'];
+				if ($all) {
+					foreach ($eventArray['response']['Event'] as $event) {
+						$eventIds[] = $event['uuid'];
 					}
 				} else {
 					// multiple events, iterate over the array
@@ -914,6 +920,7 @@ class Event extends AppModel {
 				),
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,
+					'conditions' => array('deleted' => 0),
 				),
 			)
 		);
@@ -1502,10 +1509,9 @@ class Event extends AppModel {
 		$this->recursive = 1;
 		$this->read();
 		$this->data['Event']['locked'] = 1;
-	
 		// get a list of the servers
-		$server = ClassRegistry::init('Server');
-		$servers = $server->find('all', array(
+		$serverModel = ClassRegistry::init('Server');
+		$servers = $serverModel->find('all', array(
 				'conditions' => array('Server.push' => true)
 		));
 		// iterate over the servers and upload the event
@@ -1524,6 +1530,9 @@ class Event extends AppModel {
 				if (!$thisUploaded) {
 					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
 					$failedServers[] = $server['Server']['url'];
+				}
+				if (isset($this->data['ShadowAttribute'])) {
+					$serverModel->syncProposals($HttpSocket, $server, null, $id, $this);
 				}
 			}
 		}

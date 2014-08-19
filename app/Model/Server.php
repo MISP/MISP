@@ -257,38 +257,36 @@ class Server extends AppModel {
 				// increment lastid based on the highest ID seen
 				$this->save($event, array('fieldList' => array('lastpulledid', 'url')));
 				// grab all of the shadow attributes that are relevant to us
-		
-				$events = $eventModel->find('all', array(
-						'fields' => array('id', 'uuid'),
-						'recursive' => -1,
-				));
-				$shadowAttribute = ClassRegistry::init('ShadowAttribute');
-				$shadowAttribute->recursive = -1;
-				foreach ($events as &$event) {
-					$proposals = $eventModel->downloadEventFromServer($event['Event']['uuid'], $server, null, true);
-					if (null != $proposals) {
-						if (isset($proposals['ShadowAttribute']['id'])) {
-							$temp = $proposals['ShadowAttribute'];
-							$proposals['ShadowAttribute'] = array(0 => $temp);
+			}
+		}
+		$events = $eventModel->find('all', array(
+				'fields' => array('id', 'uuid'),
+				'recursive' => -1,
+		));
+		$shadowAttribute = ClassRegistry::init('ShadowAttribute');
+		$shadowAttribute->recursive = -1;
+		foreach ($events as &$event) {
+			$proposals = $eventModel->downloadEventFromServer($event['Event']['uuid'], $server, null, true);
+			if (null != $proposals) {
+				if (isset($proposals['ShadowAttribute']['id'])) {
+					$temp = $proposals['ShadowAttribute'];
+					$proposals['ShadowAttribute'] = array(0 => $temp);
+				}
+				foreach($proposals['ShadowAttribute'] as &$proposal) {
+					unset($proposal['id']);
+					$oldsa = $shadowAttribute->findOldProposal($proposal);
+					$proposal['event_id'] = $event['Event']['id'];
+					if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
+						if ($oldsa) $shadowAttribute->delete($oldsa['id']);
+						if (!isset($pulledProposals[$event['Event']['id']])) $pulledProposals[$event['Event']['id']] = 0;
+						$pulledProposals[$event['Event']['id']]++;
+						if (isset($proposal['old_id'])) {
+							$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
+							if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
+							else $proposal['old_id'] = 0;
 						}
-						foreach($proposals['ShadowAttribute'] as &$proposal) {
-							unset($proposal['id']);
-							$proposal['event_id'] = $event['Event']['id'];
-							if (!$shadowAttribute->findByUuid($proposal['uuid'])) {
-								if (isset($pulledProposals[$event['Event']['id']])) {
-									$pulledProposals[$event['Event']['id']]++;
-								} else {
-									$pulledProposals[$event['Event']['id']] = 1;
-								}
-								if (isset($proposal['old_id'])) {
-									$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
-									if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
-									else $proposal['old_id'] = 0;
-								}
-								$shadowAttribute->create();
-								$shadowAttribute->save($proposal);
-							}
-						}
+						$shadowAttribute->create();
+						$shadowAttribute->save($proposal);
 					}
 				}
 			}
@@ -336,47 +334,55 @@ class Server extends AppModel {
 							'Event.attribute_count >' => 0
 					), //array of conditions
 					'recursive' => -1, //int
-					'fields' => array('Event.id'), //array of field names
+					'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid'), //array of field names
 			);
 			$eventIds = $eventModel->find('all', $findParams);
 		}
-		$eventCount = count($eventIds);
-		//debug($eventIds);
-		// now process the $eventIds to pull each of the events sequentially
-		if (!empty($eventIds)) {
-			$successes = array();
-			$fails = array();
-			$lowestfailedid = null;
-			foreach ($eventIds as $k => $eventId) {
-				$eventModel->recursive=1;
-				$eventModel->contain(array('Attribute'));
-				$event = $eventModel->findById($eventId['Event']['id']);
-				$event['Event']['locked'] = true;
-				$result = $eventModel->uploadEventToServer(
-						$event,
-						$this->data,
-						$HttpSocket);
-				if ('Success' === $result) {
-					$successes[] = $event['Event']['id'];
+		$eventUUIDsFiltered = $this->filterEventIdsForPush($id, $HttpSocket, $eventIds);
+		if ($eventUUIDsFiltered === false) $pushFailed = true;
+		if (!empty($eventUUIDsFiltered)) {
+			
+			$eventCount = count($eventUUIDsFiltered);
+			//debug($eventIds);
+			// now process the $eventIds to pull each of the events sequentially
+			if (!empty($eventUUIDsFiltered)) {
+				$successes = array();
+				$fails = array();
+				$lowestfailedid = null;
+				foreach ($eventUUIDsFiltered as $k => $eventUuid) {
+					$eventModel->recursive=1;
+					$eventModel->contain(array('Attribute'));
+					$event = $eventModel->findByUuid($eventUuid);
+					$event['Event']['locked'] = true;
+					$result = $eventModel->uploadEventToServer(
+							$event,
+							$this->data,
+							$HttpSocket);
+					if ('Success' === $result) {
+						$successes[] = $event['Event']['id'];
+					} else {
+						$fails[$event['Event']['id']] = $result;
+					}
+					if ($jobId && $k%10 == 0) {
+						$job->saveField('progress', 100 * $k / $eventCount);
+					}
+				}
+				if (count($fails) > 0) {
+					// there are fails, take the lowest fail
+					$lastpushedid = min(array_keys($fails));
 				} else {
-					$fails[$event['Event']['id']] = $result;
+					// no fails, take the highest success
+					$lastpushedid = max($successes);
 				}
-				if ($jobId && $k%10 == 0) {
-					$job->saveField('progress', 100 * $k / $eventCount);
-				}
+				// increment lastid based on the highest ID seen
+				// Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
+				$this->data['Server']['lastpushedid'] = $lastpushedid;
+				$this->save($this->data);
 			}
-			if (count($fails) > 0) {
-				// there are fails, take the lowest fail
-				$lastpushedid = min(array_keys($fails));
-			} else {
-				// no fails, take the highest success
-				$lastpushedid = max($successes);
-			}
-			// increment lastid based on the highest ID seen
-			// Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
-			$this->data['Server']['lastpushedid'] = $lastpushedid;
-			$this->save($this->data);
 		}
+		
+		$this->syncProposals($HttpSocket, $this->data, null, null, $eventModel);
+		
 		if (!isset($successes)) $successes = null;
 		if (!isset($fails)) $fails = null;
 		$this->Log = ClassRegistry::init('Log');
@@ -396,6 +402,114 @@ class Server extends AppModel {
 			return;
 		} else {
 			return array($successes, $fails);
+		}
+	}
+	
+	public function filterEventIdsForPush($id, $HttpSocket, $eventIds) {
+		foreach ($eventIds as $k => $event) {
+			unset($eventIds[$k]['Event']['id']);
+		}
+		$server = $this->read(null, $id);
+		if (null == $HttpSocket) {
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
+		}
+		$data = json_encode($eventIds);
+		$request = array(
+				'header' => array(
+						'Authorization' => $server['Server']['authkey'],
+						'Accept' => 'application/json',
+						'Content-Type' => 'application/json',
+				)
+		);
+		$uri = $server['Server']['url'] . '/events/filterEventIdsForPush';
+		$response = $HttpSocket->post($uri, $data, $request);
+		if ($response->code == '200') {
+			$uuidList = json_decode($response->body());
+		} else {
+			return false;
+		}
+		return $uuidList;
+	}
+	
+	public function syncProposals($HttpSocket, $server, $sa_id = null, $event_id = null, $eventModel){
+		$saModel = ClassRegistry::init('ShadowAttribute');
+		if (null == $HttpSocket) {
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
+		}
+		if ($sa_id == null) {
+			if ($event_id == null) {
+				// event_id is null when we are doing a push
+				$ids = $eventModel->getEventIdsFromServer($server, true, $HttpSocket);
+				$conditions = array('uuid' => $ids);
+			} else {
+				$conditions = array('id' => $event_id);
+				// event_id is not null when we are doing a publish
+			}
+			$events = $eventModel->find('all', array(
+					'conditions' => $conditions,
+					'recursive' => 1,
+					'contain' => 'ShadowAttribute',
+					'fields' => array('Event.uuid')
+			));
+
+			$fails = 0;
+			$success = 0;
+			$error_message = "";
+			$unchanged = array();
+			foreach ($events as $k => &$event) {
+				if (!empty($event['ShadowAttribute'])) {
+					foreach ($event['ShadowAttribute'] as &$sa) {
+						$sa['data'] = $saModel->base64EncodeAttachment($sa);
+						unset($sa['id']);
+						unset($sa['category_order']);
+						unset($sa['value1']);
+						unset($sa['value2']);
+					}
+						
+					$data = json_encode($event['ShadowAttribute']);
+					$request = array(
+							'header' => array(
+									'Authorization' => $server['Server']['authkey'],
+									'Accept' => 'application/json',
+									'Content-Type' => 'application/json',
+							)
+					);
+					$uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
+					$response = $HttpSocket->post($uri, $data, $request);
+					if ($response->code == '200') {
+						$result = json_decode($response->body());
+						if ($result->success) {
+							$success += intval($result->counter);
+						} else {
+							$fails++;
+							if ($error_message == "") $result->message;
+							else $error_message += " --- " . $result->message; 
+						}
+					} else {
+						$fails++;
+					}
+				}
+			}
+		} else {
+			// connect to checkuuid($uuid)
+			$request = array(
+					'header' => array(
+							'Authorization' => $server['Server']['authkey'],
+							'Accept' => 'application/json',
+							'Content-Type' => 'application/json',
+					)
+			);
+			$uri = $server['Server']['url'] . '/events/checkuuid/' . $sa_id;
+			$response = $HttpSocket->get($uri);
+			if ($response->code == '200') {
+				$uuidList = json_decode($response->body());
+			} else {
+				return false;
+			}
 		}
 	}
 }

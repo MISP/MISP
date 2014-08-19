@@ -102,18 +102,26 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
 				</dd>
-				<?php if ($isAclPublish && $event['Event']['published'] == 0) :?>
-				<dt class="visibleDL">Published</dt>
-				<dd  class="visibleDL">
-					<?php echo ($event['Event']['published'] == 1 ? 'Yes' : 'No');  ?>
-					&nbsp;
-				</dd>
-				<?php else: ?>
-				<dt>Published</dt>
-				<dd style="color: <?php echo ($event['Event']['published'] == 1 ? 'green' : 'red'); ?>">
-					<b><?php echo ($event['Event']['published'] == 1 ? 'Yes' : 'No');  ?></b>
-					&nbsp;
-				</dd>
+				<?php 
+					$published = '';
+					$notPublished = 'style="display:none;"';
+					if ($event['Event']['published'] == 0) {
+						$published = 'style="display:none;"';
+						$notPublished = '';
+					}
+				?>
+						<dt class="published" <?php echo $published;?>>Published</dt>
+						<dd class="published green" <?php echo $published;?>>Yes</dd>
+				<?php 
+					if ($isAclPublish) :
+				?>
+						<dt class="visibleDL notPublished" <?php echo $notPublished;?>>Published</dt>
+						<dd class="visibleDL notPublished" <?php echo $notPublished;?>>No</dd>
+				<?php 
+					else: 
+				?>
+						<dt class="notPublished" <?php echo $notPublished;?>>Published</dt>
+						<dd class="notPublished red" <?php echo $notPublished;?>>No</dd>
 				<?php endif; ?>
 			</dl>
 		</div>

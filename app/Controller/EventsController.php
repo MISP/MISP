@@ -204,7 +204,31 @@ class EventsController extends AppController {
 					'ThreatLevel.name'))
 			),
 		));
-		$this->set('events', $this->paginate());
+		// for rest, don't use the pagination. With this, we'll escape the limit of events shown on the index.
+		if ($this->_isRest()) {
+			$rules = array();
+			$fieldNames = array_keys($this->Event->getColumnTypes());
+			$directions = array('ASC', 'DESC');
+			if (isset($this->passedArgs['sort']) && in_array($this->passedArgs['sort'], $fieldNames)) {
+				if (isset($this->passedArgs['direction']) && in_array(strtoupper($this->passedArgs['direction']), $directions)) {
+					$rules['order'] = array($this->passedArgs['sort'] => $this->passedArgs['direction']);
+				} else {
+					$rules['order'] = array($this->passedArgs['sort'] => 'ASC');
+				}
+			} else {
+				$rules['order'] = array('Event.id' => 'DESC');
+			}
+			if (isset($this->passedArgs['limit'])) {
+				$rules['limit'] = intval($this->passedArgs['limit']);
+			}
+			$rules['contain'] = $this->paginate['contain'];
+			if (isset($this->paginate['conditions'])) $rules['conditions'] = $this->paginate['conditions'];
+			$events = $this->Event->find('all', $rules);
+			$this->set('events', $events);
+		} else {
+			$this->set('events', $this->paginate());
+		}
+		
 		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted') == 'true') {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
 		}
@@ -344,7 +368,7 @@ class EventsController extends AppController {
 		}
 		$this->loadModel('Log');
 		$logEntries = $this->Log->find('all', array(
-			'conditions' => array('model LIKE' => '%ShadowAttribute%', 'org !=' => $results[0]['Event']['orgc'], 'title LIKE' => '%Event (' . $id . ')%'),
+			'conditions' => array('model' => 'ShadowAttribute', 'org !=' => $results[0]['Event']['orgc'], 'title LIKE' => '%Event (' . $id . ')%'),
 			'fields' => array('org'),
 			'group' => 'org'
 		));
@@ -976,7 +1000,8 @@ class EventsController extends AppController {
 				} else throw new MethodNotAllowedException('Event could not be saved: Could not find the local event.');
 				$fieldList = array(
 						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
-						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment')
+						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment'),
+						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org', 'event_org', 'comment', 'event_uuid', 'deleted', 'to_ids', 'uuid')
 				);
 
 				$c = 0;
@@ -998,6 +1023,29 @@ class EventsController extends AppController {
 						$c++;
 					}
 				}
+				
+				// check if the exact proposal exists, if yes check if the incoming one is deleted or not. If it is deleted, remove the old proposal and replace it with the one marked for being deleted
+				// otherwise throw the new one away.
+				if (isset($this->request->data['ShadowAttribute'])) {
+					foreach ($this->request->data['ShadowAttribute'] as $k => &$proposal) {
+						$existingProposal = $this->Event->ShadowAttribute->find('first', array(
+							'recursive' => -1,
+							'conditions' => array(
+								'value' => $proposal['value'],
+								'category' => $proposal['category'],
+								'to_ids' => $proposal['to_ids'],
+								'type' => $proposal['type'],
+								'event_uuid' => $proposal['event_uuid'],
+								'uuid' => $proposal['uuid']
+							)
+						));
+						if ($existingProposal['ShadowAttribute']['deleted'] == 1) {
+							$this->Event->ShadowAttribute->delete($existingProposal['ShadowAttribute']['id'], false);
+						} else {
+							unset($this->request->data['ShadowAttribute'][$k]);
+						}
+					}
+				}
 				// this saveAssociated() function will save not only the event, but also the attributes
 				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
 				if ($saveEvent) {
@@ -1005,6 +1053,7 @@ class EventsController extends AppController {
 				} else {
 					throw new MethodNotAllowedException();
 				}
+
 				if ($saveResult) {
 					// TODO RESTfull: we now need to compare attributes, to see if we need to do a RESTfull attribute delete
 					$message = 'Saved';
@@ -1186,6 +1235,10 @@ class EventsController extends AppController {
 				$this->Session->setFlash(__('Job queued.'));
 			}
 			$this->redirect(array('action' => 'view', $id));
+		} else {
+			$this->set('id', $id);
+			$this->set('type', 'publish');
+			$this->render('ajax/eventPublishConfirmationForm');
 		}
 	}
 
@@ -1244,6 +1297,10 @@ class EventsController extends AppController {
 				$this->Session->setFlash(__('Sending of email failed', true), 'default', array(), 'error');
 			}
 			$this->redirect(array('action' => 'view', $id));
+		} else {
+			$this->set('id', $id);
+			$this->set('type', 'alert');
+			$this->render('ajax/eventPublishConfirmationForm');
 		}
 	}
 
@@ -2252,12 +2309,13 @@ class EventsController extends AppController {
 	public function proposalEventIndex() {
 		$this->loadModel('ShadowAttribute');
 		$this->ShadowAttribute->recursive = -1;
+		$conditions = array('ShadowAttribute.deleted' => 0);
+		if (!$this->_isSiteAdmin()) $conditions[] = array('ShadowAttribute.event_org' => $this->Auth->user('org'));
 		$result = $this->ShadowAttribute->find('all', array(
 				'fields' => array('event_id'),
 				'group' => 'event_id',
-				'conditions' => array(
-						'ShadowAttribute.event_org =' => $this->Auth->user('org'),
-				)));
+				'conditions' => $conditions
+		));
 		$this->Event->recursive = -1;
 		$conditions = array();
 		foreach ($result as $eventId) {
@@ -2277,6 +2335,9 @@ class EventsController extends AppController {
 					'ShadowAttribute'=> array(
 						'fields' => array(
 							'ShadowAttribute.id', 'ShadowAttribute.org', 'ShadowAttribute.event_id'
+						),
+						'conditions' => array(
+							'ShadowAttribute.deleted' => 0
 						),
 					),
 		));
@@ -2451,7 +2512,7 @@ class EventsController extends AppController {
 			$event = $this->Event->find('first', array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
-				'fields' => array('orgc', 'id', 'distribution'),
+				'fields' => array('orgc', 'id', 'distribution', 'published'),
 			));
 			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 			$saved = 0;
@@ -2468,6 +2529,14 @@ class EventsController extends AppController {
 						$failed++;
 					}
 				}
+			}
+			if ($saved > 0 && $event['Event']['published'] == 1) {
+				$event = $this->Event->find('first', array(
+						'conditions' => array('Event.id' => $id),
+						'recursive' => -1
+				));
+				$event['Event']['published'] = 0;
+				$this->Event->save($event);
 			}
 			$this->Session->setFlash($saved . ' attributes created. ' . $failed . ' attributes could not be saved. This may be due to attributes with similar values already existing.');
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
@@ -2536,4 +2605,100 @@ class EventsController extends AppController {
 			throw new Exception(h($result['message']));
 		}
 	}
+
+	public function filterEventIdsForPush() {
+		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException('You do not have the permission to do that.');
+		if ($this->request->is('post')) {
+			$incomingIDs = array();
+			$incomingEvents = array();
+			foreach ($this->request->data as $event) {
+				$incomingIDs[] = $event['Event']['uuid'];
+				$incomingEvents[$event['Event']['uuid']] = $event['Event']['timestamp'];
+			}
+			$events = $this->Event->find('all', array(
+				'conditions' => array('Event.uuid' => $incomingIDs),
+				'recursive' => -1,
+				'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked'),
+			));
+			foreach ($events as $k => $v) {
+				if (!$v['Event']['timestamp'] < $incomingEvents[$v['Event']['uuid']]) {
+					unset($incomingEvents[$v['Event']['uuid']]);
+					continue;
+				}
+				if ($v['Event']['locked'] == 0) {
+					unset($incomingEvents[$v['Event']['uuid']]);
+				}
+			}
+			$this->set('result', array_keys($incomingEvents));
+		}
+	}
+	
+	public function checkuuid($uuid) {
+		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException('You do not have the permission to do that.');
+		$events = $this->Event->find('first', array(
+				'conditions' => array('Event.uuid' => $uuid),
+				'recursive' => -1,
+				'fields' => array('Event.uuid'),
+		));
+		$this->set('result', array('result' => empty($events)));
+	}
+	
+	public function pushProposals($uuid) {
+		$message= "";
+		$success = true;
+		$counter = 0;
+		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException('You do not have the permission to do that.');
+		if ($this->request->is('post')) {
+			$event = $this->Event->find('first', array(
+					'conditions' => array('Event.uuid' => $uuid),
+					'contains' => array('ShadowAttribute', 'Attribute' => array(
+						'fields' => array('id', 'uuid', 'event_id'),
+					)),
+					'fields' => array('Event.uuid', 'Event.id'),
+			));
+			if (empty($event)) {
+				$message = "Event not found.";
+				$success = false;
+			} else {
+				foreach ($this->request->data as $k => $sa) {
+					if (isset($event['ShadowAttribute'])) {
+						foreach ($event['ShadowAttribute'] as $oldk => $oldsa) {
+							$temp = json_encode($oldsa);
+							if ($sa['event_uuid'] == $oldsa['event_uuid'] && $sa['value'] == $oldsa['value'] && $sa['type'] == $oldsa['type'] && $sa['category'] == $oldsa['category'] && $sa['to_ids'] == $oldsa['to_ids']) {
+								if ($oldsa['timestamp'] < $sa['timestamp']) $this->Event->ShadowAttribute->delete($oldsa['id']);
+								else continue 2;
+							}
+						}
+					}
+					$sa['event_id'] = $event['Event']['id'];
+					if ($sa['old_id'] != 0) {
+						foreach($event['Attribute'] as $attribute) {
+							if ($sa['uuid'] == $attribute['uuid']) {
+								$sa['old_id'] = $attribute['id'];
+							}
+						}
+					}
+					if (isset($sa['id'])) unset($sa['id']);
+					$this->Event->ShadowAttribute->create();
+					if (!$this->Event->ShadowAttribute->save(array('ShadowAttribute' => $sa))) {
+						$message = "Some of the proposals could not be saved.";
+						$success = false;
+					} else {
+						$counter++;
+					}
+					//if (!$sa['deleted']) $this->Event->ShadowAttribute->__sendProposalAlertEmail($event['Event']['id']);
+				}
+			}
+			if ($success) {
+				if ($counter) {	
+					$message = $counter . " Proposal(s) added.";
+				} else {
+					$message = "Nothing to update.";
+				}
+			}
+			$this->set('data', array('success' => $success, 'message' => $message, 'counter' => $counter));
+			$this->set('_serialize', 'data');
+		}
+	}
+
 }

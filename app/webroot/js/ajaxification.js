@@ -9,6 +9,21 @@ function deleteObject(type, action, id, event) {
 	});
 }
 
+function publishPopup(id, type) {
+	var action = "alert";
+	if (type == "publish") action = "publish";
+	var destination = 'attributes';
+	$.get( "/events/" + action + "/" + id, function(data) {
+		$("#confirmation_box").fadeIn();
+		$("#gray_out").fadeIn();
+		$("#confirmation_box").html(data);
+	});
+}
+
+function submitPublish(id, type) {
+	$("#PromptForm").submit();
+}
+
 function editTemplateElement(type, id) {
 	$.get( "/template_elements/edit/" + type + "/" + id, function(data) {
 		$("#popover_form").fadeIn();
@@ -55,6 +70,7 @@ function acceptObject(type, id, event) {
 		data: formData, 
 		success:function (data, textStatus) {
 			updateIndex(event, 'event');
+			eventUnpublish();
 			handleGenericAjaxResponse(data);
 		}, 
 		type:"post", 
@@ -62,6 +78,13 @@ function acceptObject(type, id, event) {
 		url:"/shadow_attributes/accept/" + id,
 	});
 }	
+
+function eventUnpublish() {
+	$('.publishButtons').show();
+	$('.exportButtons').hide();
+	$('.published').hide();
+	$('.notPublished').show();
+}
 
 function updateIndex(id, context) {
 	var url, div;
@@ -248,6 +271,7 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 			showMessage('success', responseArray.success);
 			updateAttributeFieldOnSuccess(name, type, id, field, event);
 			updateAttributeFieldOnSuccess(name, type, id, 'timestamp', event);
+			eventUnpublish();
 		} else {
 			showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
 			updateAttributeFieldOnSuccess(name, type, id, field, event);
@@ -266,8 +290,10 @@ function handleGenericAjaxResponse(data) {
 	}
 	if (responseArray.saved) {
 		showMessage('success', responseArray.success);
+		return true;
 	} else {
 		showMessage('fail', responseArray.errors);
+		return false;
 	}
 }
 
@@ -304,7 +330,8 @@ function deleteSelectedAttributes(event) {
 			url:"/attributes/deleteSelected/" + event,
 			success:function (data, textStatus) {
 				updateIndex(event, 'event');
-				handleGenericAjaxResponse(data);
+				var result = handleGenericAjaxResponse(data);
+				if (result == true) eventUnpublish(); 
 			}, 
 		});
 	}
@@ -436,7 +463,8 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			}, 
 			data: $("#submitButton").closest("form").serialize(), 
 			success:function (data, textStatus) {
-				handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
+				var result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
+				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes')) eventUnpublish();
 				$(".loading").show();
 			}, 
 			type:"post", 
