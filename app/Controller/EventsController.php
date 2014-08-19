@@ -1596,10 +1596,11 @@ class EventsController extends AppController {
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
 	// $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything. 
-	public function csv($key, $eventid=0, $ignore=0, $tags = '', $category=null, $type=null) {
+	public function csv($key, $eventid=0, $ignore=0, $tags = '', $category=null, $type=null, $includeInfo=null) {
 		if ($category == 'null') $category = null;
 		if ($type == 'null') $type = null;
 		if ($tags == 'null') $tags = '';
+		if ($includeInfo == 'null') $includeInfo = null;
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
 		$list = array();
 		if ($key != 'download') {
@@ -1637,12 +1638,14 @@ class EventsController extends AppController {
 				$list[] = $attribute['Attribute']['id'];
 			}
 		}
-		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type);
+		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type, $includeInfo);
 		$this->loadModel('Whitelist');
 		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
-			$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
+			$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
+			if ($includeInfo != null) $line .= ',' . $attribute['Attribute']['event_info'];
+			$final[] = $line;
 		}
 		
 		$this->response->type('csv');	// set the content type
@@ -1654,7 +1657,9 @@ class EventsController extends AppController {
 			$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
 		}
 		$this->layout = 'text/default';
-		$this->set('headers', array('uuid', 'event_id', 'category', 'type', 'value', 'to_ids', 'date'));
+		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'to_ids', 'date');
+		if ($includeInfo != null) $headers[] = 'event_info';
+		$this->set('headers', $headers);
 		$this->set('final', $final);
 	}
 

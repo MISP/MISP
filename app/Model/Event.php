@@ -948,7 +948,7 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	public function csv($org, $isSiteAdmin, $eventid=0, $ignore=0, $attributeIDList = array(), $tags = '', $category = null, $type = null) {
+	public function csv($org, $isSiteAdmin, $eventid=0, $ignore=0, $attributeIDList = array(), $tags = '', $category = null, $type = null, $includeInfo = null) {
 		$final = array();
 		$attributeList = array();
 		$conditions = array();
@@ -1034,6 +1034,27 @@ class Event extends AppModel {
 	 		$attribute['Attribute']['value'] = str_replace(array("\r\n", "\n", "\r"), "", $attribute['Attribute']['value']);
 	 		$attribute['Attribute']['value'] = '"' . $attribute['Attribute']['value'] . '"';
 	 		$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
+	 	}
+	 	if ($includeInfo == 'yes') $attributes = $this->attachEventInfoToAttributes($attributes);
+	 	return $attributes;
+	 }
+	 
+	 private function attachEventInfoToAttributes($attributes) {
+	 	$event_ids = array();
+	 	foreach ($attributes as &$attribute) {
+	 		if (!in_array($attribute['Attribute']['event_id'], $event_ids)) $event_ids[] = $attribute['Attribute']['event_id'];
+	 	}
+	 	$events = $this->find('all', array(
+	 		'recursive' => -1,
+	 		'fields' => array('id', 'info'),
+	 		'conditions' => array('id' => $event_ids),
+	 	));
+	 	$event_id_info = array();
+	 	foreach ($events as $event) {
+	 		$event_id_info[$event['Event']['id']] = $event['Event']['info'];
+	 	}
+	 	foreach ($attributes as &$attribute) {
+	 		$attribute['Attribute']['event_info'] = $event_id_info[$attribute['Attribute']['event_id']];
 	 	}
 	 	return $attributes;
 	 }
