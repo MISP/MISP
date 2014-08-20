@@ -9,7 +9,7 @@
 						//'empty' => '(Select a filter)',
 						'class' => 'input',
 						//'label' => 'Add Filtering Rule',
-						'onchange' => "eventIndexRuleChange();",
+						'onchange' => "indexRuleChange();",
 						'style' => 'margin-right:3px;width:120px;',
 						'div' => false
 				));
@@ -107,7 +107,7 @@
 					<tr id="row_<?php echo $field; ?>" class="hidden filterTableRow">
 						<td id="key_<?php echo $field;?>" style="border:1px solid #cccccc;font-weight:bold;"><?php echo ucfirst($field); ?></td>
 						<td id="value_<?php echo $field;?>" style="border:1px solid #cccccc;border-right:0px;"></td>
-						<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" onClick="eventIndexFilterClearRow('<?php echo $field;?>')"></span></td>
+						<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" onClick="indexFilterClearRow('<?php echo $field;?>')"></span></td>
 					</tr>
 				<?php 
 					endforeach;
@@ -127,8 +127,8 @@
 		</fieldset>
 		<div id = "generatedURL" style="word-wrap: break-word;"><br />Save this URL if you would like to use the same filter settings again<br /><div style="background-color:#f5f5f5;border: 1px solid #e3e3e3; border-radius:4px;padding:3px;background-color:white;"><span id="generatedURLContent"></span></div></div>
 		<br />
-		<span class="btn btn-primary" onClick="eventIndexApplyFilters();">Apply</span>
-		<span class="btn btn-inverse" onClick="eventIndexApplyFilters();" style="margin-left:548px;">Cancel</span>
+		<span class="btn btn-primary" onClick="indexApplyFilters();">Apply</span>
+		<span class="btn btn-inverse" onClick="cancelPopoverForm();" style="margin-left:548px;">Cancel</span>
 		</div>
 </div>
 <script type="text/javascript">
@@ -156,6 +156,8 @@ var typeArray = {
 		      		]
 };
 
+var filterContext = "event";
+
 var showorg = <?php echo $showorg == true ? 1 : 0; ?>;
 
 var publishedOptions = ["No", "Yes", "Any"];
@@ -168,6 +170,10 @@ var allFields = ["published", "tag", "date", "eventinfo", "threatlevel", "distri
 
 var simpleFilters = ["tag", "eventinfo", "threatlevel", "distribution", "analysis"];
 
+var differentFilters = ["published", "date"];
+
+var typedFields = ["tag", "threatlevel", "distribution", "analysis"];
+
 if (showorg == 1) {
 	allFields.push("org");
 	simpleFilters.push("org");
@@ -179,8 +185,10 @@ $(document).ready(function() {
 	$('.datepicker').datepicker().on('changeDate', function(ev) {
 		$('.dropdown-menu').hide();
 	});
-	eventIndexSetTableVisibility();
-	eventIndexEvaluateFiltering();
+	indexRuleChange();
+	indexSetTableVisibility();
+	indexEvaluateFiltering();
 });
+
 </script>
 <?php echo $this->Js->writeBuffer();

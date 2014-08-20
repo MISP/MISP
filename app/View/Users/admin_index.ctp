@@ -16,6 +16,29 @@
         ?>
         </ul>
     </div>
+	<?php
+		$tab = "Center";
+		$filtered = false;
+		if (count($passedArgsArray) > 0) {
+			$tab = "Left";
+			$filtered = true;
+		}
+	?>
+	<div class="tabMenuFixedContainer">
+	<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
+		<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo $urlparams;?>', 'admin/users', 'filterUserIndex');"></span>
+	</span>
+	<?php if ($filtered):
+		foreach ($passedArgsArray as $k => $v):?>
+			<span class="tabMenuFixed tabMenuFixedElement">
+				<?php echo h(ucfirst($k)) . " : " . h($v); ?>
+			</span>
+		<?php endforeach; ?>
+	<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
+		<?php echo $this->Html->link('', array('controller' => 'users', 'action' => 'index', 'admin' => true), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
+	</span>
+	<?php endif;?>
+	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
@@ -87,7 +110,7 @@ endforeach; ?>
         ?>
         </ul>
     </div>
-
+    <div id="popover_form" class="ajax_popover_form"></div>
 </div>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'indexUser'));

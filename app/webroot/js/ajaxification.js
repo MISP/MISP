@@ -898,59 +898,100 @@ function freetextRemoveRow(id) {
 	$('#Attribute' + id + 'Save').attr("value", "0");
 }
 
-function eventIndexEvaluateFiltering() {
-	if (filtering.published != 2) {
-		$('#value_published').html(publishedOptions[filtering.published]);
+function indexEvaluateFiltering() {
+	if (filterContext == "event") {
+		if (filtering.published != 2) {
+			$('#value_published').html(publishedOptions[filtering.published]);
+		} else {
+			$('#value_published').html("");
+		}
+		if (filtering.date.from != null || filtering.date.from != null) {
+			var text = "";
+			if (filtering.date.from != "") text = "From: " + filtering.date.from;
+			if (filtering.date.until != "") {
+				if (text != "") text += " ";
+				text += "Until: " + filtering.date.until;
+			}
+		}
+		$('#value_date').html(text);
+		for (var i = 0; i < simpleFilters.length; i++) {
+			indexEvaluateSimpleFiltering(simpleFilters[i]);
+		}
+		indexRuleChange();
 	} else {
-		$('#value_published').html("");
-	}
-	if (filtering.date.from != null || filtering.date.from != null) {
-		var text = "";
-		if (filtering.date.from != "") text = "From: " + filtering.date.from;
-		if (filtering.date.until != "") {
-			if (text != "") text += " ";
-			text += "Until: " + filtering.date.until;
+		for (var i = 0; i < differentFilters.length; i++) {
+			if (filtering[differentFilters[i]] != "") {
+				var text = "";
+				if (filtering[differentFilters[i]] == 1) text = "Yes";
+				else if (filtering[differentFilters[i]] == 0) text = "No";
+				$('#value_' + differentFilters[i]).html(text);
+			} else {
+				$('#value_' + differentFilters[i]).html("");
+			}
+		}
+		for (var i = 0; i < simpleFilters.length; i++) {
+			indexEvaluateSimpleFiltering(simpleFilters[i]);
 		}
 	}
-	$('#value_date').html(text);
-	for (var i = 0; i < simpleFilters.length; i++) {
-		eventIndexEvaluateSimpleFiltering(simpleFilters[i]);
-	}
-	eventIndexRuleChange();
-	eventIndexSetTableVisibility();
-	eventIndexSetRowVisibility();
-	$('#generatedURLContent').html(eventIndexCreateFilters());
+	indexSetTableVisibility();
+	indexSetRowVisibility();
+	$('#generatedURLContent').html(indexCreateFilters());
 }
 
-function eventIndexApplyFilters() {
-	var url = eventIndexCreateFilters();
+function indexApplyFilters() {
+	var url = indexCreateFilters();
 	window.location.href = url;
 }
 
-function eventIndexCreateFilters() {
+function indexCreateFilters() {
 	text = "";
-	text += "searchpublished:" + filtering.published;
-	for (var i = 0; i < simpleFilters.length; i++) {
-		text = eventIndexBuildArray(simpleFilters[i], text);
+	if (filterContext == 'event') {
+		if (filtering.published != "2") {
+			text += "searchpublished:" + filtering.published;
+		}
+	} else {
+		for (var i = 0; i < differentFilters.length; i++) {
+			if (filtering[differentFilters[i]]) {
+				if (text != "") text += "/";
+				text += "search" + differentFilters[i] + ":" + filtering[differentFilters[i]];
+			}
+		}
 	}
-	text += "/searchDatefrom:" + filtering.date.from + "/searchDateuntil:" + filtering.date.until;
-	return baseurl + '/events/index/' + text;
+	for (var i = 0; i < simpleFilters.length; i++) {
+		text = indexBuildArray(simpleFilters[i], text);
+	}
+	if (filterContext == 'event') {
+		if (filtering.date.from) {
+			if (text != "") text += "/";
+			text += "/searchDatefrom:" + filtering.date.from; 
+		}
+		if (filtering.date.until) {
+			if (text != "") text += "/";
+			text += "/searchDateuntil:" + filtering.date.until;
+		}
+		return baseurl + '/events/index/' + text;
+	} else {
+		return baseurl + '/admin/users/index/' + text;
+	}
 }
 
-function eventIndexBuildArray(type, text) {
-	text += "/search" + type + ":";
+function indexBuildArray(type, text) {
+	temp = "";
+	if (text != "") temp += "/";
+	temp += "search" + type + ":";
 	if (filtering[type].NOT.length == 0 && filtering[type].OR.length == 0) return text;
 	var swap = filtering[type].OR.length;
 	var temp_array = filtering[type].OR.concat(filtering[type].NOT);
 	for (var i = 0; i < temp_array.length; i++) {
-		if (i > 0) text += "|";
-		if (i >= swap) text +="!";
-		text += temp_array[i];
+		if (i > 0) temp += "|";
+		if (i >= swap) temp +="!";
+		temp += temp_array[i];
 	}
+	text += temp;
 	return text;
 }
 
-function eventIndexSetRowVisibility() {
+function indexSetRowVisibility() {
 	for (var i = 0; i < allFields.length; i++) {
 		if ($("#value_" + allFields[i]).text().trim() != "") {
 			$("#row_" + allFields[i]).show();
@@ -960,7 +1001,7 @@ function eventIndexSetRowVisibility() {
 	}
 }
 
-function eventIndexEvaluateSimpleFiltering(field) {
+function indexEvaluateSimpleFiltering(field) {
 	text = "";
 	if (filtering[field].OR.length == 0 && filtering[field].NOT.length == 0) {
 		$('#value_' + field).html(text);
@@ -969,7 +1010,7 @@ function eventIndexEvaluateSimpleFiltering(field) {
 	if (filtering[field].OR.length !=0) {
 		for (var i = 0; i < filtering[field].OR.length; i++) {
 			if (i > 0) text += '<span class="green bold"> OR </span>';
-			if (field !== "tag" && field !== "threatlevel" && field !== "distribution" && field !== "analysis") {
+			if (typedFields.indexOf(field) == -1) {
 				text += filtering[field].OR[i];		
 			} else {
 				for (var j = 0; j < typeArray[field].length; j++) {
@@ -986,7 +1027,7 @@ function eventIndexEvaluateSimpleFiltering(field) {
 				if (text != "") text += '<span class="red bold"> AND NOT </span>';
 				else text += '<span class="red bold">NOT </span>';
 			} else text += '<span class="red bold"> AND NOT </span>';
-			if (field !== "tag" && field !== "threatlevel" && field !== "distribution" && field !== "analysis") {
+			if (typedFields.indexOf(field) == -1) {
 				text += filtering[field].NOT[i];	
 			} else {
 				for (var j = 0; j < typeArray[field].length; j++) {
@@ -1000,58 +1041,65 @@ function eventIndexEvaluateSimpleFiltering(field) {
 	$('#value_' + field).html(text);
 }
 
-function eventIndexAddRule(event) {
+function indexAddRule(param) {
 	var found = false;
-	if (event.data.param1 == "date") {
-		var val1 = $('#EventSearch' + event.data.param1 + 'from').val();
-		var val2 = $('#EventSearch' + event.data.param1 + 'until').val();
-		if (val1 != "") filtering.date.from = val1;
-		if (val2 != "") filtering.date.until = val2;
-	} else if (event.data.param1 == "published") {
-		var value = $('#EventSearchpublished').val();
-		if (value != "") filtering.published = value;
-	} else {
-		var value = $('#EventSearch' + event.data.param1).val();
-		var operator = operators[$('#EventSearchbool').val()];
-		if (value != "" && filtering[event.data.param1][operator].indexOf(value) < 0) filtering[event.data.param1][operator].push(value);
+	if (filterContext == 'event') {
+		if (param.data.param1 == "date") {
+			var val1 = $('#EventSearch' + param.data.param1 + 'from').val();
+			var val2 = $('#EventSearch' + param.data.param1 + 'until').val();
+			if (val1 != "") filtering.date.from = val1;
+			if (val2 != "") filtering.date.until = val2;
+		} else if (param.data.param1 == "published") {
+			var value = $('#EventSearchpublished').val();
+			if (value != "") filtering.published = value;
+		} else {
+			var value = $('#EventSearch' + param.data.param1).val();
+			var operator = operators[$('#EventSearchbool').val()];
+			if (value != "" && filtering[param.data.param1][operator].indexOf(value) < 0) filtering[param.data.param1][operator].push(value);
+		}
+	} else if (filterContext = 'user') {
+		if (differentFilters.indexOf(param.data.param1) != -1) {
+			var value = $('#UserSearch' + param.data.param1).val();
+			if (value != "") filtering[param.data.param1] = value;
+		} else {
+			var value = $('#UserSearch' + param.data.param1).val();
+			var operator = operators[$('#UserSearchbool').val()];
+			if (value != "" && filtering[param.data.param1][operator].indexOf(value) < 0) filtering[param.data.param1][operator].push(value);
+		}
 	}
-	eventIndexEvaluateFiltering();
+	indexEvaluateFiltering();
 }
 
-function eventIndexCheckIfEmpty(field) {
-	if ($("#value_" + field).text().trim()=="") return true;
-	return false;
-}
-
-function eventIndexSetTableVisibility() {
+function indexSetTableVisibility() {
 	var visible = false;
-	if ($("[id^='value_']").text().trim()!="") {
+	if ($("[id^='value_']").text().trim()!="" && $("[id^='value_']").text().trim()!="-1") {
 		visible = true;
 	}
 	if (visible == true) $('#rule_table').show();
 	else $('#rule_table').hide();
 }
 
-function eventIndexRuleChange() {
-	$('[id^=EventSearch]').hide();
-	var rule = $('#EventRule').val();
-	var fieldName = '#EventSearch' + rule;
-	if (fieldName == '#EventSearchdate') {
+function indexRuleChange() {
+	var context = filterContext.charAt(0).toUpperCase() + filterContext.slice(1);
+	$('[id^=' + context + 'Search]').hide();
+	var rule = $('#' + context + 'Rule').val();
+	var fieldName = '#' + context + 'Search' + rule;
+	if (fieldName == '#' + context + 'Searchdate') {
 		$(fieldName + 'from').show();
 		$(fieldName + 'until').show();
 	} else {
 		$(fieldName).show();
 	}
-	if (fieldName != "#EventSearchpublished" && fieldName != "#EventSearchdate") {
-		$('#EventSearchbool').show();
-	} else $('#EventSearchbool').hide();
+	if (simpleFilters.indexOf(rule) != -1) {
+		$('#' + context + 'Searchbool').show();
+	} else $('#' + context + 'Searchbool').hide();
 	
 	$('#addRuleButton').show();
 	$('#addRuleButton').unbind("click");
-	$('#addRuleButton').click({param1: rule}, eventIndexAddRule);
+	$('#addRuleButton').click({param1: rule}, indexAddRule);
 }
 
-function eventIndexFilterClearRow(field) {
+function indexFilterClearRow(field) {
 	$('#value_' + field).html("");
 	$('#row_' + field).hide();
 	if (field == "date") {
@@ -1059,9 +1107,12 @@ function eventIndexFilterClearRow(field) {
 		filtering.date.until = "";
 	} else if (field == "published") {
 		filtering.published = 2;
+	} else if (differentFilters.indexOf(field) != -1) {
+		filtering[field] = "";
 	} else {
 		filtering[field].NOT = [];
 		filtering[field].OR = [];
 	}
-	eventIndexSetTableVisibility();
+	indexSetTableVisibility();
+	indexEvaluateFiltering();
 }
