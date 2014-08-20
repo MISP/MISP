@@ -209,6 +209,7 @@ class UsersController extends AppController {
 	}
 
 	public function admin_filterUserIndex() {
+		if (!$this->_isAdmin() && !$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		$passedArgsArray = array();
 		$booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
 		$textFields = array('role', 'email');
