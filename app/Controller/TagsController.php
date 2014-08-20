@@ -25,7 +25,27 @@ class TagsController extends AppController {
 	}
 	
 	public function index() {
-		$this->set('list', $this->paginate());
+		$this->loadModel('Event');
+		$this->Event->recursive = -1;
+		$this->paginate['contain'] = array('EventTag' => array('fields' => 'event_id'));
+		$paginated = $this->paginate();
+		foreach ($paginated as $k => &$tag) {
+			$eventIDs = array();
+			if (empty($tag['EventTag'])) $tag['Tag']['count'] = 0;
+			else {
+				foreach ($tag['EventTag'] as $eventTag) {
+					$eventIDs[] = $eventTag['event_id'];
+				}
+				$conditions = array('Event.id' => $eventIDs);
+				if (!$this->_isSiteAdmin()) $conditions = array_merge($conditions, array('OR' => array(array('Event.distribution >' => 0),  array('Event.orgc' => $this->Auth->user('org')))));
+				$events = $this->Event->find('all', array(
+					'fields' => array('Event.id', 'Event.distribution', 'Event.orgc'),
+					'conditions' => $conditions
+				));
+				$tag['Tag']['count'] = count($events);
+			}
+		}
+		$this->set('list', $paginated);
 		// send perm_tagger to view for action buttons
 	}
 	
