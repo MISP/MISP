@@ -14,8 +14,7 @@ class ComplexTypeTool {
 				break;
 			default:
 				return false;
-		}
-		
+		}	
 	}
 	
 	// checks if the passed input matches a valid file description attribute's pattern (filename, md5, sha1, sha256, filename|md5, filename|sha1, filename|sha256)		
@@ -75,6 +74,7 @@ class ComplexTypeTool {
 	private function __resolveType($input) {
 		$result = array();
 		$input = strtolower($input);
+		
 		// check for hashes
 		if (strlen($input) == 32 && preg_match("#[0-9a-f]{32}$#", $input)) return array('types' => array('md5'), 'to_ids' => true, 'default_type' => 'md5');
 		if (strlen($input) == 40 && preg_match("#[0-9a-f]{40}$#", $input)) return array('types' => array('sha1'), 'to_ids' => true, 'default_type' => 'sha1');
@@ -124,6 +124,10 @@ class ComplexTypeTool {
 		if (strpos($input, '@') !== false) {
 			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst'), 'to_ids' => true, 'default_type' => 'email-src');
 		}
+		
+		// check for CVE
+		if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input)) return array('types' => array('vulnerability'), 'category' => 'External analysis', 'to_ids' => false, 'default_type' => 'vulnerability');
+		
 		return array('types' => array('text'), 'category' => 'Other', 'to_ids' => false, 'default_type' => 'text');
 	}
 }
