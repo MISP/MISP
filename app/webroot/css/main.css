@@ -909,7 +909,6 @@ a.proposal_link_red:hover {
 	position:relative;
 	left:10px;
 	bottom:-1px;
-	z-index:2;
 }
 
 .tabMenuFixed {
