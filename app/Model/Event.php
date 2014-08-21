@@ -1106,6 +1106,7 @@ class Event extends AppModel {
 		if ('true' == Configure::read('MISP.showorg')) {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
+		$body .= 'Distribution: ' . $this->distributionLevels[$event['Event']['distribution']] . "\n";
 		$body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
 		$body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
 		$body .= 'Description : ' . $event['Event']['info'] . "\n\n";
