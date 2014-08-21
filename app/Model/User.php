@@ -406,6 +406,7 @@ class User extends AppModel {
 		$result = $this->find('first', array(
 			'recursive' => -1,
 			'fields' => array('id', 'gpgkey'),
+			'conditions' => array('id' => $id),
 		));
 		return $result['User']['gpgkey'];
 	}
