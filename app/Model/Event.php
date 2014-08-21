@@ -1598,23 +1598,22 @@ class Event extends AppModel {
 	 * @param unknown_type $id
 	 */
 	public function publish($id, $passAlong = null, $jobId = null) {
-		if ($jobId) {
-			$this->Behaviors->unload('SysLogLogable.SysLogLogable');
-		}
 		$this->id = $id;
 		$this->recursive = 0;
 		$event = $this->read(null, $id);
-		// update the DB to set the published flag
-		$fieldList = array('published', 'id', 'info', 'publish_timestamp');
-		$event['Event']['published'] = 1;
-		$event['Event']['publish_timestamp'] = time();
-		$this->save($event, array('fieldList' => $fieldList));		
+		if ($jobId) {
+			$this->Behaviors->unload('SysLogLogable.SysLogLogable');
+		} else {
+			// update the DB to set the published flag
+			// for background jobs, this should be done already
+			$fieldList = array('published', 'id', 'info', 'publish_timestamp');
+			$event['Event']['published'] = 1;
+			$event['Event']['publish_timestamp'] = time();
+			$this->save($event, array('fieldList' => $fieldList));
+		}		
 		$uploaded = false;
 		if ('true' == Configure::read('MISP.sync') && $event['Event']['distribution'] > 1) {
 			$uploaded = $this->uploadEventToServersRouter($id, $passAlong);
-			if (($uploaded == false) || (is_array($uploaded))) {
-				$this->saveField('published', 0);
-			}
 		} else {
 			return true;
 		}

@@ -1229,9 +1229,15 @@ class EventsController extends AppController {
 				} else {
 					$lastResult = array_pop($result);
 					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
-					$this->Session->setFlash(__(sprintf('Event not published to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString), true));
+					$this->Session->setFlash(__(sprintf('Event published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString), true));
 				}
 			} else {
+				// update the DB to set the published flag
+				// for background jobs, this should be done already
+				$fieldList = array('published', 'id', 'info', 'publish_timestamp');
+				$event['Event']['published'] = 1;
+				$event['Event']['publish_timestamp'] = time();
+				$this->Event->save($event, array('fieldList' => $fieldList));
 				$this->Session->setFlash(__('Job queued.'));
 			}
 			$this->redirect(array('action' => 'view', $id));
