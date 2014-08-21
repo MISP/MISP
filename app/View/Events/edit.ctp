@@ -39,6 +39,7 @@ if ('true' == Configure::read('MISP.sync')) {
 echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
+<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'editEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
