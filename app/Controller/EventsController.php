@@ -1820,6 +1820,18 @@ class EventsController extends AppController {
 			// we've already stored these elsewhere, unset them so we can extract the event related data
 			unset($event['Attribute']);
 			unset($event['Fails']);
+			
+			// add the original openIOC file as an attachment
+			$saveEvent['Attribute'][] = array(
+				'category' => 'External analysis',
+				'uuid' =>  String::uuid(),
+				'type' => 'attachment',
+				'value' => $this->data['Event']['submittedioc']['name'],
+				'to_ids' => false,
+				'distribution' => $dist,
+				'data' => base64_encode($fileData),
+				'comment' => 'OpenIOC import source file'
+			);
 
 			// Keep this for later if we want to let an ioc create the event data automatically in a later version
 			// save the event related data into $saveEvent['Event']
