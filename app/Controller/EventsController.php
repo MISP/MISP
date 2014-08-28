@@ -235,6 +235,8 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
+		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All');
+		$this->set('shortDist', $shortDist);
 	}
 
 	public function filterEventIndex() {
@@ -316,7 +318,6 @@ class EventsController extends AppController {
 		} else {
 			$this->set('showorg', false);
 		}
-
 		$rules = $this->_arrayToValuesIndexArray($rules);
 		$this->set('tags', $tagNames);
 		$this->set('tagJSON', json_encode($tagJSON));

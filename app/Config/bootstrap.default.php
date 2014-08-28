@@ -141,6 +141,7 @@ Configure::write('MISP.default_attribute_distribution', 'event');
 
 // Enable the tagging feature, it shou
 Configure::write('MISP.tagging', true);
+Configure::write('MISP.full_tags_on_event_index', false);
 // enabling this flag will allow the event description to be transmitted in the alert e-mail's subject. Be aware that this is not encrypted by PGP, so only enable it if you accept that part of the event description will be sent out in clear-text 
 Configure::write('MISP.extended_alert_subject', false);
 

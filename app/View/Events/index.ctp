@@ -112,17 +112,20 @@
 				&nbsp;
 			</td>
 			<?php endif; ?>
-			<td class="short">
+			<td style="width:30px;">
 				<a href="/events/view/<?php echo $event['Event']['id'] ?>"><?php echo $event['Event']['id'];?></a>
 			</td>
 			<?php if (Configure::read('MISP.tagging')): ?>
-			<td class="short">
-				<?php foreach ($event['EventTag'] as $tag):?>
-					<span class=tag style="background-color:<?php echo $tag['Tag']['colour']?>" title="<?php echo $tag['Tag']['name']; ?>">&nbsp;</span>
+			<td style = "max-width: 200px;">
+				<?php foreach ($event['EventTag'] as $tag):
+					$tagText = "&nbsp;";
+					if (Configure::read('MISP.full_tags_on_event_index')) $tagText = $tag['Tag']['name'];
+				?>
+					<span class=tag style="background-color:<?php echo $tag['Tag']['colour']?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo $tag['Tag']['name']; ?>"><?php echo $tagText; ?></span>
 				<?php endforeach; ?>
 			</td>
 			<?php endif; ?>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td style="width:30px;" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $event['Event']['attribute_count']; ?>&nbsp;
 			</td>
 			<?php if ('true' == $isSiteAdmin): ?>
@@ -146,8 +149,8 @@
 				<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
 			</td>
 			<?php if ('true' == Configure::read('MISP.sync')): ?>
-			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
-				<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>
+			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>">
+				<?php echo $shortDist[$event['Event']['distribution']]; ?>
 			</td>
 			<?php endif; ?>
 			<td class="short action-links">
