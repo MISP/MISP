@@ -6,9 +6,15 @@
 	$possibleAction = 'Proposal';
 	if ($mayModify) $possibleAction = 'Attribute';
 	if ($pageCount > 1):
+		$startRecord = 1;
+		$endRecord = $objectCount;
+		if ($page != 'all') {
+			$startRecord = (($page-1) * 50) + 1;
+			$endRecord = (($page-1) * 50) + count($eventArray);
+		}
 ?>
 <div class="pagination">
-	<ul>
+	<ul style="margin-right:20px;">
 		<?php if ($page == 1) : ?>
 			<li class="prev"><span>« previous</span></li>
 		<?php else: ?>
@@ -29,10 +35,8 @@
 			<li class="next"><span>next »</span></li>
 		<?php else: ?>
 			<li class="next"><a href="" id = "anext">next »</a></li>
-		<?php endif; ?>
-	</ul>
-	<ul style="margin-left:20px;">
-		<?php if ($page == 'all'): ?>
+		<?php endif; 
+		if ($page == 'all'): ?>
 			<li class="all"><span>View All</span></li>
 		<?php else: ?>
 			<li class="all"><a href="" id = "aall">View All</a></li>
@@ -92,9 +96,9 @@
 </div>
 <?php if ($pageCount > 1): ?>
 <span id = "current_page" style="visibility:hidden;"><?php echo $page;?></span>
-<p>Page <?php echo $page; ?> of <?php echo $pageCount;?>, showing <?php echo count($eventArray); ?> records out of <?php echo $objectCount; ?> total, starting on <?php echo (($page-1) * 50) + 1;?>, ending on <?php echo (($page-1) * 50) + count($eventArray); ?></p>
+<p>Page <?php echo $page; ?> of <?php echo $pageCount;?>, showing <?php echo count($eventArray); ?> records out of <?php echo $objectCount; ?> total, starting on <?php echo $startRecord;?>, ending on <?php echo $endRecord; ?></p>
 <div class="pagination">
-	<ul>
+	<ul style="margin-right:20px;">
 		<?php if ($page == 1) : ?>
 			<li class="prev"><span>« previous</span></li>
 		<?php else: ?>
@@ -115,10 +119,8 @@
 			<li class="next"><span>next »</span></li>
 		<?php else: ?>
 			<li class="next"><a href="" id = "bnext">next »</a></li>
-		<?php endif; ?>
-	</ul>
-	<ul style="margin-left:20px;">
-		<?php if ($page == 'all'): ?>
+		<?php endif; 
+		if ($page == 'all'): ?>
 			<li class="all"><span>View All</span></li>
 		<?php else: ?>
 			<li class="all"><a href="" id = "ball">View All</a></li>

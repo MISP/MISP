@@ -2313,6 +2313,12 @@ class EventsController extends AppController {
 				'other' => 'Could be anything',
 				'named pipe' => '\\.\pipe\PipeName',
 				'mutex' => 'mutexstring',
+				'target-user' => 'user1',
+				'target-email' => 'someone@something.com',
+				'target-machine' => 'machinename',
+				'target-org' => 'EA games',
+				'target-location' => 'Hell',
+				'target-external' => 'some target'
 		);
 		$this->loadModel('Attribute');
 		foreach ($this->Attribute->categoryDefinitions as $category => $v) {
