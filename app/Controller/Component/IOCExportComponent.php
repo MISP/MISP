@@ -32,7 +32,7 @@ class IOCExportComponent extends Component {
 		$this->final[] = '  <description>' . h($event['Event']['info']) . '</description>';
 		$this->final[] = '  <keywords />';
 		$this->final[] = '  <authored_by>' . h($event['Event']['orgc']) . '</authored_by>';
-		$this->final[] = '  <authored_date>' . h($event['Event']['date']) . '</authored_date>';
+		$this->final[] = '  <authored_date>' . h($event['Event']['date']) . 'T00:00:00</authored_date>';
 		$this->final[] = '  <links />';
 		$this->final[] = '  <definition>';
 		// for now, since we don't have any logical links between attributes, we'll OR all of them
