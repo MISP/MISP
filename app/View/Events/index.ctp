@@ -116,12 +116,12 @@
 				<a href="/events/view/<?php echo $event['Event']['id'] ?>"><?php echo $event['Event']['id'];?></a>
 			</td>
 			<?php if (Configure::read('MISP.tagging')): ?>
-			<td style = "max-width: 200px;">
+			<td style = "max-width: 200px;width:10px;">
 				<?php foreach ($event['EventTag'] as $tag):
 					$tagText = "&nbsp;";
 					if (Configure::read('MISP.full_tags_on_event_index')) $tagText = $tag['Tag']['name'];
 				?>
-					<span class=tag style="background-color:<?php echo $tag['Tag']['colour']?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo $tag['Tag']['name']; ?>"><?php echo $tagText; ?></span>
+					<span class=tag style="margin-bottom:3px;background-color:<?php echo $tag['Tag']['colour']?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo $tag['Tag']['name']; ?>"><?php echo $tagText; ?></span>
 				<?php endforeach; ?>
 			</td>
 			<?php endif; ?>
