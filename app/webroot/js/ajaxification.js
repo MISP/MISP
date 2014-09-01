@@ -1116,3 +1116,63 @@ function indexFilterClearRow(field) {
 	indexSetTableVisibility();
 	indexEvaluateFiltering();
 }
+
+
+function restrictEventViewPagination() {
+	var showPages = new Array();
+	var start;
+	var end;
+	var i;
+
+	if (page < 6) {
+		start = 1;
+		if (count - page < 6) {
+			end = count;
+		} else {
+			end = page + (9 - (page - start));
+		}
+	} else if (count - page < 6) {
+		end = count;
+		start = count - 10;
+	} else {
+		start = page-5;
+		end = page+5;
+	}
+	
+	if (start > 2) {
+		$("#apage" + start).parent().before("<li><a href id='aExpandLeft'>...</a></li>");
+		$("#aExpandLeft").click(function() {expandPagination(0, 0); return false;});
+		$("#bpage" + start).parent().before("<li><a href id='bExpandLeft'>...</a></li>");
+		$("#bExpandLeft").click(function() {expandPagination(1, 0); return false;})
+	}
+
+	if (end < (count - 1)) {
+		$("#apage" + end).parent().after("<li><a href id='aExpandRight'>...</a></li>");
+		$("#aExpandRight").click(function() {expandPagination(0, 1); return false;});
+		$("#bpage" + end).parent().after("<li><a href id='bExpandRight'>...</a></li>");
+		$("#bExpandRight").click(function() {expandPagination(1, 1); return false;})
+	}
+	
+	for (i = 1; i < (count+1); i++) {
+		if (i != 1 && i != count && (i < start || i > end)) {
+			$("#apage" + i).hide();
+			$("#bpage" + i).hide();
+		}	
+	}
+}
+
+function expandPagination(bottom, right) {
+	var i;
+	var prefix = "a";
+	if (bottom == 1) prefix = "b";
+	var start = 1;
+	var end = page;
+	if (right == 1) {
+		start = page;
+		end = count;
+		$("#" + prefix + "ExpandRight").remove();
+	} else $("#" + prefix + "ExpandLeft").remove();
+	for (i = start; i < end; i++) {
+		$("#" + prefix + "page" + i).show();
+	}
+}

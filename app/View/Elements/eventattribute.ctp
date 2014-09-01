@@ -14,7 +14,7 @@
 		}
 ?>
 <div class="pagination">
-	<ul style="margin-right:20px;">
+	<ul>
 		<?php if ($page == 1) : ?>
 			<li class="prev"><span>« previous</span></li>
 		<?php else: ?>
@@ -27,7 +27,7 @@
 		<?php
 			else:
 		?>
-				<li><span id = "apageCurrent"><?php echo $i; ?></span></li>
+				<li><span id = "apageCurrent" class = "red bold"><?php echo $i; ?></span></li>
 		<?php 
 			endif;
 		endfor;
@@ -37,7 +37,7 @@
 			<li class="next"><a href="" id = "anext">next »</a></li>
 		<?php endif; 
 		if ($page == 'all'): ?>
-			<li class="all"><span>View All</span></li>
+			<li class="all red bold"><span>View All</span></li>
 		<?php else: ?>
 			<li class="all"><a href="" id = "aall">View All</a></li>
 		<?php endif; ?>
@@ -111,7 +111,7 @@
 		<?php
 			else:
 		?>
-				<li><span id = "bpageCurrent"><?php echo $i; ?></span></li>
+				<li><span id = "bpageCurrent" class = "red bold"><?php echo $i; ?></span></li>
 		<?php 
 			endif;
 		endfor;
@@ -121,7 +121,7 @@
 			<li class="next"><a href="" id = "bnext">next »</a></li>
 		<?php endif; 
 		if ($page == 'all'): ?>
-			<li class="all"><span>View All</span></li>
+			<li class="all red bold"><span>View All</span></li>
 		<?php else: ?>
 			<li class="all"><a href="" id = "ball">View All</a></li>
 		<?php endif; ?>
@@ -185,12 +185,16 @@
 	endif; 
 ?>
 <script type="text/javascript">
+	var all = 1;
+	var page = <?php echo $page; ?>;
+	var count = <?php echo $pageCount; ?>;
 	$(document).ready(function(){
 		$('input:checkbox').removeAttr('checked');
 		$('.mass-select').hide();
 		$('input[type="checkbox"]').click(function(){
 			attributeListAnyCheckBoxesChecked();
 		});
+		if (<?php echo $pageCount; ?> > 10) restrictEventViewPagination();
 	});
 </script>
 <?php 
