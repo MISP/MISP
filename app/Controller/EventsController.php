@@ -1455,6 +1455,7 @@ class EventsController extends AppController {
 	}
 
 	public function xml($key, $eventid=null, $withAttachment = false, $tags = '') {
+		$this->helpers[] = 'XmlOutput';
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
 		if ($tags === 'null') $tags = null;
 		if ($eventid === 'null' || $eventid ==='false') $eventid=null;
@@ -2336,6 +2337,52 @@ class EventsController extends AppController {
 		$this->Event->_add($data, false, $this->Auth->user());
 	}
 	
+	// for load testing, it's slow, execution time is set at 1 hour maximum
+	public function create_massive_dummy_events() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
+		ini_set('max_execution_time', 3600);
+		$this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
+		$date = new DateTime();
+		$ts =  $date->getTimestamp();
+		$default = array('Event' => array(
+			'info' => 'A junk event for load testing',
+			'date' => '2014-09-01',
+			'threat_level_id' => 4,
+			'distribution' => 0,
+			'analysis' => 0,
+			'org' => $this->Auth->user('org'),
+			'orgc' => $this->Auth->user('org'),
+			'timestamp' => $ts,	
+			'uuid' => String::uuid(),
+			'user_id' => $this->Auth->user('id'),
+		));
+		$default['Event']['info'] = 'A junk event for load testing';
+		$default['Event']['date'] = '2013-10-09';
+		$default['Event']['threat_level_id'] = 4; //'Undefined'
+		$default['Event']['analysis'] = '0';
+		$default['Event']['distribution'] = '0';
+		for ($i = 0; $i < 50; $i++) {
+			$data = $default;
+			for ($j = 0; $j < 3000; $j++) {
+				$value = mt_rand();
+				$data['Attribute'][] = array(
+						'category' => 'Other',
+						'type' => 'text',
+						'value' => $value,
+						'to_ids' => '0',
+						'distribution' => '0',
+						'value1' => $value,
+						'value2' => '',
+						'comment' => '',
+						'uuid' => String::uuid(),
+						'timestamp' => $ts,
+				);
+			}
+			$this->Event->create();
+			$this->Event->saveAssociated($data, array('validate' => false));
+		}
+	}
+	
 	public function proposalEventIndex() {
 		$this->loadModel('ShadowAttribute');
 		$this->ShadowAttribute->recursive = -1;
@@ -2730,5 +2777,4 @@ class EventsController extends AppController {
 			$this->set('_serialize', 'data');
 		}
 	}
-
 }
