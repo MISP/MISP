@@ -54,7 +54,6 @@ class EventShell extends AppShell
 		$toEscape = array("&", "<");
 		$escapeWith = array('&amp;', '&lt;');
 		$file->write('<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>');
-		file_put_contents('/var/tmp/test.txt', Configure::read('MISP.cached_attachments'));
 		foreach ($eventIds as $k => $eventId) {
 			$temp = $this->Event->fetchEvent($eventId['Event']['id'], null, $org, $isSiteAdmin, $this->Job->id);
 			$result = $temp[0];
