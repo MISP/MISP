@@ -393,7 +393,6 @@ class User extends AppModel {
 			$gpg->addEncryptKey($key['fingerprint']); // use the key that was given in the import
 			try {
 				$enc = $gpg->encrypt('test', true);
-				$verified = $gpg->verify($enc);
 			} catch (Exception $e){
 				$results[$user['User']['id']][0] = true;
 			}
