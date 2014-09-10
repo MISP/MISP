@@ -7,7 +7,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 ?>
 <div class="events view">
 	<?php
-		if ('true' == Configure::read('MISP.showorg') || $isAdmin) {
+		if (Configure::read('MISP.showorg') || $isAdmin) {
 			echo $this->element('img', array('id' => $event['Event']['orgc']));
 			$left = true;
 		}
@@ -28,7 +28,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					<?php echo h($event['Event']['uuid']); ?>
 					&nbsp;
 				</dd>
-				<?php if ('true' == Configure::read('MISP.showorg') || $isAdmin): ?>
+				<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
 				<dt>Org</dt>
 				<dd>
 					<?php echo h($event['Event']['orgc']); ?>
@@ -46,7 +46,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 				<dd>
 					<?php 
 						foreach($logEntries as $k => $entry) {
-							if ('true' == Configure::read('MISP.showorg') || $isAdmin) {
+							if (Configure::read('MISP.showorg') || $isAdmin) {
 								?>
 									<a href="/logs/event_index/<?php echo $event['Event']['id'] . '/' . h($entry['Log']['org']);?>" style="margin-right:2px;text-decoration: none;">
 								<?php 

@@ -29,7 +29,7 @@ if ($isSearch == 1) {
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('event_id');?></th>
-			<?php if ('true' == Configure::read('MISP.showorg') || $isAdmin): ?>
+			<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
 			<th><?php echo $this->Paginator->sort('orgc', 'Org');?></th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('category');?></th>
@@ -70,7 +70,7 @@ foreach ($attributes as $attribute):
 				<a href="/events/view/<?php echo $attribute['Event']['id'];?>" <?php echo $style;?>><?php echo $attribute['Event']['id'];?></a>
 			</div>
 		</td>
-		<?php if ('true' == Configure::read('MISP.showorg') || $isAdmin): ?>
+		<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
 		<td class="short" onclick="document.location.href ='/events/view/<?php echo $attribute['Event']['id'];?>'">
 			<?php
 				$imgRelativePath = 'orgs' . DS . h($attribute['Event']['orgc']) . '.png';

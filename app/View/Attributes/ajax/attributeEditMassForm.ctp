@@ -9,14 +9,12 @@
 			<?php
 			echo $this->Form->hidden('event_id', array('value' => $id));
 			echo $this->Form->input('attribute_ids', array('style' => 'display:none;', 'label' => false));
-			if ('true' == Configure::read('MISP.sync')) {
-				$distributionLevels[] = 'Do not alter current settings';
-				echo $this->Form->input('distribution', array(
-					'options' => array($distributionLevels),
-					'label' => 'Distribution',
-					'selected' => 4,
-				));
-			}
+			$distributionLevels[] = 'Do not alter current settings';
+			echo $this->Form->input('distribution', array(
+				'options' => array($distributionLevels),
+				'label' => 'Distribution',
+				'selected' => 4,
+			));
 			echo $this->Form->input('to_ids', array(
 					'options' => array('No', 'Yes', 'Do not alter current settings'),
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],

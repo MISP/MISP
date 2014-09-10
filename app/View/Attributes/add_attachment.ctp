@@ -8,7 +8,6 @@
 		?>
 		<div class="input clear"></div>
 		<?php
-		if ('true' == Configure::read('MISP.sync')) {
 			$initialDistribution = 3;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
@@ -30,7 +29,6 @@
 					'class' => 'input-xxlarge'
 			));
 			//'before' => $this->Html->div('forminfo', isset($attrDescriptions['distribution']['formdesc']) ? $attrDescriptions['distribution']['formdesc'] : $attrDescriptions['distribution']['desc']),));
-		}
 		?>
 		<div class="input clear"></div>
 		<div class="input">

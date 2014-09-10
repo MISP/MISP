@@ -93,30 +93,23 @@ if (!Configure::read('MISP.baseurl')) {
 	}
 }
 Configure::write('MISP.name', 'MISP');
-Configure::write('MISP.version', '2.2');
-Configure::write('MISP.header', 'MISP: Malware Information Sharing Platform');
 Configure::write('MISP.footerpart1', 'Powered by MISP');
 Configure::write('MISP.footerpart2', '&copy; Belgian Defense CERT & NCIRC');
-Configure::write('MISP.footer', Configure::read('MISP.footerpart1') . ' ' . Configure::read('MISP.footerpart2'));
-Configure::write('MISP.footerversion', Configure::read('MISP.footerpart1') . ' version ' . Configure::read('MISP.version') . ' ' . Configure::read('MISP.footerpart2'));
 // The following field is optional
 // Configure::write('MISP.footer_logo', 'imagename');     // Logo for the bottom right corner of the screen. Place a .png image into your app/webroot/img folder 
 Configure::write('MISP.org', 'ORGNAME');                // if sync this will be Event.org content on the peer side
 Configure::write('MISP.logo', 'orgs/ORGNAME.png');     // used in Events::index for owned events
 
 
-Configure::write('MISP.showorg', 'true');             // show the name/flag of the organisation that uploaded the data
+Configure::write('MISP.showorg', true);             // show the name/flag of the organisation that uploaded the data
 
-Configure::write('MISP.sync', 'true');                 // (Warning, do not disable this!!!) enable features related to syncing with other MISP instances - should be always on because of the current distribution model.
-Configure::write('MISP.taxii_sync', 'false');		 	// Use the taxii demon to offload the synchronisation to a background process - see https://github.com/MISP/MISP-TAXII
-Configure::write('MISP.taxii_client_path', '/usr/local/taxii-client-vanilla');
 Configure::write('MISP.background_jobs', false);      // Use CakeResque to delegate jobs to a background worker and to schedule jobs (synchronisation, e-mailing, caching of exports) - Please also enable CakeResque (at the end of this file)
 Configure::write('MISP.cached_attachments', false);   // Include the attachments in the xml exports
 
 Configure::write('MISP.email', 'email@address.com'); // email from for all the mails
 Configure::write('MISP.contact', 'email@address.com'); // contact address for this instance's support person / group
 
-Configure::write('GnuPG.onlyencrypted', 'true');         // only allow encrypted email, do not allow plaintext mails
+Configure::write('GnuPG.onlyencrypted', true);         // only allow encrypted email, do not allow plaintext mails
 Configure::write('GnuPG.email', 'email@address.com');
 Configure::write('GnuPG.password', 'yourpassword');
 Configure::write('GnuPG.homedir', '/path/to/your/.gnupg/');

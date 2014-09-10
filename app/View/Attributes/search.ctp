@@ -8,7 +8,7 @@
 			echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Being attributes of the following event IDs', 'div' => 'clear', 'class' => 'input-xxlarge'));
 		?>
 		<?php
-			if ('true' == Configure::read('MISP.showorg') || $isAdmin)
+			if (Configure::read('MISP.showorg') || $isAdmin)
 				echo $this->Form->input('org', array(
 						'type' => 'textarea',
 						'label' => 'From the following organisation(s)',

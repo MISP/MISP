@@ -26,10 +26,6 @@ class ServersController extends AppController {
 	public function beforeFilter() {
 		parent::beforeFilter();
 
-		// Disable this feature if the sync configuration option is not active
-		if ('true' != Configure::read('MISP.sync'))
-			throw new ConfigureException("The sync feature is not active in the configuration.");
-
 		// permit reuse of CSRF tokens on some pages.
 		switch ($this->request->params['action']) {
 			case 'push':
@@ -285,5 +281,106 @@ class ServersController extends AppController {
 		$s = $this->Server->read(null, $id);
 		$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
 		if ($result) $this->Server->save($s);
+	}
+	
+	public function serverSettings($tab=false) {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if ($this->request->is('Get')) {
+			$tabs = array(
+					'MISP' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+					'GnuPG' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+					'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+					'misc' => array('count' => 0, 'errors' => 0, 'severity' => 5)
+			);
+			$results = $this->Server->serverSettingsRead();
+			$issues = array(	
+				'errors' => array(
+						0 => array(
+								'value' => 0,
+								'description' => 'MISP will not operate correctly or will be unsecure until these issues are resolved.'
+						), 
+						1 => array(
+								'value' => 0,
+								'description' => 'Some of the features of MISP cannot be utilised until these issues are resolved.'
+						), 
+						2 => array(
+								'value' => 0,
+								'description' => 'There are some optional tweaks that could be done to improve the looks of your MISP instance.'
+						),
+				),
+				'deprecated' => array(),
+				'overallHealth' => 3, 
+			);
+			foreach ($results as $k => $result) {
+				if ($result['level'] == 3) $issues['deprecated']++;
+				$tabs[$result['tab']]['count']++;
+				if (isset($result['error']) && $result['level'] < 3) {
+					$issues['errors'][$result['level']]['value']++;
+					if ($result['level'] < $issues['overallHealth']) $issues['overallHealth'] = $result['level'];
+					$tabs[$result['tab']]['errors']++;
+					if ($result['level'] < $tabs[$result['tab']]['severity']) $tabs[$result['tab']]['severity'] = $result['level'];
+				}
+				if ($result['tab'] != $tab) unset($results[$k]);
+			}
+			$this->set('tab', $tab);
+			$this->set('tabs', $tabs);
+			$this->set('issues', $issues);
+			$this->set('finalSettings', $results);
+			$priorities = array(0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated');
+			$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
+			$this->set('priorities', $priorities);
+			$this->set('priorityErrorColours', $priorityErrorColours);
+		}
+	}
+	
+	public function serverSettingsEdit($setting, $id, $forceSave = false) {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
+		$this->set('id', $id);
+		$relevantSettings = (array_intersect_key(Configure::read(), $this->Server->serverSettings));
+		$found = null;
+		foreach ($this->Server->serverSettings as $k => $s) {
+			if (isset($s['branch'])) {
+				foreach ($s as $ek => $es) {
+					if ($ek != 'branch') {
+						if ($setting == $k . '.' . $ek) {
+							$found = $es;
+							continue 2;
+						}
+					}
+				}
+			} else {
+				if ($setting == $k) {
+					$found = $s;
+					continue;
+				}
+			}
+		}
+		if ($this->request->is('get')) {
+			if ($found != null) {
+				$found['value'] = Configure::read($setting);
+				$found['setting'] = $setting;
+			}
+			$this->set('setting', $found);
+			$this->render('ajax/server_settings_edit');
+		}
+		if ($this->request->is('post')) {
+			if ($found['test'] == 'testBool') {
+				$this->request->data['Server']['value'] = ($this->request->data['Server']['value'] ? true : false);
+			}
+			if ($found['test'] == 'testForNumeric' || $found['test'] == 'testDebug') {
+				$this->request->data['Server']['value'] = intval($this->request->data['Server']['value']);
+			}
+			$testResult = $this->Server->{$found['test']}($this->request->data['Server']['value']);
+			if (!$forceSave && $testResult !== true) {
+				if ($testResult === false) $errorMessage = $found['errorMessage'];
+				else $errorMessage = $testResult;
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errorMessage)),'status'=>200));
+			} else {
+				$this->Server->serverSettingsSaveValue($setting, $this->request->data['Server']['value']);
+				$this->autoRender = false;
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')),'status'=>200));
+			}
+		}
 	}
 }

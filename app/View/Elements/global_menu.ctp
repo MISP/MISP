@@ -82,7 +82,7 @@
 						</ul>
 					</li>
 
-					<?php if (('true' == Configure::read('MISP.sync')) && ($isAclSync || $isAdmin)): ?>
+					<?php if ($isAclSync || $isAdmin): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Sync Actions

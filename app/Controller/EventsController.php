@@ -117,7 +117,7 @@ class EventsController extends AppController {
 						break;
 					case 'org' :
 						if ($v == "") continue 2;
-						if (Configure::read('MISP.showorg') == 'false') continue 2;
+						if (!Configure::read('MISP.showorg')) continue 2;
 						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
 						$pieces = explode('|', $v);
 						$test = array();
@@ -229,7 +229,7 @@ class EventsController extends AppController {
 			$this->set('events', $this->paginate());
 		}
 		
-		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted') == 'true') {
+		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
 		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
@@ -306,7 +306,7 @@ class EventsController extends AppController {
 			'group' => 'orgc'
 		));
 		$rules = array('published', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis');
-		if (Configure::read('MISP.showorg') != 'false') {
+		if (Configure::read('MISP.showorg')){
 			$orgs = array();
 			foreach ($events as $e) {
 				$orgs[] = $e['Event']['orgc'];
@@ -1148,11 +1148,10 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event'));
 		}
 
-		if ('true' == Configure::read('MISP.sync')) {
-			// find the uuid
-			$result = $this->Event->findById($id);
-			$uuid = $result['Event']['uuid'];
-		}
+		// find the uuid
+		$result = $this->Event->findById($id);
+		$uuid = $result['Event']['uuid'];
+		
 		if (!$this->_isSiteAdmin()) {
 			$this->Event->read();
 			if ($this->Event->data['Event']['orgc'] != $this->_checkOrg()) {

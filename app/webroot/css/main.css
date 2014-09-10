@@ -1282,6 +1282,12 @@ a.proposal_link_red:hover {
 	display:none;
 }
 
+a.discrete {
+	color:black;
+	text-decoration:none;
+	font-weight:normal;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}
