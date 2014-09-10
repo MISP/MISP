@@ -83,8 +83,7 @@
  *	));
  */
 Cache::config('default', array('engine' => 'File'));
-
-
+Configure::load('config');
 
 if (!Configure::read('MISP.baseurl')) {
 	if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) {
@@ -93,87 +92,6 @@ if (!Configure::read('MISP.baseurl')) {
 		Configure::write('MISP.baseurl', sprintf('http://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
 	}
 }
-Configure::write('MISP.name', 'MISP');
-Configure::write('MISP.footerpart1', 'Powered by MISP');
-Configure::write('MISP.footerpart2', '&copy; Belgian Defense CERT & NCIRC');
-// The following field is optional
-// Configure::write('MISP.footer_logo', 'imagename');     // Logo for the bottom right corner of the screen. Place a .png image into your app/webroot/img folder 
-Configure::write('MISP.org', 'ORGNAME');                // if sync this will be Event.org content on the peer side
-Configure::write('MISP.logo', 'orgs/ORGNAME.png');     // used in Events::index for owned events
-
-
-Configure::write('MISP.showorg', true);             // show the name/flag of the organisation that uploaded the data
-
-Configure::write('MISP.background_jobs', false);      // Use CakeResque to delegate jobs to a background worker and to schedule jobs (synchronisation, e-mailing, caching of exports) - Please also enable CakeResque (at the end of this file)
-Configure::write('MISP.cached_attachments', false);   // Include the attachments in the xml exports
-
-Configure::write('MISP.email', 'email@address.com'); // email from for all the mails
-Configure::write('MISP.contact', 'email@address.com'); // contact address for this instance's support person / group
-
-Configure::write('GnuPG.onlyencrypted', true);         // only allow encrypted email, do not allow plaintext mails
-Configure::write('GnuPG.email', 'email@address.com');
-Configure::write('GnuPG.password', 'yourpassword');
-Configure::write('GnuPG.homedir', '/path/to/your/.gnupg/');
-
-Configure::write('SecureAuth.amount', 5);              // the maximum amount of failed logins
-Configure::write('SecureAuth.expire', 300);            // the time-window for the maximum amount of logins in seconds
-
-Configure::write('MISP.dns', 'false');				// there is a nameserver available to do resolution.
-
-Configure::write('MISP.cveurl', 'http://web.nvd.nist.gov/view/vuln/detail?vulnId='); 	// Default URL for NVD/CVE reference.
-
-// The following 4 fields are optional
-
-// Configure::write('MISP.welcome_text_top', 'Welcome to the Organisation community\'s');     // used in Events::login before the MISP logo
-// Configure::write('MISP.welcome_text_bottom', 'instance');     // used in Events::login after the MISP logo
-// Configure::write('MISP.welcome_logo', 'organisation');     // used in Events::login to the left of the MISP logo, place a .png file in app/webroot/img with the name specified here. In this case it would be organisation.png
-// Configure::write('MISP.welcome_logo2', 'organisation2');     // used in Events::login to the right of the MISP logo, place a .png file in app/webroot/img with the name specified here. In this case it would be organisation2.png
-Configure::write('MISP.disablerestalert', 'false');
-// Events will be created with the default distribution setting based on this. Valid options: '0', '1', '2', '3'
-Configure::write('MISP.default_event_distribution', '3');
-// Setting this to 'event' will create attributes that take the event's distribution as the initial setting. Valid options: '0', '1', '2', '3', 'event'
-Configure::write('MISP.default_attribute_distribution', 'event');
-
-// Enable the tagging feature, it shou
-Configure::write('MISP.tagging', true);
-Configure::write('MISP.full_tags_on_event_index', false);
-// enabling this flag will allow the event description to be transmitted in the alert e-mail's subject. Be aware that this is not encrypted by PGP, so only enable it if you accept that part of the event description will be sent out in clear-text 
-Configure::write('MISP.extended_alert_subject', false);
-
-/**
- * The settings below can be used to set additional paths to models, views and controllers.
- *
- * App::build(array(
- *     'Model'                     => array('/path/to/models', '/next/path/to/models'),
- *     'Model/Behavior'            => array('/path/to/behaviors', '/next/path/to/behaviors'),
- *     'Model/Datasource'          => array('/path/to/datasources', '/next/path/to/datasources'),
- *     'Model/Datasource/Database' => array('/path/to/databases', '/next/path/to/database'),
- *     'Model/Datasource/Session'  => array('/path/to/sessions', '/next/path/to/sessions'),
- *     'Controller'                => array('/path/to/controllers', '/next/path/to/controllers'),
- *     'Controller/Component'      => array('/path/to/components', '/next/path/to/components'),
- *     'Controller/Component/Auth' => array('/path/to/auths', '/next/path/to/auths'),
- *     'Controller/Component/Acl'  => array('/path/to/acls', '/next/path/to/acls'),
- *     'View'                      => array('/path/to/views', '/next/path/to/views'),
- *     'View/Helper'               => array('/path/to/helpers', '/next/path/to/helpers'),
- *     'Console'                   => array('/path/to/consoles', '/next/path/to/consoles'),
- *     'Console/Command'           => array('/path/to/commands', '/next/path/to/commands'),
- *     'Console/Command/Task'      => array('/path/to/tasks', '/next/path/to/tasks'),
- *     'Lib'                       => array('/path/to/libs', '/next/path/to/libs'),
- *     'Locale'                    => array('/path/to/locales', '/next/path/to/locales'),
- *     'Vendor'                    => array('/path/to/vendors', '/next/path/to/vendors'),
- *     'Plugin'                    => array('/path/to/plugins', '/next/path/to/plugins'),
- * ));
- *
- */
-
-/**
- * Custom Inflector rules, can be set to correctly pluralize or singularize table, model, controller names or whatever other
- * string is passed to the inflection functions
- *
- * Inflector::rules('singular', array('rules' => array(), 'irregular' => array(), 'uninflected' => array()));
- * Inflector::rules('plural', array('rules' => array(), 'irregular' => array(), 'uninflected' => array()));
- *
- */
 
 /**
  * Plugins need to be loaded manually, you can either load them one by one or all of them in a single call

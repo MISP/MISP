@@ -311,6 +311,7 @@ class ServersController extends AppController {
 				'deprecated' => array(),
 				'overallHealth' => 3, 
 			);
+			$dumpResults = array();
 			foreach ($results as $k => $result) {
 				if ($result['level'] == 3) $issues['deprecated']++;
 				$tabs[$result['tab']]['count']++;
@@ -320,12 +321,71 @@ class ServersController extends AppController {
 					$tabs[$result['tab']]['errors']++;
 					if ($result['level'] < $tabs[$result['tab']]['severity']) $tabs[$result['tab']]['severity'] = $result['level'];
 				}
+				$dumpResults[] = $result;
 				if ($result['tab'] != $tab) unset($results[$k]);
 			}
+			// Diagnostics portion
+			$diagnostic_errors = 0;
+			App::uses('File', 'Utility');
+			App::uses('Folder', 'Utility');
+			
+			// check writeable directories
+			$writeableDirs = array(
+					'tmp' => 0, 'files' => 0, 'scripts' . DS . 'tmp' => 0,
+					'tmp' . DS . 'csv_all' => 0, 'tmp' . DS . 'csv_sig' => 0, 'tmp' . DS . 'md5' => 0, 'tmp' . DS . 'sha1' => 0,
+					'tmp' . DS . 'snort' => 0, 'tmp' . DS . 'suricata' => 0, 'tmp' . DS . 'text' => 0, 'tmp' . DS . 'xml' => 0,
+					'tmp' . DS . 'files' => 0, 'tmp' . DS . 'logs' => 0,
+			);
+			foreach ($writeableDirs as $path => &$error) {
+				$dir = new Folder(APP . DS . $path);
+				if (is_null($dir->path)) $error = 1;
+				$file = new File (APP . DS . $path . DS . 'test.txt', true);
+				if ($error == 0 && !$file->write('test')) $error = 2;
+				if ($error != 0) $diagnostic_errors++;
+				$file->delete();
+				$file->close();
+			}
+			$this->set('writeableDirs', $writeableDirs);
+			
+			// check if the STIX and Cybox libraries are working using the test script stixtest.py
+			$stix = shell_exec('python ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
+			$stix = json_decode($stix)->success;
+			$this->set('stix', $stix);
+			if ($stix == 0) $diagnostic_errors++;
+
+			// if GPG is set up in the settings, try to encrypt a test message
+			$gpgStatus = 0;
+			if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
+				$continue = true;
+				try {
+					require_once 'Crypt/GPG.php';
+					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+					$key = $gpg->addEncryptKey(Configure::read('GnuPG.email'));
+				} catch (Exception $e) {
+					$gpgStatus = 2;
+					$continue = false;		
+				}
+				if ($continue) {
+					try {
+						$gpgStatus = 0;
+						$enc = $gpg->encrypt('test', true);
+					} catch (Exception $e){
+						$gpgStatus = 3;
+					}
+				}
+			} else {
+				$gpgStatus = 1;
+			}
+			if ($gpgStatus != 0) $diagnostic_errors++;
+			
+			$this->set('gpgStatus', $gpgStatus);
+			$this->set('diagnostic_errors', $diagnostic_errors);
 			$this->set('tab', $tab);
 			$this->set('tabs', $tabs);
 			$this->set('issues', $issues);
 			$this->set('finalSettings', $results);
+			$dump = array('gpgStatus' => $gpgStatus, 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
+			$this->set('dump', $dump);
 			$priorities = array(0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated');
 			$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
 			$this->set('priorities', $priorities);

@@ -23,4 +23,12 @@
 		$i++;
 	endforeach; 
 ?>
+	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:50px;">
+	<a href = "/servers/serverSettings/diagnostics" id="create-button" title="Modify filters" class="discrete">
+		Diagnostics
+		<?php 
+			if ($diagnostic_errors > 0) echo '<span style="color:red;"> (' . $diagnostic_errors . ')</span>';
+		?>
+	</a>
+	</span>
 </div>
