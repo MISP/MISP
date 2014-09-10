@@ -289,7 +289,8 @@ class Server extends AppModel {
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
-							'type' => 'numeric',
+							'type' => 'string',
+							'options' => array('0' => 'Your organisation only', '1' => 'This community only', '2' => 'Connected communities', '3' => 'All communities'),
 					),
 					'default_attribute_distribution' => array(
 							'level' => 0,
@@ -298,6 +299,7 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
+							'options' => array('0' => 'Your organisation only', '1' => 'This community only', '2' => 'Connected communities', '3' => 'All communities', 'event' => 'Inherit from event'),
 					),
 					'tagging' => array(
 							'level' => 1,
@@ -389,6 +391,7 @@ class Server extends AppModel {
 					'errorMessage' => '',
 					'test' => 'testDebug',
 					'type' => 'numeric',
+					'options' => array(0 => 'Debug off', 1 => 'Debug on', 2 => 'Debug + SQL dump'),
 			),
 	);
 

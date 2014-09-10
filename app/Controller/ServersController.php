@@ -365,10 +365,10 @@ class ServersController extends AppController {
 			$this->render('ajax/server_settings_edit');
 		}
 		if ($this->request->is('post')) {
-			if ($found['test'] == 'testBool') {
+			if ($found['type'] == 'boolean') {
 				$this->request->data['Server']['value'] = ($this->request->data['Server']['value'] ? true : false);
 			}
-			if ($found['test'] == 'testForNumeric' || $found['test'] == 'testDebug') {
+			if ($found['type'] == 'numeric') {
 				$this->request->data['Server']['value'] = intval($this->request->data['Server']['value']);
 			}
 			$testResult = $this->Server->{$found['test']}($this->request->data['Server']['value']);
