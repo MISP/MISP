@@ -22,6 +22,7 @@
 /app/Config/bootstrap.php
 /app/Config/database.php
 /app/Config/core.php
+/app/Config/config.php
 /cakephp
 /app/webroot/gpg.asc
 /app/tmp/logs

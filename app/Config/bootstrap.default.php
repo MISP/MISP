@@ -84,7 +84,8 @@
  */
 Cache::config('default', array('engine' => 'File'));
 
-Configure::write('MISP.baseurl', 'http://localhost:8888');
+
+
 if (!Configure::read('MISP.baseurl')) {
 	if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) {
 		Configure::write('MISP.baseurl', sprintf('https://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));

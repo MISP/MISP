@@ -1160,7 +1160,7 @@ class Event extends AppModel {
 					$Email = new CakeEmail();
 					$Email->from(Configure::read('MISP.email'));
 					$Email->to($user['User']['email']);
-					$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
+					$Email->subject("[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
 					$Email->emailFormat('text');	// both text or html
 					// send it
 					$Email->send($bodySigned);
@@ -1192,7 +1192,7 @@ class Event extends AppModel {
  				$Email = new CakeEmail();
  				$Email->from(Configure::read('MISP.email'));
  				$Email->to($user['User']['email']);
-				$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $subject . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
+				$Email->subject("[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
  				$Email->emailFormat('text');		// both text or html
   					// import the key of the user into the keyring
  				// this is not really necessary, but it enables us to find
@@ -1338,7 +1338,7 @@ class Event extends AppModel {
 			$Email->from(Configure::read('MISP.email'));
 			$Email->replyTo($user['User']['email']);
 			$Email->to($reporter['User']['email']);
-			$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Need info about event " . $id . " - TLP Amber");
+			$Email->subject("[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - TLP Amber");
 			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
 			$Email->emailFormat('text');		// both text or html
 

@@ -109,15 +109,15 @@ class Server extends AppModel {
 					'branch' => 1,
 					'baseurl' => array(
 							'level' => 0,
-							'description' => 'The base url of the application (such as https://www.mymispinstance.com)',
+							'description' => 'The base url of the application (in the format https://www.mymispinstance.com). Several features depend on this setting being correctly set to function.',
 							'value' => '',
 							'errorMessage' => 'The currenty set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address).',
 							'test' => 'testBaseURL',
 							'type' => 'string',
 					),
 					'name' => array(
-							'level' => 2,
-							'description' => 'The name of the application (MISP)',
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
@@ -316,6 +316,38 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testBool',
 							'type' => 'boolean',
+					),
+					'welcome_text_top' => array(
+							'level' => 2,
+							'description' => 'Used on the login page, before the MISP logo',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => '',
+							'type' => '',
+					),
+					'welcome_text_bottom' => array(
+							'level' => 2,
+							'description' => 'Used on the login page, after the MISP logo',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => '',
+							'type' => '',
+					),
+					'welcome_logo' => array(
+							'level' => 2,
+							'description' => 'Used on the login page, to the left of the MISP logo, place a .png file in app/webroot/img with the name specified here.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => '',
+							'type' => '',
+					),
+					'welcome_logo2' => array(
+							'level' => 2,
+							'description' => 'Used on the login page, to the right of the MISP logo, place a .png file in app/webroot/img with the name specified here.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => '',
+							'type' => '',
 					),
 			),
 			'GnuPG' => array(
@@ -812,6 +844,7 @@ class Server extends AppModel {
 		foreach ($serverSettings as $branchKey => &$branchValue) {
 			if (isset($branchValue['branch'])) {
 				foreach ($branchValue as $leafKey => &$leafValue) {
+					if ($leafValue['level'] == 3 && !(isset($currentSettings[$branchKey][$leafKey]))) continue;
 					$setting = null;
 					if (isset($currentSettings[$branchKey][$leafKey])) $setting = $currentSettings[$branchKey][$leafKey];
 					$leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
@@ -895,6 +928,6 @@ class Server extends AppModel {
 	
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
-		Configure::dump('settings.php', 'default', array('MISP', 'GnuPG', 'SecureAuth', 'Security', 'debug'));
+		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'SecureAuth', 'Security', 'debug'));
 	}
 }

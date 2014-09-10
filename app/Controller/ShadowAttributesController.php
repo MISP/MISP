@@ -751,7 +751,7 @@ class ShadowAttributesController extends AppController {
 				// prepare the email
 				$this->Email->from = Configure::read('MISP.email');
 				$this->Email->to = $reporter['User']['email'];
-				$this->Email->subject = "[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Proposal to event #" . $id;
+				$this->Email->subject = "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id;
 				$this->Email->template = 'body';
 				$this->Email->sendAs = 'text';		// both text or html
 				$this->set('body', $bodyEncSig);
