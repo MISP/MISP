@@ -292,6 +292,10 @@ class ServersController extends AppController {
 					'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'misc' => array('count' => 0, 'errors' => 0, 'severity' => 5)
 			);
+			$writeableErrors = array(0 => 'OK', 1 => 'Directory doesn\'t exist', 2 => 'Directory is not writeable');
+			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: bad GnuPG.*', 3 => 'FAIL: encrypt failed');
+			$stixErrors = array(0 => 'ERROR', 1 => 'OK');
+			
 			$results = $this->Server->serverSettingsRead();
 			$issues = array(	
 				'errors' => array(
@@ -377,15 +381,27 @@ class ServersController extends AppController {
 				$gpgStatus = 1;
 			}
 			if ($gpgStatus != 0) $diagnostic_errors++;
-			
 			$this->set('gpgStatus', $gpgStatus);
 			$this->set('diagnostic_errors', $diagnostic_errors);
 			$this->set('tab', $tab);
 			$this->set('tabs', $tabs);
 			$this->set('issues', $issues);
 			$this->set('finalSettings', $results);
-			$dump = array('gpgStatus' => $gpgStatus, 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
-			$this->set('dump', json_encode($dump));
+			
+			$this->set('writeableErrors', $writeableErrors);
+			$this->set('gpgErrors', $gpgErrors);
+			$this->set('stixErrors', $stixErrors);
+			
+			if ($tab == 'download') {
+				foreach ($dumpResults as &$dr) {
+					unset($dr['description']);
+				}
+				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'stix' => $stixErrors[$stix], 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
+				$this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
+				$this->response->type('json');
+				$this->response->download('MISP.report.json');
+				return $this->response;
+			}
 			$priorities = array(0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated');
 			$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
 			$this->set('priorities', $priorities);

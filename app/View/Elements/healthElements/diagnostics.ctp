@@ -5,14 +5,9 @@
 		<?php 
 			foreach ($writeableDirs as $dir => $error) {
 				$colour = 'green';
-				$message = 'OK';
+				$message = $writeableErrors[$error];
 				if ($error > 0) {
 					$colour = 'red';
-					if ($error == 1) {
-						$message = 'Directory doesn\'t exist';
-					} else {
-						$message = 'Directory is not writeable';
-					}
 				}
 				echo 'app/' . $dir . '.....<span style="color:' . $colour . ';">' . $message . '</span><br />';
 			} 
@@ -25,10 +20,9 @@
 	<div style="background-color:#f7f7f9;width:300px;">
 		<?php 
 			$colour = 'green';
-			$message = 'OK';
+			$message = $stixErrors[$stix];
 			if ($stix == 0) {
 				$colour = 'red';
-				$message = 'FAIL.';
 			}
 			echo 'Testing STIX and Cybox libraries....<span style="color:' . $colour . ';">' . $message . '</span>';
 		?>
@@ -40,20 +34,9 @@
 	<div style="background-color:#f7f7f9;width:300px;">
 		<?php 
 			$colour = 'green';
-			$message = 'OK';
+			$message = $gpgErrors[$gpgStatus];
 			if ($gpgStatus > 0) {
 				$colour = 'red';
-				switch ($gpgStatus) {
-					case 1:
-						$message = 'FAIL: settings not set';
-						break;
-					case 2:
-						$message = 'FAIL: bad GnuPG.*';
-						break;
-					case 3:
-						$message = 'FAIL: encrypt failed';
-						break;
-				}
 			}
 			echo 'GnuPG installation and settings....<span style="color:' . $colour . ';">' . $message . '</span>';
 		?>
