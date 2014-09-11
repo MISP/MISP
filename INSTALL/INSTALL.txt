@@ -119,16 +119,22 @@ service apache2 reload
 
 8/ MISP configuration
 ---------------------
-# There are 3 sample configuration files in /var/www/MISP/app/Config that need to be copied and filled out
+# There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
 cd /var/www/MISP/app/Config
 cp -a bootstrap.default.php bootstrap.php
 cp -a database.default.php database.php
 cp -a core.default.php core.php
+cp -a config.default.php config.php
  
-# Configure the fields in the newly created filed:
-database.php : login, port, password, database
-bootstrap.php: MISP.*, GnuPG.*
-core.php : debug, Security.*
+# Configure the fields in the newly created files:
+# database.php : login, port, password, database
+# bootstrap.php: uncomment the last 3 lines to enable the background workers (see below)
+# CakePlugin::loadAll(array('CakeResque' => array('bootstrap' => true)));
+
+# Important! Change the salt key in /var/www/MISP/app/Config/config.php
+# The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
+# If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt, 
+# delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
 # and make sure the file permissions are still OK
 chown -R www-data:www-data /var/www/MISP/app/Config
@@ -155,11 +161,13 @@ sudo vim /etc/rc.local
 # Add the following line before the last line (exit 0):
 bash /var/www/MISP/app/Console/worker/start.sh
 
-Now log in using the webinterface:
-The default user/pass = admin@admin.test/admin 
+# Now log in using the webinterface:
+# The default user/pass = admin@admin.test/admin 
+
+# Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
+# It is especially vital that no critical issues remain!
 
 Don't forget to change the email, password and authentication key after installation.
-
 
 Recommended actions
 -------------------
