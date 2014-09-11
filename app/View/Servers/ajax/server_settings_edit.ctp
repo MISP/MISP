@@ -1,5 +1,5 @@
 <?php
-	echo $this->Form->create('Server', array('class' => 'inline-form inline-field-form', 'url' => '/servers/serverSettingsEdit/' . $setting['setting'], 'id' => 'setting_' . $id . '_form'));
+	echo $this->Form->create('Server', array('class' => 'inline-form inline-field-form', 'url' => '/servers/serverSettingsEdit/' . $setting['setting'] . '/' . $id . '/' . '1', 'id' => 'setting_' . $id . '_form'));
 ?>
 	<div class='inline-input inline-input-container'>	
 	<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok"></span></div>	
