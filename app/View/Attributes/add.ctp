@@ -14,21 +14,19 @@
 			echo $this->Form->input('type', array(
 					'empty' => '(first choose category)'
 					));
-			if ('true' == Configure::read('MISP.sync')) {
-				$initialDistribution = 3;
-				if (Configure::read('MISP.default_attribute_distribution') != null) {
-					if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-						$initialDistribution = $currentDist;	
-					} else {
-						$initialDistribution = Configure::read('MISP.default_attribute_distribution');
-					}
+			$initialDistribution = 3;
+			if (Configure::read('MISP.default_attribute_distribution') != null) {
+				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+					$initialDistribution = $currentDist;	
+				} else {
+					$initialDistribution = Configure::read('MISP.default_attribute_distribution');
 				}
-				echo $this->Form->input('distribution', array(
-					'options' => array($distributionLevels),
-					'label' => 'Distribution',
-					'selected' => $initialDistribution,
-				));
 			}
+			echo $this->Form->input('distribution', array(
+				'options' => array($distributionLevels),
+				'label' => 'Distribution',
+				'selected' => $initialDistribution,
+			));
 			echo $this->Form->input('value', array(
 					'type' => 'textarea',
 					'error' => array('escape' => false),

@@ -219,22 +219,25 @@ function autoresize(textarea) {
 
 // submit the form - this can be triggered by unfocusing the activated form field or by submitting the form (hitting enter)
 // after the form is submitted, intercept the response and act on it 
-function submitForm(type, id, field, event) {
+function submitForm(type, id, field, context) {
 	var object_type = 'attributes';
-	if (type == 'ShadowAttribute') object_type = 'shadow_attributes';
+	var action = "editField";
 	var name = '#' + type + '_' + id + '_' + field;
+	if (type == 'ShadowAttribute') {
+		object_type = 'shadow_attributes';
+	}
 	$.ajax({
 		data: $(name + '_field').closest("form").serialize(),
 		cache: false,
 		success:function (data, textStatus) {
-			handleAjaxEditResponse(data, name, type, id, field, event);
+			handleAjaxEditResponse(data, name, type, id, field, context);
 		}, 
 		error:function() {
 			showMessage('fail', 'Request failed for an unknown reason.');
-			updateIndex(event, 'event');
+			updateIndex(context, 'event');
 		},
 		type:"post", 
-		url:"/" + object_type + "/editField/" + id
+		url:"/" + object_type + "/" + action + "/" + id
 	});
 	$(name + '_field').unbind("keyup");
 	$(name + '_form').unbind("focusout");
@@ -1176,3 +1179,80 @@ function expandPagination(bottom, right) {
 		$("#" + prefix + "page" + i).show();
 	}
 }
+
+function serverSettingsActivateField(setting, id) {
+	resetForms();
+	$('.inline-field-placeholder').hide();
+	var fieldName = "#setting_" + id; 
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		dataType:"html", 
+		cache: false,
+		success:function (data, textStatus) {
+			$(".loading").hide();
+			$(fieldName + "_placeholder").html(data);
+			$(fieldName + "_solid").hide();
+			$(fieldName + "_placeholder").show();
+			serverSettingsPostActivationScripts(fieldName, setting, id);
+		}, 
+		url:"/servers/serverSettingsEdit/" + setting + "/" + id,
+	});
+}
+
+function serverSettingsPostActivationScripts(name, setting, id) {
+	$(name + '_field').focus();
+	inputFieldButtonActive(name + '_field');
+
+	$(name + '_form').submit(function(e){ 
+		e.preventDefault();
+		serverSettingSubmitForm(name, setting, id);
+		return false;
+	});
+	
+	$(name + '_form').bind("focusout", function() {
+		inputFieldButtonPassive(name + '_field');
+	});
+
+	$(name + '_form').bind("focusin", function(){
+		inputFieldButtonActive(name + '_field');
+	});
+	
+	$(name + '_form').bind("keydown", function(e) {
+		if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
+			serverSettingSubmitForm(name, setting, id);
+		}
+	});
+	$(name + '_field').closest('.inline-input-container').children('.inline-input-accept').bind('click', function() {
+		serverSettingSubmitForm(name, setting, id);
+	});
+	$(name + '_field').closest('.inline-input-container').children('.inline-input-decline').bind('click', function() {
+		resetForms();
+		$('.inline-field-placeholder').hide();
+	});
+
+	$(name + '_solid').hide();
+}
+
+function serverSettingSubmitForm(name, setting, id) {
+	var name = '#setting_' + id;
+	var formData = $(name + '_field').closest("form").serialize();
+	$.ajax({
+		data: formData,
+		cache: false,
+		success:function (data, textStatus) {
+			window.location.reload();
+		}, 
+		error:function() {
+			showMessage('fail', 'Request failed for an unknown reason.');
+			resetForms();
+			$('.inline-field-placeholder').hide();
+		},
+		type:"post", 
+		url:"/servers/serverSettingsEdit/" + setting + "/" + id + "/" + 1
+	});
+	$(name + '_field').unbind("keyup");
+	$(name + '_form').unbind("focusout");
+	return false;
+};

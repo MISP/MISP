@@ -12,12 +12,15 @@
 				<?php } ?>
 			</div>
 			<div class = "footerText footerCenterText">
-				<span> <?php if (isset($me)) echo Configure::read('MISP.footerversion'); else echo Configure::read('MISP.footer')?></span>
+				<?php 
+					$footerText = Configure::read('MISP.footerpart1') . ' ' . Configure::read('MISP.footerpart2');
+					if (isset($me['id'])) $footerText = Configure::read('MISP.footerpart1') . ' version ' . $mispVersion . ' ' . Configure::read('MISP.footerpart2');
+				?>
+				<span> <?php echo $footerText; ?> </span>
 			</div>
-			<div class="pull-right" style="position:relative;">
+			<div class="pull-right" style="position:relative;padding-top:9px;z-index:2;">
 				<?php if (Configure::read('MISP.footer_logo')): ?>
-					<span class = "footerText footerRightText">Powered by: </span>
-					<img src="/img/<?php echo Configure::read('MISP.footer_logo')?>.png" style="height:40px;">
+					<img src="/img/<?php echo Configure::read('MISP.footer_logo');?>.png" style="height:24px;" />
 				<?php endif;?>
 			</div>
 		</div>

@@ -1317,11 +1317,13 @@ class Attribute extends AppModel {
 	 	$this->validator()->remove('value', 'unique');
 	 
 	 	// get all attributes..
-	 	$attributes = $this->find('all', array('recursive' => -1));
+	 	$attributes = $this->find('all', array('recursive' => -1, 'fields' => array('id')));
+
 	 	// for all attributes..
 	 	$result = array();
 	 	$i = 0;
-	 	foreach ($attributes as $attribute) {
+	 	foreach ($attributes as $a) {
+	 		$attribute = $this->find('first', array('recursive' => -1, 'conditions' => array('id' => $a['Attribute']['id'])));
 	 		$this->set($attribute);
 	 		if ($this->validates()) {
 	 			// validates

@@ -12,7 +12,7 @@ foreach ($results as $result) {
 	//
 	unset($result['Event']['user_id']);
 	// hide the org field is we are not in showorg mode
-	if ('true' != Configure::read('MISP.showorg') && !$isSiteAdmin) {
+	if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
 		unset($result['Event']['org']);
 		unset($result['Event']['orgc']);
 		unset($result['Event']['from']);
@@ -37,7 +37,7 @@ foreach ($results as $result) {
 			unset($result['Event']['RelatedEvent'][$key]['Event']);
 			$result['Event']['RelatedEvent'][$key]['Event'][0] = $temp;
 			unset($result['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
-			if ('true' != Configure::read('MISP.showorg') && !$isAdmin) {
+			if (!Configure::read('MISP.showorg') && !$isAdmin) {
 				unset($result['Event']['RelatedEvent'][$key]['Event'][0]['org']);
 				unset($result['Event']['RelatedEvent'][$key]['Event'][0]['orgc']);
 			}

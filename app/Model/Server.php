@@ -103,6 +103,329 @@ class Server extends AppModel {
 			),
 		),
 	);
+	
+	public $serverSettings = array(
+			'MISP' => array(
+					'branch' => 1,
+					'baseurl' => array(
+							'level' => 0,
+							'description' => 'The base url of the application (in the format https://www.mymispinstance.com). Several features depend on this setting being correctly set to function.',
+							'value' => '',
+							'errorMessage' => 'The currenty set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address).',
+							'test' => 'testBaseURL',
+							'type' => 'string',
+					),
+					'name' => array(
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'version' => array(
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'header' => array(
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'footerpart1' => array(
+							'level' => 2,
+							'description' => 'Footer text prepending the version number.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'footerpart2' => array(
+							'level' => 2,
+							'description' => 'Footer text following the version number.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'footer' => array(
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'footerversion' => array(
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'footer_logo' => array(
+							'level' => 2 ,
+							'description' => 'If set, this setting allows you to display a logo on the right side of the footer.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'org' => array(
+							'level' => 1,
+							'description' => 'The organisation tag of the hosting organisation. This is used in the e-mail subjects.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'logo' => array(
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'showorg' => array(
+							'level' => 0,
+							'description' => 'Setting this setting to \'false\' will hide all organisation names / logos.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
+					'sync' => array(
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'taxii_sync' => array(
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'taxii_client_path' => array(
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'background_jobs' => array(
+							'level' => 1,
+							'description' => 'Enables the use of MISP\'s background processing.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
+					'cached_attachments' => array(
+							'level' => 1,
+							'description' => 'Allow the XML caches to include the encoded attachments.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
+					'email' => array(
+							'level' => 0,
+							'description' => 'The e-mail address that MISP should use for all notifications',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'contact' => array(
+							'level' => 1,
+							'description' => 'The e-mail address that MISP should include as a contact address for the instance\'s support team.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'dns' => array(
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'cveurl' => array(
+							'level' => 1,
+							'description' => 'Turn Vulnerability type attributes into links linking to the provided CVE lookup',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'disablerestalert' => array(
+							'level' => 1,
+							'description' => 'This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to disable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
+					'default_event_distribution' => array(
+							'level' => 0,
+							'description' => 'The default distribution setting for events (0-3).',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'options' => array('0' => 'Your organisation only', '1' => 'This community only', '2' => 'Connected communities', '3' => 'All communities'),
+					),
+					'default_attribute_distribution' => array(
+							'level' => 0,
+							'description' => 'The default distribution setting for attributes, set it to \'event\' if you would like the attributes to default to the event distribution level. (0-3 or "event")',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'options' => array('0' => 'Your organisation only', '1' => 'This community only', '2' => 'Connected communities', '3' => 'All communities', 'event' => 'Inherit from event'),
+					),
+					'tagging' => array(
+							'level' => 1,
+							'description' => 'Enable the tagging feature of MISP. This is highly recommended.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
+					'full_tags_on_event_index' => array(
+							'level' => 2,
+							'description' =>'Show the full tag names on the event index.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
+					'welcome_text_top' => array(
+							'level' => 2,
+							'description' => 'Used on the login page, before the MISP logo',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => '',
+							'type' => '',
+					),
+					'welcome_text_bottom' => array(
+							'level' => 2,
+							'description' => 'Used on the login page, after the MISP logo',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => '',
+							'type' => '',
+					),
+					'welcome_logo' => array(
+							'level' => 2,
+							'description' => 'Used on the login page, to the left of the MISP logo, place a .png file in app/webroot/img with the name specified here.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => '',
+							'type' => '',
+					),
+					'welcome_logo2' => array(
+							'level' => 2,
+							'description' => 'Used on the login page, to the right of the MISP logo, place a .png file in app/webroot/img with the name specified here.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => '',
+							'type' => '',
+					),
+			),
+			'GnuPG' => array(
+					'branch' => 1,
+					'onlyencrypted' => array(
+							'level' => 0,
+							'description' => 'Allow unencrypted e-mails to be sent to users that don\'t have a PGP key.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
+					'email' => array(
+							'level' => 0,
+							'description' => 'The e-mail address that the instance\'s PGP key is tied to.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'password' => array(
+							'level' => 1,
+							'description' => 'The password (if it is set) of the PGP key of the instance.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'homedir' => array(
+							'level' => 0,
+							'description' => 'The location of the GPG homedir.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+			),
+			'Security' => array(
+					'branch' => 1,
+					'salt' => array(
+							'level' => 0,
+							'description' => 'The salt used for the hashed passwords. You cannot reset this from the GUI, only manually from the settings.php file. Keep in mind, this will invalidate all passwords in the database.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testSalt',
+							'type' => 'string',
+							'editable' => false,
+					),
+			),
+			'SecureAuth' => array(
+					'branch' => 1,
+					'amount' => array(
+							'level' => 0,
+							'description' => 'The number of tries a user can try to login and fail before the bruteforce protection kicks in.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForNumeric',
+							'type' => 'string',
+					),
+					'expire' => array(
+							'level' => 0,
+							'description' => 'The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForNumeric',
+							'type' => 'string',
+					),
+			),
+			'debug' => array(
+					'level' => 0,
+					'description' => 'The debug level of the instance, always use 0 for production instances.',
+					'value' => '',
+					'errorMessage' => '',
+					'test' => 'testDebug',
+					'type' => 'numeric',
+					'options' => array(0 => 'Debug off', 1 => 'Debug on', 2 => 'Debug + SQL dump'),
+			),
+	);
 
 	public function isOwnedByOrg($serverid, $org) {
 		return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
@@ -511,5 +834,100 @@ class Server extends AppModel {
 				return false;
 			}
 		}
+	}
+	
+	public function serverSettingsRead($unsorted = false) {
+		$serverSettings = $this->serverSettings;
+		$results = array();
+		$currentSettings = Configure::read();
+		$finalSettingsUnsorted = array();
+		foreach ($serverSettings as $branchKey => &$branchValue) {
+			if (isset($branchValue['branch'])) {
+				foreach ($branchValue as $leafKey => &$leafValue) {
+					if ($leafValue['level'] == 3 && !(isset($currentSettings[$branchKey][$leafKey]))) continue;
+					$setting = null;
+					if (isset($currentSettings[$branchKey][$leafKey])) $setting = $currentSettings[$branchKey][$leafKey];
+					$leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
+					if ($leafKey != 'branch') {
+						if (strpos($branchKey, 'Secur') === 0) $leafValue['tab'] = 'Security';
+						else $leafValue['tab'] = $branchKey; 
+						$finalSettingsUnsorted[$branchKey . '.' . $leafKey] = $leafValue;
+					}
+				}
+			} else {
+					$setting = null;
+					if (isset($currentSettings[$branchKey])) $setting = $currentSettings[$branchKey];
+					$branchValue = $this->__evaluateLeaf($branchValue, $branchKey, $setting);
+					$branchValue['tab'] = 'misc';
+					$finalSettingsUnsorted[$branchKey] = $branchValue;
+			}
+		}
+		if ($unsorted) return $finalSettingsUnsorted;
+		$finalSettings = array();
+		for ($i = 0; $i < 4; $i++) {
+			foreach ($finalSettingsUnsorted as $k => $s) {
+				$s['setting'] = $k;
+				if ($s['level'] == $i) $finalSettings[] = $s;
+			}
+		}
+		return $finalSettings;
+	}
+	
+	private function __evaluateLeaf($leafValue, $leafKey, $setting) {
+		if (isset($setting)) {
+			$result = $this->{$leafValue['test']}($setting);
+			if ($result !== true) {
+				$leafValue['error'] = 1;
+				if ($result !== false) $leafValue['errorMessage'] = $result;
+			}
+			if ($setting !== '') $leafValue['value'] = $setting;
+		} else {
+			if ($leafKey != 'branch') {
+				$leafValue['error'] = 1;
+				$leafValue['errorMessage'] = 'Value not set.';
+			}
+		}
+		return $leafValue;
+	}
+	
+	public function testForNumeric($value) {
+		if (!is_numeric($value)) return 'This setting has to be a number.';
+		return true;
+	}
+	
+	public function testForEmpty($value) {
+		if ($value === '') return 'Value not set.';
+		return true;
+	}
+	
+	public function testDebug($value) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if ($this->testForNumeric($value) !== true) return 'This setting has to be a number between 0 and 2, with 0 disabling debug mode.';
+		if ($value === 0) return true;
+		return 'This setting has to be set to 0 on production systems. Ignore this warning if this is not the case.';
+	}
+	public function testBaseURL($value) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		$protocol = stripos($_SERVER['SERVER_PROTOCOL'],'https') === true ? 'HTTPS' : 'HTTP';
+		if ($value != strtolower($protocol) . '://' . $_SERVER[$protocol . '_HOST']) return false;
+		return true;
+	}
+	
+	public function testBool($value) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if ($value !== true && $value !== false) return 'Value is not a boolean, make sure that you convert \'true\' to true for example.';
+		return true;
+	}
+	
+	public function testSalt($value) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if (strlen($value) != 32) return 'The salt has to be a 32 byte long string.';
+		if ($value == "Rooraenietu8Eeyo<Qu2eeNfterd-dd+") return 'This is the default salt shipped with the application and is therefore unsecure.';
+		return true;
+	}
+	
+	public function serverSettingsSaveValue($setting, $value) {
+		Configure::write($setting, $value);
+		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'SecureAuth', 'Security', 'debug'));
 	}
 }

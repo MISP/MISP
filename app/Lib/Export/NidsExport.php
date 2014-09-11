@@ -53,7 +53,7 @@ class NidsExport {
 			}*/
 
 			# proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
-			$ruleFormatMsg = 'msg: "' . Configure::read('MISP.name') . ' e' . $item['Event']['id'] . ' %s"';
+			$ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' %s"';
 			$ruleFormatReference = 'reference:url,' . Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
 			$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
 

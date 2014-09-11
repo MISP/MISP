@@ -920,10 +920,8 @@ class AttributesController extends AppController {
 				'fields' => array('Event.id', 'Event.orgc', 'Event.org', 'Event.locked')
 			)),
 		));
-		if ('true' == Configure::read('MISP.sync')) {
-			// find the uuid
-			$uuid = $result['Attribute']['uuid'];
-		}
+		// find the uuid
+		$uuid = $result['Attribute']['uuid'];
 		
 		// check for permissions
 		if (!$this->_isSiteAdmin()) {
@@ -941,10 +939,7 @@ class AttributesController extends AppController {
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->delete()) {
 			// delete the attribute from remote servers
-			if ('true' == Configure::read('MISP.sync')) {
-				// find the uuid
-				$this->__deleteAttributeFromServers($uuid);
-			}
+			$this->__deleteAttributeFromServers($uuid);
 		
 			// We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
 			$this->loadModel('ShadowAttribute');

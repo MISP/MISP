@@ -44,7 +44,7 @@
 				<?php echo $this->Paginator->sort('published');?>
 			</th>
 			<?php
-			if ('true' == Configure::read('MISP.showorg') || $isAdmin): ?>
+			if (Configure::read('MISP.showorg') || $isAdmin): ?>
 				<th class="filter"><?php echo $this->Paginator->sort('org'); ?></th>
 			<?php
 			endif;
@@ -68,11 +68,9 @@
 				<?php echo $this->Paginator->sort('analysis');?>
 			</th>
 			<th class="filter"><?php echo $this->Paginator->sort('info');?></th>
-			<?php if ('true' == Configure::read('MISP.sync')): ?>
 			<th title="<?php echo $eventDescriptions['distribution']['desc'];?>">
 				<?php echo $this->Paginator->sort('distribution');?>
 			</th>
-			<?php endif; ?>
 			<th class="actions">Actions</th>
 
 		</tr>
@@ -90,7 +88,7 @@
 				<?php
 				}?>&nbsp;
 			</td>
-			<?php if ('true' == Configure::read('MISP.showorg') || $isAdmin): ?>
+			<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
 			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php
 					$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
@@ -148,11 +146,9 @@
 			<td onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
 			</td>
-			<?php if ('true' == Configure::read('MISP.sync')): ?>
 			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>">
 				<?php echo $shortDist[$event['Event']['distribution']]; ?>
 			</td>
-			<?php endif; ?>
 			<td class="short action-links">
 				<?php
 				if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['org'] == $me['org'])))

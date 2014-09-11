@@ -10,12 +10,10 @@
 		echo $this->Form->input('type', array(
 				'empty' => '(first choose category)'
 				));
-		if ('true' == Configure::read('MISP.sync')) {
-			echo $this->Form->input('distribution', array(
-				'options' => array($distributionLevels),
-				'label' => 'Distribution',
-			));
-		}
+		echo $this->Form->input('distribution', array(
+			'options' => array($distributionLevels),
+			'label' => 'Distribution',
+		));
 		echo $this->Form->input('value', array(
 				'type' => 'textarea',
 				'error' => array('escape' => false),

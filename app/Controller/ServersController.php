@@ -26,10 +26,6 @@ class ServersController extends AppController {
 	public function beforeFilter() {
 		parent::beforeFilter();
 
-		// Disable this feature if the sync configuration option is not active
-		if ('true' != Configure::read('MISP.sync'))
-			throw new ConfigureException("The sync feature is not active in the configuration.");
-
 		// permit reuse of CSRF tokens on some pages.
 		switch ($this->request->params['action']) {
 			case 'push':
@@ -285,5 +281,182 @@ class ServersController extends AppController {
 		$s = $this->Server->read(null, $id);
 		$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
 		if ($result) $this->Server->save($s);
+	}
+	
+	public function serverSettings($tab=false) {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if ($this->request->is('Get')) {
+			$tabs = array(
+					'MISP' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+					'GnuPG' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+					'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+					'misc' => array('count' => 0, 'errors' => 0, 'severity' => 5)
+			);
+			$writeableErrors = array(0 => 'OK', 1 => 'Directory doesn\'t exist', 2 => 'Directory is not writeable');
+			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: bad GnuPG.*', 3 => 'FAIL: encrypt failed');
+			$stixErrors = array(0 => 'ERROR', 1 => 'OK');
+			
+			$results = $this->Server->serverSettingsRead();
+			$issues = array(	
+				'errors' => array(
+						0 => array(
+								'value' => 0,
+								'description' => 'MISP will not operate correctly or will be unsecure until these issues are resolved.'
+						), 
+						1 => array(
+								'value' => 0,
+								'description' => 'Some of the features of MISP cannot be utilised until these issues are resolved.'
+						), 
+						2 => array(
+								'value' => 0,
+								'description' => 'There are some optional tweaks that could be done to improve the looks of your MISP instance.'
+						),
+				),
+				'deprecated' => array(),
+				'overallHealth' => 3, 
+			);
+			$dumpResults = array();
+			foreach ($results as $k => $result) {
+				if ($result['level'] == 3) $issues['deprecated']++;
+				$tabs[$result['tab']]['count']++;
+				if (isset($result['error']) && $result['level'] < 3) {
+					$issues['errors'][$result['level']]['value']++;
+					if ($result['level'] < $issues['overallHealth']) $issues['overallHealth'] = $result['level'];
+					$tabs[$result['tab']]['errors']++;
+					if ($result['level'] < $tabs[$result['tab']]['severity']) $tabs[$result['tab']]['severity'] = $result['level'];
+				}
+				$dumpResults[] = $result;
+				if ($result['tab'] != $tab) unset($results[$k]);
+			}
+			// Diagnostics portion
+			$diagnostic_errors = 0;
+			App::uses('File', 'Utility');
+			App::uses('Folder', 'Utility');
+			
+			// check writeable directories
+			$writeableDirs = array(
+					'tmp' => 0, 'files' => 0, 'scripts' . DS . 'tmp' => 0,
+					'tmp' . DS . 'csv_all' => 0, 'tmp' . DS . 'csv_sig' => 0, 'tmp' . DS . 'md5' => 0, 'tmp' . DS . 'sha1' => 0,
+					'tmp' . DS . 'snort' => 0, 'tmp' . DS . 'suricata' => 0, 'tmp' . DS . 'text' => 0, 'tmp' . DS . 'xml' => 0,
+					'tmp' . DS . 'files' => 0, 'tmp' . DS . 'logs' => 0,
+			);
+			foreach ($writeableDirs as $path => &$error) {
+				$dir = new Folder(APP . DS . $path);
+				if (is_null($dir->path)) $error = 1;
+				$file = new File (APP . DS . $path . DS . 'test.txt', true);
+				if ($error == 0 && !$file->write('test')) $error = 2;
+				if ($error != 0) $diagnostic_errors++;
+				$file->delete();
+				$file->close();
+			}
+			$this->set('writeableDirs', $writeableDirs);
+			
+			// check if the STIX and Cybox libraries are working using the test script stixtest.py
+			$stix = shell_exec('python ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
+			$stix = json_decode($stix)->success;
+			$this->set('stix', $stix);
+			if ($stix == 0) $diagnostic_errors++;
+
+			// if GPG is set up in the settings, try to encrypt a test message
+			$gpgStatus = 0;
+			if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
+				$continue = true;
+				try {
+					require_once 'Crypt/GPG.php';
+					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+					$key = $gpg->addEncryptKey(Configure::read('GnuPG.email'));
+				} catch (Exception $e) {
+					$gpgStatus = 2;
+					$continue = false;		
+				}
+				if ($continue) {
+					try {
+						$gpgStatus = 0;
+						$enc = $gpg->encrypt('test', true);
+					} catch (Exception $e){
+						$gpgStatus = 3;
+					}
+				}
+			} else {
+				$gpgStatus = 1;
+			}
+			if ($gpgStatus != 0) $diagnostic_errors++;
+			$this->set('gpgStatus', $gpgStatus);
+			$this->set('diagnostic_errors', $diagnostic_errors);
+			$this->set('tab', $tab);
+			$this->set('tabs', $tabs);
+			$this->set('issues', $issues);
+			$this->set('finalSettings', $results);
+			
+			$this->set('writeableErrors', $writeableErrors);
+			$this->set('gpgErrors', $gpgErrors);
+			$this->set('stixErrors', $stixErrors);
+			
+			if ($tab == 'download') {
+				foreach ($dumpResults as &$dr) {
+					unset($dr['description']);
+				}
+				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'stix' => $stixErrors[$stix], 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
+				$this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
+				$this->response->type('json');
+				$this->response->download('MISP.report.json');
+				return $this->response;
+			}
+			$priorities = array(0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated');
+			$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
+			$this->set('priorities', $priorities);
+			$this->set('priorityErrorColours', $priorityErrorColours);
+		}
+	}
+	
+	public function serverSettingsEdit($setting, $id, $forceSave = false) {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
+		$this->set('id', $id);
+		$relevantSettings = (array_intersect_key(Configure::read(), $this->Server->serverSettings));
+		$found = null;
+		foreach ($this->Server->serverSettings as $k => $s) {
+			if (isset($s['branch'])) {
+				foreach ($s as $ek => $es) {
+					if ($ek != 'branch') {
+						if ($setting == $k . '.' . $ek) {
+							$found = $es;
+							continue 2;
+						}
+					}
+				}
+			} else {
+				if ($setting == $k) {
+					$found = $s;
+					continue;
+				}
+			}
+		}
+		if ($this->request->is('get')) {
+			if ($found != null) {
+				$found['value'] = Configure::read($setting);
+				$found['setting'] = $setting;
+			}
+			$this->set('setting', $found);
+			$this->render('ajax/server_settings_edit');
+		}
+		if ($this->request->is('post')) {
+			if ($found['type'] == 'boolean') {
+				$this->request->data['Server']['value'] = ($this->request->data['Server']['value'] ? true : false);
+			}
+			if ($found['type'] == 'numeric') {
+				$this->request->data['Server']['value'] = intval($this->request->data['Server']['value']);
+			}
+			$testResult = $this->Server->{$found['test']}($this->request->data['Server']['value']);
+			if (!$forceSave && $testResult !== true) {
+				if ($testResult === false) $errorMessage = $found['errorMessage'];
+				else $errorMessage = $testResult;
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errorMessage)),'status'=>200));
+			} else {
+				$this->Server->serverSettingsSaveValue($setting, $this->request->data['Server']['value']);
+				$this->autoRender = false;
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')),'status'=>200));
+			}
+		}
 	}
 }

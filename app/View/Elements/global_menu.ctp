@@ -82,7 +82,7 @@
 						</ul>
 					</li>
 
-					<?php if (('true' == Configure::read('MISP.sync')) && ($isAclSync || $isAdmin)): ?>
+					<?php if ($isAclSync || $isAdmin): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Sync Actions
@@ -113,6 +113,7 @@
 								<li><a href="/admin/users/email">Contact Users</a></li>
 								<li class="divider"></li>
 								<li><a href="/pages/display/administration">Administrative tools</a></li>
+								<li><a href="/servers/serverSettings">Server settings</a></li>
 								<?php if (Configure::read('MISP.background_jobs')): ?>
 									<li class="divider"></li>
 									<li><a href="/jobs/index">Jobs</a></li>
