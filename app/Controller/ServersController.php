@@ -385,7 +385,7 @@ class ServersController extends AppController {
 			$this->set('issues', $issues);
 			$this->set('finalSettings', $results);
 			$dump = array('gpgStatus' => $gpgStatus, 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
-			$this->set('dump', $dump);
+			$this->set('dump', json_encode($dump));
 			$priorities = array(0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated');
 			$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
 			$this->set('priorities', $priorities);

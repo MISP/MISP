@@ -31,4 +31,7 @@
 		?>
 	</a>
 	</span>
+	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:50px;">
+	<span id="download-button" title="Download report" class="discrete icon-download-alt"></span>
+	</span>
 </div>

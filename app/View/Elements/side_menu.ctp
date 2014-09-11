@@ -155,8 +155,9 @@
 					<li <?php if ($menuItem === 'indexRole') echo 'class="active"';?>><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 					<?php if ($isSiteAdmin): ?>
 						<li class="divider"></li>
-						<li <?php if ($menuItem === 'contact') echo 'class="active"';?>><?php echo $this->Html->link('Contact users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
-						<li <?php if ($menuItem === 'adminTools') echo 'class="active"';?>><a href="/pages/display/administration">Administrative tools</a></li>
+						<li <?php if ($menuItem === 'contact') echo 'class="active"';?>><?php echo $this->Html->link('Contact Users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+						<li <?php if ($menuItem === 'adminTools') echo 'class="active"';?>><a href="/pages/display/administration">Administrative Tools</a></li>
+						<li <?php if ($menuItem === 'serverSettings') echo 'class="active"';?>><a href="/servers/serverSettings">Server Settings</a></li>
 						<li class="divider"></li>
 						<?php if (Configure::read('MISP.background_jobs')): ?>
 							<li <?php if ($menuItem === 'jobs') echo 'class="active"';?>><a href="/jobs/index">Jobs</a></li>

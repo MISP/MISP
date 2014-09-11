@@ -921,8 +921,11 @@ a.proposal_link_red:hover {
 	padding-right:5px;
 }
 
+.tabMenuFixed:hover {
+	background-color:#cfefff;
+}
+
 .tabMenuSides {
-	background-color: #white;
 	border-top: 1px solid #ddd;
 }
 

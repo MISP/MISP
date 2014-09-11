@@ -12,5 +12,5 @@
 	?>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'index'));
+	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'serverSettings'));
 ?>
