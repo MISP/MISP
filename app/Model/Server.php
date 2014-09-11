@@ -891,7 +891,7 @@ class Server extends AppModel {
 	}
 	
 	public function testForNumeric($value) {
-		if (!is_numeric($value)) return false;
+		if (!is_numeric($value)) return 'This setting has to be a number.';
 		return true;
 	}
 	
