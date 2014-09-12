@@ -37,10 +37,10 @@ cd "$MISP_PATH"
 git submodule init
 git submodule update
 cd "$MISP_PATH/app"
-chown -R www-data:www-data "$MISP_PATH"
-chmod -R 750 "$MISP_PATH"
-chmod -R g+ws "$MISP_PATH/app/tmp"
-chmod -R g+ws "$MISP_PATH/app/files"
+curl -s https://getcomposer.org/installer | php
+php composer.phar require --no-update kamisama/cake-resque:4.1.0
+php composer.phar config vendor-dir Vendor
+php composer.phar install
 cd "$MISP_PATH"
 chown -R www-data:www-data "$MISP_PATH"
 chmod -R 750 "$MISP_PATH"
