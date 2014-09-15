@@ -5,6 +5,8 @@
 /.buildpath
 .DS_Store
 /.htaccess
+/app/Vendor
+/app/composer*
 /README
 /app/tmp/sessions/sess_*
 /app/tmp/logs/*.log
