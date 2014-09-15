@@ -36,8 +36,10 @@ git config core.filemode false
 cd "$MISP_PATH"
 git submodule init
 git submodule update
-cd "$MISP_PATH/app/Plugin/CakeResque"
+cd "$MISP_PATH/app"
 curl -s https://getcomposer.org/installer | php
+php composer.phar require --no-update kamisama/cake-resque:4.1.0
+php composer.phar config vendor-dir Vendor
 php composer.phar install
 cd "$MISP_PATH"
 chown -R www-data:www-data "$MISP_PATH"

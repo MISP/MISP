@@ -49,9 +49,13 @@ else
 	echo "Error, you need either apt-get, yum or brew to install Redis using this script. Please install it manually.";
 fi
 
-cd "$MISP_PATH/app/Plugin/CakeResque"
+cd "$MISP_PATH/app"
+
 curl -s https://getcomposer.org/installer | php
+php composer.phar require --no-update kamisama/cake-resque:4.1.0
+php composer.phar config vendor-dir Vendor
 php composer.phar install
+
 cd "$MISP_PATH"
 chown -R www-data:www-data "$MISP_PATH"
 chmod -R 750 "$MISP_PATH"

@@ -22,6 +22,7 @@ Enabling background jobs via CakeResque
 	- vim /var/www/MISP/app/Config/bootstrap.php
 	- set Configure::write('MISP.background_jobs', false); to Configure::write('MISP.background_jobs', true); 
 	- uncomment CakePlugin::load('CakeResque', array('bootstrap' => true));
+	- in Core.php (if you have just recently updated MISP, just add this line at the end of the file): require_once dirname(__DIR__) . '/Vendor/autoload.php';
 
 - start the background workers
 	- cd /var/www/MISP/app/Console/worker/

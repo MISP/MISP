@@ -277,3 +277,5 @@ Cache::config('_cake_model_', array(
 	'serialize' => ($engine === 'File'),
 	'duration' => $duration
 ));
+
+//require_once dirname(__DIR__) . '/Vendor/autoload.php';

@@ -1,4 +1,6 @@
 /vendors
+/app/Vendor
+/app/composer*
 /lib
 /.project
 /.settings
