@@ -25,6 +25,7 @@ $config = array (
     'tagging' => true,
     'full_tags_on_event_index' => true,
     'footer_logo' => '',
+  	'take_ownership_xml_import' => false,
   ),
   'GnuPG' => 
   array (

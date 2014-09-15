@@ -812,7 +812,14 @@ class EventsController extends AppController {
 				is_uploaded_file($this->data['Event']['submittedxml']['tmp_name'])) {
 					$this->Session->setFlash(__('You may only upload MISP XML files.'));
 				}
-				if (isset($this->data['Event']['submittedxml'])) $this->_addXMLFile();
+				if (isset($this->data['Event']['submittedxml'])) {
+					if (Configure::read('MISP.take_ownership_xml_import') 
+						&& (isset($this->data['Event']['takeownership']) && $this->data['Event']['takeownership'] == 1)) {
+						$this->_addXMLFile(true);
+					} else {
+						$this->_addXMLFile();
+					}
+				}
 
 				// redirect to the view of the newly created event
 				if (!CakeSession::read('Message.flash')) {
@@ -1858,7 +1865,7 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function _addXMLFile() {
+	public function _addXMLFile($take_ownership = false) {
 		if (!empty($this->data) && $this->data['Event']['submittedxml']['size'] > 0 &&
 		is_uploaded_file($this->data['Event']['submittedxml']['tmp_name'])) {
 			$xmlData = fread(fopen($this->data['Event']['submittedxml']['tmp_name'], "r"),
@@ -1881,10 +1888,12 @@ class EventsController extends AppController {
 			if (isset($xmlArray['response']['Event'][0])) {
 				foreach ($xmlArray['response']['Event'] as $event) {
 					$temp['Event'] = $event;
+					if ($take_ownership) $temp['Event']['orgc'] = $this->Auth->user('org');
 					$this->Event->_add($temp, true, $this->Auth->user());
 				}
 			} else {
 				$temp['Event'] = $xmlArray['response']['Event'];
+				if ($take_ownership) $temp['Event']['orgc'] = $this->Auth->user('org');
 				$this->Event->_add($temp, true, $this->Auth->user());
 			}
 		}

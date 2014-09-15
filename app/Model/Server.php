@@ -349,6 +349,14 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
+					'Take_Ownership_XML_Import' => array(
+							'level' => 2,
+							'description' => 'Allows users to take ownership of an event uploaded via the "Add MISP XML" button. This allows spoofing the creator of a manually imported event, also breaking possibly breaking the original intended releasability. Synchronising with an instance that has a different creator for the same event can lead to unwanted consequences.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
