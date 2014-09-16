@@ -966,11 +966,11 @@ function indexCreateFilters() {
 	if (filterContext == 'event') {
 		if (filtering.date.from) {
 			if (text != "") text += "/";
-			text += "/searchDatefrom:" + filtering.date.from; 
+			text += "searchDatefrom:" + filtering.date.from; 
 		}
 		if (filtering.date.until) {
 			if (text != "") text += "/";
-			text += "/searchDateuntil:" + filtering.date.until;
+			text += "searchDateuntil:" + filtering.date.until;
 		}
 		return baseurl + '/events/index/' + text;
 	} else {
