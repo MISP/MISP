@@ -1240,6 +1240,23 @@ a.proposal_link_red:hover {
 	margin-bottom:5px;
 }
 
+.populate_template_div_body .left-inverse {
+	float:left;
+	width:200px;
+	background-color:#0088cc;
+	color:white;
+	font-weight:bold;
+	margin-bottom:5px;
+}
+
+.populate_template_div_body .right-inverse {
+	float:left;
+	width:calc(100% - 200px);
+	background-color:#0088cc;
+	color:white;
+	margin-bottom:5px;
+}
+
 .template_mandatory {
 	font-weight:bold;
 }

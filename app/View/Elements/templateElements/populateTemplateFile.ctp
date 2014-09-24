@@ -1,14 +1,12 @@
-<div id="populate_template_info" class="templateTableRow templateTableRow80">
-	<div class="templateElementHeader" style="width:100%; position:relative;">
-		<div class="templateGlass"></div>
-		<div class ="templateElementHeaderText">
-			<?php echo h($element['name']);
-			if ($element['mandatory']): ?>
-				<span class="template_mandatory">(*)</span>
-			<?php endif;?>
-		</div>
-	</div>
+<div id="populate_template_info">
 	<div id="populate_template_info_body" class="populate_template_div_body">
+		<div class="left-inverse">Field:</div>
+		<div class="right-inverse">
+		<?php echo h($element['name']);
+		if ($element['mandatory']): ?>
+		<span class="template_mandatory">(*)</span>
+		<?php endif;?>
+		</div><br />
 		<div class="left">Description:</div>
 		<div class="right"><?php echo h($element['description']); ?></div><br />
 		<div class="left" style="height:26px;">File<?php if ($element['batch']) echo 's'?>:</div>

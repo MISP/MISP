@@ -31,7 +31,17 @@
 		?>
 	</a>
 	</span>
-	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:50px;">
+	<?php if (!empty($worker_array)): ?>
+	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:10px;">
+		<a href = "/servers/serverSettings/workers" id="create-button" title="Modify filters" class="discrete">
+			Workers
+			<?php 
+				if ($diagnostic_errors > 0) echo '<span style="color:red;"> (' . $diagnostic_errors . ')</span>';
+			?>
+		</a>
+	</span>
+	<?php endif; ?>
+	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:10px;">
 	<a href="/servers/serverSettings/download" id="download-button" title="Download report" class="useCursorPointer discrete icon-download-alt"></a>
 	</span>
 </div>

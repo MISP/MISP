@@ -7,7 +7,20 @@
 			?>
 		</div>
 		<?php 
+			$first = true;
 			foreach ($templateData['TemplateElement'] as $k => $element) {
+				if ($k != 0 && (($k == count($templateData['TemplateElement'])) || !$first && $element['element_definition'] == 'text')):
+				
+				?>
+					</div>
+				<?php			
+				endif;
+				if ($element['element_definition'] == 'text' || $first || $k == count($templateData['TemplateElement'])):
+				$first = false;
+				?>
+					<div class="templateTableRow templateTableRow80">
+				<?php 
+				endif;
 				echo $this->element('templateElements/populateTemplate' . ucfirst($element['element_definition']), array('element' => $element['TemplateElement' . ucfirst($element['element_definition'])][0], 'k' => $k, 'element_id' => $element['id'], 'value' => ''));
 			}
 			echo $this->Form->input('fileArray', array(

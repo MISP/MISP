@@ -392,6 +392,34 @@ class ServersController extends AppController {
 			$this->set('gpgErrors', $gpgErrors);
 			$this->set('stixErrors', $stixErrors);
 			
+			if (Configure::read('MISP.background_jobs')) {
+				$worker_array = array(
+					'cache' => array(),
+					'default' => array(),
+					'email' => array(),
+					'_schdlr_' => array()
+				);
+				// disable notice errors, getWorkers() is meant to be run from the command line and throws a notice
+				// because STDIN is not defined - since we don't actually log anything this is safe to ignore.
+				$error_reporting = error_reporting();
+				error_reporting(0);
+				$results = CakeResque::getWorkers();
+				error_reporting($error_reporting);
+				foreach ($results as $result) {
+					$result = (array)$result;
+					if (in_array($result["\0*\0queues"][0], array_keys($worker_array))) {
+						$worker_array[$result["\0*\0queues"][0]][] = array(
+								'id' => $result["\0*\0id"],
+								'currentJob' => $result["\0*\0currentJob"], 
+								'shutdown' => $result["\0*\0shutdown"],
+								'paused' => $result["\0*\0paused"]
+						);
+					}
+				}
+				$this->set('worker_array', $worker_array);
+			} else $this->set('worker_array', array());
+			
+			
 			if ($tab == 'download') {
 				foreach ($dumpResults as &$dr) {
 					unset($dr['description']);
@@ -458,5 +486,11 @@ class ServersController extends AppController {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')),'status'=>200));
 			}
 		}
+	}
+	
+	public function restartWorkers() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		shell_exec(APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null &');
+		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
 	}
 }

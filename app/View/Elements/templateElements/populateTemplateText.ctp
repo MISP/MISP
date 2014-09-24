@@ -1,4 +1,4 @@
-<div id="populate_template_info" class="templateTableRow templateTableRow80">
+<div id="populate_template_info">
 	<div class="templateElementHeader" style="width:100%; position:relative;">
 		<div class="templateGlass"></div>
 		<div class ="templateElementHeaderText"><?php echo h($element['name']); ?></div>
