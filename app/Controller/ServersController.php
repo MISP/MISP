@@ -408,18 +408,18 @@ class ServersController extends AppController {
 				foreach ($results as $result) {
 					$result = (array)$result;
 					if (in_array($result["\0*\0queues"][0], array_keys($worker_array))) {
-						$worker_array[$result["\0*\0queues"][0]][] = array(
-								'id' => $result["\0*\0id"],
-								'currentJob' => $result["\0*\0currentJob"], 
-								'shutdown' => $result["\0*\0shutdown"],
-								'paused' => $result["\0*\0paused"]
-						);
+						$worker_array[$result["\0*\0queues"][0]][] = $result["\0*\0id"];
 					}
 				}
+				$workerIssueCount = 0;
+				foreach ($worker_array as $k => $queue) {
+					if (empty($queue)) $workerIssueCount++;
+				}
 				$this->set('worker_array', $worker_array);
-			} else $this->set('worker_array', array());
-			
-			
+			} else {
+				$workerIssueCount = 4;
+				$this->set('worker_array', array());
+			}
 			if ($tab == 'download') {
 				foreach ($dumpResults as &$dr) {
 					unset($dr['description']);
@@ -433,6 +433,7 @@ class ServersController extends AppController {
 			$priorities = array(0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated');
 			$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
 			$this->set('priorities', $priorities);
+			$this->set('workerIssueCount', $workerIssueCount);
 			$this->set('priorityErrorColours', $priorityErrorColours);
 		}
 	}

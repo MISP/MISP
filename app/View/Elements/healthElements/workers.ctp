@@ -3,7 +3,6 @@
 		<th>Worker Type</th>
 		<th>Worker Id</th>
 		<th>Status</th>
-		<th>Current Job</th>
 </tr>
 <?php 
 	foreach ($worker_array as $type => $workers):
@@ -13,26 +12,17 @@
 		<td class="short" style="background-color:red; color:white;"><?php echo (h($type));?></td>
 		<td class="short" style="background-color:red; color:white;">N/A</td>
 		<td style="background-color:red; color:white;">Worker not running!</td>
-		<td class="short" style="background-color:red; color:white;">N/A</td>
 	</tr>
 <?php 
 		else:
 			foreach ($workers as $worker):
 				$style = "";
 				$status = '<span style="color:green;">OK</span>';
-				if ($worker['paused'] || $worker['shutdown']) {
-					$style = 'style="background-color:red; color:white;"';
-					if ($worker['shutdown']) $status = "Worker shut down.";
-					else $status = "Worker paused.";
-				}
-				$job = $worker['currentJob'];
-				if ($job === null) $job = "Worker idle";
 ?>
 	<tr>
 		<td class="short" <?php echo $style; ?>><?php echo h($type);?></td>
-		<td class="short" <?php echo $style; ?>><?php echo h($worker['id']); ?></td>
+		<td class="short" <?php echo $style; ?>><?php echo h($worker); ?></td>
 		<td <?php echo $style; ?>><?php echo $status; ?></td>
-		<td class="short" <?php echo $style; ?>><?php echo h($job); ?></td>
 	</tr>
 <?php 
 			endforeach;

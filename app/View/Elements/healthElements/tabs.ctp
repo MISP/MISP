@@ -36,7 +36,7 @@
 		<a href = "/servers/serverSettings/workers" id="create-button" title="Modify filters" class="discrete">
 			Workers
 			<?php 
-				if ($diagnostic_errors > 0) echo '<span style="color:red;"> (' . $diagnostic_errors . ')</span>';
+				if ($workerIssueCount > 0) echo '<span style="color:red;"> (' . $workerIssueCount . ')</span>';
 			?>
 		</a>
 	</span>
