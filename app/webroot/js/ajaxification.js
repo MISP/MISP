@@ -86,10 +86,11 @@ function eventUnpublish() {
 	$('.notPublished').show();
 }
 
-function updateIndex(id, context) {
+function updateIndex(id, context, page) {
+	if (typeof page === 'undefined') page = 1;
 	var url, div;
 	if (context == 'event') {
-		url = "/events/view/" + id + "/attributesPage:1";
+		url = "/events/view/" + id + "/attributesPage:" + page;
 		div = "#attributes_div";
 	}
 	if (context == 'template') {

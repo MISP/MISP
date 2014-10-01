@@ -18,12 +18,12 @@
 		<?php if ($page == 1) : ?>
 			<li class="prev"><span>« previous</span></li>
 		<?php else: ?>
-			<li class="prev"><a href="" id = "aprev">« previous</a></li>
+			<li class="prev"><a href="" id = "aprev" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', <?php echo $page-1; ?>);return false;">« previous</a></li>
 		<?php endif; 
 		for ($i = 1; $i < (1+$pageCount); $i++): 
 			if ($page != $i):
 		?>
-				<li><a href="" id = "apage<?php echo $i; ?>" data-page-value="<?php echo $i; ?>"><?php echo $i; ?></a></li>
+				<li><a href="" id = "apage<?php echo $i; ?>" data-page-value="<?php echo $i; ?>" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', <?php echo $i; ?>);return false;"><?php echo $i; ?></a></li>
 		<?php
 			else:
 		?>
@@ -34,12 +34,12 @@
 		if ($page >= $pageCount): ?>
 			<li class="next"><span>next »</span></li>
 		<?php else: ?>
-			<li class="next"><a href="" id = "anext">next »</a></li>
+			<li class="next"><a href="" id = "anext" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', <?php echo $page+1; ?>);return false;">next »</a></li>
 		<?php endif; 
 		if ($page == 'all'): ?>
 			<li class="all red bold"><span>View All</span></li>
 		<?php else: ?>
-			<li class="all"><a href="" id = "aall">View All</a></li>
+			<li class="all"><a href="" id = "aall" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', 'all');return false;">View All</a></li>
 		<?php endif; ?>
 	</ul>
 </div>
@@ -267,12 +267,12 @@
 		<?php if ($page == 1) : ?>
 			<li class="prev"><span>« previous</span></li>
 		<?php else: ?>
-			<li class="prev"><a href="" id = "bprev">« previous</a></li>
+			<li class="prev"><a href="" id = "bprev" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', <?php echo $page-1; ?>);return false;">« previous</a></li>
 		<?php endif; 
 		for ($i = 1; $i < (1+$pageCount); $i++): 
 			if ($page != $i):
 		?>
-				<li><a href="" id = "bpage<?php echo $i; ?>" data-page-value="<?php echo $i; ?>"><?php echo $i; ?></a></li>
+				<li><a href="" id = "bpage<?php echo $i; ?>" data-page-value="<?php echo $i; ?>" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', <?php echo $i; ?>);return false;"><?php echo $i; ?></a></li>
 		<?php
 			else:
 		?>
@@ -283,70 +283,16 @@
 		if ($page >= $pageCount): ?>
 			<li class="next"><span>next »</span></li>
 		<?php else: ?>
-			<li class="next"><a href="" id = "bnext">next »</a></li>
+			<li class="next"><a href="" id = "bnext" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', <?php echo $page+1; ?>);return false;">next »</a></li>
 		<?php endif; 
 		if ($page == 'all'): ?>
 			<li class="all red bold"><span>View All</span></li>
 		<?php else: ?>
-			<li class="all"><a href="" id = "ball">View All</a></li>
+			<li class="all"><a href="" id = "ball" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', 'all');return false;">View All</a></li>
 		<?php endif; ?>
 	</ul>
 </div>
 <?php 
-	for ($j = 0; $j < 2; $j++) {
-		$side = 'a';
-		if ($j == 1) $side = 'b'; 
-		if ($page < $pageCount) {
-			$this->Js->get('#' . $side . 'next')->event(
-					'click',
-					$this->Js->request(
-						array('action' => 'view', $event['Event']['id'], 'attributesPage:' . ($page+1)),
-						array(
-							'update' => '#attributes_div',
-							'before' => '$(".loading").show();',
-							'complete' => '$(".loading").hide();',
-						)
-					)
-			);
-		}
-		for ($i = 1; $i < (1+$pageCount); $i++) {
-			$this->Js->get('#' . $side . 'page' . $i)->event(
-					'click',
-					$this->Js->request(
-							array('action' => 'view', $event['Event']['id'], 'attributesPage:' . $i),
-							array(
-								'update' => '#attributes_div',
-								'before' => '$(".loading").show();',
-								'complete' => '$(".loading").hide();',
-							)
-					)
-			);
-		}
-		if ($page > 1) {
-			$this->Js->get('#' . $side . 'prev')->event(
-					'click',
-					$this->Js->request(
-							array('action' => 'view', $event['Event']['id'], 'attributesPage:' . ($page-1)),
-							array(
-								'update' => '#attributes_div',
-								'before' => '$(".loading").show();',
-								'complete' => '$(".loading").hide();',
-							)
-					)
-			);
-		}
-			$this->Js->get('#' . $side . 'all')->event(
-					'click',
-					$this->Js->request(
-							array('action' => 'view', $event['Event']['id'], 'attributesPage:all'),
-							array(
-									'update' => '#attributes_div',
-									'before' => '$(".loading").show();',
-									'complete' => '$(".loading").hide();',
-							)
-					)
-			);
-	}
 	endif; 
 ?>
 <script type="text/javascript">
