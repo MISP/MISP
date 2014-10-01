@@ -59,14 +59,6 @@ php composer.phar require --no-update kamisama/cake-resque:4.1.0
 php composer.phar config vendor-dir Vendor
 php composer.phar install
 
-# Once CakeResque is installed, make sure to enable it by uncommenting the following lines:
-# in Core.php (if you have just recently updated MISP, just add this line at the end of the file):
-# require_once dirname(__DIR__) . '/Vendor/autoload.php';
-
-# in bootstrap.php uncomment the following line (at the end of the file):
-# CakePlugin::loadAll(array('CakeResque' => array('bootstrap' => true)));
-# set Configure::write('MISP.background_jobs', false); to Configure::write('MISP.background_jobs', true); 
-
 # CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis
 pecl install redis
 # After installing it, enable it in your php.ini file
@@ -140,6 +132,14 @@ cp -a config.default.php config.php
 # database.php : login, port, password, database
 # bootstrap.php: uncomment the last 3 lines to enable the background workers (see below)
 # CakePlugin::loadAll(array('CakeResque' => array('bootstrap' => true)));
+
+# To enable the background workers, if you have installed the package required for it in 4/, uncomment the following lines:
+# in Core.php (if you have just recently updated MISP, just add this line at the end of the file):
+# require_once dirname(__DIR__) . '/Vendor/autoload.php';
+
+# in bootstrap.php uncomment the following line (at the end of the file):
+# CakePlugin::loadAll(array('CakeResque' => array('bootstrap' => true)));
+# set Configure::write('MISP.background_jobs', false); to Configure::write('MISP.background_jobs', true); 
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
