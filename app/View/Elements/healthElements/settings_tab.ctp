@@ -5,7 +5,6 @@
 		<th>Value</th>
 		<th>Description</th>
 		<th>Error Message</th>
-		<th>Actions</th>
 </tr>
 <?php
 	foreach ($finalSettings as $k => $setting):
@@ -29,7 +28,6 @@
 	<?php endif; ?>
 	<td style="<?php echo $bgColour; ?>"><?php echo h($setting['description']);?></td>
 	<td style="<?php echo $bgColour; ?>"><?php if (isset($setting['error']) && $setting['level'] != 3) echo h($setting['errorMessage']); ?></td>
-	<td class="short" style="<?php echo $bgColour; ?>"></td>
 </tr>
 <?php
 	endforeach; ?>
