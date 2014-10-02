@@ -917,7 +917,7 @@ class Server extends AppModel {
 	public function testBaseURL($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		$protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
-		if ($value != strtolower($protocol) . '://' . $_SERVER[$protocol . '_HOST']) return false;
+		if ($value != strtolower($protocol) . '://' . $_SERVER['HTTP_HOST']) return false;
 		return true;
 	}
 	
