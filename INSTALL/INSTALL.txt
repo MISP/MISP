@@ -85,7 +85,7 @@ chown -R www-data:www-data /var/www/MISP
 chmod -R 750 /var/www/MISP
 chmod -R g+ws /var/www/MISP/app/tmp
 chmod -R g+ws /var/www/MISP/app/files
-chmod -R g+ws /var/www/MISP/app/scripts/tmp
+chmod -R g+ws /var/www/MISP/app/files/scripts/tmp
 
 Red Hat users: Keep in mind that your apache user is called apache, not www-data
 
