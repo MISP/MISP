@@ -335,7 +335,7 @@ class ServersController extends AppController {
 			
 			// check writeable directories
 			$writeableDirs = array(
-					'tmp' => 0, 'files' => 0, 'scripts' . DS . 'tmp' => 0,
+					'tmp' => 0, 'files' => 0, 'files' . DS . 'scripts' . DS . 'tmp' => 0,
 					'tmp' . DS . 'csv_all' => 0, 'tmp' . DS . 'csv_sig' => 0, 'tmp' . DS . 'md5' => 0, 'tmp' . DS . 'sha1' => 0,
 					'tmp' . DS . 'snort' => 0, 'tmp' . DS . 'suricata' => 0, 'tmp' . DS . 'text' => 0, 'tmp' . DS . 'xml' => 0,
 					'tmp' . DS . 'files' => 0, 'tmp' . DS . 'logs' => 0,
