@@ -563,7 +563,7 @@ VALUES
 
 INSERT INTO `templates` (`id`, `name`, `description`, `org`, `share`) VALUES
 (1, 'Phishing E-mail', 'Create a MISP event about a Phishing E-mail.', 'MISP', 1),
-(2, 'Phishing E-mail with malicious attachment', 'A MISP event based on Spear-phishing containing a mallicious attachment. This event can include anything from the description of the e-mail itself, the malicious attachment and its description as well as the results of the analysis done on the malicious f', 'MISP', 1),
+(2, 'Phishing E-mail with malicious attachment', 'A MISP event based on Spear-phishing containing a malicious attachment. This event can include anything from the description of the e-mail itself, the malicious attachment and its description as well as the results of the analysis done on the malicious f', 'MISP', 1),
 (3, 'Malware Report', 'This is a template for a generic malware report. ', 'MISP', 1),
 (4, 'Indicator List', 'A simple template for indicator lists.', 'MISP', 1);
 
