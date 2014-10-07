@@ -29,7 +29,7 @@ Once the system is installed you can perform the following steps as root:
 apt-get install vim
 
 # Install the dependencies:
-apt-get install zip php-pear git redis-server make
+apt-get install zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt-dev zlib1g-dev
 pear install Crypt_GPG    # we need version >1.3.0 
 pear install Net_GeoIP
 
@@ -44,6 +44,14 @@ git clone https://github.com/MISP/MISP.git
 # Make git ignore filesystem permission differences
 cd /var/www/MISP
 git config core.filemode false
+
+# install Mitre's STIX and its dependencies by running the following commands:
+apt-get install python-dev python-pip libxml2-dev libxslt-dev zlib1g-dev
+cd /var/www/MISP/app/files/scripts
+git clone https://github.com/CybOXProject/python-cybox.git
+git clone https://github.com/STIXProject/python-stix.git
+python /var/www/MISP/app/files/scripts/python-cybox/setup.py install
+python /var/www/MISP/app/files/scripts/python-stix/setup.py install
 
 4/ CakePHP
 -----------
@@ -75,9 +83,9 @@ cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResqu
 # Check if the permissions are set correctly using the following commands as root:
 chown -R www-data:www-data /var/www/MISP
 chmod -R 750 /var/www/MISP
-cd /var/www/MISP/app/
-chmod -R g+ws tmp
-chmod -R g+ws files
+chmod -R g+ws /var/www/MISP/app/tmp
+chmod -R g+ws /var/www/MISP/app/files
+chmod -R g+ws /var/www/MISP/app/scripts/tmp
 
 Red Hat users: Keep in mind that your apache user is called apache, not www-data
 
@@ -167,8 +175,8 @@ sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL 
 # To make the background workers start on boot
 chmod +x /var/www/MISP/app/Console/worker/start.sh
 sudo vim /etc/rc.local
-# Add the following line before the last line (exit 0):
-bash /var/www/MISP/app/Console/worker/start.sh
+# Add the following line before the last line (exit 0). Make sure that you replace www-data with your apache user:
+su www-data -c 'bash /var/www/MISP/app/Console/worker/start.sh'
 
 # Now log in using the webinterface:
 # The default user/pass = admin@admin.test/admin 
@@ -177,6 +185,17 @@ bash /var/www/MISP/app/Console/worker/start.sh
 # It is especially vital that no critical issues remain!
 
 Don't forget to change the email, password and authentication key after installation.
+
+# Once done, have a look at the diagnostics
+
+# If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
+# you can do this by running the following commands:
+
+chmod -R 750 /var/www/MISP/<directory path with an indicated issue>
+chown -R www-data:www-data /var/www/MISP/<directory path with an indicated issue>
+
+# Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
+
 
 Recommended actions
 -------------------
