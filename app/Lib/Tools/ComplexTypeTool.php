@@ -59,10 +59,11 @@ class ComplexTypeTool {
 	}
 	
 	public function checkFreeText($input) {
-		$iocArray = preg_split("/[\n,]+/", $input);
+		$iocArray = preg_split("/\r\n|\n|\r/", $input);
 		$resultArray = array();
 		foreach ($iocArray as $ioc) {
 			$ioc = trim($ioc);
+			if (empty($ioc)) continue;
 			$typeArray = $this->__resolveType($ioc);
 			$temp = $typeArray;
 			$temp['value'] = $ioc;
@@ -73,6 +74,7 @@ class ComplexTypeTool {
 	
 	private function __resolveType($input) {
 		$result = array();
+		$input = trim($input);
 		$input = strtolower($input);
 		
 		// check for hashes
