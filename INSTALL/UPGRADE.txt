@@ -2,6 +2,9 @@
 
 # - git pull the latest version of MISP from https://github.com/MISP/MISP.git
 
+# delete everything from MISP's cache directory to get rid of the cached models
+find /var/www/MISP/app/tmp/cache/ -type f -not -name 'empty' -delete
+
 # Check if the permissions are set correctly using the following commands as root:
 chown -R www-data:www-data /var/www/MISP
 chmod -R 750 /var/www/MISP
