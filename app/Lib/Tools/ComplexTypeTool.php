@@ -82,6 +82,13 @@ class ComplexTypeTool {
 		
 		// check for IP
 		if (filter_var($input, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src'), 'to_ids' => true, 'default_type' => 'ip-dst');
+		if (strpos($input, '/')) {
+			$temp = explode('/', $input);
+			if (count($temp == 2)) {
+				if (filter_var($temp[0], FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src'), 'to_ids' => true, 'default_type' => 'ip-dst');
+			}
+		}
+		
 		
 		// check for domain name, hostname, filename
 		if (strpos($input, '.') !== false) {
