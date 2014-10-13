@@ -191,6 +191,7 @@ class EventsController extends AppController {
 						if ($v == "") continue 2;
 						$terms = array();
 						$filterString = "";
+						$searchTermInternal = $searchTerm;
 						if ($searchTerm == 'threatlevel') {
 							$searchTermInternal = 'threat_level_id';
 							$threatLevels = $this->Event->ThreatLevel->find('all', array(
@@ -198,7 +199,7 @@ class EventsController extends AppController {
 								'fields' => array('id', 'name'),
 							));
 							foreach ($threatLevels as &$tl) $terms[$tl['ThreatLevel']['id']] =$tl['ThreatLevel']['name'];
-						} else if ($searchTermInternal == 'analysis') {
+						} else if ($searchTerm == 'analysis') {
 							$terms = $this->Event->analysisLevels;
 						} else {
 							$terms = $this->Event->distributionLevels;
