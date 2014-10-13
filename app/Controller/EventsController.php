@@ -145,48 +145,78 @@ class EventsController extends AppController {
 						$this->paginate['conditions']['AND'][] = $test;
 						break;
 					case 'tag' :
-						if (!$v || !Configure::read('MISP.tagging') || $v == 0) continue 2;
-						$valid = $this->Event->EventTag->find('all', array(
-								'conditions' => array('tag_id' => $v),
-								'fields' => 'event_id',
-								'recursive' => -1,
-						));
-						if (empty($valid)) {
-							$this->paginate['conditions']['AND'][] = array('Event.id' => '-1');
-						}
-						$test = array();
-						//$valid = array_unique($valid);
-						foreach ($valid as $et) {
-							$test['OR'][] = array('Event.id' => $et['EventTag']['event_id']);
-						}
-						$this->paginate['conditions']['AND'][] = $test;
-						break;
-					case 'threatlevel' :
-						if ($v == "") continue 2;
+						if (!$v || !Configure::read('MISP.tagging') || $v === 0) continue 2;
 						$pieces = explode('|', $v);
-						$test = array();
+						$filterString = "";
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
-								$this->paginate['conditions']['AND'][] = array('Event.threat_level_id !=' => substr($piece, 1));
+								$block = $this->Event->EventTag->find('all', array(
+										'conditions' => array('tag_id' => substr($piece, 1)),
+										'fields' => 'event_id',
+										'recursive' => -1,
+								));
+								foreach ($block as $b) {
+									$this->paginate['conditions']['AND'][] = array('Event.id !=' => $b['EventTag']['event_id']);
+								}
+								$tagName = $this->Event->EventTag->Tag->find('first', array(
+										'conditions' => array('id' => substr($piece, 1)),
+										'fields' => array('id', 'name'),
+										'recursive' => -1,
+								));
+								if ($filterString != "") $filterString .= "|";
+								$filterString .= '!' . $tagName['Tag']['name'];
 							} else {
-								$test['OR'][] = array('Event.threat_level_id' => $piece);
+								$allow = $this->Event->EventTag->find('all', array(
+										'conditions' => array('tag_id' => $piece),
+										'fields' => 'event_id',
+										'recursive' => -1,
+								));
+								foreach ($allow as $a) {
+									$this->paginate['conditions']['OR'][] = array('Event.id' => $a['EventTag']['event_id']);
+								}
+								$tagName = $this->Event->EventTag->Tag->find('first', array(
+										'conditions' => array('id' => $piece),
+										'fields' => array('id', 'name'),
+										'recursive' => -1,
+								));
+								if ($filterString != "") $filterString .= "|";
+								$filterString .= $tagName['Tag']['name'];
 							}
 						}
-						$this->paginate['conditions']['AND'][] = $test;
+						$v = $filterString;
 						break;
 					case 'distribution' :
 					case 'analysis' :
+					case 'threatlevel' :
 						if ($v == "") continue 2;
+						$terms = array();
+						$filterString = "";
+						if ($searchTerm == 'threatlevel') {
+							$searchTermInternal = 'threat_level_id';
+							$threatLevels = $this->Event->ThreatLevel->find('all', array(
+								'recursive' => -1,
+								'fields' => array('id', 'name'),
+							));
+							foreach ($threatLevels as &$tl) $terms[$tl['ThreatLevel']['id']] =$tl['ThreatLevel']['name'];
+						} else if ($searchTermInternal == 'analysis') {
+							$terms = $this->Event->analysisLevels;
+						} else {
+							$terms = $this->Event->distributionLevels;
+						}
 						$pieces = explode('|', $v);
 						$test = array();
 						foreach ($pieces as $piece) {
+							if ($filterString != "") $filterString .= '|';
 							if ($piece[0] == '!') {
-								$this->paginate['conditions']['AND'][] = array('Event.' . $searchTerm . ' !=' => substr($piece, 1));
+								$filterString .= $terms[substr($piece, 1)];
+								$this->paginate['conditions']['AND'][] = array('Event.' . $searchTermInternal . ' !=' => substr($piece, 1));
 							} else {
-								$test['OR'][] = array('Event.' . $searchTerm => $piece);
+								$filterString .= $terms[$piece];
+								$test['OR'][] = array('Event.' . $searchTermInternal => $piece);
 							}
 						}
 						$this->paginate['conditions']['AND'][] = $test;
+						$v = $filterString;
 						break;
 					default:
 						if ($v == "") continue 2;
