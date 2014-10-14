@@ -63,7 +63,7 @@ class ComplexTypeTool {
 		$resultArray = array();
 		foreach ($iocArray as $ioc) {
 			$ioc = trim($ioc);
-			$ioc = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x80-\x9F]/u', '', $ioc);
+			$ioc = preg_replace('/\p{C}+/u', '', $ioc);
 			if (empty($ioc)) continue;
 			$typeArray = $this->__resolveType($ioc);
 			$temp = $typeArray;
