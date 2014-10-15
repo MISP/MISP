@@ -241,6 +241,8 @@
 								}
 							} else {
 								if (($event['Event']['orgc'] == $me['org'] && $mayModify) || $isSiteAdmin) {
+									echo $this->Form->create('Shadow_Attribute', array('id' => 'ShadowAttribute_' . $object['id'] . '_accept', 'url' => '/shadow_attributes/accept/' . $object['id'], 'style' => 'display:none;'));
+									echo $this->Form->end();
 								?>
 									<span class="icon-ok useCursorPointer" onClick="acceptObject('shadow_attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 								<?php 
