@@ -205,7 +205,7 @@ class ShadowAttributesController extends AppController {
 		}
 		if ($this->request->is('post')) {
 			$this->ShadowAttribute->id = $id;
-			$this->ShadowAttribute->read();
+			$sa = $this->ShadowAttribute->read();
 			$eventId = $this->ShadowAttribute->data['ShadowAttribute']['event_id'];
 			$this->loadModel('Event');
 			$this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
@@ -224,6 +224,16 @@ class ShadowAttributesController extends AppController {
 					$this->_setProposalLock($eventId, false);
 				}
 				$this->autoRender = false;
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => $this->Auth->user('org'),
+						'model' => 'ShadowAttribute',
+						'model_id' => $id,
+						'email' => $this->Auth->user('email'),
+						'action' => 'discard',
+						'title' => 'Proposal (' . $sa['ShadowAttribute']['id'] . ') of ' . $sa['ShadowAttribute']['org'] . ' discarded - ' . $sa['ShadowAttribute']['category'] . '/' . $sa['ShadowAttribute']['type'] . ' ' . $sa['ShadowAttribute']['value'],
+				));
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal discarded.')),'status'=>200));
 			} else {
 				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not discard proposal.')),'status'=>200));
