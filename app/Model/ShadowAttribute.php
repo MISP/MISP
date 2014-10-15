@@ -536,10 +536,12 @@ class ShadowAttribute extends AppModel {
 	}
 	
 	public function setDeleted($id) {
+		$this->Behaviors->detach('SysLogLogable.SysLogLogable');
 		$this->id = $id;
 		$this->saveField('deleted', 1);
 		$date = new DateTime();
 		$this->saveField('timestamp', $date->getTimestamp());
+		return true;
 	}
 	
 	public function findOldProposal($sa) {
