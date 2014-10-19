@@ -161,6 +161,17 @@ class User extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
+		'certif_public' => array(
+			'notempty' => array(
+				'rule' => array('validateCertificate'),
+				'message' => 'Certificate not valid, please enter a valid certificate (x509).',
+				//'allowEmpty' => false,
+				//'required' => false,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
+		),
+
 		'nids_sid' => array(
 			'numeric' => array(
 				'rule' => array('numeric'),
@@ -293,6 +304,69 @@ class User extends AppModel {
 			return true; // TODO was false
 		}
 	}
+	
+/**
+ * Checks if the certificate is a valid x509 certificate
+ * But also import it in the keychain.
+ */
+	// TODO: this will NOT fail on keys that can only be used for signing but not encryption!
+	// the method in verifyUsers will fail in that case.
+	public function validateCertificate($check) {
+		// LATER first remove the old certif_public from the keychain
+		// empty value
+		if (empty($check['certif_public'])) {
+			return true;
+		}
+
+		// certif_public is entered
+		
+		// Check if $check is a x509 certificate ?
+		if (openssl_x509_read($check['certif_public'])){
+			$this->log('openssl_x509_read is good', 'debug');
+			try{
+				$msg_test = tempnam('/dev/shm/', 'SMIME');
+				$fp = fopen($msg_test, "w");
+				$test = 'test';
+				fwrite($fp, $test);
+				fclose($fp);
+				$msg_test_encrypted = tempnam('/dev/shm/', 'SMIME');
+				// encrypt it
+				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $check['certif_public'], null, 0, OPENSSL_CIPHER_AES_256_CBC)){
+					$this->log('openssl_pkcs7_encrypt good -- validateCertificate', 'debug');
+					$parse = openssl_x509_parse($check['certif_public']);
+					// Valid certificate ?
+					$now = new DateTime("now");
+					$validTo_time_t_epoch = $parse['validTo_time_t'];
+					$validTo_time_t = new DateTime("@$validTo_time_t_epoch");
+					if ($validTo_time_t > $now){
+						$this->log('openssl_pkcs7_encrypt good -- validateCertificate IS VALID -- $validTo_time_t', 'debug');
+						// purposes smimeencrypt ?
+						if (($parse['purposes'][5][0] == 1) and ($parse['purposes'][5][2] == 'smimeencrypt')){
+							$this->log('openssl_pkcs7_encrypt good -- validateCertificate purposes is GOOD', 'debug');
+							return true;
+						} else {
+							$this->log('openssl_pkcs7_encrypt good -- validateCertificate purposes is NOT GOOD', 'debug');
+							return 'This certificate cannot be used to encrypt email';
+						}
+					} else {
+						$this->log('openssl_pkcs7_encrypt good -- validateCertificate expired', 'debug');
+						return 'This certificate is expired';
+					}
+				} else{
+					$this->log('openssl_pkcs7_encrypt NOT good -- validateCertificate', 'debug');	
+					return false;
+				}
+			} catch (Exception $e){
+				$this->log($e->getMessage());
+			}
+			unlink($msg_test);
+			unlink($msg_test_encrypted);
+		}
+		else{
+			$this->log('openssl_x509_read is NOT good', 'debug');
+			return false;
+		}
+	}
 
 	public function complexPassword($check) {
 		/*
@@ -400,7 +474,60 @@ class User extends AppModel {
 		}
 		return $results;
 	}
-	
+
+	public function verifyCertificate() {
+		$this->Behaviors->detach('Trim');
+		$results = array();
+		$users = $this->find('all', array(
+			'conditions' => array('not' => array('certif_public' => '')),
+			//'fields' => array('id', 'email', 'gpgkey'),
+			'recursive' => -1,
+		));
+		foreach ($users as $k => $user) {
+			$certif_public = $user['User']['certif_public'];
+			try{
+				$msg_test = tempnam('/dev/shm/', 'SMIME');
+				$fp = fopen($msg_test, "w");
+				$test = 'test';
+				fwrite($fp, $test);
+				fclose($fp);
+				$msg_test_encrypted = tempnam('/dev/shm/', 'SMIME');
+				// encrypt it
+				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $certif_public, null, 0, OPENSSL_CIPHER_AES_256_CBC)){
+					$this->log('openssl_pkcs7_encrypt good -- Model/User', 'debug');
+					$parse = openssl_x509_parse($certif_public);
+          // Valid certificate ?
+          $now = new DateTime("now");
+          $validTo_time_t_epoch = $parse['validTo_time_t'];
+          $validTo_time_t = new DateTime("@$validTo_time_t_epoch");
+          if ($validTo_time_t > $now){
+            $this->log('openssl_pkcs7_encrypt good -- Model/User IS VALID -- $validTo_time_t', 'debug');
+            // purposes smimeencrypt ?
+            if (($parse['purposes'][5][0] == 1) and ($parse['purposes'][5][2] == 'smimeencrypt')){
+              $this->log('openssl_pkcs7_encrypt good -- Model/User purposes is GOOD', 'debug');
+            } else {
+              $this->log('openssl_pkcs7_encrypt good -- Model/User purposes is NOT GOOD', 'debug');
+              $results[$user['User']['id']][0] = true;
+            }
+          } else {
+            $this->log('openssl_pkcs7_encrypt good -- Model/User expired', 'debug');
+            $results[$user['User']['id']][0] = true;
+          }
+        } else{
+					$this->log('openssl_pkcs7_encrypt NOT good -- Model/User', 'debug');
+					$results[$user['User']['id']][0] = true;
+				}
+				$results[$user['User']['id']][1] = $user['User']['email'];
+			} catch (Exception $e){
+				$this->log($e->getMessage());
+			}
+			unlink($msg_test);
+			unlink($msg_test_encrypted);
+		}
+		return $results;
+	}
+
+
 	public function getPGP($id) {
 		$result = $this->find('first', array(
 			'recursive' => -1,
@@ -409,4 +536,14 @@ class User extends AppModel {
 		));
 		return $result['User']['gpgkey'];
 	}
+
+	public function getCertificate($id) {
+		$result = $this->find('first', array(
+			'recursive' => -1,
+			'fields' => array('id', 'certif_public'),
+			'conditions' => array('id' => $id),
+		));
+		return $result['User']['certif_public'];
+	}
+
 }
