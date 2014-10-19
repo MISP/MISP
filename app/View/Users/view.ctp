@@ -58,6 +58,17 @@ if (!empty($user['User']['gpgkey'])) {
 		?>
 			&nbsp;
 		</dd>
+		<dt><?php echo __('certif_public'); ?></dt>
+		<dd>
+		<?php
+if (!empty($user['User']['certif_public'])) {
+	echo "<code>" . nl2br(h($user['User']['certif_public'])) . "</code>";
+} else {
+	echo "N/A";
+}
+		?>
+			&nbsp;
+		</dd>
 	</dl>
 </div>
 <?php 

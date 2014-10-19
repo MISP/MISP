@@ -40,6 +40,10 @@ function showMessage(){
 		<div id="gpg" class="row-fluid">
 			<?php echo $this->Form->input('gpg', array('type' => 'textarea', 'class' => 'input-xxlarge')); ?>
 		</div>
+		<div id="certif_public" class="row-fluid">
+			<?php echo $this->Form->input('certif_public', array('type' => 'textarea', 'class' => 'input-xxlarge', 'label' => 'Public certificate (Encryption -- PEM format)', 'required' => 'none')); ?>
+		</div>
+
 		<div id="customMessage" class="row-fluid">
 			<?php
 			echo $this->Form->input('customMessage', array(
@@ -70,10 +74,12 @@ function showMessage(){
 <script>
 $("#recipient").change(setRecipientEmailList);
 $("#recipient").change(setGPG);
+$("#recipient").change(setCertif_public);
 $("#action").change(setMessage);
 $("#customMessage").change(setMessage2);
 $(document).ready(setRecipientEmailList);
 $(document).ready(setGPG);
+$(document).ready(setCertif_public);
 $(document).ready(setMessage);
 
 
@@ -117,6 +123,14 @@ function setGPG(){
 		document.getElementById("gpg").style.display="";
 	} else {
 		document.getElementById("gpg").style.display="none";
+	}
+}
+
+function setCertif_public(){
+	if ($("#recipient option:selected").text() == "New user") {
+		document.getElementById("certif_public").style.display="";
+	} else {
+		document.getElementById("certif_public").style.display="none";
 	}
 }
 

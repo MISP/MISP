@@ -57,6 +57,16 @@ if (h($user['User']['gpgkey'])) {
 						echo "N/A";
 }?>
 			</dd>
+		<dt><?php echo __('Public certificate (Encryption - PEM format)'); ?></dt>
+			<dd>
+				<?php
+if (h($user['User']['certif_public'])) {
+						echo "<code>" . nl2br(h($user['User']['certif_public'])) . "</code>";
+} else {
+						echo "N/A";
+}?>
+			</dd>
+
 		<dt><?php echo __('Nids Sid'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['nids_sid']); ?>
