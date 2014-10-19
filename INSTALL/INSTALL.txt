@@ -196,7 +196,45 @@ chown -R www-data:www-data /var/www/MISP/<directory path with an indicated issue
 
 # Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
+9/ SMIME patch
 
+# Update the database schema
+mysql -u misp -p<password> misp < INSTALL/patch_smime.sql
+
+# Create the SMIME directory
+mkdir -p /var/www/MISP/.smime/
+
+## Copy your public x509 certificate (for signing) in PEM format
+cp email@address.com.pem /var/www/MISP/.smime/email@address.com.pem
+
+## Copy your private key for signing email
+cp email@address.com.key /var/www/MISP/.smime/email@address.com.key
+
+## Set permissions
+chown www-data:www-data /var/www/MISP/.smime/
+chmod 700 /var/www/MISP/.smime/
+chown -R www-data:www-data /var/www/MISP/.smime/
+chmod 500 /var/www/MISP/.smime/*
+
+# Export the public certificate (for Encipherment) to the webroot
+
+cp public_certificate.pem /var/www/MISP/app/webroot/public_certificate.pem
+
+## Set permissions
+chown www-data:www-data /var/www/MISP/app/webroot/public_certificate.pem
+chmod 500 /var/www/MISP/app/webroot/public_certificate.pem
+
+Due to this action, the MISP users will be able to download your public certificate (for Encipherment) by clicking on the footer
+
+# Configure the section "SMIME" in file /var/www/MISP/app/Config/config.php
+
+Fill out the section "SMIME"
+
+# Copy a specific transport class to send SMIME with CakePHP (add SMIME headers)
+cp -fa /var/www/MISP/INSTALL/setup/SmimeTransport.php /var/www/MISP/app/Lib/cakephp/lib/Cake/Network/Email/SmimeTransport.php
+chown www-data:www-data /var/www/MISP/app/Lib/cakephp/lib/Cake/Network/Email/SmimeTransport.php
+chmod 644 /var/www/MISP/app/Lib/cakephp/lib/Cake/Network/Email/SmimeTransport.php
+ 
 Recommended actions
 -------------------
 - By default CakePHP exposes his name and version in email headers. Apply a patch to remove this behavior.
