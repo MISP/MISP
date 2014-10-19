@@ -18,6 +18,7 @@
 				'class' => 'datepicker',
 		));
 		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
+		echo $this->Form->input('certif_public', array('label' => 'Public certificate (Encryption -- PEM format)', 'div' => 'clear', 'class' => 'input-xxlarge'));
 		echo $this->Form->input('termsaccepted', array('label' => 'Terms accepted'));
 		echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => 'Change Password'));
 		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published'));
