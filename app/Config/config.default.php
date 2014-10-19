@@ -33,6 +33,14 @@ $config = array (
     'email' => '',
     'homedir' => '',
     'password' => '',
+	),
+  'SMIME' => 
+  array (
+    'onlyencrypted' => false,
+    'email' => 'email@address.com',
+    'cert_public_sign' => '/var/www/MISP/.smime/email@address.com.pem',
+    'key_sign' => '/var/www/MISP/.smime/email@address.com.key',
+    'password' => 'XXXXXXXXXXXXXXXXXXXXXX',
   ),
   'SecureAuth' => 
   array (
