@@ -703,7 +703,7 @@ class ShadowAttributesController extends AppController {
 			$this->loadModel('User');
 			$this->User->recursive = -1;
 			$orgMembers = array();
-			$temp = $this->User->findAllByOrg($event['Event']['orgc'], array('email', 'gpgkey', 'contactalert', 'id'));
+			$temp = $this->User->findAllByOrg($event['Event']['orgc'], array('email', 'gpgkey', 'certif_public', 'contactalert', 'id'));
 			foreach ($temp as $tempElement) {
 				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
 					array_push($orgMembers, $tempElement);
@@ -719,27 +719,56 @@ class ShadowAttributesController extends AppController {
 			$body .= "\n";
 			$body .= "You can reach the user at " . $this->Auth->user('email');
 			$body .= "\n";
-	
+
+			// prepare the email
+      // Use CakeEmail instead of EmailComponent (Deprecated)
+      $Email = new CakeEmail();
+
 			// sign the body
 			require_once 'Crypt/GPG.php';
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
-			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-			// Add the GPG key of the user as attachment
-			// LATER sign the attached GPG key
-			if (null != (!$this->User->getPGP($this->Auth->user('id')))) {
-				// save the gpg key to a temporary file
-				$tmpfname = tempnam(TMP, "GPGkey");
-				$handle = fopen($tmpfname, "w");
-				fwrite($handle, $this->User->getPGP($this->Auth->user('id')));
-				fclose($handle);
-				// attach it
-				$this->Email->attachments = array(
-						'gpgkey.asc' => $tmpfname
-				);
+			if (Configure::read('GnuPG.onlyencrypted')){
+				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
+				$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+				$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+				// Add the GPG key of the user as attachment
+				// LATER sign the attached GPG key
+				if (null != (!$this->User->getPGP($this->Auth->user('id')))) {
+					// save the gpg key to a temporary file
+					$tmpfname = tempnam(TMP, "GPGkey");
+					$handle = fopen($tmpfname, "w");
+					fwrite($handle, $this->User->getPGP($this->Auth->user('id')));
+					fclose($handle);
+					// attach it
+					$Email->attachments(array(
+          	'gpgkey.asc' => $tmpfname
+					//$this->Email->attachments = array( //Use CakeEmail instead of EmailComponent (Deprecated)
+					//		'gpgkey.asc' => $tmpfname //Use CakeEmail instead of EmailComponent (Deprecated)
+					))
+				}
+			} elseif (Configure::read('SMIME.onlyencrypted')){
+				// save message to file
+				// Dirty !!!!
+				$msg = tempnam('/dev/shm/', 'SMIME');
+				$fp = fopen($msg, "w");
+				fwrite($fp, $body);
+				fclose($fp);
+				$signed = tempnam('/dev/shm/', 'SMIME');
+				// sign it
+				if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(),PKCS7_TEXT)){
+					$fp = fopen($signed, "r");
+					$bodySigned = fread($fp, filesize($signed));
+					fclose($fp);
+					unlink($msg);
+					unlink($signed);
+				}
+				else{
+					$this->log('sign No -- sendContactEmail -- ShadowAttributesController', 'debug');
+					$this->log('SMIME.cert_public_sign', 'debug');
+					$this->log(Configure::read('SMIME.cert_public_sign'), 'debug');
+				}
 			}
-	
 			foreach ($orgMembers as &$reporter) {
+				$smime_encrypted = false;
 				if (!empty($reporter['User']['gpgkey'])) {
 					// import the key of the user into the keyring
 					// this isn't really necessary, but it gives it the fingerprint necessary for the next step
@@ -754,30 +783,70 @@ class ShadowAttributesController extends AppController {
 						$this->log($e->getMessage());
 						// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 					}
+				} elseif (!empty($reporter['User']['certif_public'])){
+					//  Extract the certificate
+					$certif_public = $reporter['User']['certif_public'];
+					// save message to file
+					// Dirty !!!!
+					$msg_signed = tempnam('/dev/shm/', 'SMIME');
+					$fp = fopen($msg_signed, "w");
+					fwrite($fp, $bodySigned);
+					fclose($fp);
+					$msg_signed_encrypted = tempnam('/dev/shm/', 'SMIME');
+					$headers_smime = array("To" => $reporter['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id);
+					// encrypt it
+					if (openssl_pkcs7_encrypt($msg_signed, $msg_signed_encrypted, $certif_public, $headers_smime, 0, OPENSSL_CIPHER_AES_256_CBC)){
+						$fp = fopen($msg_signed_encrypted, 'r');
+						$bodyEncSig = fread($fp, filesize($msg_signed_encrypted));
+						fclose($fp);
+						$parts = explode("\n\n", $bodyEncSig);
+						$bodyEncSig = $parts[1];
+						// SMIME transport (hardcoded headers
+            $Email = $Email->transport('Smime');
+						$smime_encrypted = true;
+						unlink($msg_signed);
+						unlink($msg_signed_encrypted);
+					}
+					else{
+						$this->log('encrypt No -- sendContactEmail -- ShadowAttributesController', 'debug');
+						$this->log('SMIME.cert_public_sign', 'debug');
+						$this->log(Configure::read('SMIME.cert_public_sign'), 'debug');
+					}
 				} else {
 					$bodyEncSig = $bodySigned;
 					// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
 				}
 				// prepare the email
-				$this->Email->from = Configure::read('MISP.email');
-				$this->Email->to = $reporter['User']['email'];
-				$this->Email->subject = "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id;
-				$this->Email->template = 'body';
-				$this->Email->sendAs = 'text';		// both text or html
-				$this->set('body', $bodyEncSig);
+				// Use CakeEmail instead of EmailComponent (Deprecated)	
+				$Email->from(Configure::read('MISP.email'));
+				$Email->to($reporter['User']['email']);
+				$Email->subject("[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id);
+				
+				//$this->Email->from = Configure::read('MISP.email'); // Use CakeEmail instead of EmailComponent (Deprecated)
+				//$this->Email->to = $reporter['User']['email']; // Use CakeEmail instead of EmailComponent (Deprecated)
+				//$this->Email->subject = "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id; // Use CakeEmail instead of EmailComponent (Deprecated)
+				//$this->Email->template = 'body'; // Use CakeEmail instead of EmailComponent (Deprecated)
+				if ($smime_encrypted == false) {
+					$Email->emailFormat('text');
+					//$this->Email->sendAs = 'text';		// both text or html // Use CakeEmail instead of EmailComponent (Deprecated)
+				}
+				//$this->set('body', $bodyEncSig); // Use CakeEmail instead of EmailComponent (Deprecated)
 				// Add the GPG key of the user as attachment
 				// LATER sign the attached GPG key
 				if (null != ($this->User->getPGP($this->Auth->user('id')))) {
 					// attach the gpg key
-					$this->Email->attachments = array(
-						'gpgkey.asc' => $tmpfname
-					);
+					$Email->attachments(array(
+          	'gpgkey.asc' => $tmpfname
+       	 	));
+					//$this->Email->attachments = array( // Use CakeEmail instead of EmailComponent (Deprecated)
+					//	'gpgkey.asc' => $tmpfname // Use CakeEmail instead of EmailComponent (Deprecated)
+					//); // Use CakeEmail instead of EmailComponent (Deprecated)
 				}
 				// send it
-				$result = $this->Email->send();
+				$result = $Email->send($bodyEncSig);
 				// If you wish to send multiple emails using a loop, you'll need
 				// to reset the email fields using the reset method of the Email component.
-				$this->Email->reset();
+				$Email->reset();
 			}
 		} catch (Exception $e) {
 			return false;
