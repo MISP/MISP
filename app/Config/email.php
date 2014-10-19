@@ -49,6 +49,13 @@ class EmailConfig {
 		//'headerCharset' => 'utf-8',
 	);
 
+	public $smime = array(
+		'transport' => 'Smime',
+		//'from' => 'you@localhost',
+		//'charset' => 'utf-8',
+		//'headerCharset' => 'utf-8',
+	);
+
 	public $smtp = array(
 		'transport' => 'Smtp',
 		'from' => array('site@localhost' => 'My Site'),
