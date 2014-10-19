@@ -12,6 +12,7 @@ class UsersController extends AppController {
 
 	public $components = array(
 			'Security',
+			'RequestHandler',
 			'Email',
 			);
 
@@ -47,6 +48,7 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		$this->set('user', $this->User->read(null, $id));
+		//$this->set(array('user', $this->User->read(null, $id), '_serialize' => array('user')));
 	}
 
 /**
@@ -305,6 +307,7 @@ class UsersController extends AppController {
 		$temp = $this->User->field('invited_by');
 		$this->set('id', $id);
 		$this->set('user2', $this->User->read(null, $temp));
+		$this->set(array('user', $this->User->read(null, $id), '_serialize' => array('user')));
 	}
 
 /**
@@ -322,6 +325,10 @@ class UsersController extends AppController {
 		}
 		$roles = $this->User->Role->find('list', $params);
 		if ($this->request->is('post')) {
+			if ($this->_isRest()) {
+				// rearrange the response if the event came from an export
+				if(isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
+			}
 			$this->User->create();
 			// set invited by
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
