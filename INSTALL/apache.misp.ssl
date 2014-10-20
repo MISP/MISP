@@ -3,7 +3,7 @@
         ServerName misp.local
         DocumentRoot /var/www/MISP/app/webroot
         <Directory /var/www/MISP/app/webroot>
-                Options -Indexes FollowSymLinks
+                Options -Indexes
                 AllowOverride all
                 Order allow,deny
                 allow from all
