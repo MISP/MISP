@@ -29,7 +29,7 @@ Once the system is installed you can perform the following steps as root:
 apt-get install vim
 
 # Install the dependencies:
-apt-get install zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt-dev zlib1g-dev
+apt-get install zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt-dev zlib1g-dev php5-dev
 pear install Crypt_GPG    # we need version >1.3.0 
 pear install Net_GeoIP
 
@@ -50,13 +50,16 @@ apt-get install python-dev python-pip libxml2-dev libxslt-dev zlib1g-dev
 cd /var/www/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
-python /var/www/MISP/app/files/scripts/python-cybox/setup.py install
-python /var/www/MISP/app/files/scripts/python-stix/setup.py install
+cd /var/www/MISP/app/files/scripts/python-cybox
+python setup.py install
+cd /var/www/MISP/app/files/scripts/python-stix
+python setup.py install
 
 4/ CakePHP
 -----------
 # CakePHP is now included as a submodule of MISP, execute the following commands to let git fetch it:
 
+cd /var/www/MISP
 git submodule init
 git submodule update
 
@@ -108,7 +111,7 @@ mysql -u misp -p<password> misp < INSTALL/MYSQL.sql
 # Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
 # A sample ghost can be found in /var/www/MISP/INSTALL/apache.misp
 
-cp /var/www/MISP/INSTALL/apache.misp /etc/apache2/sites-available/misp
+cp /var/www/MISP/INSTALL/apache.misp /etc/apache2/sites-available/misp.conf
 
 # Be aware that the configuration files for apache 2.4 and up have changed. 
 # The configuration file has to have the .conf extension in the sites-available directory
