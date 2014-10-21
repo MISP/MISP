@@ -105,15 +105,15 @@ class EventsController extends AppController {
 				switch ($searchTerm) {
 					case 'published' :
 						if ($v == 2) continue 2;
-						$this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' =' => $v);
+						$this->paginate['conditions']['AND'][] = array('Event.' . substr($k, 6) . ' =' => $v);
 						break;
 					case 'Datefrom' :
 						if ($v == "") continue 2;
-						$this->paginate['conditions'][] = array('Event.date >=' => $v);
+						$this->paginate['conditions']['AND'][] = array('Event.date >=' => $v);
 						break;
 					case 'Dateuntil' :
 						if ($v == "") continue 2;
-						$this->paginate['conditions'][] = array('Event.date <=' => $v);
+						$this->paginate['conditions']['AND'][] = array('Event.date <=' => $v);
 						break;
 					case 'org' :
 						if ($v == "") continue 2;
@@ -172,7 +172,7 @@ class EventsController extends AppController {
 										'recursive' => -1,
 								));
 								foreach ($allow as $a) {
-									$this->paginate['conditions']['OR'][] = array('Event.id' => $a['EventTag']['event_id']);
+									$this->paginate['conditions']['AND']['OR'][] = array('Event.id' => $a['EventTag']['event_id']);
 								}
 								$tagName = $this->Event->EventTag->Tag->find('first', array(
 										'conditions' => array('id' => $piece),
@@ -235,6 +235,7 @@ class EventsController extends AppController {
 					'ThreatLevel.name'))
 			),
 		));
+		debug($this->paginate);
 		// for rest, don't use the pagination. With this, we'll escape the limit of events shown on the index.
 		if ($this->_isRest()) {
 			$rules = array();
