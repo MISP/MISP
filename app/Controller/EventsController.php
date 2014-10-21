@@ -235,7 +235,6 @@ class EventsController extends AppController {
 					'ThreatLevel.name'))
 			),
 		));
-		debug($this->paginate);
 		// for rest, don't use the pagination. With this, we'll escape the limit of events shown on the index.
 		if ($this->_isRest()) {
 			$rules = array();
