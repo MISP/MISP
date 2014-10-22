@@ -1806,7 +1806,7 @@ class EventsController extends AppController {
 			} else {
 				$xml = $rootDir . DS . 'Analysis' . DS . 'analysis.xml';
 			}
-			$fileData = fread(fopen($xml, "r"), $this->data['Event']['submittedgfi']['size']);
+			$fileData = fread(fopen($xml, "r"), filesize($xml));
 
 			// read XML
 			$this->_readGfiXML($fileData, $id);
