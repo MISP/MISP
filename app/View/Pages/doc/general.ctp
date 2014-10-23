@@ -39,6 +39,8 @@
 		<li><b>Events with proposals: </b> Shows all of the events created by your organsiation that has pending proposals.</li>
 		<li><b>List Tags:</b>List all the tags that have been created by users with tag creation rights on this instance.</li>
 		<li><b>Add Tag:</b>Create a new tag.</li>
+		<li><b>List Templates:</b>List all of the templates created by users with template creation rights on this instance.</li>
+		<li><b>Add Template:</b>Create a new template.</li>
 		<li><b>Export:</b> Export the data accessible to you in various formats.</li>
 		<li><b>Automation:</b> If you have authentication key access, you can view how to use your key to use the REST interface for automation here.</li>
 	</ul>
@@ -74,6 +76,7 @@
 		<li><b>List Roles:</b> List, modify or delete currently existing roles.</li>
 		<li><b>Contact Users:</b> You can use this view to send messages to your current or future users or send them a new temporary password.</li>
 		<li><b>Administrative Tools:</b> Various tools, upgrade scripts that can help a site-admin run the instance</li>
+		<li><b>Server Settings:</b> Set up and diagnose your MISP installation</li>
 		<li><b>Jobs:</b> View the background jobs and their progress</li>
 		<li><b>Scheduled Tasks:</b> Schedule the pre-defined tasks for your instance (this currently includes export caching, server pull and server push).</li>
 	</ul>

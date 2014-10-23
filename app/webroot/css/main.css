@@ -1,11 +1,10 @@
 /* bootstrap changes */
 body{
-	font-family: "RobotoLight", Arial, sans-serif, "Helvetica Neue", Helvetica;
 	font-size: 12px;
 }
 
 input, button, select, textarea{
-	font-family: "RobotoLight"
+
 }
 
 button .full-width{
