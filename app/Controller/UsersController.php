@@ -181,10 +181,10 @@ class UsersController extends AppController {
 						$test = array();
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
-								if ($searchTerm == 'email' || $searchTerm == 'org') $this->paginate['conditions']['AND'][] = array('LOWER(User.' . $searchTerm . ') NOT LIKE' => '%' . substr($piece, 1) . '%');
+								if ($searchTerm == 'email' || $searchTerm == 'org') $this->paginate['conditions']['AND'][] = array('LOWER(User.' . $searchTerm . ') NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
 								else $this->paginate['conditions']['AND'][] = array('User.' . $searchTerm => substr($piece, 1));
 							} else {
-								if ($searchTerm == 'email' || $searchTerm == 'org') $test['OR'][] = array('LOWER(User.' . $searchTerm . ') LIKE' => '%' . $piece . '%');
+								if ($searchTerm == 'email' || $searchTerm == 'org') $test['OR'][] = array('LOWER(User.' . $searchTerm . ') LIKE' => '%' . strtolower($piece) . '%');
 								else $test['OR'][] = array('User.' . $searchTerm => $piece);
 							}
 						}

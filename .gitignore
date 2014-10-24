@@ -18,8 +18,8 @@
 /app/files/*
 !/app/files/empty
 !/app/files/scripts/
-!/app/files/scripts/tmp/empty
 /app/files/scripts/tmp/*
+!/app/files/scripts/tmp/empty
 /app/tmp/files/*
 !/app/files/empty
 /app/webroot/img/logo.png
