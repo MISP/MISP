@@ -938,4 +938,34 @@ class Server extends AppModel {
 		Configure::write($setting, $value);
 		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'SecureAuth', 'Security', 'debug'));
 	}
+	
+	public function checkVersion($newest) {
+		App::uses('Folder', 'Utility');
+		$file = new File (ROOT . DS . 'VERSION.json', true);
+		$version_array = json_decode($file->read());
+		$file->close();
+		$current = 'v' . $version_array->major . '.' . $version_array->minor . '.' . $version_array->hotfix;
+		$newest_array = $this->__dissectVersion($newest);
+		$upToDate = $this->__compareVersions(array($version_array->major, $version_array->minor, $version_array->hotfix), $newest_array, 0); 
+		return array ('current' => $current, 'newest' => $newest, 'upToDate' => $upToDate);
+	}
+	
+	private function __dissectVersion($version) {
+		$version = substr($version, 1);
+		return explode('.', $version);
+	}
+	
+	private function __compareVersions($current, $newest, $i) {
+		if ($current[$i] == $newest[$i]) {
+			if ($i < 2) {
+				return $this->__compareVersions($current, $newest, $i+1);
+			} else {
+				return 'same';
+			}
+		} else if ($current[$i] < $newest[$i]) {
+			return 'older';
+		} else {
+			return 'newer';
+		}
+	}
 }
