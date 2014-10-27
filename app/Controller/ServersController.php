@@ -333,10 +333,13 @@ class ServersController extends AppController {
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
 			
-			// check if the current version of MISP is outdated or not
-			$version = $this->__checkVersion();
-			$this->set('version', $version);
-			if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) $diagnostic_errors++;
+			// Only run this check on the diagnostics tab
+			if ($tab == 'diagnostics') {
+				// check if the current version of MISP is outdated or not
+				$version = $this->__checkVersion();
+				$this->set('version', $version);
+				if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) $diagnostic_errors++;
+			}
 			
 			// check writeable directories
 			$writeableDirs = array(
