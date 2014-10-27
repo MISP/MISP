@@ -86,8 +86,8 @@ function eventUnpublish() {
 	$('.notPublished').show();
 }
 
-function updateIndex(id, context, page) {
-	if (typeof page === 'undefined') page = 1;
+function updateIndex(id, context, newPage) {
+	if (typeof newPage !== 'undefined') page = newPage;
 	var url, div;
 	if (context == 'event') {
 		url = "/events/view/" + id + "/attributesPage:" + page;
