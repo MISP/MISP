@@ -333,6 +333,11 @@ class ServersController extends AppController {
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
 			
+			// check if the current version of MISP is outdated or not
+			$version = $this->__checkVersion();
+			$this->set('version', $version);
+			if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) $diagnostic_errors++;
+			
 			// check writeable directories
 			$writeableDirs = array(
 					'tmp' => 0, 'files' => 0, 'files' . DS . 'scripts' . DS . 'tmp' => 0,
@@ -436,6 +441,27 @@ class ServersController extends AppController {
 			$this->set('workerIssueCount', $workerIssueCount);
 			$this->set('priorityErrorColours', $priorityErrorColours);
 		}
+	}
+	
+	private function __checkVersion() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		set_error_handler(function() {});
+		$options  = array('http' => array('user_agent'=> $_SERVER['HTTP_USER_AGENT']));
+		$context  = stream_context_create($options);
+		$tags = file_get_contents('https://api.github.com/repos/MISP/MISP/tags', false, $context);
+		restore_error_handler();
+		if ($tags != false) {
+			$json_decoded_tags = json_decode($tags);
+	
+			// find the latest version tag in the v[major].[minor].[hotfix] format
+			for ($i = 0; $i < count($json_decoded_tags); $i++) {
+				if (preg_match('/^v[0-9]+\.[0-9]+\.[0-9]+$/', $json_decoded_tags[$i]->name)) break;
+			}
+			return $this->Server->checkVersion($json_decoded_tags[$i]->name);
+		} else {
+			return false;
+		}
+
 	}
 	
 	public function serverSettingsEdit($setting, $id, $forceSave = false) {
