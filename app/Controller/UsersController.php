@@ -700,6 +700,16 @@ class UsersController extends AppController {
 		}
 		$this->set('termsaccepted', $this->Auth->user('termsaccepted'));
 	}
+	
+	public function downloadTerms() {
+		if (!Configure::read('MISP.terms_file')) {
+			$termsFile = APP ."View/Users/terms";
+		} else {
+			$termsFile = APP . 'files' . DS . 'terms' . DS .  Configure::read('MISP.terms_file');
+		}
+		$this->response->file($termsFile, array('download' => true, 'name' => Configure::read('MISP.terms_file')));
+		return $this->response;
+	}
 
 	public function news() {
 		$this->User->id = $this->Auth->user('id');
