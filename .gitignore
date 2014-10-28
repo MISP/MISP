@@ -22,6 +22,9 @@
 !/app/files/scripts/tmp/empty
 /app/tmp/files/*
 !/app/files/empty
+!/app/files/terms
+/app/files/terms/*
+!/app/files/terms/empty
 /app/webroot/img/logo.png
 /app/Config/bootstrap.php
 /app/Config/database.php

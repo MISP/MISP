@@ -357,6 +357,22 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
+					'terms_download' => array(
+							'level' => 2,
+							'description' => 'Choose whether the terms and conditions should be displayed inline (false) or offered as a download (true)',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
+					),
+					'terms_file' => array(
+							'level' => 2,
+							'description' => 'The filename of the terms and conditions file. Make sure that the file is located in your MISP/app/files/terms directory',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForTermsFile',
+							'type' => 'string'
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
@@ -933,6 +949,21 @@ class Server extends AppModel {
 		if ($value == "Rooraenietu8Eeyo<Qu2eeNfterd-dd+") return 'This is the default salt shipped with the application and is therefore unsecure.';
 		return true;
 	}
+	
+	public function testForTermsFile($value) {
+		return $this->__testForFile($value, APP . 'files' . DS . 'terms');
+	}
+	
+	
+	// never come here directly, always go through a secondary check like testForTermsFile in order to also pass along the expected file path
+	private function __testForFile($value, $path) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if (!preg_match('/^[\w,\s-]+(\.)?[A-Za-z0-9]+$/', $value)) return 'Invalid filename. Valid filenames can only include characters between a-z, A-Z or 0-9. They can also include - and _ and can optionally have an extension.';
+		$file = $path . DS . $value;
+		if (!file_exists($file)) return 'Could not find the specified file. Make sure that it is uploaded into the following directory: ' . $path;
+		return true;
+	}
+	
 	
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
