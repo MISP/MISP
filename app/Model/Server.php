@@ -173,10 +173,10 @@ class Server extends AppModel {
 					),
 					'footer_logo' => array(
 							'level' => 2 ,
-							'description' => 'If set, this setting allows you to display a logo on the right side of the footer.',
+							'description' => 'If set, this setting allows you to display a logo on the right side of the footer. Upload it as a custom image in the file management tool.',
 							'value' => '',
 							'errorMessage' => '',
-							'test' => 'testForEmpty',
+							'test' => 'testForCustomImage',
 							'type' => 'string',
 					),
 					'org' => array(
@@ -335,18 +335,18 @@ class Server extends AppModel {
 					),
 					'welcome_logo' => array(
 							'level' => 2,
-							'description' => 'Used on the login page, to the left of the MISP logo, place a .png file in app/webroot/img with the name specified here.',
+							'description' => 'Used on the login page, to the left of the MISP logo, upload it as a custom image in the file management tool.',
 							'value' => '',
 							'errorMessage' => '',
-							'test' => 'testForEmpty',
+							'test' => 'testForCustomImage',
 							'type' => 'string',
 					),
 					'welcome_logo2' => array(
 							'level' => 2,
-							'description' => 'Used on the login page, to the right of the MISP logo, place a .png file in app/webroot/img with the name specified here.',
+							'description' => 'Used on the login page, to the right of the MISP logo, upload it as a custom image in the file management tool.',
 							'value' => '',
 							'errorMessage' => '',
-							'test' => 'testForEmpty',
+							'test' => 'testForCustomImage',
 							'type' => 'string',
 					),
 					'take_ownership_xml_import' => array(
@@ -954,6 +954,10 @@ class Server extends AppModel {
 		return $this->__testForFile($value, APP . 'files' . DS . 'terms');
 	}
 	
+	public function testForCustomImage($value) {
+		return $this->__testForFile($value, APP . 'webroot' . DS . 'img' . DS . 'custom');
+	}
+	
 	
 	// never come here directly, always go through a secondary check like testForTermsFile in order to also pass along the expected file path
 	private function __testForFile($value, $path) {
@@ -998,5 +1002,61 @@ class Server extends AppModel {
 		} else {
 			return 'newer';
 		}
+	}
+	
+	public function getFileRules() {
+		$validItems = array(
+				'orgs' => array(
+						'name' => 'Organisation logos',
+						'description' => 'The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.',
+						'expected' => array(),
+						'valid_format' => '48x48 pixel .png files',
+						'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
+						'regex' => '.*\.(png|PNG)',
+						'regex_error' => 'Filename must be in the following format: *.png',
+						'files' => array(),
+				),
+				'terms' => array(
+						'name' => 'Terms of Use file',
+						'description' => 'Terms of use file viewable / downloadable by users. Make sure that it is either in text / html format if served inline.',
+						'expected' => array('MISP.terms_file' => Configure::read('MISP.terms_file')),
+						'valid_format' => 'text/html if served inline, anything that conveys the terms of use if served as download',
+						'path' => APP . 'files' . DS . 'terms',
+						'regex' => '^(?!empty).*$',
+						'regex_error' => 'Filename can be any string consisting of characters between a-z, A-Z, 0-9 or one of the following: "_" or "-". The filename can also have an extension.',
+						'files' => array(),
+				),
+				'img' => array(
+						'name' => 'Additional image files',
+						'description' => 'Image files uploaded into this directory can be used for various purposes, such as for the login page logos',
+						'expected' => array(
+								'MISP.footer_logo' => Configure::read('MISP.footer_logo'), 
+								'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
+								'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
+						),
+						'valid_format' => 'text/html if served inline, anything that conveys the terms of use if served as download',
+						'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
+						'regex' => '.*\.(png|PNG)',
+						'regex_error' => 'Filename must be in the following format: *.png',
+						'files' => array(),
+				),
+		);
+		return $validItems;
+	}
+	
+	public function grabFiles() {
+		$validItems = $this->getFileRules();
+		App::uses('Folder', 'Utility');
+		App::uses('File', 'Utility');
+		$result = array();
+		foreach ($validItems as $k => &$item) {
+			$dir = new Folder($item['path']);
+			$files = $dir->find($item['regex'], true);
+			foreach ($files as $file) {
+				$f = new File($item['path'] . DS . $file);
+				$validItems[$k]['files'][] = array('filename' => $file, 'filesize' => $f->size(), 'read' => $f->readable(), 'write' => $f->writable(), 'execute' => $f->executable());
+			}
+		}
+		return $validItems;
 	}
 }

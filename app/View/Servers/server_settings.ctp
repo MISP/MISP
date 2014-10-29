@@ -8,6 +8,8 @@
 			echo $this->element('healthElements/diagnostics');
 		} else if ($tab == 'workers') {
 			echo $this->element('healthElements/workers');
+		} else if($tab == 'files') {
+			echo $this->element('healthElements/files');
 		} else {
 			echo $this->element('healthElements/overview');
 		}

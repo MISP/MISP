@@ -42,6 +42,9 @@
 	</span>
 	<?php endif; ?>
 	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:10px;">
-	<a href="/servers/serverSettings/download" id="download-button" title="Download report" class="useCursorPointer discrete icon-download-alt"></a>
+		<a href="/servers/serverSettings/files" id="download-button" title="Manage files" class="discrete">Manage files</a>
+	</span>
+	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:10px;">
+		<a href="/servers/serverSettings/download" id="download-button" title="Download report" class="useCursorPointer discrete icon-download-alt"></a>
 	</span>
 </div>
