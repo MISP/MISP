@@ -341,6 +341,11 @@ class ServersController extends AppController {
 				if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) $diagnostic_errors++;
 			}
 			
+			if ($tab == 'files') {
+				$files = $this->__manageFiles();
+				$this->set('files', $files);
+			}
+			
 			// check writeable directories
 			$writeableDirs = array(
 					'tmp' => 0, 'files' => 0, 'files' . DS . 'scripts' . DS . 'tmp' => 0,
@@ -522,5 +527,65 @@ class ServersController extends AppController {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		shell_exec(APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null &');
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
+	}
+	
+	private function __manageFiles() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		$files = $this->Server->grabFiles();
+		return $files;
+	}
+	
+	public function deleteFile($type, $filename) {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if ($this->request->is('post')) {
+			$validItems = $this->Server->getFileRules();
+			App::uses('File', 'Utility');
+			$existingFile = new File($validItems[$type]['path'] . DS . $filename);
+			if (!$existingFile->exists()) {
+				$this->Session->setFlash(__('File not found.', true), 'default', array(), 'error');
+				$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
+			}
+			if ($existingFile->delete()) {
+				$this->Session->setFlash('File deleted.');
+			} else {
+				$this->Session->setFlash(__('File could not be deleted.', true), 'default', array(), 'error');
+			}
+			$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
+		} else {
+			throw new MethodNotAllowedException('This action expects a POST request.');
+		}
+	}
+	
+	public function uploadFile($type) {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		$validItems = $this->Server->getFileRules();
+		
+		// Check if there were problems with the file upload
+		// only keep the last part of the filename, this should prevent directory attacks
+		$filename = basename($this->request->data['Server']['file']['name']);
+		if (!preg_match("/" . $validItems[$type]['regex'] . "/", $filename)) {
+			$this->Session->setFlash(__($validItems[$type]['regex_error'], true), 'default', array(), 'error');
+			$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
+		}
+		if (empty($this->request->data['Server']['file']['tmp_name']) || !is_uploaded_file($this->request->data['Server']['file']['tmp_name'])) {
+			$this->Session->setFlash(__('Upload failed.', true), 'default', array(), 'error');
+			$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
+		}
+		
+		// check if the file already exists
+		App::uses('File', 'Utility');
+		$existingFile = new File($validItems[$type]['path'] . DS . $filename);
+		if ($existingFile->exists()) {
+			$this->Session->setFlash(__('File already exists. If you would like to replace it, remove the old one first.', true), 'default', array(), 'error');
+			$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
+		}
+		
+		$result = move_uploaded_file($this->request->data['Server']['file']['tmp_name'], $validItems[$type]['path'] . DS . $filename);
+		if ($result) {
+			$this->Session->setFlash('File uploaded.');
+		} else {
+			$this->Session->setFlash(__('Upload failed.', true), 'default', array(), 'error');
+		}
+		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
 	}
 }
