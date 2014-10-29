@@ -19,9 +19,11 @@
 				<span> <?php echo $footerText; ?> </span>
 			</div>
 			<div class="pull-right" style="position:relative;padding-top:9px;z-index:2;">
-				<?php if (Configure::read('MISP.footer_logo')): ?>
-					<img src="/img/<?php echo Configure::read('MISP.footer_logo');?>.png" style="height:24px;" />
-				<?php endif;?>
+				<?php 
+					if (Configure::read('MISP.footer_logo')) {
+				 		if (Configure::read('MISP.footer_logo')) echo $this->Html->image('custom/' . Configure::read('MISP.footer_logo'), array('alt' => 'Footer Logo', 'onerror' => "this.style.display='none';", 'style' => 'height:24px'));
+					}
+				?>
 			</div>
 		</div>
 	</div>
