@@ -128,7 +128,7 @@
 		<div id = "generatedURL" style="word-wrap: break-word;"><br />Save this URL if you would like to use the same filter settings again<br /><div style="background-color:#f5f5f5;border: 1px solid #e3e3e3; border-radius:4px;padding:3px;background-color:white;"><span id="generatedURLContent"></span></div></div>
 		<br />
 		<span class="btn btn-primary" onClick="indexApplyFilters();">Apply</span>
-		<span class="btn btn-inverse" onClick="cancelPopoverForm();" style="margin-left:548px;">Cancel</span>
+		<span class="btn btn-inverse" onClick="cancelPopoverForm();">Cancel</span>
 		</div>
 </div>
 <script type="text/javascript">
