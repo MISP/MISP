@@ -16,13 +16,13 @@ class IOCImportComponent extends Component {
 
 	// Indicators that we can safely remove if they pop up within an AND branch
 	private $discardableIndicators = array(
-			'FileItem/PEInfo/Exports/NumberOfFunctions',
-			'FileItem/PEInfo/Exports/ExportedFunctions/string',
-			'FileItem/PEInfo/ImportedModules/Module/ImportedFunctions/string',
-			'FileItem/SizeInBytes',
-			'FileItem/PEInfo/PETimeStamp',
-			'FileItem/PEInfo/DigitalSignature/SignatureExists',
-			'FileItem/PEInfo/DigitalSignature/CertificateSubject',
+			//'FileItem/PEInfo/Exports/NumberOfFunctions',
+			//'FileItem/PEInfo/Exports/ExportedFunctions/string',
+			//'FileItem/PEInfo/ImportedModules/Module/ImportedFunctions/string',
+			//'FileItem/SizeInBytes',
+			//'FileItem/PEInfo/PETimeStamp',
+			//'FileItem/PEInfo/DigitalSignature/SignatureExists',
+			//'FileItem/PEInfo/DigitalSignature/CertificateSubject',
 			);
 
 	// Set up the data that you would like to fetch from the ioc's root and add as comments.
@@ -282,7 +282,8 @@ class IOCImportComponent extends Component {
 			case 'SystemInfoItem/Hostname':
 			case 'UrlHistoryItem/HostName':
 			case 'DnsEntryItem/RecordName':
-				return array('Network Activity', 'hostname');
+			case 'DnsEntryItem/Host':
+				return array('Network activity', 'hostname');
 				break;
 			case 'RegistryItem/Text':
 				return array('Persistence mechanism', 'tempRegValue');

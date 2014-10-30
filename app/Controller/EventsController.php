@@ -1883,7 +1883,7 @@ class EventsController extends AppController {
 			);
 			// Save it all
 			$saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
-
+			
 			// set stuff for the view and render the showIOCResults view.
 			$this->set('attributes', $saveEvent['Attribute']);
 			if (isset($fails)) {

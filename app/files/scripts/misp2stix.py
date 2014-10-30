@@ -142,7 +142,7 @@ def generateEventPackage(event):
 
 # generate the incident information. MISP events are currently mapped to incidents with the event metadata being stored in the incident information
 def generateSTIXObjects(event):
-    incident = Incident(id_ = "example:STIXPackage-" + event["Event"]["uuid"], description=event["Event"]["info"])
+    incident = Incident(id_ = "example:incident-" + event["Event"]["uuid"], description=event["Event"]["info"])
     setDates(incident, event["Event"]["date"], int(event["Event"]["publish_timestamp"]))
     addJournalEntry(incident, "Event Threat Level: " + event["ThreatLevel"]["name"])
     ttps = []
@@ -299,11 +299,9 @@ def setTLP(target, distribution):
 
 # add a journal entry to an incident
 def addJournalEntry(incident, entry_line):
-    if hasattr(incident.history, "value"):
-        incident.history.value += "\n" + entry_line
-    else:
-        je = JournalEntry(value = entry_line)
-        incident.history = je
+    hi = HistoryItem()
+    hi.journal_entry = entry_line
+    incident.history.append(hi)
 
 # main
 def main(args):
