@@ -299,7 +299,7 @@
 ?>
 <script type="text/javascript">
 	var all = 1;
-	var page = <?php echo $page; ?>;
+	var page = "<?php echo $page; ?>";
 	var count = <?php echo $pageCount; ?>;
 	$(document).ready(function(){
 		$('input:checkbox').removeAttr('checked');
