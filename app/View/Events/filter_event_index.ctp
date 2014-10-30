@@ -87,6 +87,12 @@
 						'style' => 'display:none;width:424px;',
 						'div' => false
 				));
+				echo $this->Form->input('searchattribute', array(
+						'label' => false,
+						'class' => 'input-large',
+						'style' => 'display:none;width:424px;',
+						'div' => false
+				));
 			?>
 			<span id="addRuleButton" class="btn btn-inverse" style="margin-bottom:10px;display:none;">Add</span>
 			</div>
@@ -101,7 +107,7 @@
 					<th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
 				</tr>
 				<?php 
-					$fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'threatlevel', 'analysis', 'distribution');
+					$fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'threatlevel', 'analysis', 'distribution', 'attribute');
 					foreach ($fields as $k => $field):
 				?>
 					<tr id="row_<?php echo $field; ?>" class="hidden filterTableRow">
@@ -166,9 +172,9 @@ var filtering = <?php echo $filtering; ?>;
 
 var operators = ["OR", "NOT"];
 
-var allFields = ["published", "tag", "date", "eventinfo", "threatlevel", "distribution", "analysis"];
+var allFields = ["published", "tag", "date", "eventinfo", "threatlevel", "distribution", "analysis", "attribute"];
 
-var simpleFilters = ["tag", "eventinfo", "threatlevel", "distribution", "analysis"];
+var simpleFilters = ["tag", "eventinfo", "threatlevel", "distribution", "analysis", "attribute"];
 
 var differentFilters = ["published", "date"];
 

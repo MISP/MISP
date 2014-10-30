@@ -75,6 +75,101 @@ class EventsController extends AppController {
 			))));
 		}
 	}
+	
+	private function __filterOnAttributeValue($value) {
+		// dissect the value
+		$pieces = explode('|', $value);
+		$test = array();
+		$include = array();
+		$exclude = array();
+		$includeIDs = array();
+		$excludeIDs = array();
+		foreach ($pieces as $piece) {
+			if ($piece[0] == '!') {
+				$exclude[] =  '%' . substr($piece, 1) . '%';
+			} else {
+				$include[] = '%' . $piece . '%';
+			}
+		}
+		if (!empty($include)) {
+			// get all of the attributes that should be included
+			$includeQuery = array(
+					'recursive' => -1,
+					'fields' => array('id', 'event_id', 'distribution', 'value'),
+					'conditions' => array(),
+			);
+			foreach ($include as $i) {
+				$includeQuery['conditions']['OR'][] = array('Attribute.value LIKE' => $i);
+			}
+			$includeHits = $this->Event->Attribute->find('all', $includeQuery);
+			
+			// convert it into an array that uses the event ID as a key
+	
+			foreach ($includeHits as $iH) {
+				$includeIDs[$iH['Attribute']['event_id']][] = array('attribute_id' => $iH['Attribute']['id'], 'distribution' => $iH['Attribute']['distribution']);
+			}
+		}
+		
+		if (!empty($exclude)) {
+			// get all of the attributes that should be excluded
+			$excludeQuery = array(
+				'recursive' => -1,
+				'fields' => array('id', 'event_id', 'distribution', 'value'),
+				'conditions' => array(),
+			);
+			foreach ($exclude as $e) {
+				$excludeQuery['conditions']['OR'][] = array('Attribute.value LIKE' => $e);
+			}
+			$excludeHits = $this->Event->Attribute->find('all', $excludeQuery);
+			
+			// convert it into an array that uses the event ID as a key
+			foreach ($excludeHits as $eH) {
+				$excludeIDs[$eH['Attribute']['event_id']][] = array('attribute_id' => $eH['Attribute']['id'], 'distribution' => $eH['Attribute']['distribution']);
+			}
+		}
+		if (!empty($exclude) || !empty($include)) {
+		// if we are not site admin, fetch all of the events so that we can remove everything that the user is not allowed to see
+			if (!$this->_isSiteAdmin()) {
+				$eventQuery = array(
+					'fields' => array('id', 'distribution', 'org'),
+					'recursive' => -1,
+					'conditions' => array(),
+				);
+				foreach ($excludeIDs as $eIK => $eIV) {
+					$eventQuery['conditions']['OR'][] = array('Event.id' => $eIK);
+				}
+				foreach ($includeIDs as $iIK => $iIV) {
+					$eventQuery['conditions']['OR'][] = array('Event.id' => $iIK);
+				}
+				$events = $this->Event->find('all', $eventQuery);
+				foreach ($events as $e) {
+					if ($e['Event']['org'] != $this->Auth->user('org')) {
+						if ($e['Event']['distribution'] == 0) {
+							// unset all attribute hits that include this event
+							if (isset($includeIDs[$e['Event']['id']])) unset($includeIDs[$e['Event']['id']]);
+							if (isset($excludeIDs[$e['Event']['id']])) unset($excludeIDs[$e['Event']['id']]);
+						} else {
+							// if the event has distribution > 0 but it doesn't belong to the current user then 
+							// we still have to remove the attributes that have the distribution set lower.
+							if (isset($includeIDs[$e['Event']['id']])) {
+								foreach ($includeIDs[$e['Event']['id']] as $i => $iI) {
+									if ($iI['distribution'] == 0) unset($includeIDs[$e['Event']['id']][$i]);
+								}
+							}
+							if (isset($excludeIDs[$e['Event']['id']])) {
+								foreach ($excludeIDs[$e['Event']['id']] as $i => $iI) {
+									if ($iI['distribution'] == 0) unset($excludeIDs[$e['Event']['id']][$i]);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		$includeIDs = array_keys($includeIDs);
+		$excludeIDs = array_keys($excludeIDs);
+		return array($includeIDs, $excludeIDs);
+	}
 
 	/**
 	 * index method
@@ -83,17 +178,6 @@ class EventsController extends AppController {
 	 */
 	public function index() {
 		// list the events
-		if (Configure::read('MISP.tagging') && !$this->_isRest()) {
-			$this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
-			$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
-			$tagNames = array('None');
-			foreach ($tags as $k => $v) {
-				$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
-			}
-			$this->set('tags', $tagNames);
-		} else {
-			$this->Event->contain('User.email');
-		}
 		$passedArgsArray = array();
 		$urlparams = "";
 		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
@@ -103,6 +187,11 @@ class EventsController extends AppController {
 				$urlparams .= $k . ":" . $v;
 				$searchTerm = substr($k, 6);
 				switch ($searchTerm) {
+					case 'attribute' :
+						$event_id_arrays = $this->__filterOnAttributeValue($v);
+						foreach ($event_id_arrays[0] as $event_id) $this->paginate['conditions']['AND']['OR'][] = array('Event.id' => $event_id);
+						foreach ($event_id_arrays[1] as $event_id) $this->paginate['conditions']['AND'][] = array('Event.id !=' => $event_id);
+						break;
 					case 'published' :
 						if ($v == 2) continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.' . substr($k, 6) . ' =' => $v);
@@ -227,6 +316,17 @@ class EventsController extends AppController {
 				$passedArgsArray[$searchTerm] = $v;
 			}
 		}
+		if (Configure::read('MISP.tagging') && !$this->_isRest()) {
+			$this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
+			$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
+			$tagNames = array('None');
+			foreach ($tags as $k => $v) {
+				$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
+			}
+			$this->set('tags', $tagNames);
+		} else {
+			$this->Event->contain('User.email');
+		}
 		$this->set('urlparams', $urlparams);
 		$this->set('passedArgsArray', $passedArgsArray);
 		$this->paginate = Set::merge($this->paginate, array('contain' => array(
@@ -282,6 +382,7 @@ class EventsController extends AppController {
 			'threatlevel' => array('OR' => array(), 'NOT' => array()),
 			'distribution' => array('OR' => array(), 'NOT' => array()),
 			'analysis' => array('OR' => array(), 'NOT' => array()),
+			'attribute' => array('OR' => array(), 'NOT' => array()),
 		);
 
 		foreach ($this->passedArgs as $k => $v) {
@@ -300,6 +401,7 @@ class EventsController extends AppController {
 					case 'org' :
 					case 'tag' :
 					case 'eventinfo' :
+					case 'attribute' :
 					case 'threatlevel' :
 					case 'distribution' :
 					case 'analysis' :
@@ -336,7 +438,7 @@ class EventsController extends AppController {
 			'conditions' => $conditions,
 			'group' => 'orgc'
 		));
-		$rules = array('published', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis');
+		$rules = array('published', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
 		if (Configure::read('MISP.showorg')){
 			$orgs = array();
 			foreach ($events as $e) {
