@@ -23,20 +23,22 @@
 			$filtered = true;
 		}
 	?>
-	<div class="tabMenuFixedContainer">
-	<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
-		<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo $urlparams;?>', 'events', 'filterEventIndex');"></span>
-	</span>
-	<?php if ($filtered):
-		foreach ($passedArgsArray as $k => $v):?>
-			<span class="tabMenuFixed tabMenuFixedElement">
-				<?php echo h(ucfirst($k)) . " : " . h($v); ?>
-			</span>
-		<?php endforeach; ?>
-	<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
-		<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
-	</span>
-	<?php endif;?>
+	<div class="tabMenuFixedContainer" style="display:inline-block;">
+		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
+			<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'events', 'filterEventIndex');"></span>
+		</span>
+		<?php if ($filtered):
+			foreach ($passedArgsArray as $k => $v):?>
+				<span class="tabMenuFixed tabMenuFixedElement">
+					<?php echo h(ucfirst($k)) . " : " . h($v); ?>
+				</span>
+			<?php endforeach; ?>
+		<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
+			<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
+		</span>
+		<?php endif;?>
+		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilterEvents(<?php echo h($passedArgs);?>);'>Filter</span>
+		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
