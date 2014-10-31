@@ -942,6 +942,25 @@ function indexEvaluateFiltering() {
 	$('#generatedURLContent').html(indexCreateFilters());
 }
 
+function quickFilterEvents(passedArgs) {
+	passedArgs["searchall"] = $('#quickFilterField').val();
+	var url = "/events/index";
+	for (var key in passedArgs) {
+		url += "/" + key + ":" + passedArgs[key];
+	}
+	window.location.href=url;
+}
+
+$('#quickFilterField').bind("enterKey",function(e){
+	$('#quickFilterButton').trigger("click");
+});
+$('#quickFilterField').keyup(function(e){
+	if(e.keyCode == 13)
+	{
+    	$('#quickFilterButton').trigger("click");
+	}
+});
+	
 function indexApplyFilters() {
 	var url = indexCreateFilters();
 	window.location.href = url;
@@ -1049,25 +1068,25 @@ function indexAddRule(param) {
 	var found = false;
 	if (filterContext == 'event') {
 		if (param.data.param1 == "date") {
-			var val1 = $('#EventSearch' + param.data.param1 + 'from').val();
-			var val2 = $('#EventSearch' + param.data.param1 + 'until').val();
+			var val1 = escape($('#EventSearch' + param.data.param1 + 'from').val());
+			var val2 = escape($('#EventSearch' + param.data.param1 + 'until').val());
 			if (val1 != "") filtering.date.from = val1;
 			if (val2 != "") filtering.date.until = val2;
 		} else if (param.data.param1 == "published") {
-			var value = $('#EventSearchpublished').val();
+			var value = escape($('#EventSearchpublished').val());
 			if (value != "") filtering.published = value;
 		} else {
-			var value = $('#EventSearch' + param.data.param1).val();
-			var operator = operators[$('#EventSearchbool').val()];
+			var value = escape($('#EventSearch' + param.data.param1).val());
+			var operator = operators[escape($('#EventSearchbool').val())];
 			if (value != "" && filtering[param.data.param1][operator].indexOf(value) < 0) filtering[param.data.param1][operator].push(value);
 		}
 	} else if (filterContext = 'user') {
 		if (differentFilters.indexOf(param.data.param1) != -1) {
-			var value = $('#UserSearch' + param.data.param1).val();
+			var value = escape($('#UserSearch' + param.data.param1).val());
 			if (value != "") filtering[param.data.param1] = value;
 		} else {
-			var value = $('#UserSearch' + param.data.param1).val();
-			var operator = operators[$('#UserSearchbool').val()];
+			var value = escape($('#UserSearch' + param.data.param1).val());
+			var operator = operators[escape($('#UserSearchbool').val())];
 			if (value != "" && filtering[param.data.param1][operator].indexOf(value) < 0) filtering[param.data.param1][operator].push(value);
 		}
 	}

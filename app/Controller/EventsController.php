@@ -86,20 +86,21 @@ class EventsController extends AppController {
 		$excludeIDs = array();
 		foreach ($pieces as $piece) {
 			if ($piece[0] == '!') {
-				$exclude[] =  '%' . substr($piece, 1) . '%';
+				$exclude[] =  '%' . strtolower(substr($piece, 1)) . '%';
 			} else {
-				$include[] = '%' . $piece . '%';
+				$include[] = '%' . strtolower($piece) . '%';
 			}
 		}
 		if (!empty($include)) {
 			// get all of the attributes that should be included
 			$includeQuery = array(
 					'recursive' => -1,
-					'fields' => array('id', 'event_id', 'distribution', 'value'),
+					'fields' => array('id', 'event_id', 'distribution', 'value1', 'value2'),
 					'conditions' => array(),
 			);
 			foreach ($include as $i) {
-				$includeQuery['conditions']['OR'][] = array('Attribute.value LIKE' => $i);
+				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
+				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
 			}
 			$includeHits = $this->Event->Attribute->find('all', $includeQuery);
 			
@@ -114,11 +115,12 @@ class EventsController extends AppController {
 			// get all of the attributes that should be excluded
 			$excludeQuery = array(
 				'recursive' => -1,
-				'fields' => array('id', 'event_id', 'distribution', 'value'),
+				'fields' => array('id', 'event_id', 'distribution', 'value1', 'value2'),
 				'conditions' => array(),
 			);
 			foreach ($exclude as $e) {
-				$excludeQuery['conditions']['OR'][] = array('Attribute.value LIKE' => $e);
+				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
+				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
 			}
 			$excludeHits = $this->Event->Attribute->find('all', $excludeQuery);
 			
@@ -170,6 +172,97 @@ class EventsController extends AppController {
 		$excludeIDs = array_keys($excludeIDs);
 		return array($includeIDs, $excludeIDs);
 	}
+	
+	private function __quickFilter($value) {
+		$result = array();
+		
+		// get all of the attributes that have a hit on the search term, in either the value or the comment field
+		// This is not perfect, the search will be case insensitive, but value1 and value 2 are searched separately. lower() doesn't seem to work on virtualfields
+		$attributeHits = $this->Event->Attribute->find('all', array(
+				'recursive' => -1,
+				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2'),
+				'conditions' => array(
+					'OR' => array(
+						'lower(value1) LIKE' => '%' . strtolower($value) . '%',
+						'lower(value2) LIKE' => '%' . strtolower($value) . '%',
+						'lower(comment) LIKE' => '%' . strtolower($value) . '%',
+					),
+				),
+		));
+		// rearrange the data into an array where the keys are the event IDs
+		$eventsWithAttributeHits = array();
+		foreach ($attributeHits as $aH) {
+			$eventsWithAttributeHits[$aH['Attribute']['event_id']][] = $aH['Attribute'];
+		}
+		
+		// Using the keys from the previously obtained ordered array, let's fetch all of the events involved
+		$events = $this->Event->find('all', array(
+				'recursive' => -1,
+				'fields' => array('id', 'distribution', 'org'),
+				'conditions' => array('id' => array_keys($eventsWithAttributeHits)),
+		));
+		
+		// The problem with the above list is, that the user may still not be allowed to know about some of those attributes, 
+		// or the events that contain them. Let's prune the list of events if the user is not a site admin.
+		if (!$this->_isSiteAdmin()) {
+			foreach ($events as $k => $event) {
+				// if the event is not the user's org's event and is org only, unset it
+				if ($event['Event']['distribution'] == 0 && $event['Event']['org'] != $this->Auth->user('org')) unset($events[$k]);
+				else {
+					// If the event doesn't belong to the user's org but the distribution is higher than 0, then the attributes still need to be checked
+					if ($event['Event']['org'] != $this->Auth->user('org')) {
+						$canKeep = false;
+						foreach($eventsWithAttributeHits[$event['Event']['id']] as $att) {
+							if ($att['distribution'] > 0) {
+								$canKeep = true;
+								break;
+							}
+						} 
+						// if $canKeep is still false then we didn't find any matching attributes that the current user could see - unset the event :(
+						if (!$canKeep) unset($events[$k]);
+					}
+				}
+			}
+		}
+		foreach ($events as $event) {
+			$result[] = $event['Event']['id'];
+		}
+		
+		// we now have a list of event IDs that match on an attribute level, and the user can see it. Let's also find all of the events that match on other criteria!
+		// What is interesting here is that we no longer have to worry about the event's releasability. With attributes this was a different case,
+		// because we might run into a situation where a user can see an event but not a specific attribute
+		// returning a hit on such an attribute would allow users to enumerate hidden attributes
+		// For anything beyond this point the default pagination restrictions will apply!
+
+		// First of all, there are tags that might be interesting for us
+		$tags = $this->Event->EventTag->Tag->find('all', array(
+				'conditions' => array('lower(name) LIKE' => '%' . strtolower($value) . '%'),
+				'fields' => array('name', 'id'),
+				'contain' => array('EventTag'),
+		));
+		foreach ($tags as $tag) {
+			foreach ($tag['EventTag'] as $eventTag) {
+				if (!in_array($eventTag['event_id'], $result)) $result[] = $eventTag['event_id'];
+			}
+		}
+
+		// Finally, let's search on the event metadata!
+		
+		$otherEvents = $this->Event->find('all', array(
+				'recursive' => -1,
+				'fields' => array('id', 'orgc', 'info'),
+				'conditions' => array(
+					'OR' => array(
+						'lower(orgc) LIKE' => '%' . strtolower($value) .'%',
+						'lower(info) LIKE' => '%' . strtolower($value) .'%',
+					),
+				),
+		));
+		foreach ($otherEvents as $oE) {
+			if (!in_array($oE['Event']['id'], $result)) $result[] = $oE['Event']['id'];
+		}
+		return $result;
+	}
 
 	/**
 	 * index method
@@ -180,6 +273,7 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
+		$this->set('passedArgs', json_encode($this->passedArgs));
 		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
 		foreach ($this->passedArgs as $k => $v) {
 			if (substr($k, 0, 6) === 'search') {
@@ -187,6 +281,9 @@ class EventsController extends AppController {
 				$urlparams .= $k . ":" . $v;
 				$searchTerm = substr($k, 6);
 				switch ($searchTerm) {
+					case 'all' :
+						$this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($this->passedArgs['searchall']));
+						break;
 					case 'attribute' :
 						$event_id_arrays = $this->__filterOnAttributeValue($v);
 						foreach ($event_id_arrays[0] as $event_id) $this->paginate['conditions']['AND']['OR'][] = array('Event.id' => $event_id);
@@ -212,9 +309,9 @@ class EventsController extends AppController {
 						$test = array();
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
-								$this->paginate['conditions']['AND'][] = array('Event.orgc' . ' NOT LIKE' => '%' . substr($piece, 1) . '%');
+								$this->paginate['conditions']['AND'][] = array('lower(Event.orgc)' . ' NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
 							} else {
-								$test['OR'][] = array('Event.orgc' . ' LIKE' => '%' . $piece . '%');
+								$test['OR'][] = array('lower(Event.orgc)' . ' LIKE' => '%' . strtolower($piece) . '%');
 							}
 						}
 						$this->paginate['conditions']['AND'][] = $test;
@@ -226,9 +323,9 @@ class EventsController extends AppController {
 						$test = array();
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
-								$this->paginate['conditions']['AND'][] = array('Event.info' . ' NOT LIKE' => '%' . substr($piece, 1) . '%');
+								$this->paginate['conditions']['AND'][] = array('lower(Event.info)' . ' NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
 							} else {
-								$test['OR'][] = array('Event.info' . ' LIKE' => '%' . $piece . '%');
+								$test['OR'][] = array('lower(Event.info)' . ' LIKE' => '%' . strtolower($piece) . '%');
 							}
 						}
 						$this->paginate['conditions']['AND'][] = $test;
@@ -310,7 +407,7 @@ class EventsController extends AppController {
 						break;
 					default:
 						if ($v == "") continue 2;
-						$this->paginate['conditions'][] = array('Event.' . substr($k, 6) . ' LIKE' => '%' . $v . '%');
+						$this->paginate['conditions'][] = array('lower(Event.' . substr($k, 6) . ') LIKE' => '%' . $v . '%');
 						break;
 				}
 				$passedArgsArray[$searchTerm] = $v;
@@ -369,7 +466,7 @@ class EventsController extends AppController {
 		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All');
 		$this->set('shortDist', $shortDist);
 	}
-
+	
 	public function filterEventIndex() {
 		$passedArgsArray = array();
 		
