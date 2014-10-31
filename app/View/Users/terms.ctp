@@ -16,9 +16,16 @@
 			$terms->close();
 		} else {
 			?>
-				<a href="/users/downloadTerms" class="btn btn-primary">Download Terms and Conditions</a>
+				<a href="/users/downloadTerms" class="btn btn-inverse">Download Terms and Conditions</a>
 			<?php 
 		}
+	}
+	if (!$termsaccepted) {
+		echo "<br /><br />";
+		echo $this->Form->create('User');
+		echo $this->Form->hidden('termsaccepted', array('default' => '1'));
+		echo $this->Form->submit('Accept Terms', array('class' => 'btn btn-primary'));
+		echo $this->Form->end();
 	}
 ?>
 </div>
