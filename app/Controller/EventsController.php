@@ -2336,13 +2336,16 @@ class EventsController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key=null, $value=null, $type=null, $category=null, $org=null, $tags = '') {
+	public function restSearch($key=null, $value=null, $type=null, $category=null, $org=null, $tags = '', $searchall=null) {
 		if ($tags != '') $tags = str_replace(';', ':', $tags);
+		if ($tags === 'null') $tags = '';
 		if ($value === 'null') $value = null;
 		if ($type === 'null') $type = null;
 		if ($tags === 'null') $tags = null;
 		if ($category === 'null') $category = null;
 		if ($org === 'null') $org = null;
+		if ($searchall === 'null') $searchall = '';
+		if ($searchall === 'true') $searchall = "1";
 		if ($key!=null && $key!='download') {
 			$user = $this->checkAuthUser($key);
 		} else {
@@ -2367,7 +2370,7 @@ class EventsController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
@@ -2387,78 +2390,82 @@ class EventsController extends AppController {
 		$this->loadModel('Attribute');
 		// add the values as specified in the 2nd parameter to the conditions
 		$values = explode('&&', $value);
-		$parameters = array('value', 'type', 'category', 'org');
-		foreach ($parameters as $k => $param) {
-			if (isset(${$parameters[$k]})) {
-				$elements = explode('&&', ${$parameters[$k]});
-				foreach($elements as $v) {
-					if (substr($v, 0, 1) == '!') {
-						if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
-							$cidrresults = $this->Cidr->CIDR(substr($v, 1));
-							foreach ($cidrresults as $result) {
-								$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
+		if (isset($searchall) && ($searchall == 1 || $searchall === true || $searchall == 'true')) {
+			$eventIds = $this->__quickFilter($value);
+		} else {
+			$parameters = array('value', 'type', 'category', 'org');
+			foreach ($parameters as $k => $param) {
+				if (isset(${$parameters[$k]})) {
+					$elements = explode('&&', ${$parameters[$k]});
+					foreach($elements as $v) {
+						if (substr($v, 0, 1) == '!') {
+							if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
+								$cidrresults = $this->Cidr->CIDR(substr($v, 1));
+								foreach ($cidrresults as $result) {
+									$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
+								}
+							} else {
+								if ($parameters[$k] === 'org') {
+									$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+								} else {
+									$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+								}
 							}
 						} else {
-							if ($parameters[$k] === 'org') {
-								$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+							if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
+								$cidrresults = $this->Cidr->CIDR($v);
+								foreach ($cidrresults as $result) {
+									$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
+								}
 							} else {
-								$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
-							}
-						}
-					} else {
-						if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
-							$cidrresults = $this->Cidr->CIDR($v);
-							foreach ($cidrresults as $result) {
-								$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
-							}
-						} else {
-							if ($parameters[$k] === 'org') {
-								$subcondition['OR'][] = array('Event.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
-							} else {
-								$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+								if ($parameters[$k] === 'org') {
+									$subcondition['OR'][] = array('Event.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+								} else {
+									$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+								}
 							}
 						}
 					}
+					array_push ($conditions['AND'], $subcondition);
+					$subcondition = array();
 				}
-				array_push ($conditions['AND'], $subcondition);
-				$subcondition = array();
 			}
-		}
-
-		// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
-
-		if (!$user['User']['siteAdmin']) {
-			$temp = array();
-			$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
-			$subcondition['OR'][] = $temp;
-			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
-			array_push($conditions['AND'], $subcondition);
-		}
 		
-		// If we sent any tags along, load the associated tag names for each attribute
-		if ($tags) {
-			$args = $this->Event->Attribute->dissectArgs($tags);
-			$this->loadModel('Tag');
-			$tagArray = $this->Tag->fetchEventTagIds($args[0], $args[1]);
-			$temp = array();
-			foreach ($tagArray[0] as $accepted) {
-				$temp['OR'][] = array('Event.id' => $accepted);
+			// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
+	
+			if (!$user['User']['siteAdmin']) {
+				$temp = array();
+				$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
+				$subcondition['OR'][] = $temp;
+				$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
+				array_push($conditions['AND'], $subcondition);
 			}
-			$conditions['AND'][] = $temp;
-			$temp = array();
-			foreach ($tagArray[1] as $rejected) {
-				$temp['AND'][] = array('Event.id !=' => $rejected);
+			
+			// If we sent any tags along, load the associated tag names for each attribute
+			if ($tags) {
+				$args = $this->Event->Attribute->dissectArgs($tags);
+				$this->loadModel('Tag');
+				$tagArray = $this->Tag->fetchEventTagIds($args[0], $args[1]);
+				$temp = array();
+				foreach ($tagArray[0] as $accepted) {
+					$temp['OR'][] = array('Event.id' => $accepted);
+				}
+				$conditions['AND'][] = $temp;
+				$temp = array();
+				foreach ($tagArray[1] as $rejected) {
+					$temp['AND'][] = array('Event.id !=' => $rejected);
+				}
+				$conditions['AND'][] = $temp;
 			}
-			$conditions['AND'][] = $temp;
-		}
-		$params = array(
-			'conditions' => $conditions,
-			'fields' => array('Attribute.event_id'),
-		);
-		$attributes = $this->Attribute->find('all', $params);
-		$eventIds = array();
-		foreach ($attributes as $attribute) {
-			if (!in_array($attribute['Attribute']['event_id'], $eventIds)) $eventIds[] = $attribute['Attribute']['event_id'];
+			$params = array(
+				'conditions' => $conditions,
+				'fields' => array('Attribute.event_id'),
+			);
+			$attributes = $this->Attribute->find('all', $params);
+			$eventIds = array();
+			foreach ($attributes as $attribute) {
+				if (!in_array($attribute['Attribute']['event_id'], $eventIds)) $eventIds[] = $attribute['Attribute']['event_id'];
+			}
 		}
 		if (!empty($eventIds)) {
 			$results = $this->__fetchEvent(null, $eventIds, $user['User']['org'], true);
