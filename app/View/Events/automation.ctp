@@ -93,7 +93,7 @@ echo Configure::read('MISP.baseurl').'/attributes/text/download/ip-src/tag1&&!ta
 <p>POST to:</p>
 <pre>
 <?php
-	echo Configure::read('MISP.baseurl').'/events/restSearch/' . $me['authkey'];
+	echo Configure::read('MISP.baseurl').'/events/restSearch/download';
 ?>
 </pre>
 <p>POST message payload (XML):</p>
