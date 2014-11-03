@@ -86,9 +86,24 @@ echo Configure::read('MISP.baseurl').'/attributes/text/download/ip-src/tag1&&!ta
 <p>To return an event with all of its attributes, relations, shadowAttributes, use the following syntax:</p>
 <pre>
 <?php
-	echo Configure::read('MISP.baseurl').'/events/restSearch/download/[value]/[type]/[category]/[org]/[tag]';
+	echo Configure::read('MISP.baseurl').'/events/restSearch/download/[value]/[type]/[category]/[org]/[tag]/[quickfilter]';
 ?>
 </pre>
+<p>There is also a new flag called "quickfilter". Enabling this (by passing "1" as the argument) will make the search ignore all of the other arguments, except for the auth key and value. MISP will return an xml / json (depending on the header sent) of all events that have a sub-string match on value in the event info, event orgc, or any of the attribute value1 / value2 fields, or in the attribute comment. For example, to find any event with the term "red october" mentioned, use the following syntax (the example is shown as a POST request instead of a GET, which is highly recommended):</p>
+<p>POST to:</p>
+<pre>
+<?php
+	echo Configure::read('MISP.baseurl').'/events/restSearch/' . $me['authkey'];
+?>
+</pre>
+<p>POST message payload (XML):</p>
+<p><code>
+&lt;request&gt;&lt;value&gt;red october&lt;/value&gt;&lt;searchall&gt;1&lt;/searchall&gt;&lt;/request&gt;
+</code></p>
+<p>POST message payload (json):</p>
+<p><code>
+{"request": {"value":"red october","searchall":1}}
+</code></p>
 <p>To just return a list of attributes, use the following syntax:</p>
 <pre>
 <?php
@@ -108,7 +123,6 @@ For example, in order to search for all attributes created by your organisation 
 	echo Configure::read('MISP.baseurl').'/attributes/restSearch/download/192.168.1.1|16/ip-src/null/' . $me['org'];
 ?>
 </pre>
-
 <h3>Export attributes of event with specified type as XML</h3>
 <p>If you want to export all attributes of a pre-defined type that belong to an event, use the following syntax:</p>
 <pre>
