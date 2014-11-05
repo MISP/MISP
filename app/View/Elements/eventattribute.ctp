@@ -89,7 +89,6 @@
 		</tr>
 		<?php 
 			foreach($eventArray as $k => $object):
-
 				$extra = '';
 				$extra2 = '';
 				$extra3 = '';
@@ -151,7 +150,7 @@
 							endif;
 								$sigDisplay = $object['value'];
 								if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
-									$t = ($currentType == 'Attribute' ? 'attributes' : 'shadow_attributes');
+									$t = ($object['type'] == 0 ? 'attributes' : 'shadow_attributes');
 									$filenameHash = explode('|', nl2br(h($object['value'])));
 									if (strrpos($filenameHash[0], '\\')) {
 										$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
