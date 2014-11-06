@@ -27,6 +27,8 @@ class UsersController extends AppController {
 
 		// what pages are allowed for non-logged-in users
 		$this->Auth->allow('login', 'logout');
+		//$this->Auth->allow();
+
 	}
 
 /**
@@ -68,7 +70,7 @@ class UsersController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// What fields should be saved (allowed to be saved)
-			$fieldList = array('email', 'autoalert', 'gpgkey', 'nids_sid', 'contactalert');
+			$fieldList = array('email', 'autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert');
 			if ("" != $this->request->data['User']['password'])
 				$fieldList[] = 'password';
 			// Save the data
@@ -783,16 +785,17 @@ class UsersController extends AppController {
 			throw new MethodNotAllowedException();
 		}
 		$this->User->recursive = 0;
-		$temp = $this->User->find('all', array('fields' => array('email', 'gpgkey')));
+		$temp = $this->User->find('all', array('fields' => array('email', 'gpgkey', 'certif_public')));
 		$emails = array();
 		$gpgKeys = array();
+		$certif_public_certs = array();
 		// save all the emails of the users and set it for the dropdown list in the form
 		foreach ($temp as $user) {
 			array_push($emails, $user['User']['email']);
 			array_push($gpgKeys, $user['User']['gpgkey']);
+			array_push($certif_public_certs, $user['User']['certif_public']);
 		}
 		$this->set('recipientEmail', $emails);
-
 		// User has filled in his contact form, send out the email.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$message1 = null;
@@ -833,6 +836,7 @@ class UsersController extends AppController {
 			if ($this->request->data['User']['recipient'] == 0) {
 				$recipients = $emails;
 				$recipientGPG = $gpgKeys;
+				$recipientSMIME = $certif_public_certs;
 				if ($this->request->data['User']['action'] == '1') {
 					$i = 0;
 					foreach ($recipients as $rec) {
@@ -850,11 +854,11 @@ class UsersController extends AppController {
 					}
 				}
 			}
-
 			// If the recipient is a user, and the action to create a password, create it and squeeze it between the main message and the signature
 			if ($this->request->data['User']['recipient'] == 1) {
 				$recipients[0] = $emails[$this->request->data['User']['recipientEmailList']];
 				$recipientGPG[0] = $gpgKeys[$this->request->data['User']['recipientEmailList']];
+				$recipientSMIME[0] = $certif_public_certs[$this->request->data['User']['recipientEmailList']];
 				if ($this->request->data['User']['action'] == '1') {
 					$password = $this->User->generateRandomPassword();
 					$message[0] = $message1 . "\n\nYour temporary password: " . $password . $message2;
@@ -863,10 +867,10 @@ class UsersController extends AppController {
 					$message[0] = $message1;
 				}
 			}
-
 			require_once 'Crypt/GPG.php';
 			$i = 0;
 			foreach ($recipients as $recipient) {
+				$smime_encrypted = false;
 				if (!empty($recipientGPG[$i])) {
 					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 					$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
@@ -882,21 +886,76 @@ class UsersController extends AppController {
 						$this->log($e->getMessage());
 						// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 					}
-				} else {
+				} elseif (!empty($recipientSMIME[$i])) {
+						// save message to file
+						// Dirty !!!!
+						$msg = tempnam('/dev/shm/', 'SMIME');
+						$fp = fopen($msg, "w");
+						fwrite($fp, $message[$i]);
+						fclose($fp);
+						$signed = tempnam('/dev/shm/', 'SMIME');
+						// sign it
+						if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(), PKCS7_TEXT)){
+							$fp = fopen($signed, "r");
+							$messageSigned = fread($fp, filesize($signed));
+							fclose($fp);
+							unlink($msg);
+							unlink($signed);
+						}
+						else{
+							$this->log('sign No -- admin_email -- UsersController', 'debug');
+							$this->log('SMIME.cert_public_sign', 'debug');
+							$this->log(Configure::read('SMIME.cert_public_sign'), 'debug');
+						}
+						// save message to file
+						// Dirty !!!!
+						$msg_signed = tempnam('/dev/shm/', 'SMIME');
+						$fp = fopen($msg_signed, "w");
+						fwrite($fp, $messageSigned);
+						fclose($fp);
+						$msg_signed_encrypted = tempnam('/dev/shm/', 'SMIME');
+						$headers_smime = array("To" => $recipients[$i], "From" => Configure::read('MISP.email'), "Subject" => $subject);
+						// encrypt it
+						if (openssl_pkcs7_encrypt($msg_signed, $msg_signed_encrypted, $recipientSMIME[$i], $headers_smime, 0, OPENSSL_CIPHER_AES_256_CBC)){
+							$fp = fopen($msg_signed_encrypted, 'r');
+							$encryptedMessage = fread($fp, filesize($msg_signed_encrypted));
+							fclose($fp);
+							$smime_encrypted = true;
+							$parts = explode("\n\n", $encryptedMessage);
+							$encryptedMessage = $parts[1];
+							//$Email = $Email->transport('Smime');
+							unlink($msg_signed);
+							unlink($msg_signed_encrypted);
+						}
+						else{
+							$this->log('encrypt No -- admin_email -- UsersController', 'debug');
+							$this->log('SMIME.cert_public_sign', 'debug');
+							$this->log(Configure::read('SMIME.cert_public_sign'), 'debug');
+						}
+					}	
+					else {
 					$encryptedMessage = $message[$i];
 				}
-
 				// prepare the email
-				$this->Email->from = Configure::read('MISP.email');
-				$this->Email->to = $recipients[$i];
-				$this->Email->subject = $subject;
+				// Use CakeEmail instead of EmailComponent (Deprecated)
+				$Email = new CakeEmail();
+				$Email->from(Configure::read('MISP.email'));
+				$Email->to($recipients[$i]);
+				$Email->subject($subject);
 				//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
-				$this->Email->template = 'body';
-				$this->Email->sendAs = 'text';		// both text or html
-				$this->set('body', $encryptedMessage);
+				//$this->Email->template = 'body'; //Use CakeEmail instead of EmailComponent (Deprecated)
+				if ($smime_encrypted == false) {
+					//$this->Email->sendAs = 'text';          // both text or html // Use CakeEmail instead of EmailComponent (Deprecated)
+					$Email->emailFormat('text');
+				} else {
+					// PUT the SMIME Headers
+					$Email = $Email->transport('Smime');
+				}
+				//$this->set('body', $encryptedMessage);  // Use CakeEmail instead of EmailComponent (Deprecated)
 
 				// send it
-				$result = $this->Email->send();
+				$result = $Email->send($encryptedMessage);
+				//$result = $this->Email->send();  // Use CakeEmail instead of EmailComponent (Deprecated)
 
 				// if sending successful and action was a password change, update the user's password.
 				if ($result && $this->request->data['User']['action'] == '1') {
@@ -909,7 +968,8 @@ class UsersController extends AppController {
 				}
 				// If you wish to send multiple emails using a loop, you'll need
 				// to reset the email fields using the reset method of the Email component.
-				$this->Email->reset();
+				//$this->Email->reset(); // Use CakeEmail instead of EmailComponent (Deprecated)
+				$Email->reset();
 				$i++;
 			}
 			$this->Session->setFlash(__('E-mails sent.'));
@@ -969,6 +1029,11 @@ class UsersController extends AppController {
 	public function verifyGPG() {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$user_results = $this->User->verifyGPG();
+		$this->set('users', $user_results);
+	}
+	public function verifyCertificate() {
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		$user_results = $this->User->verifyCertificate();
 		$this->set('users', $user_results);
 	}
 }

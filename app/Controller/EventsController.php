@@ -456,9 +456,14 @@ class EventsController extends AppController {
 		} else {
 			$this->set('events', $this->paginate());
 		}
-		
-		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
-			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
+		if (Configure::read('GnuPG.onlyencrypted')) {
+			if (($this->Event->User->getPGP($this->Auth->user('id')) == '') and (!Configure::read('SMIME.onlyencrypted'))) {
+				$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
+			} elseif (($this->Event->User->getCertificate($this->Auth->user('id')) == '') and (Configure::read('SMIME.onlyencrypted')) and ($this->Event->User->getPGP($this->Auth->user('id')) == '')) {
+				$this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive emails, submit your public certificate or GPG key in your profile.'));
+			}
+		} elseif (($this->Event->User->getCertificate($this->Auth->user('id')) == '') and (Configure::read('SMIME.onlyencrypted'))) {
+			$this->Session->setFlash(__('No x509 certificate set in your profile. To receive emails, submit your public certificate in your profile.'));
 		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
@@ -1565,6 +1570,7 @@ class EventsController extends AppController {
 			$all = $this->request->data['Event']['person'];
 			$user = $this->Auth->user();
 			$user['gpgkey'] = $this->Event->User->getPGP($user['id']);
+			$user['certif_public'] = $this->Event->User->getCertificate($user['id']);
 			if ($this->Event->sendContactEmailRouter($id, $message, $all, $user, $this->_isSiteAdmin())) {
 				// redirect to the view event page
 				$this->Session->setFlash(__('Email sent to the reporter.', true));
