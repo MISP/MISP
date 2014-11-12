@@ -179,7 +179,7 @@ class EventShell extends AppShell
 		} else {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.csv');
 		}
-		$file->write('uuid,event_id,category,type,value,to_ids,date');
+		$file->write('uuid,event_id,category,type,value,to_ids,date' . PHP_EOL);
 		foreach ($eventIds as $k => $eventId) {
 			$attributes = $this->Event->csv($org, $isSiteAdmin, $eventId['Event']['id'], $ignore);
 			$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
