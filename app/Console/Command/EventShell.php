@@ -102,6 +102,8 @@ class EventShell extends AppShell
 					unset($result['Event']['RelatedEvent'][$key]['Event']);
 					$result['Event']['RelatedEvent'][$key]['Event'][0] = $temp;
 					unset($result['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
+					$result['Event']['RelatedEvent'][$key]['Event'][0]['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['RelatedEvent'][$key]['Event'][0]['info']);
+					$result['Event']['RelatedEvent'][$key]['Event'][0]['info'] = str_replace($toEscape, $escapeWith, $result['Event']['RelatedEvent'][$key]['Event'][0]['info']);
 					if ('true' != Configure::read('MISP.showorg') && !$isAdmin) {
 						unset($result['Event']['RelatedEvent'][$key]['Event'][0]['org']);
 						unset($result['Event']['RelatedEvent'][$key]['Event'][0]['orgc']);
