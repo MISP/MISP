@@ -1,11 +1,13 @@
 <?php
 $xmlArray = array();
-$toEscape = array("&", "<");
-$escapeWith = array('&amp;', '&lt;');
+$toEscape = array("&", "<", ">", "\"", "'");
+$escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
 foreach ($results as $result) {
 	$result['Event']['Attribute'] = $result['Attribute'];
 	$result['Event']['ShadowAttribute'] = $result['ShadowAttribute'];
 	$result['Event']['RelatedEvent'] = $result['RelatedEvent'];
+	$result['Event']['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['info']);
+	$result['Event']['info'] = str_replace($toEscape, $escapeWith, $result['Event']['info']);
 
 	//
 	// cleanup the array from things we do not want to expose
