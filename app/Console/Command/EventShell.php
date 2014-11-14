@@ -81,10 +81,23 @@ class EventShell extends AppShell
 					$result['Event']['Attribute'][$key]['data'] = $encodedFile;
 				}
 				$result['Event']['Attribute'][$key]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['value']);
+				$result['Event']['Attribute'][$key]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['comment']);
 				unset($result['Event']['Attribute'][$key]['value1']);
 				unset($result['Event']['Attribute'][$key]['value2']);
 				unset($result['Event']['Attribute'][$key]['category_order']);
 				$result['Event']['Attribute'][$key]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['value']);
+				$result['Event']['Attribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['comment']);
+
+				foreach($result['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
+					if (Configure::read('MISP.cached_attachments') && $this->Event->ShadowAttribute->typeIsAttachment($result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['type'])) {
+						$encodedFile = $this->Event->ShadowAttribute->base64EncodeAttachment($result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]);
+						$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['data'] = $encodedFile;
+					}
+					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
+					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
+					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
+					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
+				}
 			}
 			// remove invalid utf8 characters for the xml parser
 			foreach($result['Event']['ShadowAttribute'] as $key => $value) {
@@ -94,6 +107,8 @@ class EventShell extends AppShell
 				}
 				$result['Event']['ShadowAttribute'][$key]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['ShadowAttribute'][$key]['value']);
 				$result['Event']['ShadowAttribute'][$key]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['ShadowAttribute'][$key]['value']);
+				$result['Event']['ShadowAttribute'][$key]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['ShadowAttribute'][$key]['comment']);
+				$result['Event']['ShadowAttribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['ShadowAttribute'][$key]['comment']);
 			}
 			
 			if (isset($result['Event']['RelatedEvent'])) {
