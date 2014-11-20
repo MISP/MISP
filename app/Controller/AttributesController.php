@@ -1088,12 +1088,14 @@ class AttributesController extends AppController {
 			if ($this->request->is('post') && ($this->request->here == $fullAddress)) {
 				$keyword = $this->request->data['Attribute']['keyword'];
 				$keyword2 = $this->request->data['Attribute']['keyword2'];
+				$tags = $this->request->data['Attribute']['tags'];
 				$org = $this->request->data['Attribute']['org'];
 				$type = $this->request->data['Attribute']['type'];
 				$ioc = $this->request->data['Attribute']['ioc'];
 				$this->set('ioc', $ioc);
 				$category = $this->request->data['Attribute']['category'];
 				$this->set('keywordSearch', $keyword);
+				$this->set('tags', $tags);
 				$keyWordText = null;
 				$keyWordText2 = null;
 				$keyWordText3 = null;
@@ -1114,26 +1116,67 @@ class AttributesController extends AppController {
 					$temp = array();
 					$temp2 = array();
 					foreach ($keywordArray as $keywordArrayElement) {
-						$saveWord = trim($keywordArrayElement);
-						$keywordArrayElement = '%' . trim($keywordArrayElement) . '%';
-						if ($keywordArrayElement != '%%') {
-							if ($keywordArrayElement[1] == '!') {
-								if (preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($saveWord, 2))) {
-									$cidrresults = $this->Cidr->CIDR($saveWord);
-									foreach ($cidrresults as $result) {
-										array_push($temp2, array('Attribute.value NOT LIKE' => $result));
+						$saveWord = trim(strtolower($keywordArrayElement));
+						if ($saveWord != '') {
+							$toInclude = true;
+							if ($saveWord[0] == '!') {
+								$toInclude = false;
+								$saveWord = substr($saveWord, 1);
+							}
+	
+							if (preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', $saveWord)) {
+								$cidrresults = $this->Cidr->CIDR($saveWord);
+								foreach ($cidrresults as $result) {
+									$result = strtolower($result);
+									if (strpos($result, '|')) {
+										$resultParts = explode('|', $result);
+										if (!toInclude) { 
+											$temp2[] = array(
+												'AND' => array(
+													'LOWER(Attribute.value1) NOT LIKE' => $resultParts[0],
+													'LOWER(Attribute.value2) NOT LIKE' => $resultParts[1],
+											));
+										} else {
+											$temp[] = array(
+												'AND' => array(
+													'LOWER(Attribute.value1)' => $resultParts[0],
+													'LOWER(Attribute.value2)' => $resultParts[1],
+											));
+										}
+									} else {
+										if (!$toInclude) {
+											array_push($temp2, array('LOWER(Attribute.value1) NOT LIKE' => $result));
+											array_push($temp2, array('LOWER(Attribute.value2) NOT LIKE' => $result));
+										} else {
+											array_push($temp, array('LOWER(Attribute.value1) LIKE' => $result));
+											array_push($temp, array('LOWER(Attribute.value2) LIKE' => $result));
+										}
 									}
-								} else {
-									array_push($temp2, array('Attribute.value NOT LIKE' => '%' . substr($keywordArrayElement, 2)));
 								}
 							} else {
-								if (preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', $saveWord)) {
-									$cidrresults = $this->Cidr->CIDR($saveWord);
-									foreach ($cidrresults as $result) {
-										array_push($temp, array('Attribute.value LIKE' => $result));
+								if (strpos($saveWord, '|')) {
+									$resultParts = explode('|', $saveWord);
+									if (!$toInclude) {
+										$temp2[] = array(
+											'AND' => array(
+												'LOWER(Attribute.value1) NOT LIKE' => '%' . $resultParts[0],
+												'LOWER(Attribute.value2) NOT LIKE' => $resultParts[1] . '%',
+										));
+									} else {
+										$temp2[] = array(
+											'AND' => array(
+												'LOWER(Attribute.value1)' => '%' . $resultParts[0],
+												'LOWER(Attribute.value2)' => $resultParts[1] . '%',
+										));
 									}
 								} else {
-									array_push($temp, array('Attribute.value LIKE' => $keywordArrayElement));
+									if (!$toInclude) {
+										array_push($temp2, array('LOWER(Attribute.value1) NOT LIKE' => '%' . $saveWord . '%'));
+										array_push($temp2, array('LOWER(Attribute.value2) NOT LIKE' => '%' . $saveWord . '%'));
+									} else {
+										array_push($temp, array('LOWER(Attribute.value1) LIKE' => '%' . $saveWord . '%'));
+										array_push($temp, array('LOWER(Attribute.value2) LIKE' => '%' . $saveWord . '%'));
+									}
 								}
 							}
 						}
@@ -1175,6 +1218,19 @@ class AttributesController extends AppController {
 						$conditions['AND'][] = $temp;
 					}
 				}
+				if (!empty($tags)) {
+					$include = array();
+					$exclude = array();
+					$keywordArray = explode("\n", $tags);
+					foreach ($keywordArray as $tagname) {
+						$tagname = trim($tagname);
+						if (substr($tagname, 0, 1) === '!') $exclude[] = substr($tagname, 1);
+						else $include[] = $tagname;
+					}
+					$this->loadModel('Tag');
+					if (!empty($include)) $conditions['AND'][] = array('OR' => array('Attribute.event_id' => $this->Tag->findTags($include)));
+					if (!empty($exclude)) $conditions['AND'][] = array('Attribute.event_id !=' => $this->Tag->findTags($exclude)); 
+				}
 				if ($type != 'ALL') {
 					$conditions['Attribute.type ='] = $type;
 				}
@@ -1204,7 +1260,6 @@ class AttributesController extends AppController {
 						$conditions['AND'][] = $temp;
 					}
 				}
-				
 				if ($this->request->data['Attribute']['alternate']) {
 					$events = $this->searchAlternate($conditions);
 					$this->set('events', $events);
@@ -1244,7 +1299,6 @@ class AttributesController extends AppController {
 						}
 					}
 					$this->set('attributes', $attributes);
-	
 					// and store into session
 					$this->Session->write('paginate_conditions', $this->paginate);
 					$this->Session->write('paginate_conditions_keyword', $keyword);
@@ -1252,6 +1306,7 @@ class AttributesController extends AppController {
 					$this->Session->write('paginate_conditions_org', $org);
 					$this->Session->write('paginate_conditions_type', $type);
 					$this->Session->write('paginate_conditions_ioc', $ioc);
+					$this->Session->write('paginate_conditions_tags', $tags);
 					$this->Session->write('paginate_conditions_category', $category);
 					$this->Session->write('search_find_idlist', $idList);
 					$this->Session->write('search_find_attributeidlist', $attributeIdList);
@@ -1278,17 +1333,18 @@ class AttributesController extends AppController {
 			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 			$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-
 			// get from Session
 			$keyword = $this->Session->read('paginate_conditions_keyword');
 			$keyword2 = $this->Session->read('paginate_conditions_keyword2');
 			$org = $this->Session->read('paginate_conditions_org');
 			$type = $this->Session->read('paginate_conditions_type');
 			$category = $this->Session->read('paginate_conditions_category');
+			$tags = $this->Session->read('paginate_conditions_tags');
 			$this->set('keywordSearch', $keyword);
 			$this->set('keywordSearch2', $keyword2);
 			$this->set('orgSearch', $org);
 			$this->set('typeSearch', $type);
+			$this->set('tags', $tags);
 			$this->set('isSearch', 1);
 			$this->set('categorySearch', $category);
 
@@ -1693,9 +1749,33 @@ class AttributesController extends AppController {
 	
 	public function generateCorrelation() {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		$k = $this->Attribute->generateCorrelation();
-		$this->Session->setFlash(__('All done. ' . $k . ' attributes processed.'));
-		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+		if (!Configure::read('MISP.background_jobs')) {
+			$k = $this->Attribute->generateCorrelation();
+			$this->Session->setFlash(__('All done. ' . $k . ' attributes processed.'));
+			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+		} else {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'generate correlation',
+					'job_input' => 'All attributes',
+					'status' => 0,
+					'retries' => 0,
+					'org' => 'ADMIN',
+					'message' => 'Job created.',
+			);
+			$job->save($data);
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'default',
+					'AdminShell',
+					array('jobGenerateCorrelation', $jobId)
+			);
+			$job->saveField('process_id', $process_id);
+			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
+			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+		}
 	}
 	
 	public function fetchViewValue($id, $field = null) {
