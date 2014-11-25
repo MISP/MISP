@@ -2860,7 +2860,11 @@ class EventsController extends AppController {
 				$event['Event']['published'] = 0;
 				$this->Event->save($event);
 			}
-			$this->Session->setFlash($saved . ' attributes created. ' . $failed . ' attributes could not be saved. This may be due to attributes with similar values already existing.');
+			if ($failed > 0) {
+				$this->Session->setFlash($saved . ' attributes created. ' . $failed . ' attributes could not be saved. This may be due to attributes with similar values already existing.');
+			} else {
+				$this->Session->setFlash($saved . ' attributes created.');
+			}
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
 		} else {
 			throw new MethodNotAllowedException();
