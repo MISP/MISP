@@ -86,7 +86,7 @@ SCHEMALOC_DICT = {
 # mappings
 status_mapping = {'0' : 'New', '1' : 'Open', '2' : 'Closed'}
 TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN'}
-confidence_mapping = {'0' : 'None', '1' : 'High'}
+confidence_mapping = {False : 'None', True : 'High'}
 
 not_implemented_attributes = ['yara', 'pattern-in-traffic', 'pattern-in-memory']
 
