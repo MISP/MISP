@@ -2843,7 +2843,7 @@ class EventsController extends AppController {
 				if ($attribute['save'] == '1') {
 					$this->Event->Attribute->create();
 					$attribute['distribution'] = $event['Event']['distribution'];
-					$attribute['comment'] = 'Imported via the freetext import.';
+					if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
 					$attribute['event_id'] = $id;
 					if ($this->Event->Attribute->save($attribute)) {
 						$saved++;
