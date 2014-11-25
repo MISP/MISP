@@ -46,16 +46,24 @@
 				<?php echo $this->Paginator->sort('published');?>
 			</th>
 			<?php
-			if (Configure::read('MISP.showorg') || $isAdmin): ?>
-				<th class="filter"><?php echo $this->Paginator->sort('org'); ?></th>
-			<?php
-			endif;
+				if (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg')):
 			?>
-			<?php if ($isSiteAdmin): ?>
-			<th class="filter">
-				<?php echo $this->Paginator->sort('owner org');?>
-			</th>
-			<?php endif; ?>
+				<th class="filter"><?php echo $this->Paginator->sort('org', 'Source org'); ?></th>
+				<th class="filter"><?php echo $this->Paginator->sort('org', 'Member org'); ?></th>
+			<?php 
+				else:
+					if (Configure::read('MISP.showorg') || $isAdmin): 
+			?>
+						<th class="filter"><?php echo $this->Paginator->sort('org'); ?></th>
+			<?php
+					endif;
+					if ($isSiteAdmin):
+			?>
+				<th class="filter"><?php echo $this->Paginator->sort('owner org');?></th>
+			<?php 
+					endif;
+				endif;
+			?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<?php if (Configure::read('MISP.tagging')): ?>
 				<th class="filter">Tags</th>
@@ -101,7 +109,7 @@
 				&nbsp;
 			</td>
 			<?php endif;?>
-			<?php if ('true' == $isSiteAdmin): ?>
+			<?php if ($isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>
 			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php
 					$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
