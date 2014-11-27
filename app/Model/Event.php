@@ -1367,7 +1367,7 @@ class Event extends AppModel {
 	 *
 	 * @return bool true if success
 	 */
-	public function _add(&$data, $fromXml, $user, $or='', $passAlong = null, $fromPull = false, $jobId = null) {
+	public function _add(&$data, $fromXml, $user, $org='', $passAlong = null, $fromPull = false, $jobId = null) {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
@@ -1378,7 +1378,11 @@ class Event extends AppModel {
 	
 		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
 		//else $data['Event']['org'] = $auth->user('org');
-		$data['Event']['org'] = $user['org'];
+		if ($fromPull) {
+			$data['Event']['org'] = $org;
+		} else {
+			$data['Event']['org'] = $user['org'];
+		}
 		// set these fields if the event is freshly created and not pushed from another instance.
 		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
