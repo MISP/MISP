@@ -373,6 +373,14 @@ class Server extends AppModel {
 							'test' => 'testForTermsFile',
 							'type' => 'string'
 					),
+					'showorgalternate' => array(
+							'level' => 2,
+							'description' => 'True enables the alternate org fields for the event index (source org and member org) instead of the traditional way of showing only an org field. This allows users to see if an event was uploaded by a member organisation on their MISP instance, or if it originated on an interconnected instance.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,

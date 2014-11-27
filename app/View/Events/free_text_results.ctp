@@ -7,13 +7,14 @@
 				<th>Category</th>
 				<th>Type</th>
 				<th>IDS</th>
+				<th>Comment</th>
 				<th>Actions</th>
 		</tr>
 		<?php
 			echo $this->Form->create('Attribute', array('url' => '/events/saveFreeText/' . $event_id));
 			foreach ($resultArray as $k => $item):
 		?>
-		<tr id="row_<?php echo $k; ?>">
+		<tr id="row_<?php echo $k; ?>" class="freetext_row">
 			<?php 
 				echo $this->Form->input('Attribute.' . $k . '.save', array(
 						'label' => false,
@@ -61,7 +62,7 @@
 					}
 				?>
 			</td>
-			<td class="short">
+			<td class="short" style="width:30px;">
 				<?php 
 					echo $this->Form->input('Attribute.' . $k . '.to_ids', array(
 							'label' => false,
@@ -70,8 +71,18 @@
 					));
 				?>
 			</td>
+			<td class="short">
+				<?php 
+					echo $this->Form->input('Attribute.' . $k . '.comment', array(
+							'label' => false,
+							'style' => 'padding:0px;height:20px;margin-bottom:0px;',
+							'type' => 'text',
+							'placeholder' => 'Imported via the freetext import.',
+					));
+				?>
+			</td>
 			<td class="action short">
-				<span class="icon-remove pointer" onClick="freetextRemoveRow('<?php echo $k; ?>');"></span>
+				<span class="icon-remove pointer" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event_id; ?>');"></span>
 			</td>
 		</tr>
 	<?php
