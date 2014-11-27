@@ -2843,7 +2843,7 @@ class EventsController extends AppController {
 				if ($attribute['save'] == '1') {
 					$this->Event->Attribute->create();
 					$attribute['distribution'] = $event['Event']['distribution'];
-					$attribute['comment'] = 'Imported via the freetext import.';
+					if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
 					$attribute['event_id'] = $id;
 					if ($this->Event->Attribute->save($attribute)) {
 						$saved++;
@@ -2860,7 +2860,11 @@ class EventsController extends AppController {
 				$event['Event']['published'] = 0;
 				$this->Event->save($event);
 			}
-			$this->Session->setFlash($saved . ' attributes created. ' . $failed . ' attributes could not be saved. This may be due to attributes with similar values already existing.');
+			if ($failed > 0) {
+				$this->Session->setFlash($saved . ' attributes created. ' . $failed . ' attributes could not be saved. This may be due to attributes with similar values already existing.');
+			} else {
+				$this->Session->setFlash($saved . ' attributes created.');
+			}
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
 		} else {
 			throw new MethodNotAllowedException();

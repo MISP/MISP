@@ -897,9 +897,12 @@ function templateFileUploadTriggerBrowse(id) {
 	$('#upload_' + id + '_file').click();
 }
 
-function freetextRemoveRow(id) {
+function freetextRemoveRow(id, event_id) {
 	$('#row_' + id).hide();
 	$('#Attribute' + id + 'Save').attr("value", "0");
+	if ($(".freetext_row:visible").length == 0) {
+		window.location = "/events/" + event_id;
+	}
 }
 
 function indexEvaluateFiltering() {
