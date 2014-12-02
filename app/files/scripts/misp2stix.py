@@ -286,7 +286,7 @@ def addReference(target, reference):
 # takes an object and applies a TLP marking based on the distribution passed along to it
 def setTLP(target, distribution):
     marking_specification = MarkingSpecification()
-    marking_specification.controlled_structure = "../../../descendant-or-self()"
+    marking_specification.controlled_structure = "../../../descendant-or-self::node()"
     tlp = TLPMarkingStructure()
     colour = TLP_mapping.get(distribution, None)
     if colour is None:
