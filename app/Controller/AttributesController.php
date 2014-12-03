@@ -81,7 +81,7 @@ class AttributesController extends AppController {
  */
 	public function index() {
 		$this->Attribute->recursive = 0;
-		$this->Attribute->contain = array('Event.id', 'Event.orgc', 'Event.org');
+		$this->Attribute->contain = array('Event.id', 'Event.orgc', 'Event.org', 'Event.info');
 		$this->set('isSearch', 0);
 		$this->set('attributes', $this->paginate());
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
@@ -1270,7 +1270,7 @@ class AttributesController extends AppController {
 						'limit' => 60,
 						'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
 						'conditions' => $conditions,
-						'contain' => array('Event.orgc', 'Event.id', 'Event.org', 'Event.user_id')
+						'contain' => array('Event.orgc', 'Event.id', 'Event.org', 'Event.user_id', 'Event.info')
 					);
 					if (!$this->_isSiteAdmin()) {
 						// merge in private conditions

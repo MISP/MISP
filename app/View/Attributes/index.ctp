@@ -59,7 +59,7 @@ foreach ($attributes as $attribute):
 	?>
 	<tr>
 		<td class="short">
-			<div onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
+			<div onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';" title="<?php echo h($attribute['Event']['info']); ?>">
 			<?php
 				if ($attribute['Event']['orgc'] == $me['org']) {
 					$style='style="color:red;"';
