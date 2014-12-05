@@ -86,7 +86,7 @@
 		</tr>
 		<?php foreach ($events as $event): ?>
 		<tr <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php
 				if ($event['Event']['published'] == 1) {
 				?>
@@ -99,7 +99,7 @@
 				}?>&nbsp;
 			</td>
 			<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php
 					$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
 					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
@@ -110,7 +110,7 @@
 			</td>
 			<?php endif;?>
 			<?php if ($isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php
 					$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
 					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
@@ -133,30 +133,30 @@
 				<?php endforeach; ?>
 			</td>
 			<?php endif; ?>
-			<td style="width:30px;" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td style="width:30px;" ondblclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $event['Event']['attribute_count']; ?>&nbsp;
 			</td>
 			<?php if ('true' == $isSiteAdmin): ?>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo h($event['User']['email']); ?>&nbsp;
 			</td>
 			<?php endif; ?>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php 
 				if ($event['ThreatLevel']['name']) echo h($event['ThreatLevel']['name']);
 				else echo h($event['Event']['threat_level_id']);
 				?>&nbsp;
 			</td>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo $analysisLevels[$event['Event']['analysis']]; ?>&nbsp;
 			</td>
-			<td onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td ondblclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
 				<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
 			</td>
-			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>">
+			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" ondblclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>">
 				<?php echo $shortDist[$event['Event']['distribution']]; ?>
 			</td>
 			<td class="short action-links">
