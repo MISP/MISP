@@ -1101,8 +1101,8 @@ function indexSetTableVisibility() {
 	if ($("[id^='value_']").text().trim()!="" && $("[id^='value_']").text().trim()!="-1") {
 		visible = true;
 	}
-	if (visible == true) $('#rule_table').show();
-	else $('#rule_table').hide();
+	if (visible == true) $('#FilterplaceholderTable').hide();
+	else $('#FilterplaceholderTable').show();
 }
 
 function indexRuleChange() {

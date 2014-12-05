@@ -906,8 +906,9 @@ a.proposal_link_red:hover {
 .tabMenuFixedContainer {
 	position:relative;
 	left:10px;
+	height:20px;
 	width:calc(100% - 10px);
-	bottom:-2px;
+	bottom:0px;
 }
 
 .tabMenuFixed {

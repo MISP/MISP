@@ -38,6 +38,7 @@
 		));
 		?>
 		</div>
+		<div class="input clear"></div>
 		<?php
 		echo $this->Form->input('malware', array(
 				'type' => 'checkbox',
