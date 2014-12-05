@@ -783,7 +783,7 @@ class UsersController extends AppController {
 			throw new MethodNotAllowedException();
 		}
 		$this->User->recursive = 0;
-		$temp = $this->User->find('all', array('fields' => array('email', 'gpgkey')));
+		$temp = $this->User->find('all', array('fields' => array('email', 'gpgkey'), 'order' => array('email ASC')));
 		$emails = array();
 		$gpgKeys = array();
 		// save all the emails of the users and set it for the dropdown list in the form

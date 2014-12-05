@@ -103,14 +103,13 @@
 						<ul class="dropdown-menu">
 							<li><a href="/admin/users/add">New User</a></li>
 							<li><a href="/admin/users/index">List Users</a></li>
+							<li><a href="/admin/users/email">Contact Users</a></li>
 							<li class="divider"></li>
 							<?php if($isSiteAdmin): ?>
 							<li><a href="/admin/roles/add">New Role</a></li>
 							<?php endif; ?>
 							<li><a href="/admin/roles/index">List Roles</a></li>
 							<?php if($isSiteAdmin): ?>
-								<li class="divider"></li>
-								<li><a href="/admin/users/email">Contact Users</a></li>
 								<li class="divider"></li>
 								<li><a href="/pages/display/administration">Administrative tools</a></li>
 								<li><a href="/servers/serverSettings">Server settings</a></li>

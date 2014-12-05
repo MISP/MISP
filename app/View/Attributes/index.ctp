@@ -59,7 +59,7 @@ foreach ($attributes as $attribute):
 	?>
 	<tr>
 		<td class="short">
-			<div onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
+			<div ondblclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';" title="<?php echo h($attribute['Event']['info']); ?>">
 			<?php
 				if ($attribute['Event']['orgc'] == $me['org']) {
 					$style='style="color:red;"';
@@ -72,7 +72,7 @@ foreach ($attributes as $attribute):
 			</div>
 		</td>
 		<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-		<td class="short" onclick="document.location.href ='/events/view/<?php echo $attribute['Event']['id'];?>'">
+		<td class="short" ondblclick="document.location.href ='/events/view/<?php echo $attribute['Event']['id'];?>'">
 			<?php
 				$imgRelativePath = 'orgs' . DS . h($attribute['Event']['orgc']) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
@@ -82,11 +82,11 @@ foreach ($attributes as $attribute):
 			&nbsp;
 		</td>
 		<?php endif;?>
-		<td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
+		<td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" ondblclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 		<?php echo $attribute['Attribute']['category']; ?>&nbsp;</td>
-		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
+		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" ondblclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
 		<?php echo $attribute['Attribute']['type']; ?>&nbsp;</td>
-		<td class="showspaces" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';"><?php
+		<td class="showspaces" ondblclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';"><?php
 			$sigDisplay = nl2br(h($attribute['Attribute']['value']));
 			if ($isSearch == 1 && !empty($replacePairs)) {
 				// highlight the keywords if there are any
@@ -101,10 +101,17 @@ foreach ($attributes as $attribute):
 			}
 			?>
 		</td>
-		<td onclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
-			<?php echo h($attribute['Attribute']['comment']); ?>&nbsp;
+		<td ondblclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
+			<?php
+			$sigDisplay = nl2br(h($attribute['Attribute']['comment']));
+				if ($isSearch == 1 && !empty($replacePairs)) {
+					// highlight the keywords if there are any
+					$sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
+			}
+			echo $sigDisplay;
+			?>&nbsp;
 		</td>
-		<td class="short" onclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
+		<td class="short" ondblclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;
 		</td>
 		<td class="short action-links"><?php

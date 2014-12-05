@@ -119,6 +119,11 @@
 					endforeach;
 				?>
 			</table>
+			<table style="background-color:white;width:100%;" id="FilterplaceholderTable">
+				<tr class="filterTableRow">
+					<td style="border:1px solid #cccccc;border-top:0px;font-weight:bold;width:100%;color:red;">No filters set - add filter terms above.</td>
+				</tr>
+			</table>
 		</div>
 		<?php echo $this->Form->create('Event', array('id' => 'test', 'url' => $baseurl . '/events/index'));?>
 		<fieldset>
