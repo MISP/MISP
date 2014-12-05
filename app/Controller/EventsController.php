@@ -170,6 +170,8 @@ class EventsController extends AppController {
 		}
 		$includeIDs = array_keys($includeIDs);
 		$excludeIDs = array_keys($excludeIDs);
+		// return -1 as the only value in includedIDs if both arrays are empty. This will mean that no events will be shown if there was no hit
+		if (empty($includeIDs) && empty($excludeIDs)) $includeIDs[] = -1;
 		return array($includeIDs, $excludeIDs);
 	}
 	

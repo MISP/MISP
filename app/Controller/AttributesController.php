@@ -1179,6 +1179,11 @@ class AttributesController extends AppController {
 									}
 								}
 							}
+							if ($toInclude) {
+								array_push($temp, array('LOWER(Attribute.comment) LIKE' => '%' . $saveWord . '%'));
+							} else {
+								array_push($temp2, array('LOWER(Attribute.comment) NOT LIKE' => '%' . $saveWord . '%'));
+							}
 						}
 						if ($i == 1 && $saveWord != '') $keyWordText = $saveWord;
 						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText = $keyWordText . ', ' . $saveWord;

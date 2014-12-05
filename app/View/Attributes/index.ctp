@@ -102,7 +102,14 @@ foreach ($attributes as $attribute):
 			?>
 		</td>
 		<td onclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
-			<?php echo h($attribute['Attribute']['comment']); ?>&nbsp;
+			<?php
+			$sigDisplay = nl2br(h($attribute['Attribute']['comment']));
+				if ($isSearch == 1 && !empty($replacePairs)) {
+					// highlight the keywords if there are any
+					$sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
+			}
+			echo $sigDisplay;
+			?>&nbsp;
 		</td>
 		<td class="short" onclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;
