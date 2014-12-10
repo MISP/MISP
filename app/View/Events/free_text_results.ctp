@@ -119,7 +119,8 @@
 			<span class="icon-arrow-right"></span>
 			<select id="changeTo" style="margin-top:10px;">
 				<?php 
-					foreach ($optionsRearranged[array_keys($optionsRearranged)[0]] as $toElement):
+					$keys = array_keys($optionsRearranged);
+					foreach ($optionsRearranged[$keys[0]] as $toElement):
 				?>
 						<option value="<?php echo $toElement; ?>"><?php echo $toElement; ?></option>
 				<?php 	
