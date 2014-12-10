@@ -351,6 +351,8 @@ class TemplatesController extends AppController {
 					'recursive' => -1
 				));
 				$event['Event']['published'] = 0;
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
 				$this->Event->save($event);
 				if ($fails == 0) $this->Session->setFlash(__('Event populated, ' . $count . ' attributes successfully created.'));
 				else $this->Session->setFlash(__('Event populated, but ' . $fails . ' attributes could not be saved.'));

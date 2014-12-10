@@ -2863,12 +2863,16 @@ class EventsController extends AppController {
 					}
 				}
 			}
-			if ($saved > 0 && $event['Event']['published'] == 1) {
+			if ($saved > 0) {
 				$event = $this->Event->find('first', array(
 						'conditions' => array('Event.id' => $id),
 						'recursive' => -1
 				));
-				$event['Event']['published'] = 0;
+				if ($event['Event']['published'] == 1) {
+					$event['Event']['published'] = 0;
+				}
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
 				$this->Event->save($event);
 			}
 			if ($failed > 0) {
