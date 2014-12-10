@@ -11,6 +11,7 @@
 				<th>Actions</th>
 		</tr>
 		<?php
+			$options = array();
 			echo $this->Form->create('Attribute', array('url' => '/events/saveFreeText/' . $event_id));
 			foreach ($resultArray as $k => $item):
 		?>
@@ -58,7 +59,9 @@
 								'style' => 'padding:0px;height:20px;margin-bottom:0px;',
 								'options' => $item['types'],
 								'value' => $item['default_type'],
+								'class' => 'typeToggle',
 						));
+						if (!in_array(array_keys($item['types']), $options)) $options[] = array_keys($item['types']); 
 					}
 				?>
 			</td>
@@ -87,13 +90,57 @@
 		</tr>
 	<?php
 		endforeach;
+		$optionsRearranged = array();
+		foreach ($options as $group) {
+			foreach ($group as $k => $element) {
+				$temp = $group;
+				unset ($temp[$k]);
+				if (!isset($optionsRearranged[$element])) $optionsRearranged[$element] = array();
+				$optionsRearranged[$element] = array_merge($optionsRearranged[$element], $temp);
+			}
+		}
 	?>
 	</table>
 	<?php
-		echo $this->Form->button('Submit', array('class' => 'btn btn-inverse'));
+		echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 		echo $this->Form->end();
+		if (!empty($optionsRearranged)):
 	?>
+		<span style="float:right">
+			<select id="changeFrom" style="margin-left:50px;margin-top:10px;">
+				<?php 
+					foreach (array_keys($optionsRearranged) as $fromElement):
+				?>
+						<option><?php echo $fromElement; ?></option>
+				<?php 	
+					endforeach;
+				?>
+			</select>
+			<span class="icon-arrow-right"></span>
+			<select id="changeTo" style="margin-top:10px;">
+				<?php 
+					foreach ($optionsRearranged[array_keys($optionsRearranged)[0]] as $toElement):
+				?>
+						<option value="<?php echo $toElement; ?>"><?php echo $toElement; ?></option>
+				<?php 	
+					endforeach;
+				?>
+			</select>
+			<span class="btn btn-inverse" onClick="changeFreetextImportExecute();">Change all</span>
+		</span>
+	<?php endif; ?>
 </div>
+<?php if (!empty($optionsRearranged)):?>
+	<script>
+		var options = <?php echo json_encode($optionsRearranged);?>;
+		$(document).ready(function(){
+			$('#changeFrom').change(function(){
+				changeFreetextImportFrom();
+			});
+			$('#changeFrom').trigger('change');
+		});
+	</script>
 <?php 
+	endif;
 	echo $this->element('side_menu', array('menuList' => 'regexp', 'menuItem' => 'index'));
 ?>
