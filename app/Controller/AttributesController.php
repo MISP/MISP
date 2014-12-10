@@ -1970,6 +1970,8 @@ class AttributesController extends AppController {
 					'recursive' => -1
 				));
 				$event['Event']['published'] = 0;
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
 				$this->Attribute->Event->save($event);
 			} else {
 				$message .= 'Update completed with some errors.';
