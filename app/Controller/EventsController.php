@@ -2821,6 +2821,7 @@ class EventsController extends AppController {
 					'email-dst' => 'Payload delivery',
 					'text' => 'Other',
 			);
+			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 			$this->set('defaultCategories', $defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
 			$this->set('resultArray', $resultArray);
@@ -2843,14 +2844,22 @@ class EventsController extends AppController {
 			$failed = 0;
 			foreach ($this->request->data['Attribute'] as $k => $attribute) {
 				if ($attribute['save'] == '1') {
-					$this->Event->Attribute->create();
-					$attribute['distribution'] = $event['Event']['distribution'];
-					if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
-					$attribute['event_id'] = $id;
-					if ($this->Event->Attribute->save($attribute)) {
-						$saved++;
+					if ($attribute['type'] == 'ip-src/ip-dst') {
+						$types = array('ip-src', 'ip-dst');
 					} else {
-						$failed++;
+						$types = array($attribute['type']);
+					}
+					foreach ($types as $type) {
+						$this->Event->Attribute->create();
+						$attribute['type'] = $type;
+						$attribute['distribution'] = $event['Event']['distribution'];
+						if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
+						$attribute['event_id'] = $id;
+						if ($this->Event->Attribute->save($attribute)) {
+							$saved++;
+						} else {
+							$failed++;
+						}
 					}
 				}
 			}
