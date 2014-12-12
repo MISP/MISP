@@ -850,7 +850,6 @@ class UsersController extends AppController {
 					}
 				}
 			}
-
 			// If the recipient is a user, and the action to create a password, create it and squeeze it between the main message and the signature
 			if ($this->request->data['User']['recipient'] == 1) {
 				$recipients[0] = $emails[$this->request->data['User']['recipientEmailList']];
@@ -866,6 +865,7 @@ class UsersController extends AppController {
 
 			require_once 'Crypt/GPG.php';
 			$i = 0;
+			$this->Log = ClassRegistry::init('Log');
 			foreach ($recipients as $recipient) {
 				if (!empty($recipientGPG[$i])) {
 					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
@@ -885,7 +885,6 @@ class UsersController extends AppController {
 				} else {
 					$encryptedMessage = $message[$i];
 				}
-
 				// prepare the email
 				$this->Email->from = Configure::read('MISP.email');
 				$this->Email->to = $recipients[$i];
@@ -897,6 +896,28 @@ class UsersController extends AppController {
 
 				// send it
 				$result = $this->Email->send();
+				$this->Log->create();
+				if ($result) {
+					$this->Log->save(array(
+							'org' => $this->Auth->user('org'),
+							'model' => 'User',
+							'model_id' => $this->Auth->user('id'),
+							'email' => $this->Auth->user('email'),
+							'action' => 'admin_email',
+							'title' => 'Admin email to ' . $recipients[$i] . ' sent, titled "' . $subject . '".',
+							'change' => null,
+					));
+				} else {
+					$this->Log->save(array(
+							'org' => $this->Auth->user('org'),
+							'model' => 'User',
+							'model_id' => $this->Auth->user('id'),
+							'email' => $this->Auth->user('email'),
+							'action' => 'admin_email',
+							'title' => 'Admin email to ' . $recipients[$i] . ' failed.',
+							'change' => null,
+					));
+				}
 
 				// if sending successful and action was a password change, update the user's password.
 				if ($result && $this->request->data['User']['action'] == '1') {
