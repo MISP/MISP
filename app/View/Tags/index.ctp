@@ -20,6 +20,7 @@
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
+			<th>Count</th>
 			<?php if ($isAclTagger): ?>
 			<th class="actions"><?php echo __('Actions');?></th>
 			<?php endif; ?>
@@ -28,6 +29,7 @@ foreach ($list as $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['Tag']['id']); ?>&nbsp;</td>
 		<td><a href="/events/index/searchtag:<?php echo $item['Tag']['id']; ?>" class="tag" style="background-color: <?php echo h($item['Tag']['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']); ?>"><?php echo h($item['Tag']['name']); ?></a></td>
+		<td class="short"><?php echo h($item['Tag']['count']); ?>&nbsp;</td>
 		<?php if ($isAclTagger): ?>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>

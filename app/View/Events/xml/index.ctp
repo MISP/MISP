@@ -10,7 +10,7 @@ foreach ($events as $key => $event) {
 	// cleanup the array from things we do not want to expose
 	unset($events[$key]['user_id']);
 	// hide the org field is we are not in showorg mode
-	if ('true' != Configure::read('MISP.showorg') && !$isAdmin) {
+	if (!Configure::read('MISP.showorg') && !$isAdmin) {
 		unset($events[$key]['org']);
 		unset($events[$key]['orgc']);
 		unset($events[$key]['from']);
@@ -28,8 +28,10 @@ Please note that this XML page is a representation of the /events/index page.
 Because the /events/index page is paginated you will have a limited number of results.
 
 You can for example ask: /events/index/limit:999.xml to get the 999 first records.
-(A maximum has been set to 9999)
 
+You can also sort the table by using the sort and direction parameters. For example:
+
+/events/index/sort:date/direction:desc.xml
 
 To export all the events at once, with their attributes, use the export functionality.
  -->

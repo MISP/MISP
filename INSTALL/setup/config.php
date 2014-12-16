@@ -69,7 +69,8 @@ $config['CakeResque'] = array(
 		'host' => 'localhost',		// Redis server hostname
 		'port' => 6379,				// Redis server port
 		'database' => 0,			// Redis database number
-		'namespace' => 'resque'		// Redis keys namespace
+		'namespace' => 'resque',	// Redis keys namespace
+		'password' => null			// Redis password
 	),
 
 	'Worker' => array(
@@ -98,7 +99,7 @@ $config['CakeResque'] = array(
 		//
 		// You can also define per-job tracking by passing true/false when calling
 		// CakeResque::enqueue(), CakeResque::enqueueAt() or CakeResque::enqueueIn()
-		'track' => true
+		'track' => false
 	),
 	/*
 	'Queues' => array(
@@ -113,16 +114,6 @@ $config['CakeResque'] = array(
 	)
 	*/
 	'Resque' => array(
-
-		// Path to the php-resque library
-		//
-		// Relative or absolute path to the php-resque library
-		// If you are using Composer to install dependencies,
-		// this is the name of the vendor library
-		// Path is relative to the CakeResque/vendor
-		// Don't add trailing slash to path
-		'lib' => 'kamisama/php-resque-ex',
-
 		// Path to the directory containing the worker PID files
 		'tmpdir' => App::pluginPath('CakeResque') . 'tmp' . DS
 	),
@@ -184,8 +175,6 @@ $config['CakeResque'] = array(
 		// Enable or disable delayed job
 		'enabled' => true,
 
-		// Path to the php-resque-ex-scheduler's library
-		'lib' => 'kamisama/php-resque-ex-scheduler',
 		// Path to the log file
 		'log' => TMP . 'logs' . DS . 'resque-scheduler-error.log',
 
@@ -207,9 +196,5 @@ $config['CakeResque'] = array(
 			'handler' => 'RotatingFile',
 			'target' => TMP . 'logs' . DS . 'resque-scheduler.log'
 		)
-	),
-	'Status' => array(
-		// Path to the resque-status library
-		'lib' => 'kamisama/resque-status',
 	)
 );

@@ -56,7 +56,8 @@ class Tag extends AppModel {
 	public $hasMany = array(
 		'EventTag' => array(
 			'className' => 'EventTag',
-		)
+		),
+		'TemplateTag',
 	);
 	
 	
@@ -86,7 +87,7 @@ class Tag extends AppModel {
 	public function findTags($array) {
 		$ids = array();
 		foreach ($array as $a) {
-			$conditions['OR'][] = array('name like' => '%' . $a . '%');
+			$conditions['OR'][] = array('LOWER(name) like' => '%' . strtolower($a) . '%');
 		}
 		$params = array(
 				'recursive' => 1,

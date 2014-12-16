@@ -98,13 +98,11 @@ function updateCalendar(org) {
 }
 
 function goRight() {
-	cal.update("<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+orgSelected+".json");
 	cal.options.data = "<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+orgSelected+".json";
 	cal.next();
 }
 
 function goLeft() {
-	cal.update("<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+orgSelected+".json");
 	cal.options.data = "<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+orgSelected+".json";
 	cal.previous();
 }

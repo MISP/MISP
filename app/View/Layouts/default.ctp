@@ -1,10 +1,10 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 	<?php echo $this->Html->charset(); ?>
 	<title>
-		<?php echo $title_for_layout, ' - ', Configure::read('MISP.name')?>
+		<?php echo $title_for_layout, ' - MISP'; ?>
 	</title>
 	<?php
 		echo $this->Html->meta('icon');
@@ -30,30 +30,42 @@
 <!--?php echo $scripts_for_layout; ?-->
 </head>
 <body>
-	<div id="container">
-		<?php echo $this->element('global_menu');
-			if ($debugMode == 'debugOff') {
-				?>
-					<div class="container-fluid debugOff" style="padding-top:50px;width:98%;">
-				<?php
-			} else {
-				?>
-					<div class="container-fluid debugOn" style="padding-top:10px;width:98%;">
-				<?php
-			}
-			echo $this->Session->flash('auth');
-			echo $this->Session->flash('error');
-    		echo $this->Session->flash('gpg');
-			echo $this->Session->flash();
-			echo $this->Session->flash('email'); ?>
-		</div>
-		<div
-			<?php
-				if (Configure::read('debug') == 0) echo 'class="topGap"';
+	<div id="gray_out" class="gray_out"></div>
+		<div id="container">
+			<?php echo $this->element('global_menu');
+			    $padding_top = 10;
+			    if ($debugMode == 'debugOff') $padding_top = 50;
 			?>
-		>	
+		<div class="container-fluid <?php echo $debugMode; ?>" style="padding-top:<?php echo $padding_top; ?>px;width:98%;">
+			<?php
+				$has_flash = false;
+			    $flash = array();
+			    $flash[] = $this->Session->flash('email');
+			    $flash[] = $this->Session->flash();
+			    $flash[] = $this->Session->flash('gpg');
+			    $flash[] = $this->Session->flash('error');
+			    $flash[] = $this->Session->flash('auth');
+			    foreach ($flash as $f) {
+					if ($f) {
+						echo $f;
+						$has_flash = true;
+						continue;
+					}
+	            }
+			?>
+		</div>
+		<?php
+			$topGap = 50;
+			if (Configure::read('debug') != 0) {
+				$topGap = 10;
+			} else {
+	 			if ($has_flash) $topGap += 50;
+	 		}
+		?>
+		<div style="padding-top:<?php echo $topGap; ?>px !important;">	
 			<?php echo $this->fetch('content'); ?>
 		</div>
+	</div>
 	<?php
 	echo $this->element('footer');
 	echo $this->element('sql_dump');
@@ -63,7 +75,13 @@
 	echo $this->Html->script('bootstrap-datepicker');
 	echo $this->Html->script('bootstrap-colorpicker.min');
 	echo $this->Html->script('main');
+	echo $this->Html->script('ajaxification');
 	?>
+	<div id = "ajax_success_container" class="ajax_container">
+		<div id="ajax_success" class="ajax_result ajax_success"></div>
+	</div>
+	<div id = "ajax_fail_container" class="ajax_container">
+		<div id="ajax_fail" class="ajax_result ajax_fail"></div>
 	</div>
 	<div class="loading">
 		<div class="spinner"></div>

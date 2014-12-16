@@ -28,7 +28,7 @@ class Event extends AppModel {
 
 	public $virtualFields = array();
 	
-	public $mispVersion = '2.2.0';
+	public $mispVersion = '2.3.0';
 
 /**
  * Description field
@@ -456,18 +456,21 @@ class Event extends AppModel {
  * @throws InternalErrorException
  */
 	public function cleanupEventArrayFromXML(&$data) {
-		// Workaround for different structure in XML/array than what CakePHP expects
-		if (isset($data['Event']['Attribute']) && is_array($data['Event']['Attribute']) && count($data['Event']['Attribute'])) {
-			if (is_numeric(implode(array_keys($data['Event']['Attribute']), ''))) {
-				// normal array of multiple Attributes
-				$data['Attribute'] = $data['Event']['Attribute'];
-			} else {
-				// single attribute
-				$data['Attribute'][0] = $data['Event']['Attribute'];
+		$objects = array('Attribute', 'ShadowAttribute');
+		
+		foreach ($objects as $object) {
+			// Workaround for different structure in XML/array than what CakePHP expects
+			if (isset($data['Event'][$object]) && is_array($data['Event'][$object]) && count($data['Event'][$object])) {
+				if (is_numeric(implode(array_keys($data['Event'][$object]), ''))) {
+					// normal array of multiple Attributes
+					$data[$object] = $data['Event'][$object];
+				} else {
+					// single attribute
+					$data[$object][0] = $data['Event'][$object];
+				}
 			}
+			unset($data['Event'][$object]);
 		}
-		unset($data['Event']['Attribute']);
-
 		return $data;
 	}
 
@@ -522,38 +525,6 @@ class Event extends AppModel {
 		return 'Success';
 	}
 
-	/**
-	 *	Call the TAXII client
-	 *
-	 * @param  int $id Event id
-	 * @param  array $server associative array with server data
-	 * @return mixed boolean or HTTP status
-	 */
-	public function taxii_publish($id, $server, $client_path){
-		$this->contain(array('Attribute' => array('category', 'type', 'value1', 'value2', 'to_ids', 'uuid', 'timestamp', 'distribution')));
-		$fieldList = array(
-			'threat_level_id', 'org', 'date', 'info', 'published', 'uuid', 'analysis',
-			'orgc', 'timestamp', 'distribution'
-		);
-		$data = $this->read($fieldList, $id);
-		$data['api_key'] = $server['Server']['authkey'];
-		$data['server_url'] = $server['Server']['url'].'/events';
-
-		$data = json_encode($data);
-		ob_start();
-	    passthru(Configure::read('MISP.taxii_client_path'). " -t string -th ".
-	    	$server['Server']['url']." -d '".$data."'");
-
-	    /**
-	     * Response sample:
-	     * '{"in_response_to": "44492", "status_detail": "Total Time: 0.0200021266937", "extended_headers": {},
-	     * "message": "Event saved.", "message_type": "Status_Message", "message_id": "79739", "status_type":
-	     * "SUCCESS"}'
-	     */
-
-	    return json_decode(ob_get_clean());
-	}
-
 /**
  * Uploads the event and the associated Attributes to another Server
  * TODO move this to a component
@@ -565,9 +536,6 @@ class Event extends AppModel {
 			return 403; //"Event is private and non exportable";
 		}
 
-		if('true' == Configure::read('MISP.taxii_sync')){
-			return $this->taxii_publish($event['Event']['id'], $server, Configure::read('MISP.taxii_client_path'));
-		}
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
@@ -587,47 +555,52 @@ class Event extends AppModel {
 		// LATER try to do this using a separate EventsController and renderAs() function
 		$xmlArray = array();
 		// rearrange things to be compatible with the Xml::fromArray()
-		$event['Event']['Attribute'] = $event['Attribute'];
-		unset($event['Attribute']);
+		if (isset($event['Attribute'])) {
+			$event['Event']['Attribute'] = $event['Attribute'];
+			unset($event['Attribute']);
+		}
 
 		// cleanup the array from things we do not want to expose
 		//unset($event['Event']['org']);
 		// remove value1 and value2 from the output
-		foreach ($event['Event']['Attribute'] as $key => &$attribute) {
-			// do not keep attributes that are private, nor cluster
-			if ($attribute['distribution'] < 2) {
-				unset($event['Event']['Attribute'][$key]);
-				continue; // stop processing this
+		if (isset($event['Event']['Attribute'])) {
+			foreach ($event['Event']['Attribute'] as $key => &$attribute) {
+				// do not keep attributes that are private, nor cluster
+				if ($attribute['distribution'] < 2) {
+					unset($event['Event']['Attribute'][$key]);
+					continue; // stop processing this
+				}
+				// Distribution, correct Connected Community to Community in Attribute
+				if ($attribute['distribution'] == 2) {
+					$attribute['distribution'] = 1;
+				}
+				// remove value1 and value2 from the output
+				unset($attribute['value1']);
+				unset($attribute['value2']);
+				// also add the encoded attachment
+				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+					$attribute['data'] = $encodedFile;
+				}
+				// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
+				// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
+				// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
+				// solves the issue and a new attribute is always created.
+				unset($attribute['id']);
 			}
-			// Distribution, correct Connected Community to Community in Attribute
-			if ($attribute['distribution'] == 2) {
-				$attribute['distribution'] = 1;
-			}
-			// remove value1 and value2 from the output
-			unset($attribute['value1']);
-			unset($attribute['value2']);
-			// also add the encoded attachment
-			if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-				$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-				$attribute['data'] = $encodedFile;
-			}
-			// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
-			// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
-			// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
-			// solves the issue and a new attribute is always created.
-			unset($attribute['id']);
 		}
+		
 		// Distribution, correct All to Community in Event
 		if ($event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
 		}
-
 		// display the XML to the user
 		$xmlArray['Event'][] = $event['Event'];
 		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 		$eventsXml = $xmlObject->asXML();
 		// do a REST POST request with the server
 		$data = $eventsXml;
+		
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
 		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
@@ -718,7 +691,7 @@ class Event extends AppModel {
  * TODO move this to a component
  * @return array|NULL
  */
-	public function downloadEventFromServer($eventId, $server, $HttpSocket=null, $propsalDownload = false) {
+	public function downloadEventFromServer($eventId, $server, $HttpSocket=null, $proposalDownload = false) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
@@ -737,7 +710,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		if (!$propsalDownload) {
+		if (!$proposalDownload) {
 			$uri = $url . '/events/' . $eventId;
 		} else {
 			$uri = $url . '/shadow_attributes/getProposalsByUuid/' . $eventId;
@@ -758,7 +731,7 @@ class Event extends AppModel {
  * TODO move this to a component
  * @return array of event_ids
  */
-	public function getEventIdsFromServer($server, $HttpSocket=null) {
+	public function getEventIdsFromServer($server, $all = false, $HttpSocket=null) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 
@@ -778,7 +751,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		$uri = $url . '/events/index/sort:id/direction:desc/limit:9999'; // LATER verify if events are missing because we only selected the last 999
+		$uri = $url . '/events/index';
 		try {
 			$response = $HttpSocket->get($uri, $data = '', $request);
 			if ($response->isOk()) {
@@ -792,11 +765,9 @@ class Event extends AppModel {
 					$eventArray['response']['Event'][0] = $tmp;
 				}
 				$eventIds = array();
-				// different actions if it's only 1 event or more
-				// only one event.
-				if (isset($eventArray['response']['Event']['id'])) {
-					if ($this->checkIfNewer($eventArray['response']['Event'])) { 
-						$eventIds[] = $eventArray['response']['Event']['id'];
+				if ($all) {
+					foreach ($eventArray['response']['Event'] as $event) {
+						$eventIds[] = $event['uuid'];
 					}
 				} else {
 					// multiple events, iterate over the array
@@ -914,6 +885,7 @@ class Event extends AppModel {
 				),
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,
+					'conditions' => array('deleted' => 0),
 				),
 			)
 		);
@@ -941,7 +913,7 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	public function csv($org, $isSiteAdmin, $eventid=0, $ignore=0, $attributeIDList = array(), $tags = '', $category = null, $type = null) {
+	public function csv($org, $isSiteAdmin, $eventid=0, $ignore=0, $attributeIDList = array(), $tags = '', $category = null, $type = null, $includeInfo = null) {
 		$final = array();
 		$attributeList = array();
 		$conditions = array();
@@ -994,7 +966,7 @@ class Event extends AppModel {
 	 		}
 	 		//restricting to non-private or same org if the user is not a site-admin.
 	 		if ($ignore == 0) {
-	 			$conditions['AND'][] = array('Attribute.to_ids =' => 1);
+	 			$conditions['AND'][] = array('Attribute.to_ids' => 1);
 	 		}
 	 		
 	 		if ($type!=null) {
@@ -1025,7 +997,30 @@ class Event extends AppModel {
 	 	$attributes = $this->Attribute->find('all', $params);
 	 	foreach ($attributes as &$attribute) {
 	 		$attribute['Attribute']['value'] = str_replace(array("\r\n", "\n", "\r"), "", $attribute['Attribute']['value']);
+	 		$attribute['Attribute']['value'] = str_replace(array('"'), '""', $attribute['Attribute']['value']);
+	 		$attribute['Attribute']['value'] = '"' . $attribute['Attribute']['value'] . '"';
 	 		$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
+	 	}
+	 	if ($includeInfo == 'yes') $attributes = $this->attachEventInfoToAttributes($attributes);
+	 	return $attributes;
+	 }
+	 
+	 private function attachEventInfoToAttributes($attributes) {
+	 	$event_ids = array();
+	 	foreach ($attributes as &$attribute) {
+	 		if (!in_array($attribute['Attribute']['event_id'], $event_ids)) $event_ids[] = $attribute['Attribute']['event_id'];
+	 	}
+	 	$events = $this->find('all', array(
+	 		'recursive' => -1,
+	 		'fields' => array('id', 'info'),
+	 		'conditions' => array('id' => $event_ids),
+	 	));
+	 	$event_id_info = array();
+	 	foreach ($events as $event) {
+	 		$event_id_info[$event['Event']['id']] = $event['Event']['info'];
+	 	}
+	 	foreach ($attributes as &$attribute) {
+	 		$attribute['Attribute']['event_info'] = $event_id_info[$attribute['Attribute']['event_id']];
 	 	}
 	 	return $attributes;
 	 }
@@ -1074,9 +1069,10 @@ class Event extends AppModel {
 		$body .= 'URL         : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
 		$body .= 'Event ID    : ' . $event['Event']['id'] . "\n";
 		$body .= 'Date        : ' . $event['Event']['date'] . "\n";
-		if ('true' == Configure::read('MISP.showorg')) {
+		if (Configure::read('MISP.showorg')) {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
+		$body .= 'Distribution: ' . $this->distributionLevels[$event['Event']['distribution']] . "\n";
 		$body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
 		$body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
 		$body .= 'Description : ' . $event['Event']['info'] . "\n\n";
@@ -1154,7 +1150,7 @@ class Event extends AppModel {
 			} else {
 				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "");
 			}
-			if ('false' == Configure::read('GnuPG.onlyencrypted')) {
+			if (!Configure::read('GnuPG.onlyencrypted')) {
 				$alertUsers = $this->User->find('all', array(
 						'conditions' => $conditions,
 						'recursive' => 0,
@@ -1165,7 +1161,7 @@ class Event extends AppModel {
 					$Email = new CakeEmail();
 					$Email->from(Configure::read('MISP.email'));
 					$Email->to($user['User']['email']);
-					$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
+					$Email->subject("[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
 					$Email->emailFormat('text');	// both text or html
 					// send it
 					$Email->send($bodySigned);
@@ -1176,27 +1172,28 @@ class Event extends AppModel {
 					}
 				}
 			}
-				//
-				// Build a list of the recipients that wish to receive encrypted mails.
-				//
+
+			//
+			// Build a list of the recipients that wish to receive encrypted mails.
+			//
 			if ($eventIsPrivate) {
 				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "", 'User.org =' => $event['Event']['org']);
 			} else {
 				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "");
 			}
- 			$alertUsers = $this->User->find('all', array(
- 					'conditions' => $conditions,
- 					'recursive' => 0,
- 				)
+	 		$alertUsers = $this->User->find('all', array(
+	 				'conditions' => $conditions,
+	 				'recursive' => 0,
+	 			)
 			);
- 			$max = count($alertUsers);
+	 		$max = count($alertUsers);
  			// encrypt the mail for each user and send it separately
  			foreach ($alertUsers as $k => &$user) {
  				// send the email
  				$Email = new CakeEmail();
  				$Email->from(Configure::read('MISP.email'));
  				$Email->to($user['User']['email']);
-				$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Event " . $id . " - " . $subject . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
+				$Email->subject("[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
  				$Email->emailFormat('text');		// both text or html
   					// import the key of the user into the keyring
  				// this is not really necessary, but it enables us to find
@@ -1273,7 +1270,7 @@ class Event extends AppModel {
 		$body .= 'URL		 : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
 		$body .= 'Event	   : ' . $event['Event']['id'] . "\n";
 		$body .= 'Date		: ' . $event['Event']['date'] . "\n";
-		if ('true' == Configure::read('MISP.showorg')) {
+		if (Configure::read('MISP.showorg')) {
 			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
 		$body .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
@@ -1342,7 +1339,7 @@ class Event extends AppModel {
 			$Email->from(Configure::read('MISP.email'));
 			$Email->replyTo($user['User']['email']);
 			$Email->to($reporter['User']['email']);
-			$Email->subject("[" . Configure::read('MISP.org') . " " . Configure::read('MISP.name') . "] Need info about event " . $id . " - TLP Amber");
+			$Email->subject("[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - TLP Amber");
 			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
 			$Email->emailFormat('text');		// both text or html
 
@@ -1370,7 +1367,7 @@ class Event extends AppModel {
 	 *
 	 * @return bool true if success
 	 */
-	public function _add(&$data, $fromXml, $user, $or='', $passAlong = null, $fromPull = false, $jobId = null) {
+	public function _add(&$data, $fromXml, $user, $org='', $passAlong = null, $fromPull = false, $jobId = null) {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
@@ -1381,13 +1378,17 @@ class Event extends AppModel {
 	
 		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
 		//else $data['Event']['org'] = $auth->user('org');
-		$data['Event']['org'] = $user['org'];
+		if ($fromPull) {
+			$data['Event']['org'] = $org;
+		} else {
+			$data['Event']['org'] = $user['org'];
+		}
 		// set these fields if the event is freshly created and not pushed from another instance.
 		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
 		if ($fromXml) {
 			// Workaround for different structure in XML/array than what CakePHP expects
-			$this->cleanupEventArrayFromXML($data);
+			$data = $this->cleanupEventArrayFromXML($data);
 			// the event_id field is not set (normal) so make sure no validation errors are thrown
 			// LATER do this with	 $this->validator()->remove('event_id');
 			unset($this->Attribute->validate['event_id']);
@@ -1473,7 +1474,7 @@ class Event extends AppModel {
 				}
 			}
 		}
-	$this->cleanupEventArrayFromXML($data);
+	$data = $this->cleanupEventArrayFromXML($data);
 	$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
 	if ($saveResult) {
 		return 'success';
@@ -1500,10 +1501,9 @@ class Event extends AppModel {
 		$this->recursive = 1;
 		$this->read();
 		$this->data['Event']['locked'] = 1;
-	
 		// get a list of the servers
-		$server = ClassRegistry::init('Server');
-		$servers = $server->find('all', array(
+		$serverModel = ClassRegistry::init('Server');
+		$servers = $serverModel->find('all', array(
 				'conditions' => array('Server.push' => true)
 		));
 		// iterate over the servers and upload the event
@@ -1522,6 +1522,9 @@ class Event extends AppModel {
 				if (!$thisUploaded) {
 					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
 					$failedServers[] = $server['Server']['url'];
+				}
+				if (isset($this->data['ShadowAttribute'])) {
+					$serverModel->syncProposals($HttpSocket, $server, null, $id, $this);
 				}
 			}
 		}
@@ -1566,23 +1569,22 @@ class Event extends AppModel {
 	 * @param unknown_type $id
 	 */
 	public function publish($id, $passAlong = null, $jobId = null) {
-		if ($jobId) {
-			$this->Behaviors->unload('SysLogLogable.SysLogLogable');
-		}
 		$this->id = $id;
 		$this->recursive = 0;
 		$event = $this->read(null, $id);
-		// update the DB to set the published flag
-		$fieldList = array('published', 'id', 'info', 'publish_timestamp');
-		$event['Event']['published'] = 1;
-		$event['Event']['publish_timestamp'] = time();
-		$this->save($event, array('fieldList' => $fieldList));		
+		if ($jobId) {
+			$this->Behaviors->unload('SysLogLogable.SysLogLogable');
+		} else {
+			// update the DB to set the published flag
+			// for background jobs, this should be done already
+			$fieldList = array('published', 'id', 'info', 'publish_timestamp');
+			$event['Event']['published'] = 1;
+			$event['Event']['publish_timestamp'] = time();
+			$this->save($event, array('fieldList' => $fieldList));
+		}		
 		$uploaded = false;
-		if ('true' == Configure::read('MISP.sync') && $event['Event']['distribution'] > 1) {
+		if ($event['Event']['distribution'] > 1) {
 			$uploaded = $this->uploadEventToServersRouter($id, $passAlong);
-			if (($uploaded == false) || (is_array($uploaded))) {
-				$this->saveField('published', 0);
-			}
 		} else {
 			return true;
 		}
@@ -1788,10 +1790,88 @@ class Event extends AppModel {
 		return $xmlArray;
 	}
 	
-
 	public function checkIfNewer($incomingEvent) {
 		$localEvent = $this->find('first', array('conditions' => array('uuid' => $incomingEvent['uuid']), 'recursive' => -1));
 		if (empty($localEvent) || $incomingEvent['timestamp'] > $localEvent['Event']['timestamp']) return true;
 		return false;
+	}
+	
+	public function stix($id, $tags, $attachments, $org, $isSiteAdmin, $returnType) {
+		$eventIDs = $this->Attribute->dissectArgs($id);
+		$tagIDs = $this->Attribute->dissectArgs($tags);
+		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
+		$events = $this->fetchEvent(null, $idList, $org, $isSiteAdmin);
+		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
+		if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
+			foreach ($events as &$event) {
+				foreach ($event['Attribute'] as &$attribute) {
+					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+						$attribute['data'] = $encodedFile;
+					}
+				}
+			}
+		}
+		// generate a randomised filename for the temporary file that will be passed to the python script
+		$randomFileName = $this->__generateRandomFileName();
+		$tempFile = new File (APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
+		
+		// save the json_encoded event(s) to the temporary file
+		$result = $tempFile->write(json_encode($events));
+		$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
+		
+		// Execute the python script and point it to the temporary filename
+		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType);
+		
+		// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
+		// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
+		$decoded = json_decode($result);
+		$result = array();
+		$result['success'] = $decoded->success;
+		$result['message'] = $decoded->message;
+	
+		if ($result['success'] == 1) {
+			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
+			$result['data'] = $file->read();
+		}
+		$tempFile->delete();
+		$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
+		$file->delete();
+ 		return $result;
+	}
+	
+	public function getAccessibleEventIds($include, $exclude, $includedTags, $excludedTags) {
+		$conditions = array();
+		
+		// get all of the event IDs based on include / exclude
+		if (!empty($include)) $conditions['OR'] = array('id' => $include);
+		if (!empty($exclude)) $conditions['NOT'] = array('id' => $exclude);
+		$events = $this->find('all', array(
+			'recursive' => -1,
+			'fields' => array('id', 'org', 'orgc', 'distribution'),
+			'conditions' => $conditions
+		));
+		$ids = array();
+		foreach ($events as $event) {
+			$ids[] = $event['Event']['id'];
+		}
+		// get all of the event IDs based on includedTags / excludedTags
+		if (!empty($includedTags) || !empty($excludedTags)) {
+			$eventIDsFromTags = $this->EventTag->getEventIDsFromTags($includedTags, $excludedTags);
+			// get the intersect of the two 
+			$ids = array_intersect($ids, $eventIDsFromTags);
+		}
+		return $ids;
+	}
+	
+	private function __generateRandomFileName() {
+		$length = 12;
+		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		$charLen = strlen($characters) - 1;
+		$fn = '';
+		for ($p = 0; $p < $length; $p++) {
+			$fn .= $characters[rand(0, $charLen)];
+		}
+		return $fn;
 	}
 }

@@ -28,4 +28,30 @@ class EventTag extends AppModel {
 			'className' => 'Tag',
 		),
 	);
+	 	
+	// take an array of tag names to be included and an array with tagnames to be excluded and find all event IDs that fit the criteria
+	public function getEventIDsFromTags($includedTags, $excludedTags) {
+		$conditions = array();
+		if (!empty($includedTags)) $conditions['OR'] = array('name' => $includedTags);
+		if (!empty($excludedTags)) $conditions['NOT'] = array('name' => $excludedTags);
+		$tags = $this->Tag->find('all', array(
+			'recursive' => -1,
+			'fields' => array('id', 'name'),
+			'conditions' => $conditions
+		));
+		$tagIDs = array();
+		foreach ($tags as $tag) {
+			$tagIDs[] = $tag['Tag']['id'];
+		}
+		$eventTags = $this->find('all', array(
+			'recursive' => -1,
+			'conditions' => array('tag_id' => $tagIDs)
+		));
+		$eventIDs = array();
+		foreach ($eventTags as $eventTag) {
+			$eventIDs[] = $eventTag['EventTag']['event_id'];
+		}
+		$eventIDs = array_unique($eventIDs);
+		return $eventIDs;
+	}
 }

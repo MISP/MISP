@@ -25,7 +25,27 @@ class TagsController extends AppController {
 	}
 	
 	public function index() {
-		$this->set('list', $this->paginate());
+		$this->loadModel('Event');
+		$this->Event->recursive = -1;
+		$this->paginate['contain'] = array('EventTag' => array('fields' => 'event_id'));
+		$paginated = $this->paginate();
+		foreach ($paginated as $k => &$tag) {
+			$eventIDs = array();
+			if (empty($tag['EventTag'])) $tag['Tag']['count'] = 0;
+			else {
+				foreach ($tag['EventTag'] as $eventTag) {
+					$eventIDs[] = $eventTag['event_id'];
+				}
+				$conditions = array('Event.id' => $eventIDs);
+				if (!$this->_isSiteAdmin()) $conditions = array_merge($conditions, array('OR' => array(array('Event.distribution >' => 0),  array('Event.orgc' => $this->Auth->user('org')))));
+				$events = $this->Event->find('all', array(
+					'fields' => array('Event.id', 'Event.distribution', 'Event.orgc'),
+					'conditions' => $conditions
+				));
+				$tag['Tag']['count'] = count($events);
+			}
+		}
+		$this->set('list', $paginated);
 		// send perm_tagger to view for action buttons
 	}
 	
@@ -79,5 +99,41 @@ class TagsController extends AppController {
 			$this->Session->setFlash(__('Attribute was not deleted'));
 		}
 		$this->redirect(array('action' => 'index'));
+	}
+	
+	public function showEventTag($id) {
+		$this->helpers[] = 'TextColour';
+		$this->loadModel('EventTag');
+		$tags = $this->EventTag->find('all', array(
+				'conditions' => array(
+						'event_id' => $id
+				),
+				'contain' => 'Tag',
+				'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+		));
+		$this->set('tags', $tags);
+		$tags = $this->Tag->find('all', array('recursive' => -1));
+		$tagNames = array('None');
+		foreach ($tags as $k => $v) {
+			$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
+		}
+		$this->set('allTags', $tagNames);
+		$event['Event']['id'] = $id;
+		$this->set('event', $event);
+		$this->layout = 'ajax';
+		$this->render('/Events/ajax/ajaxTags');
+	}
+	
+	public function viewTag($id) {
+		$tag = $this->Tag->find('first', array(
+				'conditions' => array(
+						'id' => $id
+				),
+				'recursive' => -1,
+		));
+		$this->layout = null;
+		$this->set('tag', $tag);
+		$this->set('id', $id);
+		$this->render('ajax/view_tag');
 	}
 }

@@ -1,0 +1,28 @@
+<div class="popover_choice">
+	<legend><?php echo __('Choose element type'); ?></legend>
+	<div class="popover_choice_main" id ="popover_choice_main">
+		<?php foreach ($templates as $k => $template): ?>
+			<div class="templateChoiceButton" style="width:100%;" title="<?php echo h($template['Template']['description']); ?>" onClick="document.location.href ='/templates/populateEventFromTemplate/<?php echo $template['Template']['id'];?>/<?php echo $id; ?>'">
+				<div style="float:left;">
+				<?php 
+					$imgRelativePath = 'orgs' . DS . h($template['Template']['org']) . '.png';
+					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
+					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($template['Template']['org']) . '.png', array('alt' => h($template['Template']['org']), 'title' => h($template['Template']['org']), 'style' => 'width:24px; height:24px'));
+					else echo $this->Html->tag('span', h($template['Template']['org']), array('class' => 'welcome', 'style' => 'float:left;'));
+				?>
+				</div>
+				<div><span style="position:relative;left:-12px;"><?php echo h($template['Template']['name']);?></span></div>
+			</div>
+		<?php endforeach; ?>
+	</div>
+	<div class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
+</div>
+<script type="text/javascript">
+$(document).ready(function() {
+	resizePopoverBody();
+});
+
+$(window).resize(function() {
+	resizePopoverBody();
+});
+</script>

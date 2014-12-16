@@ -156,7 +156,48 @@ class UsersController extends AppController {
  * @return void
  */
 	public function admin_index() {
+		$urlparams = "";
+		$passedArgsArray = array();
+		$booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
+		$textFields = array('role', 'email');
+		// org admins can't see users of other orgs
+		if ($this->_isSiteAdmin()) $textFields[] = 'org';
+		
+		
+		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
+		foreach ($this->passedArgs as $k => $v) {
+			if (substr($k, 0, 6) === 'search') {
+				if ($v != "") {
+					if ($urlparams != "") $urlparams .= "/";
+					$urlparams .= $k . ":" . $v;
+				}
+				$searchTerm = substr($k, 6);
+				if (in_array($searchTerm, $booleanFields)) {
+					if ($v != "") $this->paginate['conditions'][] = array('User.' . $searchTerm => $v);
+				} else if (in_array($searchTerm, $textFields)) {
+					if ($v != "") {
+						if ($searchTerm == "role") $searchTerm = "role_id";
+						$pieces = explode('|', $v);
+						$test = array();
+						foreach ($pieces as $piece) {
+							if ($piece[0] == '!') {
+								if ($searchTerm == 'email' || $searchTerm == 'org') $this->paginate['conditions']['AND'][] = array('LOWER(User.' . $searchTerm . ') NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
+								else $this->paginate['conditions']['AND'][] = array('User.' . $searchTerm => substr($piece, 1));
+							} else {
+								if ($searchTerm == 'email' || $searchTerm == 'org') $test['OR'][] = array('LOWER(User.' . $searchTerm . ') LIKE' => '%' . strtolower($piece) . '%');
+								else $test['OR'][] = array('User.' . $searchTerm => $piece);
+							}
+						}
+						if (!empty($test)) $this->paginate['conditions']['AND'][] = $test;
+					}
+				}
+			}
+			$passedArgsArray[$searchTerm] = $v;
+		}
+		$this->set('urlparams', $urlparams);
+		$this->set('passedArgsArray', $passedArgsArray);
 		$this->User->recursive = 0;
+		$conditions = array();
 		if ($this->_isSiteAdmin()) {
 			$this->set('users', $this->paginate());
 		} else {
@@ -167,6 +208,86 @@ class UsersController extends AppController {
 			);
 			$this->set('users', $this->paginate());
 		}
+	}
+
+	public function admin_filterUserIndex() {
+		if (!$this->_isAdmin() && !$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		$passedArgsArray = array();
+		$booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
+		$textFields = array('role', 'email');
+		$showorg = 0;
+		// org admins can't see users of other orgs
+		if ($this->_isSiteAdmin()) {
+			$textFields[] = 'org';
+			$showorg = 1;
+		}
+		$this->set('differentFilters', $booleanFields);
+		$this->set('simpleFilters', $textFields);
+		$rules = array_merge($booleanFields, $textFields);
+		$this->set('showorg', $showorg);
+		
+		$filtering = array();
+		foreach ($booleanFields as $b) {
+			$filtering[$b] = '';
+		}
+		foreach ($textFields as $t) {
+			$filtering[$t] = array('OR' => array(), 'NOT' => array());
+		}
+	
+		foreach ($this->passedArgs as $k => $v) {
+			if (substr($k, 0, 6) === 'search') {
+				$searchTerm = substr($k, 6);
+				if (in_array($searchTerm, $booleanFields)) $filtering[$searchTerm] = $v;
+				else if (in_array($searchTerm, $textFields)) {
+					$pieces = explode('|', $v);
+					foreach ($pieces as $piece) {
+						if ($piece[0] == '!') $filtering[$searchTerm]['NOT'][] = substr($piece,1);
+						else $filtering[$searchTerm]['OR'][] = $piece;
+					}
+				}
+				$passedArgsArray[$searchTerm] = $v;
+			}
+		}
+		$this->set('filtering', json_encode($filtering));
+		
+		$roles = $this->User->Role->find('all', array('recursive' => -1));
+		$roleNames = array();
+		$roleJSON = array();
+		foreach ($roles as $k => $v) {
+			$roleNames[$v['Role']['id']] = $v['Role']['name'];
+			$roleJSON[] = array('id' => $v['Role']['id'], 'value' => $v['Role']['name']);
+		}
+		$this->set('roles', $roleNames);
+		$this->set('roleJSON', json_encode($roleJSON));
+/*
+		$conditions = array();
+		if (!$this->_isSiteAdmin()) {
+			$conditions = array('OR' => array(array('orgc' => $this->Auth->User('org')), array('distribution' > 0)));
+		}
+		$events = $this->Event->find('all', array(
+				'recursive' => -1,
+				'fields' => array('orgc', 'distribution'),
+				'conditions' => $conditions,
+				'group' => 'orgc'
+		));
+		
+		if (Configure::read('MISP.showorg') != 'false') {
+			$orgs = array();
+			foreach ($events as $e) {
+				$orgs[] = $e['Event']['orgc'];
+			}
+			$orgs = $this->_arrayToValuesIndexArray($orgs);
+			$this->set('showorg', true);
+			$this->set('orgs', $orgs);
+			$rules[] = 'org';
+		} else {
+			$this->set('showorg', false);
+		}
+	*/
+		$rules = $this->_arrayToValuesIndexArray($rules);
+		$this->set('rules', $rules);
+		$this->set('baseurl', Configure::read('MISP.baseurl'));
+		$this->layout = 'ajax';
 	}
 
 /**
@@ -458,9 +579,6 @@ class UsersController extends AppController {
 	}
 
 	public function memberslist() {
-		$this->loadModel('Attribute');
-		$this->loadModel('Event');
-
 		// Orglist
 		$fields = array('User.org', 'count(User.id) as `num_members`');
 		$params = array('recursive' => 0,
@@ -470,43 +588,106 @@ class UsersController extends AppController {
 		);
 		$orgs = $this->User->find('all', $params);
 		$this->set('orgs', $orgs);
-
+	}
+	
+	public function histogram($selected = null) {
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+		if ($selected == '[]') $selected = null;
+		$selectedTypes = array();
+		if ($selected) $selectedTypes = json_decode($selected);
+		$temp = $this->User->Event->find('all', array(
+			'recursive' => -1,
+			'fields' => array('distinct(orgc)'),
+		));
+		$orgs = array();
+		foreach ($temp as $t) {
+			$orgs[] = $t['Event']['orgc'];
+		}
 		// What org posted what type of attribute
 		$this->loadModel('Attribute');
+		$conditions = array();
+		if ($selected) $conditions[] = array('Attribute.type' => $selectedTypes);
 		$fields = array('Event.orgc', 'Attribute.type', 'count(Attribute.type) as `num_types`');
 		$params = array('recursive' => 0,
-							'fields' => $fields,
-							'group' => array('Attribute.type', 'Event.orgc'),
-							'order' => array('Event.orgc', 'num_types DESC'),
+				'fields' => $fields,
+				'group' => array('Attribute.type', 'Event.orgc'),
+				'order' => array('Event.orgc', 'num_types DESC'),
+				'conditions' => $conditions,
 		);
-		$typesHistogram = $this->Attribute->find('all', $params);
-		$this->set('typesHistogram', $typesHistogram);
-
+		$temp = $this->Attribute->find('all', $params);
+		$data = array();
+		foreach ($orgs as $k => $org) {
+			$data[$org]['total'] = 0;
+			$data[$org]['data'] = array();
+			foreach ($temp as $t) {
+				if ($t['Event']['orgc'] == $org) {
+					$data[$org]['data'][$t['Attribute']['type']] = $t[0]['num_types'];
+				}
+			}
+		}
+		$max = 1;
+		foreach ($data as &$d) {
+			foreach ($d['data'] as $t) {
+				$d['total'] += $t;
+			}
+			if ($d['total'] > $max) $max = $d['total'];
+		}
+		$this->set('data', $data);
+		$this->set('max', $max);
+		$this->set('selectedTypes', $selectedTypes);
+		
 		// Nice graphical histogram
 		$this->loadModel('Attribute');
 		$sigTypes = array_keys($this->Attribute->typeDefinitions);
-		$replace = array('-', '|');
-		$graphFields = '';
-		foreach ($sigTypes as &$sigType) {
-			if ($graphFields != "") $graphFields .= ", ";
-			$graphFields .= "'" . $sigType . "'";
-		}
-		$graphFields = str_replace($replace, "_", $graphFields);
-		$this->set('graphFields', $graphFields);
 
-		$graphData = array();
-		$prevRowOrg = "";
-		$i = -1;
-		foreach ($typesHistogram as &$row) {
-			if ($prevRowOrg != $row['Event']['orgc']) {
-				$i++;
-				$graphData[] = "";
-				$prevRowOrg = $row['Event']['orgc'];
-				$graphData[$i] .= "org: '" . $row['Event']['orgc'] . "'";
-			}
-			$graphData[$i] .= ', ' . str_replace($replace, "_", $row['Attribute']['type']) . ': ' . $row[0]['num_types'];
+		App::uses('ColourPaletteTool', 'Tools');
+		$paletteTool = new ColourPaletteTool();
+		$colours = $paletteTool->createColourPalette(count($sigTypes));
+		$typeDb = array();
+		foreach($sigTypes as $k => $type) {
+			$typeDb[$type] = $colours[$k]; 
 		}
-		$this->set('graphData', $graphData);
+		$this->set('typeDb', $typeDb);
+		$this->set('sigTypes', $sigTypes);
+		$graphInterval = $this->_getIntervals($max);
+		$this->layout = 'ajax';
+	}
+	
+	private function _getIntervals($max) {
+		$intervals = array();
+		if ($max > 5) {
+			$maxDecimals = strlen((string) $max);
+			//$graphInterval = $max / 10;
+			$graphInterval = round($max, -($maxDecimals-2), PHP_ROUND_HALF_DOWN);
+			$graphInterval = round($graphInterval / 5);
+			for ($i=0; $i<$max; $i+=$graphInterval) {
+				$intervals[] = $i;
+			}
+		} else {
+			for ($i=0; $i<$max; $i++) $intervals[] = $i;
+		}
+		return $intervals;
+	}
+	
+	private function _generateColours($count){
+		$pallette = 16777216;
+		$array = array();
+		$interval = ceil($pallette / $count);
+		$colours = array();
+		for ($i = 0; $i < $count; $i++) {
+			$temp = $i * $interval;
+			$array[$i] = $temp;
+			$colours[$i] = $this->_convertToHex($temp);
+		}
+		return $colours;
+	}
+	
+	private function _convertToHex($int) {
+		$hex = strval(dechex($int));
+		$filler = '';
+		for ($i = 0; $i < 6 - (strlen($hex)); $i++) $filler .= '0';
+		$filler = '#' . $filler . $hex;
+		return $filler;
 	}
 
 	public function terms() {
@@ -518,6 +699,16 @@ class UsersController extends AppController {
 			$this->redirect(array('action' => 'routeafterlogin'));
 		}
 		$this->set('termsaccepted', $this->Auth->user('termsaccepted'));
+	}
+	
+	public function downloadTerms() {
+		if (!Configure::read('MISP.terms_file')) {
+			$termsFile = APP ."View/Users/terms";
+		} else {
+			$termsFile = APP . 'files' . DS . 'terms' . DS .  Configure::read('MISP.terms_file');
+		}
+		$this->response->file($termsFile, array('download' => true, 'name' => Configure::read('MISP.terms_file')));
+		return $this->response;
 	}
 
 	public function news() {
@@ -592,7 +783,7 @@ class UsersController extends AppController {
 			throw new MethodNotAllowedException();
 		}
 		$this->User->recursive = 0;
-		$temp = $this->User->find('all', array('fields' => array('email', 'gpgkey')));
+		$temp = $this->User->find('all', array('fields' => array('email', 'gpgkey'), 'order' => array('email ASC')));
 		$emails = array();
 		$gpgKeys = array();
 		// save all the emails of the users and set it for the dropdown list in the form
@@ -659,7 +850,6 @@ class UsersController extends AppController {
 					}
 				}
 			}
-
 			// If the recipient is a user, and the action to create a password, create it and squeeze it between the main message and the signature
 			if ($this->request->data['User']['recipient'] == 1) {
 				$recipients[0] = $emails[$this->request->data['User']['recipientEmailList']];
@@ -675,6 +865,7 @@ class UsersController extends AppController {
 
 			require_once 'Crypt/GPG.php';
 			$i = 0;
+			$this->Log = ClassRegistry::init('Log');
 			foreach ($recipients as $recipient) {
 				if (!empty($recipientGPG[$i])) {
 					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
@@ -694,7 +885,6 @@ class UsersController extends AppController {
 				} else {
 					$encryptedMessage = $message[$i];
 				}
-
 				// prepare the email
 				$this->Email->from = Configure::read('MISP.email');
 				$this->Email->to = $recipients[$i];
@@ -706,6 +896,28 @@ class UsersController extends AppController {
 
 				// send it
 				$result = $this->Email->send();
+				$this->Log->create();
+				if ($result) {
+					$this->Log->save(array(
+							'org' => $this->Auth->user('org'),
+							'model' => 'User',
+							'model_id' => $this->Auth->user('id'),
+							'email' => $this->Auth->user('email'),
+							'action' => 'admin_email',
+							'title' => 'Admin email to ' . $recipients[$i] . ' sent, titled "' . $subject . '".',
+							'change' => null,
+					));
+				} else {
+					$this->Log->save(array(
+							'org' => $this->Auth->user('org'),
+							'model' => 'User',
+							'model_id' => $this->Auth->user('id'),
+							'email' => $this->Auth->user('email'),
+							'action' => 'admin_email',
+							'title' => 'Admin email to ' . $recipients[$i] . ' failed.',
+							'change' => null,
+					));
+				}
 
 				// if sending successful and action was a password change, update the user's password.
 				if ($result && $this->request->data['User']['action'] == '1') {

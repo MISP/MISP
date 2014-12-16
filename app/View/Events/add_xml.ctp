@@ -7,6 +7,16 @@
 			'label' => '<b>MISP XML</b>',
 			'type' => 'file',
 	));
+	if (Configure::read('MISP.take_ownership_xml_import')):
+?>
+		<div class="input clear"></div>
+<?php 
+	echo $this->Form->input('Event.takeownership', array(
+			'checked' => false,
+			'label' => 'Take ownership of the event',
+			'title' => 'Warning: This will change the creator organisation of the event, tampering with the event\'s ownership and releasability and can lead to unexpected behaviour when synchronising the event with instances that have another creator for the same event.'
+	));
+	endif;
 ?>
 	</fieldset>
 <?php

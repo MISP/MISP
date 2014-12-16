@@ -360,6 +360,11 @@ class ShadowAttribute extends AppModel {
 		if (!isset($this->data['ShadowAttribute']['type'])) {
 			return false;
 		}
+		
+		if (empty($this->data['ShadowAttribute']['timestamp'])) {
+			$date = new DateTime();
+			$this->data['ShadowAttribute']['timestamp'] = $date->getTimestamp();
+		}
 
 		switch($this->data['ShadowAttribute']['type']) {
 			// lowercase these things
@@ -395,234 +400,7 @@ class ShadowAttribute extends AppModel {
 
 	public function validateAttributeValue($fields) {
 		$value = $fields['value'];
-		$returnValue = false;
-
-		// check data validation
-		switch($this->data['ShadowAttribute']['type']) {
-			case 'md5':
-				if (preg_match("#^[0-9a-f]{32}$#", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'sha1':
-				if (preg_match("#^[0-9a-f]{40}$#", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'sha256':
-				if (preg_match("#^[0-9a-f]{64}$#", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'filename':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'filename|md5':
-				// no newline
-				if (preg_match("#^.+\|[0-9a-f]{32}$#", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'filename|sha1':
-				// no newline
-				if (preg_match("#^.+\|[0-9a-f]{40}$#", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'filename|sha256':
-				// no newline
-				if (preg_match("#^.+\|[0-9a-f]{64}$#", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'ip-src':
-				$parts = explode("/", $value);
-				// [0] = the ip
-				// [1] = the network address
-				if (count($parts) <= 2 ) {
-					// ipv4 and ipv6 matching
-					if (filter_var($parts[0],FILTER_VALIDATE_IP)) {
-						// ip is validated, now check if we have a valid network mask
-						if (empty($parts[1])) {
-							$returnValue = true;
-						} else {
-							if (is_numeric($parts[1]) && $parts[1] < 129) {
-								$returnValue = true;
-							}
-						}
-					}
-				}
-				if (!$returnValue) {
-					$returnValue = 'IP address has invalid format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'ip-dst':
-				$parts = explode("/", $value);
-				// [0] = the ip
-				// [1] = the network address
-				if (count($parts) <= 2 ) {
-					// ipv4 and ipv6 matching
-					if (filter_var($parts[0],FILTER_VALIDATE_IP)) {
-						// ip is validated, now check if we have a valid network mask
-						if (empty($parts[1])) {
-							$returnValue = true;
-						} else {
-							if (is_numeric($parts[1]) && $parts[1] < 129) {
-								$returnValue = true;
-							}
-						}
-					}
-				}
-				if (!$returnValue) {
-					$returnValue = 'IP address has invalid format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'named pipe':
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'hostname':
-			case 'domain':
-				if (preg_match("#^[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Domain name has invalid format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'email-src':
-				// we don't use the native function to prevent issues with partial email addresses
-				if (preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Email address has invalid format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'email-dst':
-				// we don't use the native function to prevent issues with partial email addresses
-				if (preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Email address has invalid format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'email-subject':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'email-attachment':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'url':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'user-agent':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'regkey':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'regkey|value':
-				// no newline
-				if (preg_match("#(.)+\|(.)+#", $value) && !preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'vulnerability':
-				if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,6}$#", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Invalid format. Expected: CVE-xxxx-xxxx.';
-				}
-				break;
-			case 'AS':
-			case 'snort':
-			case 'pattern-in-file':
-			case 'pattern-in-traffic':
-			case 'pattern-in-memory':
-			case 'yara':
-			case 'attachment':
-			case 'malware-sample':
-				$returnValue = true;
-				break;
-			case 'link':
-				if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $value) && !preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'comment':
-			case 'text':
-			case 'other':
-				$returnValue = true;
-				break;
-			case 'target-user':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'target-email':
-				if (preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Email address has invalid format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'target-machine':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'target-org':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'target-location':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'target-external':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-		}
-
-		return $returnValue;
+		return $this->Event->Attribute->runValidation($value, $this->data['ShadowAttribute']['type']);
 	}
 
 	public function getCompositeTypes() {
@@ -656,7 +434,7 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function base64EncodeAttachment($attribute) {
-		$filepath = APP . "files" . DS . $attribute['event_id'] . DS . $attribute['id'];
+		$filepath = APP . "files" . DS . $attribute['event_id'] . DS . 'shadow' . DS. $attribute['id'];
 		$file = new File($filepath);
 		if (!$file->exists()) {
 			return '';
@@ -666,7 +444,7 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function saveBase64EncodedAttachment($attribute) {
-		$rootDir = APP . DS . "files" . DS . $attribute['event_id'];
+		$rootDir = APP . DS . "files" . DS . 'shadow' . DS . $attribute['event_id'];
 		$dir = new Folder($rootDir, true);						// create directory structure
 		$destpath = $rootDir . DS . $attribute['id'];
 		$file = new File ($destpath, true);						// create the file
@@ -755,6 +533,29 @@ class ShadowAttribute extends AppModel {
 			}
 		}
 		return $fails;
+	}
+	
+	public function setDeleted($id) {
+		$this->Behaviors->detach('SysLogLogable.SysLogLogable');
+		$this->id = $id;
+		$this->saveField('deleted', 1);
+		$date = new DateTime();
+		$this->saveField('timestamp', $date->getTimestamp());
+		return true;
+	}
+	
+	public function findOldProposal($sa) {
+		$oldsa = $this->find('first', array(
+			'conditions' => array(
+				'event_uuid' => $sa['event_uuid'],
+				'value' => $sa['value'],
+				'type' => $sa['type'],
+				'category' => $sa['category'],
+				'to_ids' => $sa['to_ids'],
+			),
+		));
+		if (empty($oldsa)) return false;
+		else return $oldsa['ShadowAttribute'];
 	}
 }
 

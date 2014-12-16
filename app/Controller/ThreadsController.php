@@ -45,6 +45,7 @@ class ThreadsController extends AppController {
 			if ($this->Event->data['Event']['distribution'] != $this->Thread->data['Thread']['distribution']) {
 				$this->Thread->saveField('distribution', $this->Event->data['Event']['distribution']);
 			}
+			$this->set('event_id', $this->Thread->data['Thread']['event_id']);
 		}
 											
 		// If the user shouldn't be allowed to see the event send him away.

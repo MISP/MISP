@@ -54,7 +54,7 @@ class JobsController extends AppController {
 	}
 	
 	public function getGenerateCorrelationProgress($id) {
-		//if (!self::_isSiteAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$progress = $this->Job->findById($id);
 		if (!$progress) {
 			$progress = 0;

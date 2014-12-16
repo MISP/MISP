@@ -12,12 +12,10 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 			'type' => 'text',
 			'class' => 'datepicker'
 	));
-if ('true' == Configure::read('MISP.sync')) {
 	echo $this->Form->input('distribution', array(
 		'options' => array($distributionLevels),
 		'label' => 'Distribution',
 	));
-}
 	echo $this->Form->input('threat_level_id', array(
 			'div' => 'input clear'
 			));
@@ -39,6 +37,7 @@ if ('true' == Configure::read('MISP.sync')) {
 echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
+<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'editEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
