@@ -77,7 +77,20 @@ foreach ($sigTypes as $sigType) {
 <p>To restrict the results by tags, use the usual syntax. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). To get ip-src values from events tagged tag1 but not tag2 use:</p>
 <pre>
 <?php 
-echo Configure::read('MISP.baseurl').'/attributes/text/download/ip-src/tag1&&!tag2';
+	echo Configure::read('MISP.baseurl').'/attributes/text/download/ip-src/tag1&&!tag2';
+?>
+</pre>
+
+<p>As of version 2.3.38, it is possible to restrict the text exports on two additional flags. The first allows the user to restrict based on event ID, whilst the second is a boolean switch allowing non IDS flagged attributes to be exported. Additionally, choosing "all" in the type field will return all eligible attributes. </p>
+<pre>
+<?php 
+	echo Configure::read('MISP.baseurl').'/attributes/text/download/[type]/[tags]/[event_id]/[ignore_to_ids_restriction]';
+?>
+</pre>
+<p>For example, to retrieve all attributes for event #5, including non IDS marked attributes too, use the following line:</p>
+<pre>
+<?php 
+	echo Configure::read('MISP.baseurl').'/attributes/text/download/all/null/5/true';
 ?>
 </pre>
 
