@@ -3107,7 +3107,7 @@ class EventsController extends AppController {
 					'checkbox' => false,
 			),
 			'text' => array(
-					'url' => 'http://192.168.56.11/attributes/text/download/all/false/' . $id,
+					'url' => '/attributes/text/download/all/false/' . $id,
 					'text' => 'Export all attribute values as a text file',
 					'requiresPublished' => true,
 					'checkbox' => true,
