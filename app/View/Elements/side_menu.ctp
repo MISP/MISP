@@ -43,13 +43,7 @@
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo $event['Event']['id']; ?>', 'publish')">Publish (no email)</a></li>
 
 					<li <?php if ($menuItem === 'contact') echo 'class="active"';?>><a href="/events/contact/<?php echo $event['Event']['id'];?>">Contact Reporter</a></li>
-					<li><a href="/events/xml/download/<?php echo $event['Event']['id'];?>">Download as XML</a></li>
-
-					<li<?php echo $exportButtons; ?> class="exportButtons"><a href="/events/downloadOpenIOCEvent/<?php echo $event['Event']['id'];?>">Download as IOC</a></li>
-					<li<?php echo $exportButtons; ?> class="exportButtons"><a href="/events/csv/download/<?php echo $event['Event']['id'];?>/1">Download as CSV</a></li>
-					<li<?php echo $exportButtons; ?> class="exportButtons"><a href="/events/stix/download/<?php echo $event['Event']['id'];?>.xml">Download as STIX XML</a></li>
-					<li<?php echo $exportButtons; ?> class="exportButtons"><a href="/events/stix/download/<?php echo $event['Event']['id'];?>.json">Download as STIX JSON</a></li>
-
+					<li><a onClick="getPopup('<?php echo $event['Event']['id']; ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
 					<li class="divider"></li>
 					<li><a href="/events/index">List Events</a></li>
 					<?php if ($isAclAdd): ?>

@@ -193,7 +193,6 @@
         ?>
         </ul>
     </div>
-    <div id="popover_form" class="ajax_popover_form"></div>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));

@@ -1723,7 +1723,11 @@ class AttributesController extends AppController {
 		$this->__downloadAttachment($this->Attribute->data['Attribute']);
 	}
 
-	public function text($key='download', $type="", $tags='') {
+	public function text($key='download', $type='all', $tags=false, $eventId=false, $allowNonIDS=false) {
+		if ($eventId === 'null' || $eventId == '0' || $eventId === 'false') $eventId = false;
+		if ($allowNonIDS === 'null' || $allowNonIDS === '0' || $allowNonIDS === 'false') $allowNonIDS = false;
+		if ($type === 'null' || $type === '0' || $type === 'false') $type = 'all';
+		if ($tags === 'null' || $tags === '0' || $tags === 'false') $tags = false;
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1738,7 +1742,7 @@ class AttributesController extends AppController {
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.txt"');
 		$this->layout = 'text/default';
-		$attributes = $this->Attribute->text($this->_checkOrg(), $this->_isSiteAdmin(), $type, $tags);
+		$attributes = $this->Attribute->text($this->_checkOrg(), $this->_isSiteAdmin(), $type, $tags, $eventId, $allowNonIDS);
 		$this->loadModel('Whitelist');
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		$this->set('attributes', $attributes);
