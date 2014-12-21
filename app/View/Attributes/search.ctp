@@ -6,9 +6,11 @@
 		<?php
 			echo $this->Form->input('keyword', array('type' => 'textarea', 'label' => 'Containing the following expressions', 'div' => 'clear', 'class' => 'input-xxlarge'));
 			echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Being attributes of the following event IDs', 'div' => 'clear', 'class' => 'input-xxlarge'));
+			echo $this->Form->input('tags', array('type' => 'textarea', 'label' => 'Being an attribute of an event matching the following tags', 'div' => 'clear', 'class' => 'input-xxlarge'));
+			
 		?>
 		<?php
-			if ('true' == Configure::read('MISP.showorg') || $isAdmin)
+			if (Configure::read('MISP.showorg') || $isAdmin)
 				echo $this->Form->input('org', array(
 						'type' => 'textarea',
 						'label' => 'From the following organisation(s)',
@@ -27,6 +29,10 @@
 			echo $this->Form->input('ioc', array(
 				'type' => 'checkbox',
 				'label' => 'Only find valid IOCs',
+			));
+			echo $this->Form->input('alternate', array(
+					'type' => 'checkbox',
+					'label' => 'Alternate Search Result (Events)',
 			));
 		?>
 	</fieldset>

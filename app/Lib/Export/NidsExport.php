@@ -53,7 +53,7 @@ class NidsExport {
 			}*/
 
 			# proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
-			$ruleFormatMsg = 'msg: "' . Configure::read('MISP.name') . ' e' . $item['Event']['id'] . ' %s"';
+			$ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' %s"';
 			$ruleFormatReference = 'reference:url,' . Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
 			$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
 
@@ -261,7 +261,7 @@ class NidsExport {
 		);
 		$sid++;
 		// also do http requests
-		$content = 'flow:to_server,established; content: "Host|3a| ' . $attribute['value'] . '"; nocase; http_header; pcre: "/[^A-Za-z0-9-\.]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
+		$content = 'flow:to_server,established; content: "Host|3a| ' . $attribute['value'] . '"; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-\.])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',						// proto
@@ -313,7 +313,7 @@ class NidsExport {
 				);
 		$sid++;
 		// also do http requests,
-		$content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; nocase; http_header; pcre: "/[^A-Za-z0-9-]' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
+		$content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',						// proto

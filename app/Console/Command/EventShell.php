@@ -51,13 +51,17 @@ class EventShell extends AppShell
 		} else {
 			$file = new File($dir->pwd() . DS . 'misp.xml' . '.' . $org . '.xml');
 		}
-		$file->write('<?xml version="1.0" encoding="UTF-8"?><response>');
+		$toEscape = array("&", "<", ">", "\"", "'");
+		$escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
+		$file->write('<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>');
 		foreach ($eventIds as $k => $eventId) {
 			$temp = $this->Event->fetchEvent($eventId['Event']['id'], null, $org, $isSiteAdmin, $this->Job->id);
 			$result = $temp[0];
 			$result['Event']['Attribute'] = $result['Attribute'];
 			$result['Event']['ShadowAttribute'] = $result['ShadowAttribute'];
 			$result['Event']['RelatedEvent'] = $result['RelatedEvent'];
+			$result['Event']['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['info']);
+			$result['Event']['info'] = str_replace($toEscape, $escapeWith, $result['Event']['info']);
 			
 			//
 			// cleanup the array from things we do not want to expose
@@ -69,38 +73,89 @@ class EventShell extends AppShell
 				unset($result['Event']['orgc']);
 				unset($result['Event']['from']);
 			}
+			
 			// remove value1 and value2 from the output and remove invalid utf8 characters for the xml parser
 			foreach ($result['Event']['Attribute'] as $key => $value) {
+				if (Configure::read('MISP.cached_attachments') && $this->Event->Attribute->typeIsAttachment($result['Event']['Attribute'][$key]['type'])) {
+					$encodedFile = $this->Event->Attribute->base64EncodeAttachment($result['Event']['Attribute'][$key]);
+					$result['Event']['Attribute'][$key]['data'] = $encodedFile;
+				}
 				$result['Event']['Attribute'][$key]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['value']);
+				$result['Event']['Attribute'][$key]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['comment']);
 				unset($result['Event']['Attribute'][$key]['value1']);
 				unset($result['Event']['Attribute'][$key]['value2']);
 				unset($result['Event']['Attribute'][$key]['category_order']);
+				$result['Event']['Attribute'][$key]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['value']);
+				$result['Event']['Attribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['comment']);
+
+				foreach($result['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
+					if (Configure::read('MISP.cached_attachments') && $this->Event->ShadowAttribute->typeIsAttachment($result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['type'])) {
+						$encodedFile = $this->Event->ShadowAttribute->base64EncodeAttachment($result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]);
+						$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['data'] = $encodedFile;
+					}
+					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
+					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
+					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
+					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
+				}
 			}
 			// remove invalid utf8 characters for the xml parser
 			foreach($result['Event']['ShadowAttribute'] as $key => $value) {
+				if (Configure::read('MISP.cached_attachments') && $this->Event->ShadowAttribute->typeIsAttachment($result['Event']['ShadowAttribute'][$key]['type'])) {
+					$encodedFile = $this->Event->ShadowAttribute->base64EncodeAttachment($result['Event']['ShadowAttribute'][$key]);
+					$result['Event']['ShadowAttribute'][$key]['data'] = $encodedFile;
+				}
 				$result['Event']['ShadowAttribute'][$key]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['ShadowAttribute'][$key]['value']);
+				$result['Event']['ShadowAttribute'][$key]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['ShadowAttribute'][$key]['value']);
+				$result['Event']['ShadowAttribute'][$key]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['ShadowAttribute'][$key]['comment']);
+				$result['Event']['ShadowAttribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['ShadowAttribute'][$key]['comment']);
 			}
 			
 			if (isset($result['Event']['RelatedEvent'])) {
 				foreach ($result['Event']['RelatedEvent'] as $key => $value) {
-					unset($result['Event']['RelatedEvent'][$key]['user_id']);
+					$temp = $value['Event'];
+					unset($result['Event']['RelatedEvent'][$key]['Event']);
+					$result['Event']['RelatedEvent'][$key]['Event'][0] = $temp;
+					unset($result['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
+					$result['Event']['RelatedEvent'][$key]['Event'][0]['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['RelatedEvent'][$key]['Event'][0]['info']);
+					$result['Event']['RelatedEvent'][$key]['Event'][0]['info'] = str_replace($toEscape, $escapeWith, $result['Event']['RelatedEvent'][$key]['Event'][0]['info']);
 					if ('true' != Configure::read('MISP.showorg') && !$isAdmin) {
-						unset($result['Event']['RelatedEvent'][$key]['org']);
-						unset($result['Event']['RelatedEvent'][$key]['orgc']);
+						unset($result['Event']['RelatedEvent'][$key]['Event'][0]['org']);
+						unset($result['Event']['RelatedEvent'][$key]['Event'][0]['orgc']);
 					}
+					unset($temp);
 				}
 			}
-			
-			$xmlArray['Event'] = $result['Event'];
-			$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
-
-			$string = $xmlObject->asXML();
-			$string = preg_replace('/<\?xml.+\?>/', '', $string);
-			$file->append($string);
+			$text = $this->__recursiveEcho(array('Event' => array(0 => $result['Event'])));
+			$file->append($text);
 			$this->Job->saveField('progress', ($k+1) / $eventCount * 100);
 		}
-		$file->append('</response>');
+		$file->append('<xml_version>' . $this->Event->mispVersion . '</xml_version>');
+		$file->append('</response>' . PHP_EOL);
 		$file->close();
+	}
+	
+	private function __recursiveEcho($array) {
+		$text = "";
+		foreach ($array as $k => $v) {
+			if (is_array($v)) {
+				if (empty($v)) $text .= '<' . $k . '/>';
+				else {
+					foreach ($v as $element) {
+						$text .= '<' . $k . '>';
+						$text .= $this->__recursiveEcho($element);
+						$text .= '</' . $k . '>';
+					}
+				}
+			} else {
+				if ($v === false) $v = 0;
+				if ($v === "" || $v === null) $text .= '<' . $k . '/>';
+				else {
+					$text .= '<' . $k . '>' . $v . '</' . $k . '>';
+				}
+			}
+		}
+		return $text;
 	}
 	
 	public function cachehids() {
@@ -136,30 +191,23 @@ class EventShell extends AppShell
 		else $ignore = 0;
 		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
 		$eventCount = count($eventIds);
-		$attributes[] = array();
-		foreach ($eventIds as $k => $eventId) {
-			$attributes = array_merge($this->Event->csv($org, $isSiteAdmin, $eventId['Event']['id'], $ignore), $attributes);
-			if ($k % 10 == 0) {
-				$this->Job->saveField('progress', $k / $eventCount * 80);
-			}
-		}
-		$final = array();
-		$final[] = 'uuid,event_id,category,type,value,to_ids,date';
-		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
-		foreach ($attributes as $attribute) {
-			if (!empty($attribute)) {
-				$final[] = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
-			}
-		}
+		$attributes = array();
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
 		if ($isSiteAdmin) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.csv');
 		} else {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.csv');
 		}
-		$file->write('');
-		foreach ($final as $line) {
-			$file->append($line . PHP_EOL);
+		$file->write('uuid,event_id,category,type,value,to_ids,date' . PHP_EOL);
+		foreach ($eventIds as $k => $eventId) {
+			$attributes = $this->Event->csv($org, $isSiteAdmin, $eventId['Event']['id'], $ignore);
+			$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
+			foreach ($attributes as $attribute) {
+				$file->append($attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'] . PHP_EOL);
+			}
+			if ($k % 10 == 0) {
+				$this->Job->saveField('progress', $k / $eventCount * 80);
+			}
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');

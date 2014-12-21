@@ -45,47 +45,4 @@ class AppModel extends Model {
 
 		$this->name = get_class($this);
 	}
-
-/**
- * generateAllFor<FieldName>
- **/
-	public function generateAllFor($field, $newValvue, $oldValue, $recursive = -1) {
-		App::uses('CamelCase', 'Lib');
-		$camelCase = new CamelCase();
-		$fieldFromCamelCase = $camelCase->fromCamelCase($field);
-		$succes = $this->generateSomethings($this->name . '.' . $fieldFromCamelCase, $newValvue, $oldValue, $recursive);
-		return $succes;
-	}
-
-	public function generateSomethings($theThing, $newValue, $oldValue, $recursive) {
-		$successes = array();
-		$this->recursive = $recursive;
-		$result = $this->updateAll(
-			array($theThing => $newValue),
-			array($theThing => $oldValue == 'null' ? null : $oldValue)
-		);
-		return $result;
-	}
-
-	public function notUsedCall($method, $params) {
-		// Notice (8): Undefined index: Id [CORE/Cake/Model/Model.php, line 2673]
-		// Notice (8): Undefined index: Id [CORE/Cake/Model/Model.php, line 2650]
-
-		if (strpos($method, 'findBy') === 0) {
-			debug($method);
-			parent::__call($method, $params);
-			debug($methodArgs);
-		}
-
-		if (strpos ($method, 'generateAllFor') === 0) {
-			// massage the args
-			$methodArgs = $params;
-			$methodArgs[0] = str_replace('generateAllFor', '', $method); // TODO
-			//array_unshift($methodArgs, str_replace('generateAllFor', '', $method));
-			// do the actual call
-			return call_user_func_array(array($this, 'generateAllFor'), $methodArgs);
-		}
-
-		return false;
-	}
 }

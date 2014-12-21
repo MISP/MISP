@@ -11,8 +11,8 @@ div.view, div.index{
 	width: 99% !important;
 }
 
-.noPrint{
-	display: none;
+.noPrint {
+	display: none !important;
 }
 
 a[href]:after, .tagSecondHalf{

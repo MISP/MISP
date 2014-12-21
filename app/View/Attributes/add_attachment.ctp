@@ -8,7 +8,6 @@
 		?>
 		<div class="input clear"></div>
 		<?php
-		if ('true' == Configure::read('MISP.sync')) {
 			$initialDistribution = 3;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
@@ -30,7 +29,6 @@
 					'class' => 'input-xxlarge'
 			));
 			//'before' => $this->Html->div('forminfo', isset($attrDescriptions['distribution']['formdesc']) ? $attrDescriptions['distribution']['formdesc'] : $attrDescriptions['distribution']['desc']),));
-		}
 		?>
 		<div class="input clear"></div>
 		<div class="input">
@@ -40,6 +38,7 @@
 		));
 		?>
 		</div>
+		<div class="input clear"></div>
 		<?php
 		echo $this->Form->input('malware', array(
 				'type' => 'checkbox',
@@ -55,6 +54,7 @@
 echo $this->Form->button('Upload', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
+	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php 
 	$event['Event']['id'] = $this->request->data['Attribute']['event_id'];

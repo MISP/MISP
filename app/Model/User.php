@@ -382,18 +382,17 @@ class User extends AppModel {
 		require_once 'Crypt/GPG.php';
 		$this->Behaviors->detach('Trim');
 		$results = array();
-		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 		$users = $this->find('all', array(
 			'conditions' => array('not' => array('gpgkey' => '')),
 			//'fields' => array('id', 'email', 'gpgkey'),
 			'recursive' => -1,
 		));
 		foreach ($users as $k => $user) {
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 			$key = $gpg->importKey($user['User']['gpgkey']);
 			$gpg->addEncryptKey($key['fingerprint']); // use the key that was given in the import
 			try {
 				$enc = $gpg->encrypt('test', true);
-				$verified = $gpg->verify($enc);
 			} catch (Exception $e){
 				$results[$user['User']['id']][0] = true;
 			}
@@ -406,6 +405,7 @@ class User extends AppModel {
 		$result = $this->find('first', array(
 			'recursive' => -1,
 			'fields' => array('id', 'gpgkey'),
+			'conditions' => array('id' => $id),
 		));
 		return $result['User']['gpgkey'];
 	}

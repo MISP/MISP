@@ -45,8 +45,8 @@ class AppController extends Controller {
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats 
 	public $automationArray = array(
-		'events' => array('csv', 'nids', 'hids'),
-		'attributes' => array('text', 'downloadAttachment'),
+		'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix'),
+		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch'),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
@@ -75,7 +75,7 @@ class AppController extends Controller {
 				),
 	);
 	
-	public $mispVersion = '2.2.0';
+	public $mispVersion = '2.3.0';
 	
 	public function beforeFilter() {
 		// send users away that are using ancient versions of IE
@@ -116,6 +116,8 @@ class AppController extends Controller {
 		// instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
 		// getActions returns all the flags in a single SQL query
 		if ($this->Auth->user()) {
+			//$this->_refreshAuth();
+			$this->set('mispVersion', $this->mispVersion);
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
 			$this->set('isAdmin', $role['perm_admin']);
@@ -130,6 +132,7 @@ class AppController extends Controller {
 			$this->set('isAclAuth', $role['perm_auth']);
 			$this->set('isAclRegexp', $role['perm_regexp_access']);
 			$this->set('isAclTagger', $role['perm_tagger']);
+			$this->set('isAclTemplate', $role['perm_template']);
 			$this->userRole = $role;
 		} else {
 			$this->set('me', false);
@@ -145,6 +148,7 @@ class AppController extends Controller {
 			$this->set('isAclAuth', false);
 			$this->set('isAclRegexp', false);
 			$this->set('isAclTagger', false);
+			$this->set('isAclTemplate', false);
 		}
 		if (Configure::read('debug') > 0) {
 			$this->debugMode = 'debugOn';
@@ -188,7 +192,8 @@ class AppController extends Controller {
 				'recursive' => -1,
 				'fields' => array('event_id', 'event_org'),
 				'conditions' => array( 
-					'ShadowAttribute.event_org' => $this->Auth->user('org')
+					'ShadowAttribute.event_org' => $this->Auth->user('org'),
+					'ShadowAttribute.deleted' => 0,
 		)));
 		$results = array();
 		$eventIds = array();

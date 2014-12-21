@@ -1,4 +1,4 @@
-<div class="navbar-wrapper header <?php echo $debugMode;?>" style="height:42px;">
+<div id = "topBar" class="navbar-wrapper header <?php echo $debugMode;?>" style="height:42px;width:100%">
 	<div class="glass"></div>
 	<div class="navbar navbar-inverse">
 		<div class="navbar-inner" style="border-radius: 10px;">
@@ -11,8 +11,7 @@
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
 				<ul class="nav">
-					<li><a href="/" style="color:white">Home
-					</a></li>
+					<li><a href="/" style="color:white">Home</a></li>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Event Actions
@@ -30,9 +29,14 @@
 							<li><a href="/shadow_attributes/index">View Proposals</a></li>
 							<li><a href="/events/proposalEventIndex">Events with proposals</a></li>
 							<li class="divider"></li>
-							<li><a href="/tags/index">List Tags</a>
+							<li><a href="/tags/index">List Tags</a></li>
 							<?php if ($isAclTagger): ?>
-							<li><a href="/tags/add">Add Tag</a>
+							<li><a href="/tags/add">Add Tag</a></li>
+							<?php endif; ?>
+							<li class="divider"></li>
+							<li><a href="/templates/index">List Templates</a></li>
+							<?php if ($isAclTemplate): ?>
+							<li><a href="/templates/add">Add Template</a></li>
 							<?php endif; ?>
 							<li class="divider"></li>
 							<li><a href="/events/export">Export</a></li>
@@ -78,7 +82,7 @@
 						</ul>
 					</li>
 
-					<?php if (('true' == Configure::read('MISP.sync')) && ($isAclSync || $isAdmin)): ?>
+					<?php if ($isAclSync || $isAdmin): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Sync Actions
@@ -99,6 +103,7 @@
 						<ul class="dropdown-menu">
 							<li><a href="/admin/users/add">New User</a></li>
 							<li><a href="/admin/users/index">List Users</a></li>
+							<li><a href="/admin/users/email">Contact Users</a></li>
 							<li class="divider"></li>
 							<?php if($isSiteAdmin): ?>
 							<li><a href="/admin/roles/add">New Role</a></li>
@@ -106,9 +111,8 @@
 							<li><a href="/admin/roles/index">List Roles</a></li>
 							<?php if($isSiteAdmin): ?>
 								<li class="divider"></li>
-								<li><a href="/admin/users/email">Contact Users</a></li>
-								<li class="divider"></li>
 								<li><a href="/pages/display/administration">Administrative tools</a></li>
+								<li><a href="/servers/serverSettings">Server settings</a></li>
 								<?php if (Configure::read('MISP.background_jobs')): ?>
 									<li class="divider"></li>
 									<li><a href="/jobs/index">Jobs</a></li>
@@ -175,12 +179,14 @@
 		</div>
 	</div>
 </div>
-<script>
+<script type="text/javascript">
 window.onload = resizeLogo;
 window.onresize = resizeLogo;
 
 function resizeLogo() {
 	var testElem = document.getElementById('fullLogo');
+	var topBar = document.getElementById('topBar');
+	
 	if (testElem != null) {
 		if ($(window).width() < 1400) {
 			document.getElementById('fullLogo').style.display='none';
@@ -190,6 +196,13 @@ function resizeLogo() {
 			document.getElementById('fullLogo').style.display='block';
 			document.getElementById('smallLogo').style.display='none';	
 		}
+	}
+
+	if ($(window).width() < 1185) {
+		topBar.style.width = '1185px';
+	}
+	if ($(window).width() > 1184) {
+		topBar.style.width = '100%';
 	}
 }
 </script>

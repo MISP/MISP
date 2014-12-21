@@ -12,15 +12,8 @@ foreach ($event['Event']['Attribute'] as $key => $value) {
 	unset($event['Event']['Attribute'][$key]['category_order']);
 }
 
-// hide the private fields is we are not in sync mode
-if ('true' != Configure::read('MISP.sync')) {
-	unset($event['Event']['private']);
-	foreach ($event['Event']['Attribute'] as $key => $value) {
-		unset($event['Event']['Attribute'][$key]['private']);
-	}
-}
 // hide the org field is we are not in showorg mode
-if ('true' != Configure::read('MISP.showorg') && !$isAdmin) {
+if (!Configure::read('MISP.showorg') && !$isAdmin) {
 	unset($event['Event']['org']);
 }
 
