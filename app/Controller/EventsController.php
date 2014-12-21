@@ -3041,4 +3041,87 @@ class EventsController extends AppController {
 			$this->set('_serialize', 'data');
 		}
 	}
+	
+	public function exportChoice($id) {
+		$event = $this->Event->find('first' ,array(
+				'conditions' => array('id' => $id),
+				'recursive' => -1,
+				'fields' => array('distribution', 'orgc','id', 'published'),
+		));
+		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc'] != $this->Auth->user('org') && $event['Event']['distribution'] < 1)) throw new NotFoundException('Event not found or you are not authorised to view it.');
+		$exports = array(
+			'xml' => array(
+					'url' => '/events/xml/download/' . $id,
+					'text' => 'MISP XML (metadata + all attributes)',
+					'requiresPublished' => false,
+					'checkbox' => true,
+					'checkbox_text' => 'Encode Attachments',
+					'checkbox_set' => '/true'
+			),
+			'json' => array(
+					'url' => '/events/view/' . $id . 'json',
+					'text' => 'MISP JSON (metadata + all attributes)',
+					'requiresPublished' => false,
+					'checkbox' => false,
+			),
+			'openIOC' => array(
+					'url' => '/events/downloadOpenIOCEvent/' . $id,
+					'text' => 'OpenIOC (all indicators marked to IDS)',
+					'requiresPublished' => true,
+					'checkbox' => false,
+			),
+			'csv' => array(
+					'url' => '/events/csv/download/' . $id . '/1',
+					'text' => 'CSV',
+					'requiresPublished' => true,
+					'checkbox' => true,
+					'checkbox_text' => 'Include non-IDS marked attributes',
+					'checkbox_set' => '/1'
+			),
+			'stix_xml' => array(
+					'url' => '/events/stix/download/' . $id . '.xml',
+					'text' => 'STIX XML (metadata + all attributes)',
+					'requiresPublished' => true,
+					'checkbox' => true,
+					'checkbox_text' => 'Encode Attachments',
+					'checkbox_set' => '/true'
+			),
+			'stix_json' => array(
+					'url' => '/events/stix/download/' . $id . '.json',
+					'text' => 'STIX JSON (metadata + all attributes)',
+					'requiresPublished' => true,
+					'checkbox' => true,
+					'checkbox_text' => 'Encode Attachments',
+					'checkbox_set' => '/true'
+			),
+			'suricata' => array(
+					'url' => '/events/nids/suricata/download/' . $id,
+					'text' => 'Download Suricata rules',
+					'requiresPublished' => true,
+					'checkbox' => false,
+			),
+			'snort' => array(
+					'url' => '/events/nids/snort/download/' . $id,
+					'text' => 'Download Snort rules',
+					'requiresPublished' => true,
+					'checkbox' => false,
+			),
+			'text' => array(
+					'url' => '/attributes/text/download/all/false/' . $id,
+					'text' => 'Export all attribute values as a text file',
+					'requiresPublished' => true,
+					'checkbox' => true,
+					'checkbox_text' => 'Include non-IDS marked attributes',
+					'checkbox_set' => '/true'
+			),
+		);
+		if ($event['Event']['published'] == 0) {
+			foreach ($exports as $k => $export) {
+				if ($export['requiresPublished']) unset($exports[$k]);	
+			}
+		}
+		$this->set('exports', $exports);
+		$this->set('id', $id);
+		$this->render('ajax/exportChoice');
+	}
 }

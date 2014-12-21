@@ -1298,3 +1298,12 @@ function changeFreetextImportExecute() {
 		}
 	});
 }
+
+function exportChoiceSelect(url, elementId, checkbox) {
+	if (checkbox == 1) {
+		if ($('#' + elementId + '_toggle').prop('checked')) {
+			url = url + $('#' + elementId + '_set').html();
+		}
+	}
+	document.location.href = url;
+}
