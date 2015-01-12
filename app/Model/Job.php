@@ -7,7 +7,7 @@ App::uses('AppModel', 'Model');
 */
 class Job extends AppModel {
 	
-	public function cache($type, $isSiteAdmin, $org, $target, $jobOrg, $sid) {
+	public function cache($type, $isSiteAdmin, $org, $target, $jobOrg, $sid = null) {
 		$extra = null;
 		$extra2 = null;
 		$shell = 'Event';

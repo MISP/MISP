@@ -98,7 +98,7 @@ class ServerShell extends AppShell
 			$jobId = $this->Job->id;
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
-			$result = $this->Server->pull($user['User'], null, 'full', $server, $jobId);
+			$result = $this->Server->pull($user['User'], $server['Server']['id'], 'full', $server, $jobId);
 			$this->Job->save(array(
 					'id' => $jobId,
 					'message' => 'Job done.',
@@ -155,7 +155,8 @@ class ServerShell extends AppShell
 		if ($timestamp != $task['Task']['next_execution_time']) {
 			return;
 		}
-		
+		$this->User->recursive = -1;
+		$user = $this->User->read(array('id', 'org', 'email'), $userId);
 		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('push' => 1)));
 		$count = count($servers);
 		foreach ($servers as $k => $server) {
