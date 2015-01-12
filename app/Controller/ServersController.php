@@ -233,7 +233,7 @@ class ServersController extends AppController {
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
-			$result = $this->Server->push($id, $technique, false, $HttpSocket);
+			$result = $this->Server->push($this->Auth->user(), $id, $technique, false, $HttpSocket);
 			$this->set('successes', $result[0]);
 			$this->set('fails', $result[1]);
 		} else {

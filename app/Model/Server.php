@@ -470,6 +470,9 @@ class Server extends AppModel {
 			App::import('Component','Auth');
 			$this->Auth = new AuthComponent(new ComponentCollection());
 			$this->Auth->login($user);
+			$email = "Scheduled job";
+		} else {
+			$email = $this->Auth->user('email');
 		}
 		$eventModel = ClassRegistry::init('Event');
 		App::uses('HttpSocket', 'Network/Http');
@@ -545,7 +548,6 @@ class Server extends AppModel {
 							unset($event['Event']['Attribute']);
 							$event['Event']['Attribute'][0] = $tmp;
 						}
-		
 						if (is_array($event['Event']['Attribute'])) {
 							$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
 							for ($i = 0; $i < $size; $i++) {
@@ -654,7 +656,7 @@ class Server extends AppModel {
 			'model_id' => $id,
 			'email' => $user['email'],
 			'action' => 'pull',
-			'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $user['email'],
+			'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
 			'change' => count($successes) . ' events and ' . count($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.' 
 		));
 		if (!isset($lastpulledid)) $lastpulledid = 0;
@@ -665,6 +667,9 @@ class Server extends AppModel {
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
 			$job->read(null, $jobId);
+			$email = "Scheduled job";
+		} else {
+			$email = $this->Auth->user('email');
 		}
 		$eventModel = ClassRegistry::init('Event');
 		$this->read(null, $id);
@@ -745,8 +750,9 @@ class Server extends AppModel {
 		$this->Log->save(array(
 				'model' => 'Server',
 				'model_id' => $id,
+				'email' => $email,
 				'action' => 'push',
-				'title' => 'Push to ' . $url . '.',
+				'title' => 'Push to ' . $url . ' initiated by ' . $email,
 				'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
 		));
 		if ($jobId) {
