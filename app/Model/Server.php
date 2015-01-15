@@ -472,7 +472,7 @@ class Server extends AppModel {
 			$this->Auth->login($user);
 			$email = "Scheduled job";
 		} else {
-			$email = $this->Auth->user('email');
+			$email = $user['email'];
 		}
 		$eventModel = ClassRegistry::init('Event');
 		App::uses('HttpSocket', 'Network/Http');
@@ -663,13 +663,10 @@ class Server extends AppModel {
 		return array($successes, $fails, $pulledProposals, $lastpulledid);
 	}
 	
-	public function push($id = null, $technique=false, $jobId = false, $HttpSocket) {
+	public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $email = "Scheduled job") {
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
 			$job->read(null, $jobId);
-			$email = "Scheduled job";
-		} else {
-			$email = $this->Auth->user('email');
 		}
 		$eventModel = ClassRegistry::init('Event');
 		$this->read(null, $id);
