@@ -72,10 +72,11 @@ php composer.phar install
 
 # CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis
 pecl install redis
+apt get install php5-redis
 # After installing it, enable it in your php.ini file
 vim /etc/php5/apache2/php.ini
 # add the following line:
-extension=redis.so 
+extension=redis.so
 
 # To use the scheduler worker for scheduled tasks, do the following:
 cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
@@ -118,6 +119,7 @@ cp /var/www/MISP/INSTALL/apache.misp /etc/apache2/sites-available/misp.conf
 # For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
  
 a2dissite default
+# default can be called 000-default based on distribution, in which case run a2dissite 000-default
 a2ensite misp
 
 # Enable modules
