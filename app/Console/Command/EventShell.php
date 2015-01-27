@@ -297,6 +297,21 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', '100');
 		if ($result != true) $this->Job->saveField('message', 'Job done.');
 	}
+
+	public function postsemail() {
+		$user_id = $this->args[0];
+		$post_id = $this->args[1];
+		$event_id = $this->args[2];
+		$title = $this->args[3];
+		$message = $this->args[4];
+		$processId = $this->args[5];
+		$this->Job->id = $processId;
+		$user = $this->User->read(null, $user_id);
+		$eventId = $this->args[2];
+		$result = $this->Post->sendPostsEmail($user_id, $post_id, $event_id, $title, $message);
+		$this->Job->saveField('progress', '100');
+		if ($result != true) $this->Job->saveField('message', 'Job done.');
+	}
 	
 	public function enqueueCaching() {
 		$timestamp = $this->args[0];

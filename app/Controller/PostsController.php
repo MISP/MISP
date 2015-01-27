@@ -151,6 +151,7 @@ class PostsController extends AppController {
 				$this->Thread->updateAfterPostChange(true);
 				$this->Session->setFlash(__('Post added'));
 				$this->redirect(array('action' => 'view', $this->Post->getId()));
+				$this->Post->sendPostsEmailRouter($this->Auth->user('id'), $post_id, $event_id, $title, $this->request->data['Post']['message']);
 			} else {
 				$this->Session->setFlash('The post could not be added.');
 			}
