@@ -33,6 +33,7 @@ $config = array (
     'email' => '',
     'homedir' => '',
     'password' => '',
+    'bodyonlyencrypted' => false,
   ),
   'SecureAuth' => 
   array (
