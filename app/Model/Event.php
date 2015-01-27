@@ -799,7 +799,9 @@ class Event extends AppModel {
 		$conditions = array();
 		if (!$isSiteAdmin) {
 			$conditions['OR'] = array(
-					'Event.distribution >' => 0,
+					"AND" => array(
+						'Event.distribution >' => 0,
+						'Event.published =' => 1),
 					'Event.org LIKE' => $org
 			);
 		}
@@ -831,7 +833,9 @@ class Event extends AppModel {
 		//restricting to non-private or same org if the user is not a site-admin.
 		if (!$isSiteAdmin) {
 			$conditions['AND']['OR'] = array(
-				'Event.distribution >' => 0,
+				"AND" => array(
+					'Event.distribution >' => 0,
+					'Event.published =' => 1),
 				'Event.org LIKE' => $org
 			);
 			$conditionsAttributes['OR'] = array(
@@ -923,7 +927,7 @@ class Event extends AppModel {
 	 	if ($eventid !== 'search') {
 	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
 	 		if(!$isSiteAdmin) {
-	 			$econditions['AND']['OR'] = array('Event.distribution >' => 0, 'Event.org =' => $org);
+	 			$econditions['AND']['OR'] = array("AND" => array('Event.distribution >' => 0, 'Event.published =' => 1), 'Event.org =' => $org);
 	 		}
 	 		if ($eventid == 0 && $ignore == 0) {
 	 			$econditions['AND'][] = array('Event.published =' => 1);

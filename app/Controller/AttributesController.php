@@ -58,6 +58,7 @@ class AttributesController extends AppController {
 								'AND' => array(
 										'Attribute.distribution >' => 0,
 										'Event.distribution >' => 0,
+										'Event.published =' => 1,
 			)))));
 		}
 
@@ -1283,7 +1284,7 @@ class AttributesController extends AppController {
 							'conditions' =>
 								array("OR" => array(
 								array('Event.org =' => $this->Auth->user('org')),
-								array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Attribute.distribution !=' => 0)))),
+								array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Event.published =' => 1), array('Attribute.distribution !=' => 0)))),
 							)
 						);
 					}
@@ -1370,7 +1371,7 @@ class AttributesController extends AppController {
 		$data['AND'][] = array(
 				"OR" => array(
 					array('Event.org =' => $this->Auth->user('org')),
-					array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Attribute.distribution !=' => 0))));
+					array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Event.distribution =' => 1), array('Attribute.distribution !=' => 0))));
 		$attributes = $this->Attribute->find('all', array(
 			'conditions' => $data,
 			'fields' => array(
@@ -1555,7 +1556,7 @@ class AttributesController extends AppController {
 
 		if (!$user['User']['siteAdmin']) {
 			$temp = array();
-			$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
+			$temp['AND'] = array('Event.distribution >' => 0, 'Event.published =' => 1, 'Attribute.distribution >' => 0);
 			$subcondition['OR'][] = $temp;
 			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
 			array_push($conditions['AND'], $subcondition);
