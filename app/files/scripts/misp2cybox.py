@@ -66,8 +66,8 @@ def generateFileObservable(filenameValue, hashValue):
             file_object.file_name = ntpath.basename(filenameValue)
         else:
             file_object.file_name = filenameValue
-        if (hashValue != ""):
-            file_object.add_hash(Hash(hashValue))
+    if (hashValue != ""):
+        file_object.add_hash(Hash(hashValue))
     return file_object
 
 def generateIPObservable(attribute):
