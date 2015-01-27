@@ -263,6 +263,8 @@ def generateThreatActor(attribute):
 def generateIndicator(attribute):
     indicator = Indicator()
     indicator.id_= namespace[1] + ":indicator-" + attribute["uuid"]
+    if attribute["comment"] != "":
+        indicator.description = attribute["comment"]
     setTLP(indicator, attribute["distribution"])
     indicator.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
     confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
