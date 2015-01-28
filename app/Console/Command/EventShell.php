@@ -5,7 +5,7 @@ App::uses('File', 'Utility');
 require_once 'AppShell.php';
 class EventShell extends AppShell
 {
-	public $uses = array('Event', 'Attribute', 'Job', 'User', 'Task', 'Whitelist');
+	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist');
 	
 	public function doPublish() {
 		$id = $this->args[0];
@@ -309,8 +309,9 @@ class EventShell extends AppShell
 		$user = $this->User->read(null, $user_id);
 		$eventId = $this->args[2];
 		$result = $this->Post->sendPostsEmail($user_id, $post_id, $event_id, $title, $message);
-		$this->Job->saveField('progress', '100');
-		if ($result != true) $this->Job->saveField('message', 'Job done.');
+		$job['Job']['progress'] = 100;
+		$job['Job']['message'] = 'Emails sent.';
+		$this->Job->save($job);
 	}
 	
 	public function enqueueCaching() {

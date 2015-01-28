@@ -26,7 +26,7 @@ class Post extends AppModel {
 			$data = array(
 					'worker' => 'default',
 					'job_type' => 'posts_alert',
-					'job_input' => 'Thread: ' . $thread_id,
+					'job_input' => 'Post: ' . $post_id,
 					'status' => 0,
 					'retries' => 0,
 					'org' => $user['User']['org'],
@@ -54,7 +54,8 @@ class Post extends AppModel {
 
 		// If the post belongs to an event, E-mail all users in the org that have contactalert set
 		if ($event_id) {
-			$event = $this->Event->read(null, $event_id);
+			$Event = new Event();
+			$event = $Event->read(null, $event_id);
 			//Insert extra field here: alertOrg or something, then foreach all the org members
 			//limit this array to users with contactalerts turned on!
 			$orgMembers = array();
@@ -76,7 +77,7 @@ class Post extends AppModel {
 		}
 
 		// Add all users who posted in this thread
-		$temp = $this->Post->findAllByThreadId($post['Post']['thread_id'],array('user_id'));
+		$temp = $this->findAllByThreadId($post['Post']['thread_id'],array('user_id'));
 		foreach ($temp as $tempElement) {
 			$user = $this->User->findById($tempElement['Post']['user_id'], array('email', 'gpgkey', 'contactalert', 'id'));
 			if(!empty($user) && $user['User']['id'] != $user_id && !in_array($user, $orgMembers)) {
@@ -106,6 +107,7 @@ class Post extends AppModel {
 		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 		$bodySigned = $gpg->sign($body,Crypt_GPG::SIGN_MODE_CLEAR);
+		$result = false;
 		foreach ($orgMembers as &$recipient) {
 			if (!empty($recipient['User']['gpgkey'])) {
 				// import the key of the user into the keyring
