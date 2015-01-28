@@ -190,6 +190,8 @@ def returnAttachmentComposition(attribute):
         observable.observable_composition = composition
     else:
         observable = Observable(file_object)
+    if attribute["comment"] != "":
+        observable.description = attribute["comment"]
     return observable
 
 # email-attachment are mapped to an email message observable that contains the attachment as a file object
