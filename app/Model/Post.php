@@ -84,7 +84,6 @@ class Post extends AppModel {
 				array_push($orgMembers, $user);
 			}
 		}
-	
 
 		// The mail body, h() is NOT needed as we are sending plain-text mails.
 		$body = "";
@@ -99,7 +98,7 @@ class Post extends AppModel {
 		$body .= "The following message was added: \n";
 		$body .= "\n";
 		$body .= $message . "\n";
-	
+
 		// LATER place event-to-email-layout in a function
 		$Email = new CakeEmail();
 		// sign the body
@@ -117,7 +116,6 @@ class Post extends AppModel {
 				try {
 				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 				$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-	
 				$bodyEncSig = $gpg->encrypt($bodySigned, true);
 				} catch (Exception $e){
 				// catch errors like expired PGP keys
