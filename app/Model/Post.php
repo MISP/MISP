@@ -134,7 +134,7 @@ class Post extends AppModel {
 				}
 			} elseif (Configure::read('GnuPG.onlyencrypted')) {
 				continue;
-			} elsif (Configure::read('GnuPG.bodyonlyencrypted')) {
+			} elseif (Configure::read('GnuPG.bodyonlyencrypted')) {
 				$bodyEncSig = $bodySigned;
 			} else {
 				$bodyEncSig = $bodyDetailSigned;
