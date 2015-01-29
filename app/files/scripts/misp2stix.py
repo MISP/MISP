@@ -216,7 +216,7 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
         aa = AffectedAsset()
         if attribute["comment"] != "":
             aa.description = attribute["value"] + " " + attribute["comment"]
-        else
+        else:
             aa.description = attribute["value"]
         incident.affected_assets.append(aa)
     elif attribute["type"] == "vulnerability":
