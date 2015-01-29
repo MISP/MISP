@@ -263,7 +263,7 @@ def generateThreatActor(attribute):
     ta.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
     if attribute["comment"] != "":
         ta.description = attribute["value"] + " " + attribute["comment"]
-    else
+    else:
         ta.description = attribute["value"]
     return ta
 
