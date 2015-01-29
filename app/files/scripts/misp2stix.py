@@ -215,7 +215,7 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
     elif attribute["type"] == "target-machine":
         aa = AffectedAsset()
         if attribute["comment"] != "":
-            aa.description = attribute["value"] + " " + attribute["comment"]
+            aa.description = attribute["value"] + " (" + attribute["comment"] + ")"
         else:
             aa.description = attribute["value"]
         incident.affected_assets.append(aa)
@@ -262,7 +262,7 @@ def generateThreatActor(attribute):
     ta.id_= namespace[1] + ":threatactor-" + attribute["uuid"]
     ta.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
     if attribute["comment"] != "":
-        ta.description = attribute["value"] + " " + attribute["comment"]
+        ta.description = attribute["value"] + " (" + attribute["comment"] + ")"
     else:
         ta.description = attribute["value"]
     return ta
