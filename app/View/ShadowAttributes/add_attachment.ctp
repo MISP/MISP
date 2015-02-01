@@ -13,7 +13,6 @@
 		));
 		?>
 			</div>
-			<div class="input clear"><br /></div>
 			<div class="input clear"></div>
 		<?php
 		echo $this->Form->input('malware', array(

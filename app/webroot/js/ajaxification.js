@@ -897,9 +897,12 @@ function templateFileUploadTriggerBrowse(id) {
 	$('#upload_' + id + '_file').click();
 }
 
-function freetextRemoveRow(id) {
+function freetextRemoveRow(id, event_id) {
 	$('#row_' + id).hide();
 	$('#Attribute' + id + 'Save').attr("value", "0");
+	if ($(".freetext_row:visible").length == 0) {
+		window.location = "/events/" + event_id;
+	}
 }
 
 function indexEvaluateFiltering() {
@@ -1098,8 +1101,8 @@ function indexSetTableVisibility() {
 	if ($("[id^='value_']").text().trim()!="" && $("[id^='value_']").text().trim()!="-1") {
 		visible = true;
 	}
-	if (visible == true) $('#rule_table').show();
-	else $('#rule_table').hide();
+	if (visible == true) $('#FilterplaceholderTable').hide();
+	else $('#FilterplaceholderTable').show();
 }
 
 function indexRuleChange() {
@@ -1275,4 +1278,32 @@ function serverSettingSubmitForm(name, setting, id) {
 	$(name + '_field').unbind("keyup");
 	$(name + '_form').unbind("focusout");
 	return false;
-};
+}
+
+function changeFreetextImportFrom() {
+	$('#changeTo').find('option').remove();
+	options[$('#changeFrom').val()].forEach(function(element) {
+		$('#changeTo').append('<option value="' + element + '">' + element + '</option>');
+	});
+}
+
+function changeFreetextImportExecute() {
+	var from = $('#changeFrom').val();
+	var to = $('#changeTo').val();
+	$('.typeToggle').each(function() {
+		if ($( this ).val() == from) {
+			if ($('#' + $(this).attr('id') + " option[value='" + from + "']").length > 0) {
+				$( this ).val(to);
+			}
+		}
+	});
+}
+
+function exportChoiceSelect(url, elementId, checkbox) {
+	if (checkbox == 1) {
+		if ($('#' + elementId + '_toggle').prop('checked')) {
+			url = url + $('#' + elementId + '_set').html();
+		}
+	}
+	document.location.href = url;
+}

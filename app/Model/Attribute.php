@@ -1256,9 +1256,11 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	 public function text($org, $isSiteAdmin, $type, $tags = '') {
+	 public function text($org, $isSiteAdmin, $type, $tags = false, $eventId = false, $allowNonIDS = false) {
 	 	//restricting to non-private or same org if the user is not a site-admin.
-	 	$conditions['AND'] = array('Attribute.type' => $type, 'Attribute.to_ids =' => 1, 'Event.published =' => 1);
+	 	$conditions['AND'] = array();
+	 	if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+	 	if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type; 
 	 	if (!$isSiteAdmin) {
 	 		$temp = array();
 	 		$distribution = array();
@@ -1267,8 +1269,10 @@ class Attribute extends AppModel {
 	 		$conditions['OR'] = $temp;
 	 	}
 	 	
-	 	// If we sent any tags along, load the associated tag names for each attribute
-	 	if ($tags !== '') {
+	 	if ($eventId !== false) {
+	 		$conditions['AND'][] = array('Event.id' => $eventId);
+	 	} elseif ($tags !== false) {
+	 		// If we sent any tags along, load the associated tag names for each attribute
 	 		$tag = ClassRegistry::init('Tag');
 	 		$args = $this->dissectArgs($tags);
 	 		$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);

@@ -28,20 +28,38 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					<?php echo h($event['Event']['uuid']); ?>
 					&nbsp;
 				</dd>
-				<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-				<dt>Org</dt>
-				<dd>
-					<?php echo h($event['Event']['orgc']); ?>
-					&nbsp;
-				</dd>
-				<?php endif; ?>
-				<?php if ($isSiteAdmin): ?>
-				<dt>Owner org</dt>
-				<dd>
-					<?php echo h($event['Event']['org']); ?>
-					&nbsp;
-				</dd>
-				<?php endif; ?>
+				<?php 
+					if (Configure::read('MISP.showorgalternate') && (Configure::read('MISP.showorg') || $isAdmin)): ?>
+						<dt>Source Organisation</dt>
+						<dd>
+							<?php echo h($event['Event']['orgc']); ?>
+							&nbsp;
+						</dd>
+						<dt>Member Organisation</dt>
+						<dd>
+							<?php echo h($event['Event']['org']); ?>
+							&nbsp;
+						</dd>
+				<?php 	
+					else:
+						if (Configure::read('MISP.showorg') || $isAdmin): ?>
+							<dt>Org</dt>
+							<dd>
+								<?php echo h($event['Event']['orgc']); ?>
+								&nbsp;
+							</dd>
+							<?php endif; ?>
+							<?php if ($isSiteAdmin): ?>
+							<dt>Owner org</dt>
+							<dd>
+								<?php echo h($event['Event']['org']); ?>
+								&nbsp;
+							</dd>
+				<?php 
+						endif; 
+					endif;
+						
+				?>
 				<dt>Contributors</dt>
 				<dd>
 					<?php 
@@ -173,8 +191,6 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	<div id="pivots_div">
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
-	<div id="popover_form" class="ajax_popover_form"></div>
-	<div id="confirmation_box" class="confirmation_box"></div>
 	<div id="attribute_creation_div" style="display:none;">
 		<?php 
 			echo $this->element('eventattributecreation');

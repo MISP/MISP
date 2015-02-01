@@ -43,13 +43,7 @@
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo $event['Event']['id']; ?>', 'publish')">Publish (no email)</a></li>
 
 					<li <?php if ($menuItem === 'contact') echo 'class="active"';?>><a href="/events/contact/<?php echo $event['Event']['id'];?>">Contact Reporter</a></li>
-					<li><a href="/events/xml/download/<?php echo $event['Event']['id'];?>">Download as XML</a></li>
-
-					<li<?php echo $exportButtons; ?> class="exportButtons"><a href="/events/downloadOpenIOCEvent/<?php echo $event['Event']['id'];?>">Download as IOC</a></li>
-					<li<?php echo $exportButtons; ?> class="exportButtons"><a href="/events/csv/download/<?php echo $event['Event']['id'];?>/1">Download as CSV</a></li>
-					<li<?php echo $exportButtons; ?> class="exportButtons"><a href="/events/stix/download/<?php echo $event['Event']['id'];?>.xml">Download as STIX XML</a></li>
-					<li<?php echo $exportButtons; ?> class="exportButtons"><a href="/events/stix/download/<?php echo $event['Event']['id'];?>.json">Download as STIX JSON</a></li>
-
+					<li><a onClick="getPopup('<?php echo $event['Event']['id']; ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
 					<li class="divider"></li>
 					<li><a href="/events/index">List Events</a></li>
 					<?php if ($isAclAdd): ?>
@@ -149,13 +143,13 @@
 					if ($isSiteAdmin): ?>
 					<li <?php if ($menuItem === 'addUser') echo 'class="active"';?>><?php echo $this->Html->link('New User', array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
 					<li <?php if ($menuItem === 'indexUser') echo 'class="active"';?>><?php echo $this->Html->link('List Users', array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
+					<li <?php if ($menuItem === 'contact') echo 'class="active"';?>><?php echo $this->Html->link('Contact Users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
 					<li class="divider"></li>
 					<li <?php if ($menuItem === 'addRole') echo 'class="active"';?>><?php echo $this->Html->link('New Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
 					<?php endif; ?>
 					<li <?php if ($menuItem === 'indexRole') echo 'class="active"';?>><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 					<?php if ($isSiteAdmin): ?>
 						<li class="divider"></li>
-						<li <?php if ($menuItem === 'contact') echo 'class="active"';?>><?php echo $this->Html->link('Contact Users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
 						<li <?php if ($menuItem === 'adminTools') echo 'class="active"';?>><a href="/pages/display/administration">Administrative Tools</a></li>
 						<li <?php if ($menuItem === 'serverSettings') echo 'class="active"';?>><a href="/servers/serverSettings">Server Settings</a></li>
 						<li class="divider"></li>

@@ -328,6 +328,17 @@ class EventShell extends AppShell
 				$task['Task']['next_execution_time'] = strtotime('+' . $task['Task']['timer'] . ' hours', $task['Task']['next_execution_time']);
 			}
 			$task['Task']['scheduled_time'] = $this->Task->breakTime($task['Task']['scheduled_time'], $task['Task']['timer']);
+			$task['Task']['scheduled_time'] = date('H:i', $task['Task']['next_execution_time']);
+			
+			// Now that we have figured out when the next execution should happen, it's time to enqueue it.
+			$process_id = CakeResque::enqueueAt(
+					$task['Task']['next_execution_time'],
+					'default',
+					'EventShell',
+					array('enqueueCaching', $task['Task']['next_execution_time']),
+					true
+			);
+			$task['Task']['job_id'] = $process_id;
 			$this->Task->save($task);
 		}
 	}

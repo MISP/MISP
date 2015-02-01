@@ -170,6 +170,8 @@ class EventsController extends AppController {
 		}
 		$includeIDs = array_keys($includeIDs);
 		$excludeIDs = array_keys($excludeIDs);
+		// return -1 as the only value in includedIDs if both arrays are empty. This will mean that no events will be shown if there was no hit
+		if (empty($includeIDs) && empty($excludeIDs)) $includeIDs[] = -1;
 		return array($includeIDs, $excludeIDs);
 	}
 	
@@ -2819,6 +2821,7 @@ class EventsController extends AppController {
 					'email-dst' => 'Payload delivery',
 					'text' => 'Other',
 			);
+			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 			$this->set('defaultCategories', $defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
 			$this->set('resultArray', $resultArray);
@@ -2841,26 +2844,42 @@ class EventsController extends AppController {
 			$failed = 0;
 			foreach ($this->request->data['Attribute'] as $k => $attribute) {
 				if ($attribute['save'] == '1') {
-					$this->Event->Attribute->create();
-					$attribute['distribution'] = $event['Event']['distribution'];
-					$attribute['comment'] = 'Imported via the freetext import.';
-					$attribute['event_id'] = $id;
-					if ($this->Event->Attribute->save($attribute)) {
-						$saved++;
+					if ($attribute['type'] == 'ip-src/ip-dst') {
+						$types = array('ip-src', 'ip-dst');
 					} else {
-						$failed++;
+						$types = array($attribute['type']);
+					}
+					foreach ($types as $type) {
+						$this->Event->Attribute->create();
+						$attribute['type'] = $type;
+						$attribute['distribution'] = $event['Event']['distribution'];
+						if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
+						$attribute['event_id'] = $id;
+						if ($this->Event->Attribute->save($attribute)) {
+							$saved++;
+						} else {
+							$failed++;
+						}
 					}
 				}
 			}
-			if ($saved > 0 && $event['Event']['published'] == 1) {
+			if ($saved > 0) {
 				$event = $this->Event->find('first', array(
 						'conditions' => array('Event.id' => $id),
 						'recursive' => -1
 				));
-				$event['Event']['published'] = 0;
+				if ($event['Event']['published'] == 1) {
+					$event['Event']['published'] = 0;
+				}
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
 				$this->Event->save($event);
 			}
-			$this->Session->setFlash($saved . ' attributes created. ' . $failed . ' attributes could not be saved. This may be due to attributes with similar values already existing.');
+			if ($failed > 0) {
+				$this->Session->setFlash($saved . ' attributes created. ' . $failed . ' attributes could not be saved. This may be due to attributes with similar values already existing.');
+			} else {
+				$this->Session->setFlash($saved . ' attributes created.');
+			}
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
 		} else {
 			throw new MethodNotAllowedException();
@@ -3021,5 +3040,88 @@ class EventsController extends AppController {
 			$this->set('data', array('success' => $success, 'message' => $message, 'counter' => $counter));
 			$this->set('_serialize', 'data');
 		}
+	}
+	
+	public function exportChoice($id) {
+		$event = $this->Event->find('first' ,array(
+				'conditions' => array('id' => $id),
+				'recursive' => -1,
+				'fields' => array('distribution', 'orgc','id', 'published'),
+		));
+		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc'] != $this->Auth->user('org') && $event['Event']['distribution'] < 1)) throw new NotFoundException('Event not found or you are not authorised to view it.');
+		$exports = array(
+			'xml' => array(
+					'url' => '/events/xml/download/' . $id,
+					'text' => 'MISP XML (metadata + all attributes)',
+					'requiresPublished' => false,
+					'checkbox' => true,
+					'checkbox_text' => 'Encode Attachments',
+					'checkbox_set' => '/true'
+			),
+			'json' => array(
+					'url' => '/events/view/' . $id . 'json',
+					'text' => 'MISP JSON (metadata + all attributes)',
+					'requiresPublished' => false,
+					'checkbox' => false,
+			),
+			'openIOC' => array(
+					'url' => '/events/downloadOpenIOCEvent/' . $id,
+					'text' => 'OpenIOC (all indicators marked to IDS)',
+					'requiresPublished' => true,
+					'checkbox' => false,
+			),
+			'csv' => array(
+					'url' => '/events/csv/download/' . $id . '/1',
+					'text' => 'CSV',
+					'requiresPublished' => true,
+					'checkbox' => true,
+					'checkbox_text' => 'Include non-IDS marked attributes',
+					'checkbox_set' => '/1'
+			),
+			'stix_xml' => array(
+					'url' => '/events/stix/download/' . $id . '.xml',
+					'text' => 'STIX XML (metadata + all attributes)',
+					'requiresPublished' => true,
+					'checkbox' => true,
+					'checkbox_text' => 'Encode Attachments',
+					'checkbox_set' => '/true'
+			),
+			'stix_json' => array(
+					'url' => '/events/stix/download/' . $id . '.json',
+					'text' => 'STIX JSON (metadata + all attributes)',
+					'requiresPublished' => true,
+					'checkbox' => true,
+					'checkbox_text' => 'Encode Attachments',
+					'checkbox_set' => '/true'
+			),
+			'suricata' => array(
+					'url' => '/events/nids/suricata/download/' . $id,
+					'text' => 'Download Suricata rules',
+					'requiresPublished' => true,
+					'checkbox' => false,
+			),
+			'snort' => array(
+					'url' => '/events/nids/snort/download/' . $id,
+					'text' => 'Download Snort rules',
+					'requiresPublished' => true,
+					'checkbox' => false,
+			),
+			'text' => array(
+					'url' => '/attributes/text/download/all/false/' . $id,
+					'text' => 'Export all attribute values as a text file',
+					'requiresPublished' => true,
+					'checkbox' => true,
+					'checkbox_text' => 'Include non-IDS marked attributes',
+					'checkbox_set' => '/true'
+			),
+		);
+		if ($event['Event']['published'] == 0) {
+			foreach ($exports as $k => $export) {
+				if ($export['requiresPublished']) unset($exports[$k]);	
+			}
+		}
+		$this->set('exports', $exports);
+		$this->set('id', $id);
+		$this->render('ajax/exportChoice');
 	}
 }
