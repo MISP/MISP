@@ -1,5 +1,5 @@
 INSTALLATION INSTRUCTIONS
-------------------------- for ubuntu 12.04-server
+------------------------- for ubuntu 14.04-server
 
 # steps 2 (besides acquiring git), 4, 5 can be skipped by running INSTALL.SH 
 # The correct order in this case is 1/, apt get git, 3/ and then executing INSTALL.SH in /var/www/MISP/INSTALL/INSTALL.SH
@@ -7,7 +7,7 @@ INSTALLATION INSTRUCTIONS
 1/ Minimal ubuntu install
 -------------------------
 
-Install a minimal ubuntu 12.04-server system with the software:
+Install a minimal ubuntu 14.04-server system with the software:
 
 - OpenSSH server
 - LAMP server (don't forget php5-mysql)
@@ -32,8 +32,6 @@ apt-get install vim
 apt-get install zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt-dev zlib1g-dev php5-dev
 pear install Crypt_GPG    # we need version >1.3.0 
 pear install Net_GeoIP
-
-# (for Red Hat users, you will have to install Redis manually, http://redis.io/download)
 
 3/ MISP code
 ------------
@@ -91,8 +89,6 @@ chmod -R g+ws /var/www/MISP/app/tmp
 chmod -R g+ws /var/www/MISP/app/files
 chmod -R g+ws /var/www/MISP/app/files/scripts/tmp
 
-Red Hat users: Keep in mind that your apache user is called apache, not www-data
-
 6/ Create a database and user
 -----------------------------
 # Enter the mysql shell
@@ -118,8 +114,8 @@ cp /var/www/MISP/INSTALL/apache.misp /etc/apache2/sites-available/misp.conf
 # The configuration file has to have the .conf extension in the sites-available directory
 # For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
  
-a2dissite default
-# default can be called 000-default based on distribution, in which case run a2dissite 000-default
+a2dissite 000-default
+# 000-default can be called default based on distribution, in which case run a2dissite default
 a2ensite misp
 
 # Enable modules
