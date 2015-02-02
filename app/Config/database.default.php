@@ -62,9 +62,9 @@ class DATABASE_CONFIG {
 	public $default = array(
 		'datasource' => 'Database/Mysql',
 		'persistent' => false,
-		'host' => '127.0.0.1',
+		'host' => 'localhost',
 		'login' => 'db login',
-		'port' => 8889,
+		'port' => 3306,
 		'password' => 'db password',
 		'database' => 'misp',
 		'prefix' => '',

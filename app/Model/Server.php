@@ -428,6 +428,22 @@ class Server extends AppModel {
 							'type' => 'string',
 							'editable' => false,
 					),
+					'password_policy_length' => array(
+							'level' => 2,
+							'description' => 'Password length requirement. If it is not set or it is set to 0, then the default value is assumed (6).',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testPasswordLength',
+							'type' => 'numeric',
+					),
+					'password_policy_complexity' => array(
+							'level' => 2,
+							'description' => 'Password complexity requirement. Leave it empty for the default setting (3 out of 4, with either a digit or a special char) or enter your own regex. Keep in mind that the length is checked in another key. Example (simple 4 out of 4): /(?=.*[0-9])(?=.*[!@#$%^&*_-])(?=.*[A-Z])(?=.*[a-z]).*$/',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testPasswordRegex',
+							'type' => 'string',
+					),
 			),
 			'SecureAuth' => array(
 					'branch' => 1,
@@ -467,9 +483,6 @@ class Server extends AppModel {
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
 			$job->read(null, $jobId);
-			App::import('Component','Auth');
-			$this->Auth = new AuthComponent(new ComponentCollection());
-			$this->Auth->login($user);
 			$email = "Scheduled job";
 		} else {
 			$email = $user['email'];
@@ -656,6 +669,7 @@ class Server extends AppModel {
 			'model_id' => $id,
 			'email' => $user['email'],
 			'action' => 'pull',
+			'user_id' => $user['id'],
 			'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
 			'change' => count($successes) . ' events and ' . count($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.' 
 		));
@@ -967,6 +981,18 @@ class Server extends AppModel {
 	
 	public function testForCustomImage($value) {
 		return $this->__testForFile($value, APP . 'webroot' . DS . 'img' . DS . 'custom');
+	}
+	
+	public function testPasswordLength($value) {
+		$numeric = $this->testforNumeric($value);
+		if ($numeric !== true) return $numeric;
+		if ($numeric < 0) return 'Length cannot be negative, set a positive integer or 0 (to choose the default option).';
+		return true;
+	}
+	
+	public function testPasswordRegex($value) {
+		if (!empty($value) && @preg_match($value, 'test') === false) return 'Invalid regex.';
+		return true;
 	}
 	
 	

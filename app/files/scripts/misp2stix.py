@@ -214,7 +214,10 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
             addJournalEntry(incident, entry_line)
     elif attribute["type"] == "target-machine":
         aa = AffectedAsset()
-        aa.description = attribute["value"]
+        if attribute["comment"] != "":
+            aa.description = attribute["value"] + " (" + attribute["comment"] + ")"
+        else:
+            aa.description = attribute["value"]
         incident.affected_assets.append(aa)
     elif attribute["type"] == "vulnerability":
         generateTTP(incident, attribute)
@@ -248,6 +251,8 @@ def generateTTP(incident, attribute):
         malware.add_name(attribute["value"])
         ttp.behavior = Behavior()
         ttp.behavior.add_malware_instance(malware)
+    if attribute["comment"] != "":
+        ttp.description = attribute["comment"]
     relatedTTP = RelatedTTP(ttp, relationship=attribute["category"])
     incident.leveraged_ttps.append(relatedTTP)
 
@@ -256,13 +261,18 @@ def generateThreatActor(attribute):
     ta = ThreatActor()
     ta.id_= namespace[1] + ":threatactor-" + attribute["uuid"]
     ta.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
-    ta.description = attribute["value"]
+    if attribute["comment"] != "":
+        ta.description = attribute["value"] + " (" + attribute["comment"] + ")"
+    else:
+        ta.description = attribute["value"]
     return ta
 
 # generate the indicator and add the relevant information
 def generateIndicator(attribute):
     indicator = Indicator()
     indicator.id_= namespace[1] + ":indicator-" + attribute["uuid"]
+    if attribute["comment"] != "":
+        indicator.description = attribute["comment"]
     setTLP(indicator, attribute["distribution"])
     indicator.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
     confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
