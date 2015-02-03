@@ -43,7 +43,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>You can configure your tools to automatically download the following file:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/</pre>
 <p>You can specify additional flags for CSV exports as follows::</p>
-<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/[eventid]/[ignore]/[tags]/[type]</pre>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/[eventid]/[ignore]/[tags]/[category]/[type]/[includeInfo]/[from]/[to]</pre>
 <p>
 <b>eventid</b>: Restrict the download to a single event<br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
