@@ -1764,22 +1764,16 @@ class EventsController extends AppController {
 		}
 		
 		App::uses('XMLConverterTool', 'Tools');
-		App::uses('Folder', 'Utility');
-		App::uses('File', 'Utility');
 		$converter = new XMLConverterTool();
-		$filename = $this->Event->generateRandomFileName();
-		$dir = new Folder(APP . 'tmp/exports/xml/', true, 0755);
-		$file = new File($dir->pwd() . DS . $filename);
-		$file->write('<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL);
+		$final = "";
+		$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
 		foreach ($results as $result) {
-			$file->append($converter->event2XML($result) . PHP_EOL);
+			$final .= $converter->event2XML($result) . PHP_EOL;
 		}
-		$file->append('</response>' . PHP_EOL);
-		$file->close();
-		$this->response->file(
-			$dir->pwd() . DS . $filename,
-			array('download' => true, 'name' => $final_filename)
-		);
+		$final .= '</response>' . PHP_EOL;
+		$this->response->body($final);
+		$this->response->type('xml');
+		$this->response->download($final_filename);
 		return $this->response;
 	}
 
