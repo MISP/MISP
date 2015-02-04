@@ -795,7 +795,7 @@ class Event extends AppModel {
 		return null;
 	}
 
-	public function fetchEventIds($org, $isSiteAdmin) {
+	public function fetchEventIds($org, $isSiteAdmin, $from = false, $to = false) {
 		$conditions = array();
 		if (!$isSiteAdmin) {
 			$conditions['OR'] = array(
@@ -804,6 +804,10 @@ class Event extends AppModel {
 			);
 		}
 		$fields = array('Event.id', 'Event.org', 'Event.distribution');
+		
+		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
+		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+		
 		$params = array(
 			'conditions' => $conditions,
 			'recursive' => -1,
