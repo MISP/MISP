@@ -1693,7 +1693,9 @@ class EventsController extends AppController {
 	}
 
 	public function xml($key, $eventid=null, $withAttachment = false, $tags = false, $from = false, $to = false) {
-		$this->helpers[] = 'XmlOutput';
+		App::uses('XMLConverterTool', 'Tools');
+		$converter = new XMLConverterTool();
+		$this->loadModel('Whitelist');
 		
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted xml object.
 		// The correct format for a posted xml is a "request" root element, as shown by the examples below:
@@ -1717,58 +1719,55 @@ class EventsController extends AppController {
 		}
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		
+		$eventIdArray = array();
+		
+		if ($eventid) {
+			if (!is_numeric($eventid)) throw new MethodNotAllowedException('Invalid Event ID.');
+			$eventIdArray[] = $eventid;
+		}
+		
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
-			// display the full xml
-			$this->response->type('xml');	// set the content type
-			$this->layout = 'xml/default';
-			$this->header('Content-Disposition: download; filename="misp.xml"');
-			$results = $this->__fetchEvent($eventid, null, $user['User']['org'], $user['User']['siteAdmin'], $tags, $from, $to);
+			$org = $user['User']['org'];
+			$isSiteAdmin = $user['User']['siteAdmin'];
 		} else {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			// display the full xml
-			$this->response->type('xml');	// set the content type
-			$this->layout = 'xml/default';
-			if ($eventid == null) {
-				$this->header('Content-Disposition: download; filename="misp.export.all.xml"');
-			} else {
-				$this->header('Content-Disposition: download; filename="misp.export.event' . $eventid . '.xml"');
-			}
-			$results = $this->__fetchEvent($eventid, null, null, false, $tags, $from, $to);
+			$org = $this->Auth->user('org');
+			$isSiteAdmin = $this->_isSiteAdmin();
 		}
-
-		if ($withAttachment) {
-			$this->loadModel('Attribute');
-			foreach ($results as &$result) {
-				foreach ($result['Attribute'] as &$attribute) {
-					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-						$attribute['data'] = $encodedFile;
-					}
-				}
-			}
-		}
-		// Whitelist check
-		$this->loadModel('Whitelist');
-		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
+		
 		if ($eventid) {
 			$final_filename='misp.event' . $eventid . '.export.xml';
 		} else {
 			$final_filename='misp.export.xml';
 		}
-		
-		App::uses('XMLConverterTool', 'Tools');
-		$converter = new XMLConverterTool();
 		$final = "";
 		$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
-		foreach ($results as $result) {
-			$final .= $converter->event2XML($result) . PHP_EOL;
+		
+		if (!$eventid) {
+			$events = $this->Event->fetchEventIds($org, $isSiteAdmin, $from, $to);
+			foreach ($events as $event) $eventIdArray[] = $event['Event']['id'];
+		}
+		
+		foreach ($eventIdArray as $currentEventId) {
+			$result = $this->__fetchEvent($currentEventId, null, $org, $isSiteAdmin, $tags, $from, $to);
+			$result;
+			if ($withAttachment) {
+				foreach ($result[0]['Attribute'] as &$attribute) {
+					if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
+						$encodedFile = $this->Event->Attribute->base64EncodeAttachment($attribute);
+						$attribute['data'] = $encodedFile;
+					}
+				}
+			}
+			$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
+			$final .= $converter->event2XML($result[0]) . PHP_EOL;
 		}
 		$final .= '</response>' . PHP_EOL;
 		$this->response->body($final);
@@ -1787,8 +1786,6 @@ class EventsController extends AppController {
 			$org = $this->_checkOrg();
 			$isSiteAdmin = $this->_isSiteAdmin();
 		}
-		if (!empty($orgFromFetch)) $org = $orgFromFetch;
-		else $org = $this->_checkOrg();
 		$results = $this->Event->fetchEvent($eventid, $idList, $org, $isSiteAdmin, null, $tags, $from, $to);
 		return $results;
 	}
