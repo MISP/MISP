@@ -1,8 +1,5 @@
 <?php
 App::uses('AppHelper', 'View/Helper');
-
-// This helper helps determining the brightness of a colour (initially only used for the tagging) in order to decide
-// what text colour to use against the background (black or white)
 	class XmlOutputHelper extends AppHelper {
 		public function recursiveEcho($array) {
 			foreach ($array as $k => $v) {

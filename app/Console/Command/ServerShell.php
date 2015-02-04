@@ -90,12 +90,12 @@ class ServerShell extends AppShell
 			$this->Job->create();
 			$data = array(
 					'worker' => 'default',
-					'job_type' => 'push',
+					'job_type' => 'pull',
 					'job_input' => 'Server: ' . $server['Server']['id'],
 					'retries' => 0,
 					'org' => $user['User']['org'],
 					'process_id' => 'Part of scheduled pull',
-					'message' => 'Pushing.',
+					'message' => 'Pulling.',
 			);
 			$this->Job->save($data);
 			$jobId = $this->Job->id;
