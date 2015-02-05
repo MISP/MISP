@@ -37,7 +37,15 @@ class TagsController extends AppController {
 					$eventIDs[] = $eventTag['event_id'];
 				}
 				$conditions = array('Event.id' => $eventIDs);
-				if (!$this->_isSiteAdmin()) $conditions = array_merge($conditions, array('OR' => array(array('AND' => array(array('Event.distribution >' => 0), array('Event.published =' => 1))), array('Event.orgc' => $this->Auth->user('org')))));
+				if (!$this->_isSiteAdmin()) $conditions = array_merge(
+					$conditions,
+					array('OR' => array(
+						array('AND' => array(
+							array('Event.distribution >' => 0),
+							array('Event.published =' => 1)
+						)),
+						array('Event.orgc' => $this->Auth->user('org'))
+					)));
 				$events = $this->Event->find('all', array(
 					'fields' => array('Event.id', 'Event.distribution', 'Event.orgc'),
 					'conditions' => $conditions
