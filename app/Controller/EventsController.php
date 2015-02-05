@@ -3080,7 +3080,7 @@ class EventsController extends AppController {
 					'checkbox_set' => '/true'
 			),
 			'json' => array(
-					'url' => '/events/view/' . $id . 'json',
+					'url' => '/events/view/' . $id . '.json',
 					'text' => 'MISP JSON (metadata + all attributes)',
 					'requiresPublished' => false,
 					'checkbox' => false,
