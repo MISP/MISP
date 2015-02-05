@@ -1282,13 +1282,15 @@ class AttributesController extends AppController {
 						// merge in private conditions
 						$this->paginate = Set::merge($this->paginate, array(
 							'conditions' =>
-								array("OR" => array(
-									array('Event.org =' => $this->Auth->user('org')),
-									array("AND" =>
-										array('Event.org !=' => $this->Auth->user('org')),
-										array('Event.distribution !=' => 0),
-										array('Attribute.distribution !=' => 0),
-										Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+								array("OR" =>
+									array(
+										array('Event.org =' => $this->Auth->user('org')),
+										array("AND" =>
+											array('Event.org !=' => $this->Auth->user('org')),
+											array('Event.distribution !=' => 0),
+											array('Attribute.distribution !=' => 0),
+											Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+										)
 									)
 								)
 							)

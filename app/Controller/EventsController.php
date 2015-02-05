@@ -70,13 +70,14 @@ class EventsController extends AppController {
 			$this->paginate = Set::merge($this->paginate,array(
 					'conditions' =>
 					array("OR" => array(
-							array('Event.org =' => $this->Auth->user('org')),
-							"AND" => array(
-									array('Event.distribution >' => 0),
-									Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-								)
+						array('Event.org =' => $this->Auth->user('org')),
+						"AND" => array(
+								array('Event.distribution >' => 0),
+								Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
 							)
+						)
 					)
+				)
 			);
 		}
 	}
