@@ -66,8 +66,8 @@ def generateFileObservable(filenameValue, hashValue):
             file_object.file_name = ntpath.basename(filenameValue)
         else:
             file_object.file_name = filenameValue
-        if (hashValue != ""):
-            file_object.add_hash(Hash(hashValue))
+    if (hashValue != ""):
+        file_object.add_hash(Hash(hashValue))
     return file_object
 
 def generateIPObservable(attribute):
@@ -190,6 +190,8 @@ def returnAttachmentComposition(attribute):
         observable.observable_composition = composition
     else:
         observable = Observable(file_object)
+    if attribute["comment"] != "":
+        observable.description = attribute["comment"]
     return observable
 
 # email-attachment are mapped to an email message observable that contains the attachment as a file object

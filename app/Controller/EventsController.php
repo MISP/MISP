@@ -1694,12 +1694,10 @@ class EventsController extends AppController {
 		return $difference . " " . $periods[$j] . " ago";
 	}
 
-	public function xml($key, $eventid=null, $withAttachment = false, $tags = '') {
-		$this->helpers[] = 'XmlOutput';
-		if ($tags != '') $tags = str_replace(';', ':', $tags);
-		if ($tags === 'null') $tags = null;
-		if ($eventid === 'null' || $eventid ==='false') $eventid=null;
-		if ($withAttachment === 'null' || $withAttachment ==='false') $withAttachment = false;
+	public function xml($key, $eventid=null, $withAttachment = false, $tags = false, $from = false, $to = false) {
+		App::uses('XMLConverterTool', 'Tools');
+		$converter = new XMLConverterTool();
+		$this->loadModel('Whitelist');
 		
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted xml object.
 		// The correct format for a posted xml is a "request" root element, as shown by the examples below:
@@ -1710,11 +1708,24 @@ class EventsController extends AppController {
 			} else {
 				$data = $this->request->data;
 			}
-			$paramArray = array('eventid', 'withAttachment', 'tags');
+			$paramArray = array('eventid', 'withAttachment', 'tags', 'from', 'to');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
+		}
+		
+		$simpleFalse = array('tags', 'eventid', 'withAttachment', 'from', 'to');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
+		if ($tags) $tags = str_replace(';', ':', $tags);
+		
+		$eventIdArray = array();
+		
+		if ($eventid) {
+			if (!is_numeric($eventid)) throw new MethodNotAllowedException('Invalid Event ID.');
+			$eventIdArray[] = $eventid;
 		}
 		
 		if ($key != 'download') {
@@ -1723,52 +1734,52 @@ class EventsController extends AppController {
 			if (!$user) {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
-			// display the full xml
-			$this->response->type('xml');	// set the content type
-			$this->layout = 'xml/default';
-			$this->header('Content-Disposition: download; filename="misp.xml"');
-			$results = $this->__fetchEvent($eventid, null, $user['User']['org'], $user['User']['siteAdmin'], $tags);
+			$org = $user['User']['org'];
+			$isSiteAdmin = $user['User']['siteAdmin'];
 		} else {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			// display the full xml
-			$this->response->type('xml');	// set the content type
-			$this->layout = 'xml/default';
-			if ($eventid == null) {
-				$this->header('Content-Disposition: download; filename="misp.export.all.xml"');
-			} else {
-				$this->header('Content-Disposition: download; filename="misp.export.event' . $eventid . '.xml"');
-			}
-			$results = $this->__fetchEvent($eventid, null, null, false, $tags);
+			$org = $this->Auth->user('org');
+			$isSiteAdmin = $this->_isSiteAdmin();
 		}
-
-		if ($withAttachment) {
-			$this->loadModel('Attribute');
-			foreach ($results as &$result) {
-				foreach ($result['Attribute'] as &$attribute) {
-					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+		
+		if ($eventid) {
+			$final_filename='misp.event' . $eventid . '.export.xml';
+		} else {
+			$final_filename='misp.export.xml';
+		}
+		$final = "";
+		$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
+		
+		if (!$eventid) {
+			$events = $this->Event->fetchEventIds($org, $isSiteAdmin, $from, $to);
+			foreach ($events as $event) $eventIdArray[] = $event['Event']['id'];
+		}
+		
+		foreach ($eventIdArray as $currentEventId) {
+			$result = $this->__fetchEvent($currentEventId, null, $org, $isSiteAdmin, $tags, $from, $to);
+			if ($withAttachment) {
+				foreach ($result[0]['Attribute'] as &$attribute) {
+					if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
+						$encodedFile = $this->Event->Attribute->base64EncodeAttachment($attribute);
 						$attribute['data'] = $encodedFile;
 					}
 				}
 			}
+			$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
+			$final .= $converter->event2XML($result[0]) . PHP_EOL;
 		}
-		// Whitelist check
-		$this->loadModel('Whitelist');
-		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
-		if ($eventid) {
-			$this->header('Content-Disposition: download; filename="misp.event' . $eventid . '.export.xml"');
-		} else {
-			$this->header('Content-Disposition: download; filename="misp.export.xml"');
-		}
+		$final .= '</response>' . PHP_EOL;
+		$this->response->body($final);
 		$this->response->type('xml');
-		$this->set('results', $results);
+		$this->response->download($final_filename);
+		return $this->response;
 	}
 
 	// Grab an event or a list of events for the event view or any of the XML exports. The returned object includes an array of events (or an array that only includes a single event if an ID was given)
 	// Included with the event are the attached attributes, shadow attributes, related events, related attribute information for the event view and the creating user's email address where appropriate
-	private function __fetchEvent($eventid = null, $idList = null, $orgFromFetch = null, $isSiteAdmin = false, $tags = '') {
+	private function __fetchEvent($eventid = false, $idList = false, $orgFromFetch = false, $isSiteAdmin = false, $tags = false, $from=false, $to=false) {
 		// if we come from automation, we may not be logged in - instead we used an auth key in the URL.
 		if (!empty($orgFromFetch)) {
 			$org = $orgFromFetch;
@@ -1776,18 +1787,16 @@ class EventsController extends AppController {
 			$org = $this->_checkOrg();
 			$isSiteAdmin = $this->_isSiteAdmin();
 		}
-		if (!empty($orgFromFetch)) $org = $orgFromFetch;
-		else $org = $this->_checkOrg();
-		$results = $this->Event->fetchEvent($eventid, $idList, $org, $isSiteAdmin, null, $tags);
+		$results = $this->Event->fetchEvent($eventid, $idList, $org, $isSiteAdmin, null, $tags, $from, $to);
 		return $results;
 	}
 
-	public function nids($format = 'suricata', $key = '', $id = null, $continue = false, $tags = '') {
-		if ($tags != '') $tags = str_replace(';', ':', $tags);
-		if ($tags === 'null') $tags = null;
-		if ($id === 'null') $id = null;
-		if ($continue === 'false') $continue = false;
-		if ($continue === 'true') $continue = true;
+	public function nids($format = 'suricata', $key = 'download', $id = false, $continue = false, $tags = false, $from = false, $to = false) {
+		$simpleFalse = array('id', 'continue', 'tags', 'from', 'to');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
+		if ($tags) $tags = str_replace(';', ':', $tags);
 		// backwards compatibility, swap key and format
 		if ($format != 'snort' && $format != 'suricata') {
 			$key = $format;
@@ -1808,17 +1817,23 @@ class EventsController extends AppController {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
 			$user = $this->checkAuthUser($this->Auth->user('authkey'));
+			if (!$user) throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			$user = array('User' => $this->Auth->user());
+			$user['User']['siteAdmin'] = $this->_isSiteAdmin();
 		}
 		
 		// display the full snort rulebase
 		$this->loadModel('Attribute');
-		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid'], $id, $continue, $tags);
+		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid'], $id, $continue, $tags, $from, $to);
 		$this->set('rules', $rules);
 	}
 
-	public function hids($type, $key, $tags = '') {
-		if ($tags != '') $tags = str_replace(';', ':', $tags);
-		if ($tags === 'null') $tags = null;
+	public function hids($type, $key='download', $tags = false, $from = false, $to = false) {
+		$simpleFalse = array('tags', 'from', 'to');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
+		if ($tags) $tags = str_replace(';', ':', $tags);
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
 		$this->layout = 'text/default';
@@ -1833,23 +1848,24 @@ class EventsController extends AppController {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$user = $this->checkAuthUser($this->Auth->user('authkey'));
+			$user = array('User' => $this->Auth->user());
+			$user['User']['siteAdmin'] = $this->_isSiteAdmin();
 		}	
 		$this->loadModel('Attribute');
 
-		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type, $tags);
+		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type, $tags, $from, $to);
 		$this->set('rules', $rules);
 	}
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
 	// $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything. 
-	public function csv($key, $eventid=0, $ignore=0, $tags = '', $category=null, $type=null, $includeInfo=null) {
-		if ($category == 'null') $category = null;
-		if ($type == 'null') $type = null;
-		if ($tags == 'null') $tags = '';
-		if ($includeInfo == 'null') $includeInfo = null;
-		if ($tags != '') $tags = str_replace(';', ':', $tags);
+	public function csv($key, $eventid=false, $ignore=false, $tags = false, $category=false, $type=false, $includeInfo=false, $from=false, $to=false) {
+		$simpleFalse = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeInfo', 'from', 'to');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
+		if ($tags) $tags = str_replace(';', ':', $tags);
 		$list = array();
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
@@ -1886,18 +1902,18 @@ class EventsController extends AppController {
 				$list[] = $attribute['Attribute']['id'];
 			}
 		}
-		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type, $includeInfo);
+		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type, $includeInfo, $from, $to);
 		$this->loadModel('Whitelist');
 		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
 			$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
-			if ($includeInfo != null) $line .= ',' . $attribute['Attribute']['event_info'];
+			if ($includeInfo) $line .= ',' . $attribute['Attribute']['event_info'];
 			$final[] = $line;
 		}
 		
 		$this->response->type('csv');	// set the content type
-		if ($eventid == 0) {
+		if (!$eventid) {
 			$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
 		} else if ($eventid === 'search') {
 			$this->header('Content-Disposition: download; filename="misp.search_result.csv"');
@@ -1906,7 +1922,7 @@ class EventsController extends AppController {
 		}
 		$this->layout = 'text/default';
 		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'to_ids', 'date');
-		if ($includeInfo != null) $headers[] = 'event_info';
+		if ($includeInfo) $headers[] = 'event_info';
 		$this->set('headers', $headers);
 		$this->set('final', $final);
 	}
@@ -2340,17 +2356,8 @@ class EventsController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key=null, $value=null, $type=null, $category=null, $org=null, $tags = '', $searchall=null) {
-		if ($tags != '') $tags = str_replace(';', ':', $tags);
-		if ($tags === 'null') $tags = '';
-		if ($value === 'null') $value = null;
-		if ($type === 'null') $type = null;
-		if ($tags === 'null') $tags = null;
-		if ($category === 'null') $category = null;
-		if ($org === 'null') $org = null;
-		if ($searchall === 'null') $searchall = '';
-		if ($searchall === 'true') $searchall = "1";
-		if ($key!=null && $key!='download') {
+	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags = false, $searchall=false, $from=false, $to=false) {
+		if ($key!='download') {
 			$user = $this->checkAuthUser($key);
 		} else {
 			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
@@ -2374,12 +2381,20 @@ class EventsController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
+		
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
+		if ($tags) $tags = str_replace(';', ':', $tags);
+		if ($searchall === 'true') $searchall = "1";
+		
 		if (!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') {
 			$this->response->type('xml');	// set the content type
 			$this->layout = 'xml/default';
@@ -2465,6 +2480,9 @@ class EventsController extends AppController {
 				'conditions' => $conditions,
 				'fields' => array('Attribute.event_id'),
 			);
+			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
+			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+			
 			$attributes = $this->Attribute->find('all', $params);
 			$eventIds = array();
 			foreach ($attributes as $attribute) {
@@ -2888,7 +2906,7 @@ class EventsController extends AppController {
 		}
 	}
 	
-	public function stix($key, $id = null, $withAttachments = false, $tags = null) {
+	public function stix($key, $id = false, $withAttachments = false, $tags = false, $from = false, $to = false) {
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -2904,20 +2922,7 @@ class EventsController extends AppController {
 			$isSiteAdmin = $this->_isSiteAdmin();
 			$org = $this->Auth->user('org');
 		}
-
-		// set null if a null string is passed
-		if ($id == 'false' || $id == 'null') $id = null;
-		$numeric = false;
-		if (is_numeric($id)) $numeric = true;
-		if ($tags == 'false' || $tags == 'null') $tags = null;
-		if ($withAttachments == 'false' || 'null') $withAttachments = false;
-		// set the export type based on the request
-		if ($this->response->type() === 'application/json') $returnType = 'json';
-		else {
-			$returnType = 'xml';
-			$this->response->type('xml');	// set the content type
-			$this->layout = 'xml/default';
-		}
+		
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted xml object.
 		// The correct format for a posted xml is a "request" root element, as shown by the examples below:
 		// For XML: <request><id>!3&amp;!4</id><tags>OSINT</tags></request>
@@ -2928,13 +2933,29 @@ class EventsController extends AppController {
 			} else {
 				$data = $this->request->data;
 			}
-			$paramArray = array('id', 'withAttachment', 'tags');
+			$paramArray = array('id', 'withAttachment', 'tags', 'from', 'to');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
-		$result = $this->Event->stix($id, $tags, $withAttachments, $this->Auth->user('org'), $this->_isSiteAdmin(), $returnType);
+		
+		$simpleFalse = array('id', 'withAttachments', 'tags', 'from', 'to');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
+		
+		// set null if a null string is passed
+		$numeric = false;
+		if (is_numeric($id)) $numeric = true;
+		// set the export type based on the request
+		if ($this->response->type() === 'application/json') $returnType = 'json';
+		else {
+			$returnType = 'xml';
+			$this->response->type('xml');	// set the content type
+			$this->layout = 'xml/default';
+		}
+		$result = $this->Event->stix($id, $tags, $withAttachments, $org, $isSiteAdmin, $returnType, $from, $to);
 		
 		if ($result['success'] == 1) {
 			// read the output file and pass it to the view
