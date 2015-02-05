@@ -1757,7 +1757,6 @@ class EventsController extends AppController {
 		
 		foreach ($eventIdArray as $currentEventId) {
 			$result = $this->__fetchEvent($currentEventId, null, $org, $isSiteAdmin, $tags, $from, $to);
-			$result;
 			if ($withAttachment) {
 				foreach ($result[0]['Attribute'] as &$attribute) {
 					if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
