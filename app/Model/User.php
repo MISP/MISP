@@ -38,8 +38,8 @@ class User extends AppModel {
 		),
 		'password' => array(
 			'minlength' => array(
-				'rule' => array('minlength', 6),
-				'message' => 'A password of a minimum length of 6 is required.',
+				'rule' => array('passwordLength'),
+				'message' => 'Password length requirement not met.',
 				//'allowEmpty' => false,
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -47,7 +47,7 @@ class User extends AppModel {
 			),
 			'complexity' => array(
 				'rule' => array('complexPassword'),
-				'message' => 'The password must contain at least one upper-case, one lower-case, one (digits or special character).',
+				'message' => 'Password complexity requirement not met.',
 				//'allowEmpty' => false,
 				//'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -294,17 +294,30 @@ class User extends AppModel {
 		}
 	}
 
+	public function passwordLength($check) {
+		$length = Configure::read('Security.password_policy_length');
+		if (empty($length) || $length < 0) $length = 6;
+		$value = array_values($check);
+		$value = $value[0];
+		if (strlen($value) < $length) return false;
+		return true;
+	}
+	
 	public function complexPassword($check) {
 		/*
+		default password:
 		6 characters minimum
 		1 or more upper-case letters
 		1 or more lower-case letters
 		1 or more digits or special characters
 		example: "EasyPeasy34"
+		If Security.password_policy_complexity is set and valid, use the regex provided.
 		*/
+		$regex = Configure::read('Security.password_policy_complexity');
+		if (empty($regex) || @preg_match($regex, 'test') === false) $regex = '/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/';
 		$value = array_values($check);
 		$value = $value[0];
-		return preg_match('/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/', $value);
+		return preg_match($regex, $value);
 	}
 
 	public function identicalFieldValues($field=array(), $compareField=null) {
