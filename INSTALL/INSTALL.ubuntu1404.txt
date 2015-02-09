@@ -70,7 +70,7 @@ php composer.phar install
 
 # CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis
 pecl install redis
-apt get install php5-redis
+apt-get install php5-redis
 # After installing it, enable it in your php.ini file
 vim /etc/php5/apache2/php.ini
 # add the following line:
@@ -98,6 +98,8 @@ mysql> create database misp;
 mysql> grant usage on *.* to misp@localhost identified by 'XXXXXXXXX';
 mysql> grant all privileges on misp.* to misp@localhost ;
 mysql> exit
+
+cd /var/www/MISP
 
 # Import the empty MySQL database from MYSQL.sql 
 mysql -u misp -p<password> misp < INSTALL/MYSQL.sql
@@ -146,10 +148,6 @@ cp -a config.default.php config.php
 # in Core.php (if you have just recently updated MISP, just add this line at the end of the file):
 # require_once dirname(__DIR__) . '/Vendor/autoload.php';
 
-# in bootstrap.php uncomment the following line (at the end of the file):
-# CakePlugin::loadAll(array('CakeResque' => array('bootstrap' => true)));
-# set Configure::write('MISP.background_jobs', false); to Configure::write('MISP.background_jobs', true); 
-
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
 # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt, 
@@ -166,6 +164,7 @@ chmod 700 /var/www/MISP/.gnupg
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 # Recommended key type: RSA
 # The email address should match the one set int he bootstrap.php configuration file
+# Make sure that you use the same settings in the MISP Server Settings tool tool (Described on line 184)
 
 # And export the public key to the webroot
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
@@ -197,6 +196,11 @@ chown -R www-data:www-data /var/www/MISP/<directory path with an indicated issue
 
 # Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
+# If anything goes wrong, make sure that you check MISP's logs for errors:
+# /var/www/MISP/app/tmp/logs/error.log
+# /var/www/MISP/app/tmp/logs/resque-worker-error.log
+# /var/www/MISP/app/tmp/logs/resque-scheduler-error.log
+# /var/www/MISP/app/tmp/logs/resque-2015-01-01.log //where the actual date is the current date
 
 Recommended actions
 -------------------
