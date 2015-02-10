@@ -2860,24 +2860,23 @@ class EventsController extends AppController {
 			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 			$saved = 0;
 			$failed = 0;
-			foreach ($this->request->data['Attribute'] as $k => $attribute) {
-				if ($attribute['save'] == '1') {
-					if ($attribute['type'] == 'ip-src/ip-dst') {
-						$types = array('ip-src', 'ip-dst');
+			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
+			foreach ($attributes as $k => $attribute) {
+				if ($attribute['type'] == 'ip-src/ip-dst') {
+					$types = array('ip-src', 'ip-dst');
+				} else {
+					$types = array($attribute['type']);
+				}
+				foreach ($types as $type) {
+					$this->Event->Attribute->create();
+					$attribute['type'] = $type;
+					$attribute['distribution'] = $event['Event']['distribution'];
+					if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
+					$attribute['event_id'] = $id;
+					if ($this->Event->Attribute->save($attribute)) {
+						$saved++;
 					} else {
-						$types = array($attribute['type']);
-					}
-					foreach ($types as $type) {
-						$this->Event->Attribute->create();
-						$attribute['type'] = $type;
-						$attribute['distribution'] = $event['Event']['distribution'];
-						if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
-						$attribute['event_id'] = $id;
-						if ($this->Event->Attribute->save($attribute)) {
-							$saved++;
-						} else {
-							$failed++;
-						}
+						$failed++;
 					}
 				}
 			}
