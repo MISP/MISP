@@ -127,8 +127,9 @@ MariaDB [(none)]> grant usage on *.* to misp@localhost identified by 'XXXXXXXXX'
 MariaDB [(none)]> grant all privileges on misp.* to misp@localhost ;
 MariaDB [(none)]> exit
 
-# Import the empty MySQL database from MYSQL.sql
 cd /var/www/MISP
+
+# Import the empty MySQL database from MYSQL.sql
 mysql -u misp -p misp < INSTALL/MYSQL.sql
 
 
@@ -205,7 +206,8 @@ chmod 700 /var/www/MISP/.gnupg
 gpg --homedir /var/www/MISP/.gnupg --gen-key
 chown -R apache:apache /var/www/MISP/.gnupg
 # Recommended key type: RSA
-# The email address should match the one set int he config.php configuration file
+# The email address should match the one set in the config.php configuration file
+# Make sure that you use the same settings in the MISP Server Settings tool (Described on line 226)
 
 # And export the public key to the webroot
 sudo -u apache gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
@@ -236,6 +238,11 @@ chown -R apache:apache /var/www/MISP/<directory path with an indicated issue>
 
 # Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
+# If anything goes wrong, make sure that you check MISP's logs for errors:
+# /var/www/MISP/app/tmp/logs/error.log
+# /var/www/MISP/app/tmp/logs/resque-worker-error.log
+# /var/www/MISP/app/tmp/logs/resque-scheduler-error.log
+# /var/www/MISP/app/tmp/logs/resque-2015-01-01.log //where the actual date is the current date
 
 Recommended actions
 -------------------
