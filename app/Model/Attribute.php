@@ -90,6 +90,13 @@ class Attribute extends AppModel {
 	public $uploadDefinitions = array(
 			'attachment'
 	);
+	
+	// skip Correlation for the following types
+	public $nonCorrelatingTypes = array(
+			'vulnerability',
+			'comment',
+			'http-method'
+	);
 
 	public $typeDefinitions = array(
 			'md5' => array('desc' => 'A checksum in md5 format', 'formdesc' => "You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename"),
@@ -946,8 +953,8 @@ class Attribute extends AppModel {
 	}
 
 	public function __afterSaveCorrelation($a) {
-		// Don't do any correlation if the type is vulnerability or comment
-		if ($a['type'] !== 'vulnerability' && $a['type'] !== 'comment') {
+		// Don't do any correlation if the type is a non correlating type
+		if (!in_array($a['type'], $this->nonCorrelatingTypes)) {
 			$this->Correlation = ClassRegistry::init('Correlation');
 			// When we add/update an attribute we need to
 			// - (beforeSave) (update-only) clean up the relation of the old value: remove the existing relations related to that attribute, we DO have a reference, the id
@@ -970,8 +977,7 @@ class Attribute extends AppModel {
 			                    'Attribute.value2' => $a[$value_name]
 			            	),
 			            	'AND' => array(
-			            		'Attribute.type !=' => 'vulnerability',
-			            		'Attribute.type !=' => 'comment',
+			            		'Attribute.type !=' => $this->nonCorrelatingTypes,
 						)),
 			            'recursive' => 0,
 			    		//'contain' => 'Event',
