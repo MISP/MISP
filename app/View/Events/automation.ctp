@@ -43,13 +43,16 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>You can configure your tools to automatically download the following file:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/</pre>
 <p>You can specify additional flags for CSV exports as follows::</p>
-<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/[eventid]/[ignore]/[tags]/[category]/[type]/[includeInfo]/[from]/[to]</pre>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/[eventid]/[ignore]/[tags]/[category]/[type]/[includeContext]/[from]/[to]</pre>
 <p>
 <b>eventid</b>: Restrict the download to a single event<br />
+<b>ignore</b>: Setting this flag to true will include attributes that are not marked "to_ids".<br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
-<b>ignore</b>: Setting this flag to true will include attributes that are not marked "to_ids".<br />
+<b>category</b>: The attribute category, any valid MISP attribute category is accepted.<br />
+<b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
+<b>includeContext</b>: Include the event data with each attribute.<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-03)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-03)<br />
 </p>

@@ -1856,8 +1856,8 @@ class EventsController extends AppController {
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
 	// $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything. 
-	public function csv($key, $eventid=false, $ignore=false, $tags = false, $category=false, $type=false, $includeInfo=false, $from=false, $to=false) {
-		$simpleFalse = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeInfo', 'from', 'to');
+	public function csv($key, $eventid=false, $ignore=false, $tags = false, $category=false, $type=false, $includeContext=false, $from=false, $to=false) {
+		$simpleFalse = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
@@ -1898,13 +1898,17 @@ class EventsController extends AppController {
 				$list[] = $attribute['Attribute']['id'];
 			}
 		}
-		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type, $includeInfo, $from, $to);
+		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type, $includeContext, $from, $to);
 		$this->loadModel('Whitelist');
 		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
 			$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
-			if ($includeInfo) $line .= ',' . $attribute['Attribute']['event_info'];
+			if ($includeContext) {
+				foreach($this->Event->csv_event_context_fields_to_fetch as $field => $header) {
+					$line .= ',' . $attribute['Attribute'][$header];
+				}
+			}
 			$final[] = $line;
 		}
 		
@@ -1918,7 +1922,7 @@ class EventsController extends AppController {
 		}
 		$this->layout = 'text/default';
 		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'to_ids', 'date');
-		if ($includeInfo) $headers[] = 'event_info';
+		if ($includeContext) $headers = array_merge($headers, array_values($this->Event->csv_event_context_fields_to_fetch));
 		$this->set('headers', $headers);
 		$this->set('final', $final);
 	}
