@@ -1,5 +1,4 @@
 <?php
-
 class XMLConverterTool {
 	public function recursiveEcho($array) {
 		$text = "";
@@ -24,7 +23,7 @@ class XMLConverterTool {
 		return $text;
 	}
 	
-	public function event2xmlArray($event) {
+	public function event2xmlArray($event, $isSiteAdmin=false) {
 		$toEscape = array("&", "<", ">", "\"", "'");
 		$escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
 		$event['Event']['Attribute'] = $event['Attribute'];
@@ -81,7 +80,7 @@ class XMLConverterTool {
 				unset($event['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
 				$event['Event']['RelatedEvent'][$key]['Event'][0]['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['RelatedEvent'][$key]['Event'][0]['info']);
 				$event['Event']['RelatedEvent'][$key]['Event'][0]['info'] = str_replace($toEscape, $escapeWith, $event['Event']['RelatedEvent'][$key]['Event'][0]['info']);
-				if (!Configure::read('MISP.showorg') && !$isAdmin) {
+				if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
 					unset($event['Event']['RelatedEvent'][$key]['Event'][0]['org']);
 					unset($event['Event']['RelatedEvent'][$key]['Event'][0]['orgc']);
 				}
@@ -91,8 +90,8 @@ class XMLConverterTool {
 		return array('Event' => $event['Event']);
 	}
 	
-	public function event2XML($event) {
-		$xmlArray = $this->event2xmlArray($event);
+	public function event2XML($event, $isSiteAdmin=false) {
+		$xmlArray = $this->event2xmlArray($event, $isSiteAdmin);
 		return $this->recursiveEcho(array('Event' => array(0 => $xmlArray['Event'])));
 	}
 }
