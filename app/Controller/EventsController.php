@@ -1814,8 +1814,6 @@ class EventsController extends AppController {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$user = $this->checkAuthUser($this->Auth->user('authkey'));
-			if (!$user) throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			$user = array('User' => $this->Auth->user());
 			$user['User']['siteAdmin'] = $this->_isSiteAdmin();
 		}
