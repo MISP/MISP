@@ -1,5 +1,8 @@
 MISP - Malware Information Sharing Platform
---------------------------------------------
+-------------------------------------------
+
+![logo](./INSTALL/logos/misp-logo.png?raw=true "MISP")
+
 The problem that we experienced in the past was the difficulty to exchange information about (targeted) malwares and attacks within a group of trusted partners, or a bilateral agreement.
 Even today much of the information exchange happens in unstructured reports where you have to copy-paste the information in your own text-files that you then have to parse to export to (N)IDS and systems like log-searches, etc...
 
