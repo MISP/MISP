@@ -2367,7 +2367,6 @@ class EventsController extends AppController {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		$value = str_replace('|', '/', $value);
-		
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
 		// For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
@@ -2394,16 +2393,7 @@ class EventsController extends AppController {
 		}
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		if ($searchall === 'true') $searchall = "1";
-		
-		if (!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') {
-			$this->response->type('xml');	// set the content type
-			$this->layout = 'xml/default';
-			$this->header('Content-Disposition: download; filename="misp.search.events.results.xml"');
-		} else {
-			$this->response->type('json');	// set the content type
-			$this->layout = 'json/default';
-			$this->header('Content-Disposition: download; filename="misp.search.events.results.json"');
-		}
+
 		$conditions['AND'] = array();
 		$subcondition = array();
 		$this->loadModel('Attribute');
@@ -2476,13 +2466,14 @@ class EventsController extends AppController {
 				}
 				$conditions['AND'][] = $temp;
 			}
-			$params = array(
-				'conditions' => $conditions,
-				'fields' => array('Attribute.event_id'),
-			);
+
 			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 			
+			$params = array(
+					'conditions' => $conditions,
+					'fields' => array('DISTINCT(Attribute.event_id)'),
+			);
 			$attributes = $this->Attribute->find('all', $params);
 			$eventIds = array();
 			foreach ($attributes as $attribute) {
@@ -2490,14 +2481,41 @@ class EventsController extends AppController {
 			}
 		}
 		if (!empty($eventIds)) {
-			$results = $this->__fetchEvent(null, $eventIds, $user['User']['org'], true);
+			$this->loadModel('Whitelist');
+			if ((!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') && $this->response->type() !== 'application/json') {
+				App::uses('XMLConverterTool', 'Tools');
+				$converter = new XMLConverterTool();
+				$final = "";
+				$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
+				foreach ($eventIds as $currentEventId) {
+					$result = $this->__fetchEvent($currentEventId, null, $user['User']['org'], true);
+					$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
+					$final .= $converter->event2XML($result[0]) . PHP_EOL;
+				}
+				$final .= '</response>' . PHP_EOL;
+				$final_filename="misp.search.events.results.xml";
+				$this->response->body($final);
+				$this->response->type('xml');
+				$this->response->download($final_filename);
+			} else {
+				App::uses('JSONConverterTool', 'Tools');
+				$converter = new JSONConverterTool();
+				$temp = array();
+				$final = '{"response":[';
+				foreach ($eventIds as $currentEventId) {
+					$result = $this->__fetchEvent($currentEventId, null, $user['User']['org'], true);
+					$final .= $converter->event2JSON($result[0]);
+				}
+				$final .= ']}';
+				$final_filename="misp.search.events.results.json";
+				$this->response->body($final);
+				$this->response->type('json');
+				$this->response->download($final_filename);
+			}
 		} else {
 			throw new NotFoundException('No matches.');
 		}
-		$this->loadModel('Whitelist');
-		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
-		$this->response->type('xml');
-		$this->set('results', $results);
+		return $this->response;
 	}
 
 	public function downloadOpenIOCEvent($eventid) {
