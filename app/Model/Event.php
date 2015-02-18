@@ -116,6 +116,16 @@ class Event extends AppModel {
 			)
 	);
 	
+	public $csv_event_context_fields_to_fetch = array(
+	 			'info' => 'event_info', 
+	 			'org' => 'event_member_org',  
+	 			'orgc' => 'event_source_org', 
+	 			'distribution' => 'event_distribution', 
+	 			'threat_level_id' => 'event_threat_level_id', 
+	 			'analysis' => 'event_analysis', 
+	 			'date' => 'event_date', 
+	 	);
+	
 /**
  * Validation rules
  *
@@ -927,7 +937,7 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	public function csv($org, $isSiteAdmin, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeInfo = false, $from = false, $to = false) {
+	public function csv($org, $isSiteAdmin, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false) {
 		$final = array();
 		$attributeList = array();
 		$conditions = array();
@@ -1009,26 +1019,51 @@ class Event extends AppModel {
 	 		$attribute['Attribute']['value'] = '"' . $attribute['Attribute']['value'] . '"';
 	 		$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
 	 	}
-	 	if ($includeInfo) $attributes = $this->attachEventInfoToAttributes($attributes);
+	 	if ($includeContext) $attributes = $this->attachEventInfoToAttributes($attributes, $isSiteAdmin);
 	 	return $attributes;
 	 }
 	 
-	 private function attachEventInfoToAttributes($attributes) {
+	 private function attachEventInfoToAttributes($attributes, $isSiteAdmin) {
+	 	$TLs = $this->ThreatLevel->find('all', array(
+	 		'recursive' => -1,
+	 	));
 	 	$event_ids = array();
 	 	foreach ($attributes as &$attribute) {
 	 		if (!in_array($attribute['Attribute']['event_id'], $event_ids)) $event_ids[] = $attribute['Attribute']['event_id'];
 	 	}
+	 	$context_fields = array('id' => null);
+	 	$context_fields = array_merge($context_fields, $this->csv_event_context_fields_to_fetch);
+	 	if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
+			unset($context_fields['orgc']);
+			unset($context_fields['org']);
+	 	} else if (!Configure::read('MISP.showorgalternate') && !$isSiteAdmin) {
+	 		$context_fields['orgc'] = 'event_org';
+	 		$context_fields['org'] = 'event_owner_org';
+	 		unset($context_fields['orgc']);
+	 	}
+	 	
 	 	$events = $this->find('all', array(
 	 		'recursive' => -1,
-	 		'fields' => array('id', 'info'),
+	 		'fields' => array_keys($context_fields),
 	 		'conditions' => array('id' => $event_ids),
 	 	));
-	 	$event_id_info = array();
+	 	$event_id_data = array();
+	 	unset($context_fields['id']);
 	 	foreach ($events as $event) {
-	 		$event_id_info[$event['Event']['id']] = $event['Event']['info'];
+	 		foreach ($context_fields as $field => $header_name) $event_id_data[$event['Event']['id']][$header_name] = $event['Event'][$field];
 	 	}
 	 	foreach ($attributes as &$attribute) {
-	 		$attribute['Attribute']['event_info'] = $event_id_info[$attribute['Attribute']['event_id']];
+	 		foreach ($context_fields as $field => $header_name) {
+	 			if ($header_name == 'event_threat_level_id') {
+	 				$attribute['Attribute'][$header_name] = $TLs[$event_id_data[$attribute['Attribute']['event_id']][$header_name]]['ThreatLevel']['name'];
+	 			} else if ($header_name == 'event_distribution') {
+	 				$attribute['Attribute'][$header_name] = $this->distributionLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
+	 			} else if ($header_name == 'event_analysis') {
+	 				$attribute['Attribute'][$header_name] = $this->analysisLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
+	 			} else {
+	 				$attribute['Attribute'][$header_name] = $event_id_data[$attribute['Attribute']['event_id']][$header_name];
+	 			}
+	 		}
 	 	}
 	 	return $attributes;
 	 }
