@@ -167,7 +167,7 @@
 
 				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org'])) {
 				?>
-					<a href='/events/view/<?php echo $event['Event']['id'];?>' class = "icon-edit" title = "Edit"></a>
+					<a href='/events/edit/<?php echo $event['Event']['id'];?>' class = "icon-edit" title = "Edit"></a>
 				<?php
 					echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $event['Event']['id']));
 				}

@@ -2502,9 +2502,10 @@ class EventsController extends AppController {
 				$converter = new JSONConverterTool();
 				$temp = array();
 				$final = '{"response":[';
-				foreach ($eventIds as $currentEventId) {
+				foreach ($eventIds as $k => $currentEventId) {
 					$result = $this->__fetchEvent($currentEventId, null, $user['User']['org'], true);
 					$final .= $converter->event2JSON($result[0]);
+					if ($k < count($eventIds) -1 ) $final .= ',';
 				}
 				$final .= ']}';
 				$final_filename="misp.search.events.results.json";
