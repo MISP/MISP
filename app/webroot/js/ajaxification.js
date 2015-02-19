@@ -1292,11 +1292,20 @@ function changeFreetextImportExecute() {
 	var to = $('#changeTo').val();
 	$('.typeToggle').each(function() {
 		if ($( this ).val() == from) {
-			if ($('#' + $(this).attr('id') + " option[value='" + from + "']").length > 0) {
-				$( this ).val(to);
-			}
+			if (selectContainsOption("#" + $(this).attr('id'), to)) $( this ).val(to);
 		}
 	});
+}
+
+function selectContainsOption(selectid, value) {
+	var exists = false;
+	$(selectid + ' option').each(function(){
+	    if (this.value == value) {
+	        exists = true;
+	        return false;
+	    }
+	});
+	return exists;
 }
 
 function exportChoiceSelect(url, elementId, checkbox) {
@@ -1306,4 +1315,38 @@ function exportChoiceSelect(url, elementId, checkbox) {
 		}
 	}
 	document.location.href = url;
+}
+
+function freetextImportResultsSubmit(id, count) {
+	var attributeArray = [];
+	var temp;
+	for (i = 0; i < count; i++) {
+		if ($('#Attribute' + i + 'Save').val() == 1) {
+				temp = {
+					value:$('#Attribute' + i + 'Value').val(),
+					category:$('#Attribute' + i + 'Category').val(),
+					type:$('#Attribute' + i + 'Type').val(),
+					to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
+					comment:$('#Attribute' + i + 'Comment').val(),
+				}
+				attributeArray[attributeArray.length] = temp;		
+		}
+	}
+	$("#AttributeJsonObject").val(JSON.stringify(attributeArray));
+	var formData = $("#AttributeFreeTextImportForm").serialize();
+	$.ajax({
+		type: "post",
+		cache: false,
+		url: "/events/saveFreeText/" + id,
+		data: formData,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			window.location = '/events/view/' + id;
+		}, 
+		complete:function() {
+			$(".loading").hide();
+		},
+	});
 }
