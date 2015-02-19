@@ -26,8 +26,7 @@ rpm -Uvh epel.rpm
 yum install vim
 
 # Install the dependencies:
-yum install git httpd zip php redis mysql-server php-mysql python-devel
-python-pip libxslt-devel zlib-devel php-devel php-xml
+yum install git httpd zip php redis mysql-server php-mysql python-devel python-pip libxslt-devel zlib-devel php-devel php-xml
 yum install php-pear php-pecl-geoip
 
 pear channel-update pear.php.net
