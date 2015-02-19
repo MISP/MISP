@@ -20,6 +20,6 @@ def resolveIdentityAttribute(incident, attribute):
     ciq_identity.id_ = "example:Identity-" + attribute["uuid"]
 
     # is this a good idea?
-    ciq_identity.name = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
+    ciq_identity.name = attribute["type"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     incident.add_victim(ciq_identity)
     return incident
