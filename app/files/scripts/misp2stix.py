@@ -20,10 +20,6 @@ from cybox.utils import Namespace
 
 namespace = ['https://github.com/MISP/MISP', 'MISP']
 
-cybox.utils.idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
-stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
-
-
 NS_DICT = {
 	"http://cybox.mitre.org/common-2" : 'cyboxCommon',
 	"http://cybox.mitre.org/cybox-2" : 'cybox',	
@@ -55,7 +51,6 @@ NS_DICT = {
 	"urn:oasis:names:tc:ciq:xal:3" : 'xal',
 	"urn:oasis:names:tc:ciq:xnl:3" : 'xnl',
 	"urn:oasis:names:tc:ciq:xpil:3" : 'xpil',
-        namespace[0] : namespace[1]
 }
 
 SCHEMALOC_DICT = {
@@ -126,7 +121,7 @@ def saveFile(args, pathname, package):
 def generateMainPackage(events):
     stix_package = STIXPackage()
     stix_header = STIXHeader()
-    stix_header.title="Export from MISP"
+    stix_header.title="Export from " + namespace[1] + " MISP"
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
     return stix_package
@@ -226,7 +221,7 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
         else:
             addReference(incident, attribute["value"])
     elif attribute["type"].startswith('target-'):
-        resolveIdentityAttribute(incident, attribute)
+        resolveIdentityAttribute(incident, attribute, namespace[1])
     elif attribute["type"] == "attachment":
         observable = returnAttachmentComposition(attribute)
         related_observable = RelatedObservable(observable, relationship=attribute["category"])
@@ -322,6 +317,13 @@ def addJournalEntry(incident, entry_line):
 # main
 def main(args):
     pathname = os.path.dirname(sys.argv[0])
+    if len(sys.argv) > 3:
+        namespace[0] = sys.argv[3]
+    if len(sys.argv) > 4:
+        namespace[1] = sys.argv[4].replace(" ", "_")
+    NS_DICT[namespace[0]]=namespace[1]
+    cybox.utils.idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
+    stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
     events = loadEvent(args, pathname)
     stix_package = generateMainPackage(events)
     for event in events:
