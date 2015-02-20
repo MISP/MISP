@@ -370,7 +370,27 @@ class UsersController extends AppController {
 		}
 		$params = null;
 		if (!$this->_isSiteAdmin()) {
-			$params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));
+			// Org admins should be able to select the role that is already assigned to an org user when editing them.
+			// What happened previously:
+			// Org admin edits another org admin of the same org
+			// Org admin is not allowed to set privileged access roles (site_admin/sync/regex)
+			// MISP automatically chooses the first available option for the user as the selected setting (usually user)
+			// Org admin is downgraded to a user
+			// Now we make an exception for the already assigned role, both in the form and the actual edit.
+			$userToEdit = $this->User->find('first', array(
+				'conditions' => array('id' => $id),
+				'recursive' => -1,
+				'fields' => array('id', 'role_id', 'email'),
+			));
+			$allowedRole = $userToEdit['User']['role_id'];
+			$params = array('conditions' => array(
+					'OR' => array(
+							'AND' => array(
+								'perm_site_admin' => 0, 'perm_sync' => 0, 'perm_regexp_access' => 0
+							),
+							'id' => $allowedRole,
+					)
+			));
 		}
 		$roles = $this->User->Role->find('list', $params);
 		$this->set('currentId', $id);
@@ -393,7 +413,7 @@ class UsersController extends AppController {
 				$this->loadModel('Role');
 				$this->Role->recursive = -1;
 				$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
-				if ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1) {
+				if (($chosenRole['Role']['id'] != $allowedRole) && ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1)) {
 					throw new Exception('You are not authorised to assign that role to a user.');
 				}
 			}
