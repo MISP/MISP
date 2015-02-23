@@ -1278,4 +1278,58 @@ function serverSettingSubmitForm(name, setting, id) {
 	$(name + '_field').unbind("keyup");
 	$(name + '_form').unbind("focusout");
 	return false;
-};
+}
+
+function updateOrgCreateImageField(string) {
+	string = escape(string);
+	$.ajax({
+	    url:'/img/orgs/' + string + '.png',
+	    type:'HEAD',
+	    error:
+	        function(){
+	    		$('#logoDiv').html('No image uploaded for this identifier');
+	        },
+	    success:
+	        function(){
+	    		$('#logoDiv').html('<img src="/img/orgs/' + string + '.png" style="width:24px;height:24px;"></img>');
+	        }
+	});
+}
+
+function generateOrgUUID() {
+	$.ajax({
+	    url:'/admin/organisations/generateuuid.json',
+	    success:
+	        function( data ){
+	    		$('#OrganisationUuid').val(data.uuid);
+	        }
+	});
+}
+
+
+function sharingGroupIndexMembersCollapse(id) {
+	$('#' + id + '_down').show();
+	$('#' + id + '_up').hide();
+}
+
+function sharingGroupIndexMembersExpand(id) {
+	$('#' + id + '_down').hide();
+	$('#' + id + '_up').show();
+}
+
+function popoverStartup() {
+    $('[data-toggle="popover"]').popover({
+        placement: 'left',
+        animation: true,
+        html: true,
+        trigger: 'manual',
+    }).click(function(e) {
+    	$(e.target).popover('show');
+    	$('[data-toggle="popover"]').not(e.target).popover('hide');
+    });
+    $(document).click(function (e) {
+        if (!$('[data-toggle="popover"]').is(e.target)) {
+            $('[data-toggle="popover"]').popover('hide');
+        }
+    });
+}

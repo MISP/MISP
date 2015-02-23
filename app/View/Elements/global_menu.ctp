@@ -74,6 +74,10 @@
 							<li><a href="/users/view/me">My Profile</a></li>
 							<li><a href="/users/memberslist">Members List</a></li>
 							<li><a href="/roles/index">Role Permissions</a></li>
+							<li class="divider"></li>
+							<li><a href="/sharing_groups/index">List Sharing Groups</a></li>
+							<li><a href="/sharing_groups/add">Add Sharing Group</a></li>
+							<li class="divider"></li>
 							<li><a href="/pages/display/doc/quickstart">User Guide</a></li>
 							<li><a href="/users/terms">Terms &amp; Conditions</a></li>
 							<li><a href="/users/statistics">Statistics</a></li>
@@ -108,6 +112,11 @@
 							<li><a href="/admin/roles/add">New Role</a></li>
 							<?php endif; ?>
 							<li><a href="/admin/roles/index">List Roles</a></li>
+							<li class="divider"></li>
+							<?php if ($isSiteAdmin): ?>
+								<li><a href="/admin/organisations/add">New Organisation</a></li>
+							<?php endif;?>
+							<li><a href="/organisations/index">List Organisations</a></li>
 							<?php if($isSiteAdmin): ?>
 								<li class="divider"></li>
 								<li><a href="/admin/users/email">Contact Users</a></li>
