@@ -437,6 +437,11 @@ dd {
 	-webkit-animation-iteration-count: infinite;
 }
 
+.logoBlueStatic {
+	color: #0088cc; 
+	text-shadow: #0099E6 0 0 3px;
+}
+
 @-webkit-keyframes bluePulse {
   from { color: #007d9a; text-shadow: #333 0 0 1px; }
   50% { color: #0088cc; text-shadow: #0099E6 0 0 3px; }
