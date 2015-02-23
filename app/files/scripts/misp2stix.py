@@ -16,6 +16,13 @@ from stix.extensions.marking.tlp import TLPMarkingStructure
 from stix.common.related import *
 from stix.common.confidence import Confidence
 from stix.common.vocabs import IncidentStatus
+from cybox.utils import Namespace
+
+namespace = ['https://github.com/MISP/MISP', 'MISP']
+
+cybox.utils.idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
+stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
+
 
 NS_DICT = {
 	"http://cybox.mitre.org/common-2" : 'cyboxCommon',
@@ -34,7 +41,6 @@ NS_DICT = {
 	"http://cybox.mitre.org/objects#WinRegistryKeyObject-2" : 'WinRegistryKeyObj',
 	"http://data-marking.mitre.org/Marking-1" : 'marking',
 	"http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1" : 'tlpMarking',
-	"http://example.com" : 'example',
 	"http://stix.mitre.org/ExploitTarget-1" : 'et',
 	"http://stix.mitre.org/Incident-1" : 'incident',
 	"http://stix.mitre.org/Indicator-2" : 'indicator',
@@ -49,6 +55,7 @@ NS_DICT = {
 	"urn:oasis:names:tc:ciq:xal:3" : 'xal',
 	"urn:oasis:names:tc:ciq:xnl:3" : 'xnl',
 	"urn:oasis:names:tc:ciq:xpil:3" : 'xpil',
+        namespace[0] : namespace[1]
 }
 
 SCHEMALOC_DICT = {
@@ -126,7 +133,7 @@ def generateMainPackage(events):
 
 # generate a package for each event
 def generateEventPackage(event):
-    package_name = 'example:STIXPackage-' + event["Event"]["uuid"]
+    package_name = namespace[1] + ':STIXPackage-' + event["Event"]["uuid"]
     stix_package = STIXPackage(id_=package_name)
     stix_header = STIXHeader()
     stix_header.title="MISP event #" + event["Event"]["id"] + " uuid: " + event["Event"]["uuid"]
@@ -142,7 +149,7 @@ def generateEventPackage(event):
 
 # generate the incident information. MISP events are currently mapped to incidents with the event metadata being stored in the incident information
 def generateSTIXObjects(event):
-    incident = Incident(id_ = "example:incident-" + event["Event"]["uuid"], description=event["Event"]["info"])
+    incident = Incident(id_ = namespace[1] + ":incident-" + event["Event"]["uuid"], description=event["Event"]["info"])
     setDates(incident, event["Event"]["date"], int(event["Event"]["publish_timestamp"]))
     addJournalEntry(incident, "Event Threat Level: " + event["ThreatLevel"]["name"])
     ttps = []
@@ -207,7 +214,10 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
             addJournalEntry(incident, entry_line)
     elif attribute["type"] == "target-machine":
         aa = AffectedAsset()
-        aa.description = attribute["value"]
+        if attribute["comment"] != "":
+            aa.description = attribute["value"] + " (" + attribute["comment"] + ")"
+        else:
+            aa.description = attribute["value"]
         incident.affected_assets.append(aa)
     elif attribute["type"] == "vulnerability":
         generateTTP(incident, attribute)
@@ -227,7 +237,7 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
 # TTPs are only used to describe malware names currently (attribute with category Payload Type and type text/comment/other)
 def generateTTP(incident, attribute):
     ttp = TTP()
-    ttp.id_="example:ttp-" + attribute["uuid"]
+    ttp.id_= namespace[1] + ":ttp-" + attribute["uuid"]
     setTLP(ttp, attribute["distribution"])
     ttp.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
     if attribute["type"] == "vulnerability":
@@ -241,21 +251,28 @@ def generateTTP(incident, attribute):
         malware.add_name(attribute["value"])
         ttp.behavior = Behavior()
         ttp.behavior.add_malware_instance(malware)
+    if attribute["comment"] != "":
+        ttp.description = attribute["comment"]
     relatedTTP = RelatedTTP(ttp, relationship=attribute["category"])
     incident.leveraged_ttps.append(relatedTTP)
 
 # Threat actors are currently only used for the category:attribution / type:(text|comment|other) attributes 
 def generateThreatActor(attribute):
     ta = ThreatActor()
-    ta.id_="example:threatactor-" + attribute["uuid"]
+    ta.id_= namespace[1] + ":threatactor-" + attribute["uuid"]
     ta.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
-    ta.description = attribute["value"]
+    if attribute["comment"] != "":
+        ta.description = attribute["value"] + " (" + attribute["comment"] + ")"
+    else:
+        ta.description = attribute["value"]
     return ta
 
 # generate the indicator and add the relevant information
 def generateIndicator(attribute):
     indicator = Indicator()
-    indicator.id_="example:indicator-" + attribute["uuid"]
+    indicator.id_= namespace[1] + ":indicator-" + attribute["uuid"]
+    if attribute["comment"] != "":
+        indicator.description = attribute["comment"]
     setTLP(indicator, attribute["distribution"])
     indicator.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
     confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
@@ -286,7 +303,7 @@ def addReference(target, reference):
 # takes an object and applies a TLP marking based on the distribution passed along to it
 def setTLP(target, distribution):
     marking_specification = MarkingSpecification()
-    marking_specification.controlled_structure = "../../../descendant-or-self()"
+    marking_specification.controlled_structure = "../../../descendant-or-self::node()"
     tlp = TLPMarkingStructure()
     colour = TLP_mapping.get(distribution, None)
     if colour is None:

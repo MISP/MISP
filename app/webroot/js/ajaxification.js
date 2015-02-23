@@ -1101,8 +1101,8 @@ function indexSetTableVisibility() {
 	if ($("[id^='value_']").text().trim()!="" && $("[id^='value_']").text().trim()!="-1") {
 		visible = true;
 	}
-	if (visible == true) $('#rule_table').show();
-	else $('#rule_table').hide();
+	if (visible == true) $('#FilterplaceholderTable').hide();
+	else $('#FilterplaceholderTable').show();
 }
 
 function indexRuleChange() {
@@ -1332,4 +1332,75 @@ function popoverStartup() {
             $('[data-toggle="popover"]').popover('hide');
         }
     });
+}
+
+function changeFreetextImportFrom() {
+	$('#changeTo').find('option').remove();
+	options[$('#changeFrom').val()].forEach(function(element) {
+		$('#changeTo').append('<option value="' + element + '">' + element + '</option>');
+	});
+}
+
+function changeFreetextImportExecute() {
+	var from = $('#changeFrom').val();
+	var to = $('#changeTo').val();
+	$('.typeToggle').each(function() {
+		if ($( this ).val() == from) {
+			if (selectContainsOption("#" + $(this).attr('id'), to)) $( this ).val(to);
+		}
+	});
+}
+
+function selectContainsOption(selectid, value) {
+	var exists = false;
+	$(selectid + ' option').each(function(){
+	    if (this.value == value) {
+	        exists = true;
+	        return false;
+	    }
+	});
+	return exists;
+}
+
+function exportChoiceSelect(url, elementId, checkbox) {
+	if (checkbox == 1) {
+		if ($('#' + elementId + '_toggle').prop('checked')) {
+			url = url + $('#' + elementId + '_set').html();
+		}
+	}
+	document.location.href = url;
+}
+
+function freetextImportResultsSubmit(id, count) {
+	var attributeArray = [];
+	var temp;
+	for (i = 0; i < count; i++) {
+		if ($('#Attribute' + i + 'Save').val() == 1) {
+				temp = {
+					value:$('#Attribute' + i + 'Value').val(),
+					category:$('#Attribute' + i + 'Category').val(),
+					type:$('#Attribute' + i + 'Type').val(),
+					to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
+					comment:$('#Attribute' + i + 'Comment').val(),
+				}
+				attributeArray[attributeArray.length] = temp;		
+		}
+	}
+	$("#AttributeJsonObject").val(JSON.stringify(attributeArray));
+	var formData = $("#AttributeFreeTextImportForm").serialize();
+	$.ajax({
+		type: "post",
+		cache: false,
+		url: "/events/saveFreeText/" + id,
+		data: formData,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			window.location = '/events/view/' + id;
+		}, 
+		complete:function() {
+			$(".loading").hide();
+		},
+	});
 }

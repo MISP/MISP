@@ -428,6 +428,22 @@ class Server extends AppModel {
 							'type' => 'string',
 							'editable' => false,
 					),
+					'password_policy_length' => array(
+							'level' => 2,
+							'description' => 'Password length requirement. If it is not set or it is set to 0, then the default value is assumed (6).',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testPasswordLength',
+							'type' => 'numeric',
+					),
+					'password_policy_complexity' => array(
+							'level' => 2,
+							'description' => 'Password complexity requirement. Leave it empty for the default setting (3 out of 4, with either a digit or a special char) or enter your own regex. Keep in mind that the length is checked in another key. Example (simple 4 out of 4): /(?=.*[0-9])(?=.*[!@#$%^&*_-])(?=.*[A-Z])(?=.*[a-z]).*$/',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testPasswordRegex',
+							'type' => 'string',
+					),
 			),
 			'SecureAuth' => array(
 					'branch' => 1,
@@ -467,9 +483,9 @@ class Server extends AppModel {
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
 			$job->read(null, $jobId);
-			App::import('Component','Auth');
-			$this->Auth = new AuthComponent(new ComponentCollection());
-			$this->Auth->login($user);
+			$email = "Scheduled job";
+		} else {
+			$email = $user['email'];
 		}
 		$eventModel = ClassRegistry::init('Event');
 		App::uses('HttpSocket', 'Network/Http');
@@ -545,7 +561,6 @@ class Server extends AppModel {
 							unset($event['Event']['Attribute']);
 							$event['Event']['Attribute'][0] = $tmp;
 						}
-		
 						if (is_array($event['Event']['Attribute'])) {
 							$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
 							for ($i = 0; $i < $size; $i++) {
@@ -583,7 +598,7 @@ class Server extends AppModel {
 						if (!$existingEvent) {
 							// add data for newly imported events
 							$passAlong = $server['Server']['url'];
-							$result = $eventModel->_add($event, $fromXml = true, $user, $server['Server']['organization'], $passAlong, true, $jobId);
+							$result = $eventModel->_add($event, $fromXml = true, $user, $server['Server']['org'], $passAlong, true, $jobId);
 							if ($result) $successes[] = $eventId;
 							else {
 								$fails[$eventId] = 'Failed (partially?) because of validation errors: '. print_r($eventModel->validationErrors, true);
@@ -654,14 +669,15 @@ class Server extends AppModel {
 			'model_id' => $id,
 			'email' => $user['email'],
 			'action' => 'pull',
-			'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $user['email'],
+			'user_id' => $user['id'],
+			'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
 			'change' => count($successes) . ' events and ' . count($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.' 
 		));
 		if (!isset($lastpulledid)) $lastpulledid = 0;
 		return array($successes, $fails, $pulledProposals, $lastpulledid);
 	}
 	
-	public function push($id = null, $technique=false, $jobId = false, $HttpSocket) {
+	public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $email = "Scheduled job") {
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
 			$job->read(null, $jobId);
@@ -745,8 +761,9 @@ class Server extends AppModel {
 		$this->Log->save(array(
 				'model' => 'Server',
 				'model_id' => $id,
+				'email' => $email,
 				'action' => 'push',
-				'title' => 'Push to ' . $url . '.',
+				'title' => 'Push to ' . $url . ' initiated by ' . $email,
 				'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
 		));
 		if ($jobId) {
@@ -964,6 +981,18 @@ class Server extends AppModel {
 	
 	public function testForCustomImage($value) {
 		return $this->__testForFile($value, APP . 'webroot' . DS . 'img' . DS . 'custom');
+	}
+	
+	public function testPasswordLength($value) {
+		$numeric = $this->testforNumeric($value);
+		if ($numeric !== true) return $numeric;
+		if ($numeric < 0) return 'Length cannot be negative, set a positive integer or 0 (to choose the default option).';
+		return true;
+	}
+	
+	public function testPasswordRegex($value) {
+		if (!empty($value) && @preg_match($value, 'test') === false) return 'Invalid regex.';
+		return true;
 	}
 	
 	

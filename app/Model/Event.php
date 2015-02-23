@@ -115,6 +115,16 @@ class Event extends AppModel {
 			)
 	);
 	
+	public $csv_event_context_fields_to_fetch = array(
+	 			'info' => 'event_info', 
+	 			'org' => 'event_member_org',  
+	 			'orgc' => 'event_source_org', 
+	 			'distribution' => 'event_distribution', 
+	 			'threat_level_id' => 'event_threat_level_id', 
+	 			'analysis' => 'event_analysis', 
+	 			'date' => 'event_date', 
+	 	);
+	
 /**
  * Validation rules
  *
@@ -795,7 +805,7 @@ class Event extends AppModel {
 		return null;
 	}
 
-	public function fetchEventIds($org, $isSiteAdmin) {
+	public function fetchEventIds($org, $isSiteAdmin, $from = false, $to = false) {
 		$conditions = array();
 		if (!$isSiteAdmin) {
 			$conditions['OR'] = array(
@@ -804,6 +814,10 @@ class Event extends AppModel {
 			);
 		}
 		$fields = array('Event.id', 'Event.org', 'Event.distribution');
+		
+		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
+		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+		
 		$params = array(
 			'conditions' => $conditions,
 			'recursive' => -1,
@@ -814,8 +828,8 @@ class Event extends AppModel {
 	}
 	
 	//Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller.
-	public function fetchEvent($eventid = null, $idList = null, $org, $isSiteAdmin, $bkgrProcess = null, $tags = '') {
-		if (isset($eventid)) {
+	public function fetchEvent($eventid = false, $idList = false, $org, $isSiteAdmin = false, $bkgrProcess = false, $tags = false, $from = false, $to = false) {
+		if ($eventid) {
 			$this->id = $eventid;
 			if (!$this->exists()) {
 				throw new NotFoundException(__('Invalid event'));
@@ -839,12 +853,15 @@ class Event extends AppModel {
 				'(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org
 			);
 		}
-			
-		if ($idList && $tags == '') {
+		
+		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
+		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+		
+		if ($idList && !$tags) {
 			$conditions['AND'][] = array('Event.id' => $idList);
 		}
 		// If we sent any tags along, load the associated tag names for each attribute
-		if ($tags !== '') {
+		if ($tags) {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->Attribute->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
@@ -913,26 +930,26 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	public function csv($org, $isSiteAdmin, $eventid=0, $ignore=0, $attributeIDList = array(), $tags = '', $category = null, $type = null, $includeInfo = null) {
+	public function csv($org, $isSiteAdmin, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false) {
 		$final = array();
 		$attributeList = array();
 		$conditions = array();
 	 	$econditions = array();
 	 	$this->recursive = -1;
+	 	
 	 	// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
 	 	if ($eventid !== 'search') {
+	 		if ($from) $econditions['AND'][] = array('Event.date >=' => $from);
+	 		if ($to) $econditions['AND'][] = array('Event.date <=' => $to);
 	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-	 		if(!$isSiteAdmin) {
-	 			$econditions['AND']['OR'] = array('Event.distribution >' => 0, 'Event.org =' => $org);
-	 		}
-	 		if ($eventid == 0 && $ignore == 0) {
-	 			$econditions['AND'][] = array('Event.published =' => 1);
-	 		}
-	 		// If it's a full download (eventid == null) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
-	 		if ($eventid == 0) {
+	 		if(!$isSiteAdmin) $econditions['AND']['OR'] = array('Event.distribution >' => 0, 'Event.org =' => $org);
+	 		if ($eventid == 0 && $ignore == 0) $econditions['AND'][] = array('Event.published =' => 1);
+	 		
+	 		// If it's a full download (eventid == false) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
+	 		if (!$eventid) {
 	 			$this->recursive = -1;
 	 			// If we sent any tags along, load the associated tag names for each attribute
-	 			if ($tags !== '') {
+	 			if (!$tags) {
 	 				$tag = ClassRegistry::init('Tag');
 	 				$args = $this->Attribute->dissectArgs($tags);
 	 				$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
@@ -950,32 +967,21 @@ class Event extends AppModel {
 	 			// let's add the conditions if we're dealing with a non-siteadmin user
 	 			$params = array(
 	 					'conditions' => $econditions,
-	 					'fields' => array('id', 'distribution', 'org', 'published'),
+	 					'fields' => array('id', 'distribution', 'org', 'published', 'date'),
 	 			);
 	 			$events = $this->find('all', $params);
 	 		}
 	 		// if we have items in events, add their IDs to the conditions. If we're a site admin, or we have a single event selected for download, this should be empty
 	 		if (isset($events)) {
-	 			foreach ($events as $event) {
-	 				$conditions['AND']['OR'][] = array('Attribute.event_id' => $event['Event']['id']);
-	 			}
+	 			foreach ($events as $event) $conditions['AND']['OR'][] = array('Attribute.event_id' => $event['Event']['id']);
 	 		}
 	 		// if we're downloading a single event, set it as a condition
-	 		if ($eventid!=0) {
-	 			$conditions['AND'][] = array('Attribute.event_id' => $eventid);
-	 		}
+	 		if ($eventid) $conditions['AND'][] = array('Attribute.event_id' => $eventid);
+	 		
 	 		//restricting to non-private or same org if the user is not a site-admin.
-	 		if ($ignore == 0) {
-	 			$conditions['AND'][] = array('Attribute.to_ids' => 1);
-	 		}
-	 		
-	 		if ($type!=null) {
-	 			$conditions['AND'][] = array('Attribute.type' => $type);
-	 		}
-	 		
-	 		if ($category!=null) {
-	 			$conditions['AND'][] = array('Attribute.category' => $category);
-	 		}
+	 		if (!$ignore) $conditions['AND'][] = array('Attribute.to_ids' => 1);
+	 		if ($type) $conditions['AND'][] = array('Attribute.type' => $type);
+	 		if ($category) $conditions['AND'][] = array('Attribute.category' => $category);
 	 		
 	 		if (!$isSiteAdmin) {
 	 			$temp = array();
@@ -985,10 +991,9 @@ class Event extends AppModel {
 	 			$conditions['OR'] = $temp;
 	 		}
 	 	}
+	 	
 	 	if ($eventid === 'search') {
-		 	foreach ($attributeIDList as $aID) {
-		 		$conditions['AND']['OR'][] = array('Attribute.id' => $aID);
-		 	}
+		 	foreach ($attributeIDList as $aID) $conditions['AND']['OR'][] = array('Attribute.id' => $aID);
 	 	}
 	 	$params = array(
 	 			'conditions' => $conditions, //array of conditions
@@ -1001,26 +1006,51 @@ class Event extends AppModel {
 	 		$attribute['Attribute']['value'] = '"' . $attribute['Attribute']['value'] . '"';
 	 		$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
 	 	}
-	 	if ($includeInfo == 'yes') $attributes = $this->attachEventInfoToAttributes($attributes);
+	 	if ($includeContext) $attributes = $this->attachEventInfoToAttributes($attributes, $isSiteAdmin);
 	 	return $attributes;
 	 }
 	 
-	 private function attachEventInfoToAttributes($attributes) {
+	 private function attachEventInfoToAttributes($attributes, $isSiteAdmin) {
+	 	$TLs = $this->ThreatLevel->find('all', array(
+	 		'recursive' => -1,
+	 	));
 	 	$event_ids = array();
 	 	foreach ($attributes as &$attribute) {
 	 		if (!in_array($attribute['Attribute']['event_id'], $event_ids)) $event_ids[] = $attribute['Attribute']['event_id'];
 	 	}
+	 	$context_fields = array('id' => null);
+	 	$context_fields = array_merge($context_fields, $this->csv_event_context_fields_to_fetch);
+	 	if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
+			unset($context_fields['orgc']);
+			unset($context_fields['org']);
+	 	} else if (!Configure::read('MISP.showorgalternate') && !$isSiteAdmin) {
+	 		$context_fields['orgc'] = 'event_org';
+	 		$context_fields['org'] = 'event_owner_org';
+	 		unset($context_fields['orgc']);
+	 	}
+	 	
 	 	$events = $this->find('all', array(
 	 		'recursive' => -1,
-	 		'fields' => array('id', 'info'),
+	 		'fields' => array_keys($context_fields),
 	 		'conditions' => array('id' => $event_ids),
 	 	));
-	 	$event_id_info = array();
+	 	$event_id_data = array();
+	 	unset($context_fields['id']);
 	 	foreach ($events as $event) {
-	 		$event_id_info[$event['Event']['id']] = $event['Event']['info'];
+	 		foreach ($context_fields as $field => $header_name) $event_id_data[$event['Event']['id']][$header_name] = $event['Event'][$field];
 	 	}
 	 	foreach ($attributes as &$attribute) {
-	 		$attribute['Attribute']['event_info'] = $event_id_info[$attribute['Attribute']['event_id']];
+	 		foreach ($context_fields as $field => $header_name) {
+	 			if ($header_name == 'event_threat_level_id') {
+	 				$attribute['Attribute'][$header_name] = $TLs[$event_id_data[$attribute['Attribute']['event_id']][$header_name]]['ThreatLevel']['name'];
+	 			} else if ($header_name == 'event_distribution') {
+	 				$attribute['Attribute'][$header_name] = $this->distributionLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
+	 			} else if ($header_name == 'event_analysis') {
+	 				$attribute['Attribute'][$header_name] = $this->analysisLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
+	 			} else {
+	 				$attribute['Attribute'][$header_name] = $event_id_data[$attribute['Attribute']['event_id']][$header_name];
+	 			}
+	 		}
 	 	}
 	 	return $attributes;
 	 }
@@ -1367,7 +1397,7 @@ class Event extends AppModel {
 	 *
 	 * @return bool true if success
 	 */
-	public function _add(&$data, $fromXml, $user, $or='', $passAlong = null, $fromPull = false, $jobId = null) {
+	public function _add(&$data, $fromXml, $user, $org='', $passAlong = null, $fromPull = false, $jobId = null) {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
@@ -1378,7 +1408,11 @@ class Event extends AppModel {
 	
 		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
 		//else $data['Event']['org'] = $auth->user('org');
-		$data['Event']['org'] = $user['org'];
+		if ($fromPull) {
+			$data['Event']['org'] = $org;
+		} else {
+			$data['Event']['org'] = $user['org'];
+		}
 		// set these fields if the event is freshly created and not pushed from another instance.
 		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
@@ -1809,7 +1843,7 @@ class Event extends AppModel {
 			}
 		}
 		// generate a randomised filename for the temporary file that will be passed to the python script
-		$randomFileName = $this->__generateRandomFileName();
+		$randomFileName = $this->generateRandomFileName();
 		$tempFile = new File (APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
 		
 		// save the json_encoded event(s) to the temporary file
@@ -1860,7 +1894,7 @@ class Event extends AppModel {
 		return $ids;
 	}
 	
-	private function __generateRandomFileName() {
+	public function generateRandomFileName() {
 		$length = 12;
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		$charLen = strlen($characters) - 1;

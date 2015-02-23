@@ -1,4 +1,4 @@
-<div class="attributes <?php if (!$ajax) echo 'form';?>">
+<div class="attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php 
 	echo $this->Form->create('Attribute', array('id'));
 ?>
@@ -57,7 +57,7 @@
 		?>
 		</div>
 	</fieldset>
-	<p style="color:red;font-weight:bold;display:none;" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+	<p style="color:red;font-weight:bold;display:none;<?php if(isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 	<?php if ($ajax): ?>
 		<div class="overlay_spacing">
 			<table>

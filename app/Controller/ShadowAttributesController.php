@@ -160,6 +160,8 @@ class ShadowAttributesController extends AppController {
 				$event['Event']['proposal_email_lock'] = 0;
 			}
 			$event['Event']['published'] = 0;
+			$date = new DateTime();
+			$event['Event']['timestamp'] = $date->getTimestamp();
 			$this->autoRender = false;
 			if ($this->Event->save($event, array('fieldList' => $fieldList))) {
 				$this->Log = ClassRegistry::init('Log');

@@ -370,7 +370,27 @@ class UsersController extends AppController {
 		}
 		$params = null;
 		if (!$this->_isSiteAdmin()) {
-			$params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));
+			// Org admins should be able to select the role that is already assigned to an org user when editing them.
+			// What happened previously:
+			// Org admin edits another org admin of the same org
+			// Org admin is not allowed to set privileged access roles (site_admin/sync/regex)
+			// MISP automatically chooses the first available option for the user as the selected setting (usually user)
+			// Org admin is downgraded to a user
+			// Now we make an exception for the already assigned role, both in the form and the actual edit.
+			$userToEdit = $this->User->find('first', array(
+				'conditions' => array('id' => $id),
+				'recursive' => -1,
+				'fields' => array('id', 'role_id', 'email'),
+			));
+			$allowedRole = $userToEdit['User']['role_id'];
+			$params = array('conditions' => array(
+					'OR' => array(
+							'AND' => array(
+								'perm_site_admin' => 0, 'perm_sync' => 0, 'perm_regexp_access' => 0
+							),
+							'id' => $allowedRole,
+					)
+			));
 		}
 		$roles = $this->User->Role->find('list', $params);
 		$this->set('currentId', $id);
@@ -393,7 +413,7 @@ class UsersController extends AppController {
 				$this->loadModel('Role');
 				$this->Role->recursive = -1;
 				$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
-				if ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1) {
+				if (($chosenRole['Role']['id'] != $allowedRole) && ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1)) {
 					throw new Exception('You are not authorised to assign that role to a user.');
 				}
 			}
@@ -783,7 +803,7 @@ class UsersController extends AppController {
 			throw new MethodNotAllowedException();
 		}
 		$this->User->recursive = 0;
-		$temp = $this->User->find('all', array('fields' => array('email', 'gpgkey')));
+		$temp = $this->User->find('all', array('fields' => array('email', 'gpgkey'), 'order' => array('email ASC')));
 		$emails = array();
 		$gpgKeys = array();
 		// save all the emails of the users and set it for the dropdown list in the form
@@ -850,7 +870,6 @@ class UsersController extends AppController {
 					}
 				}
 			}
-
 			// If the recipient is a user, and the action to create a password, create it and squeeze it between the main message and the signature
 			if ($this->request->data['User']['recipient'] == 1) {
 				$recipients[0] = $emails[$this->request->data['User']['recipientEmailList']];
@@ -866,6 +885,7 @@ class UsersController extends AppController {
 
 			require_once 'Crypt/GPG.php';
 			$i = 0;
+			$this->Log = ClassRegistry::init('Log');
 			foreach ($recipients as $recipient) {
 				if (!empty($recipientGPG[$i])) {
 					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
@@ -885,7 +905,6 @@ class UsersController extends AppController {
 				} else {
 					$encryptedMessage = $message[$i];
 				}
-
 				// prepare the email
 				$this->Email->from = Configure::read('MISP.email');
 				$this->Email->to = $recipients[$i];
@@ -897,6 +916,28 @@ class UsersController extends AppController {
 
 				// send it
 				$result = $this->Email->send();
+				$this->Log->create();
+				if ($result) {
+					$this->Log->save(array(
+							'org' => $this->Auth->user('org'),
+							'model' => 'User',
+							'model_id' => $this->Auth->user('id'),
+							'email' => $this->Auth->user('email'),
+							'action' => 'admin_email',
+							'title' => 'Admin email to ' . $recipients[$i] . ' sent, titled "' . $subject . '".',
+							'change' => null,
+					));
+				} else {
+					$this->Log->save(array(
+							'org' => $this->Auth->user('org'),
+							'model' => 'User',
+							'model_id' => $this->Auth->user('id'),
+							'email' => $this->Auth->user('email'),
+							'action' => 'admin_email',
+							'title' => 'Admin email to ' . $recipients[$i] . ' failed.',
+							'change' => null,
+					));
+				}
 
 				// if sending successful and action was a password change, update the user's password.
 				if ($result && $this->request->data['User']['action'] == '1') {

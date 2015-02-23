@@ -81,7 +81,7 @@ class AttributesController extends AppController {
  */
 	public function index() {
 		$this->Attribute->recursive = 0;
-		$this->Attribute->contain = array('Event.id', 'Event.orgc', 'Event.org');
+		$this->Attribute->contain = array('Event.id', 'Event.orgc', 'Event.org', 'Event.info');
 		$this->set('isSearch', 0);
 		$this->set('attributes', $this->paginate());
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
@@ -939,7 +939,7 @@ class AttributesController extends AppController {
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->delete()) {
 			// delete the attribute from remote servers
-			$this->__deleteAttributeFromServers($uuid);
+			//$this->__deleteAttributeFromServers($uuid);
 		
 			// We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
 			$this->loadModel('ShadowAttribute');
@@ -1179,6 +1179,11 @@ class AttributesController extends AppController {
 									}
 								}
 							}
+							if ($toInclude) {
+								array_push($temp, array('LOWER(Attribute.comment) LIKE' => '%' . $saveWord . '%'));
+							} else {
+								array_push($temp2, array('LOWER(Attribute.comment) NOT LIKE' => '%' . $saveWord . '%'));
+							}
 						}
 						if ($i == 1 && $saveWord != '') $keyWordText = $saveWord;
 						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText = $keyWordText . ', ' . $saveWord;
@@ -1270,7 +1275,7 @@ class AttributesController extends AppController {
 						'limit' => 60,
 						'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 attributes?
 						'conditions' => $conditions,
-						'contain' => array('Event.orgc', 'Event.id', 'Event.org', 'Event.user_id')
+						'contain' => array('Event.orgc', 'Event.id', 'Event.org', 'Event.user_id', 'Event.info')
 					);
 					if (!$this->_isSiteAdmin()) {
 						// merge in private conditions
@@ -1456,7 +1461,7 @@ class AttributesController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key='download', $value=null, $type=null, $category=null, $org=null, $tags=null) {
+	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags=false, $from=false, $to=false) {
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		if ($tags === 'null') $tags = null;
 		if ($value === 'null') $value = null;
@@ -1487,7 +1492,7 @@ class AttributesController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
 			} 
-			$paramArray = array('value', 'type', 'category', 'org', 'tags');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
@@ -1571,7 +1576,10 @@ class AttributesController extends AppController {
 			}
 			$conditions['AND'][] = $temp;
 		}
-
+		
+		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
+		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+		
 		// change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
 		
 		$params = array(
@@ -1718,7 +1726,14 @@ class AttributesController extends AppController {
 		$this->__downloadAttachment($this->Attribute->data['Attribute']);
 	}
 
-	public function text($key='download', $type="", $tags='') {
+	public function text($key='download', $type='all', $tags=false, $eventId=false, $allowNonIDS=false, $from=false, $to=false) {
+		$simpleFalse = array('eventId', 'allowNonIDS', 'tags', 'from', 'to');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
+		if ($type === 'null' || $type === '0' || $type === 'false') $type = 'all';
+		if ($from && !preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/', $from)) $from = false;
+		if ($to && !preg_match('/^[0-9]{4}-[l0-9]{2}-[0-9]{2}$/', $from)) $from = false;
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1733,7 +1748,7 @@ class AttributesController extends AppController {
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.txt"');
 		$this->layout = 'text/default';
-		$attributes = $this->Attribute->text($this->_checkOrg(), $this->_isSiteAdmin(), $type, $tags);
+		$attributes = $this->Attribute->text($this->_checkOrg(), $this->_isSiteAdmin(), $type, $tags, $eventId, $allowNonIDS, $from, $to);
 		$this->loadModel('Whitelist');
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		$this->set('attributes', $attributes);
@@ -1965,6 +1980,8 @@ class AttributesController extends AppController {
 					'recursive' => -1
 				));
 				$event['Event']['published'] = 0;
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
 				$this->Attribute->Event->save($event);
 			} else {
 				$message .= 'Update completed with some errors.';

@@ -5,18 +5,9 @@ class AdminShell extends AppShell
 	public $uses = array('Event');
 	
 	public function jobGenerateCorrelation() {
+		$jobId = $this->args[0];
 		$this->loadModel('Job');
-		$this->Job->create();
-		$data = array(
-				'worker' => 'default',
-				'job_type' => 'generate correlation',
-				'job_input' => 'All attributes',
-				'status' => 0,
-				'retries' => 0,
-				'message' => 'Job created.',
-		);
-		$this->Job->save($data);
-		$jobID = $this->Job->id;
+		$this->Job->id = $jobId;
 		$this->loadModel('Correlation');
 		$this->Correlation->deleteAll(array('id !=' => ''), false);
 		$this->loadModel('Attribute');
@@ -26,7 +17,9 @@ class AdminShell extends AppShell
 		// for all attributes..
 		$total = count($attributes);
 		foreach ($attributes as $k => $attribute) {
-			$this->Job->saveField('progress', $k/$total*100);
+			if ($k > 0 && $k % 1000 == 0) {
+				$this->Job->saveField('progress', $k/$total*100);
+			}
 			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
 		}
 		$this->Job->saveField('progress', 100);
