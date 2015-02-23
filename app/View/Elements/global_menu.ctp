@@ -163,13 +163,13 @@
 					</li>
 					<li>
 						<a href="/" id="fullLogo" style="font-weight:bold;">
-							<span class="logoBlue">M</span><span class="logoGray">alware</span>
-							<span class="logoBlue">I</span><span class="logoGray">nformation </span>
-							<span class="logoBlue">S</span><span class="logoGray">haring</span>
-							<span class="logoBlue">P</span><span class="logoGray">latform</span>
+							<span class="logoBlueStatic">M</span><span class="logoGray">alware</span>
+							<span class="logoBlueStatic">I</span><span class="logoGray">nformation </span>
+							<span class="logoBlueStatic">S</span><span class="logoGray">haring</span>
+							<span class="logoBlueStatic">P</span><span class="logoGray">latform</span>
 						</a>
 						<a href="/" id="smallLogo" style="display:none;font-weight:bold;">
-							<span class="logoBlue">MISP</span>
+							<span class="logoBlueStatic">MISP</span>
 						</a>
 					</li>
 					<li><a href="/users/logout">Log out</a></li>
