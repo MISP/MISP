@@ -191,7 +191,7 @@ def handleIndicatorAttribute(incident, ttps, attribute):
     indicator = generateIndicator(attribute)
     indicator.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
     if attribute["type"] == "email-attachment":
-        generateEmailAttachmentObject(indicator, attribute["value"])
+        generateEmailAttachmentObject(indicator, attribute)
     else:
         generateObservable(indicator, attribute)
     if "data" in attribute:
