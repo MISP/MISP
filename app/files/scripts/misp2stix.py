@@ -185,7 +185,7 @@ def resolveAttributes(incident, ttps, attributes):
 def handleIndicatorAttribute(incident, ttps, attribute):
     indicator = generateIndicator(attribute)
     if attribute["type"] == "email-attachment":
-        generateEmailAttachmentObject(indicator, attribute["value"])
+        generateEmailAttachmentObject(indicator, attribute)
     else:
         generateObservable(indicator, attribute)
     if "data" in attribute:

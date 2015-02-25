@@ -1,4 +1,4 @@
-from cybox.core import Observable, ObservableComposition
+from cybox.core import Object, Observable, ObservableComposition
 from cybox.objects.file_object import File
 from cybox.objects.address_object import Address
 from cybox.objects.hostname_object import Hostname
@@ -40,7 +40,11 @@ def generateObservable(indicator, attribute):
         if (attribute["type"] in simple_type_to_method.keys()):
             action = getattr(this_module, simple_type_to_method[attribute["type"]], None)
             if (action != None):
-                observable = action(attribute)
+                property = action(attribute)
+                object = Object(property)
+                object.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":" + property.__class__.__name__ + "-" + attribute["uuid"]
+                observable = Observable(object)
+                observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-" + attribute["uuid"]
                 indicator.add_observable(observable)
 
 def resolveFileObservable(attribute):
@@ -195,12 +199,16 @@ def returnAttachmentComposition(attribute):
     return observable
 
 # email-attachment are mapped to an email message observable that contains the attachment as a file object
-def generateEmailAttachmentObject(indicator, filename):
+def generateEmailAttachmentObject(indicator, attribute):
     file_object = File()
-    file_object.file_name = filename
+    file_object.file_name = attribute["value"]
     email = EmailMessage()
     email.attachments = Attachments()
     email.add_related(file_object, "Contains", inline=True)
+    file_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":file-" + attribute["uuid"]
     email.attachments.append(file_object.parent.id_)
-    indicator.observable = email
+    email.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":EmailMessage-" + attribute["uuid"]
+    observable = Observable(email)
+    observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-" + attribute["uuid"]
+    indicator.observable = observable
 
