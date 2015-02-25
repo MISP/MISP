@@ -40,8 +40,9 @@ def generateObservable(indicator, attribute):
         if (attribute["type"] in simple_type_to_method.keys()):
             action = getattr(this_module, simple_type_to_method[attribute["type"]], None)
             if (action != None):
-                object = Object(action(attribute))
-                object.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":" + attribute["type"] + "-" + attribute["uuid"]
+                property = action(attribute)
+                object = Object(property)
+                object.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":" + property.__class__.__name__ + "-" + attribute["uuid"]
                 observable = Observable(object)
                 observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-" + attribute["uuid"]
                 indicator.add_observable(observable)
