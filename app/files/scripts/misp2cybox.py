@@ -181,7 +181,10 @@ def resolvePatternObservable(attribute):
 # create an artifact object for the malware-sample type.
 def createArtifactObject(indicator, attribute):
     artifact = Artifact(data = attribute["data"])
-    indicator.add_observable(artifact)
+    artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":artifact-" + attribute["uuid"]
+    observable = Observable(artifact)
+    observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-artifact-" + attribute["uuid"]
+    indicator.add_observable(observable)
 
 # return either a composition if data is set in attribute, or just an observable with a filename if it's not set
 def returnAttachmentComposition(attribute):
