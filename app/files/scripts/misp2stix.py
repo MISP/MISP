@@ -129,7 +129,8 @@ def generateMainPackage(events):
 # generate a package for each event
 def generateEventPackage(event):
     package_name = namespace[1] + ':STIXPackage-' + event["Event"]["uuid"]
-    stix_package = STIXPackage(id_=package_name)
+    timestamp = getDateFromTimestamp(int(event["Event"]["timestamp"]))
+    stix_package = STIXPackage(id_=package_name, timestamp=timestamp)
     stix_header = STIXHeader()
     stix_header.title=event["Event"]["info"] + " (MISP Event #" + event["Event"]["id"] + ")"
     stix_header.package_intents="Threat Report"
@@ -230,14 +231,14 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
 
 # TTPs are only used to describe malware names currently (attribute with category Payload Type and type text/comment/other)
 def generateTTP(incident, attribute):
-    ttp = TTP()
+    ttp = TTP(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     ttp.id_= namespace[1] + ":ttp-" + attribute["uuid"]
     setTLP(ttp, attribute["distribution"])
     ttp.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     if attribute["type"] == "vulnerability":
         vulnerability = Vulnerability()
         vulnerability.cve_id = attribute["value"]
-        et = ExploitTarget()
+        et = ExploitTarget(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
         et.add_vulnerability(vulnerability)
         ttp.exploit_targets.append(et)
     else:
@@ -252,7 +253,7 @@ def generateTTP(incident, attribute):
 
 # Threat actors are currently only used for the category:attribution / type:(text|comment|other) attributes 
 def generateThreatActor(attribute):
-    ta = ThreatActor()
+    ta = ThreatActor(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     ta.id_= namespace[1] + ":threatactor-" + attribute["uuid"]
     ta.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     if attribute["comment"] != "":
@@ -263,7 +264,7 @@ def generateThreatActor(attribute):
 
 # generate the indicator and add the relevant information
 def generateIndicator(attribute):
-    indicator = Indicator()
+    indicator = Indicator(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     indicator.id_= namespace[1] + ":indicator-" + attribute["uuid"]
     if attribute["comment"] != "":
         indicator.description = attribute["comment"]
@@ -273,7 +274,7 @@ def generateIndicator(attribute):
     confidence_value = confidence_mapping.get(attribute["to_ids"], None)
     if confidence_value is None:
         return indicator
-    indicator.confidence = Confidence(value=confidence_value, description=confidence_description)
+    indicator.confidence = Confidence(value=confidence_value, description=confidence_description, timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     return indicator
 
 # converts timestamp to the format used by STIX

@@ -181,19 +181,29 @@ def resolvePatternObservable(attribute):
 # create an artifact object for the malware-sample type.
 def createArtifactObject(indicator, attribute):
     artifact = Artifact(data = attribute["data"])
-    indicator.add_observable(artifact)
+    artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":artifact-" + attribute["uuid"]
+    observable = Observable(artifact)
+    observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-artifact-" + attribute["uuid"]
+    indicator.add_observable(observable)
 
 # return either a composition if data is set in attribute, or just an observable with a filename if it's not set
 def returnAttachmentComposition(attribute):
     file_object = File()
     file_object.file_name = attribute["value"]
+    file_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":file-" + attribute["uuid"]
     observable = Observable()
     if "data" in attribute:
         artifact = Artifact(data = attribute["data"])
-        composition = ObservableComposition(observables = [artifact, file_object])
+        artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":artifact-" + attribute["uuid"]
+        observable_artifact = Observable(artifact)
+        observable_artifact.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-artifact-" + attribute["uuid"]
+        observable_file = Observable(file_object)
+        observable_file.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-file-" + attribute["uuid"]
+        composition = ObservableComposition(observables = [observable_artifact, observable_file])
         observable.observable_composition = composition
     else:
         observable = Observable(file_object)
+    observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-" + attribute["uuid"]
     if attribute["comment"] != "":
         observable.description = attribute["comment"]
     return observable
