@@ -1732,8 +1732,8 @@ class AttributesController extends AppController {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
 		if ($type === 'null' || $type === '0' || $type === 'false') $type = 'all';
-		if ($from && !preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/', $from)) $from = false;
-		if ($to && !preg_match('/^[0-9]{4}-[l0-9]{2}-[0-9]{2}$/', $from)) $from = false;
+		if ($from && !preg_match('/^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|1[0-9]|2[0-9]|3[01])$/', $from)) $from = false;
+		if ($to && !preg_match('/^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|1[0-9]|2[0-9]|3[01])$/', $to)) $to = false;
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
