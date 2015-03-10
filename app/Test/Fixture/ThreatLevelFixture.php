@@ -30,20 +30,20 @@ class ThreatLevelFixture extends CakeTestFixture {
 		array(
 			'id' => 1,
 			'name' => 'High',
-			'description' => '*high* means sophisticated APT malware or 0-day attack',
-			'form_description' => 'Sophisticated APT malware or 0-day attack'
+			'description' => '*high* means immediate attention',
+			'form_description' => 'Needs immediate attention'
 		),
 		array(
 			'id' => 2,
 			'name' => 'Medium',
-			'description' => '*medium* means APT malware',
-			'form_description' => 'APT malware'
+			'description' => '*medium* means needs attention today',
+			'form_description' => 'Needs attention today'
 		),
 		array(
 			'id' => 3,
 			'name' => 'Low',
-			'description' => '*low* means mass-malware',
-			'form_description' => 'Mass-malware'
+			'description' => 'Urgency levels: *low* means needs attention this week',
+			'form_description' => 'Needs attention this week'
 		),
 		array(
 			'id' => 4,

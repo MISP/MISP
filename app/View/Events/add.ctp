@@ -16,7 +16,7 @@
 				'label' => 'Distribution',
 				'selected' => $initialDistribution,
 			));
-		echo $this->Form->input('threat_level_id', array(
+		echo $this->Form->input('threat_level_id', array('label' => 'Urgency Level',
 				'div' => 'input clear'
 				));
 		echo $this->Form->input('analysis', array(
