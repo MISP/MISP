@@ -271,7 +271,7 @@ class ShadowAttributesController extends AppController {
 				'recursive' => -1,
 				'fields' => array('id', 'orgc', 'distribution', 'org'),
 		));
-		if ((($event['Event']['distribution'] == 0 && $event['Event']['org'] != $this->Auth->user('org'))) || ($event['Event']['orgc'] == $this->Auth->user('org'))) {
+		if (!$this->_isSiteAdmin() && (($event['Event']['distribution'] == 0 && $event['Event']['org'] != $this->Auth->user('org'))) || ($event['Event']['orgc'] == $this->Auth->user('org'))) {
 			$this->Session->setFlash(__('Invalid Event.'));
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
