@@ -165,19 +165,19 @@ class LogsController extends AppController {
 
 				// search the db
 				$conditions = array();
-				if ($email) {
+				if (isset($email) && !empty($email)) {
 					$conditions['LOWER(Log.email) LIKE'] = '%' . strtolower($email) . '%';
 				}
-				if (isset($org)) {
+				if (isset($org) && !empty($org)) {
 					$conditions['LOWER(Log.org) LIKE'] = '%' . strtolower($org) . '%';
 				}
 				if ($action != 'ALL') {
 					$conditions['Log.action ='] = $action;
 				}
-				if (isset($title)) {
+				if (isset($title) && !empty($title)) {
 					$conditions['LOWER(Log.title) LIKE'] = '%' . strtolower($title) . '%';
 				}
-				if (isset($change)) {
+				if (isset($change) && !empty($change)) {
 					$conditions['LOWER(Log.change) LIKE'] = '%' . strtolower($change) . '%';
 				}
 				$this->{$this->defaultModel}->recursive = 0;
