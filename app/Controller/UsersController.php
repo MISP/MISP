@@ -326,14 +326,20 @@ class UsersController extends AppController {
 		if ($this->request->is('post')) {
 			$this->User->create();
 			// set invited by
+			$this->loadModel('Role');
+			$this->Role->recursive = -1;
+			$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
-			$this->request->data['User']['change_pw'] = 1;
+			if ($chosenRole['Role']['perm_sync']) {
+				$this->request->data['User']['change_pw'] = 0;
+				$this->request->data['User']['termsaccepted'] = 1;
+			} else {
+				$this->request->data['User']['change_pw'] = 1;
+				$this->request->data['User']['termsaccepted'] = 0;
+			}
 			$this->request->data['User']['newsread'] = '2000-01-01';
 			if (!$this->_isSiteAdmin()) {
 				$this->request->data['User']['org'] = $this->Auth->User('org');
-				$this->loadModel('Role');
-				$this->Role->recursive = -1;
-				$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
 				if ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1) {
 					throw new Exception('You are not authorised to assign that role to a user.');
 				}

@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `url` varchar(255) COLLATE utf8_bin NOT NULL,
   `authkey` varchar(40) COLLATE utf8_bin NOT NULL,
   `org` varchar(255) COLLATE utf8_bin NOT NULL,
-  `organization` varchar(10) COLLATE utf8_bin NOT NULL,
+  `organization` varchar(255) COLLATE utf8_bin NOT NULL,
   `push` tinyint(1) NOT NULL,
   `pull` tinyint(1) NOT NULL,
   `lastpulledid` int(11) NOT NULL,
