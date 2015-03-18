@@ -50,6 +50,7 @@ class ShadowAttributesController extends AppController {
 								'AND' => array(
 									'ShadowAttribute.org =' => $this->Auth->user('org'),
 									'Event.distribution >' => 0,
+									Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
 								),
 							)
 			)));

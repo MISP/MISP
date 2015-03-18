@@ -25,13 +25,23 @@ $config = array (
     'tagging' => true,
     'full_tags_on_event_index' => true,
     'footer_logo' => '',
-  	'take_ownership_xml_import' => false,
+    'take_ownership_xml_import' => false,
+    'unpublishedprivate' => false,
   ),
   'GnuPG' => 
   array (
     'onlyencrypted' => false,
     'email' => '',
     'homedir' => '',
+    'password' => '',
+    'bodyonlyencrypted' => false,
+  ),
+  'Proxy' =>
+  array (
+    'host' => '',
+    'port' => '',
+    'method' => '',
+    'user' => '',
     'password' => '',
   ),
   'SecureAuth' => 

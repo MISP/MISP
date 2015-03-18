@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::import('Controller', 'Attributes');
+Configure::load('config'); // This is needed to load GnuPG.bodyonlyencrypted
 /**
  * Event Model
  *
@@ -809,7 +810,10 @@ class Event extends AppModel {
 		$conditions = array();
 		if (!$isSiteAdmin) {
 			$conditions['OR'] = array(
-					'Event.distribution >' => 0,
+					"AND" => array(
+						'Event.distribution >' => 0,
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
+					),
 					'Event.org LIKE' => $org
 			);
 		}
@@ -845,7 +849,10 @@ class Event extends AppModel {
 		//restricting to non-private or same org if the user is not a site-admin.
 		if (!$isSiteAdmin) {
 			$conditions['AND']['OR'] = array(
-				'Event.distribution >' => 0,
+				"AND" => array(
+					'Event.distribution >' => 0,
+					Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+				),
 				'Event.org LIKE' => $org
 			);
 			$conditionsAttributes['OR'] = array(
@@ -942,7 +949,13 @@ class Event extends AppModel {
 	 		if ($from) $econditions['AND'][] = array('Event.date >=' => $from);
 	 		if ($to) $econditions['AND'][] = array('Event.date <=' => $to);
 	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-	 		if(!$isSiteAdmin) $econditions['AND']['OR'] = array('Event.distribution >' => 0, 'Event.org =' => $org);
+			if(!$isSiteAdmin) $econditions['AND']['OR'] = array(
+				"AND" => array(
+					'Event.distribution >' => 0,
+					Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+				),
+				'Event.org =' => $org
+			);
 	 		if ($eventid == 0 && $ignore == 0) $econditions['AND'][] = array('Event.published =' => 1);
 	 		
 	 		// If it's a full download (eventid == false) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
@@ -1170,7 +1183,11 @@ class Event extends AppModel {
 		try {
 			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+			if (Configure::read('GnuPG.bodyonlyencrypted')) {
+				$bodySigned = $gpg->sign("A new or modified event was just published on " . Configure::read('MISP.baseurl') . "/events/view/" . $event['Event']['id'], Crypt_GPG::SIGN_MODE_CLEAR);
+			} else {
+				$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+			}
 			//
 			// Build a list of the recipients that get a non-encrypted mail
 			// But only do this if it is allowed in the bootstrap.php file.
@@ -1203,6 +1220,9 @@ class Event extends AppModel {
 				}
 			}
 
+			if (Configure::read('GnuPG.bodyonlyencrypted')) {
+				$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+			}
 			//
 			// Build a list of the recipients that wish to receive encrypted mails.
 			//
@@ -1298,41 +1318,43 @@ class Event extends AppModel {
 		// LATER place event-to-email-layout in a function
 		$appendlen = 20;
 		$body .= 'URL		 : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
-		$body .= 'Event	   : ' . $event['Event']['id'] . "\n";
-		$body .= 'Date		: ' . $event['Event']['date'] . "\n";
+		$bodyevent = $body;
+		$bodyevent .= 'Event	   : ' . $event['Event']['id'] . "\n";
+		$bodyevent .= 'Date		: ' . $event['Event']['date'] . "\n";
 		if (Configure::read('MISP.showorg')) {
-			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
+			$bodyevent .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
-		$body .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
-		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
+		$bodyevent .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
+		$bodyevent .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
 		$relatedEvents = $this->getRelatedEvents($user['User'], $isSiteAdmin);
 		if (!empty($relatedEvents)) {
 			foreach ($relatedEvents as &$relatedEvent) {
-				$body .= 'Related to  : ' . Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
+				$bodyevent .= 'Related to  : ' . Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
 	
 			}
 		}
-		$body .= 'Info  : ' . "\n";
-		$body .= $event['Event']['info'] . "\n";
-		$body .= "\n";
-		$body .= 'Attributes  :' . "\n";
+		$bodyevent .= 'Info  : ' . "\n";
+		$bodyevent .= $event['Event']['info'] . "\n";
+		$bodyevent .= "\n";
+		$bodyevent .= 'Attributes  :' . "\n";
 		$bodyTempOther = "";
 		if (!empty($event['Attribute'])) {
 			foreach ($event['Attribute'] as &$attribute) {
 				$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])) . ': ' . $attribute['value'] . "\n";
 				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
 					$bodyTempOther .= $line;
-				else $body .= $line;
+				else $bodyevent .= $line;
 			}
 		}
-		$body .= "\n";
-		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
+		$bodyevent .= "\n";
+		$bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$Email = new CakeEmail();
 		// sign the body
 		require_once 'Crypt/GPG.php';
 		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 		$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+		$bodyeventSigned = $gpg->sign($bodyevent, Crypt_GPG::SIGN_MODE_CLEAR);
 		// Add the GPG key of the user as attachment
 		// LATER sign the attached GPG key
 		if ($user['User']['gpgkey'] != null) {
@@ -1356,14 +1378,16 @@ class Event extends AppModel {
 				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 				$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
 	
-				$bodyEncSig = $gpg->encrypt($bodySigned, true);
+				$bodyEncSig = $gpg->encrypt($bodyeventSigned, true);
 				} catch (Exception $e){
 				// catch errors like expired PGP keys
 					$this->log($e->getMessage());
 					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 				}
-			} else {
+			} elseif (Configure::read('GnuPG.bodyonlyencrypted')) {
 				$bodyEncSig = $bodySigned;
+			} else {
+				$bodyEncSig = $bodyeventSigned;
 				// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
 			}
 			$Email->from(Configure::read('MISP.email'));
@@ -1851,7 +1875,7 @@ class Event extends AppModel {
 		$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
 		
 		// Execute the python script and point it to the temporary filename
-		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType);
+		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType . ' ' . Configure::read('MISP.baseurl') . ' "' . Configure::read('MISP.org') . '"');
 		
 		// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
 		// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along

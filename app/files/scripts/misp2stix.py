@@ -20,10 +20,6 @@ from cybox.utils import Namespace
 
 namespace = ['https://github.com/MISP/MISP', 'MISP']
 
-cybox.utils.idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
-stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
-
-
 NS_DICT = {
 	"http://cybox.mitre.org/common-2" : 'cyboxCommon',
 	"http://cybox.mitre.org/cybox-2" : 'cybox',	
@@ -55,7 +51,6 @@ NS_DICT = {
 	"urn:oasis:names:tc:ciq:xal:3" : 'xal',
 	"urn:oasis:names:tc:ciq:xnl:3" : 'xnl',
 	"urn:oasis:names:tc:ciq:xpil:3" : 'xpil',
-        namespace[0] : namespace[1]
 }
 
 SCHEMALOC_DICT = {
@@ -126,7 +121,7 @@ def saveFile(args, pathname, package):
 def generateMainPackage(events):
     stix_package = STIXPackage()
     stix_header = STIXHeader()
-    stix_header.title="Export from MISP"
+    stix_header.title="Export from " + namespace[1] + " MISP"
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
     return stix_package
@@ -134,9 +129,10 @@ def generateMainPackage(events):
 # generate a package for each event
 def generateEventPackage(event):
     package_name = namespace[1] + ':STIXPackage-' + event["Event"]["uuid"]
-    stix_package = STIXPackage(id_=package_name)
+    timestamp = getDateFromTimestamp(int(event["Event"]["timestamp"]))
+    stix_package = STIXPackage(id_=package_name, timestamp=timestamp)
     stix_header = STIXHeader()
-    stix_header.title="MISP event #" + event["Event"]["id"] + " uuid: " + event["Event"]["uuid"]
+    stix_header.title=event["Event"]["info"] + " (MISP Event #" + event["Event"]["id"] + ")"
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
     objects = generateSTIXObjects(event)
@@ -189,9 +185,8 @@ def resolveAttributes(incident, ttps, attributes):
 # Create the indicator and pass the attribute further for observable creation - this can be called from resolveattributes directly or from handleNonindicatorAttribute, for some special cases
 def handleIndicatorAttribute(incident, ttps, attribute):
     indicator = generateIndicator(attribute)
-    indicator.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
     if attribute["type"] == "email-attachment":
-        generateEmailAttachmentObject(indicator, attribute["value"])
+        generateEmailAttachmentObject(indicator, attribute)
     else:
         generateObservable(indicator, attribute)
     if "data" in attribute:
@@ -227,7 +222,7 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
         else:
             addReference(incident, attribute["value"])
     elif attribute["type"].startswith('target-'):
-        resolveIdentityAttribute(incident, attribute)
+        resolveIdentityAttribute(incident, attribute, namespace[1])
     elif attribute["type"] == "attachment":
         observable = returnAttachmentComposition(attribute)
         related_observable = RelatedObservable(observable, relationship=attribute["category"])
@@ -236,14 +231,14 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
 
 # TTPs are only used to describe malware names currently (attribute with category Payload Type and type text/comment/other)
 def generateTTP(incident, attribute):
-    ttp = TTP()
+    ttp = TTP(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     ttp.id_= namespace[1] + ":ttp-" + attribute["uuid"]
     setTLP(ttp, attribute["distribution"])
-    ttp.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
+    ttp.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     if attribute["type"] == "vulnerability":
         vulnerability = Vulnerability()
         vulnerability.cve_id = attribute["value"]
-        et = ExploitTarget()
+        et = ExploitTarget(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
         et.add_vulnerability(vulnerability)
         ttp.exploit_targets.append(et)
     else:
@@ -258,9 +253,9 @@ def generateTTP(incident, attribute):
 
 # Threat actors are currently only used for the category:attribution / type:(text|comment|other) attributes 
 def generateThreatActor(attribute):
-    ta = ThreatActor()
+    ta = ThreatActor(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     ta.id_= namespace[1] + ":threatactor-" + attribute["uuid"]
-    ta.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
+    ta.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     if attribute["comment"] != "":
         ta.description = attribute["value"] + " (" + attribute["comment"] + ")"
     else:
@@ -269,17 +264,17 @@ def generateThreatActor(attribute):
 
 # generate the indicator and add the relevant information
 def generateIndicator(attribute):
-    indicator = Indicator()
+    indicator = Indicator(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     indicator.id_= namespace[1] + ":indicator-" + attribute["uuid"]
     if attribute["comment"] != "":
         indicator.description = attribute["comment"]
     setTLP(indicator, attribute["distribution"])
-    indicator.title = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
+    indicator.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
     confidence_value = confidence_mapping.get(attribute["to_ids"], None)
     if confidence_value is None:
         return indicator
-    indicator.confidence = Confidence(value=confidence_value, description=confidence_description)
+    indicator.confidence = Confidence(value=confidence_value, description=confidence_description, timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     return indicator
 
 # converts timestamp to the format used by STIX
@@ -323,6 +318,13 @@ def addJournalEntry(incident, entry_line):
 # main
 def main(args):
     pathname = os.path.dirname(sys.argv[0])
+    if len(sys.argv) > 3:
+        namespace[0] = sys.argv[3]
+    if len(sys.argv) > 4:
+        namespace[1] = sys.argv[4].replace(" ", "_")
+    NS_DICT[namespace[0]]=namespace[1]
+    cybox.utils.idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
+    stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
     events = loadEvent(args, pathname)
     stix_package = generateMainPackage(events)
     for event in events:

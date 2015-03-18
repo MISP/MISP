@@ -70,9 +70,15 @@ class EventsController extends AppController {
 			$this->paginate = Set::merge($this->paginate,array(
 					'conditions' =>
 					array("OR" => array(
-							array('Event.org =' => $this->Auth->user('org')),
-							array('Event.distribution >' => 0),
-			))));
+						array('Event.org =' => $this->Auth->user('org')),
+						"AND" => array(
+								array('Event.distribution >' => 0),
+								Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+							)
+						)
+					)
+				)
+			);
 		}
 	}
 	
@@ -461,6 +467,8 @@ class EventsController extends AppController {
 		
 		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
+		} elseif ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
+			$this->Session->setFlash(__('No GPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
 		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
@@ -2444,7 +2452,11 @@ class EventsController extends AppController {
 	
 			if (!$user['User']['siteAdmin']) {
 				$temp = array();
-				$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
+				$temp['AND'] = array(
+							'Event.distribution >' => 0,
+							'Attribute.distribution >' => 0,
+							Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
+						);
 				$subcondition['OR'][] = $temp;
 				$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
 				array_push($conditions['AND'], $subcondition);
