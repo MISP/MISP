@@ -295,7 +295,7 @@ class ServersController extends AppController {
 			);
 			$writeableErrors = array(0 => 'OK', 1 => 'Directory doesn\'t exist', 2 => 'Directory is not writeable');
 			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: bad GnuPG.*', 3 => 'FAIL: encrypt failed');
-			$proxyErrors = array(0 => 'OK', 1 => 'Getting http://www.example.com/ via proxy failed');
+			$proxyErrors = array(0 => 'OK', 1 => 'Getting URL via proxy failed');
 			$stixErrors = array(0 => 'ERROR', 1 => 'OK');
 			
 			$results = $this->Server->serverSettingsRead();
@@ -403,8 +403,11 @@ class ServersController extends AppController {
 			if(!empty($proxy['host'])) {
 				App::uses('SyncTool', 'Tools');
 				$syncTool = new SyncTool();
-				$HttpSocket = $syncTool->setupHttpSocket();
-				$proxyResponse = $HttpSocket->get('http://www.example.com/');
+				try {
+					$HttpSocket = $syncTool->setupHttpSocket();
+					$proxyResponse = $HttpSocket->get('http://www.example.com/');
+				} catch (Exception $e) {
+				}
 				if(empty($proxyResponse)) {
 					$proxyStatus = 1;
 				}
@@ -472,14 +475,15 @@ class ServersController extends AppController {
 	
 	private function __checkVersion() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
-		set_error_handler(function() {});
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
-		$HttpSocket = $syncTool->setupHttpSocket();
-		$response = $HttpSocket->get('https://api.github.com/repos/MISP/MISP/tags');
-		$tags = $response->body;
-		restore_error_handler();
-		if ($tags != false) {
+		try {
+			$HttpSocket = $syncTool->setupHttpSocket();
+			$response = $HttpSocket->get('https://api.github.com/repos/MISP/MISP/tags');
+			$tags = $response->body;
+		} catch (Exception $e) {
+		}
+		if (!empty($tags)) {
 			$json_decoded_tags = json_decode($tags);
 	
 			// find the latest version tag in the v[major].[minor].[hotfix] format
