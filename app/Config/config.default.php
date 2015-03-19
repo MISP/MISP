@@ -36,6 +36,14 @@ $config = array (
     'password' => '',
     'bodyonlyencrypted' => false,
   ),
+  'Proxy' =>
+  array (
+    'host' => '',
+    'port' => '',
+    'method' => '',
+    'user' => '',
+    'password' => '',
+  ),
   'SecureAuth' => 
   array (
     'amount' => 5,
