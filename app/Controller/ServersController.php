@@ -401,11 +401,11 @@ class ServersController extends AppController {
 			$proxyStatus = 0;
 			$proxy = Configure::read('Proxy');
 			if(!empty($proxy['host'])) {
-				App::uses('HttpSocket', 'Network/Http');
-				$HttpSocket = new HttpSocket();
-				$HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
-				$proxyResult = $HttpSocket->get('http://www.example.com/' === false);
-				if(empty($proxyResult)) {
+				App::uses('SyncTool', 'Tools');
+				$syncTool = new SyncTool();
+				$HttpSocket = $syncTool->setupHttpSocket('www.example.com');
+				$proxyResponse = $HttpSocket->get('http://www.example.com/');
+				if(empty($proxyResponse)) {
 					$proxyStatus = 1;
 				}
 			}
@@ -473,9 +473,11 @@ class ServersController extends AppController {
 	private function __checkVersion() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		set_error_handler(function() {});
-		$options  = array('http' => array('user_agent'=> $_SERVER['HTTP_USER_AGENT']));
-		$context  = stream_context_create($options);
-		$tags = file_get_contents('https://api.github.com/repos/MISP/MISP/tags', false, $context);
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		$HttpSocket = $syncTool->setupHttpSocket('api.github.com');
+		$response = $HttpSocket->get('https://api.github.com/repos/MISP/MISP/tags');
+		$tags = $response->body;
 		restore_error_handler();
 		if ($tags != false) {
 			$json_decoded_tags = json_decode($tags);
