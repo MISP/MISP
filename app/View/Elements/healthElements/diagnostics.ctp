@@ -94,7 +94,7 @@
 		<?php
 			$colour = 'green';
 			$message = $proxyErrors[$proxyStatus];
-			if ($proxyStatus > 0) {
+			if ($proxyStatus > 1) {
 				$colour = 'red';
 			}
 			echo 'Proxy settings....<span style="color:' . $colour . ';">' . $message . '</span>';
