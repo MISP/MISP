@@ -405,7 +405,7 @@ class ServersController extends AppController {
 				$HttpSocket = new HttpSocket();
 				$HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
 				$proxyResult = $HttpSocket->get('http://www.example.com/' === false);
-				if(empty($proxyResult) {
+				if(empty($proxyResult)) {
 					$proxyStatus = 1;
 				}
 			}
