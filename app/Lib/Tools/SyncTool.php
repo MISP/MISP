@@ -10,13 +10,8 @@ class SyncTool {
 		$HttpSocket = new HttpSocket($params);
 
 		$proxy = Configure::read('Proxy');
-		if(!empty($proxy['host']) && !empty($proxy['port'])) {
-			if(!empty($proxy['method']) && !empty($proxy['user']) && !empty($proxy['password'])) {
-				$HttpSocket->configProxy($proxy['host'], $proxy['port']);
-			} else {
-				$HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
-			}
-		}
+		$HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
+
 		return $HttpSocket;
 	}
 }
