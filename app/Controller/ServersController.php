@@ -487,7 +487,7 @@ class ServersController extends AppController {
 		} catch (Exception $e) {
 			return false;
 		}
-		if ($response->code < 300 && !empty($tags)) {
+		if ($response->isOK() && !empty($tags)) {
 			$json_decoded_tags = json_decode($tags);
 	
 			// find the latest version tag in the v[major].[minor].[hotfix] format
