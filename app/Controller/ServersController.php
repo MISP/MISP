@@ -403,7 +403,7 @@ class ServersController extends AppController {
 			if(!empty($proxy['host'])) {
 				App::uses('SyncTool', 'Tools');
 				$syncTool = new SyncTool();
-				$HttpSocket = $syncTool->setupHttpSocket('www.example.com');
+				$HttpSocket = $syncTool->setupHttpSocket();
 				$proxyResponse = $HttpSocket->get('http://www.example.com/');
 				if(empty($proxyResponse)) {
 					$proxyStatus = 1;
@@ -475,7 +475,7 @@ class ServersController extends AppController {
 		set_error_handler(function() {});
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
-		$HttpSocket = $syncTool->setupHttpSocket('api.github.com');
+		$HttpSocket = $syncTool->setupHttpSocket();
 		$response = $HttpSocket->get('https://api.github.com/repos/MISP/MISP/tags');
 		$tags = $response->body;
 		restore_error_handler();
