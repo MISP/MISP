@@ -1051,7 +1051,7 @@ class Server extends AppModel {
 	
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
-		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'SecureAuth', 'Security', 'debug'));
+		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'Proxy', 'SecureAuth', 'Security', 'debug'));
 	}
 	
 	public function checkVersion($newest) {

@@ -289,11 +289,13 @@ class ServersController extends AppController {
 			$tabs = array(
 					'MISP' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'GnuPG' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+					'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'misc' => array('count' => 0, 'errors' => 0, 'severity' => 5)
 			);
 			$writeableErrors = array(0 => 'OK', 1 => 'Directory doesn\'t exist', 2 => 'Directory is not writeable');
 			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: bad GnuPG.*', 3 => 'FAIL: encrypt failed');
+			$proxyErrors = array(0 => 'OK', 1 => 'Getting http://www.example.com/ via proxy failed');
 			$stixErrors = array(0 => 'ERROR', 1 => 'OK');
 			
 			$results = $this->Server->serverSettingsRead();
@@ -394,7 +396,23 @@ class ServersController extends AppController {
 				$gpgStatus = 1;
 			}
 			if ($gpgStatus != 0) $diagnostic_errors++;
+
+			// if Proxy is set up in the settings, try to connect to a test URL
+			$proxyStatus = 0;
+			$proxy = Configure::read('Proxy');
+			if(!empty($proxy['host'])) {
+				App::uses('HttpSocket', 'Network/Http');
+				$HttpSocket = new HttpSocket();
+				$HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
+				$proxyResult = $HttpSocket->get('http://www.example.com/' === false);
+				if(empty($proxyResult) {
+					$proxyStatus = 1;
+				}
+			}
+			if ($proxyStatus != 0) $diagnostic_errors++;
+
 			$this->set('gpgStatus', $gpgStatus);
+			$this->set('proxyStatus', $proxyStatus);
 			$this->set('diagnostic_errors', $diagnostic_errors);
 			$this->set('tab', $tab);
 			$this->set('tabs', $tabs);
@@ -403,6 +421,7 @@ class ServersController extends AppController {
 			
 			$this->set('writeableErrors', $writeableErrors);
 			$this->set('gpgErrors', $gpgErrors);
+			$this->set('proxyErrors', $proxyErrors);
 			$this->set('stixErrors', $stixErrors);
 			
 			if (Configure::read('MISP.background_jobs')) {
@@ -437,7 +456,7 @@ class ServersController extends AppController {
 				foreach ($dumpResults as &$dr) {
 					unset($dr['description']);
 				}
-				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'stix' => $stixErrors[$stix], 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
+				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'stix' => $stixErrors[$stix], 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
 				$this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
 				$this->response->type('json');
 				$this->response->download('MISP.report.json');
