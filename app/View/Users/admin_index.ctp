@@ -58,7 +58,7 @@ foreach ($users as $user): ?>
 		<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo h($user['User']['id']); ?>&nbsp;</td>
 		<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
-		<?php echo h($user['User']['org']); ?>&nbsp;</td>
+		<a href="/organisations/view/<?php echo $user['Organisation']['id'];?>"><?php echo h($user['Organisation']['name']); ?>&nbsp;</a></td>
 		<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 		<?php echo $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])); ?></td>
 		<td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">

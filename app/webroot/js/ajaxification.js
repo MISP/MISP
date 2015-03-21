@@ -1404,3 +1404,37 @@ function freetextImportResultsSubmit(id, count) {
 		},
 	});
 }
+
+function organisationViewContent(context, id) {
+	organisationViewButtonHighlight(context);
+	var action = "/organisations/landingpage/";
+	if (context == 'members') {
+		action = "/users/index/";
+	}
+	if (context == 'events') {
+		action = "/events/index/";
+	}
+	$.ajax({
+	    url: action + id,
+	    type:'GET',
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+	    error: function(){
+	    	$('#ajaxContent').html('An error has occured, please reload the page.');
+	    },
+	    success: function(response){
+	    	$('#ajaxContent').html(response);
+	    },
+		complete: function() {
+			$(".loading").hide();
+		},
+	});
+}
+
+function organisationViewButtonHighlight(context) {
+	$(".orgViewButtonActive").hide();
+	$(".orgViewButton").show();
+	$("#button_" + context).hide();	
+	$("#button_" + context + "_active").show();
+}

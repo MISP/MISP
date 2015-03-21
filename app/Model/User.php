@@ -62,24 +62,14 @@ class User extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'org' => array(
+		'organisation_id' => array(
 			'notempty' => array(
 				'rule' => array('notempty'),
-				'message' => 'Please specify the organisation where you are working.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+				'message' => 'Please choose an organisation.',
 			),
-		),
-		'org_id' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				'message' => 'Please specify the organisation ID where you are working.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'numeric' => array(
+					'rule' => array('notempty'),
+					'message' => 'The organisation ID has to be a numeric value.',
 			),
 		),
 		'email' => array(
@@ -380,13 +370,13 @@ class User extends AppModel {
 	}
 	
 	public function getOrgs() {
-		$this->recursive = -1;
-		$orgs = $this->find('all', array(
-				'fields' => array('DISTINCT (User.org) AS org'),
+		$orgs = $this->Organisation->find('all', array(
+			'recursive' => -1,
+			'fields' => array('name'),
 		));
 		$orgNames = array();
 		foreach ($orgs as $org) {
-			$orgNames[] = $org['User']['org'];
+			$orgNames[] = $org['Organisation']['name'];
 		}
 		return $orgNames;
 	}

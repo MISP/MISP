@@ -97,4 +97,40 @@ class OrganisationsController extends AppController {
 		$this->set('uuid', String::uuid());
 		$this->set('_serialize', array('uuid'));
 	}
+	
+	public function view($id) {
+		$this->Organisation->id = $id;
+		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
+		$fullAccess = false;
+		$fields = array('id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description');
+		if ($this->_isSiteAdmin() || $this->Auth->user('Organisation')['id'] == $id) {
+			$fullAccess = true;
+			$fields = array_merge($fields, array('created_by', 'uuid'));
+		}
+		$org = $this->Organisation->find('first', array(
+				'conditions' => array('id' => $id),
+				'fields' => $fields
+		));
+		$member_count = $this->Organisation->User->find('count', array('conditions' => array('organisation_id' => $id)));
+		
+		if ($fullAccess) {
+			$creator = $this->Organisation->User->find('first', array('conditions' => array('User.id' => $org['Organisation']['created_by'])));
+			$this->set('creator', $creator);
+		}
+		$this->set('fullAccess', $fullAccess);
+		$this->set('org', $org);
+		$this->set('member_count', $member_count);
+		$this->set('id', $id);
+	}
+	
+	public function landingpage($id) {
+		$this->Organisation->id = $id;
+		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
+		$org = $this->Organisation->find('first', array('conditions' => array('id' => $id), 'fields' => array('landingpage', 'name')));
+		$landingpage = $org['Organisation']['landingpage'];
+		if (empty($landingpage)) $landingpage = "No landing page has been created for this organisation.";
+		$this->set('landingPage', $landingpage);
+		$this->set('org', $org['Organisation']['name']);
+		$this->render('ajax/landingpage');
+	}
 }
