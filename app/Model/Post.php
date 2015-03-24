@@ -24,7 +24,7 @@ class Post extends AppModel {
 			$job = ClassRegistry::init('Job');
 			$job->create();
 			$data = array(
-					'worker' => 'default',
+					'worker' => 'email',
 					'job_type' => 'posts_alert',
 					'job_input' => 'Post: ' . $post_id,
 					'status' => 0,
@@ -35,7 +35,7 @@ class Post extends AppModel {
 			$job->save($data);
 			$jobId = $job->id;
 			$process_id = CakeResque::enqueue(
-					'default',
+					'email',
 					'EventShell',
 					array('postsemail', $user_id, $post_id, $event_id, $title, $message, $jobId)
 			);
