@@ -1073,7 +1073,7 @@ class Event extends AppModel {
 	 		$job = ClassRegistry::init('Job');
 	 		$job->create();
 	 		$data = array(
-	 				'worker' => 'default',
+	 				'worker' => 'email',
 	 				'job_type' => 'publish_alert_email',
 	 				'job_input' => 'Event: ' . $id,
 	 				'status' => 0,
@@ -1084,7 +1084,7 @@ class Event extends AppModel {
 	 		$job->save($data);
 	 		$jobId = $job->id;
 	 		$process_id = CakeResque::enqueue(
-	 				'default',
+	 				'email',
 	 				'EventShell',
 	 				array('alertemail', $user['org'], $jobId, $id)
 	 		);
@@ -1667,7 +1667,7 @@ class Event extends AppModel {
 			$job = ClassRegistry::init('Job');
 			$job->create();
 			$data = array(
-					'worker' => 'default',
+					'worker' => 'email',
 					'job_type' => 'contact_alert',
 					'job_input' => 'To entire org: ' . $all,
 					'status' => 0,
@@ -1678,7 +1678,7 @@ class Event extends AppModel {
 			$job->save($data);
 			$jobId = $job->id;
 			$process_id = CakeResque::enqueue(
-					'default',
+					'email',
 					'EventShell',
 					array('contactemail', $id, $message, $all, $user['id'], $isSiteAdmin, $jobId)
 			);

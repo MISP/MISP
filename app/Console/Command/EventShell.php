@@ -349,7 +349,7 @@ class EventShell extends AppShell
 			// Now that we have figured out when the next execution should happen, it's time to enqueue it.
 			$process_id = CakeResque::enqueueAt(
 					$task['Task']['next_execution_time'],
-					'default',
+					'cache',
 					'EventShell',
 					array('enqueueCaching', $task['Task']['next_execution_time']),
 					true
