@@ -27,7 +27,7 @@ class Organisation extends AppModel{
 	);
 	public $hasMany = array(
 		'User',
-		'SharingGroupElement',
+		'SharingGroupOrg',
 		'SharingGroup' => array(
 			'className' => 'Organisation',
 			'foreignKey' => false,
@@ -62,5 +62,11 @@ class Organisation extends AppModel{
 		));
 		if($count == 0) return true;
 		return false;
+	}
+	
+	public function findSharingGroups($orgId, $user) {
+		debug($orgId);
+		debug($user);
+		
 	}
 }

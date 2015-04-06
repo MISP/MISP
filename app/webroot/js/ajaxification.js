@@ -1438,3 +1438,234 @@ function organisationViewButtonHighlight(context) {
 	$("#button_" + context).hide();	
 	$("#button_" + context + "_active").show();
 }
+
+function simpleTabPage(page) {
+	$(".tabMenuSides").removeClass("tabMenuActive");
+	$("#page" + page + "_tab").addClass("tabMenuActive");
+	$(".tabContent").hide();
+	$("#page" + page + "_content").show();
+	if (page == lastPage) simpleTabPageLast();
+}
+
+function simpleTabPageLast() {
+	var summaryorgs = summaryextendorgs = remotesummaryorgs = remotesummaryextendorgs = summaryservers = "";
+	var orgcounter = extendcounter = remoteorgcounter = remoteextendcounter = servercounter = 0;
+	var sgname = "[Sharing group name not set!]";
+	if ($('#SharingGroupName').val()) sgname = $('#SharingGroupName').val();
+	var sgreleasability = "[Sharing group releasability not set!]";
+	if ($('#SharingGroupReleasability').val()) sgreleasability = $('#SharingGroupReleasability').val();
+	$('#summarytitle').text(sgname);
+	$('#summaryreleasable').text(sgreleasability);
+	organisations.forEach(function(organisation){
+		if (organisation.type == 'local') {
+			if (orgcounter > 0) summaryorgs += ", ";
+			summaryorgs += organisation.name;
+			if (organisation.extend == true) {
+				if (extendcounter > 0) summaryextendorgs += ", "
+				summaryextendorgs += organisation.name;
+				extendcounter++;
+			}
+			orgcounter++;
+		} else {
+			if (remoteorgcounter > 0) remotesummaryorgs += ", ";
+			remotesummaryorgs += organisation.name;
+			if (organisation.extend == true) {
+				if (remoteextendcounter > 0) remotesummaryextendorgs += ", "
+				remotesummaryextendorgs += organisation.name;
+				remoteextendcounter++;
+			}
+			remoteorgcounter++;
+		}
+	});
+	if (orgcounter == 0) summaryorgs = "nobody";
+	if (remoteorgcounter == 0) remotesummaryorgs = "nobody";
+	if (extendcounter == 0) summaryextendorgs = "nobody";
+	if (remoteextendcounter == 0) remotesummaryextendorgs = "nobody";
+	servers.forEach(function(server){
+		if (servercounter > 0) summaryservers += ", ";
+		summaryservers += server.name;
+		if (extendcounter == 0) summaryextendorgs = "none";
+		servercounter++;
+	});
+	if (servercounter == 0) summaryservers = "any interconnected instances that have users from eligible organisations."
+	$('#summarylocal').text(summaryorgs);
+	$('#summarylocalextend').text(summaryextendorgs);
+	$('#summaryexternal').text(remotesummaryorgs);
+	$('#summaryexternalextend').text(remotesummaryextendorgs);
+	$('#summaryservers').text(summaryservers);
+}
+
+function sharingGroupPopulateOrganisations() {
+	$('input[id=SharingGroupOrganisations]').val(JSON.stringify(organisations));
+	$('.orgRow').remove();
+	var id = 0;
+	var html = '';
+	organisations.forEach(function(org) {
+		html = '<tr id="orgRow' + id + '" class="orgRow">';
+		html += '<td class="short">' + org.type + '&nbsp;</td>';
+		html += '<td>' + org.name + '&nbsp;</td>';
+		html += '<td>' + org.uuid + '&nbsp;</td>';
+		html += '<td class="short" style="text-align:center;">';
+		if (org.removable == 1) {
+			html += '<input id="orgExtend' + id + '" type="checkbox" onClick="sharingGroupExtendOrg(' + id + ')" ';
+			if (org.extend) html+= 'checked';
+			html += '></input>';
+		} else {
+			html += '<span class="icon-ok"></span>'
+		}
+		html +='</td>';
+		html += '<td class="actions short">';
+		if (org.removable == 1) html += '<span class="icon-trash" onClick="sharingGroupRemoveOrganisation(' + id + ')"></span>';
+		html += '&nbsp;</td></tr>';
+		$('#organisations_table tr:last').after(html);
+		id++;
+	});
+}
+
+function sharingGroupPopulateServers() {
+	$('input[id=SharingGroupServers]').val(JSON.stringify(servers));
+	$('.serverRow').remove();
+	var id = 0;
+	var html = '';
+	servers.forEach(function(server) {
+		html = '<tr id="serverRow' + id + '" class="serverRow">';
+		html += '<td>' + server.name + '&nbsp;</td>';
+		html += '<td>' + server.url + '&nbsp;</td>';
+		html += '<td>';
+		html += '<input id="serverAddOrgs' + id + '" type="checkbox" onClick="sharingGroupServerAddOrgs(' + id + ')" ';
+		if (server.all_orgs) html += 'checked';
+		html += '></input>';
+		html +='</td>';
+		html += '<td class="actions short">';
+		if (server.removable == 1) html += '<span class="icon-trash" onClick="sharingGroupRemoveServer(' + id + ')"></span>';
+		html += '&nbsp;</td></tr>';
+		$('#servers_table tr:last').after(html);
+		id++;
+	});
+}
+
+function sharingGroupExtendOrg(id) {
+	organisations[id].extend = $('#orgExtend' + id).is(":checked");
+}
+
+function sharingGroupServerAddOrgs(id) {
+	servers[id].all_orgs = $('#serverAddOrgs' + id).is(":checked");
+}
+
+function sharingGroupPopulateUsers() {
+	$('input[id=SharingGroupServers]').val(JSON.stringify(organisations));
+}
+
+function sharingGroupAdd(context, type) {
+	if (context == 'organisation') {
+		var jsonids = JSON.stringify(orgids);
+		url = '/organisations/fetchOrgsForSG/' + jsonids + '/' + type
+	} else if (context == 'server') {
+		var jsonids = JSON.stringify(serverids);
+		url = '/servers/fetchServersForSG/' + jsonids
+	}
+	$("#gray_out").fadeIn();
+
+	$.ajax({
+	    url: url,
+	    type:'GET',
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+	    error: function(){
+	    	$("#popover_form").html('An error has occured, please reload the page.');
+	    },
+	    success: function(response){
+	    	$("#popover_form").html(response);
+	    	$("#popover_form").fadeIn();
+	    },
+		complete: function() {
+			$(".loading").hide();
+		},
+	});
+}
+
+function sharingGroupRemoveOrganisation(id) {
+	organisations.splice(id, 1);
+	orgids.splice(id, 1);
+	sharingGroupPopulateOrganisations();
+}
+
+function sharingGroupRemoveServer(id) {
+	servers.splice(id, 1);
+	serverids.splice(id, 1);
+	sharingGroupPopulateServers();
+}
+
+function submitPicklistValues(context, local) {
+	if (context == 'org') {
+		var localType = 'local';
+		if (local == 0) localType = 'remote';
+		$("#rightValues  option").each(function() {
+			if (orgids.indexOf($(this).val()) == -1) {
+				organisations.push({
+						id: $(this).val(),
+						type: localType,
+						name: $(this).text(),
+						extend: false,
+						uuid: '',
+						removable: 1
+				});
+			}
+			orgids.push($(this).val());
+			sharingGroupPopulateOrganisations();
+		});
+	} else if (context == 'server') {
+		$("#rightValues  option").each(function() {
+			if (serverids.indexOf($(this).val()) == -1) {
+				servers.push({
+						id: $(this).val(),
+						name: $(this).text(),
+						url: $(this).attr("data-url"),
+						all_orgs: false,
+						removable: 1
+				});
+			}
+			serverids.push($(this).val());
+			sharingGroupPopulateServers();
+		});
+	}
+	$("#gray_out").fadeOut();
+	$("#popover_form").fadeOut();
+}
+
+function cancelPicklistValues() {
+	$("#popover_form").fadeOut();
+	$("#gray_out").fadeOut();
+}
+
+function sgSubmitForm(action) {
+	var ajax = {
+			'organisations': organisations,
+			'servers': servers,
+			'sharingGroup': {
+				'name': $('#SharingGroupName').val(),
+				'releasability': $('#SharingGroupReleasability').val(),
+				'description': $('#SharingGroupDescription').val(),
+				'active': $('#SharingGroupActive').is(":checked"),
+				'limitServers': $('#SharingGroupLimitservers').is(":checked"),
+			}
+	};
+	$('#SharingGroupJson').val(JSON.stringify(ajax));
+	var formName = "#SharingGroup" + action + "Form";
+	$(formName).submit();
+}
+
+function sharingGroupPopulateFromJson() {
+	var jsonparsed = JSON.parse($('#SharingGroupJson').val());
+	organisations = jsonparsed.organisations;
+	servers = jsonparsed.servers;
+	if (jsonparsed.sharingGroup.active == 1) $("#SharingGroupActive").prop("checked", true);
+	if (jsonparsed.sharingGroup.limitServers == 1) {
+		$("#SharingGroupLimitservers").prop("checked", true);
+		$('#serverList').show();
+	}
+	$('#SharingGroupName').attr('value', jsonparsed.sharingGroup.name);
+	$('#SharingGroupReleasability').attr('value', jsonparsed.sharingGroup.releasability);
+	$('#SharingGroupDescription').text(jsonparsed.sharingGroup.description);
+}

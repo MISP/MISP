@@ -1026,6 +1026,11 @@ a.proposal_link_red:hover {
 	margin-top:3px;
 }
 
+.tabMenuActive {
+	color:white;
+	background-color: #0088cc;
+}
+
 .memberslistBar {
 	overflow: hidden;
 	height:30px;
@@ -1360,6 +1365,11 @@ a.discrete {
 	color:black;
 	text-decoration:none;
 	font-weight:normal;
+}
+
+.multi-page-form-div {
+	border:1px solid #dddddd; 
+	padding:10px;
 }
 
 @-webkit-keyframes rotation {

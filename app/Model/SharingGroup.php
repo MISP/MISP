@@ -22,8 +22,13 @@ class SharingGroup extends AppModel {
 		)
 	);
 	public $hasMany = array(
-		'SharingGroupElement' => array(
-			'className' => 'SharingGroupElement',
+		'SharingGroupOrg' => array(
+			'className' => 'SharingGroupOrg',
+			'foreignKey' => 'sharing_group_id',
+			'dependent' => true,	// cascade deletes
+		),
+		'SharingGroupServer' => array(
+			'className' => 'SharingGroupServer',
 			'foreignKey' => 'sharing_group_id',
 			'dependent' => true,	// cascade deletes
 		)
@@ -65,72 +70,28 @@ class SharingGroup extends AppModel {
 		return true;
 	}
 	
-	public function checkIfVisible($user, $id) {
-	
-	}
-	
-	// checks the access level of a user for a sharing group
-	// returns an integer indicating the access level
-	// 0 = none
-	// 1 = read
-	// 2 = extend
-	// 3 = full
-	public function checkAccess($user, $id) {
-		if (!isset($user['id'])) throw new MethodNotAllowedException('Invalid user.');
-		if ($user['Role']['perm_site_admin']) return 3;
-		$this->contain(
-			array(
-				'SharingGroupElement' => array(
-					'Organisation' => array('id', 'uuid'),
-				)
-			)
-		);
-		$sg = $this->read(array('id', 'name', 'uuid', 'distribution', 'organisation_uuid', 'extendable'), $id);
-		if ($sg['SharingGroup']['organisation_uuid'] == $user['Organisation']['uuid']) return 3;
-		$inList = false;
-		if ($sg['SharingGroup']['distribution'] > 1) $inList = true;
-		else {
-			foreach ($sg['SharingGroupElement'] as $sge) {
-				if ($user['Organisation']['uuid'] == $sge['Organisation']['uuid']) $inList = true;
-			}
-		}
-		if ($inList) {
-			if ($sg['SharingGroup']['extendable']) return 2;
-			else return 1;
-		}
-		return 0;
-	}
-	
-	// Retrieve the Sharing Group objects that the user can see
-	// Each sharing group contains the following:
-	// 1 Organisation object (the creator)
-	// * Sharing Group Elements, each with 0 or 1 Organisation object (0 for special elements, such as this community only)
-	public function fetchSharingGroups($user, $isSiteAdmin, $idsOnly = false) {
-		$ids = array();
-		if (!isset($user)) throw new MethodNotAllowedException('Internal error (no user organisation specified).');
-		$query = array(
-			'contain' => array(
-					'SharingGroupElement' => array(
-						'Organisation' => array(	
-					),
-				)
-			)
-		);
-		if ($idsOnly) {
-			$query['fields'] = array('id', 'distribution');
-			$query['contain']['SharingGroupElement']['fields'] = array('SharingGroupElement.id', 'SharingGroupElement.sharing_group_id', 'SharingGroupElement.organisation_id');
-			$query['contain']['SharingGroupElement']['Organisation']['fields'] = array('Organisation.id');
-		}
-		$sharingGroups = $this->find('all', $query);
-		foreach ($sharingGroups as $k => $sg) {
-			if (!$isSiteAdmin && !$this->checkAccess($user, $sg['SharingGroup']['id'])) unset($sharingGroups[$k]);
-			else $ids[] = $sg['SharingGroup']['id'];
-		}
-		if ($idsOnly) {
-			return $ids;
+	// returns a list of all sharing groups that the user is allowed to see
+	public function fetchAllAuthorised($user) {
+		if ($user['Role']['perm_site_admin']) {
+			$sgs = $this->find('all', array(
+				'recursive' => -1,
+				'fields' => array('id'),
+			));
+			$ids = array();
+			foreach ($sgs as $sg) $ids[] = $sg['SharingGroup']['id'];
 		} else {
-			return $sharingGroups;
+			$ids = array_unique(array_merge($this->SharingGroupServer->fetchAllAuthorised(), $this->SharingGroupOrg->fetchAllAuthorised($user['Organisation']['id'])));
 		}
+		return $ids;
+	}
+	
+	// returns true if the SG exists and the user is allowed to see it
+	public function checkIfAuthorised($user, $id) {
+		if (!isset($user['id'])) throw new MethodNotAllowedException('Invalid user.');
+		$this->id = $id;
+		if (!$this->exists()) return false;
+		if ($user['Role']['perm_site_admin'] || $this->SharingGroupServer->checkIfAuthorised($id) || $this->SharingGroupOrg->checkIfAuthorised($id, $user['Organisation']['id'])) return true;
+		return false;
 	}
 	
 	// compare a user's organisation (by org ID) to the sharing group. If a qualifying sharing group element is found, immediately return true
@@ -139,9 +100,22 @@ class SharingGroup extends AppModel {
 	// 2. An element with a type hither than 0. This indicates that the sg also has the "this community only", "connected communities", or "All" special elements.
 	public function checkUserAccessForSG($orgId, $sg) {
 		if ($sg['SharingGroup']['distribution'] > 1) return true;
-		foreach ($sg['SharingGroupElement'] as $sge) {
-			if ($sge['Organisation']['id'] == $orgId) return true;
+		foreach ($sg['SharingGroupOrg'] as $sgo) {
+			if ($sgo['Organisation']['id'] == $orgId) return true;
 		}
 		return false;
+	}
+	
+	public function checkIfOwner($user, $id) {
+		if (!isset($user['id'])) throw new MethodNotAllowedException('Invalid user.');
+		$this->id = $id;
+		if (!$this->exists()) return false;
+		if ($user['Role']['perm_site_admin']) return true;
+		$sg = $this->find('first', array(
+				'conditions' => array('SharingGroup.id' => $id),
+				'recursive' => -1,
+				'fields' => array('id', 'organisation_uuid'),
+		));
+		return ($sg['SharingGroup']['organisation_uuid'] === $user['Organisation']['uuid']);
 	}
 }

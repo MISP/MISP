@@ -21,9 +21,7 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('Creator');?></th>
 			<th>Description</th>
-			<th>Members</th>
-			<th><?php echo $this->Paginator->sort('pushable');?></th>
-			<th><?php echo $this->Paginator->sort('extendable');?></th>
+			<th>Releasable to</th>
 			<th><?php echo $this->Paginator->sort('active');?></th>
 			<th class="actions">Actions</th>
 	</tr>
@@ -36,41 +34,36 @@ foreach ($sharingGroups as $k => $sharingGroup):
 		<td><?php echo h($sharingGroup['SharingGroup']['description']); ?></td>
 		<?php 
 			$combined = "";
-			if ($sharingGroup['SharingGroup']['distribution'] < 2) {
-				$combined .= "<a href='/Organisation/view/" . $sharingGroup['Organisation']['id'] . "'>" . h($sharingGroup['Organisation']['name']) . "</a><br />";
-			} else {
-				if ($sharingGroup['SharingGroup']['distribution'] > 1) {
-					$combined .= "<a href='/users/memberslist/'>All members of this instance</a><br />";
-					if ($sharingGroup['SharingGroup']['distribution'] > 2) {
-						$combined .= "All members of connected instances<br />";
-						if ($sharingGroup['SharingGroup']['distribution'] > 3) {
-							$combined .= "Everyone else<br />";
-						}
-					}
-				}
+			$combined .= "Organisations:";
+			if (count($sharingGroup['SharingGroupOrg']) == 0) $combined .= "<br />N/A";
+			foreach ($sharingGroup['SharingGroupOrg'] as $k2 => $sge) {
+				$combined .= "<br /><a href='/Organisation/view/" . $sge['Organisation']['id'] . "'>" . h($sge['Organisation']['name']) . "</a>";
+				if ($sge['extend']) $combined .= (' (can extend)');
 			}
-			if (count($sharingGroup['SharingGroupElement']) > 0) {
-				foreach ($sharingGroup['SharingGroupElement'] as $k2 => $sge) {
-					$combined .= "<a href='/Organisation/view/" . $sge['Organisation']['id'] . "'>" . h($sge['Organisation']['name']) . "</a><br />";
+			$combined .= "<hr style='margin:5px 0;'><br />Instances:";
+			if (count($sharingGroup['SharingGroupServer']) == 0) $combined .= "<br />N/A";
+			foreach ($sharingGroup['SharingGroupServer'] as $k3 => $sgs) {
+				if ($sgs['server_id'] != 0) {
+					$combined .= "<br /><a href='/Server/view/" . $sgs['Server']['id'] . "'>" . h($sgs['Server']['name']) . "</a>";
+				} else {
+					$combined .= "<br />This instance";
 				}
+				if ($sgs['all_orgs']) $combined .= (' (all organisations)');
+				else $combined .= (' (as defined above)');
 			}
 		?>
-		<td class="short">
-			<span <?php if (!$sharingGroup['SharingGroup']['distribution']) echo 'style="color:red;"'?> data-toggle="popover" title="Distribution List" data-content="<?php echo $combined; ?>">
-				<?php echo $distributionLevels[$sharingGroup['SharingGroup']['distribution']]; ?>
+		<td>
+			<span data-toggle="popover" title="Distribution List" data-content="<?php echo $combined; ?>">
+				<?php echo h($sharingGroup['SharingGroup']['releasability']); ?>
 			</span>
 		</td>
-		
-		<td class="short"><?php echo $sharingGroup['SharingGroup']['pushable'] ? 'Yes' : 'No'; ?></td>
-		<td class="short"><?php echo $sharingGroup['SharingGroup']['extendable'] ? 'Yes' : 'No'; ?></td>
 		<td class="short"><?php echo $sharingGroup['SharingGroup']['active'] ? 'Yes' : 'No'; ?></td>
 		<td class="action">
-		<?php if ($isSiteAdmin || $sharingGroup['access'] == 3): ?>
+		<?php if ($isSiteAdmin || $sharingGroup['editable']): ?>
 			<?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'icon-edit', 'title' => 'Edit')); ?>
 			<?php echo $this->Form->postLink('', '/SharingGroups/delete/' . $sharingGroup['SharingGroup']['id'], array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', h($sharingGroup['SharingGroup']['name']))); ?>
 		<?php endif; ?>
 		</td>
-		
 	</tr>
 	<?php
 endforeach; ?>

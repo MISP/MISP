@@ -588,4 +588,23 @@ class ServersController extends AppController {
 		}
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
 	}
+	
+	public function fetchServersForSG($idList = '{}') {
+		$id_exclusion_list = json_decode($idList, true);
+		$temp = $this->Server->find('all', array(
+				'conditions' => array(
+						'id !=' => $id_exclusion_list,
+				),
+				'recursive' => -1,
+				'fields' => array('id', 'name', 'url')
+		));
+		$servers = array();
+		foreach ($temp as $server) {
+			$servers[] = array('id' => $server['Server']['id'], 'name' => $server['Server']['name'], 'url' => $server['Server']['url']);
+		}
+		$this->layout = false;
+		$this->autoRender = false;
+		$this->set('servers', $servers);
+		$this->render('ajax/fetch_servers_for_sg');
+	}
 }

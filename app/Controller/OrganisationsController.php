@@ -62,9 +62,6 @@ class OrganisationsController extends AppController {
 	
 	public function admin_edit($id) {
 		$this->Organisation->id = $id;
-		if (!$this->Organisation->exists()) {
-			throw new NotFoundException('Invalid organisation');
-		}
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->Organisation->save($this->request->data)) {
@@ -132,5 +129,38 @@ class OrganisationsController extends AppController {
 		$this->set('landingPage', $landingpage);
 		$this->set('org', $org['Organisation']['name']);
 		$this->render('ajax/landingpage');
+	}
+	
+	public function fetchOrgsForSG($idList = '{}', $type) {
+		if ($type === 'local') $local = 1;
+		else $local = 0;
+		$idList = json_decode($idList, true);
+		$id_exclusion_list = array_merge($idList, array($this->Auth->user('Organisation')['id']));
+		$temp = $this->Organisation->find('all', array(
+				'conditions' => array(
+						'local' => $local,
+						'id !=' => $id_exclusion_list,
+				),
+				'recursive' => -1,
+				'fields' => array('id', 'name')
+		));
+		$orgs = array();
+		foreach ($temp as $org) {
+			$orgs[] = array('id' => $org['Organisation']['id'], 'name' => $org['Organisation']['name']);
+		}
+		$this->set('local', $local);
+		$this->layout = false;
+		$this->autoRender = false;
+		$this->set('orgs', $orgs);
+		$this->render('ajax/fetch_orgs_for_sg');
+	}
+	
+	public function fetchSGOrgRow($id, $removable = false, $extend = false) {
+		$this->layout = false;
+		$this->autoRender = false;
+		$this->set('id', $id);
+		$this->set('removable', $removable);
+		$this->set('extend', $extend);
+		$this->render('ajax/sg_org_row_empty');
 	}
 }
