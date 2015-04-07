@@ -66,7 +66,6 @@ class SharingGroupsController extends AppController {
 		$this->set('localInstance', Configure::read('MISP.baseurl'));
 		// We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
 		$this->set('user', $this->Auth->user());
-		$this->set('distributionLevels', $this->SharingGroup->distributionLevels);
 	}
 	
 	public function edit($id) {
@@ -121,7 +120,6 @@ class SharingGroupsController extends AppController {
 		$this->set('localInstance', Configure::read('MISP.baseurl'));
 		// We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
 		$this->set('user', $this->Auth->user());
-		$this->set('distributionLevels', $this->SharingGroup->distributionLevels);
 	}
 	
 	public function delete($id) {
@@ -144,7 +142,6 @@ class SharingGroupsController extends AppController {
 			}
 		}
 		$this->set('sharingGroups', $result);
-		$this->set('distributionLevels', $this->SharingGroup->distributionLevels);
 	}
 	
 	public function view($id) {

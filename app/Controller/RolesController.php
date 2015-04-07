@@ -67,6 +67,7 @@ class RolesController extends AppController {
 				}
 			}
 		}
+		$this->set('permFlags', $this->Role->permFlags);
 		$this->set('options', $this->options);
 		//$this->AdminCrud->adminAdd();
 	}
@@ -79,6 +80,7 @@ class RolesController extends AppController {
 	public function admin_index() {
 		if(!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminIndex();
+		$this->set('permFlags', $this->Role->permFlags);
 		$this->set('options', $this->options);
 	}
 
@@ -94,6 +96,7 @@ class RolesController extends AppController {
 		$this->AdminCrud->adminEdit($id);
 		$passAlong = $this->Role->read(null, $id);
 		$this->set('options', $this->options);
+		$this->set('permFlags', $this->Role->permFlags);
 		$this->set('id', $id);
 	}
 
@@ -118,6 +121,7 @@ class RolesController extends AppController {
  */
 	public function index() {
 		$this->recursive = 0;
+		$this->set('permFlags', $this->Role->permFlags);
 		$this->set('list', $this->paginate());
 		$this->set('options', $this->options);
 	}

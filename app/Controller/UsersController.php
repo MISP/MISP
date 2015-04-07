@@ -163,7 +163,6 @@ class UsersController extends AppController {
 		// org admins can't see users of other orgs
 		if ($this->_isSiteAdmin()) $textFields[] = 'org';
 		
-		
 		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
 		foreach ($this->passedArgs as $k => $v) {
 			if (substr($k, 0, 6) === 'search') {
@@ -181,10 +180,12 @@ class UsersController extends AppController {
 						$test = array();
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
-								if ($searchTerm == 'email' || $searchTerm == 'org') $this->paginate['conditions']['AND'][] = array('LOWER(User.' . $searchTerm . ') NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
+								if ($searchTerm == 'email') $this->paginate['conditions']['AND'][] = array('LOWER(User.' . $searchTerm . ') NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
+								else if ($searchTerm == 'org') $this->paginate['conditions']['AND'][] = array('User.organisation_id !=' => substr($piece, 1));
 								else $this->paginate['conditions']['AND'][] = array('User.' . $searchTerm => substr($piece, 1));
 							} else {
-								if ($searchTerm == 'email' || $searchTerm == 'org') $test['OR'][] = array('LOWER(User.' . $searchTerm . ') LIKE' => '%' . strtolower($piece) . '%');
+								if ($searchTerm == 'email') $test['OR'][] = array('LOWER(User.' . $searchTerm . ') LIKE' => '%' . strtolower($piece) . '%');
+								else if ($searchTerm == 'org') $this->paginate['conditions']['AND'][] = array('User.organisation_id' => $piece);
 								else $test['OR'][] = array('User.' . $searchTerm => $piece);
 							}
 						}
@@ -289,33 +290,18 @@ class UsersController extends AppController {
 			$roleNames[$v['Role']['id']] = $v['Role']['name'];
 			$roleJSON[] = array('id' => $v['Role']['id'], 'value' => $v['Role']['name']);
 		}
+		$temp = $this->User->Organisation->find('all', array(
+			'conditions' => array('local' => 1),
+			'recursive' => -1, 
+			'fields' => array('id', 'name'),
+		));
+		$orgs = array();
+		foreach ($temp as $org) {
+			$orgs[$org['Organisation']['id']] = $org['Organisation']['name'];
+		}
+		$this->set('orgs', $orgs);
 		$this->set('roles', $roleNames);
 		$this->set('roleJSON', json_encode($roleJSON));
-/*
-		$conditions = array();
-		if (!$this->_isSiteAdmin()) {
-			$conditions = array('OR' => array(array('orgc' => $this->Auth->User('org')), array('distribution' > 0)));
-		}
-		$events = $this->Event->find('all', array(
-				'recursive' => -1,
-				'fields' => array('orgc', 'distribution'),
-				'conditions' => $conditions,
-				'group' => 'orgc'
-		));
-		
-		if (Configure::read('MISP.showorg') != 'false') {
-			$orgs = array();
-			foreach ($events as $e) {
-				$orgs[] = $e['Event']['orgc'];
-			}
-			$orgs = $this->_arrayToValuesIndexArray($orgs);
-			$this->set('showorg', true);
-			$this->set('orgs', $orgs);
-			$rules[] = 'org';
-		} else {
-			$this->set('showorg', false);
-		}
-	*/
 		$rules = $this->_arrayToValuesIndexArray($rules);
 		$this->set('rules', $rules);
 		$this->set('baseurl', Configure::read('MISP.baseurl'));
