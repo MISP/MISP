@@ -381,6 +381,14 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean'
 					),
+					'unpublishedprivate' => array(
+							'level' => 2,
+							'description' => 'True will deny access to unpublished events to users outside the organization of the submitter except site admins.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,

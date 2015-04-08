@@ -809,7 +809,10 @@ class Event extends AppModel {
 		$conditions = array();
 		if (!$isSiteAdmin) {
 			$conditions['OR'] = array(
-					'Event.distribution >' => 0,
+					"AND" => array(
+						'Event.distribution >' => 0,
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
+					),
 					'Event.org LIKE' => $org
 			);
 		}
@@ -845,7 +848,10 @@ class Event extends AppModel {
 		//restricting to non-private or same org if the user is not a site-admin.
 		if (!$isSiteAdmin) {
 			$conditions['AND']['OR'] = array(
-				'Event.distribution >' => 0,
+				"AND" => array(
+					'Event.distribution >' => 0,
+					Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+				),
 				'Event.org LIKE' => $org
 			);
 			$conditionsAttributes['OR'] = array(
@@ -942,7 +948,13 @@ class Event extends AppModel {
 	 		if ($from) $econditions['AND'][] = array('Event.date >=' => $from);
 	 		if ($to) $econditions['AND'][] = array('Event.date <=' => $to);
 	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-	 		if(!$isSiteAdmin) $econditions['AND']['OR'] = array('Event.distribution >' => 0, 'Event.org =' => $org);
+			if(!$isSiteAdmin) $econditions['AND']['OR'] = array(
+				"AND" => array(
+					'Event.distribution >' => 0,
+					Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+				),
+				'Event.org =' => $org
+			);
 	 		if ($eventid == 0 && $ignore == 0) $econditions['AND'][] = array('Event.published =' => 1);
 	 		
 	 		// If it's a full download (eventid == false) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
