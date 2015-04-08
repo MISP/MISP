@@ -3015,7 +3015,7 @@ class EventsController extends AppController {
 				'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked'),
 			));
 			foreach ($events as $k => $v) {
-				if (!$v['Event']['timestamp'] < $incomingEvents[$v['Event']['uuid']]) {
+				if ($v['Event']['timestamp'] >= $incomingEvents[$v['Event']['uuid']]) {
 					unset($incomingEvents[$v['Event']['uuid']]);
 					continue;
 				}
