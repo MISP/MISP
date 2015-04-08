@@ -40,3 +40,4 @@
 /app/Lib/cakephp
 /app/webroot/gpg.asc
 /app/tmp/logs
+*.swp
