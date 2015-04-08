@@ -163,8 +163,8 @@ chown www-data:www-data /var/www/MISP/.gnupg
 chmod 700 /var/www/MISP/.gnupg
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 # Recommended key type: RSA
-# The email address should match the one set int he bootstrap.php configuration file
-# Make sure that you use the same settings in the MISP Server Settings tool tool (Described on line 184)
+# The email address should match the one set in the config.php configuration file
+# Make sure that you use the same settings in the MISP Server Settings tool (Described on line 184)
 
 # And export the public key to the webroot
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
