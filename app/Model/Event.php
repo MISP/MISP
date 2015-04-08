@@ -1161,7 +1161,7 @@ class Event extends AppModel {
 		
 		if (Configure::read('MISP.extended_alert_subject')) {
 			$subject = preg_replace( "/\r|\n/", "", $event['Event']['info']);
-			if (strlen($subject) > 55) {
+			if (strlen($subject) > 58) {
 				$subject = substr($subject, 0, 55) . '... - ';
 			} else {
 				$subject .= " - ";
