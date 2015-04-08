@@ -9,7 +9,7 @@ App::uses('AppHelper', 'View/Helper');
 			$active = '';
 			$pivot['info'] = h($pivot['info']);
 			// Truncate string if longer than (11 - length of event id) chars to fit the pivot bubble
-			if (strlen($pivot['info']) > (11 - strlen((string)$pivot['id']))) {
+			if (strlen($pivot['info']) > (11 - strlen((string)$pivot['id'])) && strlen($pivot['info']) > 9) {
 				$text .= substr($pivot['info'], 0, 6) . '...';				
 			} else {
 				$text .= $pivot['info'];
