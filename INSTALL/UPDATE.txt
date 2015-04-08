@@ -28,6 +28,7 @@ cd /var/www/MISP/app
 # "kamisama/cake-resque": ">=4.1.2"
 
 vim composer.json
+php composer.phar self-update
 php composer.phar update
 
 # To use the scheduler worker for scheduled tasks, do the following:
