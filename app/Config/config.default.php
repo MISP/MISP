@@ -35,6 +35,14 @@ $config = array (
     'homedir' => '',
     'password' => '',
   ),
+  'Proxy' =>
+  array (
+    'host' => '',
+    'port' => '',
+    'method' => '',
+    'user' => '',
+    'password' => '',
+  ),
   'SecureAuth' => 
   array (
     'amount' => 5,

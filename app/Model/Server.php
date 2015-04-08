@@ -425,6 +425,49 @@ class Server extends AppModel {
 							'type' => 'string',
 					),
 			),
+			'Proxy' => array(
+					'branch' => 1,
+					'host' => array(
+							'level' => 2,
+							'description' => 'The hostname of an HTTP proxy for outgoing sync requests. Leave empty to not use a proxy.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'port' => array(
+							'level' => 2,
+							'description' => 'The TCP port for the HTTP proxy.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForNumeric',
+							'type' => 'numeric',
+					),
+					'method' => array(
+							'level' => 2,
+							'description' => 'The authentication method for the HTTP proxy. Currently supported are Basic or Digest. Leave empty for no proxy authentication.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'user' => array(
+							'level' => 2,
+							'description' => 'The authentication username for the HTTP proxy.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'password' => array(
+							'level' => 2,
+							'description' => 'The authentication password for the HTTP proxy.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+			),
 			'Security' => array(
 					'branch' => 1,
 					'salt' => array(
@@ -1016,7 +1059,7 @@ class Server extends AppModel {
 	
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
-		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'SecureAuth', 'Security', 'debug'));
+		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'Proxy', 'SecureAuth', 'Security', 'debug'));
 	}
 	
 	public function checkVersion($newest) {
