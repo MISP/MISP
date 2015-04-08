@@ -365,16 +365,11 @@ class UsersController extends AppController {
 				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
 			}
 		} else {
-			// generate auth key for a new user
-			$temp = $this->User->Organisation->find('all', array(
-				'fields' => array('name', 'id'),
-				'recursive' => -1,
+			$orgs = $this->User->Organisation->find('list', array(
+				'conditions' => array('local' => 1),
 			));
-			$orgs = array();
-			foreach ($temp as $org) {
-				$orgs[$org['Organisation']['id']] = $org['Organisation']['name'];
-			}
 			$this->set('orgs', $orgs);
+			// generate auth key for a new user
 			$this->newkey = $this->User->generateAuthKey();
 			$this->set('authkey', $this->newkey);
 		}
@@ -419,15 +414,8 @@ class UsersController extends AppController {
 							'id' => $allowedRole,
 					)
 			));
-			$paramsOrgs = array('conditions' => array(
-					'id' => $this->Auth->user('organisation_id'),
-					'fields' => array('Organisation.id', 'Organisation.name'),
-			));
 		}
-		
 		$roles = $this->User->Role->find('list', $params);
-		$organisations = $this->User->Organisation->find('list', $paramsOrgs);
-		debug($organisations);
 		$this->set('currentId', $id);
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$fields = array();
@@ -492,13 +480,18 @@ class UsersController extends AppController {
 				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
 			}
 		} else {
-			$this->User->recursive = 0;
 			$this->User->read(null, $id);
 			if (!$this->_isSiteAdmin() && $this->Auth->user('organisation_id') != $this->User->data['User']['organisation_id']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
 			$this->User->set('password', '');
 			$this->request->data = $this->User->data; // TODO CHECK
 
 		}
+		if ($this->_isSiteAdmin()) {
+			$orgs = $this->User->Organisation->find('list', array(
+					'conditions' => array('local' => 1),
+			));
+		}
+		$this->set('orgs', $orgs);
 		$this->set('id', $id);
 		$this->set(compact('roles'));
 	}
@@ -1046,5 +1039,19 @@ class UsersController extends AppController {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$user_results = $this->User->verifyGPG();
 		$this->set('users', $user_results);
+	}
+	
+	/**
+	 * Refreshes the Auth session with new/updated data
+	 * @return void
+	 */
+	protected function _refreshAuth() {
+		$oldUser = $this->Auth->user();
+		$newUser = $this->User->find('first', array('conditions' => array('User.id' => $oldUser['id']), 'recursive' => -1,'contain' => array('Organisation', 'Role')));
+		// Rearrange it a bit to match the Auth object created during the login
+		$newUser['User']['Role'] = $newUser['Role'];
+		$newUser['User']['Organisation'] = $newUser['Organisation'];
+		unset($newUser['Organisation'], $newUser['Role']);
+		$this->Auth->login($newUser['User']);
 	}
 }

@@ -238,17 +238,6 @@ class AppController extends Controller {
 	}
 
 /**
- * Refreshes the Auth session with new/updated data
- * @return void
- */
-	protected function _refreshAuth() {
-		$this->loadModel('User');
-		$this->User->recursive = -1;
-		$user = $this->User->findById($this->Auth->user('id'));
-		$this->Auth->login($user['User']);
-	}
-
-/**
  *
  * @param $action
  * @return boolean
