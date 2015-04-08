@@ -14,6 +14,7 @@ Install a minimal ubuntu 14.04-server system with the software:
 - Mail server
 
 You will get some questions, you will probably want to set:
+sudo apt-get install postfix
 - Postfix Configuration: Satellite system
 
 Make sure your system is up2date:
@@ -102,7 +103,8 @@ mysql> exit
 cd /var/www/MISP
 
 # Import the empty MySQL database from MYSQL.sql 
-mysql -u misp -p<password> misp < INSTALL/MYSQL.sql
+mysql -u misp -p misp < INSTALL/MYSQL.sql
+#enter the password you set previously
 
 
 7/ Apache configuration
