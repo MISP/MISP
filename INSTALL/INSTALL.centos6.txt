@@ -26,7 +26,7 @@ rpm -Uvh epel.rpm
 yum install vim
 
 # Install the dependencies:
-yum install gcc git zip redis mysql-server php-mysql python-devel python-pip libxslt-devel zlib-devel php-devel 
+yum install gcc git zip redis mysql-server php-mysql python-devel python-pip libxslt-devel zlib-devel php-devel php-xml
 yum install php-pear php-pecl-geoip
 
 pear channel-update pear.php.net
@@ -77,7 +77,7 @@ git submodule update
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/MISP/app
 curl -s https://getcomposer.org/installer | php
-php composer.phar require --no-update kamisama/cake-resque:4.1.0
+php composer.phar require kamisama/cake-resque:4.1.2
 php composer.phar config vendor-dir Vendor
 php composer.phar install
 
@@ -123,8 +123,9 @@ mysql> grant usage on *.* to misp@localhost identified by 'XXXXXXXXX';
 mysql> grant all privileges on misp.* to misp@localhost ;
 mysql> exit
 
-# Import the empty MySQL database from MYSQL.sql
 cd /var/www/MISP
+
+# Import the empty MySQL database from MYSQL.sql
 mysql -u misp -p misp < INSTALL/MYSQL.sql
 
 
@@ -191,7 +192,8 @@ chmod 700 /var/www/MISP/.gnupg
 gpg --homedir /var/www/MISP/.gnupg --gen-key
 chown -R apache:apache /var/www/MISP/.gnupg
 # Recommended key type: RSA
-# The email address should match the one set int he config.php configuration file
+# The email address should match the one set in the config.php configuration file
+# Make sure that you use the same settings in the MISP Server Settings tool (Described on line 212)
 
 # And export the public key to the webroot
 sudo -u apache gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
@@ -222,6 +224,11 @@ chown -R apache:apache /var/www/MISP/<directory path with an indicated issue>
 
 # Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
+# If anything goes wrong, make sure that you check MISP's logs for errors:
+# /var/www/MISP/app/tmp/logs/error.log
+# /var/www/MISP/app/tmp/logs/resque-worker-error.log
+# /var/www/MISP/app/tmp/logs/resque-scheduler-error.log
+# /var/www/MISP/app/tmp/logs/resque-2015-01-01.log //where the actual date is the current date
 
 Recommended actions
 -------------------

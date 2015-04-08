@@ -12,7 +12,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 			$left = true;
 		}
 		$title = $event['Event']['info'];
-		if (strlen($title) > 55) $title = substr($title, 0, 55) . '...';
+		if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
 	?>
 	<div class="row-fluid">
 		<div class="span8">

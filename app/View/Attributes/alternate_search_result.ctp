@@ -27,7 +27,7 @@
 				</td>
 				<td>
 					<?php 
-						if (strlen(h($event['Event']['info'])) > 60) { 
+						if (strlen(h($event['Event']['info'])) > 63) { 
 							echo (substr(h($event['Event']['info']), 0, 60)) . '...'; 
 						} else 	echo h($event['Event']['info']);
 					?>
