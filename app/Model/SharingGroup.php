@@ -57,7 +57,8 @@ class SharingGroup extends AppModel {
 	}
 	
 	// returns a list of all sharing groups that the user is allowed to see
-	public function fetchAllAuthorised($user) {
+	// pass true to get the actual SG objects
+	public function fetchAllAuthorised($user, $scope = false) {
 		if ($user['Role']['perm_site_admin']) {
 			$sgs = $this->find('all', array(
 				'recursive' => -1,
@@ -68,7 +69,23 @@ class SharingGroup extends AppModel {
 		} else {
 			$ids = array_unique(array_merge($this->SharingGroupServer->fetchAllAuthorised(), $this->SharingGroupOrg->fetchAllAuthorised($user['Organisation']['id'])));
 		}
-		return $ids;
+		if ($scope === 'full') {
+			$sgs = $this->find('all', array(
+				'contain' => array('SharingGroupServer' => array('Server'), 'SharingGroupOrg' => array('Organisation'), 'Organisation'),
+				'conditions' => array('SharingGroup.id' => $ids),
+				'order' => 'name ASC'
+			));
+			return $sgs;
+		} else if ($scope == 'name') {
+			$sgs = $this->find('list', array(
+				'recursive' => -1,
+				'fields' => array('id', 'name'),
+				'order' => 'name ASC'
+			));
+			return $sgs;
+		} else {
+			return $ids;
+		}
 	}
 	
 	// returns true if the SG exists and the user is allowed to see it

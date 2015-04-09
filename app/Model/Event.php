@@ -28,7 +28,7 @@ class Event extends AppModel {
 
 	public $virtualFields = array();
 	
-	public $mispVersion = '2.3.0';
+	public $mispVersion = '2.4.0';
 
 /**
  * Description field
@@ -62,6 +62,8 @@ class Event extends AppModel {
 		1 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of this community."), // former Community
 		2 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes all organisations on this MISP server, all organisations on MISP servers synchronising with this server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from this one). Any other organisations connected to linked servers that are 2 hops away from this will be restricted from seeing the event. Use this option if this server isn't the central MISP hub of the community but is connected to it."),
 		3 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
+		4 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This distribution of this event will be handled by the selected sharing group."),
+				
 	);
 
 	public $analysisLevels = array(
@@ -69,7 +71,7 @@ class Event extends AppModel {
 	);
 
 	public $distributionLevels = array(
-		0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities'
+		0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities', 4 => 'Sharing group'
 	);
 
 	public $export_types = array(
@@ -131,7 +133,7 @@ class Event extends AppModel {
  * @var array
  */
 	public $validate = array(
-		'org' => array(
+		'org_id' => array(
 			'notempty' => array(
 				'rule' => array('notempty'),
 				//'message' => 'Your custom message here',
@@ -141,7 +143,7 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'orgc' => array(
+		'orgc_id' => array(
 			'notempty' => array(
 				'rule' => array('notempty'),
 				//'message' => 'Your custom message here',
@@ -170,14 +172,23 @@ class Event extends AppModel {
 		),
 
 		'distribution' => array(
-			'rule' => array('inList', array('0', '1', '2', '3')),
-			'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
-			//'allowEmpty' => false,
-			'required' => true,
-			//'last' => false, // Stop validation after this rule
-			//'on' => 'create', // Limit validation to 'create' or 'update' operations
-
+			'not_empty_if_sg' => array(
+				'rule' => array('inList', array('0', '1', '2', '3', '4')),
+				'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
+				//'allowEmpty' => false,
+				'required' => true,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+				)
 		),
+		
+		'sharing_group_id' => array(
+			'rule' => array('sharingGroupRequired'),
+				'message' => 'If the distribution is set to "Sharing Group", a sharing group has to be selected.',
+				//'required' => true,
+				//'allowEmpty' => true
+		),
+		
 		'analysis' => array(
 			'rule' => array('inList', array('0', '1', '2')),
 				'message' => 'Options : 0, 1, 2',
@@ -278,6 +289,18 @@ class Event extends AppModel {
 		'ThreatLevel' => array(
 			'className' => 'ThreatLevel',
 			'foreignKey' => 'threat_level_id'
+		),
+		'Org' => array(
+				'className' => 'Organisation',
+				'foreignKey' => 'org_id'
+		),
+		'Orgc' => array(
+				'className' => 'Organisation',
+				'foreignKey' => 'org_id'
+		),
+		'SharingGroup' => array(
+				'className' => 'SharingGroup',
+				'foreignKey' => 'sharing_group_id'
 		)
 	);
 
@@ -303,20 +326,20 @@ class Event extends AppModel {
 			'counterQuery' => ''
 		),
 		'ShadowAttribute' => array(
-				'className' => 'ShadowAttribute',
-				'foreignKey' => 'event_id',
-				'dependent' => true,	// cascade deletes
-				'conditions' => '',
-				'fields' => '',
-				'order' => array('ShadowAttribute.old_id DESC', 'ShadowAttribute.old_id DESC'),
-				'limit' => '',
-				'offset' => '',
-				'exclusive' => '',
-				'finderQuery' => '',
-				'counterQuery' => ''
+			'className' => 'ShadowAttribute',
+			'foreignKey' => 'event_id',
+			'dependent' => true,	// cascade deletes
+			'conditions' => '',
+			'fields' => '',
+			'order' => array('ShadowAttribute.old_id DESC', 'ShadowAttribute.old_id DESC'),
+			'limit' => '',
+			'offset' => '',
+			'exclusive' => '',
+			'finderQuery' => '',
+			'counterQuery' => ''
 		),
 		'EventTag' => array(
-				'className' => 'EventTag',
+			'className' => 'EventTag',
 		)
 	);
 
@@ -384,17 +407,54 @@ class Event extends AppModel {
 		return $this->field('id', array('id' => $eventid, 'org' => $org)) === $eventid;
 	}
 
-	public function getRelatedEvents($me, $isSiteAdmin = false, $eventId = null) {
+	public function getRelatedEvents($user, $eventId = null, $sgids) {
 		if ($eventId == null) $eventId = $this->data['Event']['id'];
 		$this->Correlation = ClassRegistry::init('Correlation');
 		// search the correlation table for the event ids of the related events
-		if (!$isSiteAdmin) {
-		    $conditionsCorrelation = array('AND' =>
-		            array('Correlation.1_event_id' => $eventId),
-		            array("OR" => array(
-		                    'Correlation.org' => $me['org'],
-		                    'Correlation.private' => 0),
-		            ));
+		// Rules: 
+		// 1. Event is owned by the user (org_id matches)
+		// 2. User is allowed to see both the event and the org:
+		//    a.  Event:
+		//        i. Event has a distribution between 1-3 (community only, connected communities, all orgs)
+		//        ii. Event has a sharing group that the user is accessible to view
+		//    b.  Attribute:
+		//        i. Attribute has a distribution of 5 (inheritance of the event, for this the event check has to pass anyway)
+		//        ii. Atttibute has a distribution between 1-3 (community only, connected communities, all orgs)
+		//        iii. Attribute has a sharing group that the user is accessible to view
+		if (!$user['Role']['perm_site_admin']) {
+		    $conditionsCorrelation = array(
+		    	'AND' => array(
+		    		'Correlation.1_event_id' => $eventId,
+					array(
+						'OR' => array(
+							'Correlation.org_id' => $user['Org']['id'],
+							'AND' => array(
+								'OR' => array(
+									'AND' => array(	
+										'Correlation.distribution >' => 0,
+										'Correlation.distribution <' => 4,
+									),
+									'AND' => array(
+										'Correlation.distribution' => 4,
+										'Correlation.sharing_group_id' => $sgids
+									),
+								),
+								'OR' => array(
+									'Correlation.a_distribution' => 5,
+									'AND' => array(	
+										'Correlation.a_distribution >' => 0,
+										'Correlation.a_distribution <' => 4,
+									),
+									'AND' => array(
+										'Correlation.a_distribution' => 4,
+										'Correlation.a_sharing_group_id' => $sgids
+									),
+								),
+							),
+						),
+					),
+		    	),
+		    );
 		} else {
 		    $conditionsCorrelation = array('Correlation.1_event_id' => $eventId);
 		}
@@ -421,17 +481,44 @@ class Event extends AppModel {
 		return $relatedEvents;
 	}
 
-	public function getRelatedAttributes($me, $isSiteAdmin = false, $id = null) {
+	public function getRelatedAttributes($user, $id = null, $sgids) {
 		if ($id == null) $id = $this->data['Event']['id'];
 		$this->Correlation = ClassRegistry::init('Correlation');
 		// search the correlation table for the event ids of the related attributes
-		if (!$isSiteAdmin) {
-		    $conditionsCorrelation = array('AND' =>
-		            array('Correlation.1_event_id' => $id),
-		            array("OR" => array(
-		                    'Correlation.org' => $me['org'],
-		                    'Correlation.private' => 0),
-		            ));
+		if (!$user['Role']['perm_site_admin']) {
+		    $conditionsCorrelation = array(
+		    	'AND' => array(
+		    		'Correlation.1_event_id' => $eventId,
+					array(
+						'OR' => array(
+							'Correlation.org_id' => $user['Org']['id'],
+							'AND' => array(
+								'OR' => array(
+									'AND' => array(	
+										'Correlation.distribution >' => 0,
+										'Correlation.distribution <' => 4,
+									),
+									'AND' => array(
+										'Correlation.distribution' => 4,
+										'Correlation.sharing_group_id' => $sgids
+									),
+								),
+								'OR' => array(
+									'Correlation.a_distribution' => 5,
+									'AND' => array(	
+										'Correlation.a_distribution >' => 0,
+										'Correlation.a_distribution <' => 4,
+									),
+									'AND' => array(
+										'Correlation.a_distribution' => 4,
+										'Correlation.a_sharing_group_id' => $sgids
+									),
+								),
+							),
+						),
+					),
+		    	),
+		    );
 		} else {
 		    $conditionsCorrelation = array('Correlation.1_event_id' => $id);
 		}
@@ -441,7 +528,7 @@ class Event extends AppModel {
 		        'recursive' => 0,
 		        'order' => array('Correlation.event_id DESC')));
 		$relatedAttributes = array();
-		foreach($correlations as $correlation) {
+		foreach ($correlations as $correlation) {
 			$current = array(
 		            'id' => $correlation['Correlation']['event_id'],
 		            'org' => $correlation['Correlation']['org'],
@@ -828,7 +915,7 @@ class Event extends AppModel {
 	}
 	
 	//Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller.
-	public function fetchEvent($eventid = false, $idList = false, $org, $isSiteAdmin = false, $bkgrProcess = false, $tags = false, $from = false, $to = false) {
+	public function fetchEvent($eventid = false, $idList = false, $user, $bkgrProcess = false, $tags = false, $from = false, $to = false) {
 		if ($eventid) {
 			$this->id = $eventid;
 			if (!$this->exists()) {
@@ -838,15 +925,19 @@ class Event extends AppModel {
 		} else {
 			$conditions = array();
 		}
-		$me['org'] = $org;
-		// if we come from automation, we may not be logged in - instead we used an auth key in the URL.
+		
+		$isSiteAdmin = $user['Role']['perm_site_admin'];
 		
 		$conditionsAttributes = array();
 		//restricting to non-private or same org if the user is not a site-admin.
-		if (!$isSiteAdmin) {
+		if (!$user['Role']['perm_site_admin']) {
+			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
 			$conditions['AND']['OR'] = array(
-				'Event.distribution >' => 0,
-				'Event.org LIKE' => $org
+					'OR' => array(
+						'Event.distribution >' => 0,
+						'Event.org LIKE' => $org
+					),
+					'Event.sharing_group_id' => $sgids
 			);
 			$conditionsAttributes['OR'] = array(
 				'Attribute.distribution >' => 0,
@@ -888,7 +979,9 @@ class Event extends AppModel {
 		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp');
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org');
-			
+		$fieldsOrg = array('id', 'name');	
+		
+		
 		$params = array('conditions' => $conditions,
 			'recursive' => 0,
 			'fields' => $fields,
@@ -896,6 +989,8 @@ class Event extends AppModel {
 				'ThreatLevel' => array(
 						'fields' => array('ThreatLevel.name')
 				),
+				'Org' => array('fields' => $fieldsOrg), 
+				'Orgc' => array('fields' => $fieldsOrg),
 				'Attribute' => array(
 					'fields' => $fieldsAtt,
 					'conditions' => $conditionsAttributes,
@@ -904,16 +999,25 @@ class Event extends AppModel {
 					'fields' => $fieldsShadowAtt,
 					'conditions' => array('deleted' => 0),
 				),
+				'SharingGroup' => array(
+					'SharingGroupOrg' => array(
+						'Organisation' => array('fields' => $fieldsOrg),
+					),
+					'SharingGroupServer' => array(
+						'Server',
+					),
+				),
 			)
 		);
 		if ($isSiteAdmin) $params['contain']['User'] = array('fields' => 'email');
 		$results = $this->find('all', $params);
 		// Do some refactoring with the event
+		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
 		foreach ($results as $eventKey => &$event) {
 			// Let's find all the related events and attach it to the event itself
-			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($me, $isSiteAdmin, $event['Event']['id']);
+			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgsids);
 			// Let's also find all the relations for the attributes - this won't be in the xml export though
-			$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($me, $isSiteAdmin, $event['Event']['id']);
+			$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgsids);
 			foreach ($event['Attribute'] as $key => &$attribute) {
 				$attribute['ShadowAttribute'] = array();
 				// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
@@ -1409,13 +1513,13 @@ class Event extends AppModel {
 		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
 		//else $data['Event']['org'] = $auth->user('org');
 		if ($fromPull) {
-			$data['Event']['org'] = $org;
+			$data['Event']['org_id'] = $org;
 		} else {
-			$data['Event']['org'] = $user['org'];
+			$data['Event']['org_id'] = $user['Organisation']['id'];
 		}
 		// set these fields if the event is freshly created and not pushed from another instance.
 		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
-		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
+		if (!isset ($data['Event']['orgc_id'])) $data['Event']['orgc_id'] = $data['Event']['org_id'];
 		if ($fromXml) {
 			// Workaround for different structure in XML/array than what CakePHP expects
 			$data = $this->cleanupEventArrayFromXML($data);
@@ -1442,11 +1546,10 @@ class Event extends AppModel {
 		}
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
-				'Event' => array('org', 'orgc', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution', 'comment')
+				'Event' => array('org_id', 'orgc_id', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'locked'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'timestamp', 'distribution', 'comment')
 		);
-		$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,
-				'atomic' => true));
+		$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,'atomic' => true));
 		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
 		if ($saveResult) {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
@@ -1458,6 +1561,7 @@ class Event extends AppModel {
 			}
 			return true;
 		} else {
+			debug($this->validationErrors);
 			//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
 			return false;
 		}
@@ -1903,5 +2007,12 @@ class Event extends AppModel {
 			$fn .= $characters[rand(0, $charLen)];
 		}
 		return $fn;
+	}
+	
+	public function sharingGroupRequired($field) {
+		if ($this->data[$this->alias]['distribution'] == 4) {
+			return (!empty($field));
+		}
+		return true;
 	}
 }

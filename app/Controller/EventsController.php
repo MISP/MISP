@@ -28,6 +28,10 @@ class EventsController extends AppController {
 			'order' => array(
 					'Event.timestamp' => 'DESC'
 			),
+			'contain' => array(
+					'Org' => array('fields' => array('id', 'name')), 
+					'Orgc' => array('fields' => array('id', 'name'))
+			)
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
@@ -910,6 +914,8 @@ class EventsController extends AppController {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create events');
 		}
+		$this->loadModel('SharingGroup');
+		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name');
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
 				
@@ -930,6 +936,13 @@ class EventsController extends AppController {
 						is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
+					// If the distribution is set to sharing group, check if the id provided is really visible to the user, if not throw an error.
+					if ($this->request->data['Event']['distribution'] == 4) {
+						if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
+					} else {
+						// If the distribution is set to something "traditional", set the SG id to 0. 
+						$this->request->data['Event']['sharing_group_id'] = 0;
+					}
 					if ($this->_isRest()) $this->request->data = $this->Event->updateXMLArray($this->request->data, false);
 					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
 					if ($add && !is_numeric($add)) {
@@ -985,6 +998,9 @@ class EventsController extends AppController {
 		// combobox for analysis
 		$analysiss = $this->Event->validate['analysis']['rule'][1];
 		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
+		$this->loadModel('SharingGroup');
+		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name');
+		$this->set('sharingGroups', $sgs);
 		$this->set('analysiss',$analysiss);
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
@@ -1777,15 +1793,12 @@ class EventsController extends AppController {
 
 	// Grab an event or a list of events for the event view or any of the XML exports. The returned object includes an array of events (or an array that only includes a single event if an ID was given)
 	// Included with the event are the attached attributes, shadow attributes, related events, related attribute information for the event view and the creating user's email address where appropriate
-	private function __fetchEvent($eventid = false, $idList = false, $orgFromFetch = false, $isSiteAdmin = false, $tags = false, $from=false, $to=false) {
+	private function __fetchEvent($eventid = false, $idList = false, $user = false, $tags = false, $from=false, $to=false) {
 		// if we come from automation, we may not be logged in - instead we used an auth key in the URL.
-		if (!empty($orgFromFetch)) {
-			$org = $orgFromFetch;
-		} else {
-			$org = $this->_checkOrg();
-			$isSiteAdmin = $this->_isSiteAdmin();
+		if (empty($user)) {
+			$user = $this->Auth->user();
 		}
-		$results = $this->Event->fetchEvent($eventid, $idList, $org, $isSiteAdmin, null, $tags, $from, $to);
+		$results = $this->Event->fetchEvent($eventid, $idList, $user, null, $tags, $from, $to);
 		return $results;
 	}
 

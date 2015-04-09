@@ -99,23 +99,23 @@
 				}?>&nbsp;
 			</td>
 			<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-			<td class="short" ondblclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $event['Orgc']['id'];?>'">
 				<?php
-					$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
+					$imgRelativePath = 'orgs' . DS . h($event['Orgc']['name']) . '.png';
 					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['orgc']) . '.png', array('alt' => h($event['Event']['orgc']), 'title' => h($event['Event']['orgc']), 'style' => 'width:24px; height:24px'));
-					else echo $this->Html->tag('span', h($event['Event']['orgc']), array('class' => 'welcome', 'style' => 'float:left;'));
+					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Orgc']['name']) . '.png', array('alt' => h($event['Orgc']['name']), 'title' => h($event['Orgc']['name']), 'style' => 'width:24px; height:24px'));
+					else echo $this->Html->tag('span', h($event['Orgc']['name']), array('class' => 'welcome', 'style' => 'float:left;'));
 				?>
 				&nbsp;
 			</td>
 			<?php endif;?>
 			<?php if ($isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>
-			<td class="short" ondblclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $event['Org']['id'];?>'">
 				<?php
-					$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
+					$imgRelativePath = 'orgs' . DS . h($event['Org']['name']) . '.png';
 					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['org']) . '.png', array('alt' => h($event['Event']['org']), 'title' => h($event['Event']['org']), 'style' => 'width:24px; height:24px'));
-					else echo $this->Html->tag('span', h($event['Event']['org']), array('class' => 'welcome', 'style' => 'float:left;'));
+					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Org']['name']) . '.png', array('alt' => h($event['Org']['name']), 'title' => h($event['Org']['name']), 'style' => 'width:24px; height:24px'));
+					else echo $this->Html->tag('span', h($event['Org']['name']), array('class' => 'welcome', 'style' => 'float:left;'));
 				?>
 				&nbsp;
 			</td>

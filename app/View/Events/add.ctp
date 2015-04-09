@@ -13,9 +13,21 @@
 		}
 		echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
+				'div' => 'input clear',
 				'label' => 'Distribution',
 				'selected' => $initialDistribution,
 			));
+		?>
+			<div id="SGContainer" style="display:none;">
+		<?php 
+		echo $this->Form->input('sharing_group_id', array(
+				'options' => array($sharingGroups),
+				'label' => 'Sharing Group',
+				'selected' => $initialDistribution,
+		));
+		?>
+			</div>
+		<?php 
 		echo $this->Form->input('threat_level_id', array(
 				'div' => 'input clear'
 				));
@@ -69,6 +81,11 @@ foreach ($analysisDescriptions as $type => $def) {
 	echo "formInfoValues['EventAnalysis']['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";	// as we output JS code we need to add slashes
 }
 ?>
+
+$('#EventDistribution').change(function() {
+	if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
+	else $('#SGContainer').hide();
+});
 
 $(document).ready(function() {
 

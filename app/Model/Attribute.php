@@ -420,7 +420,6 @@ class Attribute extends AppModel {
 
 		// update correlation..
 		$this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
-
 	}
 
 	public function beforeValidate($options = array()) {
@@ -979,8 +978,10 @@ class Attribute extends AppModel {
 			            	'AND' => array(
 			            		'Attribute.type !=' => $this->nonCorrelatingTypes,
 						)),
-			            'recursive' => 0,
-			    		//'contain' => 'Event',
+			            'recursive' => -1,
+			    		'contain' => array(
+			    			'Event'
+			    		),
 			            //'fields' => '', // we want to have the Attribute AND Event, so do not filter here
 			    );
 			    // search for the related attributes for that "value(1|2)"
@@ -997,15 +998,18 @@ class Attribute extends AppModel {
 			                // or attributes from the same event
 			                continue;
 			            }
-			            $is_private = ($attribute_right['Event']['distribution'] == 0) || ($attribute_right['Attribute']['distribution'] == 0);
+			            // With the sharing group design, we want to save the distribution level and the sharing group ID for both the right attribute and event
 			            $correlations[] = array(
 			                    'value' => $a[$value_name],
 			                    '1_event_id' => $attribute['Attribute']['event_id'],
 			                    '1_attribute_id' => $attribute['Attribute']['id'],
 			                    'event_id' => $attribute_right['Attribute']['event_id'],
 			                    'attribute_id' => $attribute_right['Attribute']['id'],
-			                    'org' => $attribute_right['Event']['org'],
-			                    'private' => $is_private,
+			                    'org' => $attribute_right['Event']['org_id'],
+			                    'distribution' => $attribute_right['Event']['distribution'],
+			            		'a_distribution' => $attribute_right['Attribute']['distribution'],
+			            		'sharing_group_id' => $attribute_right['Event']['sharing_group_id'],
+			            		'a_sharing_group_id' => $attribute_right['Attribute']['sharing_group_id'],
 			                    'date' => $attribute_right['Event']['date'],
 			            		'info' => $attribute_right['Event']['info'],
 			            );
