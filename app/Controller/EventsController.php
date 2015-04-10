@@ -30,7 +30,8 @@ class EventsController extends AppController {
 			),
 			'contain' => array(
 					'Org' => array('fields' => array('id', 'name')), 
-					'Orgc' => array('fields' => array('id', 'name'))
+					'Orgc' => array('fields' => array('id', 'name')),
+					'SharingGroup' => array('fields' => array('id', 'name'))
 			)
 	);
 
@@ -71,11 +72,25 @@ class EventsController extends AppController {
 
 		// if not admin or own org, check private as well..
 		if (!$this->_isSiteAdmin()) {
+			$sgids = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
 			$this->paginate = Set::merge($this->paginate,array(
 					'conditions' =>
 					array("OR" => array(
-							array('Event.org =' => $this->Auth->user('org')),
-							array('Event.distribution >' => 0),
+							array(
+								'Event.org_id' => $this->Auth->user('organisation_id')
+							),
+							array(
+								'AND' => array(
+									'Event.distribution >' => 0,
+									'Event.distribution <' => 4,
+								),
+							),
+							array(
+								'AND' => array(
+									'Event.distribution' => 4,
+									'Event.sharing_group_id' => $sgids
+								),	
+							)
 			))));
 		}
 	}
@@ -469,7 +484,8 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
-		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All');
+		
+		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 		$this->set('shortDist', $shortDist);
 	}
 	
@@ -584,7 +600,7 @@ class EventsController extends AppController {
 		if (strlen($id) == 36) {
 			$this->Event->recursive = -1;
 			$temp = $this->Event->findByUuid($id);
-			if ($temp == null) throw new NotFoundException(__('Invalid event'));
+			if ($temp == null) throw new NotFoundException('Invalid event');
 			$id = $temp['Event']['id'];
 		}
 		$isSiteAdmin = $this->_isSiteAdmin();
@@ -594,6 +610,7 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event.'));
 		}
 		$results = $this->__fetchEvent($id);
+		if (empty($results)) throw new NotFoundException('Invalid event');
 		if ($this->_isRest()) {
 			$this->loadModel('Attribute');
 			foreach ($results[0]['Attribute'] as &$attribute) {

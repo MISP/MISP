@@ -145,7 +145,7 @@ class SharingGroupsController extends AppController {
 	}
 	
 	public function view($id) {
-		$sharingGroupIDs = $this->SharingGroup->fetchSharingGroups($this->Auth->user(), $this->_isSiteAdmin(), true);
+		$sharingGroupIDs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
 		if (!in_array($id, $sharingGroupIDs)) throw new MethodNotAllowedException('Sharing group doesn\'t exist or you do not have permission to access it.');
 		$this->SharingGroup->id = $id;
 		$this->SharingGroup->contain(array('SharingGroupOrg' => array('Organisation'), 'Organisation'));

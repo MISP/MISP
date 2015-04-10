@@ -409,6 +409,7 @@ class Event extends AppModel {
 
 	public function getRelatedEvents($user, $eventId = null, $sgids) {
 		if ($eventId == null) $eventId = $this->data['Event']['id'];
+		if (!isset($sgids) || empty($sgids)) $sgids = array(-1);
 		$this->Correlation = ClassRegistry::init('Correlation');
 		// search the correlation table for the event ids of the related events
 		// Rules: 
@@ -427,27 +428,39 @@ class Event extends AppModel {
 		    		'Correlation.1_event_id' => $eventId,
 					array(
 						'OR' => array(
-							'Correlation.org_id' => $user['Org']['id'],
+							'Correlation.org' => $user['organisation_id'],
 							'AND' => array(
-								'OR' => array(
-									'AND' => array(	
-										'Correlation.distribution >' => 0,
-										'Correlation.distribution <' => 4,
-									),
-									'AND' => array(
-										'Correlation.distribution' => 4,
-										'Correlation.sharing_group_id' => $sgids
+								array(
+									'OR' => array(
+										array(
+											'AND' => array(	
+												'Correlation.distribution >' => 0,
+												'Correlation.distribution <' => 4,
+											),
+										),
+										array(
+											'AND' => array(
+												'Correlation.distribution' => 4,
+												'Correlation.sharing_group_id' => $sgids
+											),
+										),
 									),
 								),
-								'OR' => array(
-									'Correlation.a_distribution' => 5,
-									'AND' => array(	
-										'Correlation.a_distribution >' => 0,
-										'Correlation.a_distribution <' => 4,
-									),
-									'AND' => array(
-										'Correlation.a_distribution' => 4,
-										'Correlation.a_sharing_group_id' => $sgids
+								array(
+									'OR' => array(
+										'Correlation.a_distribution' => 5,
+										array(
+											'AND' => array(	
+												'Correlation.a_distribution >' => 0,
+												'Correlation.a_distribution <' => 4,
+											),
+										),
+										array(
+											'AND' => array(
+												'Correlation.a_distribution' => 4,
+												'Correlation.a_sharing_group_id' => $sgids
+											),
+										),
 									),
 								),
 							),
@@ -483,35 +496,48 @@ class Event extends AppModel {
 
 	public function getRelatedAttributes($user, $id = null, $sgids) {
 		if ($id == null) $id = $this->data['Event']['id'];
+		if (!isset($sgids) || empty($sgids)) $sgids = array(-1);
 		$this->Correlation = ClassRegistry::init('Correlation');
 		// search the correlation table for the event ids of the related attributes
 		if (!$user['Role']['perm_site_admin']) {
 		    $conditionsCorrelation = array(
 		    	'AND' => array(
-		    		'Correlation.1_event_id' => $eventId,
+		    		'Correlation.1_event_id' => $id,
 					array(
 						'OR' => array(
-							'Correlation.org_id' => $user['Org']['id'],
+							'Correlation.org' => $user['organisation_id'],
 							'AND' => array(
-								'OR' => array(
-									'AND' => array(	
-										'Correlation.distribution >' => 0,
-										'Correlation.distribution <' => 4,
-									),
-									'AND' => array(
-										'Correlation.distribution' => 4,
-										'Correlation.sharing_group_id' => $sgids
+								array(
+									'OR' => array(
+										array(
+											'AND' => array(	
+												'Correlation.distribution >' => 0,
+												'Correlation.distribution <' => 4,
+											),
+										),
+										array(
+											'AND' => array(
+												'Correlation.distribution' => 4,
+												'Correlation.sharing_group_id' => $sgids
+											),
+										),
 									),
 								),
-								'OR' => array(
-									'Correlation.a_distribution' => 5,
-									'AND' => array(	
-										'Correlation.a_distribution >' => 0,
-										'Correlation.a_distribution <' => 4,
-									),
-									'AND' => array(
-										'Correlation.a_distribution' => 4,
-										'Correlation.a_sharing_group_id' => $sgids
+								array(
+									'OR' => array(
+										'Correlation.a_distribution' => 5,
+										array(
+											'AND' => array(	
+												'Correlation.a_distribution >' => 0,
+												'Correlation.a_distribution <' => 4,
+											),
+										),
+										array(
+											'AND' => array(
+												'Correlation.a_distribution' => 4,
+												'Correlation.a_sharing_group_id' => $sgids
+											),
+										),
 									),
 								),
 							),
@@ -933,18 +959,25 @@ class Event extends AppModel {
 		if (!$user['Role']['perm_site_admin']) {
 			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
 			$conditions['AND']['OR'] = array(
-					'OR' => array(
-						'Event.distribution >' => 0,
-						'Event.org LIKE' => $org
+					'Event.org_id' => $user['organisation_id'],
+					array(
+						'AND' => array(
+							'Event.distribution >' => 0,
+							'Event.distribution <' => 4
+						),
 					),
-					'Event.sharing_group_id' => $sgids
+					array(
+						'AND' => array(
+							'Event.sharing_group_id' => $sgids,
+							'Event.distribution' => 4,
+						)
+					)
 			);
 			$conditionsAttributes['OR'] = array(
 				'Attribute.distribution >' => 0,
-				'(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org
+				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['organisation_id']
 			);
 		}
-		
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 		
@@ -980,7 +1013,6 @@ class Event extends AppModel {
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org');
 		$fieldsOrg = array('id', 'name');	
-		
 		
 		$params = array('conditions' => $conditions,
 			'recursive' => 0,
@@ -1561,7 +1593,6 @@ class Event extends AppModel {
 			}
 			return true;
 		} else {
-			debug($this->validationErrors);
 			//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
 			return false;
 		}
@@ -2014,5 +2045,21 @@ class Event extends AppModel {
 			return (!empty($field));
 		}
 		return true;
+	}
+	
+	// convenience method to check whther a user can see an event
+	public function checkIfAuthorised($user, $id) {
+		if (!isset($user['id'])) throw new MethodNotAllowedException('Invalid user.');
+		$this->id = $id;
+		if (!$this->exists()) return false;
+		if ($user['Role']['perm_site_admin']) return true;
+		$event = $this->find('first', array(
+			'conditions' => array('id' => $id),
+			'recursive' => -1,
+			'fields' => array('id', 'sharing_group_id', 'distribution', 'org_id')
+		));
+		if ($event['Event']['org_id'] == $user['organisation_id'] || ($event['Event']['distribution'] > 0 && $event['Event']['distribution'] < 4)) return true;
+		if ($event['Event']['distribution'] == 5 && $this->SharingGroup->checkIfAuthorised($user, $event['Event']['sharing_group_id'])) return true;
+		return false;
 	}
 }
