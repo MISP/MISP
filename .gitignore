@@ -37,6 +37,7 @@
 /app/Config/database.php
 /app/Config/core.php
 /app/Config/config.php
-/cakephp
+/app/Lib/cakephp
 /app/webroot/gpg.asc
 /app/tmp/logs
+*.swp

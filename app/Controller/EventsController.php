@@ -76,21 +76,23 @@ class EventsController extends AppController {
 			$this->paginate = Set::merge($this->paginate,array(
 					'conditions' =>
 					array("OR" => array(
-							array(
-								'Event.org_id' => $this->Auth->user('organisation_id')
+						array(
+							'Event.org_id' => $this->Auth->user('organisation_id')
+						),
+						array(
+							'AND' => array(
+								'Event.distribution >' => 0,
+								'Event.distribution <' => 4,
+								Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
 							),
-							array(
-								'AND' => array(
-									'Event.distribution >' => 0,
-									'Event.distribution <' => 4,
-								),
-							),
-							array(
-								'AND' => array(
-									'Event.distribution' => 4,
-									'Event.sharing_group_id' => $sgids
-								),	
-							)
+						),
+						array(
+							'AND' => array(
+								'Event.distribution' => 4,
+								'Event.sharing_group_id' => $sgids,
+								Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+							),	
+						)
 			))));
 		}
 	}
@@ -2474,7 +2476,11 @@ class EventsController extends AppController {
 	
 			if (!$user['User']['siteAdmin']) {
 				$temp = array();
-				$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
+				$temp['AND'] = array(
+							'Event.distribution >' => 0,
+							'Attribute.distribution >' => 0,
+							Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
+						);
 				$subcondition['OR'][] = $temp;
 				$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
 				array_push($conditions['AND'], $subcondition);
@@ -3033,7 +3039,7 @@ class EventsController extends AppController {
 				'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked'),
 			));
 			foreach ($events as $k => $v) {
-				if (!$v['Event']['timestamp'] < $incomingEvents[$v['Event']['uuid']]) {
+				if ($v['Event']['timestamp'] >= $incomingEvents[$v['Event']['uuid']]) {
 					unset($incomingEvents[$v['Event']['uuid']]);
 					continue;
 				}

@@ -16,19 +16,19 @@
 					?>
 					<li <?php if ($menuItem === 'viewEvent') echo 'class="active"';?>><a href="/events/view/<?php echo $event['Event']['id'];?>">View Event</a></li>
 					<li <?php if ($menuItem === 'eventLog') echo 'class="active"';?>><a href="/logs/event_index/<?php echo $event['Event']['id'];?>">View Event History</a></li>
+					<li class="divider"></li>
 					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
 					<li <?php if ($menuItem === 'editEvent') echo 'class="active"';?>><a href="/events/edit/<?php echo $event['Event']['id'];?>">Edit Event</a></li>
 					<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
-					<li class="divider"></li>
 					<li <?php if ($menuItem === 'addAttribute') echo 'class="active"';?>><a href="/attributes/add/<?php echo $event['Event']['id'];?>">Add Attribute</a></li>
 					<li <?php if ($menuItem === 'addAttachment') echo 'class="active"';;?>><a href="/attributes/add_attachment/<?php echo $event['Event']['id'];?>">Add Attachment</a></li>
 					<li <?php if ($menuItem === 'addIOC') echo 'class="active"';?>><a href="/events/addIOC/<?php echo $event['Event']['id'];?>">Populate from OpenIOC</a></li>
 					<li <?php if ($menuItem === 'addThreatConnect') echo 'class="active"';?>><a href="/attributes/add_threatconnect/<?php echo $event['Event']['id']; ?>">Populate from ThreatConnect</a></li>
-					<?php if ($menuItem === 'populateFromtemplate'): ?>
-						<li class="active"><a href="/templates/populateEventFromTemplate/<?php echo $template_id . '/' . $event['Event']['id']; ?>">Populate From Template</a></li>
+						<?php if ($menuItem === 'populateFromtemplate'): ?>
+							<li class="active"><a href="/templates/populateEventFromTemplate/<?php echo $template_id . '/' . $event['Event']['id']; ?>">Populate From Template</a></li>
+						<?php endif; ?>
 					<?php endif; ?>
-					<?php elseif (!isset($mayModify) || !$mayModify): ?>
-					<li class="divider"></li>
+					<?php if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)): ?>
 					<li <?php if ($menuItem === 'proposeAttribute') echo 'class="active"';?>><a href="/shadow_attributes/add/<?php echo $event['Event']['id'];?>">Propose Attribute</a></li>
 					<li <?php if ($menuItem === 'proposeAttachment') echo 'class="active"';?>><a href="/shadow_attributes/add_attachment/<?php echo $event['Event']['id'];?>">Propose Attachment</a></li>
 					<?php endif; ?>

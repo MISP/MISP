@@ -922,7 +922,10 @@ class Event extends AppModel {
 		$conditions = array();
 		if (!$isSiteAdmin) {
 			$conditions['OR'] = array(
-					'Event.distribution >' => 0,
+					"AND" => array(
+						'Event.distribution >' => 0,
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
+					),
 					'Event.org LIKE' => $org
 			);
 		}
@@ -959,19 +962,21 @@ class Event extends AppModel {
 		if (!$user['Role']['perm_site_admin']) {
 			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
 			$conditions['AND']['OR'] = array(
-					'Event.org_id' => $user['organisation_id'],
-					array(
-						'AND' => array(
-							'Event.distribution >' => 0,
-							'Event.distribution <' => 4
-						),
+				'Event.org_id' => $user['organisation_id'],
+				array(
+					'AND' => array(
+						'Event.distribution >' => 0,
+						'Event.distribution <' => 4,
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
 					),
-					array(
-						'AND' => array(
-							'Event.sharing_group_id' => $sgids,
-							'Event.distribution' => 4,
-						)
+				),
+				array(
+					'AND' => array(
+						'Event.sharing_group_id' => $sgids,
+						'Event.distribution' => 4,
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
 					)
+				)
 			);
 			$conditionsAttributes['OR'] = array(
 				'Attribute.distribution >' => 0,
@@ -1078,7 +1083,13 @@ class Event extends AppModel {
 	 		if ($from) $econditions['AND'][] = array('Event.date >=' => $from);
 	 		if ($to) $econditions['AND'][] = array('Event.date <=' => $to);
 	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-	 		if(!$isSiteAdmin) $econditions['AND']['OR'] = array('Event.distribution >' => 0, 'Event.org =' => $org);
+			if(!$isSiteAdmin) $econditions['AND']['OR'] = array(
+				"AND" => array(
+					'Event.distribution >' => 0,
+					Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+				),
+				'Event.org =' => $org
+			);
 	 		if ($eventid == 0 && $ignore == 0) $econditions['AND'][] = array('Event.published =' => 1);
 	 		
 	 		// If it's a full download (eventid == false) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
@@ -1196,7 +1207,7 @@ class Event extends AppModel {
 	 		$job = ClassRegistry::init('Job');
 	 		$job->create();
 	 		$data = array(
-	 				'worker' => 'default',
+	 				'worker' => 'email',
 	 				'job_type' => 'publish_alert_email',
 	 				'job_input' => 'Event: ' . $id,
 	 				'status' => 0,
@@ -1207,7 +1218,7 @@ class Event extends AppModel {
 	 		$job->save($data);
 	 		$jobId = $job->id;
 	 		$process_id = CakeResque::enqueue(
-	 				'default',
+	 				'email',
 	 				'EventShell',
 	 				array('alertemail', $user['org'], $jobId, $id)
 	 		);
@@ -1285,7 +1296,7 @@ class Event extends AppModel {
 		
 		if (Configure::read('MISP.extended_alert_subject')) {
 			$subject = preg_replace( "/\r|\n/", "", $event['Event']['info']);
-			if (strlen($subject) > 55) {
+			if (strlen($subject) > 58) {
 				$subject = substr($subject, 0, 55) . '... - ';
 			} else {
 				$subject .= " - ";
@@ -1778,7 +1789,7 @@ class Event extends AppModel {
 			$job = ClassRegistry::init('Job');
 			$job->create();
 			$data = array(
-					'worker' => 'default',
+					'worker' => 'email',
 					'job_type' => 'contact_alert',
 					'job_input' => 'To entire org: ' . $all,
 					'status' => 0,
@@ -1789,7 +1800,7 @@ class Event extends AppModel {
 			$job->save($data);
 			$jobId = $job->id;
 			$process_id = CakeResque::enqueue(
-					'default',
+					'email',
 					'EventShell',
 					array('contactemail', $id, $message, $all, $user['id'], $isSiteAdmin, $jobId)
 			);
@@ -1986,7 +1997,7 @@ class Event extends AppModel {
 		$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
 		
 		// Execute the python script and point it to the temporary filename
-		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType);
+		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType . ' ' . Configure::read('MISP.baseurl') . ' "' . Configure::read('MISP.org') . '"');
 		
 		// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
 		// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along

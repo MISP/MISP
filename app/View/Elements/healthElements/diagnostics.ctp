@@ -86,4 +86,18 @@
 			echo 'GnuPG installation and settings....<span style="color:' . $colour . ';">' . $message . '</span>';
 		?>
 	</div>
+	<h3>
+	Proxy
+	</h3>
+	<p>This tool tests whether your HTTP proxy settings are correct.</p>
+	<div style="background-color:#f7f7f9;width:300px;">
+		<?php
+			$colour = 'green';
+			$message = $proxyErrors[$proxyStatus];
+			if ($proxyStatus > 1) {
+				$colour = 'red';
+			}
+			echo 'Proxy settings....<span style="color:' . $colour . ';">' . $message . '</span>';
+		?>
+	</div>
 </div>

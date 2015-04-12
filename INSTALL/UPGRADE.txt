@@ -32,7 +32,7 @@ python setup.py install
 # install / update CakeResque (using the background workers is optional buy highly recommended)
 cd /var/www/MISP/app
 curl -s https://getcomposer.org/installer | php
-php composer.phar require --no-update kamisama/cake-resque:4.1.0
+php composer.phar require kamisama/cake-resque:4.1.2
 php composer.phar config vendor-dir Vendor
 php composer.phar install
 

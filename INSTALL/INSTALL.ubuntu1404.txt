@@ -14,6 +14,7 @@ Install a minimal ubuntu 14.04-server system with the software:
 - Mail server
 
 You will get some questions, you will probably want to set:
+sudo apt-get install postfix
 - Postfix Configuration: Satellite system
 
 Make sure your system is up2date:
@@ -64,7 +65,7 @@ git submodule update
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/MISP/app
 curl -s https://getcomposer.org/installer | php
-php composer.phar require --no-update kamisama/cake-resque:4.1.0
+php composer.phar require kamisama/cake-resque:4.1.2
 php composer.phar config vendor-dir Vendor
 php composer.phar install
 
@@ -102,7 +103,8 @@ mysql> exit
 cd /var/www/MISP
 
 # Import the empty MySQL database from MYSQL.sql 
-mysql -u misp -p<password> misp < INSTALL/MYSQL.sql
+mysql -u misp -p misp < INSTALL/MYSQL.sql
+#enter the password you set previously
 
 
 7/ Apache configuration
@@ -163,8 +165,8 @@ chown www-data:www-data /var/www/MISP/.gnupg
 chmod 700 /var/www/MISP/.gnupg
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 # Recommended key type: RSA
-# The email address should match the one set int he bootstrap.php configuration file
-# Make sure that you use the same settings in the MISP Server Settings tool tool (Described on line 184)
+# The email address should match the one set in the config.php configuration file
+# Make sure that you use the same settings in the MISP Server Settings tool (Described on line 184)
 
 # And export the public key to the webroot
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc

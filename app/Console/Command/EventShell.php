@@ -45,7 +45,7 @@ class EventShell extends AppShell
 		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
 		$result = array();
 		$eventCount = count($eventIds);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/xml');
+		$dir = new Folder(APP . 'tmp/cached_exports/xml');
 		if ($isSiteAdmin) {
 			$file = new File($dir->pwd() . DS . 'misp.xml' . '.ADMIN.xml');
 		} else {
@@ -192,7 +192,7 @@ class EventShell extends AppShell
 		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
 		$eventCount = count($eventIds);
 		$attributes = array();
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
+		$dir = new Folder(APP . 'tmp/cached_exports/' . $extra);
 		if ($isSiteAdmin) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.csv');
 		} else {
@@ -200,11 +200,13 @@ class EventShell extends AppShell
 		}
 		$file->write('uuid,event_id,category,type,value,to_ids,date' . PHP_EOL);
 		foreach ($eventIds as $k => $eventId) {
+			$chunk = "";
 			$attributes = $this->Event->csv($org, $isSiteAdmin, $eventId['Event']['id'], $ignore);
 			$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 			foreach ($attributes as $attribute) {
-				$file->append($attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'] . PHP_EOL);
+				$chunk .= $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'] . PHP_EOL;
 			}
+			$file->append($chunk);
 			if ($k % 10 == 0) {
 				$this->Job->saveField('progress', $k / $eventCount * 80);
 			}
@@ -333,7 +335,7 @@ class EventShell extends AppShell
 			// Now that we have figured out when the next execution should happen, it's time to enqueue it.
 			$process_id = CakeResque::enqueueAt(
 					$task['Task']['next_execution_time'],
-					'default',
+					'cache',
 					'EventShell',
 					array('enqueueCaching', $task['Task']['next_execution_time']),
 					true

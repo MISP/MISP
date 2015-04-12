@@ -301,4 +301,23 @@ class AppController extends Controller {
 		$this->Session->setFlash(__('All done. attribute_count generated from scratch for ' . $k . ' events.'));
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
+	
+	public function updateDatabase($command) {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		$sql = '';
+		switch ($command) {
+			case 'extendServerOrganizationLength':
+				$sql = 'ALTER TABLE servers MODIFY COLUMN organization varchar(255) NOT NULL';
+				$controller = 'Servers';
+				break;
+			default:
+				$this->Session->setFlash('Invalid command.');
+				$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+				break;
+		}
+		$this->loadModel($controller);
+		$this->$controller->query($sql);
+		$this->Session->setFlash('Done.');
+		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+	}
 }

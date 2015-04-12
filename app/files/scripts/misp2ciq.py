@@ -1,7 +1,7 @@
 from stix.extensions.identity.ciq_identity_3_0 import (CIQIdentity3_0Instance, STIXCIQIdentity3_0, OrganisationInfo, PartyName, Address, ElectronicAddressIdentifier, FreeTextAddress)
 from stix.common import Identity
 
-def resolveIdentityAttribute(incident, attribute):
+def resolveIdentityAttribute(incident, attribute, namespace):
     ciq_identity = CIQIdentity3_0Instance()
     identity_spec = STIXCIQIdentity3_0()
     if attribute["type"] == 'target-user':
@@ -20,6 +20,6 @@ def resolveIdentityAttribute(incident, attribute):
     ciq_identity.id_ = "example:Identity-" + attribute["uuid"]
 
     # is this a good idea?
-    ciq_identity.name = "MISP Attribute #" + attribute["id"] + " uuid: " + attribute["uuid"]
+    ciq_identity.name = attribute["type"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     incident.add_victim(ciq_identity)
     return incident
