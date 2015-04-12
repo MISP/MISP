@@ -50,33 +50,27 @@ $config = array (
     'expire' => 300,
   ),
   // Uncomment the following to enable client SSL certificate authentication
-  /*
   'CertAuth' => 
   array(
-    'register'=>true,
-    'ca'=>'FIRST.Org',
-    'caId'=>'org',
-    'mapCa'=>array(
-      'O'=>'org',
+    'ca'    => array( 'FIRST.Org' ), // allowed CAs
+    'caId'          => 'O',          // which attribute will be used to verify the CA
+    'userModel'     => 'User',       // name of the User class to check if user exists 
+    'userModelKey'  => 'nids_sid',   // User field that will be used for querying 
+    'map'           => array(        // maps client certificate attributes to User properties
+      'O'           => 'org',
       'emailAddress'=>'email',
     ),
-    'map'=>array(
-      'O'=>'org',
-      'emailAddress'=>'email',
-    ),
-    'userModel'=>'User',
-    'userModelKey'=>'nids_sid',
-    'enableSession' => true,
-    'syncUser'=>true,
-    'restApi'=>array(
-      'url'=>'https://www.first.org/data/members?scope=full&limit=1',
-      'headers'=>array(),
-      'param'=>array('email'=>'email'),
-      'map'=>array(
-        'uid'=>'nids_sid',
-        'team'=>'org',
-        'email'=>'email',
-        'pgp_public'=>'gpgkey',
+    'enableSession' => true,         // if FALSE then disables session cookies
+    'syncUser'      => true,         // should the User be synchronized with an external REST API
+    'restApi'       => array(        // API parameters
+      'url'         => 'https://example.com/data/users',  // URL to query
+      'headers'     => array(),                           // additional headers, used for authentication
+      'param'       => array( 'email' => 'email'),        // query parameters to add to the URL, mapped to USer properties 
+      'map'         =>  array(                            // maps REST result to the User properties
+        'uid'       => 'nids_sid',
+        'team'      => 'org',
+        'email'     => 'email',
+        'pgp_public'=> 'gpgkey',
       ),
     ),
   ),
