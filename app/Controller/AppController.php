@@ -102,6 +102,13 @@ class AppController extends Controller {
 					throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
 				}
 			}
+		} else if(!$this->Session->read('Auth.User')) {
+			// load authentication plugins from Configure::read('Security.auth')
+			$auth = Configure::read('Security.auth');
+			if($auth) {
+				$this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
+				$this->Auth->startup($this);
+			}
 		}
 		// user must accept terms
 		//
