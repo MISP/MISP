@@ -1,6 +1,6 @@
 <?php
-$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
-$mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
+$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['organisation_id']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
+$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['organisation_id']);
 ?>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
@@ -8,7 +8,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 <div class="events view">
 	<?php
 		if (Configure::read('MISP.showorg') || $isAdmin) {
-			echo $this->element('img', array('id' => $event['Event']['orgc']));
+			echo $this->element('img', array('id' => $event['Orgc']['name']));
 			$left = true;
 		}
 		$title = $event['Event']['info'];
@@ -45,7 +45,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 						if (Configure::read('MISP.showorg') || $isAdmin): ?>
 							<dt>Org</dt>
 							<dd>
-								<?php echo h($event['Event']['orgc']); ?>
+								<?php echo h($event['Orgc']['name']); ?>
 								&nbsp;
 							</dd>
 							<?php endif; ?>

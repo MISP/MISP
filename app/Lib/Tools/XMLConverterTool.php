@@ -26,19 +26,31 @@ class XMLConverterTool {
 	public function event2xmlArray($event, $isSiteAdmin=false) {
 		$toEscape = array("&", "<", ">", "\"", "'");
 		$escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
+		$event['Event']['Org'][0] = $event['Org'];
+		$event['Event']['Orgc'][0] = $event['Orgc'];
 		$event['Event']['Attribute'] = $event['Attribute'];
 		$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
 		$event['Event']['RelatedEvent'] = $event['RelatedEvent'];
-		foreach ($event['SharingGroup']['SharingGroupOrg'] as $key => $sgo) {
-			$event['SharingGroup']['SharingGroupOrg'][$key]['Organisation'] = array(0 => $event['SharingGroup']['SharingGroupOrg'][$key]['Organisation']);
+	
+		if (isset($event['EventTag'])) {
+			foreach ($event['EventTag'] as $k => $tag) {
+				$event['Event']['Tag'][$k] = $tag['Tag'];
+			}
 		}
-		foreach ($event['SharingGroup']['SharingGroupServer'] as $key => $sgs) {
-			$event['SharingGroup']['SharingGroupOrg'][$key]['Server'] = array(0 => $event['SharingGroup']['SharingServer'][$key]['Server']);
+		
+		if (isset($event['SharingGroup']['SharingGroupOrg'])) {
+			foreach ($event['SharingGroup']['SharingGroupOrg'] as $key => $sgo) {
+				$event['SharingGroup']['SharingGroupOrg'][$key]['Organisation'] = array(0 => $event['SharingGroup']['SharingGroupOrg'][$key]['Organisation']);
+			}
 		}
-		$event['Event']['SharingGroup'][0] = $event['SharingGroup'];
+		if (isset($event['SharingGroup']['SharingGroupServer'])) {
+			foreach ($event['SharingGroup']['SharingGroupServer'] as $key => $sgs) {
+				$event['SharingGroup']['SharingGroupServer'][$key]['Server'] = array(0 => $event['SharingGroup']['SharingGroupServer'][$key]['Server']);
+			}
+		}
+		if (isset($event['SharingGroup'])) $event['Event']['SharingGroup'][0] = $event['SharingGroup'];
 		$event['Event']['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['info']);
 		$event['Event']['info'] = str_replace($toEscape, $escapeWith, $event['Event']['info']);
-		
 		//
 		// cleanup the array from things we do not want to expose
 		//
@@ -59,7 +71,6 @@ class XMLConverterTool {
 				$event['Event']['Attribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $event['Event']['Attribute'][$key]['comment']);
 				unset($event['Event']['Attribute'][$key]['value1']);
 				unset($event['Event']['Attribute'][$key]['value2']);
-				unset($event['Event']['Attribute'][$key]['category_order']);
 				foreach($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
 					$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
 					$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = str_replace($toEscape, $escapeWith, $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);

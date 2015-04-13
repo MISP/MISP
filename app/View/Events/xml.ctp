@@ -27,7 +27,6 @@ foreach ($results as $result) {
 		$result['Event']['Attribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['comment']);
 		unset($result['Event']['Attribute'][$key]['value1']);
 		unset($result['Event']['Attribute'][$key]['value2']);
-		unset($result['Event']['Attribute'][$key]['category_order']);
 		foreach($result['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
 			$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
 			$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);

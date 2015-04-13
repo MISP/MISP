@@ -958,7 +958,7 @@ class Event extends AppModel {
 				'conditions' => $conditions,
 				'recursive' => -1,
 			);
-			$results = $this->find('list', $params);
+			$results = array_values($this->find('list', $params));
 		} else {
 			$params = array(
 				'conditions' => $conditions,
@@ -970,14 +970,22 @@ class Event extends AppModel {
 		return $results;
 	}
 	
-	//Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller.
-	public function fetchEvent($eventid = false, $idList = false, $user, $bkgrProcess = false, $tags = false, $from = false, $to = false) {
-		if ($eventid) {
-			$this->id = $eventid;
+	//Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller or background process.
+	// Possible options: 
+	// eventid: single event ID
+	// idList: array with event IDs
+	// tags: string with the usual tag syntax
+	// from: date string (YYYY-MM-DD)
+	// to: date string (YYYY-MM-DD)
+	public function fetchEvent($user, $options = array()) {
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to');
+		foreach ($possibleOptions as &$opt) if (!isset($options[$opt])) $options[$opt] = false;
+		if ($options['eventid']) {
+			$this->id = $options['eventid'];
 			if (!$this->exists()) {
 				throw new NotFoundException(__('Invalid event'));
 			}
-			$conditions = array("Event.id" => $eventid);
+			$conditions = array("Event.id" => $options['eventid']);
 		} else {
 			$conditions = array();
 		}
@@ -1010,16 +1018,16 @@ class Event extends AppModel {
 				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['organisation_id']
 			);
 		}
-		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
-		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+		if ($options['from']) $conditions['AND'][] = array('Event.date >=' => $options['from']);
+		if ($options['to']) $conditions['AND'][] = array('Event.date <=' => $options['to']);
 		
-		if ($idList && !$tags) {
-			$conditions['AND'][] = array('Event.id' => $idList);
+		if ($options['idList'] && !$options['tags']) {
+			$conditions['AND'][] = array('Event.id' => $options['idList']);
 		}
 		// If we sent any tags along, load the associated tag names for each attribute
-		if ($tags) {
+		if ($options['tags']) {
 			$tag = ClassRegistry::init('Tag');
-			$args = $this->Attribute->dissectArgs($tags);
+			$args = $this->Attribute->dissectArgs($options['tags']);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
 			$temp = array();
 			if ($idList) $tagArray[0] = array_intersect($tagArray[0], $idList);
@@ -1041,11 +1049,22 @@ class Event extends AppModel {
 		// $conditions['AND'][] = array('Event.published =' => 1);
 		
 		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp');
+		$fields = array('Event.id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp');
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org');
-		$fieldsOrg = array('id', 'name');
-		$fieldsSharingGroup = array('SharingGroup.id', 'releasability', 'description');
+		$fieldsOrg = array(array('id', 'name'), array('id', 'name', 'uuid'));
+		$fieldsSharingGroup = array(
+			array('fields' => array('SharingGroup.id','SharingGroup.name', 'SharingGroup.releasability', 'SharingGroup.description')),
+			array(
+				'fields' => array('SharingGroup.*'),
+					'SharingGroupOrg' => array(
+						'Organisation' => array('fields' => $fieldsOrg[1]),
+					),
+					'SharingGroupServer' => array(
+						'Server',
+				),
+			),
+		);
 		$fieldsServer = array('id', 'name');
 
 		if ($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) $fieldsOrg[] = 'uuid';
@@ -1057,8 +1076,8 @@ class Event extends AppModel {
 				'ThreatLevel' => array(
 						'fields' => array('ThreatLevel.name')
 				),
-				'Org' => array('fields' => $fieldsOrg), 
-				'Orgc' => array('fields' => $fieldsOrg),
+				'Org' => array('fields' => $fieldsOrg[($user['Role']['perm_site_admin'] ? 1 : 0)]), 
+				'Orgc' => array('fields' => $fieldsOrg[($user['Role']['perm_site_admin'] ? 1 : 0)]),
 				'Attribute' => array(
 					'fields' => $fieldsAtt,
 					'conditions' => $conditionsAttributes,
@@ -1067,19 +1086,19 @@ class Event extends AppModel {
 					'fields' => $fieldsShadowAtt,
 					'conditions' => array('deleted' => 0),
 				),
-				'SharingGroup' => array(
-					'fields' => array('SharingGroup.*'),
-					'SharingGroupOrg' => array(
-						'Organisation' => array('fields' => $fieldsOrg),
-					),
-					'SharingGroupServer' => array(
-						'Server',
+				'SharingGroup' => $fieldsSharingGroup[($user['Role']['perm_site_admin'] ? 1 : 0)],
+				'EventTag' => array(
+					'Tag' => array(
+						'conditions' => array('exportable' => 1)
 					),
 				),
 			)
 		);
-		if ($isSiteAdmin) $params['contain']['User'] = array('fields' => 'email');
+		if ($user['Role']['perm_site_admin']) {
+			$params['contain']['User'] = array('fields' => 'email');
+		}
 		$results = $this->find('all', $params);
+		foreach ($results as &$result) if ($result['SharingGroup']['id'] == null) unset($result['SharingGroup']);
 		// Do some refactoring with the event
 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
 		foreach ($results as $eventKey => &$event) {
@@ -2005,7 +2024,7 @@ class Event extends AppModel {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
-		$events = $this->fetchEvent(null, $idList, $user);
+		$events = $this->fetchEvent($user, array('idList' => $idList));
 		if (empty($events)) throw new Exception('No matching events found to export.');
 		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
 		if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {

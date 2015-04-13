@@ -624,7 +624,7 @@ class EventsController extends AppController {
 		}
 		$this->loadModel('Log');
 		$logEntries = $this->Log->find('all', array(
-			'conditions' => array('model' => 'ShadowAttribute', 'org !=' => $results[0]['Event']['orgc'], 'title LIKE' => '%Event (' . $id . ')%'),
+			'conditions' => array('model' => 'ShadowAttribute', 'org !=' => $results[0]['Orgc']['name'], 'title LIKE' => '%Event (' . $id . ')%'),
 			'fields' => array('org'),
 			'group' => 'org'
 		));
@@ -650,7 +650,7 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('event', $result);
-		
+
 		if (!$this->_isRest()) {
 			// modify event for attribute pagination
 			$eventArray = array();
@@ -1767,14 +1767,11 @@ class EventsController extends AppController {
 			if (!$user) {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
-			$org = $user['User']['org'];
-			$isSiteAdmin = $user['User']['siteAdmin'];
 		} else {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$org = $this->Auth->user('org');
-			$isSiteAdmin = $this->_isSiteAdmin();
+			$user = $this->Auth->user();
 		}
 		
 		if ($eventid) {
@@ -1785,14 +1782,10 @@ class EventsController extends AppController {
 		$final = "";
 		$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
 		
-		if (!$eventid) {
-			// TEMP: change to passing an options array with the user!!
-			$events = $this->Event->fetchEventIds($this->Auth->user(), $from, $to);
-			foreach ($events as $event) $eventIdArray[] = $event['Event']['id'];
-		}
-		
+		if (!$eventid) $eventIdArray = $this->Event->fetchEventIds($user, $from, $to, true);
+
 		foreach ($eventIdArray as $currentEventId) {
-			$result = $this->__fetchEvent($currentEventId, null, $this->Auth->user(), $tags, $from, $to);
+			$result = $this->__fetchEvent($currentEventId, null, $user, $tags, $from, $to);
 			if ($withAttachment) {
 				foreach ($result[0]['Attribute'] as &$attribute) {
 					if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
@@ -1818,7 +1811,7 @@ class EventsController extends AppController {
 		if (empty($user)) {
 			$user = $this->Auth->user();
 		}
-		$results = $this->Event->fetchEvent($eventid, $idList, $user, null, $tags, $from, $to);
+		$results = $this->Event->fetchEvent($user, array('eventid' => $eventid, 'idList' => $idList, 'tags' => $tags, 'from' => $from, 'to' => $to));
 		return $results;
 	}
 
@@ -1847,13 +1840,12 @@ class EventsController extends AppController {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$user = array('User' => $this->Auth->user());
-			$user['User']['siteAdmin'] = $this->_isSiteAdmin();
+			$user = $this->Auth->user();
 		}
 		
 		// display the full snort rulebase
 		$this->loadModel('Attribute');
-		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid'], $id, $continue, $tags, $from, $to);
+		$rules = $this->Attribute->nids($user, $format, $id, $continue, $tags, $from, $to);
 		$this->set('rules', $rules);
 	}
 

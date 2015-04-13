@@ -1,6 +1,6 @@
 <?php
-	$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
-	$mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
+	$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['organisation_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['organisation_id']));
+	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['organisation_id']);
 	$pageCount = intval($objectCount / 50);
 	if ($objectCount%50 != 0) $pageCount++;
 	$possibleAction = 'Proposal';
@@ -240,14 +240,14 @@
 						<?php 			
 								}
 							} else {
-								if (($event['Event']['orgc'] == $me['org'] && $mayModify) || $isSiteAdmin) {
+								if (($event['Orgc']['id'] == $me['organisation_id'] && $mayModify) || $isSiteAdmin) {
 									echo $this->Form->create('Shadow_Attribute', array('id' => 'ShadowAttribute_' . $object['id'] . '_accept', 'url' => '/shadow_attributes/accept/' . $object['id'], 'style' => 'display:none;'));
 									echo $this->Form->end();
 								?>
 									<span class="icon-ok useCursorPointer" onClick="acceptObject('shadow_attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 								<?php 
 								}
-								if (($event['Event']['orgc'] == $me['org'] && $mayModify) || $isSiteAdmin || ($object['org'] == $me['org'])) {
+								if (($event['Orgc']['id'] == $me['organisation_id'] && $mayModify) || $isSiteAdmin || ($object['org'] == $me['org'])) {
 								?>
 									<span class="icon-trash useCursorPointer" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 								<?php 

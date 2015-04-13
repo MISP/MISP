@@ -55,17 +55,6 @@ class ShadowAttribute extends AppModel {
  */
 	public $virtualFields = array(
 			'value' => 'IF (ShadowAttribute.value2="", ShadowAttribute.value1, CONCAT(ShadowAttribute.value1, "|", ShadowAttribute.value2))',
-			'category_order' => 'IF (ShadowAttribute.category="Internal reference", "a",
-			IF (ShadowAttribute.category="Antivirus detection", "b",
-			IF (ShadowAttribute.category="Payload delivery", "c",
-			IF (ShadowAttribute.category="Payload installation", "d",
-			IF (ShadowAttribute.category="Artifacts dropped", "e",
-			IF (ShadowAttribute.category="Persistence mechanism", "f",
-			IF (ShadowAttribute.category="Network activity", "g",
-			IF (ShadowAttribute.category="Payload type", "h",
-			IF (ShadowAttribute.category="Attribution", "i",
-			IF (ShadowAttribute.category="Attribution", "j",
-			IF (ShadowAttribute.category="External analysis", "k", "l")))))))))))'
 	); // TODO hardcoded
 
 /**

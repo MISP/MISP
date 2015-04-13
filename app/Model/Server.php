@@ -888,7 +888,6 @@ class Server extends AppModel {
 					foreach ($event['ShadowAttribute'] as &$sa) {
 						$sa['data'] = $saModel->base64EncodeAttachment($sa);
 						unset($sa['id']);
-						unset($sa['category_order']);
 						unset($sa['value1']);
 						unset($sa['value2']);
 					}

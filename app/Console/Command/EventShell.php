@@ -56,7 +56,7 @@ class EventShell extends AppShell
 		$escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
 		$file->write('<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>');
 		foreach ($eventIds as $k => $eventId) {
-			$temp = $this->Event->fetchEvent($eventId['Event']['id'], null, $org, $isSiteAdmin, $this->Job->id);
+			$temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id']));
 			$result = $temp[0];
 			$result['Event']['Attribute'] = $result['Attribute'];
 			$result['Event']['ShadowAttribute'] = $result['ShadowAttribute'];
@@ -85,7 +85,6 @@ class EventShell extends AppShell
 				$result['Event']['Attribute'][$key]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['comment']);
 				unset($result['Event']['Attribute'][$key]['value1']);
 				unset($result['Event']['Attribute'][$key]['value2']);
-				unset($result['Event']['Attribute'][$key]['category_order']);
 				$result['Event']['Attribute'][$key]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['value']);
 				$result['Event']['Attribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['comment']);
 

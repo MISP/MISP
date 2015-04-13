@@ -41,17 +41,6 @@ class Attribute extends AppModel {
  */
 	public $virtualFields = array(
 			'value' => 'IF (Attribute.value2="", Attribute.value1, CONCAT(Attribute.value1, "|", Attribute.value2))',
-			'category_order' => 'IF (Attribute.category="Internal reference", "a",
-			IF (Attribute.category="Targeting data", "b",
- 			IF (Attribute.category="Antivirus detection", "c",
- 			IF (Attribute.category="Payload delivery", "d",
- 			IF (Attribute.category="Payload installation", "e",
- 			IF (Attribute.category="Artifacts dropped", "f",
- 			IF (Attribute.category="Persistence mechanism", "g",
- 			IF (Attribute.category="Network activity", "h",
- 			IF (Attribute.category="Payload type", "i",
- 			IF (Attribute.category="Attribution", "j",
- 			IF (Attribute.category="External analysis", "k", "l")))))))))))'
 	); // TODO hardcoded
 
 /**
@@ -1213,18 +1202,11 @@ class Attribute extends AppModel {
 	}
 	
 	// convert to user
-	public function nids($isSiteAdmin, $org, $format, $sid, $id = false, $continue = false, $tags = false, $from = false, $to = false) {
+	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false) {
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
 		$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
 		$conditions['AND']['Attribute.type'] = $valid_types;
-		if (!$isSiteAdmin) {
-			$temp = array();
-			$distribution = array();
-			array_push($temp, array('AND' => array('Attribute.distribution >' => 0, 'Event.distribution >' => 0)));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
-			$conditions['OR'] = $temp;
-		}
 		
 		if ($id) array_push($conditions['AND'], array('Event.id' => $id));
 		if ($from) array_push($conditions['AND'], array('Event.date >=' => $from));
@@ -1248,12 +1230,12 @@ class Attribute extends AppModel {
 		}
 		$params = array(
 				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
+				'recursive' => -1, //int
+				'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'),
+				'contain' => array('Event'=> array('fields' => array('Event.id', 'Event.threat_level_id'))),
 				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
 		);
-		unset($this->virtualFields['category_order']);  // not needed for IDS export and speeds things up
-		$items = $this->find('all', $params);
-		
+		$items = $this->fetchAttributes($user, $params);
 		// export depending of the requested type
 		switch ($format) {
 			case 'suricata':
@@ -1265,7 +1247,7 @@ class Attribute extends AppModel {
 				$export = new NidsSnortExport();
 				break;
 		}
-		$rules = $export->export($items, $sid, $format, $continue);
+		$rules = $export->export($items, $user['nids_sid'], $format, $continue);
 		return $rules;
 	}
 
