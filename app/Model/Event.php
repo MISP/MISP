@@ -118,13 +118,13 @@ class Event extends AppModel {
 	);
 	
 	public $csv_event_context_fields_to_fetch = array(
-	 			'info' => 'event_info', 
-	 			'org' => 'event_member_org',  
-	 			'orgc' => 'event_source_org', 
-	 			'distribution' => 'event_distribution', 
-	 			'threat_level_id' => 'event_threat_level_id', 
-	 			'analysis' => 'event_analysis', 
-	 			'date' => 'event_date', 
+	 			'event_info' => array('object' => false, 'var' => 'info'), 
+	 			'event_member_org' => array('object' => 'Org', 'var' => 'name'),  
+	 			'event_source_org' => array('object' => 'Orgc', 'var' => 'name'), 
+	 			'event_distribution' => array('object' => false, 'var' => 'distribution'), 
+	 			'event_threat_level_id' => array('object' => 'ThreatLevel', 'var' => 'name'), 
+	 			'event_analysis' => array('object' => false, 'var' => 'analysis'), 
+	 			'event_date' => array('object' => false, 'var' => 'date'), 
 	 	);
 	
 /**
@@ -918,28 +918,55 @@ class Event extends AppModel {
 		return null;
 	}
 
-	public function fetchEventIds($org, $isSiteAdmin, $from = false, $to = false) {
+	public function fetchEventIds($user, $from = false, $to = false, $list = false) {
 		$conditions = array();
-		if (!$isSiteAdmin) {
-			$conditions['OR'] = array(
-					"AND" => array(
+			$isSiteAdmin = $user['Role']['perm_site_admin'];
+		
+		$conditionsAttributes = array();
+		//restricting to non-private or same org if the user is not a site-admin.
+		if (!$user['Role']['perm_site_admin']) {
+			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
+			$conditions['AND']['OR'] = array(
+				'Event.org_id' => $user['organisation_id'],
+				array(
+					'AND' => array(
 						'Event.distribution >' => 0,
-						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
+						'Event.distribution <' => 4,
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
 					),
-					'Event.org LIKE' => $org
+				),
+				array(
+					'AND' => array(
+						'Event.sharing_group_id' => $sgids,
+						'Event.distribution' => 4,
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+					)
+				)
+			);
+			$conditionsAttributes['OR'] = array(
+				'Attribute.distribution >' => 0,
+				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['organisation_id']
 			);
 		}
-		$fields = array('Event.id', 'Event.org', 'Event.distribution');
+		$fields = array('Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id');
 		
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 		
-		$params = array(
-			'conditions' => $conditions,
-			'recursive' => -1,
-			'fields' => $fields,
-		);
-		$results = $this->find('all', $params);
+		if ($list) {
+			$params = array(
+				'conditions' => $conditions,
+				'recursive' => -1,
+			);
+			$results = $this->find('list', $params);
+		} else {
+			$params = array(
+				'conditions' => $conditions,
+				'recursive' => -1,
+				'fields' => $fields,
+			);
+			$results = $this->find('all', $params);
+		}
 		return $results;
 	}
 	
@@ -954,7 +981,7 @@ class Event extends AppModel {
 		} else {
 			$conditions = array();
 		}
-		
+		if (!isset($user['organisation_id'])) throw new Exception('There was an error with the user account.');
 		$isSiteAdmin = $user['Role']['perm_site_admin'];
 		
 		$conditionsAttributes = array();
@@ -1017,7 +1044,11 @@ class Event extends AppModel {
 		$fields = array('Event.id', 'Event.org', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.orgc', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp');
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org');
-		$fieldsOrg = array('id', 'name');	
+		$fieldsOrg = array('id', 'name');
+		$fieldsSharingGroup = array('SharingGroup.id', 'releasability', 'description');
+		$fieldsServer = array('id', 'name');
+
+		if ($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) $fieldsOrg[] = 'uuid';
 		
 		$params = array('conditions' => $conditions,
 			'recursive' => 0,
@@ -1037,6 +1068,7 @@ class Event extends AppModel {
 					'conditions' => array('deleted' => 0),
 				),
 				'SharingGroup' => array(
+					'fields' => array('SharingGroup.*'),
 					'SharingGroupOrg' => array(
 						'Organisation' => array('fields' => $fieldsOrg),
 					),
@@ -1071,32 +1103,26 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	public function csv($org, $isSiteAdmin, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false) {
+	
+	// TEMP: Update to user
+	public function csv($user, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false) {
 		$final = array();
 		$attributeList = array();
 		$conditions = array();
 	 	$econditions = array();
 	 	$this->recursive = -1;
-	 	
 	 	// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
 	 	if ($eventid !== 'search') {
 	 		if ($from) $econditions['AND'][] = array('Event.date >=' => $from);
 	 		if ($to) $econditions['AND'][] = array('Event.date <=' => $to);
 	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-			if(!$isSiteAdmin) $econditions['AND']['OR'] = array(
-				"AND" => array(
-					'Event.distribution >' => 0,
-					Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-				),
-				'Event.org =' => $org
-			);
-	 		if ($eventid == 0 && $ignore == 0) $econditions['AND'][] = array('Event.published =' => 1);
+	 		if ($eventid == 0 && $ignore == 0) $conditions['AND'][] = array('Event.published' => 1);
 	 		
 	 		// If it's a full download (eventid == false) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
 	 		if (!$eventid) {
 	 			$this->recursive = -1;
 	 			// If we sent any tags along, load the associated tag names for each attribute
-	 			if (!$tags) {
+	 			if ($tags) {
 	 				$tag = ClassRegistry::init('Tag');
 	 				$args = $this->Attribute->dissectArgs($tags);
 	 				$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
@@ -1104,39 +1130,21 @@ class Event extends AppModel {
 	 				foreach ($tagArray[0] as $accepted) {
 	 					$temp['OR'][] = array('Event.id' => $accepted);
 	 				}
-	 				$conditions['AND'][] = $temp;
+	 				if (!empty($temp)) $conditions['AND'][] = $temp;
 	 				$temp = array();
 	 				foreach ($tagArray[1] as $rejected) {
 	 					$temp['AND'][] = array('Event.id !=' => $rejected);
 	 				}
-	 				$econditions['AND'][] = $temp;
+	 				if (!empty($temp)) $conditions['AND'][] = $temp;
 	 			}
-	 			// let's add the conditions if we're dealing with a non-siteadmin user
-	 			$params = array(
-	 					'conditions' => $econditions,
-	 					'fields' => array('id', 'distribution', 'org', 'published', 'date'),
-	 			);
-	 			$events = $this->find('all', $params);
-	 		}
-	 		// if we have items in events, add their IDs to the conditions. If we're a site admin, or we have a single event selected for download, this should be empty
-	 		if (isset($events)) {
-	 			foreach ($events as $event) $conditions['AND']['OR'][] = array('Attribute.event_id' => $event['Event']['id']);
 	 		}
 	 		// if we're downloading a single event, set it as a condition
-	 		if ($eventid) $conditions['AND'][] = array('Attribute.event_id' => $eventid);
+	 		if ($eventid) $conditions['AND'][] = array('Event.id' => $eventid);
 	 		
 	 		//restricting to non-private or same org if the user is not a site-admin.
 	 		if (!$ignore) $conditions['AND'][] = array('Attribute.to_ids' => 1);
 	 		if ($type) $conditions['AND'][] = array('Attribute.type' => $type);
 	 		if ($category) $conditions['AND'][] = array('Attribute.category' => $category);
-	 		
-	 		if (!$isSiteAdmin) {
-	 			$temp = array();
-	 			$distribution = array();
-	 			array_push($temp, array('Attribute.distribution >' => 0));
-	 			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
-	 			$conditions['OR'] = $temp;
-	 		}
 	 	}
 	 	
 	 	if ($eventid === 'search') {
@@ -1146,18 +1154,35 @@ class Event extends AppModel {
 	 			'conditions' => $conditions, //array of conditions
 	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp'),
 	 	);
-	 	$attributes = $this->Attribute->find('all', $params);
+	 	
+	 	if ($includeContext) {
+	 		$params['contain'] = array(
+ 				'Event' => array(
+ 						'fields' => array('id', 'info', 'org_id', 'orgc_id', 'date', 'distribution', 'analysis'),
+ 						'SharingGroup' => array('fields' => array('id', 'name')),
+ 						'Org' => array('id', 'name'),
+ 						'Orgc' => array('id', 'name'),
+ 						'ThreatLevel' => array(
+ 								'fields' => array('id', 'name'),
+ 						)
+ 				),
+	 		);
+	 	}
+	 	
+	 	$attributes = $this->Attribute->fetchAttributes($user, $params);
 	 	foreach ($attributes as &$attribute) {
 	 		$attribute['Attribute']['value'] = str_replace(array("\r\n", "\n", "\r"), "", $attribute['Attribute']['value']);
 	 		$attribute['Attribute']['value'] = str_replace(array('"'), '""', $attribute['Attribute']['value']);
 	 		$attribute['Attribute']['value'] = '"' . $attribute['Attribute']['value'] . '"';
 	 		$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
 	 	}
-	 	if ($includeContext) $attributes = $this->attachEventInfoToAttributes($attributes, $isSiteAdmin);
+	 	if ($includeContext) {
+	 		//$attributes = $this->attachEventInfoToAttributes($attributes, $user);
+	 	}
 	 	return $attributes;
 	 }
 	 
-	 private function attachEventInfoToAttributes($attributes, $isSiteAdmin) {
+	 private function attachEventInfoToAttributes($attributes, $user) {
 	 	$TLs = $this->ThreatLevel->find('all', array(
 	 		'recursive' => -1,
 	 	));
@@ -1167,14 +1192,15 @@ class Event extends AppModel {
 	 	}
 	 	$context_fields = array('id' => null);
 	 	$context_fields = array_merge($context_fields, $this->csv_event_context_fields_to_fetch);
-	 	if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
+	 	if (!Configure::read('MISP.showorg') && !$user['Role']['perm_site_admin']) {
 			unset($context_fields['orgc']);
 			unset($context_fields['org']);
-	 	} else if (!Configure::read('MISP.showorgalternate') && !$isSiteAdmin) {
+	 	} else if (!Configure::read('MISP.showorgalternate') && !$user['Role']['perm_site_admin']) {
 	 		$context_fields['orgc'] = 'event_org';
-	 		$context_fields['org'] = 'event_owner_org';
-	 		unset($context_fields['orgc']);
+	 		unset($context_fields['org']);
 	 	}
+	 	
+	 	//$params
 	 	
 	 	$events = $this->find('all', array(
 	 		'recursive' => -1,
@@ -1184,7 +1210,10 @@ class Event extends AppModel {
 	 	$event_id_data = array();
 	 	unset($context_fields['id']);
 	 	foreach ($events as $event) {
-	 		foreach ($context_fields as $field => $header_name) $event_id_data[$event['Event']['id']][$header_name] = $event['Event'][$field];
+	 		foreach ($context_fields as $field => $header_name) {
+	 		//	if ($header_name)
+	 			$event_id_data[$event['Event']['id']][$header_name] = $event['Event'][$field];
+	 		}
 	 	}
 	 	foreach ($attributes as &$attribute) {
 	 		foreach ($context_fields as $field => $header_name) {
@@ -1972,11 +2001,12 @@ class Event extends AppModel {
 		return false;
 	}
 	
-	public function stix($id, $tags, $attachments, $org, $isSiteAdmin, $returnType) {
+	public function stix($id, $tags, $attachments, $user, $returnType) {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
-		$events = $this->fetchEvent(null, $idList, $org, $isSiteAdmin);
+		$events = $this->fetchEvent(null, $idList, $user);
+		if (empty($events)) throw new Exception('No matching events found to export.');
 		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
 		if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
 			foreach ($events as &$event) {

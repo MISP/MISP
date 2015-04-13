@@ -1786,12 +1786,13 @@ class EventsController extends AppController {
 		$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
 		
 		if (!$eventid) {
-			$events = $this->Event->fetchEventIds($org, $isSiteAdmin, $from, $to);
+			// TEMP: change to passing an options array with the user!!
+			$events = $this->Event->fetchEventIds($this->Auth->user(), $from, $to);
 			foreach ($events as $event) $eventIdArray[] = $event['Event']['id'];
 		}
 		
 		foreach ($eventIdArray as $currentEventId) {
-			$result = $this->__fetchEvent($currentEventId, null, $org, $isSiteAdmin, $tags, $from, $to);
+			$result = $this->__fetchEvent($currentEventId, null, $this->Auth->user(), $tags, $from, $to);
 			if ($withAttachment) {
 				foreach ($result[0]['Attribute'] as &$attribute) {
 					if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
@@ -1876,12 +1877,10 @@ class EventsController extends AppController {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$user = array('User' => $this->Auth->user());
-			$user['User']['siteAdmin'] = $this->_isSiteAdmin();
+			$user = $this->Auth->user();
 		}	
 		$this->loadModel('Attribute');
-
-		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type, $tags, $from, $to);
+		$rules = $this->Attribute->hids($this->Auth->user(), $type, $tags, $from, $to);
 		$this->set('rules', $rules);
 	}
 	// csv function
@@ -1901,16 +1900,12 @@ class EventsController extends AppController {
 			if (!$user) {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
-			$isSiteAdmin = $user['User']['siteAdmin'];
-			$org = $user['User']['org'];
 		} else {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$isSiteAdmin = $this->_isSiteAdmin();
-			$org = $this->Auth->user('org');
+			$user = $this->Auth->user();
 		}
-
 		// if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
 		// We don't need to look out for permissions since that's filtered by the search itself
 		// We just want all the attributes found by the search
@@ -1930,15 +1925,16 @@ class EventsController extends AppController {
 				$list[] = $attribute['Attribute']['id'];
 			}
 		}
-		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type, $includeContext, $from, $to);
+		$attributes = $this->Event->csv($user, $eventid, $ignore, $list, $tags, $category, $type, $includeContext, $from, $to);
 		$this->loadModel('Whitelist');
 		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
 			$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
 			if ($includeContext) {
-				foreach($this->Event->csv_event_context_fields_to_fetch as $field => $header) {
-					$line .= ',' . $attribute['Attribute'][$header];
+				foreach($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
+					if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
+					else $line .= ',' . $attribute['Event'][$field['var']];
 				}
 			}
 			$final[] = $line;
@@ -1954,7 +1950,7 @@ class EventsController extends AppController {
 		}
 		$this->layout = 'text/default';
 		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'to_ids', 'date');
-		if ($includeContext) $headers = array_merge($headers, array_values($this->Event->csv_event_context_fields_to_fetch));
+		if ($includeContext) $headers = array_merge($headers, array_keys($this->Event->csv_event_context_fields_to_fetch));
 		$this->set('headers', $headers);
 		$this->set('final', $final);
 	}
@@ -2524,7 +2520,7 @@ class EventsController extends AppController {
 				$final = "";
 				$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
 				foreach ($eventIds as $currentEventId) {
-					$result = $this->__fetchEvent($currentEventId, null, $user['User']['org'], true);
+					$result = $this->__fetchEvent($currentEventId, null, $this->Auth->user());
 					$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
 					$final .= $converter->event2XML($result[0]) . PHP_EOL;
 				}
@@ -2539,7 +2535,7 @@ class EventsController extends AppController {
 				$temp = array();
 				$final = '{"response":[';
 				foreach ($eventIds as $k => $currentEventId) {
-					$result = $this->__fetchEvent($currentEventId, null, $user['User']['org'], true);
+					$result = $this->__fetchEvent($currentEventId, null, $this->Auth->user());
 					$final .= $converter->event2JSON($result[0]);
 					if ($k < count($eventIds) -1 ) $final .= ',';
 				}
@@ -2968,13 +2964,11 @@ class EventsController extends AppController {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
 			$isSiteAdmin = $user['User']['siteAdmin'];
-			$org = $user['User']['org'];
 		} else {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
 			$isSiteAdmin = $this->_isSiteAdmin();
-			$org = $this->Auth->user('org');
 		}
 		
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted xml object.
@@ -3009,8 +3003,7 @@ class EventsController extends AppController {
 			$this->response->type('xml');	// set the content type
 			$this->layout = 'xml/default';
 		}
-		$result = $this->Event->stix($id, $tags, $withAttachments, $org, $isSiteAdmin, $returnType, $from, $to);
-		
+		$result = $this->Event->stix($id, $tags, $withAttachments, $this->Auth->user(), $returnType, $from, $to);
 		if ($result['success'] == 1) {
 			// read the output file and pass it to the view
 			if (!$numeric) {

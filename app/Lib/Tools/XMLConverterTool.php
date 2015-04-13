@@ -29,6 +29,13 @@ class XMLConverterTool {
 		$event['Event']['Attribute'] = $event['Attribute'];
 		$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
 		$event['Event']['RelatedEvent'] = $event['RelatedEvent'];
+		foreach ($event['SharingGroup']['SharingGroupOrg'] as $key => $sgo) {
+			$event['SharingGroup']['SharingGroupOrg'][$key]['Organisation'] = array(0 => $event['SharingGroup']['SharingGroupOrg'][$key]['Organisation']);
+		}
+		foreach ($event['SharingGroup']['SharingGroupServer'] as $key => $sgs) {
+			$event['SharingGroup']['SharingGroupOrg'][$key]['Server'] = array(0 => $event['SharingGroup']['SharingServer'][$key]['Server']);
+		}
+		$event['Event']['SharingGroup'][0] = $event['SharingGroup'];
 		$event['Event']['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['info']);
 		$event['Event']['info'] = str_replace($toEscape, $escapeWith, $event['Event']['info']);
 		

@@ -38,11 +38,12 @@ class EventShell extends AppShell
 	}
 	
 	public function cachexml() {
-		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$id = $this->args[2];
+		$user_id = $this->args[0];
+		$id = $this->args[1];
+		$user = $this->User->getAuthUser($user_id);
 		$this->Job->id = $id;
-		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
+		// TEMP: change to passing an options array with the user!!
+		$eventIds = $this->Event->fetchEventIds($user);
 		$result = array();
 		$eventCount = count($eventIds);
 		$dir = new Folder(APP . 'tmp/cached_exports/xml');
@@ -159,16 +160,16 @@ class EventShell extends AppShell
 	}
 	
 	public function cachehids() {
-		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$id = $this->args[2];
+		$user_id = $this->args[0];
+		$user = $this->User->getAuthUser($user_id);
+		$id = $this->args[1];
 		$this->Job->id = $id;
-		$extra = $this->args[3];
+		$extra = $this->args[2];
 		$this->Job->saveField('progress', 1);
-		$rules = $this->Attribute->hids($isSiteAdmin, $org, $extra);
+		$rules = $this->Attribute->hids($user, $extra);
 		$this->Job->saveField('progress', 80);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
-		if ($isSiteAdmin) {
+		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.txt');
 		} else {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.txt');
@@ -182,26 +183,27 @@ class EventShell extends AppShell
 	}
 	
 	public function cachecsv() {
-		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$id = $this->args[2];
+		$user_id = $this->args[0];
+		$user = $this->User->getAuthUser($user_id);
+		$id = $this->args[1];
 		$this->Job->id = $id;
-		$extra = $this->args[3];
+		$extra = $this->args[2];
 		if ($extra == 'csv_all') $ignore = 1;
 		else $ignore = 0;
-		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
+		// TEMP: change to passing an options array with the user!!
+		$eventIds = $this->Event->fetchEventIds($user);
 		$eventCount = count($eventIds);
 		$attributes = array();
 		$dir = new Folder(APP . 'tmp/cached_exports/' . $extra);
-		if ($isSiteAdmin) {
+		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.csv');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.csv');
+			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $user['Organisation']['name'] . '.csv');
 		}
 		$file->write('uuid,event_id,category,type,value,to_ids,date' . PHP_EOL);
 		foreach ($eventIds as $k => $eventId) {
 			$chunk = "";
-			$attributes = $this->Event->csv($org, $isSiteAdmin, $eventId['Event']['id'], $ignore);
+			$attributes = $this->Event->csv($user, $eventId['Event']['id'], $ignore);
 			$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 			foreach ($attributes as $attribute) {
 				$chunk .= $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'] . PHP_EOL;
@@ -216,20 +218,20 @@ class EventShell extends AppShell
 	}
 	
 	public function cachetext() {
-		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$id = $this->args[2];
+		$user_id = $this->args[0];
+		$user = $this->User->getAuthUser($user_id);
+		$id = $this->args[1];
 		$this->Job->id = $id;
-		$extra = $this->args[3];
+		$extra = $this->args[2];
 		$types = array_keys($this->Attribute->typeDefinitions);
 		$typeCount = count($types);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/text');
 		foreach ($types as $k => $type) {
-			$final = $this->Attribute->text($org, $isSiteAdmin, $type);
-			if ($isSiteAdmin) {
+			$final = $this->Attribute->text($user, $type);
+			if ($user['Role']['perm_site_admin']) {
 				$file = new File($dir->pwd() . DS . 'misp.text_' . $type . '.ADMIN.txt');
 			} else {
-				$file = new File($dir->pwd() . DS . 'misp.text_' . $type . '.' . $org . '.txt');
+				$file = new File($dir->pwd() . DS . 'misp.text_' . $type . '.' . $user['Organisation']['name'] . '.txt');
 			}
 			$file->write('');
 			foreach ($final as $attribute) {
@@ -242,26 +244,27 @@ class EventShell extends AppShell
 	}
 	
 	public function cachenids() {
-		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$id = $this->args[2];
+		$user_id = $this->args[0];
+		$user = $this->User->getAuthUser($user_id);
+		$id = $this->args[1];
 		$this->Job->id = $id;
-		$format = $this->args[3];
-		$sid = $this->args[4];
-		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
+		$format = $this->args[2];
+		$sid = $this->args[3];
+		// TEMP: change to passing an options array with the user!!
+		$eventIds = $this->Event->fetchEventIds($user);
 		$eventCount = count($eventIds);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format);
-		if ($isSiteAdmin) {
+		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $format . '.ADMIN.rules');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.' . $format . '.' . $org . '.rules');
+			$file = new File($dir->pwd() . DS . 'misp.' . $format . '.' . $user['Organisation']['name'] . '.rules');
 		}
 		$file->write('');
 		foreach ($eventIds as $k => $eventId) {
 			if ($k == 0) {
-				$temp = $this->Attribute->nids($isSiteAdmin, $org, $format, $sid, $eventId['Event']['id']);
+				$temp = $this->Attribute->nids($user, $format, $sid, $eventId['Event']['id']);
 			} else {
-				$temp = $this->Attribute->nids($isSiteAdmin, $org, $format, $sid, $eventId['Event']['id'], true);
+				$temp = $this->Attribute->nids($user, $format, $sid, $eventId['Event']['id'], true);
 			}
 			foreach ($temp as $line) {
 				$file->append($line . PHP_EOL);

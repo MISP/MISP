@@ -419,4 +419,14 @@ class User extends AppModel {
 		));
 		return $result['User']['gpgkey'];
 	}
+	
+	// get the current user and rearrange it to be in the same format as in the auth component
+	public function getAuthUser($id) {
+		$user = $this->User->find('first', array('conditions' => array('User.id' => $oldUser['id']), 'recursive' => -1,'contain' => array('Organisation', 'Role')));
+		// Rearrange it a bit to match the Auth object created during the login
+		$user['User']['Role'] = $user['Role'];
+		$user['User']['Organisation'] = $user['Organisation'];
+		unset($user['Organisation'], $user['Role']);
+		return $user;
+	}
 }

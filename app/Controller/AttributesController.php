@@ -46,32 +46,11 @@ class AttributesController extends AppController {
 				$this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
 			}
 		}
-
-	// do not show private to other orgs
-		// if not admin or own org, check private as well..
+		// do not show private to other orgs
 		if (!$this->_isSiteAdmin()) {
-			$this->paginate = Set::merge($this->paginate,array(
-			'conditions' =>
-					array('OR' =>
-							array(
-								'Event.org =' => $this->Auth->user('org'),
-								'AND' => array(
-										'Attribute.distribution >' => 0,
-										'Event.distribution >' => 0,
-										Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-			)))));
+			// TEMP: change to passing an options array with the user!!
+			$this->paginate = Set::merge($this->paginate, array('conditions' => $this->Attribute->buildConditions($this->Auth->user())));
 		}
-
-/* We want to show this outside now as discussed with Christophe. Still not pushable, but anything should be pullable that's visible
-		// do not show cluster outside server
-		if ($this->_isRest()) {
-				$this->paginate = Set::merge($this->paginate,array(
-				'conditions' =>
-						array("AND" => array('Event.cluster !=' => true),array('Attribute.cluster !=' => true)),
-						//array("AND" => array(array('Event.private !=' => 2))),
-				));
-		}
-		*/
 	}
 
 /**
@@ -82,7 +61,11 @@ class AttributesController extends AppController {
  */
 	public function index() {
 		$this->Attribute->recursive = 0;
-		$this->Attribute->contain = array('Event.id', 'Event.orgc', 'Event.org', 'Event.info');
+		$this->Attribute->contain = array(
+			'Event' => array(
+				'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info'),
+			)
+		);
 		$this->set('isSearch', 0);
 		$this->set('attributes', $this->paginate());
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
@@ -1767,7 +1750,7 @@ class AttributesController extends AppController {
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.txt"');
 		$this->layout = 'text/default';
-		$attributes = $this->Attribute->text($this->_checkOrg(), $this->_isSiteAdmin(), $type, $tags, $eventId, $allowNonIDS, $from, $to);
+		$attributes = $this->Attribute->text($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to);
 		$this->loadModel('Whitelist');
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		$this->set('attributes', $attributes);
@@ -2023,6 +2006,10 @@ class AttributesController extends AppController {
 	private function __checkCountForOne($number) {
 		if ($number != 1) return 's';
 		return '';
+	}
+	
+	public function test() {
+		$this->Attribute->fetchAttributes($this->Auth->user());
 	}
 	
 }

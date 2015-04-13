@@ -355,6 +355,10 @@ class Attribute extends AppModel {
 			'fields' => '',
 			'order' => '',
 			'counterCache' => true
+		),
+		'SharingGroup' => array(
+				'className' => 'SharingGroup',
+				'foreignKey' => 'sharing_group_id'
 		)
 	);
 
@@ -1168,22 +1172,17 @@ class Attribute extends AppModel {
 		return $fails;
 	}
 	
-	public function hids($isSiteAdmin, $org ,$type, $tags = '') {
-		if (empty($org)) throw new MethodNotAllowedException('No org supplied.');
+	// TEMP: convert to user
+	public function hids($user ,$type, $tags = '') {
+		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1') {
 			throw new UnauthorizedException('Invalid hash type.');
 		}
+		$conditions = array();
+
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $type);
-		if (!$isSiteAdmin) {
-			$temp = array();
-			$distribution = array();
-			array_push($temp, array('Attribute.distribution >' => 0));
-			array_push($temp, array('AND' => array('Attribute.distribution >' => 0, 'Event.distribution >' => 0)));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
-			$conditions['OR'] = $temp;
-		}
 		
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($tags !== '') {
@@ -1202,18 +1201,18 @@ class Attribute extends AppModel {
 			$conditions['AND'][] = $temp;
 		}
 		
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+		$options = array(
+				'conditions' => $conditions,
+				'group' => array('Attribute.type', 'Attribute.value1'),
 		);
-		$items = $this->find('all', $params);
+		$items = $this->fetchAttributes($user, $options);
 		App::uses('HidsExport', 'Export');
 		$export = new HidsExport();
 		$rules = $export->export($items, strtoupper($type));
 		return $rules;
 	}
 	
+	// convert to user
 	public function nids($isSiteAdmin, $org, $format, $sid, $id = false, $continue = false, $tags = false, $from = false, $to = false) {
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
@@ -1270,6 +1269,7 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
+	// convert to user!
 	 public function text($org, $isSiteAdmin, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false) {
 	 	//restricting to non-private or same org if the user is not a site-admin.
 	 	$conditions['AND'] = array();
@@ -1543,5 +1543,64 @@ class Attribute extends AppModel {
 	 		$attribute['type'] = $element['type'];
 	 	}
 	 	return $attribute;
+	 }
+	 
+	 public function buildConditions($user) {
+	 	$params = array();
+	 	if (!$user['Role']['perm_site_admin']) {
+	 		$event_ids = $this->Event->fetchEventIds($user, false, false, true);
+	 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
+	 		$conditions = array(
+				'AND' => array(
+					'OR' => array(
+						array(
+							'AND' => array(
+	 							'Event.org_id' => $user['organisation_id'],
+	 						)
+	 					),
+	 					array(
+ 							'AND' => array(
+								'Event.id' => $event_ids,
+								'OR' => array(
+									'Attribute.distribution' => array('1', '2', '3', '5'),
+									'AND '=> array(
+										'Attribute.distribution' => 4,
+										'Attribute.sharing_group_id' => $sgsids,
+									)
+								)
+							)
+						)
+					)
+				)
+	 		);
+	 	}
+	 	return $conditions;
+	 }
+	 
+	 // Method that fetches all attributes for the various exports
+	 // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
+	 // options: 
+	 //     fields
+	 //     to_ids
+	 //     type
+	 //     category 
+	 public function fetchAttributes($user, $options = array()) {
+	 	$params = array();
+	 	if (!$user['Role']['perm_site_admin']) {
+	 		$params = array(
+	 			'conditions' => $this->buildConditions($user),
+	 			'recursive' => -1,
+	 			'contain' => array(
+	 				'Event' => array(
+	 					'fields' => array('id', 'info', 'org_id'),
+	 				), 
+	 			),	
+	 		);
+	 	}
+	 	if (isset($options['contain'])) $params['contain'] = $options['contain'];
+	 	if (isset($options['fields'])) $params['fields'] = $options['fields'];
+	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
+	 	if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('Event.published' => 1);
+	 	return $this->find('all', $params);
 	 }
 }
