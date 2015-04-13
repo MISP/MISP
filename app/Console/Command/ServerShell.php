@@ -84,7 +84,7 @@ class ServerShell extends AppShell
 		}
 		$this->User->recursive = -1;
 		$user = $this->User->read(array('id', 'org', 'email'), $userId);
-		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('push' => 1)));
+		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('pull' => 1)));
 		$count = count($servers);
 		foreach ($servers as $k => $server) {
 			$this->Job->create();
