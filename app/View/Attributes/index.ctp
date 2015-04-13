@@ -61,7 +61,7 @@ foreach ($attributes as $attribute):
 		<td class="short">
 			<div ondblclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';" title="<?php echo h($attribute['Event']['info']); ?>">
 			<?php
-				if ($attribute['Event']['orgc'] == $me['org']) {
+				if ($attribute['Event']['orgc_id'] == $me['organisation_id']) {
 					$style='style="color:red;"';
 				} else {
 					$style='';
@@ -115,7 +115,7 @@ foreach ($attributes as $attribute):
 			<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;
 		</td>
 		<td class="short action-links"><?php
-	if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org'] == $me['org'])) {
+	if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org_id'] == $me['organisation_id'])) {
 				?><a href="/attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-edit" title="Edit"></a><?php
 		echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
 	}

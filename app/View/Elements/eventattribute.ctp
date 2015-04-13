@@ -193,7 +193,7 @@
 								if ($object['objectType'] == 0 && isset($relatedAttributes[$object['id']]) && (null != $relatedAttributes[$object['id']])) {
 									foreach ($relatedAttributes[$object['id']] as $relatedAttribute) {
 										echo '<li style="padding-right: 0px; padding-left:0px;" title ="' . h($relatedAttribute['info']) . '"><span>';
-										if ($relatedAttribute['org'] == $me['org']) {
+										if ($relatedAttribute['org'] == $me['organisation_id']) {
 											echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('style' => 'color:red;'));
 										} else {
 											echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']));
@@ -247,7 +247,8 @@
 									<span class="icon-ok useCursorPointer" onClick="acceptObject('shadow_attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 								<?php 
 								}
-								if (($event['Orgc']['id'] == $me['organisation_id'] && $mayModify) || $isSiteAdmin || ($object['org'] == $me['org'])) {
+								debug($object);
+								if (($event['Orgc']['id'] == $me['organisation_id'] && $mayModify) || $isSiteAdmin || ($object['org_id'] == $me['organisation_id'])) {
 								?>
 									<span class="icon-trash useCursorPointer" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 								<?php 

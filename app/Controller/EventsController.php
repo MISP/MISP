@@ -2559,24 +2559,17 @@ class EventsController extends AppController {
 		// get the event if it exists and load it together with its attributes
 		$this->Event->id = $eventid;
 		if (!$this->Event->exists()) {
-			throw new NotFoundException(__('Invalid event'));
+			throw new NotFoundException(__('Invalid event or not authorised.'));
 		}
-		$this->Event->contain('Attribute');
-		$event = $this->Event->read(null, $eventid);
-		foreach ($event['Attribute'] as $k => $attribute) {
-			if (!$attribute['to_ids']) unset($event['Attribute'][$k]);
-		}
+		$event = $this->Event->fetchEvent($this->Auth->user(), $options = array('eventid' => $eventid, 'to_ids' => 1));
+		if (empty($events)) throw new NotFoundException('Invalid event or not authorised.');
 		$this->loadModel('Whitelist');
-		$temp = $this->Whitelist->removeWhitelistedFromArray(array($event), false);
+		$temp = $this->Whitelist->removeWhitelistedFromArray(array($event[0]), false);
 		$event = $temp[0];
 		//$event['Attribute'] = $this->Whitelist->removeWhitelistedFromArray($event['Attribute'], false);
-		// set up helper variables for the authorisation check in the component
-		$isMyEvent = false;
-		if ($this->Auth->User('org') == $event['Event']['org']) $isMyEvent = true;
-		$isSiteAdmin = $this->_isSiteAdmin();
 
 		// send the event and the vars needed to check authorisation to the Component
-		$final = $this->IOCExport->buildAll($event, $isMyEvent, $isSiteAdmin);
+		$final = $this->IOCExport->buildAll($this->Auth->user(), $event);
 		$this->set('final', $final);
 	}
 

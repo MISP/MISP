@@ -1,5 +1,5 @@
 <?php
-$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['organisation_id']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
+$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['organisation_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['organisation_id']));
 $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['organisation_id']);
 ?>
 <?php
@@ -32,12 +32,12 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['organisation_id']);
 					if (Configure::read('MISP.showorgalternate') && (Configure::read('MISP.showorg') || $isAdmin)): ?>
 						<dt>Source Organisation</dt>
 						<dd>
-							<?php echo h($event['Event']['orgc']); ?>
+							<?php echo h($event['Orgc']['name']); ?>
 							&nbsp;
 						</dd>
 						<dt>Member Organisation</dt>
 						<dd>
-							<?php echo h($event['Event']['org']); ?>
+							<?php echo h($event['Org']['name']); ?>
 							&nbsp;
 						</dd>
 				<?php 	
@@ -52,7 +52,7 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['organisation_id']);
 							<?php if ($isSiteAdmin): ?>
 							<dt>Owner org</dt>
 							<dd>
-								<?php echo h($event['Event']['org']); ?>
+								<?php echo h($event['Org']['name']); ?>
 								&nbsp;
 							</dd>
 				<?php 

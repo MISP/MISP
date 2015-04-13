@@ -978,7 +978,7 @@ class Event extends AppModel {
 	// from: date string (YYYY-MM-DD)
 	// to: date string (YYYY-MM-DD)
 	public function fetchEvent($user, $options = array()) {
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'to_ids');
 		foreach ($possibleOptions as &$opt) if (!isset($options[$opt])) $options[$opt] = false;
 		if ($options['eventid']) {
 			$this->id = $options['eventid'];
@@ -1013,7 +1013,7 @@ class Event extends AppModel {
 					)
 				)
 			);
-			$conditionsAttributes['OR'] = array(
+			$conditionsAttributes['AND'][0]['OR'] = array(
 				'Attribute.distribution >' => 0,
 				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['organisation_id']
 			);
@@ -1042,6 +1042,10 @@ class Event extends AppModel {
 			$conditions['AND'][] = $temp;
 		}
 		
+		if ($options['to_ids']) {
+			$conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
+		}
+		
 		// removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
 		// $conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 		// Same idea for the published. Just adjust the tools to check for this
@@ -1068,7 +1072,7 @@ class Event extends AppModel {
 		$fieldsServer = array('id', 'name');
 
 		if ($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) $fieldsOrg[] = 'uuid';
-		
+
 		$params = array('conditions' => $conditions,
 			'recursive' => 0,
 			'fields' => $fields,
@@ -2119,7 +2123,7 @@ class Event extends AppModel {
 			'fields' => array('id', 'sharing_group_id', 'distribution', 'org_id')
 		));
 		if ($event['Event']['org_id'] == $user['organisation_id'] || ($event['Event']['distribution'] > 0 && $event['Event']['distribution'] < 4)) return true;
-		if ($event['Event']['distribution'] == 5 && $this->SharingGroup->checkIfAuthorised($user, $event['Event']['sharing_group_id'])) return true;
+		if ($event['Event']['distribution'] == 4 && $this->SharingGroup->checkIfAuthorised($user, $event['Event']['sharing_group_id'])) return true;
 		return false;
 	}
 }

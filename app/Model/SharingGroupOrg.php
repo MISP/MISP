@@ -69,7 +69,7 @@ class SharingGroupOrg extends AppModel {
 		$sg = $this->find('first', array(
 				'conditions' => array('sharing_group_id' => $id, 'organisation_id' => $org_id),
 				'recursive' => -1,
-				'fields' => array('all_orgs'),
+				'fields' => array('id'),
 		));
 		if (!empty($sg)) return true;
 		return false;

@@ -4,20 +4,10 @@ class IOCExportComponent extends Component {
 
 	private $final = array();
 
-	public function buildAll($event, $isSiteAdmin, $isMyEvent) {
-		$temp = array();
-		if (!$isSiteAdmin) {
-			if (!$isMyEvent) {
-				if ($event['Event']['distribution'] == 0) {
-				throw new Exception('Nothing to see here (not authorised)');
-				}
-			}
-		}
+	public function buildAll($user, $event) {
 		$this->__buildTop($event);
 		foreach ($event['Attribute'] as &$attribute) {
-			if ($isSiteAdmin || $isMyEvent || $attribute['distribution'] > 0) {
-				$this->__buildAttribute($attribute);
-			}
+			$this->__buildAttribute($attribute);
 		}
 		$this->__buildBottom();
 		return $this->final;
@@ -31,7 +21,7 @@ class IOCExportComponent extends Component {
 		$this->final[] = '  <short_description>Event #' . h($event['Event']['id']) . '</short_description>';
 		$this->final[] = '  <description>' . h($event['Event']['info']) . '</description>';
 		$this->final[] = '  <keywords />';
-		$this->final[] = '  <authored_by>' . h($event['Event']['orgc']) . '</authored_by>';
+		$this->final[] = '  <authored_by>' . h($event['Orgc']['name']) . '</authored_by>';
 		$this->final[] = '  <authored_date>' . h($event['Event']['date']) . 'T00:00:00</authored_date>';
 		$this->final[] = '  <links />';
 		$this->final[] = '  <definition>';
