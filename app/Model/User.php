@@ -62,7 +62,7 @@ class User extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'organisation_id' => array(
+		'org_id' => array(
 			'notempty' => array(
 				'rule' => array('notempty'),
 				'message' => 'Please choose an organisation.',
@@ -200,7 +200,7 @@ class User extends AppModel {
 		),
 		'Organisation' => array(
 			'className' => 'Organisation',
-			'foreignKey' => 'organisation_id',
+			'foreignKey' => 'org_id',
 			'conditions' => '',
 			'fields' => '',
 			'order' => ''

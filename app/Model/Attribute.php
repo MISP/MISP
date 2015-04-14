@@ -768,7 +768,7 @@ class Attribute extends AppModel {
 	public function isOwnedByOrg($attributeid, $org) {
 		$this->id = $attributeid;
 		$this->read();
-		return $this->data['Event']['org'] === $org;
+		return $this->data['Event']['org_id'] === $org;
 	}
 
 	public function getRelatedAttributes($attribute, $fields=array()) {
@@ -998,7 +998,7 @@ class Attribute extends AppModel {
 			                    '1_attribute_id' => $attribute['Attribute']['id'],
 			                    'event_id' => $attribute_right['Attribute']['event_id'],
 			                    'attribute_id' => $attribute_right['Attribute']['id'],
-			                    'org' => $attribute_right['Event']['org_id'],
+			                    'org_id' => $attribute_right['Event']['org_id'],
 			                    'distribution' => $attribute_right['Event']['distribution'],
 			            		'a_distribution' => $attribute_right['Attribute']['distribution'],
 			            		'sharing_group_id' => $attribute_right['Event']['sharing_group_id'],
@@ -1537,7 +1537,7 @@ class Attribute extends AppModel {
 					'OR' => array(
 						array(
 							'AND' => array(
-	 							'Event.org_id' => $user['organisation_id'],
+	 							'Event.org_id' => $user['org_id'],
 	 						)
 	 					),
 	 					array(

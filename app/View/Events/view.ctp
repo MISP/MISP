@@ -1,6 +1,6 @@
 <?php
-$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['organisation_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['organisation_id']));
-$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['organisation_id']);
+$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
+$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 ?>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
@@ -153,7 +153,7 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['organisation_id']);
 			<div title="<?php echo h($relatedEvent['Event']['info']); ?>">
 			<?php
 			$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-			if ($relatedEvent['Event']['org'] == $me['org']) {
+			if ($relatedEvent['Event']['org_id'] == $me['org_id']) {
 				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
 			} else {
 				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));

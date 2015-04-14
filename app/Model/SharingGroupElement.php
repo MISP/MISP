@@ -13,7 +13,7 @@ class SharingGroupElement extends AppModel {
 			),
 			'Organisation' => array(
 					'className' => 'Organisation',
-					'foreignKey' => 'organisation_id',
+					'foreignKey' => 'org_id',
 					//'conditions' => array('SharingGroupElement.organisation_uuid' => 'Organisation.uuid')
 			)
 	);

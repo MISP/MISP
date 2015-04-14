@@ -72,7 +72,7 @@ class LogsController extends AppController {
 				$this->Session->setFlash(__('You don\'t have access to view this event.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 			}
-			if ($this->Event->data['Event']['org_id'] == $this->Auth->user('organisation_id')) {
+			if ($this->Event->data['Event']['org_id'] == $this->Auth->user('org_id')) {
 				$mineOrAdmin = true;
 			}
 		} else {

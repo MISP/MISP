@@ -108,7 +108,7 @@ class OrganisationsController extends AppController {
 				'conditions' => array('id' => $id),
 				'fields' => $fields
 		));
-		$member_count = $this->Organisation->User->find('count', array('conditions' => array('organisation_id' => $id)));
+		$member_count = $this->Organisation->User->find('count', array('conditions' => array('org_id' => $id)));
 		
 		if ($fullAccess) {
 			$creator = $this->Organisation->User->find('first', array('conditions' => array('User.id' => $org['Organisation']['created_by'])));

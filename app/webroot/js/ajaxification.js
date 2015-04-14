@@ -1037,11 +1037,7 @@ function indexEvaluateSimpleFiltering(field) {
 		for (var i = 0; i < filtering[field].OR.length; i++) {
 			if (i > 0) text += '<span class="green bold"> OR </span>';
 			if (typedFields.indexOf(field) == -1) {
-				if (field === 'org') {
-					text += orgs[filtering[field].OR[i]];
-				} else {
-					text += filtering[field].OR[i];
-				}
+				text += filtering[field].OR[i];
 			} else {
 				for (var j = 0; j < typeArray[field].length; j++) {
 					if (typeArray[field][j].id == filtering[field].OR[i]) {
@@ -1058,11 +1054,7 @@ function indexEvaluateSimpleFiltering(field) {
 				else text += '<span class="red bold">NOT </span>';
 			} else text += '<span class="red bold"> AND NOT </span>';
 			if (typedFields.indexOf(field) == -1) {
-				if (field === 'org') {
-					text += orgs[filtering[field].NOT[i]];
-				} else {
-					text += filtering[field].NOT[i];
-				}
+				text += filtering[field].NOT[i];
 			} else {
 				for (var j = 0; j < typeArray[field].length; j++) {
 					if (typeArray[field][j].id == filtering[field].NOT[i]) {

@@ -75,7 +75,7 @@ class AppController extends Controller {
 				),
 	);
 	
-	public $mispVersion = '2.3.0';
+	public $mispVersion = '2.4.0';
 	
 	public function beforeFilter() {
 		// send users away that are using ancient versions of IE
@@ -190,9 +190,9 @@ class AppController extends Controller {
 		$this->ShadowAttribute->recursive = -1;
 		$shadowAttributes = $this->ShadowAttribute->find('all', array(
 				'recursive' => -1,
-				'fields' => array('event_id', 'event_org'),
+				'fields' => array('event_id', 'event_org_id'),
 				'conditions' => array( 
-					'ShadowAttribute.event_org' => $this->Auth->user('org'),
+					'ShadowAttribute.event_org_id' => $this->Auth->user('org'),
 					'ShadowAttribute.deleted' => 0,
 		)));
 		$results = array();
@@ -234,7 +234,7 @@ class AppController extends Controller {
 	}
 
 	protected function _checkOrg() {
-		return $this->Auth->user('org');
+		return $this->Auth->user('org_id');
 	}
 
 /**

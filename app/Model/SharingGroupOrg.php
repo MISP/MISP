@@ -13,7 +13,7 @@ class SharingGroupOrg extends AppModel {
 			),
 			'Organisation' => array(
 					'className' => 'Organisation',
-					'foreignKey' => 'organisation_id',
+					'foreignKey' => 'org_id',
 					//'conditions' => array('SharingGroupElement.organisation_uuid' => 'Organisation.uuid')
 			)
 	);
@@ -27,13 +27,13 @@ class SharingGroupOrg extends AppModel {
 		foreach ($new_orgs as $org) {
 			$SgO = array(
 				'sharing_group_id' => $id,
-				'organisation_id' => $org['id'],
+				'org_id' => $org['id'],
 				'extend' => $org['extend']
 			);
 			$found = false;
 			// If there is a match between a new org and an old org, keep the org in $found and unset it in the old org array.
 			foreach ($old_orgs as $k => $old_org) {
-				if ($old_org['organisation_id'] == $org['id']) {
+				if ($old_org['org_id'] == $org['id']) {
 					$found = $old_orgs[$k];
 					unset($old_orgs[$k]);
 					break;
@@ -55,9 +55,9 @@ class SharingGroupOrg extends AppModel {
 	
 	public function fetchAllAuthorised($org_id) {
 		$sgs = $this->find('all', array(
-			'conditions' => array('organisation_id' => $org_id),
+			'conditions' => array('org_id' => $org_id),
 			'recursive' => -1,
-			'fields' => array('organisation_id', 'sharing_group_id'),
+			'fields' => array('org_id', 'sharing_group_id'),
 		));
 		$ids = array();
 		foreach ($sgs as $sg) $ids[] = $sg['SharingGroupOrg']['sharing_group_id'];
@@ -67,7 +67,7 @@ class SharingGroupOrg extends AppModel {
 	// pass a sharing group ID and an organisation ID, returns true if it has a matching attached organisation object
 	public function checkIfAuthorised($id, $org_id) {
 		$sg = $this->find('first', array(
-				'conditions' => array('sharing_group_id' => $id, 'organisation_id' => $org_id),
+				'conditions' => array('sharing_group_id' => $id, 'org_id' => $org_id),
 				'recursive' => -1,
 				'fields' => array('id'),
 		));

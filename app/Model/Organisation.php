@@ -42,7 +42,7 @@ class Organisation extends AppModel{
 		'SharingGroup' => array(
 			'className' => 'SharingGroup',
 			'joinTable' => 'organisations_sharing_groups',
-			'foreignKey' => 'organisation_id',
+			'foreignKey' => 'org_id',
 			'associationForeignKey' => 'sharing_group_id',
 		)
 	);
@@ -58,7 +58,7 @@ class Organisation extends AppModel{
 	
 	public function beforeDelete($cascade = false){
 		$count = $this->User->find('count', array(
-			'conditions' => array('organisation_id' => $this->id)
+			'conditions' => array('org_id' => $this->id)
 		));
 		if($count == 0) return true;
 		return false;

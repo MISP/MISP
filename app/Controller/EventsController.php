@@ -77,7 +77,7 @@ class EventsController extends AppController {
 					'conditions' =>
 					array("OR" => array(
 						array(
-							'Event.org_id' => $this->Auth->user('organisation_id')
+							'Event.org_id' => $this->Auth->user('org_id')
 						),
 						array(
 							'AND' => array(
@@ -273,7 +273,7 @@ class EventsController extends AppController {
 		
 		$otherEvents = $this->Event->find('all', array(
 				'recursive' => -1,
-				'fields' => array('id', 'orgc', 'info'),
+				'fields' => array('id', 'orgc_id', 'info'),
 				'conditions' => array(
 					'OR' => array(
 						'lower(orgc) LIKE' => '%' . strtolower($value) .'%',
@@ -332,9 +332,9 @@ class EventsController extends AppController {
 						$test = array();
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
-								$this->paginate['conditions']['AND'][] = array('lower(Event.orgc)' . ' NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
+								foreach ($sorgs as $sorg) $this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => substr($piece, 1));
 							} else {
-								$test['OR'][] = array('lower(Event.orgc)' . ' LIKE' => '%' . strtolower($piece) . '%');
+								$test['OR'][] = array('Event.orgc_id' => array('Event.orgc_id' => $piece));
 							}
 						}
 						$this->paginate['conditions']['AND'][] = $test;
@@ -551,21 +551,22 @@ class EventsController extends AppController {
 		}
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
-			$conditions = array('OR' => array(array('orgc' => $this->Auth->User('org')), array('distribution >' => 0)));
+			$eIds = $this->Event->fetchEventIds($this->Auth->user(), 0, 0, true);
+			$conditions['AND'][] = array('Event.id' => $eIds);
 		}
 		$events = $this->Event->find('all', array(
 			'recursive' => -1,
-			'fields' => array('orgc', 'distribution'),
+			'fields' => array('orgc_id', 'distribution'),
+			'contain' => array('Orgc' => array('fields' => array('id', 'name'))),
 			'conditions' => $conditions,
-			'group' => 'orgc'
+			'group' => 'orgc_id'
 		));
 		$rules = array('published', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
 		if (Configure::read('MISP.showorg')){
 			$orgs = array();
 			foreach ($events as $e) {
-				$orgs[] = $e['Event']['orgc'];
+				$orgs[$e['Event']['orgc_id']] = $e['Orgc']['name'];
 			}
-			$orgs = $this->_arrayToValuesIndexArray($orgs);
 			$this->set('showorg', true);
 			$this->set('orgs', $orgs);
 			$rules[] = 'org';
@@ -640,6 +641,7 @@ class EventsController extends AppController {
 		}
 		// We'll only have one event in the array since we specified an id. The array returned only has several elements in the xml exports
 		$result = $results[0];
+
 		$this->loadModel('Attribute');
 
 		$this->set('authkey', $this->Auth->user('authkey'));
@@ -756,7 +758,7 @@ class EventsController extends AppController {
 						'title' => 'Discussion about Event #' . $result['Event']['id'] . ' (' . $result['Event']['info'] . ')',
 						'distribution' => $result['Event']['distribution'],
 						'post_count' => 0,
-						'org' => $result['Event']['orgc']
+						'org' => $result['Event']['orgc_id']
 				);
 				$this->Thread->save($newThread);
 				$thread = ($this->Thread->read());
@@ -1031,7 +1033,7 @@ class EventsController extends AppController {
 	public function addIOC($id) {
 		$this->Event->recursive = -1;
 		$this->Event->read(null, $id);
-		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
 			throw new UnauthorizedException('You do not have permission to do that.');
 		}
 		if ($this->request->is('post')) {
@@ -1113,10 +1115,10 @@ class EventsController extends AppController {
 		$date = new DateTime();
 		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
 		//else $data['Event']['org'] = $auth->user('org');
-		$data['Event']['org'] = $auth->user('org');
+		$data['Event']['org_id'] = $auth->user('org_id');
 		// set these fields if the event is freshly created and not pushed from another instance.
 		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
-		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
+		if (!isset ($data['Event']['orgc_id'])) $data['Event']['orgc_id'] = $data['Event']['org_id'];
 		if ($fromXml) {
 			// Workaround for different structure in XML/array than what CakePHP expects
 			$this->Event->cleanupEventArrayFromXML($data);
@@ -1145,7 +1147,7 @@ class EventsController extends AppController {
 		}
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
-				'Event' => array('org', 'orgc', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
+				'Event' => array('org_id', 'orgc_id', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
 		);
 
@@ -1169,7 +1171,7 @@ class EventsController extends AppController {
 
 	public function _edit(&$data, $id) {
 		$this->Event->read(null, $id);
-		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
+		if (!isset ($data['Event']['orgc_id'])) $data['Event']['orgc_id'] = $data['Event']['org_id'];
 		if ($this->Event->data['Event']['timestamp'] < $data['Event']['timestamp']) {
 
 		} else {
@@ -1230,7 +1232,7 @@ class EventsController extends AppController {
 		$this->Event->read(null, $id);
 		// check for if private and user not authorised to edit, go away
 		if (!$this->_isSiteAdmin() && !($this->userRole['perm_sync'] && $this->_isRest())) {
-			if (($this->Event->data['Event']['org'] != $this->_checkOrg()) || !($this->userRole['perm_modify'])) {
+			if (($this->Event->data['Event']['org_id'] != $this->_checkOrg()) || !($this->userRole['perm_modify'])) {
 				$this->Session->setFlash(__('You are not authorised to do that. Please considering using the propose attribute feature.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
@@ -1266,7 +1268,7 @@ class EventsController extends AppController {
 						// If the above is true, we have two more options:
 						// For users that are of the creating org of the event, always allow the edit
 						// For users that are sync users, only allow the edit if the event is locked
-						if ($existingEvent['Event']['orgc'] === $this->_checkOrg()
+						if ($existingEvent['Event']['orgc_id'] === $this->_checkOrg()
 								|| ($this->userRole['perm_sync'] && $existingEvent['Event']['locked']) || $this->_isSiteAdmin()) {
 							// Only allow an edit if this is true!
 							$saveEvent = true;
@@ -1276,7 +1278,7 @@ class EventsController extends AppController {
 				$fieldList = array(
 						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment'),
-						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org', 'event_org', 'comment', 'event_uuid', 'deleted', 'to_ids', 'uuid')
+						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org', 'event_org_id', 'comment', 'event_uuid', 'deleted', 'to_ids', 'uuid')
 				);
 
 				$c = 0;
@@ -1358,7 +1360,7 @@ class EventsController extends AppController {
 			// always force the org, but do not force it for admins
 			if (!$this->_isSiteAdmin()) {
 				// set the same org as existed before
-				$this->request->data['Event']['org'] = $this->Event->data['Event']['org'];
+				$this->request->data['Event']['org_id'] = $this->Event->data['Event']['org_id'];
 			}
 			// we probably also want to remove the published flag
 			$this->request->data['Event']['published'] = 0;
@@ -1428,7 +1430,7 @@ class EventsController extends AppController {
 		
 		if (!$this->_isSiteAdmin()) {
 			$this->Event->read();
-			if ($this->Event->data['Event']['orgc'] != $this->_checkOrg()) {
+			if ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg()) {
 				throw new MethodNotAllowedException();
 			}
 		}
@@ -1488,14 +1490,14 @@ class EventsController extends AppController {
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(null, $id);
 		if (!$this->_isSiteAdmin()) {
-			if (!$this->userRole['perm_publish'] && !$this->Auth->user('org') === $this->Event->data['Event']['orgc']) {
+			if (!$this->userRole['perm_publish'] && !$this->Auth->user('org_id') === $this->Event->data['Event']['orgc_id']) {
 				throw new MethodNotAllowedException('You don\'t have the permission to do that.');
 			}
 		}
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// Performs all the actions required to publish an event
-			$result = $this->Event->publishRouter($id, null, $this->Auth->user('org'), $this->Auth->user('email'));
+			$result = $this->Event->publishRouter($id, null, $this->Auth->user('org_id'), $this->Auth->user('email'));
 			if (!Configure::read('MISP.background_jobs')) {
 				if (!is_array($result)) {
 					// redirect to the view event page
@@ -1537,7 +1539,7 @@ class EventsController extends AppController {
 		$this->Event->recursive = -1;
 		$this->Event->read(null, $id);
 		if (!$this->_isSiteAdmin()) {
-			if (!$this->userRole['perm_publish'] && !$this->Auth->user('org') === $this->Event->data['Event']['orgc']) {
+			if (!$this->userRole['perm_publish'] && !$this->Auth->user('org_id') === $this->Event->data['Event']['orgc_id']) {
 				throw new MethodNotAllowedException('You don\'t have the permission to do that.');
 			}
 		}
@@ -1547,7 +1549,7 @@ class EventsController extends AppController {
 			$emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user(), $this->_isSiteAdmin());
 			if (is_bool($emailResult) && $emailResult = true) {
 				// Performs all the actions required to publish an event
-				$result = $this->Event->publishRouter($id, null, $this->Auth->user('org'), $this->Auth->user('email'));
+				$result = $this->Event->publishRouter($id, null, $this->Auth->user('org_id'), $this->Auth->user('email'));
 				if (!is_array($result)) {
 
 					// redirect to the view event page
@@ -1636,8 +1638,8 @@ class EventsController extends AppController {
 				$useOrg = 'ADMIN';
 				$conditions = null;			
 			} else {
-				$useOrg = $this->Auth->User('org');
-				$conditions['OR'][] = array('orgc' => $this->Auth->user('org'));
+				$useOrg = $this->Auth->User('org_id');
+				$conditions['OR'][] = array('orgc_id' => $this->Auth->user('org_id'));
 				$conditions['OR'][] = array('distribution >' => 0);
 			}
 			$this->Event->recursive = -1;
@@ -1652,7 +1654,7 @@ class EventsController extends AppController {
 						'fields' => array('id', 'progress'),
 						'conditions' => array(
 								'job_type' => 'cache_' . $k,
-								'org' => $useOrg
+								'org_id' => $useOrg
 							),
 						'order' => array('Job.id' => 'desc')
 				));
@@ -1704,7 +1706,7 @@ class EventsController extends AppController {
 
 	public function downloadExport($type, $extra = null) {
 		if ($this->_isSiteAdmin()) $org = 'ADMIN';
-		else $org = $this->Auth->user('org');
+		else $org = $this->Auth->user('org_id');
 		$this->autoRender = false;
 		if ($extra != null) $extra = '_' . $extra;
 		$this->response->type($this->Event->export_types[$type]['extension']);
@@ -2158,12 +2160,12 @@ class EventsController extends AppController {
 			if (isset($xmlArray['response']['Event'][0])) {
 				foreach ($xmlArray['response']['Event'] as $event) {
 					$temp['Event'] = $event;
-					if ($take_ownership) $temp['Event']['orgc'] = $this->Auth->user('org');
+					if ($take_ownership) $temp['Event']['orgc_id'] = $this->Auth->user('org_id');
 					$this->Event->_add($temp, true, $this->Auth->user());
 				}
 			} else {
 				$temp['Event'] = $xmlArray['response']['Event'];
-				if ($take_ownership) $temp['Event']['orgc'] = $this->Auth->user('org');
+				if ($take_ownership) $temp['Event']['orgc_id'] = $this->Auth->user('org_id');
 				$this->Event->_add($temp, true, $this->Auth->user());
 			}
 		}
@@ -2470,7 +2472,7 @@ class EventsController extends AppController {
 							Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
 						);
 				$subcondition['OR'][] = $temp;
-				$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
+				$subcondition['OR'][] = array('Event.org_id' => $user['User']['org_id']);
 				array_push($conditions['AND'], $subcondition);
 			}
 			
@@ -2562,7 +2564,7 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event or not authorised.'));
 		}
 		$event = $this->Event->fetchEvent($this->Auth->user(), $options = array('eventid' => $eventid, 'to_ids' => 1));
-		if (empty($events)) throw new NotFoundException('Invalid event or not authorised.');
+		if (empty($event)) throw new NotFoundException('Invalid event or not authorised.');
 		$this->loadModel('Whitelist');
 		$temp = $this->Whitelist->removeWhitelistedFromArray(array($event[0]), false);
 		$event = $temp[0];
@@ -2653,8 +2655,8 @@ class EventsController extends AppController {
 			'threat_level_id' => 4,
 			'distribution' => 0,
 			'analysis' => 0,
-			'org' => $this->Auth->user('org'),
-			'orgc' => $this->Auth->user('org'),
+			'org_id' => $this->Auth->user('org_id'),
+			'orgc_id' => $this->Auth->user('org_id'),
 			'timestamp' => $ts,	
 			'uuid' => String::uuid(),
 			'user_id' => $this->Auth->user('id'),
@@ -2690,7 +2692,7 @@ class EventsController extends AppController {
 		$this->loadModel('ShadowAttribute');
 		$this->ShadowAttribute->recursive = -1;
 		$conditions = array('ShadowAttribute.deleted' => 0);
-		if (!$this->_isSiteAdmin()) $conditions[] = array('ShadowAttribute.event_org' => $this->Auth->user('org'));
+		if (!$this->_isSiteAdmin()) $conditions[] = array('ShadowAttribute.event_org_id' => $this->Auth->user('org_id'));
 		$result = $this->ShadowAttribute->find('all', array(
 				'fields' => array('event_id'),
 				'group' => 'event_id',
@@ -2705,7 +2707,7 @@ class EventsController extends AppController {
 			$conditions['OR'][] = array('Event.id =' => -1);
 		}
 		$this->paginate = array(
-				'fields' => array('Event.id', 'Event.org', 'Event.orgc', 'Event.timestamp', 'Event.distribution', 'Event.info', 'Event.date', 'Event.published'),
+				'fields' => array('Event.id', 'Event.org_id', 'Event.orgc_id', 'Event.timestamp', 'Event.distribution', 'Event.info', 'Event.date', 'Event.published'),
 				'conditions' => $conditions,
 				'contain' => array(
 					'User' => array(
@@ -2714,7 +2716,7 @@ class EventsController extends AppController {
 					)),
 					'ShadowAttribute'=> array(
 						'fields' => array(
-							'ShadowAttribute.id', 'ShadowAttribute.org', 'ShadowAttribute.event_id'
+							'ShadowAttribute.id', 'ShadowAttribute.org_id', 'ShadowAttribute.event_id'
 						),
 						'conditions' => array(
 							'ShadowAttribute.deleted' => 0
@@ -2725,7 +2727,7 @@ class EventsController extends AppController {
 		foreach ($events as $k => $event) {
 			$orgs = array();
 			foreach ($event['ShadowAttribute'] as $sa) {
-				if (!in_array($sa['org'], $orgs)) $orgs[] = $sa['org'];
+				if (!in_array($sa['org_id'], $orgs)) $orgs[] = $sa['org_id'];
 			}
 			$events[$k]['orgArray'] = $orgs;
 		}
@@ -2772,9 +2774,9 @@ class EventsController extends AppController {
 		$tag_id = $this->request->data['Event']['tag'];
 		$id = $this->request->data['Event']['id'];
 		$this->Event->recurisve = -1;
-		$event = $this->Event->read(array('id', 'org', 'orgc', 'distribution'), $id);
+		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution'), $id);
 		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-		if (($this->Auth->user('org') !== $event['Event']['org'] && $this->Auth->user('org') !== $event['Event']['orgc'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger']) && !$this->_isSiteAdmin()) {
+		if (($this->Auth->user('org') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger']) && !$this->_isSiteAdmin()) {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
 		$this->Event->EventTag->Tag->id = $tag_id;
@@ -2807,9 +2809,9 @@ class EventsController extends AppController {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
 		$this->Event->recurisve = -1;
-		$event = $this->Event->read(array('id', 'org', 'orgc', 'distribution'), $id);
+		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution'), $id);
 		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-		if (($this->Auth->user('org') !== $event['Event']['org'] && $this->Auth->user('org') !== $event['Event']['orgc'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger']) && !$this->_isSiteAdmin()) {
+		if (($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger']) && !$this->_isSiteAdmin()) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
 		}
 		$eventTag = $this->Event->EventTag->find('first', array(
@@ -2834,10 +2836,10 @@ class EventsController extends AppController {
 		}
 		$event = $this->Event->find('first', array(
 				'conditions' => array('Event.id' => $id),
-				'fields' => array('id', 'orgc'),
+				'fields' => array('id', 'orgc_id'),
 				'recursive' => -1
 		));
-		if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc_id'] != $this->Auth->user('org_id')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 		$this->set('event_id', $id);
 		if ($this->request->is('get')) {
 			$this->layout = 'ajax';
@@ -2893,9 +2895,9 @@ class EventsController extends AppController {
 			$event = $this->Event->find('first', array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
-				'fields' => array('orgc', 'id', 'distribution', 'published'),
+				'fields' => array('orgc_id', 'id', 'distribution', 'published'),
 			));
-			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc_id'] != $this->Auth->user('org_id')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 			$saved = 0;
 			$failed = 0;
 			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
@@ -3101,9 +3103,9 @@ class EventsController extends AppController {
 		$event = $this->Event->find('first' ,array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
-				'fields' => array('distribution', 'orgc','id', 'published'),
+				'fields' => array('distribution', 'orgc_id','id', 'published'),
 		));
-		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc'] != $this->Auth->user('org') && $event['Event']['distribution'] < 1)) throw new NotFoundException('Event not found or you are not authorised to view it.');
+		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id') && $event['Event']['distribution'] < 1)) throw new NotFoundException('Event not found or you are not authorised to view it.');
 		$exports = array(
 			'xml' => array(
 					'url' => '/events/xml/download/' . $id,

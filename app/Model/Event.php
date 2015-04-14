@@ -404,7 +404,7 @@ class Event extends AppModel {
 	}
 
 	public function isOwnedByOrg($eventid, $org) {
-		return $this->field('id', array('id' => $eventid, 'org' => $org)) === $eventid;
+		return $this->field('id', array('id' => $eventid, 'org_id' => $org)) === $eventid;
 	}
 
 	public function getRelatedEvents($user, $eventId = null, $sgids) {
@@ -428,7 +428,7 @@ class Event extends AppModel {
 		    		'Correlation.1_event_id' => $eventId,
 					array(
 						'OR' => array(
-							'Correlation.org' => $user['organisation_id'],
+							'Correlation.org_id' => $user['org_id'],
 							'AND' => array(
 								array(
 									'OR' => array(
@@ -484,12 +484,23 @@ class Event extends AppModel {
 		$relatedEventIds = array_unique($relatedEventIds);
 		// now look up the event data for these attributes
 		$conditions = array("Event.id" => $relatedEventIds);
+		$fields = array('id', 'date', 'threat_level_id', 'info', 'published', 'uuid', 'analysis', 'timestamp', 'distribution', 'org_id', 'orgc_id');
+		$orgfields = array('id', 'name');
+		if ($user['Role']['perm_site_admin']) $orgfields[] = 'uuid';
 		$relatedEvents = $this->find('all',
-							array('conditions' => $conditions,
-								'recursive' => 0,
-								'order' => 'Event.date DESC',
-								'fields' => 'Event.*'
-								)
+			array('conditions' => $conditions,
+				'recursive' => 0,
+				'order' => 'Event.date DESC',
+				'fields' => $fields,
+				'contain' => array(
+					'Org' => array(
+						'fields' => $orgfields
+					),
+					'Orgc' => array(
+						'fields' => $orgfields
+					)
+				)
+			)
 		);
 		return $relatedEvents;
 	}
@@ -505,7 +516,7 @@ class Event extends AppModel {
 		    		'Correlation.1_event_id' => $id,
 					array(
 						'OR' => array(
-							'Correlation.org' => $user['organisation_id'],
+							'Correlation.org_id' => $user['org_id'],
 							'AND' => array(
 								array(
 									'OR' => array(
@@ -557,7 +568,7 @@ class Event extends AppModel {
 		foreach ($correlations as $correlation) {
 			$current = array(
 		            'id' => $correlation['Correlation']['event_id'],
-		            'org' => $correlation['Correlation']['org'],
+		            'org_id' => $correlation['Correlation']['org_id'],
 		    		'info' => $correlation['Correlation']['info']
 		    );
 			if (empty($relatedAttributes[$correlation['Correlation']['1_attribute_id']]) || !in_array($current, $relatedAttributes[$correlation['Correlation']['1_attribute_id']])) {
@@ -927,7 +938,7 @@ class Event extends AppModel {
 		if (!$user['Role']['perm_site_admin']) {
 			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
 			$conditions['AND']['OR'] = array(
-				'Event.org_id' => $user['organisation_id'],
+				'Event.org_id' => $user['org_id'],
 				array(
 					'AND' => array(
 						'Event.distribution >' => 0,
@@ -945,7 +956,7 @@ class Event extends AppModel {
 			);
 			$conditionsAttributes['OR'] = array(
 				'Attribute.distribution >' => 0,
-				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['organisation_id']
+				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
 			);
 		}
 		$fields = array('Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id');
@@ -989,7 +1000,7 @@ class Event extends AppModel {
 		} else {
 			$conditions = array();
 		}
-		if (!isset($user['organisation_id'])) throw new Exception('There was an error with the user account.');
+		if (!isset($user['org_id'])) throw new Exception('There was an error with the user account.');
 		$isSiteAdmin = $user['Role']['perm_site_admin'];
 		
 		$conditionsAttributes = array();
@@ -997,7 +1008,7 @@ class Event extends AppModel {
 		if (!$user['Role']['perm_site_admin']) {
 			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
 			$conditions['AND']['OR'] = array(
-				'Event.org_id' => $user['organisation_id'],
+				'Event.org_id' => $user['org_id'],
 				array(
 					'AND' => array(
 						'Event.distribution >' => 0,
@@ -1015,7 +1026,7 @@ class Event extends AppModel {
 			);
 			$conditionsAttributes['AND'][0]['OR'] = array(
 				'Attribute.distribution >' => 0,
-				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['organisation_id']
+				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
 			);
 		}
 		if ($options['from']) $conditions['AND'][] = array('Event.date >=' => $options['from']);
@@ -1055,7 +1066,7 @@ class Event extends AppModel {
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp');
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
-		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org');
+		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id');
 		$fieldsOrg = array(array('id', 'name'), array('id', 'name', 'uuid'));
 		$fieldsSharingGroup = array(
 			array('fields' => array('SharingGroup.id','SharingGroup.name', 'SharingGroup.releasability', 'SharingGroup.description')),
@@ -1102,10 +1113,15 @@ class Event extends AppModel {
 			$params['contain']['User'] = array('fields' => 'email');
 		}
 		$results = $this->find('all', $params);
-		foreach ($results as &$result) if ($result['SharingGroup']['id'] == null) unset($result['SharingGroup']);
 		// Do some refactoring with the event
 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
 		foreach ($results as $eventKey => &$event) {
+			// unset the empty sharing groups that are created due to the way belongsTo is handled
+			if ($event['SharingGroup']['id'] == null) unset($event['SharingGroup']);
+			// unset empty event tags that got added because the tag wasn't exportable
+			foreach ($event['EventTag'] as $k => &$eventTag) {
+				if (empty($eventTag['Tag'])) unset ($event['EventTag'][$k]);
+			}
 			// Let's find all the related events and attach it to the event itself
 			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgsids);
 			// Let's also find all the relations for the attributes - this won't be in the xml export though
@@ -1216,11 +1232,11 @@ class Event extends AppModel {
 	 	$context_fields = array('id' => null);
 	 	$context_fields = array_merge($context_fields, $this->csv_event_context_fields_to_fetch);
 	 	if (!Configure::read('MISP.showorg') && !$user['Role']['perm_site_admin']) {
-			unset($context_fields['orgc']);
-			unset($context_fields['org']);
+			unset($context_fields['orgc_id']);
+			unset($context_fields['org_id']);
 	 	} else if (!Configure::read('MISP.showorgalternate') && !$user['Role']['perm_site_admin']) {
-	 		$context_fields['orgc'] = 'event_org';
-	 		unset($context_fields['org']);
+	 		$context_fields['orgc_id'] = 'event_org_id';
+	 		unset($context_fields['org_id']);
 	 	}
 	 	
 	 	//$params
@@ -1264,7 +1280,7 @@ class Event extends AppModel {
 	 				'job_input' => 'Event: ' . $id,
 	 				'status' => 0,
 	 				'retries' => 0,
-	 				'org' => $user['org'],
+	 				'org_id' => $user['org_id'],
 	 				'message' => 'Sending...',
 	 		);
 	 		$job->save($data);
@@ -1272,12 +1288,12 @@ class Event extends AppModel {
 	 		$process_id = CakeResque::enqueue(
 	 				'email',
 	 				'EventShell',
-	 				array('alertemail', $user['org'], $jobId, $id)
+	 				array('alertemail', $user['org_id'], $jobId, $id)
 	 		);
 	 		$job->saveField('process_id', $process_id);
 	 		return true;
 	 	} else {
-	 		return ($this->sendAlertEmail($id, $user['org']));
+	 		return ($this->sendAlertEmail($id, $user['org_id']));
 	 	}
 	 } 
 	
@@ -1299,13 +1315,13 @@ class Event extends AppModel {
 		$body .= 'Event ID    : ' . $event['Event']['id'] . "\n";
 		$body .= 'Date        : ' . $event['Event']['date'] . "\n";
 		if (Configure::read('MISP.showorg')) {
-			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
+			$body .= 'Reported by : ' . $event['Event']['org_id'] . "\n";
 		}
 		$body .= 'Distribution: ' . $this->distributionLevels[$event['Event']['distribution']] . "\n";
 		$body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
 		$body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
 		$body .= 'Description : ' . $event['Event']['info'] . "\n\n";
-		$user['org'] = $org;
+		$user['org_id'] = $org;
 		$relatedEvents = $this->getRelatedEvents($user, false);
 		if (!empty($relatedEvents)) {
 			$body .= '==============================================' . "\n";
@@ -1375,7 +1391,7 @@ class Event extends AppModel {
 			// But only do this if it is allowed in the bootstrap.php file.
 			//
 			if ($eventIsPrivate) {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "", 'User.org =' => $event['Event']['org']);
+				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "", 'User.org_id =' => $event['Event']['org_id']);
 			} else {
 				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "");
 			}
@@ -1390,7 +1406,7 @@ class Event extends AppModel {
 					$Email = new CakeEmail();
 					$Email->from(Configure::read('MISP.email'));
 					$Email->to($user['User']['email']);
-					$Email->subject("[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
+					$Email->subject("[" . Configure::read('MISP.org_id') . " MISP] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
 					$Email->emailFormat('text');	// both text or html
 					// send it
 					$Email->send($bodySigned);
@@ -1406,7 +1422,7 @@ class Event extends AppModel {
 			// Build a list of the recipients that wish to receive encrypted mails.
 			//
 			if ($eventIsPrivate) {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "", 'User.org =' => $event['Event']['org']);
+				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "", 'User.org_id =' => $event['Event']['org_id']);
 			} else {
 				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "");
 			}
@@ -1422,7 +1438,7 @@ class Event extends AppModel {
  				$Email = new CakeEmail();
  				$Email->from(Configure::read('MISP.email'));
  				$Email->to($user['User']['email']);
-				$Email->subject("[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
+				$Email->subject("[" . Configure::read('MISP.org') . "org_id'P] Event " . $id . " - " . $subject . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
  				$Email->emailFormat('text');		// both text or html
   					// import the key of the user into the keyring
  				// this is not really necessary, but it enables us to find
@@ -1467,7 +1483,7 @@ class Event extends AppModel {
 			//limit this array to users with contactalerts turned on!
 			$orgMembers = array();
 			$this->User->recursive = 0;
-			$temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert', 'id'));
+			$temp = $this->User->findAllByOrg($event['Event']['org_id'], array('email', 'gpgkey', 'contactalert', 'id'));
 			foreach ($temp as $tempElement) {
 				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
 					array_push($orgMembers, $tempElement);
@@ -1500,7 +1516,7 @@ class Event extends AppModel {
 		$body .= 'Event	   : ' . $event['Event']['id'] . "\n";
 		$body .= 'Date		: ' . $event['Event']['date'] . "\n";
 		if (Configure::read('MISP.showorg')) {
-			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
+			$body .= 'Reported by : ' . $event['Event']['org_id'] . "\n";
 		}
 		$body .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
 		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
@@ -1666,7 +1682,7 @@ class Event extends AppModel {
 			App::import('Component','Auth');
 		}
 		$localEvent = $this->find('first', array('conditions' => array('Event.id' => $id), 'recursive' => -1, 'contain' => array('Attribute', 'ThreatLevel', 'ShadowAttribute')));
-		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
+		if (!isset ($data['Event']['orgc_id'])) $data['Event']['orgc_id'] = $data['Event']['org_id'];
 		if ($localEvent['Event']['timestamp'] < $data['Event']['timestamp']) {
 	
 		} else {
@@ -1773,7 +1789,7 @@ class Event extends AppModel {
 					'job_input' => 'Event ID: ' . $id,
 					'status' => 0,
 					'retries' => 0,
-					'org' => $org,
+					'org_id' => $org,
 					'message' => 'Publishing.',
 			);
 			$job->save($data);
@@ -1846,7 +1862,7 @@ class Event extends AppModel {
 					'job_input' => 'To entire org: ' . $all,
 					'status' => 0,
 					'retries' => 0,
-					'org' => $user['org'],
+					'org_id' => $user['org_id'],
 					'message' => 'Contacting.',
 			);
 			$job->save($data);
@@ -1871,24 +1887,24 @@ class Event extends AppModel {
 		$localOrgs = array();
 		$conditions = array();
 		//$orgs = $this->User->getOrgs();
-		$orgs = $this->User->find('all', array('fields' => array('DISTINCT org')));
+		$orgs = $this->User->find('all', array('fields' => array('DISTINCT org_id')));
 		foreach ($orgs as $k => $org) {
-			$orgs[$k]['User']['count'] = $this->User->getOrgMemberCount($orgs[$k]['User']['org']);
+			$orgs[$k]['User']['count'] = $this->User->getOrgMemberCount($orgs[$k]['User']['org_id']);
 			if ($orgs[$k]['User']['count'] > 1) {
-				$localOrgs[] = $orgs[$k]['User']['org'];
-				$conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org']);
+				$localOrgs[] = $orgs[$k]['User']['org_id'];
+				$conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org_id']);
 			} else if ($orgs[$k]['User']['count'] == 1) {
 				// If we only have a single user for an org, check if that user is a sync user. If not, then it is a valid local org and the events created by him/her should be unlocked.
 				$this->User->recursive = 1;
 				$user = ($this->User->find('first', array(
 						'fields' => array('id', 'role_id'),
-						'conditions' => array('org' => $org['User']['org']),
+						'conditions' => array('org_id' => $org['User']['org_id']),
 						'contain' => array('Role' => array(
 								'fields' => array('id', 'perm_sync'),
 						))
 				)));
 				if (!$user['Role']['perm_sync']) {
-					$conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org']);
+					$conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org_id']);
 				}
 			}
 		}
@@ -2077,7 +2093,7 @@ class Event extends AppModel {
 		if (!empty($exclude)) $conditions['NOT'] = array('id' => $exclude);
 		$events = $this->find('all', array(
 			'recursive' => -1,
-			'fields' => array('id', 'org', 'orgc', 'distribution'),
+			'fields' => array('id', 'org_id', 'orgc_id', 'distribution'),
 			'conditions' => $conditions
 		));
 		$ids = array();
@@ -2122,7 +2138,7 @@ class Event extends AppModel {
 			'recursive' => -1,
 			'fields' => array('id', 'sharing_group_id', 'distribution', 'org_id')
 		));
-		if ($event['Event']['org_id'] == $user['organisation_id'] || ($event['Event']['distribution'] > 0 && $event['Event']['distribution'] < 4)) return true;
+		if ($event['Event']['org_id'] == $user['org_id'] || ($event['Event']['distribution'] > 0 && $event['Event']['distribution'] < 4)) return true;
 		if ($event['Event']['distribution'] == 4 && $this->SharingGroup->checkIfAuthorised($user, $event['Event']['sharing_group_id'])) return true;
 		return false;
 	}

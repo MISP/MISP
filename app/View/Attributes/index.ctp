@@ -31,7 +31,7 @@ if ($isSearch == 1) {
 	<tr>
 			<th><?php echo $this->Paginator->sort('event_id');?></th>
 			<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-			<th><?php echo $this->Paginator->sort('orgc', 'Org');?></th>
+			<th><?php echo $this->Paginator->sort('org_id', 'Org');?></th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
@@ -61,7 +61,7 @@ foreach ($attributes as $attribute):
 		<td class="short">
 			<div ondblclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';" title="<?php echo h($attribute['Event']['info']); ?>">
 			<?php
-				if ($attribute['Event']['orgc_id'] == $me['organisation_id']) {
+				if ($attribute['Event']['orgc_id'] == $me['org_id']) {
 					$style='style="color:red;"';
 				} else {
 					$style='';
@@ -74,10 +74,10 @@ foreach ($attributes as $attribute):
 		<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
 		<td class="short" ondblclick="document.location.href ='/events/view/<?php echo $attribute['Event']['id'];?>'">
 			<?php
-				$imgRelativePath = 'orgs' . DS . h($attribute['Event']['orgc']) . '.png';
+				$imgRelativePath = 'orgs' . DS . h($attribute['Event']['Orgc']['name']) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($attribute['Event']['orgc']) . '.png', array('alt' => h($attribute['Event']['orgc']), 'title' => h($attribute['Event']['orgc']), 'style' => 'width:24px; height:24px'));
-				else echo $this->Html->tag('span', h($attribute['Event']['orgc']), array('class' => 'welcome', 'style' => 'float:left;'));
+				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($attribute['Event']['Orgc']['name']) . '.png', array('alt' => h($attribute['Event']['Orgc']['name']), 'title' => h($attribute['Event']['Orgc']['name']), 'style' => 'width:24px; height:24px'));
+				else echo $this->Html->tag('span', h($attribute['Event']['Orgc']['name']), array('class' => 'welcome', 'style' => 'float:left;'));
 			?>
 			&nbsp;
 		</td>
@@ -115,7 +115,7 @@ foreach ($attributes as $attribute):
 			<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;
 		</td>
 		<td class="short action-links"><?php
-	if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org_id'] == $me['organisation_id'])) {
+	if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org_id'] == $me['org_id'])) {
 				?><a href="/attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-edit" title="Edit"></a><?php
 		echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
 	}

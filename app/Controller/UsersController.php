@@ -63,7 +63,7 @@ class UsersController extends AppController {
 			$me = true;
 		}
 		$this->User->read(null, $id);
-		if (!$this->User->exists() && !$me && !$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('organisation_id') == $this->User->data['User']['organisation_id'])) {
+		if (!$this->User->exists() && !$me && !$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id'])) {
 			throw new NotFoundException(__('Invalid user or not authorised.'));
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
@@ -82,7 +82,7 @@ class UsersController extends AppController {
 		} else {
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
-			if (!$this->User->exists() || (!$this->_isSiteAdmin() && $this->Auth->user('organisation_id') != $this->User->data['User']['organisation_id'])) {
+			if (!$this->User->exists() || (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $this->User->data['User']['org_id'])) {
 				throw new NotFoundException(__('Invalid user or not authorised.'));
 			}
 			$this->User->set('password', '');
@@ -181,11 +181,11 @@ class UsersController extends AppController {
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
 								if ($searchTerm == 'email') $this->paginate['conditions']['AND'][] = array('LOWER(User.' . $searchTerm . ') NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
-								else if ($searchTerm == 'org') $this->paginate['conditions']['AND'][] = array('User.organisation_id !=' => substr($piece, 1));
+								else if ($searchTerm == 'org') $this->paginate['conditions']['AND'][] = array('User.org_id !=' => substr($piece, 1));
 								else $this->paginate['conditions']['AND'][] = array('User.' . $searchTerm => substr($piece, 1));
 							} else {
 								if ($searchTerm == 'email') $test['OR'][] = array('LOWER(User.' . $searchTerm . ') LIKE' => '%' . strtolower($piece) . '%');
-								else if ($searchTerm == 'org') $this->paginate['conditions']['AND'][] = array('User.organisation_id' => $piece);
+								else if ($searchTerm == 'org') $this->paginate['conditions']['OR'][] = array('User.org_id' => $piece);
 								else $test['OR'][] = array('User.' . $searchTerm => $piece);
 							}
 						}
@@ -203,7 +203,7 @@ class UsersController extends AppController {
 			$this->set('users', $this->paginate());
 		} else {
 			if (!($this->_isAdmin())) throw new NotFoundException(__('Invalid user or not authorised.'));
-			$conditions['User.organisation_id'] = $this->Auth->User('organisation_id');
+			$conditions['User.org_id'] = $this->Auth->User('org_id');
 			$this->paginate = array(
 					'conditions' => array($conditions),
 			);
@@ -215,15 +215,14 @@ class UsersController extends AppController {
 		$this->autoRender = false;
 		$this->layout = false;
 		$org = $this->User->Organisation->read(null, $id);
-		if (!$this->User->Organisation->exists() || !($this->_isSiteAdmin() || $this->Auth->user('organisation_id') == $id)) {
+		if (!$this->User->Organisation->exists() || !($this->_isSiteAdmin() || $this->Auth->user('org_id') == $id)) {
 			throw MethodNotAllowedException('Organisation not found or no authorisation to view it.');
 		}
 		$user_fields = array('id', 'email', 'gpgkey', 'nids_sid');
-		$conditions = array('organisation_id' => $id);
+		$conditions = array('org_id' => $id);
 		if ($this->_isSiteAdmin()) {
 			$user_fields = array_merge($user_fields, array('newsread', 'termsaccepted', 'change_pw', 'authkey'));
 		} 
-		
 		$this->paginate = array(
 			'conditions' => $conditions,
 			'recursive' => -1,
@@ -321,7 +320,7 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		$this->set('user', $this->User->read(null, $id));
-		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('organisation_id') == $this->User->data['User']['organisation_id'])) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id'])) throw new MethodNotAllowedException();
 		$temp = $this->User->field('invited_by');
 		$this->set('id', $id);
 		$this->set('user2', $this->User->read(null, $temp));
@@ -334,7 +333,7 @@ class UsersController extends AppController {
  */
 	public function admin_add() {
 		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
-		$this->set('currentOrg', $this->Auth->User('organisation_id'));
+		$this->set('currentOrg', $this->Auth->User('org_id'));
 		$this->set('isSiteAdmin', $this->_isSiteAdmin());
 		$params = null;
 		if (!$this->_isSiteAdmin()) {
@@ -357,7 +356,7 @@ class UsersController extends AppController {
 			}
 			$this->request->data['User']['newsread'] = '2000-01-01';
 			if (!$this->_isSiteAdmin()) {
-				$this->request->data['User']['organisation_id'] = $this->Auth->User('organisation_id');
+				$this->request->data['User']['org_id'] = $this->Auth->User('org_id');
 				$this->loadModel('Role');
 				$this->Role->recursive = -1;
 				$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
@@ -394,7 +393,7 @@ class UsersController extends AppController {
  */
 	public function admin_edit($id = null) {
 		//debug($fields);debug(tru);
-		$this->set('currentOrg', $this->Auth->User('organisation_id'));
+		$this->set('currentOrg', $this->Auth->User('org_id'));
 		$this->User->id = $id;
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
@@ -490,7 +489,7 @@ class UsersController extends AppController {
 			}
 		} else {
 			$this->User->read(null, $id);
-			if (!$this->_isSiteAdmin() && $this->Auth->user('organisation_id') != $this->User->data['User']['organisation_id']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
+			if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $this->User->data['User']['org_id']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
 			$this->User->set('password', '');
 			$this->request->data = $this->User->data; // TODO CHECK
 
@@ -627,7 +626,7 @@ class UsersController extends AppController {
 		}
 		$this->User->read();
 		if ('me' == $id ) $id = $this->Auth->user('id');
-		else if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('organisation_id') == $this->User->data('organisation_id')) && ($this->Auth->user('id') != $id)) throw new MethodNotAllowedException();
+		else if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data('org_id')) && ($this->Auth->user('id') != $id)) throw new MethodNotAllowedException();
 		$newkey = $this->User->generateAuthKey();
 		$this->User->saveField('authkey', $newkey);
 		$this->Session->setFlash(__('New authkey generated.', true));

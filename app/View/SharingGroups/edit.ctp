@@ -138,11 +138,11 @@
 	<?php 
 			foreach ($sharingGroup['SharingGroupOrg'] as $s): 
 		?>
-				orgids.push(<?php echo h($s['organisation_id']);?>);
+				orgids.push(<?php echo h($s['org_id']);?>);
 				var removable = 1;
-				if (<?php echo h($sharingGroup['Organisation']['id']);?> == <?php echo h($s['organisation_id'])?>) removable = 0; 
+				if (<?php echo h($sharingGroup['Organisation']['id']);?> == <?php echo h($s['org_id'])?>) removable = 0; 
 				organisations.push({
-					id: '<?php echo h($s['organisation_id']);?>',
+					id: '<?php echo h($s['org_id']);?>',
 					type: '<?php echo ($s['Organisation']['local'] == 1 ? 'local' : 'remote'); ?>',
 					name: '<?php echo h($s['Organisation']['name'])?>',
 					extend: '<?php echo h($s['extend']);?>',

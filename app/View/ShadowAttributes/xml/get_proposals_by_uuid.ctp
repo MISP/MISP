@@ -17,7 +17,7 @@ foreach ($proposal as &$temp) {
 	// hide the org field is we are not in showorg mode
 	if (!Configure::read('MISP.showorg') && !$isAdmin) {
 	    unset($temp['ShadowAttribute']['org']);
-	    unset($temp['ShadowAttribute']['event_org']);
+	    unset($temp['ShadowAttribute']['event_org_id']);
 	}
 	$xmlArray['response']['ShadowAttribute'][] = $temp['ShadowAttribute'];
 }

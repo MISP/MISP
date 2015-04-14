@@ -155,7 +155,7 @@ def generateSTIXObjects(event):
     if incident_status_name is not None:
         incident.status = IncidentStatus(incident_status_name)
     setTLP(incident, event["Event"]["distribution"])
-    setOrg(incident, event["Event"]["org"])
+    setOrg(incident, event["Org"]["name"])
     resolveAttributes(incident, ttps, event["Attribute"])
     return [incident, ttps]
 

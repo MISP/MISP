@@ -33,7 +33,7 @@ class SharingGroupsController extends AppController {
 					$this->SharingGroup->SharingGroupOrg->create();
 					$this->SharingGroup->SharingGroupOrg->save(array(
 							'sharing_group_id' => $this->SharingGroup->id,
-							'organisation_id' => $org['id'],
+							'org_id' => $org['id'],
 							'extend' => $org['extend']
 					));
 				}

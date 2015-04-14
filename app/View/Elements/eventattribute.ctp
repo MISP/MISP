@@ -1,6 +1,6 @@
 <?php
-	$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['organisation_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['organisation_id']));
-	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['organisation_id']);
+	$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
+	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 	$pageCount = intval($objectCount / 50);
 	if ($objectCount%50 != 0) $pageCount++;
 	$possibleAction = 'Proposal';
@@ -193,7 +193,7 @@
 								if ($object['objectType'] == 0 && isset($relatedAttributes[$object['id']]) && (null != $relatedAttributes[$object['id']])) {
 									foreach ($relatedAttributes[$object['id']] as $relatedAttribute) {
 										echo '<li style="padding-right: 0px; padding-left:0px;" title ="' . h($relatedAttribute['info']) . '"><span>';
-										if ($relatedAttribute['org'] == $me['organisation_id']) {
+										if ($relatedAttribute['org_id'] == $me['org_id']) {
 											echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('style' => 'color:red;'));
 										} else {
 											echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']));
@@ -240,15 +240,14 @@
 						<?php 			
 								}
 							} else {
-								if (($event['Orgc']['id'] == $me['organisation_id'] && $mayModify) || $isSiteAdmin) {
+								if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin) {
 									echo $this->Form->create('Shadow_Attribute', array('id' => 'ShadowAttribute_' . $object['id'] . '_accept', 'url' => '/shadow_attributes/accept/' . $object['id'], 'style' => 'display:none;'));
 									echo $this->Form->end();
 								?>
 									<span class="icon-ok useCursorPointer" onClick="acceptObject('shadow_attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 								<?php 
 								}
-								debug($object);
-								if (($event['Orgc']['id'] == $me['organisation_id'] && $mayModify) || $isSiteAdmin || ($object['org_id'] == $me['organisation_id'])) {
+								if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin || ($object['org_id'] == $me['org_id'])) {
 								?>
 									<span class="icon-trash useCursorPointer" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 								<?php 

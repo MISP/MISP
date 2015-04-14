@@ -7,7 +7,7 @@
 		echo $this->Form->input('password');
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
 		if ($isSiteAdmin) {
-			echo $this->Form->input('organisation_id', array(
+			echo $this->Form->input('org_id', array(
 					'options' => $orgs,
 					'label' => 'Organisation',
 					'empty' => 'Choose organisation',

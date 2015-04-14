@@ -46,9 +46,9 @@ class ShadowAttributesController extends AppController {
 			'conditions' =>
 					array('OR' =>
 							array(
-								'Event.org =' => $this->Auth->user('org'),
+								'Event.org =' => $this->Auth->user('org_id'),
 								'AND' => array(
-									'ShadowAttribute.org =' => $this->Auth->user('org'),
+									'ShadowAttribute.org =' => $this->Auth->user('org_id'),
 									'Event.distribution >' => 0,
 									Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
 								),
@@ -85,7 +85,7 @@ class ShadowAttributesController extends AppController {
 			
 			// Send those away that shouldn't be able to see this
 			if (!$this->_isSiteAdmin()) {
-				if ($activeAttribute['Event']['orgc'] != $this->Auth->user('org') || (!$this->userRole['perm_modify'])) {
+				if ($activeAttribute['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify'])) {
 					$this->Session->setFlash('You don\'t have permission to do that');
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->ShadowAttribute->data['ShadowAttribute']['event_id']));
 				}
@@ -115,12 +115,12 @@ class ShadowAttributesController extends AppController {
 				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
 				$this->Log->save(array(
-						'org' => $this->Auth->user('org'),
+						'org_id' => $this->Auth->user('org_id'),
 						'model' => 'ShadowAttribute',
 						'model_id' => $id,
 						'email' => $this->Auth->user('email'),
 						'action' => 'accept',
-						'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted - ' . $shadow['category'] . '/' . $shadow['type'] . ' ' . $shadow['value'],
+						'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org_id'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted - ' . $shadow['category'] . '/' . $shadow['type'] . ' ' . $shadow['value'],
 						));
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposed change accepted.')),'status'=>200));
 			} else {
@@ -136,14 +136,14 @@ class ShadowAttributesController extends AppController {
 			$event = $this->Event->read(null, $shadow['event_id']);
 			
 			if (!$this->_isSiteAdmin()) {
-				if (($event['Event']['orgc'] != $this->Auth->user('org')) || (!$this->userRole['perm_modify'])) {
+				if (($event['Event']['orgc_id'] != $this->Auth->user('org_id')) || (!$this->userRole['perm_modify'])) {
 					$this->Session->setFlash('You don\'t have permission to do that');
 					$this->redirect(array('controller' => 'events', 'action' => 'index'));
 				}
 			}
 			$shadowForLog = $shadow;
 			// Stuff that we won't use in its current form for the attribute
-			unset($shadow['email'], $shadow['org'], $shadow['id'], $shadow['old_id']);
+			unset($shadow['email'], $shadow['org_id'], $shadow['id'], $shadow['old_id']);
 			
 			$attribute = $shadow;
 
@@ -157,7 +157,7 @@ class ShadowAttributesController extends AppController {
 			$this->ShadowAttribute->setDeleted($toDeleteId);
 
 			$fieldList = array('proposal_email_lock', 'id', 'info', 'published');
-			if ($this->Auth->user('org') == $event['Event']['orgc']) {
+			if ($this->Auth->user('org_id') == $event['Event']['orgc_id']) {
 				$event['Event']['proposal_email_lock'] = 0;
 			}
 			$event['Event']['published'] = 0;
@@ -168,12 +168,12 @@ class ShadowAttributesController extends AppController {
 				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
 				$this->Log->save(array(
-					'org' => $this->Auth->user('org'),
+					'org_id' => $this->Auth->user('org_id'),
 					'model' => 'ShadowAttribute',
 					'model_id' => $id,
 					'email' => $this->Auth->user('email'),
 					'action' => 'accept',
-					'title' => 'Proposal (' . $shadowForLog['id'] . ') of ' . $shadowForLog['org'] . ' to Event(' . $shadowForLog['event_id'] . ') accepted',
+					'title' => 'Proposal (' . $shadowForLog['id'] . ') of ' . $shadowForLog['org_id'] . ' to Event(' . $shadowForLog['event_id'] . ') accepted',
 					'change' => null,
 				));
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal accepted.')),'status'=>200));
@@ -217,25 +217,25 @@ class ShadowAttributesController extends AppController {
 			$this->Event->read();
 			// Send those away that shouldn't be able to see this
 			if (!$this->_isSiteAdmin()) {
-				if ((($this->Event->data['Event']['orgc'] != $this->Auth->user('org')) && ($this->Auth->user('org') != $this->ShadowAttribute->data['ShadowAttribute']['org'])) || (!$this->userRole['perm_modify'])) {
+				if ((($this->Event->data['Event']['orgc_id'] != $this->Auth->user('org_id')) && ($this->Auth->user('org_id') != $this->ShadowAttribute->data['ShadowAttribute']['org_id'])) || (!$this->userRole['perm_modify'])) {
 					$this->Session->setFlash('You don\'t have permission to do that');
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 				}
 			}
 			if ($this->ShadowAttribute->setDeleted($id)) {
-				if ($this->Auth->user('org') == $this->Event->data['Event']['orgc']) {
+				if ($this->Auth->user('org_id') == $this->Event->data['Event']['orgc_id']) {
 					$this->_setProposalLock($eventId, false);
 				}
 				$this->autoRender = false;
 				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
 				$this->Log->save(array(
-						'org' => $this->Auth->user('org'),
+						'org_id' => $this->Auth->user('org_id'),
 						'model' => 'ShadowAttribute',
 						'model_id' => $id,
 						'email' => $this->Auth->user('email'),
 						'action' => 'discard',
-						'title' => 'Proposal (' . $sa['ShadowAttribute']['id'] . ') of ' . $sa['ShadowAttribute']['org'] . ' discarded - ' . $sa['ShadowAttribute']['category'] . '/' . $sa['ShadowAttribute']['type'] . ' ' . $sa['ShadowAttribute']['value'],
+						'title' => 'Proposal (' . $sa['ShadowAttribute']['id'] . ') of ' . $sa['ShadowAttribute']['org_id'] . ' discarded - ' . $sa['ShadowAttribute']['category'] . '/' . $sa['ShadowAttribute']['type'] . ' ' . $sa['ShadowAttribute']['value'],
 				));
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal discarded.')),'status'=>200));
 			} else {
@@ -270,9 +270,9 @@ class ShadowAttributesController extends AppController {
 		$event = $this->ShadowAttribute->Event->find('first', array(
 				'conditions' => array('Event.id' => $eventId),
 				'recursive' => -1,
-				'fields' => array('id', 'orgc', 'distribution', 'org'),
+				'fields' => array('id', 'orgc_id', 'distribution', 'org_id'),
 		));
-		if (!$this->_isSiteAdmin() && (($event['Event']['distribution'] == 0 && $event['Event']['org'] != $this->Auth->user('org'))) || ($event['Event']['orgc'] == $this->Auth->user('org'))) {
+		if (!$this->_isSiteAdmin() && (($event['Event']['distribution'] == 0 && $event['Event']['org_id'] != $this->Auth->user('org_id'))) || ($event['Event']['orgc_id'] == $this->Auth->user('org_id'))) {
 			$this->Session->setFlash(__('Invalid Event.'));
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
@@ -286,7 +286,7 @@ class ShadowAttributesController extends AppController {
 			}
 			$temp = $this->_getEventData($this->request->data['ShadowAttribute']['event_id']);
 			$event_uuid = $temp['uuid'];
-			$event_org = $temp['orgc'];
+			$event_org = $temp['orgc_id'];
 			//
 			// multiple attributes in batch import
 			//
@@ -305,9 +305,9 @@ class ShadowAttributesController extends AppController {
 					$this->ShadowAttribute->create();
 					$this->request->data['ShadowAttribute']['value'] = $attribute; // set the value as the content of the single line
 					$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
-					$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
+					$this->request->data['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
 					$this->request->data['ShadowAttribute']['event_uuid'] = $event_uuid;
-					$this->request->data['ShadowAttribute']['event_org'] = $event_org;
+					$this->request->data['ShadowAttribute']['event_org_id'] = $event_org;
 					// TODO loop-holes,
 					// there seems to be a loop-hole in misp here
 					// be it an create and not an update
@@ -360,9 +360,9 @@ class ShadowAttributesController extends AppController {
 				$this->ShadowAttribute->create();
 				$savedId = $this->ShadowAttribute->getId();
 				$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
-				$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
+				$this->request->data['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
 				$this->request->data['ShadowAttribute']['event_uuid'] = $event_uuid;
-				$this->request->data['ShadowAttribute']['event_org'] = $event_org;
+				$this->request->data['ShadowAttribute']['event_org_id'] = $event_org;
 				if ($this->ShadowAttribute->save($this->request->data)) {
 					// list the ones that succeeded
 					$emailResult = "";
@@ -449,9 +449,9 @@ class ShadowAttributesController extends AppController {
 		$event = $this->ShadowAttribute->Event->find('first', array(
 				'conditions' => array('Event.id' => $eventId),
 				'recursive' => -1,
-				'fields' => array('id', 'orgc', 'distribution', 'org'),
+				'fields' => array('id', 'orgc_id', 'distribution', 'org_id'),
 		));
-		if ((($event['Event']['distribution'] == 0 && $event['Event']['org'] != $this->Auth->user('org'))) || ($event['Event']['orgc'] == $this->Auth->user('org'))) {
+		if ((($event['Event']['distribution'] == 0 && $event['Event']['org_id'] != $this->Auth->user('org_id'))) || ($event['Event']['orgc_id'] == $this->Auth->user('org_id'))) {
 			$this->Session->setFlash(__('Invalid Event.'));
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
@@ -471,7 +471,7 @@ class ShadowAttributesController extends AppController {
 			}
 			$temp = $this->_getEventData($this->request->data['ShadowAttribute']['event_id']);
 			$event_uuid = $temp['uuid'];
-			$event_org = $temp['orgc'];
+			$event_org = $temp['orgc_id'];
 			// save the file-info in the database
 			$this->ShadowAttribute->create();
 			if ($this->request->data['ShadowAttribute']['malware']) {
@@ -490,9 +490,9 @@ class ShadowAttributesController extends AppController {
 			$this->request->data['ShadowAttribute']['uuid'] = String::uuid();
 			$this->request->data['ShadowAttribute']['batch_import'] = 0;
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
-			$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');
+			$this->request->data['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
 			$this->request->data['ShadowAttribute']['event_uuid'] = $event_uuid;
-			$this->request->data['ShadowAttribute']['event_org'] = $event_org;
+			$this->request->data['ShadowAttribute']['event_org_id'] = $event_org;
 			$this->ShadowAttribute->save($this->request->data);
 
 			// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
@@ -599,6 +599,10 @@ class ShadowAttributesController extends AppController {
  */
 	// Propose an edit to an attribute
 	public function edit($id = null) {
+		if ($this->request->is('ajax'))	{
+			$this->set('ajax', true);
+			$this->layout = 'ajax';
+		}
 		$this->loadModel('Attribute');
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
@@ -613,7 +617,7 @@ class ShadowAttributesController extends AppController {
 			// If the attribute's distribution is private and the user is not the owner of the event or if the user is of the original creator org -> exception
 			// The owner should be able to create a shadow attribute, since a pushed community event would be private and tied to a single organisation on a synced instance
 			// The users of that organisation can only view but not edit the event, but they should be able to propose a change 
-			if ((($this->Attribute->data['Attribute']['distribution'] == 0 && $this->Attribute->data['Event']['org'] != $this->Auth->user('org'))) || ($this->Attribute->data['Event']['orgc'] == $this->Auth->user('org'))) {
+			if ((($this->Attribute->data['Attribute']['distribution'] == 0 && $this->Attribute->data['Event']['org_id'] != $this->Auth->user('org_id'))) || ($this->Attribute->data['Event']['orgc_id'] == $this->Auth->user('org_id'))) {
 				$this->Session->setFlash(__('Invalid Attribute.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
@@ -633,17 +637,17 @@ class ShadowAttributesController extends AppController {
 			$existingAttribute = $this->Attribute->findByUuid($uuid);
 			$temp = $this->_getEventData($eventId);
 			$event_uuid = $temp['uuid'];
-			$event_org = $temp['orgc'];
+			$event_org = $temp['orgc_id'];
 			$this->request->data['ShadowAttribute']['old_id'] = $existingAttribute['Attribute']['id'];
 			$this->request->data['ShadowAttribute']['uuid'] = $existingAttribute['Attribute']['uuid'];
 			$this->request->data['ShadowAttribute']['event_id'] = $existingAttribute['Attribute']['event_id'];
 			$this->request->data['ShadowAttribute']['event_uuid'] = $event_uuid;
-			$this->request->data['ShadowAttribute']['event_org'] = $event_org;
+			$this->request->data['ShadowAttribute']['event_org_id'] = $event_org;
 			if ($attachment) $this->request->data['ShadowAttribute']['value'] = $existingAttribute['Attribute']['value'];
 			if ($attachment) $this->request->data['ShadowAttribute']['type'] = $existingAttribute['Attribute']['type'];
-			$this->request->data['ShadowAttribute']['org'] =  $this->Auth->user('org');
+			$this->request->data['ShadowAttribute']['org_id'] =  $this->Auth->user('org_id');
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'value', 'org');
+			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'value', 'org_id');
 			if ($this->ShadowAttribute->save($this->request->data)) {
 				$emailResult = "";
 				if (!$this->__sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id'])) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
@@ -706,7 +710,7 @@ class ShadowAttributesController extends AppController {
 			$this->loadModel('User');
 			$this->User->recursive = -1;
 			$orgMembers = array();
-			$temp = $this->User->findAllByOrg($event['Event']['orgc'], array('email', 'gpgkey', 'contactalert', 'id'));
+			$temp = $this->User->findAllByOrg($event['Event']['orgc_id'], array('email', 'gpgkey', 'contactalert', 'id'));
 			foreach ($temp as $tempElement) {
 				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
 					array_push($orgMembers, $tempElement);
@@ -791,15 +795,15 @@ class ShadowAttributesController extends AppController {
 	public function index() {
 		$conditions = null;
 		if (!$this->_isSiteAdmin()) {
-			$conditions = array('Event.org =' => $this->Auth->user('org'));
+			$conditions = array('Event.org =' => $this->Auth->user('org_id'));
 		}
 		$conditions[] = array('deleted' => 0);
 		$this->paginate = array(
 				'conditions' => $conditions,
-				'fields' => array('id', 'org', 'old_id', 'deleted', 'value', 'category', 'type'),
+				'fields' => array('id', 'org_id', 'old_id', 'deleted', 'value', 'category', 'type'),
 				'contain' => array(
 						'Event' => array(
-								'fields' => array('id', 'org', 'info', 'orgc'),
+								'fields' => array('id', 'org_id', 'info', 'orgc_id'),
 						),
 				),
 				'recursive' => 1	
@@ -810,7 +814,7 @@ class ShadowAttributesController extends AppController {
 	private function _getEventData($event_id) {
 		$this->loadModel('Event');
 		$this->Event->recursive = -1;
-		$this->Event->read(array('id', 'uuid', 'orgc'), $event_id);
+		$this->Event->read(array('id', 'uuid', 'orgc_id'), $event_id);
 		return $this->Event->data['Event'];
 	} 
 	
@@ -853,13 +857,13 @@ class ShadowAttributesController extends AppController {
 				'fields' => $fields,
 				'contain' => array(
 						'Event' => array(
-								'fields' => array('distribution', 'id', 'user_id', 'orgc', 'org'),
+								'fields' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id'),
 						)
 				)
 		));
 		if (!$this->_isSiteAdmin()) {
 			//
-			if ($attribute['Event']['orgc'] != $this->Auth->user('org')	&& ($attribute['Event']['org'] == $this->Auth->user('org') || $attribute['Event']['distribution'] > 0)) {
+			if ($attribute['Event']['orgc_id'] != $this->Auth->user('org_id')	&& ($attribute['Event']['org_id'] == $this->Auth->user('org_id') || $attribute['Event']['distribution'] > 0)) {
 							// Allow the edit
 			} else {
 				throw new NotFoundException(__('Invalid attribute'));
@@ -898,7 +902,7 @@ class ShadowAttributesController extends AppController {
 	
 		if (!$this->_isSiteAdmin()) {
 			//
-			if ($attribute['Event']['orgc'] != $this->Auth->user('org')	&& ($attribute['Event']['org'] == $this->Auth->user('org') || $attribute['Event']['distribution'] > 0)) {
+			if ($attribute['Event']['orgc_id'] != $this->Auth->user('org_id')	&& ($attribute['Event']['org_id'] == $this->Auth->user('org_id') || $attribute['Event']['distribution'] > 0)) {
 				// Allow the edit
 			} else {
 				throw new NotFoundException(__('Invalid attribute'));
@@ -909,9 +913,9 @@ class ShadowAttributesController extends AppController {
 		
 		$proposal = array_intersect_key($attribute['Attribute'], $keys);
 		$proposal['email'] = $this->Auth->user('email');
-		$proposal['org'] = $this->Auth->user('org');
+		$proposal['org_id'] = $this->Auth->user('org_id');
 		$proposal['event_uuid'] = $attribute['Event']['uuid'];
-		$proposal['event_org'] = $attribute['Event']['orgc'];
+		$proposal['event_org_id'] = $attribute['Event']['orgc_id'];
 		$proposal['old_id'] = $attribute['Attribute']['id'];
 		foreach ($this->request->data['ShadowAttribute'] as $changedKey => $changedField) {
 			if ($proposal[$changedKey] == $changedField) {
