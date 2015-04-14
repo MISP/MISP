@@ -115,6 +115,16 @@ class Event extends AppModel {
 			)
 	);
 	
+	public $csv_event_context_fields_to_fetch = array(
+	 			'info' => 'event_info', 
+	 			'org' => 'event_member_org',  
+	 			'orgc' => 'event_source_org', 
+	 			'distribution' => 'event_distribution', 
+	 			'threat_level_id' => 'event_threat_level_id', 
+	 			'analysis' => 'event_analysis', 
+	 			'date' => 'event_date', 
+	 	);
+	
 /**
  * Validation rules
  *
@@ -799,7 +809,10 @@ class Event extends AppModel {
 		$conditions = array();
 		if (!$isSiteAdmin) {
 			$conditions['OR'] = array(
-					'Event.distribution >' => 0,
+					"AND" => array(
+						'Event.distribution >' => 0,
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
+					),
 					'Event.org LIKE' => $org
 			);
 		}
@@ -835,7 +848,10 @@ class Event extends AppModel {
 		//restricting to non-private or same org if the user is not a site-admin.
 		if (!$isSiteAdmin) {
 			$conditions['AND']['OR'] = array(
-				'Event.distribution >' => 0,
+				"AND" => array(
+					'Event.distribution >' => 0,
+					Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+				),
 				'Event.org LIKE' => $org
 			);
 			$conditionsAttributes['OR'] = array(
@@ -920,7 +936,7 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	public function csv($org, $isSiteAdmin, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeInfo = false, $from = false, $to = false) {
+	public function csv($org, $isSiteAdmin, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false) {
 		$final = array();
 		$attributeList = array();
 		$conditions = array();
@@ -932,7 +948,13 @@ class Event extends AppModel {
 	 		if ($from) $econditions['AND'][] = array('Event.date >=' => $from);
 	 		if ($to) $econditions['AND'][] = array('Event.date <=' => $to);
 	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-	 		if(!$isSiteAdmin) $econditions['AND']['OR'] = array('Event.distribution >' => 0, 'Event.org =' => $org);
+			if(!$isSiteAdmin) $econditions['AND']['OR'] = array(
+				"AND" => array(
+					'Event.distribution >' => 0,
+					Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+				),
+				'Event.org =' => $org
+			);
 	 		if ($eventid == 0 && $ignore == 0) $econditions['AND'][] = array('Event.published =' => 1);
 	 		
 	 		// If it's a full download (eventid == false) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
@@ -996,26 +1018,51 @@ class Event extends AppModel {
 	 		$attribute['Attribute']['value'] = '"' . $attribute['Attribute']['value'] . '"';
 	 		$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
 	 	}
-	 	if ($includeInfo) $attributes = $this->attachEventInfoToAttributes($attributes);
+	 	if ($includeContext) $attributes = $this->attachEventInfoToAttributes($attributes, $isSiteAdmin);
 	 	return $attributes;
 	 }
 	 
-	 private function attachEventInfoToAttributes($attributes) {
+	 private function attachEventInfoToAttributes($attributes, $isSiteAdmin) {
+	 	$TLs = $this->ThreatLevel->find('all', array(
+	 		'recursive' => -1,
+	 	));
 	 	$event_ids = array();
 	 	foreach ($attributes as &$attribute) {
 	 		if (!in_array($attribute['Attribute']['event_id'], $event_ids)) $event_ids[] = $attribute['Attribute']['event_id'];
 	 	}
+	 	$context_fields = array('id' => null);
+	 	$context_fields = array_merge($context_fields, $this->csv_event_context_fields_to_fetch);
+	 	if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
+			unset($context_fields['orgc']);
+			unset($context_fields['org']);
+	 	} else if (!Configure::read('MISP.showorgalternate') && !$isSiteAdmin) {
+	 		$context_fields['orgc'] = 'event_org';
+	 		$context_fields['org'] = 'event_owner_org';
+	 		unset($context_fields['orgc']);
+	 	}
+	 	
 	 	$events = $this->find('all', array(
 	 		'recursive' => -1,
-	 		'fields' => array('id', 'info'),
+	 		'fields' => array_keys($context_fields),
 	 		'conditions' => array('id' => $event_ids),
 	 	));
-	 	$event_id_info = array();
+	 	$event_id_data = array();
+	 	unset($context_fields['id']);
 	 	foreach ($events as $event) {
-	 		$event_id_info[$event['Event']['id']] = $event['Event']['info'];
+	 		foreach ($context_fields as $field => $header_name) $event_id_data[$event['Event']['id']][$header_name] = $event['Event'][$field];
 	 	}
 	 	foreach ($attributes as &$attribute) {
-	 		$attribute['Attribute']['event_info'] = $event_id_info[$attribute['Attribute']['event_id']];
+	 		foreach ($context_fields as $field => $header_name) {
+	 			if ($header_name == 'event_threat_level_id') {
+	 				$attribute['Attribute'][$header_name] = $TLs[$event_id_data[$attribute['Attribute']['event_id']][$header_name]]['ThreatLevel']['name'];
+	 			} else if ($header_name == 'event_distribution') {
+	 				$attribute['Attribute'][$header_name] = $this->distributionLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
+	 			} else if ($header_name == 'event_analysis') {
+	 				$attribute['Attribute'][$header_name] = $this->analysisLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
+	 			} else {
+	 				$attribute['Attribute'][$header_name] = $event_id_data[$attribute['Attribute']['event_id']][$header_name];
+	 			}
+	 		}
 	 	}
 	 	return $attributes;
 	 }
@@ -1025,7 +1072,7 @@ class Event extends AppModel {
 	 		$job = ClassRegistry::init('Job');
 	 		$job->create();
 	 		$data = array(
-	 				'worker' => 'default',
+	 				'worker' => 'email',
 	 				'job_type' => 'publish_alert_email',
 	 				'job_input' => 'Event: ' . $id,
 	 				'status' => 0,
@@ -1036,7 +1083,7 @@ class Event extends AppModel {
 	 		$job->save($data);
 	 		$jobId = $job->id;
 	 		$process_id = CakeResque::enqueue(
-	 				'default',
+	 				'email',
 	 				'EventShell',
 	 				array('alertemail', $user['org'], $jobId, $id)
 	 		);
@@ -1114,7 +1161,7 @@ class Event extends AppModel {
 		
 		if (Configure::read('MISP.extended_alert_subject')) {
 			$subject = preg_replace( "/\r|\n/", "", $event['Event']['info']);
-			if (strlen($subject) > 55) {
+			if (strlen($subject) > 58) {
 				$subject = substr($subject, 0, 55) . '... - ';
 			} else {
 				$subject .= " - ";
@@ -1608,7 +1655,7 @@ class Event extends AppModel {
 			$job = ClassRegistry::init('Job');
 			$job->create();
 			$data = array(
-					'worker' => 'default',
+					'worker' => 'email',
 					'job_type' => 'contact_alert',
 					'job_input' => 'To entire org: ' . $all,
 					'status' => 0,
@@ -1619,7 +1666,7 @@ class Event extends AppModel {
 			$job->save($data);
 			$jobId = $job->id;
 			$process_id = CakeResque::enqueue(
-					'default',
+					'email',
 					'EventShell',
 					array('contactemail', $id, $message, $all, $user['id'], $isSiteAdmin, $jobId)
 			);
@@ -1816,7 +1863,7 @@ class Event extends AppModel {
 		$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
 		
 		// Execute the python script and point it to the temporary filename
-		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType);
+		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType . ' ' . Configure::read('MISP.baseurl') . ' "' . Configure::read('MISP.org') . '"');
 		
 		// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
 		// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along

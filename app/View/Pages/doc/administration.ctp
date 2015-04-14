@@ -31,6 +31,7 @@
 		<li><b>Overview</b>: General overview of the current state of your MISP installation</li>
 		<li><b>MISP settings</b>: Basic MISP settings. This includes the way MISP handles the default settings for distribution settings, whether background jobs are enabled, etc</li>
 		<li><b>GnuPG settings</b>: GPG related settings.</li>
+		<li><b>Proxy settings</b>: HTTP proxy related settings.</li>
 		<li><b>Security settings</b>: Settings controlling the brute-force protection and the application's salt key.</li>
 		<li><b>Misc settings</b>: You change the debug options here, but make sure that debug is always disabled on a production system.</li>
 		<li><b>Diagnostics</b>: The diagnostics tool checks if all directories that MISP uses to store data are writeable by the apache user. Also, the tool checks whether the STIX libraries and GPG are working as intended.</li>

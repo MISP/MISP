@@ -70,9 +70,15 @@ class EventsController extends AppController {
 			$this->paginate = Set::merge($this->paginate,array(
 					'conditions' =>
 					array("OR" => array(
-							array('Event.org =' => $this->Auth->user('org')),
-							array('Event.distribution >' => 0),
-			))));
+						array('Event.org =' => $this->Auth->user('org')),
+						"AND" => array(
+								array('Event.distribution >' => 0),
+								Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+							)
+						)
+					)
+				)
+			);
 		}
 	}
 	
@@ -1757,7 +1763,6 @@ class EventsController extends AppController {
 		
 		foreach ($eventIdArray as $currentEventId) {
 			$result = $this->__fetchEvent($currentEventId, null, $org, $isSiteAdmin, $tags, $from, $to);
-			$result;
 			if ($withAttachment) {
 				foreach ($result[0]['Attribute'] as &$attribute) {
 					if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
@@ -1815,8 +1820,6 @@ class EventsController extends AppController {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$user = $this->checkAuthUser($this->Auth->user('authkey'));
-			if (!$user) throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			$user = array('User' => $this->Auth->user());
 			$user['User']['siteAdmin'] = $this->_isSiteAdmin();
 		}
@@ -1859,8 +1862,8 @@ class EventsController extends AppController {
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
 	// $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything. 
-	public function csv($key, $eventid=false, $ignore=false, $tags = false, $category=false, $type=false, $includeInfo=false, $from=false, $to=false) {
-		$simpleFalse = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeInfo', 'from', 'to');
+	public function csv($key, $eventid=false, $ignore=false, $tags = false, $category=false, $type=false, $includeContext=false, $from=false, $to=false) {
+		$simpleFalse = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
@@ -1901,13 +1904,17 @@ class EventsController extends AppController {
 				$list[] = $attribute['Attribute']['id'];
 			}
 		}
-		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type, $includeInfo, $from, $to);
+		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type, $includeContext, $from, $to);
 		$this->loadModel('Whitelist');
 		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
 			$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
-			if ($includeInfo) $line .= ',' . $attribute['Attribute']['event_info'];
+			if ($includeContext) {
+				foreach($this->Event->csv_event_context_fields_to_fetch as $field => $header) {
+					$line .= ',' . $attribute['Attribute'][$header];
+				}
+			}
 			$final[] = $line;
 		}
 		
@@ -1921,7 +1928,7 @@ class EventsController extends AppController {
 		}
 		$this->layout = 'text/default';
 		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'to_ids', 'date');
-		if ($includeInfo) $headers[] = 'event_info';
+		if ($includeContext) $headers = array_merge($headers, array_values($this->Event->csv_event_context_fields_to_fetch));
 		$this->set('headers', $headers);
 		$this->set('final', $final);
 	}
@@ -2366,7 +2373,6 @@ class EventsController extends AppController {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		$value = str_replace('|', '/', $value);
-		
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
 		// For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
@@ -2393,16 +2399,7 @@ class EventsController extends AppController {
 		}
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		if ($searchall === 'true') $searchall = "1";
-		
-		if (!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') {
-			$this->response->type('xml');	// set the content type
-			$this->layout = 'xml/default';
-			$this->header('Content-Disposition: download; filename="misp.search.events.results.xml"');
-		} else {
-			$this->response->type('json');	// set the content type
-			$this->layout = 'json/default';
-			$this->header('Content-Disposition: download; filename="misp.search.events.results.json"');
-		}
+
 		$conditions['AND'] = array();
 		$subcondition = array();
 		$this->loadModel('Attribute');
@@ -2453,7 +2450,11 @@ class EventsController extends AppController {
 	
 			if (!$user['User']['siteAdmin']) {
 				$temp = array();
-				$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
+				$temp['AND'] = array(
+							'Event.distribution >' => 0,
+							'Attribute.distribution >' => 0,
+							Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
+						);
 				$subcondition['OR'][] = $temp;
 				$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
 				array_push($conditions['AND'], $subcondition);
@@ -2475,13 +2476,14 @@ class EventsController extends AppController {
 				}
 				$conditions['AND'][] = $temp;
 			}
-			$params = array(
-				'conditions' => $conditions,
-				'fields' => array('Attribute.event_id'),
-			);
+
 			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 			
+			$params = array(
+					'conditions' => $conditions,
+					'fields' => array('DISTINCT(Attribute.event_id)'),
+			);
 			$attributes = $this->Attribute->find('all', $params);
 			$eventIds = array();
 			foreach ($attributes as $attribute) {
@@ -2489,14 +2491,42 @@ class EventsController extends AppController {
 			}
 		}
 		if (!empty($eventIds)) {
-			$results = $this->__fetchEvent(null, $eventIds, $user['User']['org'], true);
+			$this->loadModel('Whitelist');
+			if ((!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') && $this->response->type() !== 'application/json') {
+				App::uses('XMLConverterTool', 'Tools');
+				$converter = new XMLConverterTool();
+				$final = "";
+				$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
+				foreach ($eventIds as $currentEventId) {
+					$result = $this->__fetchEvent($currentEventId, null, $user['User']['org'], true);
+					$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
+					$final .= $converter->event2XML($result[0]) . PHP_EOL;
+				}
+				$final .= '</response>' . PHP_EOL;
+				$final_filename="misp.search.events.results.xml";
+				$this->response->body($final);
+				$this->response->type('xml');
+				$this->response->download($final_filename);
+			} else {
+				App::uses('JSONConverterTool', 'Tools');
+				$converter = new JSONConverterTool();
+				$temp = array();
+				$final = '{"response":[';
+				foreach ($eventIds as $k => $currentEventId) {
+					$result = $this->__fetchEvent($currentEventId, null, $user['User']['org'], true);
+					$final .= $converter->event2JSON($result[0]);
+					if ($k < count($eventIds) -1 ) $final .= ',';
+				}
+				$final .= ']}';
+				$final_filename="misp.search.events.results.json";
+				$this->response->body($final);
+				$this->response->type('json');
+				$this->response->download($final_filename);
+			}
 		} else {
 			throw new NotFoundException('No matches.');
 		}
-		$this->loadModel('Whitelist');
-		$results = $this->Whitelist->removeWhitelistedFromArray($results, false);
-		$this->response->type('xml');
-		$this->set('results', $results);
+		return $this->response;
 	}
 
 	public function downloadOpenIOCEvent($eventid) {
@@ -2861,24 +2891,23 @@ class EventsController extends AppController {
 			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 			$saved = 0;
 			$failed = 0;
-			foreach ($this->request->data['Attribute'] as $k => $attribute) {
-				if ($attribute['save'] == '1') {
-					if ($attribute['type'] == 'ip-src/ip-dst') {
-						$types = array('ip-src', 'ip-dst');
+			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
+			foreach ($attributes as $k => $attribute) {
+				if ($attribute['type'] == 'ip-src/ip-dst') {
+					$types = array('ip-src', 'ip-dst');
+				} else {
+					$types = array($attribute['type']);
+				}
+				foreach ($types as $type) {
+					$this->Event->Attribute->create();
+					$attribute['type'] = $type;
+					$attribute['distribution'] = $event['Event']['distribution'];
+					if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
+					$attribute['event_id'] = $id;
+					if ($this->Event->Attribute->save($attribute)) {
+						$saved++;
 					} else {
-						$types = array($attribute['type']);
-					}
-					foreach ($types as $type) {
-						$this->Event->Attribute->create();
-						$attribute['type'] = $type;
-						$attribute['distribution'] = $event['Event']['distribution'];
-						if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
-						$attribute['event_id'] = $id;
-						if ($this->Event->Attribute->save($attribute)) {
-							$saved++;
-						} else {
-							$failed++;
-						}
+						$failed++;
 					}
 				}
 			}
@@ -2984,7 +3013,7 @@ class EventsController extends AppController {
 				'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked'),
 			));
 			foreach ($events as $k => $v) {
-				if (!$v['Event']['timestamp'] < $incomingEvents[$v['Event']['uuid']]) {
+				if ($v['Event']['timestamp'] >= $incomingEvents[$v['Event']['uuid']]) {
 					unset($incomingEvents[$v['Event']['uuid']]);
 					continue;
 				}
@@ -3081,7 +3110,7 @@ class EventsController extends AppController {
 					'checkbox_set' => '/true'
 			),
 			'json' => array(
-					'url' => '/events/view/' . $id . 'json',
+					'url' => '/events/view/' . $id . '.json',
 					'text' => 'MISP JSON (metadata + all attributes)',
 					'requiresPublished' => false,
 					'checkbox' => false,

@@ -58,6 +58,7 @@ class AttributesController extends AppController {
 								'AND' => array(
 										'Attribute.distribution >' => 0,
 										'Event.distribution >' => 0,
+										Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
 			)))));
 		}
 
@@ -118,7 +119,8 @@ class AttributesController extends AppController {
 
 			// remove the published flag from the event
 			$this->Event->recursive = -1;
-			$this->Event->read(null, $this->request->data['Attribute']['event_id']);
+			if (isset($eventId)) $this->Event->read(null, $eventId);
+			else $this->Event->read(null, $this->request->data['Attribute']['event_id']);
 			if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
 				throw new UnauthorizedException('You do not have permission to do that.');
 			}
@@ -194,7 +196,7 @@ class AttributesController extends AppController {
 						// TODO RESTfull, set responce location header..so client can find right URL to edit
 						$this->response->header('Location', Configure::read('MISP.baseurl') . '/attributes/' . $existingAttribute['Attribute']['id']);
 						$this->response->send();
-						$this->view($this->Attribute->getId());
+						$this->view($this->Attribute->getID());
 						$this->render('view');
 						return false;
 					} else {
@@ -215,13 +217,19 @@ class AttributesController extends AppController {
 				// create the attribute
 				$this->Attribute->create();
 
-				$savedId = $this->Attribute->getId();
-
+				$savedId = $this->Attribute->getID();
 				if ($this->Attribute->save($this->request->data)) {
-					if ($this->_isRest()) {
-						// REST users want to see the newly created attribute
-						$this->view($this->Attribute->getId());
-						$this->render('view');
+					if ($this->_isRest() || $this->response->type() === 'application/json') {
+						$saved_attribute = $this->Attribute->find('first', array(
+								'conditions' => array('id' => $this->Attribute->id),
+								'recursive' => -1,
+								'fields' => array('id', 'type', 'to_ids', 'category', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment', 'value'),
+						));
+						$response = array('response' => array('Attribute' => $saved_attribute['Attribute']));
+						$this->set('response', $response);
+						if ($this->response->type() === 'application/json') $this->render('/Attributes/json/view');
+						else $this->render('view');
+						return false;
 					} elseif ($this->request->is('ajax')) {
 						$this->autoRender = false;
 						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute added.')),'status'=>200));
@@ -691,12 +699,11 @@ class AttributesController extends AppController {
 			$this->set('attachment', false);
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
-
 			// reposition to get the attribute.id with given uuid
 			// Notice (8): Undefined index: uuid [APP/Controller/AttributesController.php, line 502]
 			// Fixed - uuid was not passed back from the form since it's not a field. Set the uuid in a variable for non rest users, rest should have uuid.
 			// Generally all of this should be _isRest() only, but that's something for later to think about
-			if ($this->_isRest()) {
+			if ($this->_isRest() || $this->response->type() === 'application/json') {
 				$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
 			} else {
 				$existingAttribute = $this->Attribute->findByUuid($uuid);
@@ -707,17 +714,18 @@ class AttributesController extends AppController {
 			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
 			if (isset($this->request->data['Attribute']['timestamp'])) {
 				// check which attribute is newer
-				if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-					// carry on with adding this attribute - Don't forget! if orgc!=user org, create shadow attribute, not attribute!
-				} else {
-					// the old one is newer or the same, replace the request's attribute with the old one
-					$this->request->data['Attribute'] = $existingAttribute['Attribute'];
+				if (count($existingAttribute)) {
+					if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+						// carry on with adding this attribute - Don't forget! if orgc!=user org, create shadow attribute, not attribute!
+					} else {
+						// the old one is newer or the same, replace the request's attribute with the old one
+						$this->request->data['Attribute'] = $existingAttribute['Attribute'];
+					}
 				}
 			} else {
 				$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
 			}
 			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'distribution', 'value', 'timestamp', 'comment');
-
 			$this->loadModel('Event');
 			$this->Event->id = $eventId;
 
@@ -729,11 +737,17 @@ class AttributesController extends AppController {
 				$this->Event->set('timestamp', $date->getTimestamp());
 				$this->Event->set('published', 0);
 				$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
-
-				if ($this->_isRest()) {
-					// REST users want to see the newly created event
-					$this->view($this->Attribute->getId());
-					$this->render('view');
+				if ($this->_isRest() || $this->response->type() === 'application/json') {
+					$saved_attribute = $this->Attribute->find('first', array(
+							'conditions' => array('id' => $this->Attribute->id),
+							'recursive' => -1,
+							'fields' => array('id', 'type', 'to_ids', 'category', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment', 'value'),
+					));
+					$response = array('response' => array('Attribute' => $saved_attribute['Attribute']));
+					$this->set('response', $response);
+					if ($this->response->type() === 'application/json') $this->render('/Attributes/json/view');
+					else $this->render('view');
+					return false;
 				} else {
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 				}
@@ -823,7 +837,7 @@ class AttributesController extends AppController {
 		}
 	}
 	
-	public function view($id, $hasChildren = 0) {
+	public function view($id, $hasChildren = 0, $response = 'ajax') {
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException('Invalid attribute');
@@ -837,18 +851,22 @@ class AttributesController extends AppController {
 				throw new MethodNotAllowed('Invalid attribute');
 			}
 		}
-		$eventRelations = $this->Attribute->Event->getRelatedAttributes($this->Auth->user(), $this->_isSiteAdmin(), $attribute['Attribute']['event_id']);
-		$attribute['Attribute']['relations'] = array();
-		if (isset($eventRelations[$id])) {
-			foreach ($eventRelations[$id] as $relations) {
-				$attribute['Attribute']['relations'][] = array($relations['id'], $relations['info'], $relations['org']);
+		if ($this->request->is('ajax')) {
+			$eventRelations = $this->Attribute->Event->getRelatedAttributes($this->Auth->user(), $this->_isSiteAdmin(), $attribute['Attribute']['event_id']);
+			$attribute['Attribute']['relations'] = array();
+			if (isset($eventRelations[$id])) {
+				foreach ($eventRelations[$id] as $relations) {
+					$attribute['Attribute']['relations'][] = array($relations['id'], $relations['info'], $relations['org']);
+				}
 			}
+			$object = $attribute['Attribute'];
+			$object['objectType'] = 0;
+			$object['hasChildren'] = $hasChildren;
+			$this->set('object', $object);
+			$this->set('distributionLevels', $this->Attribute->Event->distributionLevels);
+		} else {
+			$this->redirect('/events/view/' . $this->Attribute->data['Attribute']['event_id']);
 		}
-		$object = $attribute['Attribute'];
-		$object['objectType'] = 0;
-		$object['hasChildren'] = $hasChildren;
-		$this->set('object', $object);
-		$this->set('distributionLevels', $this->Attribute->Event->distributionLevels);
 		/*
 		$this->autoRender = false;
 		$responseObject = array();
@@ -1281,9 +1299,17 @@ class AttributesController extends AppController {
 						// merge in private conditions
 						$this->paginate = Set::merge($this->paginate, array(
 							'conditions' =>
-								array("OR" => array(
-								array('Event.org =' => $this->Auth->user('org')),
-								array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Attribute.distribution !=' => 0)))),
+								array("OR" =>
+									array(
+										array('Event.org =' => $this->Auth->user('org')),
+										array("AND" =>
+											array('Event.org !=' => $this->Auth->user('org')),
+											array('Event.distribution !=' => 0),
+											array('Attribute.distribution !=' => 0),
+											Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+										)
+									)
+								)
 							)
 						);
 					}
@@ -1369,8 +1395,14 @@ class AttributesController extends AppController {
 	public function searchAlternate($data) {
 		$data['AND'][] = array(
 				"OR" => array(
-					array('Event.org =' => $this->Auth->user('org')),
-					array("AND" => array('Event.org !=' => $this->Auth->user('org')), array('Event.distribution !=' => 0), array('Attribute.distribution !=' => 0))));
+						array('Event.org =' => $this->Auth->user('org')),
+						array("AND" => array('Event.org !=' => $this->Auth->user('org')),
+							array('Event.distribution !=' => 0),
+							array('Attribute.distribution !=' => 0),
+							Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+						)
+					)
+				);
 		$attributes = $this->Attribute->find('all', array(
 			'conditions' => $data,
 			'fields' => array(
@@ -1555,7 +1587,11 @@ class AttributesController extends AppController {
 
 		if (!$user['User']['siteAdmin']) {
 			$temp = array();
-			$temp['AND'] = array('Event.distribution >' => 0, 'Attribute.distribution >' => 0);
+			$temp['AND'] = 	array(
+						'Event.distribution >' => 0,
+						'Attribute.distribution >' => 0,
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
+					);
 			$subcondition['OR'][] = $temp;
 			$subcondition['OR'][] = array('Event.org' => $user['User']['org']);
 			array_push($conditions['AND'], $subcondition);
