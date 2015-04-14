@@ -14,25 +14,45 @@
 			echo $this->Form->input('type', array(
 					'empty' => '(first choose category)'
 					));
-			$initialDistribution = 3;
+
+			$initialDistribution = 5;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-					$initialDistribution = $currentDist;	
+					$initialDistribution = 5;	
 				} else {
 					$initialDistribution = Configure::read('MISP.default_attribute_distribution');
 				}
 			}
+			
+			?>
+				<div class="input clear"></div>
+			<?php
+			
 			echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
 				'label' => 'Distribution',
 				'selected' => $initialDistribution,
 			));
+			?>
+				<div id="SGContainer" style="display:none;">
+			<?php
+					echo $this->Form->input('sharing_group_id', array(
+							'options' => array($sharingGroups),
+							'label' => 'Sharing Group',
+							'selected' => $initialDistribution,
+					));
+			?>
+				</div>
+			<?php 
 			echo $this->Form->input('value', array(
 					'type' => 'textarea',
 					'error' => array('escape' => false),
 					'div' => 'input clear',
 					'class' => 'input-xxlarge'
 			));
+			?>
+				<div class="input clear"></div>
+			<?php
 			echo $this->Form->input('comment', array(
 					'type' => 'text',
 					'label' => 'Contextual Comment',
@@ -141,6 +161,11 @@ foreach ($distributionDescriptions as $type => $def) {
 ?>
 
 $(document).ready(function() {
+
+	$('#AttributeDistribution').change(function() {
+		if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
+		else $('#SGContainer').hide();
+	});
 
 	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);

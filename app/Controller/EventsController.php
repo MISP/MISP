@@ -936,7 +936,7 @@ class EventsController extends AppController {
 			throw new MethodNotAllowedException('You don\'t have permissions to create events');
 		}
 		$this->loadModel('SharingGroup');
-		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name');
+		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
 				
@@ -1020,7 +1020,7 @@ class EventsController extends AppController {
 		$analysiss = $this->Event->validate['analysis']['rule'][1];
 		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
 		$this->loadModel('SharingGroup');
-		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name');
+		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		$this->set('sharingGroups', $sgs);
 		$this->set('analysiss',$analysiss);
 		// tooltip for analysis

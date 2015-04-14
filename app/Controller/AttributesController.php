@@ -254,6 +254,10 @@ class AttributesController extends AppController {
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 
+		$this->loadModel('SharingGroup');
+		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+		$this->set('sharingGroups', $sgs);
+		
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
@@ -466,6 +470,11 @@ class AttributesController extends AppController {
 		$this->loadModel('Event');
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
+		
+		$this->loadModel('SharingGroup');
+		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+		$this->set('sharingGroups', $sgs);
+		
 		$events = $this->Event->findById($eventId);
 		$this->set('currentDist', $events['Event']['distribution']);
 		$this->set('published', $events['Event']['published']);
@@ -755,6 +764,11 @@ class AttributesController extends AppController {
 		$this->set('distributionLevels', $this->Attribute->distributionLevels);
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
+		
+		$this->loadModel('SharingGroup');
+		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+		$this->set('sharingGroups', $sgs);
+		
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);

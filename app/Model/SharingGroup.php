@@ -61,11 +61,14 @@ class SharingGroup extends AppModel {
 	// full: Entire SG object with all organisations and servers attached
 	// name: array in ID => name key => value format
 	// false: array with all IDs
-	public function fetchAllAuthorised($user, $scope = false) {
+	public function fetchAllAuthorised($user, $scope = false, $active = false) {
+		$conditions = array();
+		if ($active !== false) $conditions['AND'][] = array('SharingGroup.active' => $active);
 		if ($user['Role']['perm_site_admin']) {
 			$sgs = $this->find('all', array(
 				'recursive' => -1,
 				'fields' => array('id'),
+				'conditions' => $conditions
 			));
 			$ids = array();
 			foreach ($sgs as $sg) $ids[] = $sg['SharingGroup']['id'];
@@ -73,18 +76,20 @@ class SharingGroup extends AppModel {
 			$ids = array_unique(array_merge($this->SharingGroupServer->fetchAllAuthorised(), $this->SharingGroupOrg->fetchAllAuthorised($user['Organisation']['id'])));
 		}
 		if ($scope === 'full') {
+			if (!empty($ids)) $conditions['And'][] = array('SharingGroup.id' => $ids);
 			$sgs = $this->find('all', array(
 				'contain' => array('SharingGroupServer' => array('Server'), 'SharingGroupOrg' => array('Organisation'), 'Organisation'),
-				'conditions' => array('SharingGroup.id' => $ids),
+				'conditions' => $conditions,
 				'order' => 'name ASC'
 			));
 			return $sgs;
 		} else if ($scope == 'name') {
+			if (!empty($ids)) $conditions['And'][] = array('SharingGroup.id' => $ids);
 			$sgs = $this->find('list', array(
 				'recursive' => -1,
 				'fields' => array('id', 'name'),
 				'order' => 'name ASC',
-				'conditions' => array('SharingGroup.id' => $ids),
+				'conditions' => $conditions,
 			));
 			return $sgs;
 		} else {
