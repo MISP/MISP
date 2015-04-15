@@ -158,6 +158,11 @@ class CertificateAuthenticate extends BaseAuthenticate
                         self::$user = $U[$cn];
                     } else if($sync) {
                         $User->create();
+                        $d = Configure::read('CertAuth.userDefaults');
+                        if($d && is_array($d)) {
+                            self::$user += $d;
+                        }
+                        unset($d);
                         if($User->save(self::$user, true, array_keys(self::$user))) {
                             $U = $User->read();
                             self::$user = $U[$cn];
