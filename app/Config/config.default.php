@@ -50,6 +50,7 @@ $config = array (
     'expire' => 300,
   ),
   // Uncomment the following to enable client SSL certificate authentication
+  /*
   'CertAuth' => 
   array(
     'ca'    => array( 'FIRST.Org' ), // allowed CAs
@@ -62,6 +63,9 @@ $config = array (
     ),
     'enableSession' => true,         // if FALSE then disables session cookies
     'syncUser'      => true,         // should the User be synchronized with an external REST API
+    'userDefaults'=> array(          // default user attributes, only used when creating new users
+      'role_id'   => 4,
+    ),
     'restApi'       => array(        // API parameters
       'url'         => 'https://example.com/data/users',  // URL to query
       'headers'     => array(),                           // additional headers, used for authentication
