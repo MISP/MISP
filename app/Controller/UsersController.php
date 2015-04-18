@@ -220,7 +220,7 @@ class UsersController extends AppController {
 		}
 		$user_fields = array('id', 'email', 'gpgkey', 'nids_sid');
 		$conditions = array('org_id' => $id);
-		if ($this->_isSiteAdmin()) {
+		if ($this->_isSiteAdmin() || ($this->_isAdmin() && $this->Auth->user('org_id') == $id)) {
 			$user_fields = array_merge($user_fields, array('newsread', 'termsaccepted', 'change_pw', 'authkey'));
 		} 
 		$this->paginate = array(
@@ -229,7 +229,7 @@ class UsersController extends AppController {
 			'fields' => $user_fields,
 			'contain' => array(
 				'Role' => array(
-					'fields' => array('id', 'name'),
+					'fields' => array('id', 'name', 'perm_auth', 'perm_site_admin'),
 				),
 			),
 		);

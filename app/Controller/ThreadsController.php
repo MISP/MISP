@@ -41,15 +41,18 @@ class ThreadsController extends AppController {
 			$this->loadModel('Event');
 			$this->Event->id = $this->Thread->data['Thread']['event_id'];
 			$this->Event->recursive = -1;
-			$this->Event->read(array('id', 'distribution', 'org'));
+			$this->Event->read(array('id', 'distribution', 'org_id'));
 			if ($this->Event->data['Event']['distribution'] != $this->Thread->data['Thread']['distribution']) {
 				$this->Thread->saveField('distribution', $this->Event->data['Event']['distribution']);
+			}
+			if ($this->Event->data['Event']['sharing_group_id'] != $this->Thread->data['Thread']['sharing_group_id']) {
+				$this->Thread->saveField('sharing_group_id', $this->Event->data['Event']['sharing_group_id']);
 			}
 			$this->set('event_id', $this->Thread->data['Thread']['event_id']);
 		}
 											
 		// If the user shouldn't be allowed to see the event send him away.
-		if (!$this->_isSiteAdmin() && $this->Thread->data['Thread']['distribution'] == 0 && $this->Thread->data['Thread']['org'] != $this->Auth->user('org')) {
+		if (!$this->_isSiteAdmin() && $this->Thread->data['Thread']['distribution'] == 0 && $this->Thread->data['Thread']['org_id'] != $this->Auth->user('org_id')) {
 			throw new MethodNotAllowedException('You are not authorised to view this.');
 		}
 			
@@ -61,8 +64,8 @@ class ThreadsController extends AppController {
 		$posts = $this->paginate('Post');
 		if (!$this->_isSiteAdmin()) {
 			foreach ($posts as &$post) {
-				if ($post['User']['org'] != $this->Auth->user('org')) {
-					$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org'] . ')';
+				if ($post['User']['org_id'] != $this->Auth->user('org_id')) {
+					$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org_id'] . ')';
 				}
 			}
 		}
@@ -81,19 +84,19 @@ class ThreadsController extends AppController {
 		$conditions = null;
 			$conditions['AND']['OR'] = array(
 					'Thread.distribution >' => 0, 
-					'Thread.org' => $this->Auth->user('org'),
+					'Thread.org_id' => $this->Auth->user('org_id'),
 			);
 			$conditions['AND'][] = array('Thread.post_count >' => 0);
 			$this->paginate = array(
 					'conditions' => array($conditions),
-					'fields' => array('date_modified', 'date_created', 'org', 'distribution', 'title', 'post_count'),
+					'fields' => array('date_modified', 'date_created', 'org_id', 'distribution', 'title', 'post_count'),
 					'contain' => array(
 							'Post' =>array(
 								'fields' => array(),
 								'limit' => 1,
 								'order' => 'Post.date_modified DESC',
 								'User' => array(
-									'fields' => array('id','email', 'org'),
+									'fields' => array('id','email', 'org_id'),
 									)
 								),
 							),
@@ -103,7 +106,7 @@ class ThreadsController extends AppController {
 		$threadsBeforeEmailRemoval = $this->paginate();
 		if (!$this->_isSiteAdmin()) {
 			foreach ($threadsBeforeEmailRemoval as &$thread) {
-				if ($thread['Post'][0]['User']['org'] != $this->Auth->user('org')) $thread['Post'][0]['User']['email'] = 'User ' . $thread['Post'][0]['User']['id'] . " (" . $thread['Post'][0]['User']['org'] . ")";
+				if ($thread['Post'][0]['User']['org_id'] != $this->Auth->user('org_id')) $thread['Post'][0]['User']['email'] = 'User ' . $thread['Post'][0]['User']['id'] . " (" . $thread['Post'][0]['User']['org_id'] . ")";
 			}
 		}
 		$this->set('threads', $threadsBeforeEmailRemoval);

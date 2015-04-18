@@ -1,4 +1,4 @@
-<div class="events index">
+<div class="events <?php if (!$ajax) echo 'index'; ?>">
 	<h2>Events</h2>
 	<div class="pagination">
         <ul>
@@ -22,6 +22,7 @@
 			$tab = "Left";
 			$filtered = true;
 		}
+		if (!$ajax):
 	?>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
@@ -40,6 +41,7 @@
 		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilterEvents(<?php echo h($passedArgs);?>);'>Filter</span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
+	<?php endif; ?>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th class="filter">
@@ -200,5 +202,5 @@
     </div>
 </div>
 <?php
-	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));
+	if (!$ajax) echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));
 ?>

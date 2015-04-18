@@ -1412,7 +1412,7 @@ function organisationViewContent(context, id) {
 		action = "/users/index/";
 	}
 	if (context == 'events') {
-		action = "/events/index/";
+		action = "/events/index/searchorg:";
 	}
 	$.ajax({
 	    url: action + id,

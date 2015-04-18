@@ -48,7 +48,7 @@ class PostsController extends AppController {
 					throw new NotFoundException(__('Invalid event'));
 				}
 				if (!$this->_isSiteAdmin()) {
-					if ($this->Event->data['Event']['distribution'] == 0 && $this->Event->data['Event']['org'] != $this->Auth->user('org')) {
+					if ($this->Event->data['Event']['distribution'] == 0 && $this->Event->data['Event']['org_id'] != $this->Auth->user('org_id')) {
 						throw new MethodNotAllowedException('You don\'t have permission to do that.');
 					}
 				}
@@ -60,7 +60,7 @@ class PostsController extends AppController {
 					$target_thread_id = null;
 				}
 				$distribution = $this->Event->data['Event']['distribution'];
-				$org = $this->Event->data['Event']['org'];
+				$org = $this->Event->data['Event']['org_id'];
 			break;
 			case 'thread' :
 				$target_thread_id = $target_id;
@@ -70,7 +70,7 @@ class PostsController extends AppController {
 						throw new NotFoundException(__('Invalid thread'));
 					}
 					if (!$this->_isSiteAdmin()) {
-						if ($thread['Thread']['distribution'] == 0 && $this->Auth->user('org') != $thread['Thread']['org']) {
+						if ($thread['Thread']['distribution'] == 0 && $this->Auth->user('org_id') != $thread['Thread']['org_id']) {
 							throw new MethodNotAllowedException('You don\'t have permission to do that.');
 						}
 					}
@@ -82,7 +82,7 @@ class PostsController extends AppController {
 				$target_thread_id = $this->Post->data['Post']['thread_id'];
 				$thread = $this->Thread->read(null, $target_thread_id);
 				if (!$this->_isSiteAdmin()) {
-					if ($thread['Thread']['distribution'] == 0 && $this->Auth->user('org') != $thread['Thread']['org']) {
+					if ($thread['Thread']['distribution'] == 0 && $this->Auth->user('org_id') != $thread['Thread']['org_id']) {
 						throw new MethodNotAllowedException('You don\'t have permission to do that.');
 					}
 				}
@@ -101,7 +101,7 @@ class PostsController extends AppController {
 		if ($this->request->is('post')) {
 			// Set the default values that we'll alter before actually saving data. These are the default values unless specifically modified.
 			// By default, all discussions will be visibile to everyone on the platform
-			$org = $this->Auth->user('org');
+			$org = $this->Auth->user('org_id');
 			// Set the title if it is setable in the add view.
 			if (empty($thread_id) && empty($target_type)) {
 				$title = $this->request->data['Post']['title'];
@@ -123,7 +123,7 @@ class PostsController extends AppController {
 						'title' => $title,
 						'distribution' => $distribution,
 						'post_count' => 1,
-						'org' => $org
+						'org_id' => $org
 				);
 				$this->Thread->save($newThread);
 				$target_thread_id = $this->Thread->getId();

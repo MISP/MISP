@@ -93,8 +93,8 @@ class AppController extends Controller {
 				$user = $this->checkAuthUser($_SERVER['HTTP_AUTHORIZATION']);
 				if ($user) {
 				    // User found in the db, add the user info to the session
-				    $this->Session->renew();
-				    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+					$this->Session->renew();
+					$this->Session->write(AuthComponent::$sessionKey, $user);
 				} else {
 					// User not authenticated correctly
 					// reset the session information
@@ -133,6 +133,7 @@ class AppController extends Controller {
 			$this->set('isAclRegexp', $role['perm_regexp_access']);
 			$this->set('isAclTagger', $role['perm_tagger']);
 			$this->set('isAclTemplate', $role['perm_template']);
+			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
 			$this->userRole = $role;
 		} else {
 			$this->set('me', false);
@@ -149,6 +150,7 @@ class AppController extends Controller {
 			$this->set('isAclRegexp', false);
 			$this->set('isAclTagger', false);
 			$this->set('isAclTemplate', false);
+			$this->set('isAclSharingGroup', false);
 		}
 		if (Configure::read('debug') > 0) {
 			$this->debugMode = 'debugOn';
@@ -269,16 +271,9 @@ class AppController extends Controller {
 		$this->loadModel('User');
 		$this->User->recursive = -1;
 		$user = $this->User->findByAuthkey($authkey);
-		if (isset($user['User'])) {
-			$this->loadModel('Role');
-			$this->Role->recursive = -1;
-			$role = $this->Role->findById($user['User']['role_id']);
-			$user['User']['siteAdmin'] = false;
-			if ($role['Role']['perm_site_admin']) $user['User']['siteAdmin'] = true;
-			if ($role['Role']['perm_auth']) {
-				return $user;
-			}
-		}
+		$user = $this->User->getAuthUser($user['User']['id']);
+		if ($user['User']['Role']['perm_site_admin']) $user['User']['siteadmin'] = true;
+		if (!empty($user)) return $user['User'];
 		return false;
 	}
 

@@ -1,6 +1,7 @@
 <?php
 class XMLConverterTool {
 	public function recursiveEcho($array) {
+		//debug($array);
 		$text = "";
 		foreach ($array as $k => $v) {
 			if (is_array($v)) {
@@ -38,7 +39,9 @@ class XMLConverterTool {
 				$event['SharingGroup']['SharingGroupServer'][$key]['Server'] = array(0 => $event['SharingGroup']['SharingGroupServer'][$key]['Server']);
 			}
 		}
-		if (isset($event['SharingGroup'])) $event['Event']['SharingGroup'][0] = $event['SharingGroup'];
+		if (isset($event['SharingGroup'])) {
+			$event['Event']['SharingGroup'][0] = $event['SharingGroup'];
+		}
 		$event['Event']['Attribute'] = $event['Attribute'];
 		$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
 		
@@ -79,6 +82,20 @@ class XMLConverterTool {
 					$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
 					$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = str_replace($toEscape, $escapeWith, $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
 				}
+				if (isset($event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupOrg'])) {
+					foreach ($event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupOrg'] as $k => $sgo) {
+						$event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupOrg'][$k]['Organisation'] = array(0 => $event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupOrg'][$k]['Organisation']);
+					}
+				}
+				if (isset($event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupServer'])) {
+					foreach ($event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupServer'] as $k => $sgs) {
+						$event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupServer'][$k]['Server'] = array(0 => $event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupServer'][$k]['Server']);
+					}
+				}
+				if (isset($event['Event']['Attribute'][$key]['SharingGroup'])) {
+					$event['Event']['Attribute'][$key]['SharingGroup'][0] = $event['Event']['Attribute'][$key]['SharingGroup'];
+					unset($event['Event']['Attribute'][$key]['SharingGroup']);
+				}
 			}
 		}
 		
@@ -110,7 +127,6 @@ class XMLConverterTool {
 				unset($temp);
 			}
 		}
-		
 		return array('Event' => $event['Event']);
 	}
 	

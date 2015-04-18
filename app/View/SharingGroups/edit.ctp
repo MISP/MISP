@@ -84,7 +84,7 @@
 	</div>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'addOrg'));
+	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'editSG'));
 ?>
 <script type="text/javascript">
 	var lastPage = 4;

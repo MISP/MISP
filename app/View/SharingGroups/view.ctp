@@ -1,39 +1,21 @@
 <div class="roles view">
-<h2><?php  echo __('Role');?></h2>
+<h2><?php  echo __('Sharing Group');?></h2>
+<?php 
+	$fields = array('id', 'name', 'releasability', 'description', 'active');	
+?>
 	<dl>
-		<dt><?php echo __('Id'); ?></dt>
-		<dd>
-			<?php echo $role['Role']['id']; ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Name'); ?></dt>
-		<dd>
-			<?php echo h($role['Role']['name']); ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Description'); ?></dt>
-		<dd>
-			<?php echo h($role['Role']['perm_add']); ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Members'); ?></dt>
-		<dd>
-			<?php echo h($role['Role']['perm_add']); ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Pushable'); ?></dt>
-		<dd>
-			<?php echo h($role['Role']['perm_modify']); ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Extendable'); ?></dt>
-		<dd>
-			<?php echo h($role['Role']['perm_publish']); ?>
-			&nbsp;
-		</dd>
-		<dt><?php echo __('Active'); ?></dt>
+		<?php 
+			foreach ($fields as $f):
+		?>
+		<dt><?php echo ucfirst($f); ?></dt>
+		<dd><?php echo h($sg['SharingGroup'][$f]); ?></dd>
+		<?php 
+			endforeach;
+		?>
+		<dt>Created by</dt>
+		<dd><a href="/organisation/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
 	</dl>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'roles'));
+	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewSG'));
 ?>

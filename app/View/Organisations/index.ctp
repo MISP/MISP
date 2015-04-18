@@ -33,8 +33,8 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
 			<th><?php echo $this->Paginator->sort('contacts');?></th>
 			<?php if ($isSiteAdmin): ?>
 				<th>Added by</th>
-			<th class="actions">Actions</th>
 			<?php endif; ?>
+			<th class="actions">Actions</th>
 	</tr>
 	<?php
 foreach ($orgs as $org): ?>
@@ -57,13 +57,16 @@ foreach ($orgs as $org): ?>
 		<td><?php echo h($org['Organisation']['contacts']); ?></td>
 		<?php if ($isSiteAdmin): ?>
 			<td class="short"><?php echo h($org_creator_ids[$org['Organisation']['created_by']]); ?></td>
-			<td class="short action-links">
+		<?php endif; ?>
+		<td class="short action-links">
+			<?php if ($isSiteAdmin): ?>
 				<a href='/admin/organisations/edit/<?php echo $org['Organisation']['id'];?>' class = "icon-edit" title = "Edit"></a>
 				<?php
 					echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $org['Organisation']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', $org['Organisation']['name']));
 				?>
-			</td>
-		<?php endif; ?>
+			<?php endif; ?>
+			<a href='/organisations/view/<?php echo $org['Organisation']['id']; ?>' class = "icon-list-alt" title = "View"></a>
+		</td>
 	</tr>
 	<?php
 endforeach; ?>

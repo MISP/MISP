@@ -215,14 +215,24 @@
 							?>
 						</div>
 					</td>
-					<td class="<?php echo $extra; ?> shortish">
+					<td class="<?php echo $extra; ?>">
 						<?php 
 							$turnRed = '';
 							if ($object['objectType'] == 0 && $object['distribution'] == 0) $turnRed = 'style="color:red"';
 						?>
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class = "inline-field-placeholder"></div>
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
-							<?php if ($object['objectType'] == 0) echo h($distributionLevels[$object['distribution']]); ?>&nbsp;
+							<?php 
+								if ($object['objectType'] == 0) {
+									if ($object['distribution'] == 4):
+							?>
+									<a href="/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
+							<?php 
+									else: 
+										echo h($distributionLevels[$object['distribution']]); 
+									endif;
+								}
+							?>&nbsp;
 						</div>
 					</td>
 					<td class="short action-links <?php echo $extra;?>">

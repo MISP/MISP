@@ -111,10 +111,17 @@
 					<li <?php if ($menuItem === 'view') echo 'class="active"';?>><a href="/users/view/me">My Profile</a></li>
 					<li <?php if ($menuItem === 'members') echo 'class="active"';?>><a href="/users/memberslist">Members List</a></li>
 					<li <?php if ($menuItem === 'indexOrg') echo 'class="active"';?>><a href="/organisations/index">List Organisations</a></li>
+					<?php if ($menuItem === 'viewOrg'): ?>
+						<li class="active"><a href="/organisations/view/<?php echo $orgId;?>">View Organisation</a></li>
+					<?php endif;?>
 					<li <?php if ($menuItem === 'roles') echo 'class="active"';?>><a href="/roles/index">Role Permissions</a></li>
 					<li class="divider"></li>
-					<li <?php if ($menuItem === 'sgindex') echo 'class="active"';?>><a href="/sharing_groups/index">List Sharing Groups</a></li>
-					<li <?php if ($menuItem === 'sgadd') echo 'class="active"';?>><a href="/sharing_groups/add">Add Sharing Group</a></li>
+					<?php if ($menuItem === 'editSG' || ($menuItem == 'viewSG' && $mayModify)): ?>
+						<li <?php if ($menuItem === 'editSG') echo 'class="active"';?>><a href="/sharing_groups/edit/<?php echo $id; ?>">Edit Sharing Group</a></li>
+						<li <?php if ($menuItem === 'viewSG') echo 'class="active"';?>><a href="/sharing_groups/view/<?php echo $id;?>">View Sharing Group</a></li>
+					<?php endif; ?>
+					<li <?php if ($menuItem === 'indexSG') echo 'class="active"';?>><a href="/sharing_groups/index">List Sharing Groups</a></li>
+					<li <?php if ($menuItem === 'addSG') echo 'class="active"';?>><a href="/sharing_groups/add">Add Sharing Group</a></li>
 					<li class="divider"></li>
 					<li <?php if ($menuItem === 'userGuide') echo 'class="active"';?>><a href="/pages/display/doc/general">User Guide</a></li>
 					<li <?php if ($menuItem === 'terms') echo 'class="active"';?>><a href="/users/terms">Terms &amp; Conditions</a></li>
@@ -150,15 +157,18 @@
 					<li <?php if ($menuItem === 'indexUser') echo 'class="active"';?>><?php echo $this->Html->link('List Users', array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
 					<li <?php if ($menuItem === 'contact') echo 'class="active"';?>><?php echo $this->Html->link('Contact Users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
 					<li class="divider"></li>
-					<li <?php if ($menuItem === 'addRole') echo 'class="active"';?>><?php echo $this->Html->link('New Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
-					<?php endif; ?>
-					<li <?php if ($menuItem === 'indexRole') echo 'class="active"';?>><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
-					<li class="divider"></li>
 					<li <?php if ($menuItem === 'addOrg') echo 'class="active"';?>><a href="/admin/organisations/add">New Organisation</a></li>
 					<?php if ($menuItem === 'editOrg'): ?>
 						<li class="active"><a href="/organisations/edit/<?php echo $orgId;?>">Edit Organisation</a></li>
 					<?php endif;?>
+					<?php if ($menuItem === 'viewOrg'): ?>
+						<li class="active"><a href="/organisations/view/<?php echo $orgId;?>">View Organisation</a></li>
+					<?php endif;?>
 					<li <?php if ($menuItem === 'indexOrg') echo 'class="active"';?>><a href="/organisations/index">List Organisations</a></li>
+					<li class="divider"></li>
+					<li <?php if ($menuItem === 'addRole') echo 'class="active"';?>><?php echo $this->Html->link('New Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+					<?php endif; ?>
+					<li <?php if ($menuItem === 'indexRole') echo 'class="active"';?>><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 					<?php if ($isSiteAdmin): ?>
 						<li class="divider"></li>
 						<li <?php if ($menuItem === 'adminTools') echo 'class="active"';?>><a href="/pages/display/administration">Administrative Tools</a></li>

@@ -1498,11 +1498,10 @@ class AttributesController extends AppController {
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
 	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags=false, $from=false, $to=false) {
 		if ($tags) $tags = str_replace(';', ':', $tags);
-		if ($tags === 'null') $tags = null;
-		if ($value === 'null') $value = null;
-		if ($type === 'null') $type = null;
-		if ($category === 'null') $category = null;
-		if ($org === 'null') $org = null;
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
 		if ($key!=null && $key!='download') {
 			$user = $this->checkAuthUser($key);
 		} else {
@@ -1513,7 +1512,7 @@ class AttributesController extends AppController {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		$value = str_replace('|', '/', $value);
-		
+
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
 		// For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
@@ -1527,7 +1526,7 @@ class AttributesController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
 			} 
-			$paramArray = array('value', 'type', 'category', 'org_id', 'tags', 'from', 'to');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
@@ -1547,7 +1546,7 @@ class AttributesController extends AppController {
 		$this->loadModel('Attribute');
 		// add the values as specified in the 2nd parameter to the conditions
 		$values = explode('&&', $value);
-		$parameters = array('value', 'type', 'category', 'org_id');
+		$parameters = array('value', 'type', 'category', 'org');
 		
 		foreach ($parameters as $k => $param) {
 			if (isset(${$parameters[$k]}) && ${$parameters[$k]}!=='null') {
@@ -1560,8 +1559,12 @@ class AttributesController extends AppController {
 								$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
 							}
 						} else {
-							if ($parameters[$k] === 'org_id') {
-								$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+							if ($parameters[$k] === 'org') {
+								$found_orgs = $this->Attribute->Event->Org->find('all', array(
+									'recursive' => -1,
+									'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
+								));
+								foreach ($found_orgs as $o) $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
 							} else {
 								$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
 							}
@@ -1573,10 +1576,14 @@ class AttributesController extends AppController {
 								$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
 							}
 						} else {
-							if ($parameters[$k] === 'org_id') {
-								$subcondition['OR'][] = array('Event.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+							if ($parameters[$k] === 'org') {
+								$found_orgs = $this->Attribute->Event->Org->find('all', array(
+										'recursive' => -1,
+										'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
+								));
+								foreach ($found_orgs as $o) $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
 							} else {
-								$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+								if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
 							}
 						}
 					}
@@ -1588,17 +1595,15 @@ class AttributesController extends AppController {
 
 		// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
 
-		if (!$user['User']['siteAdmin']) {
+		if (!$user['Role']['perm_site_admin']) {
 			$temp = array();
-			$temp['AND'] = 	array(
-						'Event.distribution >' => 0,
-						'Attribute.distribution >' => 0,
-						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
-					);
+			$temp['AND'] = $this->Attribute->buildConditions($user);
+			if (Configure::read('MISP.unpublishedprivate')) $temp['AND'][] = array('Event.published' => 1);
 			$subcondition['OR'][] = $temp;
-			$subcondition['OR'][] = array('Event.org_id' => $user['User']['org_id']);
+			$subcondition['OR'][] = array('Event.org_id' => $user['org_id']);
 			array_push($conditions['AND'], $subcondition);
 		}
+		
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($tags) {
 			$args = $this->Attribute->dissectArgs($tags);

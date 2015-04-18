@@ -72,6 +72,8 @@ class SharingGroupsController extends AppController {
 		// add check for perm_sharing_group
 		$this->SharingGroup->id = $id;
 		if (!$this->SharingGroup->exists()) throw new NotFoundException('Invalid sharing group.');
+		if (!$this->_isSiteAdmin() && !$this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $id)) throw new MethodNotAllowedException('Action not allowed.');
+		
 		// check if the user is eligible to edit the SG (original creator or extend)
 		$sharingGroup = $this->SharingGroup->find('first', array(
 			'conditions' => array('SharingGroup.id' => $id),
@@ -116,6 +118,7 @@ class SharingGroupsController extends AppController {
 			'fields' => array('id', 'name')
 		));
 		$this->set('sharingGroup', $sharingGroup);
+		$this->set('id', $id);
 		$this->set('orgs', $orgs);
 		$this->set('localInstance', Configure::read('MISP.baseurl'));
 		// We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
@@ -129,8 +132,8 @@ class SharingGroupsController extends AppController {
 		$this->redirect('/SharingGroups/index');
 	}
 	
-	public function index() {
-		$ids = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
+	public function index($active = false) {
+		if ($active == 'false') $active = false;
 		$result = $this->paginate();
 		// check if the current user can modify or delete the SG
 		foreach ($result as $k => $sg) {
@@ -139,18 +142,25 @@ class SharingGroupsController extends AppController {
 				$result[$k]['editable'] = true;
 			} else {
 				$result[$k]['editable'] = false;
+				if (!empty($sg['SharingGroupOrg'])) {
+					foreach ($sg['SharingGroupOrg'] as $sgo) {
+						if ($sgo['org_id'] == $this->Auth->user('org_id')) $result[$k]['editable'] = true;
+					}
+				}
 			}
+			
 		}
 		$this->set('sharingGroups', $result);
 	}
 	
 	public function view($id) {
-		$sharingGroupIDs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
-		if (!in_array($id, $sharingGroupIDs)) throw new MethodNotAllowedException('Sharing group doesn\'t exist or you do not have permission to access it.');
+		if (!$this->SharingGroup->checkIfAuthorised($this->Auth->user(), $id)) throw new MethodNotAllowedException('Sharing group doesn\'t exist or you do not have permission to access it.');
 		$this->SharingGroup->id = $id;
 		$this->SharingGroup->contain(array('SharingGroupOrg' => array('Organisation'), 'Organisation'));
 		$this->SharingGroup->read();
 		debug($this->SharingGroup->data);
+		$this->set('mayModify', $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $id));
+		$this->set('id', $id);
 		$this->set('sg', $this->SharingGroup->data);
 	}
 	

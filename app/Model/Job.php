@@ -7,7 +7,7 @@ App::uses('AppModel', 'Model');
 */
 class Job extends AppModel {
 	
-	public function cache($type, $isSiteAdmin, $org, $target, $jobOrg, $sid = null) {
+	public function cache($type, $user, $target, $jobOrg) {
 		$extra = null;
 		$extra2 = null;
 		$shell = 'Event';
@@ -32,14 +32,14 @@ class Job extends AppModel {
 		if ($type === 'suricata' || $type === 'snort') {
 			$extra = $type;
 			$type = 'nids';
-			$extra2 = $sid;
+			$extra2 = $user['nids_sid'];
 		}
 		$this->save($data);
 		$id = $this->id;
 		$process_id = CakeResque::enqueue(
 				'cache',
 				$shell . 'Shell',
-				array('cache' . $type, $org, $isSiteAdmin, $id, $extra, $extra2),
+				array('cache' . $type, $user['id'], $extra, $extra2),
 				true
 		);
 		$this->saveField('process_id', $process_id);

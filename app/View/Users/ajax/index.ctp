@@ -32,6 +32,7 @@
 			<?php 
 				endif;
 			?>
+			<th>Actions</th>
 	</tr>
 	<?php
 		$boolean_field = array('termsaccepted', 'change_pw');
@@ -42,7 +43,7 @@
 			foreach ($user_fields as $field):
 	
 	?>
-				<td class="short" ondblclick="document.location ='/admin/users/view/$user['User']['id']'">
+				<td class="short" ondblclick="document.location ='/admin/users/view/<?php echo $user['User']['id'];?>'">
 				<?php 
 				// here I am
 					switch ($field) {
@@ -56,7 +57,9 @@
 							else echo 'No';
 							break;
 						case 'role':
-							echo h($user['Role']['name']);
+				?>
+					<a href="/roles/view/<?php echo $user['Role']['id']; ?>"><?php echo h($user['Role']['name']); ?></a>
+				<?php 
 							break;
 						default:
 							echo h($user['User'][$field]);
@@ -66,6 +69,16 @@
 	<?php 
 			endforeach;
 	?>
+				<td class="short action-links">
+					<?php if ($isSiteAdmin): ?>
+						<a href='/admin/users/edit/<?php echo $user['User']['id'];?>' class = "icon-edit" title = "Edit"></a>
+					<?php
+						echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $user['User']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', $user['User']['email']));
+					?>
+					<?php endif; ?>
+			<a href='/users/view/<?php echo $user['User']['id']; ?>' class = "icon-list-alt" title = "View"></a>
+					
+				</td>
 			</tr>
 	<?php
 		endforeach; ?>

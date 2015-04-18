@@ -489,6 +489,7 @@ class EventsController extends AppController {
 		
 		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 		$this->set('shortDist', $shortDist);
+		$this->set('ajax', $this->request->is('ajax'));
 	}
 	
 	public function filterEventIndex() {
@@ -660,6 +661,7 @@ class EventsController extends AppController {
 			foreach ($this->Attribute->validate['category']['rule'][1] as $category) {
 				foreach ($result['Attribute'] as $attribute) {
 					if ($attribute['category'] == $category) {
+						if ($attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
 						$shadowAttributeTemp = $attribute['ShadowAttribute'];
 						$attribute['ShadowAttribute'] = null;
 						$attribute['objectType'] = 0;
@@ -697,8 +699,8 @@ class EventsController extends AppController {
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 
 		// combobox for analysis
-		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
-		$this->set('distributionLevels', $this->Event->distributionLevels);
+		$this->set('distributionDescriptions', $this->Event->Attribute->distributionDescriptions);
+		$this->set('distributionLevels', $this->Event->Attribute->distributionLevels);
 
 		// combobox for analysis
 		$analysiss = $this->Event->validate['analysis']['rule'][1];
@@ -758,7 +760,7 @@ class EventsController extends AppController {
 						'title' => 'Discussion about Event #' . $result['Event']['id'] . ' (' . $result['Event']['info'] . ')',
 						'distribution' => $result['Event']['distribution'],
 						'post_count' => 0,
-						'org' => $result['Event']['orgc_id']
+						'org_id' => $result['Event']['orgc_id']
 				);
 				$this->Thread->save($newThread);
 				$thread = ($this->Thread->read());
@@ -776,8 +778,8 @@ class EventsController extends AppController {
 			$posts = $this->paginate('Post');
 			if (!$this->_isSiteAdmin()) {
 				foreach ($posts as &$post) {
-					if ($post['User']['org'] != $this->Auth->user('org')) {
-						$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org'] . ')';
+					if ($post['User']['org_id'] != $this->Auth->user('org_id')) {
+						$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org_id'] . ')';
 					}
 				}
 			}
@@ -1278,7 +1280,7 @@ class EventsController extends AppController {
 				$fieldList = array(
 						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment'),
-						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org', 'event_org_id', 'comment', 'event_uuid', 'deleted', 'to_ids', 'uuid')
+						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org_id', 'event_org_id', 'comment', 'event_uuid', 'deleted', 'to_ids', 'uuid')
 				);
 
 				$c = 0;
@@ -1636,9 +1638,11 @@ class EventsController extends AppController {
 			// as a site admin we'll use the ADMIN identifier, not to overwrite the cached files of our own org with a file that includes too much data.
 			if ($this->_isSiteAdmin()) {
 				$useOrg = 'ADMIN';
-				$conditions = null;			
+				$useOrg_id = 0;
+				$conditions = null;
 			} else {
-				$useOrg = $this->Auth->User('org_id');
+				$useOrg = $this->Auth->User('Organisation')['name'];
+				$useOrg_id = $this->Auth->User('Organisation')['id'];
 				$conditions['OR'][] = array('orgc_id' => $this->Auth->user('org_id'));
 				$conditions['OR'][] = array('distribution >' => 0);
 			}
@@ -1654,7 +1658,7 @@ class EventsController extends AppController {
 						'fields' => array('id', 'progress'),
 						'conditions' => array(
 								'job_type' => 'cache_' . $k,
-								'org_id' => $useOrg
+								'org' => $useOrg
 							),
 						'order' => array('Job.id' => 'desc')
 				));
@@ -2402,20 +2406,18 @@ class EventsController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to');
+			$paramArray = array('value', 'type', 'category', 'orgid', 'tags', 'searchall', 'from', 'to');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
-		
 		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		if ($searchall === 'true') $searchall = "1";
-
 		$conditions['AND'] = array();
 		$subcondition = array();
 		$this->loadModel('Attribute');
@@ -2437,7 +2439,11 @@ class EventsController extends AppController {
 								}
 							} else {
 								if ($parameters[$k] === 'org') {
-									$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+									$found_orgs = $this->Event->Org->find('all', array(
+										'recursive' => -1,
+										'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
+									));
+									foreach ($found_orgs as $o) $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
 								} else {
 									$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
 								}
@@ -2446,33 +2452,34 @@ class EventsController extends AppController {
 							if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
 								$cidrresults = $this->Cidr->CIDR($v);
 								foreach ($cidrresults as $result) {
-									$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
+									if (!empty($result)) $subcondition['OR'][] = array('Attribute.value LIKE' => $result);
 								}
 							} else {
 								if ($parameters[$k] === 'org') {
-									$subcondition['OR'][] = array('Event.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+									$found_orgs = $this->Event->Org->find('all', array(
+											'recursive' => -1,
+											'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
+									));
+									foreach ($found_orgs as $o) $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
 								} else {
-									$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+									if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
 								}
 							}
 						}
 					}
-					array_push ($conditions['AND'], $subcondition);
+					if (!empty($subcondition)) array_push ($conditions['AND'], $subcondition);
 					$subcondition = array();
 				}
 			}
 		
 			// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
 	
-			if (!$user['User']['siteAdmin']) {
+			if (!$user['Role']['perm_site_admin']) {
 				$temp = array();
-				$temp['AND'] = array(
-							'Event.distribution >' => 0,
-							'Attribute.distribution >' => 0,
-							Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
-						);
+				$temp['AND'] = $this->Event->Attribute->buildConditions($user);
+				if (Configure::read('MISP.unpublishedprivate')) $temp['AND'][] = array('Event.published' => 1);
 				$subcondition['OR'][] = $temp;
-				$subcondition['OR'][] = array('Event.org_id' => $user['User']['org_id']);
+				$subcondition['OR'][] = array('Event.org_id' => $user['org_id']);
 				array_push($conditions['AND'], $subcondition);
 			}
 			
@@ -2515,8 +2522,10 @@ class EventsController extends AppController {
 				$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
 				foreach ($eventIds as $currentEventId) {
 					$result = $this->__fetchEvent($currentEventId, null, $this->Auth->user());
-					$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
-					$final .= $converter->event2XML($result[0]) . PHP_EOL;
+					if (!empty($result)) {
+						$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
+						$final .= $converter->event2XML($result[0]) . PHP_EOL;
+					}
 				}
 				$final .= '</response>' . PHP_EOL;
 				$final_filename="misp.search.events.results.xml";

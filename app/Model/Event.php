@@ -954,10 +954,6 @@ class Event extends AppModel {
 					)
 				)
 			);
-			$conditionsAttributes['OR'] = array(
-				'Attribute.distribution >' => 0,
-				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
-			);
 		}
 		$fields = array('Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id');
 		
@@ -1065,7 +1061,7 @@ class Event extends AppModel {
 		
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp');
-		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment');
+		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id');
 		$fieldsOrg = array(array('id', 'name'), array('id', 'name', 'uuid'));
 		$fieldsSharingGroup = array(
@@ -1096,6 +1092,7 @@ class Event extends AppModel {
 				'Attribute' => array(
 					'fields' => $fieldsAtt,
 					'conditions' => $conditionsAttributes,
+					'SharingGroup' => $fieldsSharingGroup[($user['Role']['perm_site_admin'] ? 1 : 0)],
 				),
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,

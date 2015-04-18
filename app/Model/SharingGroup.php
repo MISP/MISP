@@ -37,8 +37,7 @@ class SharingGroup extends AppModel {
 	public $belongsTo = array(
 		'Organisation' => array(
 			'className' => 'Organisation',
-			'foreignKey' => false,
-			'conditions' => array('Organisation.uuid = SharingGroup.organisation_uuid'),
+			'foreignKey' => 'org_id',
 		)
 	);
 
@@ -97,6 +96,24 @@ class SharingGroup extends AppModel {
 		}
 	}
 	
+	
+	public function checkIfAuthorisedExtend($user, $id) {
+		if ($this->checkIfOwner($user, $id)) return true;
+		$this->id = $id;
+		if (!$this->exists()) return false;
+		$sg = $this->SharingGroupOrg->find('first', array(
+			'conditions' => array(
+				'sharing_group_id' => $id,
+				'org_id' => $user['org_id'],
+				'extend' => 1,
+			),
+			'recursive' => -1,
+			'fields' => array('id', 'org_id', 'extend')
+		));
+		if (empty($sg)) return false;
+		else return true;
+	}
+	
 	// returns true if the SG exists and the user is allowed to see it
 	public function checkIfAuthorised($user, $id) {
 		if (!isset($user['id'])) throw new MethodNotAllowedException('Invalid user.');
@@ -114,8 +131,8 @@ class SharingGroup extends AppModel {
 		$sg = $this->find('first', array(
 				'conditions' => array('SharingGroup.id' => $id),
 				'recursive' => -1,
-				'fields' => array('id', 'organisation_uuid'),
+				'fields' => array('id', 'org_id'),
 		));
-		return ($sg['SharingGroup']['organisation_uuid'] === $user['Organisation']['uuid']);
+		return ($sg['SharingGroup']['org_id'] == $user['org_id']);
 	}
 }

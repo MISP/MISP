@@ -18,6 +18,7 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
     </div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
+			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('Creator');?></th>
 			<th>Description</th>
@@ -29,8 +30,9 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
 foreach ($sharingGroups as $k => $sharingGroup): 
 ?>
 	<tr>
+		<td class="short"><?php echo h($sharingGroup['SharingGroup']['id']); ?></td>
 		<td class="short"><?php echo h($sharingGroup['SharingGroup']['name']); ?></td>
-		<td class="short"><a href="/SharingGroup/view/<?php echo h($sharingGroup['Organisation']['id']);?>"><?php echo h($sharingGroup['Organisation']['name']); ?></a></td>
+		<td class="short"><a href="/organisations/view/<?php echo h($sharingGroup['Organisation']['id']);?>"><?php echo h($sharingGroup['Organisation']['name']); ?></a></td>
 		<td><?php echo h($sharingGroup['SharingGroup']['description']); ?></td>
 		<?php 
 			$combined = "";
@@ -63,6 +65,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
 			<?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'icon-edit', 'title' => 'Edit')); ?>
 			<?php echo $this->Form->postLink('', '/SharingGroups/delete/' . $sharingGroup['SharingGroup']['id'], array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', h($sharingGroup['SharingGroup']['name']))); ?>
 		<?php endif; ?>
+			<a href="/sharing_groups/view/<?php echo $sharingGroup['SharingGroup']['id']; ?>" class="icon-list-alt"></a>
 		</td>
 	</tr>
 	<?php
@@ -91,6 +94,5 @@ endforeach; ?>
 	});
 </script>
 <?php 
-	if ($isSiteAdmin) echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'indexOrg'));
-	else echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexOrg'));
+	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexSG'));
 ?>

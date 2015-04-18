@@ -30,8 +30,7 @@ class Organisation extends AppModel{
 		'SharingGroupOrg',
 		'SharingGroup' => array(
 			'className' => 'Organisation',
-			'foreignKey' => false,
-			'conditions' => array('SharingGroup.organisation_uuid = Organisation.uuid'),
+			'foreignKey' => 'org_id',
 		),
 	);
 	
@@ -62,11 +61,5 @@ class Organisation extends AppModel{
 		));
 		if($count == 0) return true;
 		return false;
-	}
-	
-	public function findSharingGroups($orgId, $user) {
-		debug($orgId);
-		debug($user);
-		
 	}
 }

@@ -39,7 +39,6 @@
 					echo $this->Form->input('sharing_group_id', array(
 							'options' => array($sharingGroups),
 							'label' => 'Sharing Group',
-							'selected' => $initialDistribution,
 					));
 			?>
 				</div>

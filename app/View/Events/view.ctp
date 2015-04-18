@@ -32,12 +32,12 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 					if (Configure::read('MISP.showorgalternate') && (Configure::read('MISP.showorg') || $isAdmin)): ?>
 						<dt>Source Organisation</dt>
 						<dd>
-							<?php echo h($event['Orgc']['name']); ?>
+							<a href="/organisations/view/<?php echo h($event['Orgc']['id']); ?>"><?php echo h($event['Orgc']['name']); ?></a>
 							&nbsp;
 						</dd>
 						<dt>Member Organisation</dt>
 						<dd>
-							<?php echo h($event['Org']['name']); ?>
+							<a href="/organisations/view/<?php echo h($event['Org']['id']); ?>"><?php echo h($event['Org']['name']); ?></a>
 							&nbsp;
 						</dd>
 				<?php 	
@@ -45,14 +45,14 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 						if (Configure::read('MISP.showorg') || $isAdmin): ?>
 							<dt>Org</dt>
 							<dd>
-								<?php echo h($event['Orgc']['name']); ?>
+								<a href="/organisations/view/<?php echo h($event['Orgc']['id']); ?>"><?php echo h($event['Orgc']['name']); ?></a>
 								&nbsp;
 							</dd>
 							<?php endif; ?>
 							<?php if ($isSiteAdmin): ?>
 							<dt>Owner org</dt>
 							<dd>
-								<?php echo h($event['Org']['name']); ?>
+								<a href="/organisations/view/<?php echo h($event['Org']['id']); ?>"><?php echo h($event['Org']['name']); ?></a>
 								&nbsp;
 							</dd>
 				<?php 
@@ -112,7 +112,13 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 				<dt>Distribution</dt>
 				<dd <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?> title = "<?php echo h($distributionDescriptions[$event['Event']['distribution']]['formdesc'])?>">
 					<?php 
-						echo h($distributionLevels[$event['Event']['distribution']]); 
+						if ($event['Event']['distribution'] == 4):
+					?>
+							<a href="/sharing_groups/view/<?php echo h($event['SharingGroup']['id']); ?>"><?php echo h($event['SharingGroup']['name']); ?></a>
+					<?php 
+						else:
+							echo h($distributionLevels[$event['Event']['distribution']]);
+						endif;
 					?>
 				</dd>
 				<dt>Description</dt>

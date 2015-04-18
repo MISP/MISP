@@ -296,8 +296,8 @@ class Attribute extends AppModel {
 			),
 		),
 		'distribution' => array(
-				'rule' => array('inList', array('0', '1', '2', '3')),
-				'message' => 'Options : Your organisation only, This community only, Connected communities, All communities',
+				'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
+				'message' => 'Options : Your organisation only, This community only, Connected communities, All communities', 'Sharing group', 'Inherit event',
 				//'allowEmpty' => false,
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -379,6 +379,9 @@ class Attribute extends AppModel {
 				$this->data['Attribute']['value2'] = '';
 			}
 		}
+		
+		if ($this->data['Attribute']['distribution'] != 4) $this->data['Attribute']['sharing_group_id'] = 0;
+		
 		// update correlation... (only needed here if there's an update)
  		$this->__beforeSaveCorrelation($this->data['Attribute']);
 		// always return true after a beforeSave()
