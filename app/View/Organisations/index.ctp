@@ -25,7 +25,9 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th>Logo</th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
-			<th><?php echo $this->Paginator->sort('uuid');?></th>
+			<?php if ($isSiteAdmin): ?>
+				<th><?php echo $this->Paginator->sort('uuid');?></th>
+			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('description');?></th>
 			<th><?php echo $this->Paginator->sort('nationality');?></th>
 			<th><?php echo $this->Paginator->sort('sector');?></th>
@@ -39,8 +41,8 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
 	<?php
 foreach ($orgs as $org): ?>
 	<tr>
-		<td class="short"><?php echo h($org['Organisation']['id']); ?></td>
-		<td class="short">
+		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['id']); ?></td>
+		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'">
 			<?php
 				$imgRelativePath = 'orgs' . DS . h($org['Organisation']['name']) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
@@ -48,15 +50,15 @@ foreach ($orgs as $org): ?>
 				else echo $this->Html->tag('span', h($org['Organisation']['name']), array('class' => 'welcome', 'style' => 'float:left;'));
 			?>
 		</td>
-		<td class="short"><?php echo h($org['Organisation']['name']); ?></td>
-		<td class="short"><?php echo h($org['Organisation']['uuid']); ?></td>
+		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['name']); ?></td>
+		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['uuid']); ?></td>
 		<td><?php echo h($org['Organisation']['description']); ?></td>
-		<td class="short"><?php echo h($org['Organisation']['nationality']); ?></td>
-		<td class="short"><?php echo h($org['Organisation']['sector']); ?></td>
-		<td class="short"><?php echo h($org['Organisation']['type']); ?></td>
+		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['nationality']); ?></td>
+		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['sector']); ?></td>
+		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['type']); ?></td>
 		<td><?php echo h($org['Organisation']['contacts']); ?></td>
 		<?php if ($isSiteAdmin): ?>
-			<td class="short"><?php echo h($org_creator_ids[$org['Organisation']['created_by']]); ?></td>
+			<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org_creator_ids[$org['Organisation']['created_by']]); ?></td>
 		<?php endif; ?>
 		<td class="short action-links">
 			<?php if ($isSiteAdmin): ?>

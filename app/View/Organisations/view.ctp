@@ -60,7 +60,7 @@
 	<div id="ajaxContent" style="width:100%;"></div>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'viewOrganisation'));
+	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'viewOrg'));
 ?>
 <script type="text/javascript">
 	$(document).ready(function () {

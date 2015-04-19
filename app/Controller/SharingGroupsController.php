@@ -156,12 +156,17 @@ class SharingGroupsController extends AppController {
 	public function view($id) {
 		if (!$this->SharingGroup->checkIfAuthorised($this->Auth->user(), $id)) throw new MethodNotAllowedException('Sharing group doesn\'t exist or you do not have permission to access it.');
 		$this->SharingGroup->id = $id;
-		$this->SharingGroup->contain(array('SharingGroupOrg' => array('Organisation'), 'Organisation'));
+		$this->SharingGroup->contain(array('SharingGroupOrg' => array('Organisation'), 'Organisation', 'SharingGroupServer' => array('Server')));
 		$this->SharingGroup->read();
-		debug($this->SharingGroup->data);
+		$sg = $this->SharingGroup->data;
+		if (isset($sg['SharingGroupServer'])) {
+			foreach ($sg['SharingGroupServer'] as &$sgs) {
+				if ($sgs['server_id'] == 0) $sgs['Server'] = array('name' => 'Local instance', 'url' => Configure::read('MISP.baseurl'));
+			}
+		}
 		$this->set('mayModify', $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $id));
 		$this->set('id', $id);
-		$this->set('sg', $this->SharingGroup->data);
+		$this->set('sg', $sg);
 	}
 	
 	public function access1() {

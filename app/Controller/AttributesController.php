@@ -1252,15 +1252,15 @@ class AttributesController extends AppController {
 						$saveWord = trim($orgArrayElement);
 						if (empty($saveWord)) continue;
 						if ($saveWord[0] == '!') {
-							$org_names = $this->Organisation->find('first', array(
+							$org_names = $this->Organisation->find('all', array(
 									'fields' => array('id', 'name'),
-									'conditions' => array('name LIKE' => '%' . substr($saveWord, 1) . '%'),
+									'conditions' => array('lower(name) LIKE' => '%' . strtolower(substr($saveWord, 1)) . '%'),
 							));
 							foreach ($org_names as $org_name) $temp['AND'][] = array('Event.orgc_id !=' => $org_name['Organisation']['id']);
 						} else {
-							$org_names = $this->Organisation->find('first', array(
+							$org_names = $this->Organisation->find('all', array(
 									'fields' => array('id', 'name'),
-									'conditions' => array('name LIKE' => '%' . $saveWord . '%'),
+									'conditions' => array('lower(name) LIKE' => '%' . strtolower($saveWord) . '%'),
 							));
 							foreach ($org_names as $org_name) $temp['OR'][] = array('Event.orgc_id' => $org_name['Organisation']['id']);
 						}

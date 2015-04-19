@@ -76,6 +76,7 @@ class OrganisationsController extends AppController {
 		$this->Organisation->read(null, $id);
 		$this->set('orgId', $id);
 		$this->request->data = $this->Organisation->data;
+		$this->set('id', $id);
 	}
 	
 	public function admin_delete($id) {
