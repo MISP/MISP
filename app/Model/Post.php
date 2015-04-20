@@ -7,13 +7,17 @@ App::uses('AppModel', 'Model');
  *
 */
 class Post extends AppModel {
-	public $actsAs = array('Containable');
+	public $actsAs = array(
+			'Containable',
+			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+					'roleModel' => 'Post',
+					'roleKey' => 'post_id',
+					'change' => 'full'
+			),
+	);
 	
 	public $belongsTo = array(
 			'Thread',
-			'User' => array(
-				'fields' => array('email', 'org', 'id'),
-					
-			)
+			'User'
 	);
 }

@@ -41,7 +41,7 @@ class ThreadsController extends AppController {
 			$this->loadModel('Event');
 			$this->Event->id = $this->Thread->data['Thread']['event_id'];
 			$this->Event->recursive = -1;
-			$this->Event->read(array('id', 'distribution', 'org_id'));
+			$this->Event->read(array('id', 'distribution', 'org_id', 'sharing_group_id'));
 			if ($this->Event->data['Event']['distribution'] != $this->Thread->data['Thread']['distribution']) {
 				$this->Thread->saveField('distribution', $this->Event->data['Event']['distribution']);
 			}
@@ -59,7 +59,13 @@ class ThreadsController extends AppController {
 		$this->paginate = array(
 				'limit' => 10,
 				'conditions' => array('Post.thread_id' => $thread_id),
-				'contain' => 'User'
+				'contain' => array(
+						'User' => array(
+								'Organisation' => array(
+										'fields' => array('id', 'name')
+								),
+						),
+				),
 		);
 		$posts = $this->paginate('Post');
 		if (!$this->_isSiteAdmin()) {
@@ -91,15 +97,21 @@ class ThreadsController extends AppController {
 					'conditions' => array($conditions),
 					'fields' => array('date_modified', 'date_created', 'org_id', 'distribution', 'title', 'post_count'),
 					'contain' => array(
-							'Post' =>array(
-								'fields' => array(),
-								'limit' => 1,
-								'order' => 'Post.date_modified DESC',
-								'User' => array(
-									'fields' => array('id','email', 'org_id'),
-									)
+						'Post' =>array(
+							'fields' => array(),
+							'limit' => 1,
+							'order' => 'Post.date_modified DESC',
+							'User' => array(
+								'fields' => array('id','email', 'org_id'),
+								'Organisation' => array(
+									'fields' => array('id', 'name')
 								),
 							),
+						),
+						'Organisation' => array(
+							'fields' => array('id', 'name')		
+						),
+					),
 					'order' => array('Thread.date_modified' => 'desc'),
 					'recursive' => 1
 			);

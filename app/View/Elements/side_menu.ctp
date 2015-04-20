@@ -206,7 +206,7 @@
 					}
 					?>
 					<li id='liindex'><?php echo $this->Html->link('List Threads', array('controller' => 'threads', 'action' => 'index'));?></li>
-					<li id='liadd' && !isset($thread_id)) echo 'class="active"';?>><a href = "<?php echo Configure::read('MISP.baseurl');?>/posts/add">New Thread</a></li>
+					<li id='liadd'><a href = "<?php echo Configure::read('MISP.baseurl');?>/posts/add">New Thread</a></li>
 					<?php 
 				break;	
 				

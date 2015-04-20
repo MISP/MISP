@@ -22,7 +22,8 @@ class SharingGroupOrg extends AppModel {
 		parent::beforeValidate();
 	}
 	
-	public function updateOrgsForSG($id, $new_orgs, $old_orgs) {
+	public function updateOrgsForSG($id, $new_orgs, $old_orgs, $user) {
+		$log = ClassRegistry::init('Log');
 		// Loop through all of the organisations we want to add.
 		foreach ($new_orgs as $org) {
 			$SgO = array(
@@ -43,14 +44,25 @@ class SharingGroupOrg extends AppModel {
 			// Otherwise, if we have found it check whether the extended field has been altered, if not just continue without saving
 			if (!$found) {
 				$this->create();
+				$isChange = false;
 			} else {
 				if ($found['extend'] == $SgO['extend']) continue;
 				$SgO['id'] = $found['id'];
+				$isChange = true;
 			}
-			$this->save($SgO);
+			if ($this->save($SgO)) {
+				$log->create();
+				if ($isChange) $log->createLogEntry($user, 'edit', 'SharingGroupOrg', $this->id, 'Sharing group (' . $id . '): Modified right to alter sharing group for organisation (' . $org['id'] . ').', ($org['extend'] ? 'Organisation (' . $org['id'] . ') can now extend the sharing group.' : 'Organisation (' . $org['id'] . ') can no longer extend the sharing group.'));
+				else $log->createLogEntry($user, 'add', 'SharingGroupOrg', $this->id, 'Sharing group (' . $id . '): Added organisation (' . $org['id'] . ').', 'Organisation (' . $org['id'] . ') added to Sharing group.' . ($org['extend'] ? ' Organisation (' . $org['id'] . ') can extend the sharing group.' : ''));
+			}
 		}
 		// We are left with some "old orgs" that are not in the new list. This means that they can be safely deleted.
-		foreach ($old_orgs as $old_org) $this->delete($old_org['id']);
+		foreach ($old_orgs as $old_org) {
+			if ($this->delete($old_org['id'])) {
+				$log->create();
+				$log->createLogEntry($user, 'delete', 'SharingGroupOrg', $old_org['id'], 'Sharing group (' . $id . '): Removed organisation (' . $old_org['id'] . ').', 'Organisation (' . $org['id'] . ') removed from Sharing group.');
+			}
+		}
 	}
 	
 	public function fetchAllAuthorised($org_id) {

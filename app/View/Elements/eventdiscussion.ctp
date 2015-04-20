@@ -45,9 +45,9 @@
 						<tr>
 							<td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidLeft">
 								<?php 
-									$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($post['User']['org']) . '.png';
-									if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($post['User']['org']) . '.png', array('alt' => h($post['User']['org']), 'title' => h($post['User']['org']), 'style' => 'width:48px; height:48px'));
-									else echo $this->Html->tag('span', h($post['User']['org']), array('class' => 'welcome', 'style' => 'float:center;'));								
+									$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($post['User']['Organisation']['name']) . '.png';
+									if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($post['User']['Organisation']['name']) . '.png', array('alt' => h($post['User']['Organisation']['name']), 'title' => h($post['User']['Organisation']['name']), 'style' => 'width:48px; height:48px'));
+									else echo $this->Html->tag('span', h($post['User']['Organisation']['name']), array('class' => 'welcome', 'style' => 'float:center;'));								
 								?>
 							</td>
 							<td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidRight">

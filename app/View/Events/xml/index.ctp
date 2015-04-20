@@ -11,8 +11,8 @@ foreach ($events as $key => $event) {
 	unset($events[$key]['user_id']);
 	// hide the org field is we are not in showorg mode
 	if (!Configure::read('MISP.showorg') && !$isAdmin) {
-		unset($events[$key]['org']);
-		unset($events[$key]['orgc']);
+		unset($events[$key]['Org']);
+		unset($events[$key]['Orgc']);
 		unset($events[$key]['from']);
 	}
 

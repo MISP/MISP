@@ -3,7 +3,14 @@ App::uses('AppModel', 'Model');
 class Organisation extends AppModel{
 	public $useTable = 'organisations';
     public $recursive = -1;
-	public $actsAs = array('Containable');
+	public $actsAs = array(
+		'Containable',
+		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+				'roleModel' => 'Organisation',
+				'roleKey' => 'organisation_id',
+				'change' => 'full'
+		),
+	);
 	public $validate = array(
 		'name' => array(
 			'unique' => array(

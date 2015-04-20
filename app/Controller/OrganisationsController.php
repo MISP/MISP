@@ -64,6 +64,7 @@ class OrganisationsController extends AppController {
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
 		if ($this->request->is('post') || $this->request->is('put')) {
+			$this->request->data['Organisation']['id'] = $id;
 			if ($this->Organisation->save($this->request->data)) {
 				$this->Session->setFlash('Organisation updated.');
 				$this->redirect(array('admin' => false, 'action' => 'view', $this->Organisation->id));

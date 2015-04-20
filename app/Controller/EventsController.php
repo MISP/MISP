@@ -773,7 +773,7 @@ class EventsController extends AppController {
 			$this->paginate['Post'] = array(
 					'limit' => 5,
 					'conditions' => array('Post.thread_id' => $thread['Thread']['id']),
-					'contain' => 'User'
+					'contain' => array('User' => array('Organisation' => array('fields' => array('id', 'name')))),
 			);
 			$posts = $this->paginate('Post');
 			if (!$this->_isSiteAdmin()) {
@@ -1499,7 +1499,7 @@ class EventsController extends AppController {
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// Performs all the actions required to publish an event
-			$result = $this->Event->publishRouter($id, null, $this->Auth->user('org_id'), $this->Auth->user('email'));
+			$result = $this->Event->publishRouter($id, null, $this->Auth->user());
 			if (!Configure::read('MISP.background_jobs')) {
 				if (!is_array($result)) {
 					// redirect to the view event page
@@ -1548,10 +1548,10 @@ class EventsController extends AppController {
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// send out the email
-			$emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user(), $this->_isSiteAdmin());
+			$emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user());
 			if (is_bool($emailResult) && $emailResult = true) {
 				// Performs all the actions required to publish an event
-				$result = $this->Event->publishRouter($id, null, $this->Auth->user('org_id'), $this->Auth->user('email'));
+				$result = $this->Event->publishRouter($id, null, $this->Auth->user());
 				if (!is_array($result)) {
 
 					// redirect to the view event page
@@ -1642,9 +1642,8 @@ class EventsController extends AppController {
 				$conditions = null;
 			} else {
 				$useOrg = $this->Auth->User('Organisation')['name'];
-				$useOrg_id = $this->Auth->User('Organisation')['id'];
-				$conditions['OR'][] = array('orgc_id' => $this->Auth->user('org_id'));
-				$conditions['OR'][] = array('distribution >' => 0);
+				$useOrg_id = $this->Auth->User('org_id');
+				$conditions['OR'][] = array('id' => $this->Event->fetchEventIds($this->Auth->user, false, false, true));
 			}
 			$this->Event->recursive = -1;
 			$newestEvent = $this->Event->find('first', array(
@@ -1710,12 +1709,11 @@ class EventsController extends AppController {
 
 	public function downloadExport($type, $extra = null) {
 		if ($this->_isSiteAdmin()) $org = 'ADMIN';
-		else $org = $this->Auth->user('org_id');
+		else $org = $this->Auth->user('Organisation')['name'];
 		$this->autoRender = false;
 		if ($extra != null) $extra = '_' . $extra;
 		$this->response->type($this->Event->export_types[$type]['extension']);
 		$path = 'tmp/cached_exports/' . $type . DS . 'misp.' . strtolower($this->Event->export_types[$type]['type']) . $extra . '.' . $org . $this->Event->export_types[$type]['extension'];
-		$newFileName = 'misp.' . $this->Event->export_types[$type]['type'] . '.' . $org . $this->Event->export_types[$type]['extension'];
 		$this->response->file($path, array('download' => true));
 	}
 	
@@ -2783,11 +2781,13 @@ class EventsController extends AppController {
 		$tag_id = $this->request->data['Event']['tag'];
 		$id = $this->request->data['Event']['id'];
 		$this->Event->recurisve = -1;
-		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution'), $id);
-		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-		if (($this->Auth->user('org') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger']) && !$this->_isSiteAdmin()) {
-			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $id);
+		
+		// Anyone with the right to tag that can see the event should be able to tag it.
+		if (!$this->_isSiteAdmin() && ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+			if (!$this->userRole['perm_tagger'] || $event['Event']['distribution'] == 0 || ($event['Event']['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $event['Event']['sharing_group_id']))) throw new MethodNotAllowedException('You don\'t have permission to do that.');			
 		}
+
 		$this->Event->EventTag->Tag->id = $tag_id;
 		if(!$this->Event->EventTag->Tag->exists()) {
 			throw NotFoundException('Invalid tag.');
@@ -2807,6 +2807,8 @@ class EventsController extends AppController {
 		}
 		$this->Event->EventTag->create();
 		if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
+			$log = ClassRegistry::init('Log');
+			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
 			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.')), 'status'=>200));
 		} else {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')),'status'=>200));

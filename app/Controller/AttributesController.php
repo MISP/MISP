@@ -808,7 +808,7 @@ class AttributesController extends AppController {
 		if ($this->Attribute->save($attribute)) {
 			$event = $this->Attribute->Event->find('first', array(
 				'recursive' => -1,
-				'fields' => array('id', 'published', 'timestamp', 'info'),
+				'fields' => array('id', 'published', 'timestamp', 'info', 'uuid'),
 				'conditions' => array(
 					'id' => $attribute['Attribute']['event_id'],	
 			)));
@@ -997,7 +997,7 @@ class AttributesController extends AppController {
 			$event = $this->Attribute->Event->find('first', array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
-				'fields' => array('id', 'orgc_id', 'user_id')
+				'fields' => array('id', 'orgc_id', 'user_id', 'published', 'timestamp', 'info', 'uuid')
 			));
 			if (!$this->_isSiteAdmin()) {
 				if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['user_id'] == $this->Auth->user('id')))) {
@@ -1015,7 +1015,7 @@ class AttributesController extends AppController {
 				'recursive' => -1,
 			));
 			
-			if ($this->request->data['Attribute']['to_ids'] == 2 && $this->request->data['Attribute']['distribution'] == 4 && $this->request->data['Attribute']['comment'] == null) {
+			if ($this->request->data['Attribute']['to_ids'] == 2 && $this->request->data['Attribute']['distribution'] == 6 && $this->request->data['Attribute']['comment'] == null) {
 				$this->autoRender = false;
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true)),'status' => 200));
 			}
@@ -1024,8 +1024,13 @@ class AttributesController extends AppController {
 				foreach ($attributes as &$attribute) $attribute['Attribute']['to_ids'] = ($this->request->data['Attribute']['to_ids'] == 0 ? false : true);
 			}
 
-			if ($this->request->data['Attribute']['distribution'] != 4) {
+			if ($this->request->data['Attribute']['distribution'] != 6) {
 				foreach ($attributes as &$attribute) $attribute['Attribute']['distribution'] = $this->request->data['Attribute']['distribution'];
+				if ($this->request->data['Attribute']['distribution'] == 4) {
+					foreach ($attributes as &$attribute) $attribute['Attribute']['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
+				} else {
+					foreach ($attributes as &$attribute) $attribute['Attribute']['sharing_group_id'] = 0;
+				}
 			}
 		
 			if ($this->request->data['Attribute']['comment'] != null) {
@@ -1037,6 +1042,9 @@ class AttributesController extends AppController {
 			foreach ($attributes as &$attribute) $attribute['Attribute']['timestamp'] = $timestamp;
 			
 			if($this->Attribute->saveMany($attributes)) {
+				$event['Event']['timestamp'] = $date->getTimestamp();
+				$event['Event']['published'] = 0;
+				$this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info', 'id')));
 				$this->autoRender = false;
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true)),'status' => 200));
 			} else {
@@ -1047,6 +1055,7 @@ class AttributesController extends AppController {
 			if (!isset($id)) throw new MethodNotAllowedException('No event ID provided.');
 			$this->layout = 'ajax';
 			$this->set('id', $id);
+			$this->set('sgs', $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true));
 			$this->set('distributionLevels', $this->Attribute->distributionLevels);
 			$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
 			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);

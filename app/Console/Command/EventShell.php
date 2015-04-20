@@ -60,6 +60,7 @@ class EventShell extends AppShell
 		foreach ($eventIds as $k => $eventId) {
 			$temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id']));
 			$file->append($converter->event2XML($temp[0], $user['Role']['perm_site_admin']) . PHP_EOL);
+			$this->Job->saveField('progress', ($k+1) / $eventCount *100);
 		}
 		$file->append('<xml_version>' . $this->Event->mispVersion . '</xml_version>');
 		$file->append('</response>' . PHP_EOL);
@@ -102,7 +103,7 @@ class EventShell extends AppShell
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.txt');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.txt');
+			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $user['Organisation']['name'] . '.txt');
 		}
 		$file->write('');
 		foreach ($rules as $rule) {
@@ -192,9 +193,9 @@ class EventShell extends AppShell
 		$file->write('');
 		foreach ($eventIds as $k => $eventId) {
 			if ($k == 0) {
-				$temp = $this->Attribute->nids($user, $format, $sid, $eventId['Event']['id']);
+				$temp = $this->Attribute->nids($user, $format, $eventId['Event']['id']);
 			} else {
-				$temp = $this->Attribute->nids($user, $format, $sid, $eventId['Event']['id'], true);
+				$temp = $this->Attribute->nids($user, $format, $eventId['Event']['id'], true);
 			}
 			foreach ($temp as $line) {
 				$file->append($line . PHP_EOL);
@@ -208,11 +209,12 @@ class EventShell extends AppShell
 	}
 	
 	public function alertemail() {
-		$org = $this->args[0];
+		$userId = $this->args[0];
 		$processId = $this->args[1];
 		$job = $this->Job->read(null, $processId);
 		$eventId = $this->args[2];
-		$result = $this->Event->sendAlertEmail($eventId, $org, $processId);
+		$user = $this->User->getAuthUser($userId);
+		$result = $this->Event->sendAlertEmail($eventId, $user, $processId);
 		$job['Job']['progress'] = 100;
 		$job['Job']['message'] = 'Emails sent.';
 		$this->Job->save($job);
@@ -282,10 +284,9 @@ class EventShell extends AppShell
 		$id = $this->args[0];
 		$passAlong = $this->args[1];
 		$jobId = $this->args[2];
-		$org = $this->args[3];
-		$email = $this->args[4];
+		$userId = $this->args[3];
 		$user = $this->User->find('first', array(
-			'conditions' => array('email' => $email),
+			'conditions' => array('id' => $userId),
 			'fields' => array('email', 'org', 'id'),
 			'recursive' => -1,
 		));
@@ -302,13 +303,7 @@ class EventShell extends AppShell
 		$this->Job->save($job);
 		$log = ClassRegistry::init('Log');
 		$log->create();
-		$log->save(array(
-				'org' => $user['User']['org'],
-				'email' =>$user['User']['email'],
-				'user_id' => $user['User']['id'],
-				'action' => 'publish',
-				'title' => 'Event (' . $id . '): published.',
-				'change' => 'published () => (1)'));
+		$log->createLogEntry($user, 'publish', 'Event (' . $id . '): published.', 'publised () => (1)');
 	}
 
 }

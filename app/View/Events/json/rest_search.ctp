@@ -11,8 +11,8 @@ foreach ($results as $result) {
 	unset($result['Event']['user_id']);
 	// hide the org field is we are not in showorg mode
 	if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
-		unset($result['Event']['org']);
-		unset($result['Event']['orgc']);
+		unset($result['Event']['Org']);
+		unset($result['Event']['Orgc']);
 		unset($result['Event']['from']);
 	}
 	// remove value1 and value2 from the output and remove invalid utf8 characters for the xml parser
@@ -30,7 +30,7 @@ foreach ($results as $result) {
 		foreach ($result['Event']['RelatedEvent'] as $key => $value) {
 			unset($result['Event']['RelatedEvent'][$key]['user_id']);
 			if (!Configure::read('MISP.showorg') && !$isAdmin) {
-				unset($result['Event']['RelatedEvent'][$key]['org']);
+				unset($result['Event']['RelatedEvent'][$key]['Org']);
 				unset($result['Event']['RelatedEvent'][$key]['orgc']);
 			}
 		}

@@ -50,13 +50,13 @@
 			<?php
 				if (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg')):
 			?>
-				<th class="filter"><?php echo $this->Paginator->sort('org', 'Source org'); ?></th>
-				<th class="filter"><?php echo $this->Paginator->sort('org', 'Member org'); ?></th>
+				<th class="filter"><?php echo $this->Paginator->sort('Org', 'Source org'); ?></th>
+				<th class="filter"><?php echo $this->Paginator->sort('Org', 'Member org'); ?></th>
 			<?php 
 				else:
 					if (Configure::read('MISP.showorg') || $isAdmin): 
 			?>
-						<th class="filter"><?php echo $this->Paginator->sort('org'); ?></th>
+						<th class="filter"><?php echo $this->Paginator->sort('Org'); ?></th>
 			<?php
 					endif;
 					if ($isSiteAdmin):
@@ -168,11 +168,11 @@
 			</td>
 			<td class="short action-links">
 				<?php
-				if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['org'] == $me['org'])))
+				if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['org_id'] == $me['org_id'])))
 					echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => 'Publish Event'), 'Are you sure this event is complete and everyone should be informed?');
 				elseif (0 == $event['Event']['published']) echo 'Not published';
 
-				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org'])) {
+				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org_id'] == $me['org_id'])) {
 				?>
 					<a href='/events/edit/<?php echo $event['Event']['id'];?>' class = "icon-edit" title = "Edit"></a>
 				<?php

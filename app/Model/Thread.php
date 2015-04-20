@@ -7,9 +7,23 @@ App::uses('AppModel', 'Model');
  *
 */
 class Thread extends AppModel {
-	public $actsAs = array('Containable');
+	public $actsAs = array(
+			'Containable',
+			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+					'roleModel' => 'Thread',
+					'roleKey' => 'thread_id',
+					'change' => 'full'
+			),
+	);
 	public $hasMany = 'Post';
-	public $belongsTo = 'Event';
+	public $belongsTo = array(
+		'Event', 
+		'Organisation' => array(
+			'className' => 'Organisation',
+			'foreignKey' => 'org_id'
+		),
+		'SharingGroup'
+	);
 	
 	public function updateAfterPostChange($add = false) {
 		$count = count($this->data['Post']);

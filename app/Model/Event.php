@@ -1021,7 +1021,14 @@ class Event extends AppModel {
 				)
 			);
 			$conditionsAttributes['AND'][0]['OR'] = array(
-				'Attribute.distribution >' => 0,
+				array('AND' => array(
+					'Attribute.distribution >' => 0,
+					'Attribute.distribution !=' => 4,
+				)),
+				array('AND' => array(
+					'Attribute.distribution' => 4,
+					'Attribute.sharing_group_id' => $sgids,
+				)),
 				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
 			);
 		}
@@ -1060,7 +1067,7 @@ class Event extends AppModel {
 		// $conditions['AND'][] = array('Event.published =' => 1);
 		
 		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp');
+		$fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id');
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id');
 		$fieldsOrg = array(array('id', 'name'), array('id', 'name', 'uuid'));
@@ -1285,191 +1292,184 @@ class Event extends AppModel {
 	 		$process_id = CakeResque::enqueue(
 	 				'email',
 	 				'EventShell',
-	 				array('alertemail', $user['org_id'], $jobId, $id)
+	 				array('alertemail', $user['id'], $jobId, $id)
 	 		);
 	 		$job->saveField('process_id', $process_id);
 	 		return true;
 	 	} else {
-	 		return ($this->sendAlertEmail($id, $user['org_id']));
+	 		return ($this->sendAlertEmail($id, $user));
 	 	}
 	 } 
+	 
+	 public function sendAlertEmail($id, $senderUser, $processId = null) {
+	 	$event = $this->fetchEvent($senderUser, array('eventid' => $id));
+	 	$userConditions = array('autoalert' => 1);
+	 	$this->User = ClassRegistry::init('User');
+	 	$users = $this->User->getUsersWithAccess(
+			$owners = array(
+				$event[0]['Event']['orgc_id'], 
+				$event[0]['Event']['org_id']
+ 			), 
+			$event[0]['Event']['distribution'], 
+			$event[0]['Event']['sharing_group_id'], 
+			$userConditions
+	 	);
+	 	if (Configure::read('MISP.extended_alert_subject')) {
+	 		$subject = preg_replace( "/\r|\n/", "", $event['Event']['info']);
+	 		if (strlen($subject) > 58) {
+	 			$subject = substr($subject, 0, 55) . '... - ';
+	 		} else {
+	 			$subject .= " - ";
+	 		}
+	 	} else {
+	 		$subject = '';
+	 	}
+	 	
+	 	// Initialise the Job class if we have a background process ID
+	 	// This will keep updating the process's progress bar
+	 	if ($processId) {
+	 		$this->Job = ClassRegistry::init('Job');
+	 	}
+	 	$sgModel = ClassRegistry::init('SharingGroup');
+	 	$log = ClassRegistry::init('Log');
+	 	try {
+		 	require_once 'Crypt/GPG.php';
+		 	$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
+		 	$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+		 	$userCount = count($users);
+	 	} catch (Exception $e){
+	 		$log->create();
+	 		$log->createLogEntry(
+	 				$senderUser,
+	 				'publish alert',
+	 				'User',
+	 				$senderUser['id'],
+	 				'Could not initialise GPG / could not add signing key.',
+	 				'Error while initialising GPG / adding the signing key' . '. The error message returned was: ' . $e->getMessage()
+	 		);
+	 		// catch errors like expired PGP keys
+	 		$this->log($e->getMessage());
+	 		return $e->getMessage();
+	 	}
+	 	foreach ($users as $k => $user) {
+	 		$body = $this->__buildAlertEmailBody($event[0], $user, $sgModel);
+	 		try {
+		 		$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+		 		if (empty($user['gpgkey'])) {
+		 			if (Configure::read('GnuPG.onlyencrypted')) continue;
+		 			$encryption = 'cleartext';
+		 			$bodyFinal = $bodySigned;
+		 		} else {
+		 			// import the key of the user into the keyring
+		 			// this is not really necessary, but it enables us to find
+		 			// the correct key-id even if it is not the same as the emailaddress
+		 			$keyImportOutput = $gpg->importKey($user['gpgkey']);
+		 			$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
+		 			$bodyFinal = $gpg->encrypt($bodySigned, true);
+		 			$encryption = 'pgp encrypted';
+		 		}
+		 		$emailOptions = array(
+	 				'from' => Configure::read('MISP.email'), 
+	 				'to' => $user['email'], 
+	 				'subject' => "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - TLP Amber",
+	 				'emailFormat' => 'text',
+	 				'body' => $bodyFinal,
+		 			'action' => 'publish alert',
+		 			'encryption' => $encryption
+		 		);
+		 		$this->User->sendEmail($senderUser, $emailOptions);
 	
-	public function sendAlertEmail($id, $org, $processId = null) {
-		$this->recursive = 1;
-		$event = $this->read(null, $id);
-		
-		// Initialise the Job class if we have a background process ID
-		// This will keep updating the process's progress bar
-		if ($processId) {
-			$this->Job = ClassRegistry::init('Job');
-		}
-		
-		// The mail body, h() is NOT needed as we are sending plain-text mails.
-		$body = "";
-		$body .= '==============================================' . "\n";
-		$appendlen = 20;
-		$body .= 'URL         : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
-		$body .= 'Event ID    : ' . $event['Event']['id'] . "\n";
-		$body .= 'Date        : ' . $event['Event']['date'] . "\n";
-		if (Configure::read('MISP.showorg')) {
-			$body .= 'Reported by : ' . $event['Event']['org_id'] . "\n";
-		}
-		$body .= 'Distribution: ' . $this->distributionLevels[$event['Event']['distribution']] . "\n";
-		$body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
-		$body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
-		$body .= 'Description : ' . $event['Event']['info'] . "\n\n";
-		$user['org_id'] = $org;
-		$relatedEvents = $this->getRelatedEvents($user, false);
-		if (!empty($relatedEvents)) {
-			$body .= '==============================================' . "\n";
-			$body .= 'Related to : '. "\n";
-			foreach ($relatedEvents as &$relatedEvent) {
-				$body .= Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
-			}
-			$body .= '==============================================' . "\n";
-		}
-		$body .= 'Attributes (* indicates a new or modified attribute)  :' . "\n";
-		$bodyTempOther = "";
-		if (isset($event['Attribute'])) {
-			foreach ($event['Attribute'] as &$attribute) {
-				$ids = '';
-				if ($attribute['to_ids']) $ids = ' (IDS)';
-				if (isset($event['Event']['publish_timestamp']) && isset($attribute['timestamp']) && $attribute['timestamp'] > $event['Event']['publish_timestamp']) {
-					$line = '*' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids . "\n";					
-				} else {
-					$line = $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids .  "\n";
-				}
-				//Defanging URLs (Not "links") emails domains/ips in notification emails
-				if ('url' == $attribute['type']) {
-					$line = str_ireplace("http","hxxp", $line);
-				}
-				elseif ('email-src' == $attribute['type'] or 'email-dst' == $attribute['type']) {
-					$line = str_replace("@","[at]", $line);
-				}
-				elseif ('domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
-					$line = str_replace(".","[.]", $line);
-				}
-				
-				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
-					$bodyTempOther .= $line;
-				else $body .= $line;
-			}
-		}
-		if (!empty($bodyTempOther)) {
-			$body .= "\n";
-		}
-		
-		if (Configure::read('MISP.extended_alert_subject')) {
-			$subject = preg_replace( "/\r|\n/", "", $event['Event']['info']);
-			if (strlen($subject) > 58) {
-				$subject = substr($subject, 0, 55) . '... - ';
-			} else {
-				$subject .= " - ";
-			}
-		} else {
-			$subject = '';
-		}
-		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
-		$body .= '==============================================' . "\n";
-		// find out whether the event is private, to limit the alerted user's list to the org only
-		if ($event['Event']['distribution'] == 0) {
-			$eventIsPrivate = true;
-		} else {
-			$eventIsPrivate = false;
-		}
-		// sign the body
-		require_once 'Crypt/GPG.php';
-		try {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
-			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-			//
-			// Build a list of the recipients that get a non-encrypted mail
-			// But only do this if it is allowed in the bootstrap.php file.
-			//
-			if ($eventIsPrivate) {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "", 'User.org_id =' => $event['Event']['org_id']);
-			} else {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "");
-			}
-			if (!Configure::read('GnuPG.onlyencrypted')) {
-				$alertUsers = $this->User->find('all', array(
-						'conditions' => $conditions,
-						'recursive' => 0,
-				));
-				$max = count($alertUsers);
-				foreach ($alertUsers as $k => &$user) {
-				// prepare the the unencrypted email
-					$Email = new CakeEmail();
-					$Email->from(Configure::read('MISP.email'));
-					$Email->to($user['User']['email']);
-					$Email->subject("[" . Configure::read('MISP.org_id') . " MISP] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
-					$Email->emailFormat('text');	// both text or html
-					// send it
-					$Email->send($bodySigned);
-					$Email->reset();
-					if ($processId) {
-						$this->Job->id = $processId;
-						$this->Job->saveField('progress', $k / $max * 50);
-					}
-				}
-			}
+		 		if ($processId) {
+		 			$this->Job->id = $processId;
+		 			$this->Job->saveField('progress', $k / $userCount * 100);
+		 		}
+	 		} catch (Exception $e){
+	 			$log->create();
+	 			$log->createLogEntry(
+	 					$senderUser,
+	 					'publish alert',
+	 					'User',
+	 					$user['id'],
+	 					'Could not sign or encrypt message.',
+	 					'Failed signing or encrypting a message to ' . $user['gpgkey'] . '. The error message returned was: ' . $e->getMessage()
+	 			);
+	 			// catch errors like expired PGP keys
+	 			$this->log($e->getMessage());
+	 			return $e->getMessage();
+	 		}
+	 	}
 
-			//
-			// Build a list of the recipients that wish to receive encrypted mails.
-			//
-			if ($eventIsPrivate) {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "", 'User.org_id =' => $event['Event']['org_id']);
-			} else {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "");
-			}
-	 		$alertUsers = $this->User->find('all', array(
-	 				'conditions' => $conditions,
-	 				'recursive' => 0,
-	 			)
-			);
-	 		$max = count($alertUsers);
- 			// encrypt the mail for each user and send it separately
- 			foreach ($alertUsers as $k => &$user) {
- 				// send the email
- 				$Email = new CakeEmail();
- 				$Email->from(Configure::read('MISP.email'));
- 				$Email->to($user['User']['email']);
-				$Email->subject("[" . Configure::read('MISP.org') . "org_id'P] Event " . $id . " - " . $subject . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
- 				$Email->emailFormat('text');		// both text or html
-  					// import the key of the user into the keyring
- 				// this is not really necessary, but it enables us to find
- 				// the correct key-id even if it is not the same as the emailaddress
- 				$keyImportOutput = $gpg->importKey($user['User']['gpgkey']);
- 				// say what key should be used to encrypt
- 				try {
- 					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
- 					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-  						$bodyEncSig = $gpg->encrypt($bodySigned, true);
- 						$Email->send($bodyEncSig);
- 				} catch (Exception $e){
- 					// catch errors like expired PGP keys
- 					$this->log($e->getMessage());
- 					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
- 				}
- 				// If you wish to send multiple emails using a loop, you'll need
- 				// to reset the email fields using the reset method of the Email component.
- 				$Email->reset();
- 				if ($processId) {
- 					$this->Job->saveField('progress', ($k / $max * 50) + 50);
- 				}
- 			}
-		} catch (Exception $e){
- 			// catch errors like expired PGP keys
-			$this->log($e->getMessage());
- 			return $e->getMessage();
- 		}
- 	if ($processId) {
- 		$this->Job->saveField('message', 'Mails sent.');
- 	}
- 	// LATER check if sending email succeeded and return appropriate result
- 	return true;
-	}
+	 	if ($processId) {
+	 		$this->Job->saveField('message', 'Mails sent.');
+	 	}
+	 	return true;
+	 }
+	 
+	 private function __buildAlertEmailBody($event, $user, $sgModel) {
+	 	$owner = false;
+	 	if ($user['org_id'] == $event['Event']['orgc_id'] || $user['org_id'] == $event['Event']['org_id'] || $user['Role']['perm_site_admin']) $owner = true;
+	 	// The mail body, h() is NOT needed as we are sending plain-text mails.
+	 	$body = "";
+	 	$body .= '==============================================' . "\n";
+	 	$appendlen = 20;
+	 	$body .= 'URL         : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
+	 	$body .= 'Event ID    : ' . $event['Event']['id'] . "\n";
+	 	$body .= 'Date        : ' . $event['Event']['date'] . "\n";
+	 	if (Configure::read('MISP.showorg')) {
+	 		$body .= 'Reported by : ' . $event['Orgc']['name'] . "\n";
+	 	}
+	 	$body .= 'Distribution: ' . $this->distributionLevels[$event['Event']['distribution']] . "\n";
+	 	if ($event['Event']['distribution'] == 4) {
+	 		$body .= 'Sharing Group:' . $event['SharingGroup']['name'] . "\n";
+	 	}
+	 	$body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
+	 	$body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
+	 	$body .= 'Description : ' . $event['Event']['info'] . "\n\n";
+	 	$relatedEvents = $this->getRelatedEvents($user, $event['Event']['id'], array());
+	 	if (!empty($relatedEvents)) {
+	 		$body .= '==============================================' . "\n";
+	 		$body .= 'Related to : '. "\n";
+	 		foreach ($relatedEvents as &$relatedEvent) {
+	 			$body .= Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
+	 		}
+	 		$body .= '==============================================' . "\n";
+	 	}
+	 	$body .= 'Attributes (* indicates a new or modified attribute)  :' . "\n";
+	 	$bodyTempOther = "";
+	 	if (isset($event['Attribute'])) {
+	 		foreach ($event['Attribute'] as &$attribute) {
+	 			if (!$owner && $attribute['distribution'] == 0) continue;
+	 			if ($attribute['distribution'] == 4 && !$sgModel->checkIfAuthorised($user, $attribute['sharing_group_id'])) continue;
+	 			$ids = '';
+	 			if ($attribute['to_ids']) $ids = ' (IDS)';
+	 			if (isset($event['Event']['publish_timestamp']) && isset($attribute['timestamp']) && $attribute['timestamp'] > $event['Event']['publish_timestamp']) {
+	 				$line = '*' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids . "\n";
+	 			} else {
+	 				$line = $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids .  "\n";
+	 			}
+	 			//Defanging URLs (Not "links") emails domains/ips in notification emails
+	 			if ('url' == $attribute['type']) {
+	 				$line = str_ireplace("http","hxxp", $line);
+	 			}
+	 			elseif ('email-src' == $attribute['type'] or 'email-dst' == $attribute['type']) {
+	 				$line = str_replace("@","[at]", $line);
+	 			}
+	 			elseif ('domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
+	 				$line = str_replace(".","[.]", $line);
+	 			}
+	 	
+	 			if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
+	 				$bodyTempOther .= $line;
+	 			else $body .= $line;
+	 		}
+	 	}
+	 	if (!empty($bodyTempOther)) {
+	 		$body .= "\n";
+	 	}
+	 	$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
+	 	$body .= '==============================================' . "\n";
+	 	return $body;
+	 }
 	
 	public function sendContactEmail($id, $message, $all, $user, $isSiteAdmin) {
 		// fetch the event
@@ -1480,7 +1480,10 @@ class Event extends AppModel {
 			//limit this array to users with contactalerts turned on!
 			$orgMembers = array();
 			$this->User->recursive = 0;
-			$temp = $this->User->findAllByOrg($event['Event']['org_id'], array('email', 'gpgkey', 'contactalert', 'id'));
+			$temp = $this->User->find('all', array(
+					'org_id' => $event['Event']['org_id'], 
+					'fields' => array('email', 'gpgkey', 'contactalert', 'id')
+			));
 			foreach ($temp as $tempElement) {
 				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
 					array_push($orgMembers, $tempElement);
@@ -1513,11 +1516,17 @@ class Event extends AppModel {
 		$body .= 'Event	   : ' . $event['Event']['id'] . "\n";
 		$body .= 'Date		: ' . $event['Event']['date'] . "\n";
 		if (Configure::read('MISP.showorg')) {
-			$body .= 'Reported by : ' . $event['Event']['org_id'] . "\n";
+			$body .= 'Reported by : ' . $event['Orgc']['name'] . "\n";
 		}
 		$body .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
 		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
-		$relatedEvents = $this->getRelatedEvents($user['User'], $isSiteAdmin);
+		
+		$userModel = ClassRegistry::init('User');
+		$targetUser = $userModel->getAuthUser($orgMembers[0]['User']['id']);
+		$sgModel = ClassRegistry::init('SharingGroup');
+		$sgs = $sgModel->fetchAllAuthorised($targetUser, false);
+		
+		$relatedEvents = $this->getRelatedEvents($targetUser, $id, $sgs);
 		if (!empty($relatedEvents)) {
 			foreach ($relatedEvents as &$relatedEvent) {
 				$body .= 'Related to  : ' . Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
@@ -1776,7 +1785,7 @@ class Event extends AppModel {
 		}
 	}
 	
-	public function publishRouter($id, $passAlong = null, $org = null, $email = null) {
+	public function publishRouter($id, $passAlong = null, $user) {
 		if (Configure::read('MISP.background_jobs')) {
 			$job = ClassRegistry::init('Job');
 			$job->create();
@@ -1786,7 +1795,8 @@ class Event extends AppModel {
 					'job_input' => 'Event ID: ' . $id,
 					'status' => 0,
 					'retries' => 0,
-					'org_id' => $org,
+					'org_id' => $user['org_id'],
+					'org' => $user['Organisation']['name'],
 					'message' => 'Publishing.',
 			);
 			$job->save($data);
@@ -1794,7 +1804,7 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'default',
 					'EventShell',
-					array('publish', $id, $passAlong, $jobId, $org, $email)
+					array('publish', $id, $passAlong, $jobId, $user['id'])
 			);
 			$job->saveField('process_id', $process_id);
 			return $process_id;

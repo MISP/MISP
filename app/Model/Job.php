@@ -19,6 +19,7 @@ class Job extends AppModel {
 				'status' => 0,
 				'retries' => 0,
 				'org' => $jobOrg,
+				'org_id' => $user['org_id'],
 				'message' => 'Fetching events.',
 		);
 		if ($type === 'md5' || $type === 'sha1') {
@@ -39,7 +40,7 @@ class Job extends AppModel {
 		$process_id = CakeResque::enqueue(
 				'cache',
 				$shell . 'Shell',
-				array('cache' . $type, $user['id'], $extra, $extra2),
+				array('cache' . $type, $user['id'], $id, $extra, $extra2),
 				true
 		);
 		$this->saveField('process_id', $process_id);

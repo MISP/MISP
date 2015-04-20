@@ -16,8 +16,8 @@ class User extends AppModel {
  * @var string
  */
 	public $displayField = 'email';
-
-	public $orgField = 'org';	// TODO Audit, LogableBehaviour + org
+	
+	public $orgField = array('Organisation', 'name');	// TODO Audit, LogableBehaviour + org
 
 	
 /**
@@ -428,5 +428,84 @@ class User extends AppModel {
 		$user['User']['Organisation'] = $user['Organisation'];
 		unset($user['Organisation'], $user['Role']);
 		return $user['User'];
+	}
+	
+	// Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
+	// parameters are an array of org IDs that are owners (for an event this would be orgc and org) 
+	public function getUsersWithAccess($owners = array(), $distribution, $sharing_group_id = 0, $userConditions = array()) {
+		$sgModel = ClassRegistry::init('SharingGroup');
+		$conditions = array();
+		$validOrgs = array();
+		$all = true;
+
+		// add owners to the conditions
+		if ($distribution == 0 || $distribution == 4) {
+			$all = false;
+			$validOrgs = $owners;
+		}
+		
+		// add all orgs to the conditions that can see the SG
+		if ($distribution = 4) {
+			$sgOrgs = $sgModel->getOrgsWithAccess($sharing_group_id);
+			if ($sgOrgs === true) $all = true;
+			else $validOrgs = array_merge($validOrgs, $sgOrgs);
+		}
+		$validOrgs = array_unique($validOrgs);
+		if (!$all) $conditions['AND']['OR'][] = array('org_id' => $validOrgs);
+		$conditions['AND'][] = $userConditions;
+		
+		$roles = $this->Role->find('all', array(
+			'conditions' => array('perm_site_admin' => 1),
+			'fields' => array('id')
+		));
+		$roleIDs = array();
+		foreach ($roles as $role) $roleIDs[] = $role['Role']['id'];
+		
+		$conditions['AND']['OR'][] = array('role_id' => $roleIDs); 
+		$users = $this->find('all', array(
+			'conditions' => $conditions,
+			'recursive' => -1,
+			'fields' => array('id', 'email', 'gpgkey', 'org_id'),
+			'contain' => array('Role' => array('fields' => array('perm_site_admin'))),
+		));
+		foreach ($users as &$user) {
+			$temp = $user['User'];
+			unset($user['User']);
+			$user = array_merge($temp, $user);
+		}
+		return $users;
+	}
+	
+	public function sendEmail($user, $options) {
+		$log = ClassRegistry::init('Log');
+		$Email = new CakeEmail();
+		$Email->from($options['from']);
+		$Email->to($options['to']);
+		$Email->subject($options['subject']);
+		$Email->emailFormat($options['emailFormat']);	// both text or html
+		// send it
+		try {
+			$Email->send($options['body']);
+			$log->create();
+			$log->createLogEntry(
+					$user,
+					(isset($options['action']) ? $options['action'] : 'email'),
+					'User',
+					$user['id'],
+					'Email sent to ' . $options['to'],
+					'User (' . $user['id'] . ') has initiated the sending of a(n) ' . $options['encryption'] . ' e-mail to ' . $options['to'] . '.'
+			);
+		} catch (Exception $e) {
+			$log->create();
+			$log->createLogEntry(
+					$user,
+					(isset($options['action']) ? $options['action'] : 'email'),
+					'User',
+					$user['id'],
+					'Email sending FAILED to ' . $options['to'],
+					'User (' . $user['id'] . ') has initiated the sending of a(n) ' . $options['encryption'] . ' e-mail to ' . $options['to'] . '. The message could not be sent with the following error message: ' . $e->getMessage()
+			);
+		}
+		$Email->reset();
 	}
 }

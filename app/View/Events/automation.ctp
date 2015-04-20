@@ -223,13 +223,13 @@ Use semicolons instead (the search will automatically search for colons instead)
 For example, in order to search for all attributes created by your organisation that contain 192.168 or 127.0 but not 0.1 and are of the type ip-src, excluding the events that were tagged tag1 use the following syntax:</p>
 <pre>
 <?php
-	echo Configure::read('MISP.baseurl').'/attributes/restSearch/download/192.168&&127.0&&!0.1/ip-src/false/' . $me['org'] . '/!tag1';
+	echo Configure::read('MISP.baseurl').'/attributes/restSearch/download/192.168&&127.0&&!0.1/ip-src/false/' . $me['Organisation']['name'] . '/!tag1';
 ?>
 </pre>
 <p>You can also use search for IP addresses using CIDR. Make sure that you use '|' (pipe) instead of '/' (slashes). Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). See below for an example: </p>
 <pre>
 <?php
-	echo Configure::read('MISP.baseurl').'/attributes/restSearch/download/192.168.1.1|16/ip-src/null/' . $me['org'];
+	echo Configure::read('MISP.baseurl').'/attributes/restSearch/download/192.168.1.1|16/ip-src/null/' . $me['Organisation']['name'];
 ?>
 </pre>
 <h3>Export attributes of event with specified type as XML</h3>

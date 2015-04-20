@@ -28,7 +28,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 			<th><?php echo $this->Paginator->sort('title');?></th>
 			<th><?php echo $this->Paginator->sort('created');?></th>
 		</tr>
-		<?php foreach ($list as $item): ?>
+		<?php foreach ($list as $item): 			debug($item);?>
 		<tr>
 			<td class="short">
 			<?php

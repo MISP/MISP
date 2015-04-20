@@ -167,7 +167,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 		}
 		if (isset($this->schema['org'])) {	// TODO Audit, LogableBehevior org CHECK!!!
 		if ($this->user && $this->UserModel) {
-			$logData['Log']['org'] = $this->user[$this->UserModel->alias][$this->UserModel->orgField];
+			$logData['Log']['org'] = $this->user[$this->UserModel->alias][$this->UserModel->orgField[0]][$this->UserModel->orgField[1]];
 		} else {
 			// UserModel is active, but the data hasnt been set. Assume system action.
 			$logData['Log']['org'] = 'SYS';
@@ -176,16 +176,6 @@ class SysLogLogableBehavior extends LogableBehavior {
 		if (isset($this->schema['title'])) {	// TODO LogableBehevior title
 		if ($this->user && $this->UserModel) {	//  $Model->data[$Model->alias][$Model->displayField]
 			switch ($Model->alias) {
-				case "User":		// TODO Audit, not used here but done in UsersController
-					if (($logData['Log']['action'] == 'edit') || ($logData['Log']['action'] == 'delete')) {
-						return; // handle in model itself
-					}
-					$title = 'User ('. $Model->data[$Model->alias]['id'].') '.  $Model->data[$Model->alias]['email'];
-					break;
-				case "Event":
-        			$title = 'Event ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['info'];
-					$logData['Log']['title'] = $title;
-					break;
 				case "Attribute":
 					if (isset($Model->combinedKeys)) {
 						if (is_array($Model->combinedKeys)) {
@@ -194,30 +184,55 @@ class SysLogLogableBehavior extends LogableBehavior {
 						}
 					}
 					break;
-				case "ShadowAttribute":
-					if (isset($Model->combinedKeys)) {
-						if (is_array($Model->combinedKeys)) {
-							$title = 'Proposal ('. $Model->data[$Model->alias]['id'].') '.'to Event ('. $Model->data[$Model->alias]['event_id'].'): '.  $Model->data[$Model->alias][$Model->combinedKeys[1]].'/'.  $Model->data[$Model->alias][$Model->combinedKeys[2]].' '.  $Model->data[$Model->alias]['value1'];
-							$logData['Log']['title'] = $title;
-						}
-					}
+				case "Event":
+        			$title = 'Event ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['info'];
+					$logData['Log']['title'] = $title;
 					break;
-				case "Server":
-					$title = 'Server ('. $Model->data[$Model->alias]['id'].'): '. $Model->data[$Model->alias]['url'];
+				case "Organisation":
+					$title = 'Organisation (' . $Model->data[$Model->alias]['id'] . '): ' . $Model->data[$Model->alias]['name'];
+					break;
+				case "Post":
+					$title = 'Post (' . $Model->data[$Model->alias]['id'] . ')';
+					break;
+				case "Regexp":
+					$title = 'Regexp ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['regexp'];
 					$logData['Log']['title'] = $title;
 					break;
 				case "Role":
 					$title = 'Role ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
 					$logData['Log']['title'] = $title;
 					break;
+				case "Server":
+					$title = 'Server ('. $Model->data[$Model->alias]['id'].'): '. $Model->data[$Model->alias]['url'];
+					$logData['Log']['title'] = $title;
+					break;
+				case "ShadowAttribute":
+					if (isset($Model->combinedKeys)) {
+						if (is_array($Model->combinedKeys)) {
+							$title = 'Proposal ('. $Model->data[$Model->alias]['id'].'): '.'to Event ('. $Model->data[$Model->alias]['event_id'].'): '.  $Model->data[$Model->alias][$Model->combinedKeys[1]].'/'.  $Model->data[$Model->alias][$Model->combinedKeys[2]].' '.  $Model->data[$Model->alias]['value1'];
+							$logData['Log']['title'] = $title;
+						}
+					}
+					break;
+				case "SharingGroup":
+					$title = 'SharingGroup ('. $Model->data[$Model->alias]['id'].'): '.  $Model->data[$Model->alias]['name'];
+					break;
+				case "Tag":
+					$title = 'Tag ('. $Model->data[$Model->alias]['id'].'): '.  $Model->data[$Model->alias]['name'];
+					break;
+				case "Thread":
+					$title = 'Thread ('. $Model->data[$Model->alias]['id'].'): '.  $Model->data[$Model->alias]['title'];
+					break;
+				case "User":		// TODO Audit, not used here but done in UsersController
+					if (($logData['Log']['action'] == 'edit') || ($logData['Log']['action'] == 'delete')) {
+						return; // handle in model itself
+					}
+					$title = 'User ('. $Model->data[$Model->alias]['id'].'): '.  $Model->data[$Model->alias]['email'];
+					break;
 				case "Whitelist":
 					$title = 'Whitelist ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
 					$logData['Log']['title'] = $title;
 					break;
-				case "Regexp":
-						$title = 'Regexp ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['regexp'];
-						$logData['Log']['title'] = $title;
-						break;
 				default:
 					if (isset($Model->combinedKeys)) {
 						if (is_array($Model->combinedKeys)) {

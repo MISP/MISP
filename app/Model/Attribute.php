@@ -1216,7 +1216,6 @@ class Attribute extends AppModel {
 		if ($id) array_push($conditions['AND'], array('Event.id' => $id));
 		if ($from) array_push($conditions['AND'], array('Event.date >=' => $from));
 		if ($to) array_push($conditions['AND'], array('Event.date <=' => $to));
-		
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($tags) {
 			$tag = ClassRegistry::init('Tag');
@@ -1257,20 +1256,13 @@ class Attribute extends AppModel {
 	}
 
 	// convert to user!
-	 public function text($org, $isSiteAdmin, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false) {
+	 public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false) {
 	 	//restricting to non-private or same org if the user is not a site-admin.
 	 	$conditions['AND'] = array();
 	 	if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
 	 	if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type; 
 	 	if ($from) $conditions['AND']['Event.date >='] = $from;
 	 	if ($to) $conditions['AND']['Event.date <='] = $to;
-	 	if (!$isSiteAdmin) {
-	 		$temp = array();
-	 		$distribution = array();
-	 		array_push($temp, array('Attribute.distribution >' => 0));
-	 		array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
-	 		$conditions['OR'] = $temp;
-	 	}
 	 	if ($eventId !== false) {
 	 		$conditions['AND'][] = array('Event.id' => $eventId);
 	 	} elseif ($tags !== false) {
@@ -1289,19 +1281,12 @@ class Attribute extends AppModel {
 	 		}
 	 		$conditions['AND'][] = $temp;
 	 	}
-	 	
-	 	$params = array(
-	 			'conditions' => $conditions, //array of conditions
-	 			//'recursive' => 2, //int
-	 			//'fields' => array('Attribute.value'), //array of field names
-	 			'order' => array('Attribute.value'), //string or array defining order
-	 			'group' => array('Attribute.value'), //fields to GROUP BY
-	 			'contain' => array('Event' => array(
-	 					'fields' => array('Event.id', 'Event.published', 'Event.date'),
-	 	
-	 			)));
-	 	
-	 	$attributes = $this->find('all', $params);
+	 	$attributes = $this->fetchAttributes($user, array(
+	 			'conditions' => $conditions, 
+	 			'order' => 'Attribute.value', 
+	 			'group' => 'Attribute.value',
+	 			'fields' => array('value'),
+	 	));
 	 	return $attributes;
 	 }
 	 

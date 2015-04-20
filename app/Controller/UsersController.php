@@ -998,7 +998,7 @@ class UsersController extends AppController {
 	public function statistics() {
 		
 		// set all of the data up for the heatmaps
-		$orgs = $this->User->find('all', array('fields' => array('DISTINCT (org) AS org'), 'recursive' => -1));
+		$orgs = $this->User->Organisation->find('all', array('fields' => array('DISTINCT (name) AS name'), 'recursive' => -1));
 		$this->loadModel('Log');
 		$year = date('Y');
 		$month = date('n');

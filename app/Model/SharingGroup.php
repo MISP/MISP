@@ -3,7 +3,14 @@ App::uses('AppModel', 'Model');
 
 class SharingGroup extends AppModel {
 	
-	public $actsAs = array('Containable');
+	public $actsAs = array(
+			'Containable',
+			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+					'roleModel' => 'SharingGroup',
+					'roleKey' => 'sharing_group_id',
+					'change' => 'full'
+			),
+	);
 	public $validate = array(
 		'name' => array(
 			'unique' => array(
@@ -96,7 +103,6 @@ class SharingGroup extends AppModel {
 		}
 	}
 	
-	
 	public function checkIfAuthorisedExtend($user, $id) {
 		if ($this->checkIfOwner($user, $id)) return true;
 		$this->id = $id;
@@ -119,7 +125,7 @@ class SharingGroup extends AppModel {
 		if (!isset($user['id'])) throw new MethodNotAllowedException('Invalid user.');
 		$this->id = $id;
 		if (!$this->exists()) return false;
-		if ($user['Role']['perm_site_admin'] || $this->SharingGroupServer->checkIfAuthorised($id) || $this->SharingGroupOrg->checkIfAuthorised($id, $user['Organisation']['id'])) return true;
+		if ($user['Role']['perm_site_admin'] || $this->SharingGroupServer->checkIfAuthorised($id) || $this->SharingGroupOrg->checkIfAuthorised($id, $user['org_id'])) return true;
 		return false;
 	}
 	
@@ -134,5 +140,32 @@ class SharingGroup extends AppModel {
 				'fields' => array('id', 'org_id'),
 		));
 		return ($sg['SharingGroup']['org_id'] == $user['org_id']);
+	}
+	
+	// Get all organisation ids that can see a SG
+	public function getOrgsWithAccess($id) {
+		$sg = $this->find('first', array(
+			'conditions' => array('SharingGroup.id' => $id),
+			'recursive' => -1,
+			'fields' => array('id', 'org_id'),
+			'contain' => array(
+				'SharingGroupOrg' => array('fields' => array('id', 'org_id')),
+				'SharingGroupServer' => array('fields' => array('id', 'server_id', 'all_orgs')),
+			)
+		));
+		
+		// if the current server is marked as "all orgs" in the sharing group, just return true
+		foreach ($sg['SharingGroupServer'] as $sgs) {
+			if ($sgs['server_id'] == 0) {
+				if ('all_orgs') return true;
+			}
+		}
+		
+		// return a list of arrays with all organisations tied to the SG.
+		$orgs = array();
+		foreach ($sg['SharingGroupOrg'] as $sgo) {
+			$orgs[] = $sgo['org_id'];
+		}
+		return $orgs;
 	}
 }

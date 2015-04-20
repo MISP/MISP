@@ -23,7 +23,9 @@ class Log extends AppModel {
 							'pull',
 							'push',
 							'blacklisted',
-							'admin_email'
+							'admin_email',
+							'tag',
+							'publish alert'
 						)),
 			'message' => 'Options : ...'
 		)
@@ -54,5 +56,19 @@ class Log extends AppModel {
 			$data[$date[0]['Date']] = intval($date[0]['count']);
 		}
 		return $data;
+	}
+	
+	public function createLogEntry($user, $action, $model, $model_id, $title, $change) {
+		$this->create();
+		$this->save(array(
+				'org' => $user['Organisation']['name'],
+				'email' =>$user['email'],
+				'user_id' => $user['id'],
+				'action' => $action,
+				'title' => $title,
+				'change' => $change,
+				'model' => $model,
+				'model_id' => $model_id,
+		));
 	}
 }

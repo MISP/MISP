@@ -80,6 +80,7 @@ class TagsController extends AppController {
 			throw new NotFoundException('Invalid tag');
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
+			$this->request->data['Tag']['id'] = $id;
 			if ($this->Tag->save($this->request->data)) {
 				$this->Session->setFlash('The Tag has been edited');
 				$this->redirect(array('action' => 'index'));

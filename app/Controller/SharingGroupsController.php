@@ -27,6 +27,7 @@ class SharingGroupsController extends AppController {
 			$this->SharingGroup->create();
 			$sg = $json['sharingGroup'];
 			$sg['organisation_uuid'] = $this->Auth->user('Organisation')['uuid'];
+			$sg['org_id'] = $this->Auth->user('org_id');
 			$this->request->data['SharingGroup']['organisation_uuid'] = $this->Auth->user('Organisation')['uuid'];
 			if ($this->SharingGroup->save(array('SharingGroup' => $sg))) {
 				foreach ($json['organisations'] as $org) {
@@ -95,11 +96,10 @@ class SharingGroupsController extends AppController {
 		if($this->request->is('post')) {
 			$json = json_decode($this->request->data['SharingGroup']['json'], true);
 			$sg = $json['sharingGroup'];
-			$sg['organisation_uuid'] = $this->Auth->user('Organisation')['uuid'];
-			$this->request->data['SharingGroup']['organisation_uuid'] = $this->Auth->user('Organisation')['uuid'];
+			$sg['id'] = $id;
 			if ($this->SharingGroup->save(array('SharingGroup' => $sg))) {
-				$this->SharingGroup->SharingGroupOrg->updateOrgsForSG($id, $json['organisations'], $sharingGroup['SharingGroupOrg']);
-				$this->SharingGroup->SharingGroupServer->updateServersForSG($id, $json['servers'], $sharingGroup['SharingGroupServer'], $json['sharingGroup']['limitServers']);
+				$this->SharingGroup->SharingGroupOrg->updateOrgsForSG($id, $json['organisations'], $sharingGroup['SharingGroupOrg'], $this->Auth->user());
+				$this->SharingGroup->SharingGroupServer->updateServersForSG($id, $json['servers'], $sharingGroup['SharingGroupServer'], $json['sharingGroup']['limitServers'], $this->Auth->user());
 				$this->redirect('/SharingGroups/view/' . $id);
 			} else {
 				$validationReplacements = array(
