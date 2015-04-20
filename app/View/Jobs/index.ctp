@@ -38,6 +38,8 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
+			<th><?php echo $this->Paginator->sort('date_created');?></th>
+			<th><?php echo $this->Paginator->sort('date_modified');?></th>
 			<th><?php echo $this->Paginator->sort('process_id');?></th>
 			<th><?php echo $this->Paginator->sort('worker');?></th>
 			<th><?php echo $this->Paginator->sort('job_type');?></th>
@@ -51,6 +53,8 @@
 foreach ($list as $k => $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['Job']['id']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Job']['date_created']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Job']['date_modified']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Job']['process_id']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Job']['worker']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Job']['job_type']); ?>&nbsp;</td>

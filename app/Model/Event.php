@@ -1288,6 +1288,7 @@ class Event extends AppModel {
 	 				'status' => 0,
 	 				'retries' => 0,
 	 				'org_id' => $user['org_id'],
+	 				'org' => $user['Organisation']['name'],
 	 				'message' => 'Sending...',
 	 		);
 	 		$job->save($data);

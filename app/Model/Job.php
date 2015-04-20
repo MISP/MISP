@@ -7,6 +7,17 @@ App::uses('AppModel', 'Model');
 */
 class Job extends AppModel {
 	
+	public function beforeValidate($options = array()) {
+		parent::beforeValidate();
+		$date = date('Y-m-d H:i:s');
+		if (empty($this->data['Job']['id'])) {
+			$this->data['Job']['date_created'] = $date;
+			$this->data['Job']['date_modified'] = $date;
+		} else {
+			$this->data['Job']['date_modified'] = $date;
+		}
+	}
+	
 	public function cache($type, $user, $target, $jobOrg) {
 		$extra = null;
 		$extra2 = null;

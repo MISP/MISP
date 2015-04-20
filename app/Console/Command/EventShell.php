@@ -228,7 +228,7 @@ class EventShell extends AppShell
 		$isSiteAdmin = $this->args[4];
 		$processId = $this->args[5];
 		$this->Job->id = $processId;
-		$user = $this->User->read(null, $userId);
+		$user = $this->User->getAuthUser($userId);
 		$eventId = $this->args[2];
 		$result = $this->Event->sendContactEmail($id, $message, $all, $user, $isSiteAdmin);
 		$this->Job->saveField('progress', '100');
@@ -285,11 +285,7 @@ class EventShell extends AppShell
 		$passAlong = $this->args[1];
 		$jobId = $this->args[2];
 		$userId = $this->args[3];
-		$user = $this->User->find('first', array(
-			'conditions' => array('id' => $userId),
-			'fields' => array('email', 'org', 'id'),
-			'recursive' => -1,
-		));
+		$user = $this->User->getAuthUser($userId);
 		$job = $this->Job->read(null, $jobId);
 		$eventId = $this->args[2];
 		$this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
