@@ -15,8 +15,7 @@ class ServerShell extends AppShell
 		$jobId = $this->args[3];
 		$this->Job->read(null, $jobId);
 		$this->Server->id = $serverId;
-		$this->User->recursive = -1;
-		$user = $this->User->read(null, $userId);
+		$user = $this->User->getAuthUser($userId);
 		$server = $this->Server->read(null, $serverId);
 		$result = $this->Server->pull($user['User'], $serverId, $technique, $server, $jobId);
 		$this->Job->id = $jobId;
@@ -59,9 +58,8 @@ class ServerShell extends AppShell
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocket($server);
-		$this->User->recursive = -1;
-		$user = $this->User->read(array('id', 'org', 'email'), $userId);
-		$result = $this->Server->push($serverId, 'full', $jobId, $HttpSocket, $user['User']['email']);
+		$user = $this->User->getAuthUser($userId);
+		$result = $this->Server->push($serverId, 'full', $jobId, $HttpSocket, $user['email']);
 		$this->Job->save(array(
 				'id' => $jobId,
 				'message' => 'Job done.',
@@ -82,8 +80,7 @@ class ServerShell extends AppShell
 		if ($timestamp != $task['Task']['next_execution_time']) {
 			return;
 		}
-		$this->User->recursive = -1;
-		$user = $this->User->read(array('id', 'org', 'email'), $userId);
+		$user = $this->User->getAuthUser($userId);
 		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('push' => 1)));
 		$count = count($servers);
 		foreach ($servers as $k => $server) {
@@ -93,7 +90,8 @@ class ServerShell extends AppShell
 					'job_type' => 'pull',
 					'job_input' => 'Server: ' . $server['Server']['id'],
 					'retries' => 0,
-					'org' => $user['User']['org'],
+					'org' => $user['Organisation']['name'],
+					'org_id' => $user['org_id'],
 					'process_id' => 'Part of scheduled pull',
 					'message' => 'Pulling.',
 			);
@@ -160,7 +158,7 @@ class ServerShell extends AppShell
 			return;
 		}
 		$this->User->recursive = -1;
-		$user = $this->User->read(array('id', 'org', 'email'), $userId);
+		$user = $this->User->getAuthUser($userId);
 		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('push' => 1)));
 		$count = count($servers);
 		foreach ($servers as $k => $server) {
@@ -170,7 +168,8 @@ class ServerShell extends AppShell
 					'job_type' => 'push',
 					'job_input' => 'Server: ' . $server['Server']['id'],
 					'retries' => 0,
-					'org' => $org,
+					'org' => $user['Organisation']['name'],
+					'org_id' => $user['org_id'],
 					'process_id' => 'Part of scheduled push',
 					'message' => 'Pushing.',
 			);
@@ -179,7 +178,7 @@ class ServerShell extends AppShell
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
-			$result = $this->Server->push($server['Server']['id'], 'full', $jobId, $HttpSocket, $user['User']['email']);
+			$result = $this->Server->push($server['Server']['id'], 'full', $jobId, $HttpSocket, $user['email']);
 		}
 		$task['Task']['message'] = count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.';
 		if ($task['Task']['timer'] > 0) {

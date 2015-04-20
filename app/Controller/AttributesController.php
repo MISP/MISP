@@ -52,7 +52,7 @@ class AttributesController extends AppController {
 			$this->paginate = Set::merge($this->paginate, array('conditions' => $this->Attribute->buildConditions($this->Auth->user())));
 		}
 	}
-
+	
 /**
  * index method
  *
@@ -2058,9 +2058,4 @@ class AttributesController extends AppController {
 		if ($number != 1) return 's';
 		return '';
 	}
-	
-	public function test() {
-		$this->Attribute->fetchAttributes($this->Auth->user());
-	}
-	
 }
