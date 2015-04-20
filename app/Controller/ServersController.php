@@ -747,7 +747,14 @@ class ServersController extends AppController {
 			if (!$this->Server->exists()) {
 				throw new NotFoundException(__('Invalid server'));
 			}
-			$this->Server->runConnectionTest($id);
+			$result = $this->Server->runConnectionTest($id);
+			if ($result['status'] == 1) {
+				$message = json_decode($result['message'], true);
+				if (isset($message['message']) && $message['message'] === 'En Taro Tassadar') return new CakeResponse(array('body'=> json_encode(array('status' => $result['status']))));
+				else return new CakeResponse(array('body'=> json_encode(array('status' => 4))));
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('status' => $result['status']))));
+			}
 		}
 	}
 }

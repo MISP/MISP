@@ -1711,3 +1711,33 @@ function sharingGroupPopulateFromJson() {
 	$('#SharingGroupReleasability').attr('value', jsonparsed.sharingGroup.releasability);
 	$('#SharingGroupDescription').text(jsonparsed.sharingGroup.description);
 }
+
+function testConnection(id) {
+	$.ajax({
+	    url: '/servers/testConnection/' + id,
+	    type:'GET',
+		beforeSend: function (XMLHttpRequest) {
+			$("#connection_test_" + id).html('Running test...');
+		},
+	    error: function(){
+	    	$("#connection_test_" + id).html('Internal error.');
+	    },
+	    success: function(response){
+	    	var result = JSON.parse(response);
+	    	switch (result.status) {
+			case 1:
+				$("#connection_test_" + id).html('<span class="green bold" title="Connection established, correct response received.">OK</span>');
+				break;
+			case 2:
+				$("#connection_test_" + id).html('<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable</span>');
+				break;
+			case 3:
+				$("#connection_test_" + id).html('<span class="red bold" title="The server returned an unexpected result instead of a code 200. ">Server returned an error</span>');
+				break;
+			case 4:
+				$("#connection_test_" + id).html('<span class="red bold" title="Connection established correctly, but received an unexpected response. This could be because the authentication key is invalid or because the other instance is running the wrong version of MISP.">Unexpected reponse</span>');
+				break;
+	    	}
+	    }
+	});
+}

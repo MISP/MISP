@@ -19,6 +19,7 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('name');?></th>
+			<th>Connection test</th>
 			<th><?php echo $this->Paginator->sort('push');?></th>
 			<th><?php echo $this->Paginator->sort('pull');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
@@ -39,6 +40,7 @@ foreach ($servers as $server): ?>
 				else echo h($server['Server']['url']); 
 			?>
 		</td>
+		<td class="shortish" id="connection_test_<?php echo $server['Server']['id'];?>"><span class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');">Run</span></td>
 		<td class="short"><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td class="short"><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>

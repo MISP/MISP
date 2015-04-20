@@ -1176,11 +1176,17 @@ class Server extends AppModel {
 		);
 		$uri = $server['Server']['url'] . '/servers/testConnection';
 		$data = json_encode(array('message' => 'En Taro Adun'));
-		$response = $HttpSocket->post($uri, $data, $request);
+		$responseArray = array();
+		try {
+			$response = $HttpSocket->post($uri, $data, $request);
+		} catch (Exception $e) {
+			return array('status' => 2);
+		}
+		
 		if ($response->isOk()) {
-			debug($response->body());
+			return array('status' => 1, 'message' => $response->body());
 		} else {
-			throw new Exception('Something went wrong');
+			return array('status' => 3);
 		}
 	}
 }
