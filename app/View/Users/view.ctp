@@ -13,7 +13,7 @@
 		</dd>
 		<dt><?php echo __('Org'); ?></dt>
 		<dd>
-			<?php echo h($user['User']['org']); ?>
+			<?php echo h($user['Organisation']['name']); ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Role'); ?></dt>
