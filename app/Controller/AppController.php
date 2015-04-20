@@ -272,8 +272,8 @@ class AppController extends Controller {
 		$this->User->recursive = -1;
 		$user = $this->User->findByAuthkey($authkey);
 		$user = $this->User->getAuthUser($user['User']['id']);
-		if ($user['User']['Role']['perm_site_admin']) $user['User']['siteadmin'] = true;
-		if (!empty($user)) return $user['User'];
+		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
+		if (!empty($user)) return $user;
 		return false;
 	}
 

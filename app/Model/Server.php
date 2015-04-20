@@ -1162,7 +1162,25 @@ class Server extends AppModel {
 		return $validItems;
 	}
 	
-	public function connectionTest($id) {
-		
+	public function runConnectionTest($id) {
+		$server = $this->find('first', array('conditions' => array('Server.id' => $id)));
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		$HttpSocket = $syncTool->setupHttpSocket($server);
+		$request = array(
+			'header' => array(
+				'Authorization' => $server['Server']['authkey'],
+				'Accept' => 'application/json',
+				'Content-Type' => 'application/json',
+			)
+		);
+		$uri = $server['Server']['url'] . '/servers/testConnection';
+		$data = json_encode(array('message' => 'En Taro Adun'));
+		$response = $HttpSocket->post($uri, $data, $request);
+		if ($response->isOk()) {
+			debug($response->body());
+		} else {
+			throw new Exception('Something went wrong');
+		}
 	}
 }

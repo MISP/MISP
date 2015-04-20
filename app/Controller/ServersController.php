@@ -30,6 +30,7 @@ class ServersController extends AppController {
 		switch ($this->request->params['action']) {
 			case 'push':
 			case 'pull':
+			case 'testConnection':
 				$this->Security->csrfUseOnce = false;
 		}
 	}
@@ -733,5 +734,20 @@ class ServersController extends AppController {
 		$this->autoRender = false;
 		$this->set('servers', $servers);
 		$this->render('ajax/fetch_servers_for_sg');
+	}
+	
+	public function testConnection($id = false) {
+		if ($this->request->is('post')) {
+			if ($this->request->data['message'] === 'En Taro Adun') {
+				return new CakeResponse(array('body'=> json_encode(array('message' => 'En Taro Tassadar'))));
+			} else throw new MethodNotAllowedException('Invalid message');
+		} else {
+			if (!$this->Auth->user('Role')['perm_sync'] && !$this->Auth->user('Role')['perm_site_admin']) throw new MethodNotAllowedException('You don\'t have permission to do that.');
+			$this->Server->id = $id;
+			if (!$this->Server->exists()) {
+				throw new NotFoundException(__('Invalid server'));
+			}
+			$this->Server->runConnectionTest($id);
+		}
 	}
 }
