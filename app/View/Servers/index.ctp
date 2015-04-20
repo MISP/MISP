@@ -22,7 +22,7 @@
 			<th><?php echo $this->Paginator->sort('push');?></th>
 			<th><?php echo $this->Paginator->sort('pull');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
-			<th>From</th>
+			<th>Remote Organisation</th>
 			<th><?php echo $this->Paginator->sort('cert_file');?></th>
 			<th><?php echo $this->Paginator->sort('self_signed');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
@@ -30,7 +30,7 @@
 			<th>Last Pushed ID</th>
 			<th class="actions">Actions</th>
 	</tr>
-	<?php
+	<?php 
 foreach ($servers as $server): ?>
 	<tr>
 		<td>
@@ -42,10 +42,10 @@ foreach ($servers as $server): ?>
 		<td class="short"><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td class="short"><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
-		<td><?php echo h($server['Server']['organization']); ?>&nbsp;</td>
+		<td><a href="/organisations/view/<?php echo h($server['RemoteOrg']['id']); ?>"><?php echo h($server['RemoteOrg']['name']); ?></a></td>
 		<td class="short"><?php echo h($server['Server']['cert_file']); ?>&nbsp;</td>
 		<td class="short"><span class="<?php echo ($server['Server']['self_signed'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
-		<td class="short"><?php echo h($server['Organisation']['name']); ?>&nbsp;</td>
+		<td class="short"><a href="/organisations/view<?php echo h($server['Organisation']['id']); ?>"><?php echo h($server['Organisation']['name']); ?></a></td>
 		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="short action-links">

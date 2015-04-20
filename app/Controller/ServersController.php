@@ -44,7 +44,7 @@ class ServersController extends AppController {
 		if ($this->_isSiteAdmin()) {
 			$this->paginate = array(
 					'conditions' => array(),
-					'fields' => array('Server.*', 'Organisation.name', 'Organisation.id'),
+					'fields' => array('Server.*', 'Organisation.name', 'Organisation.id', 'RemoteOrg.name', 'RemoteOrg.id'),
 			);
 		} else {
 			if (!$this->userRole['perm_sync'] && !$this->userRole['perm_admin']) $this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -64,18 +64,62 @@ class ServersController extends AppController {
 	public function add() {
 		if (!$this->_isAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post')) {
+			$json = json_decode($this->request->data['Server']['json'], true);
 			// force check userid and orgname to be from yourself
-			$this->request->data['Server']['org'] = $this->Auth->user('org');
-			if ($this->Server->save($this->request->data)) {
-				if (isset($this->request->data['Server']['submitted_cert'])) {
-					$this->__saveCert($this->request->data, $this->Server->id);
+			$this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
+			$fail = false;
+			if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
+			else {
+				$existingOrgs = $this->Server->Organisation->find('first', array(
+						'conditions' => array('uuid' => $json['uuid']),
+						'recursive' => -1,
+						'fields' => array('id', 'uuid')
+				));
+				if (!empty($existingOrgs)) {
+					$fail = true;
+					$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
 				}
-				$this->Session->setFlash(__('The server has been saved'));
-				$this->redirect(array('action' => 'index'));
-			} else {
-				$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+				
+				if (!$fail) {
+					$this->Server->Organisation->create();
+					if (!$this->Server->Organisation->save(array(
+							'name' => $json['name'],
+							'uuid' => $json['uuid'],
+							'local' => 0,
+							'created_by' => $this->Auth->user('id')
+						)
+					)) $this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+					$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+				}
+			}
+			if (!$fail) {
+				if ($this->Server->save($this->request->data)) {
+					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
+						$this->__saveCert($this->request->data, $this->Server->id);
+					}
+					$this->Session->setFlash(__('The server has been saved'));
+					$this->redirect(array('action' => 'index'));
+				} else {
+					$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+				}
 			}
 		}
+		$organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
+		$temp = $this->Server->Organisation->find('all', array(
+			'conditions' => array('local' => true),
+			'fields' => array('id', 'name'),
+		));
+		$localOrganisations = array();
+		foreach ($temp as $o) $localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+		$temp = $this->Server->Organisation->find('all', array(
+				'conditions' => array('local' => false),
+				'fields' => array('id', 'name'),
+		));
+		$externalOrganisations = array();
+		foreach ($temp as $o) $externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+		$this->set('organisationOptions', $organisationOptions);
+		$this->set('localOrganisations', $localOrganisations);
+		$this->set('externalOrganisations', $externalOrganisations);
 	}
 
 /**
@@ -91,28 +135,81 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 		$s = $this->Server->read(null, $id);
-		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post') || $this->request->is('put')) {
+			$json = json_decode($this->request->data['Server']['json'], true);
 			// say what fields are to be updated
-			$fieldList = array('id', 'url', 'push', 'pull', 'organization', 'self_signed', 'cert_file');
+			$fieldList = array('id', 'url', 'push', 'pull', 'remote_org_id', 'name' ,'self_signed', 'cert_file');
 			$this->request->data['Server']['id'] = $id;
 			if ("" != $this->request->data['Server']['authkey'])
 				$fieldList[] = 'authkey';
-			// Save the data
-			if ($this->Server->save($this->request->data, true, $fieldList)) {
-				if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
-					$this->__saveCert($this->request->data, $this->Server->id);
+			
+			$fail = false;
+			if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
+			else {
+				$existingOrgs = $this->Server->Organisation->find('first', array(
+						'conditions' => array('uuid' => $json['uuid']),
+						'recursive' => -1,
+						'fields' => array('id', 'uuid')
+				));
+				if (!empty($existingOrgs)) {
+					$fail = true;
+					$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
 				}
-				$this->Session->setFlash(__('The server has been saved'));
-				$this->redirect(array('action' => 'index'));
-			} else {
-				$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+			
+				if (!$fail) {
+					$this->Server->Organisation->create();
+					if (!$this->Server->Organisation->save(array(
+							'name' => $json['name'],
+							'uuid' => $json['uuid'],
+							'local' => 0,
+							'created_by' => $this->Auth->user('id')
+					)
+					)) $this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+					$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+				}
+			}
+			
+			if (!$fail) {
+				// Save the data
+				if ($this->Server->save($this->request->data, true, $fieldList)) {
+					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
+						$this->__saveCert($this->request->data, $this->Server->id);
+					}
+					$this->Session->setFlash(__('The server has been saved'));
+					$this->redirect(array('action' => 'index'));
+				} else {
+					$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+				}
 			}
 		} else {
 			$this->Server->read(null, $id);
 			$this->Server->set('authkey', '');
 			$this->request->data = $this->Server->data;
 		}
+		$organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
+		$temp = $this->Server->Organisation->find('all', array(
+				'conditions' => array('local' => true),
+				'fields' => array('id', 'name'),
+		));
+		$localOrganisations = array();
+		foreach ($temp as $o) $localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+		$temp = $this->Server->Organisation->find('all', array(
+				'conditions' => array('local' => false),
+				'fields' => array('id', 'name'),
+		));
+		$externalOrganisations = array();
+		foreach ($temp as $o) $externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+		
+		$oldRemoteSetting = 0;
+		if (!$this->Server->data['RemoteOrg']['local']) $oldRemoteSetting = 1;
+		
+		$this->set('oldRemoteSetting', $oldRemoteSetting);
+		$this->set('oldRemoteOrg', $this->Server->data['RemoteOrg']['id']);
+
+		$this->set('organisationOptions', $organisationOptions);
+		$this->set('localOrganisations', $localOrganisations);
+		$this->set('externalOrganisations', $externalOrganisations);
 	}
 
 /**
@@ -132,7 +229,7 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 		$s = $this->Server->read(null, $id);
-		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->Server->delete()) {
 			$this->Session->setFlash(__('Server deleted'));
 			$this->redirect(array('action' => 'index'));

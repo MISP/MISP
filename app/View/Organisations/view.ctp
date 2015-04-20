@@ -11,6 +11,21 @@
 			<?php echo h($org['Organisation']['name']); ?>
 			&nbsp;
 		</dd>
+		<dt><?php echo 'Local or remote'; ?></dt>
+		<dd>
+			<?php 
+				if ($org['Organisation']['local']):
+			?>
+				<span class="green bold">Local</span>
+			<?php 
+				else:
+			?>
+				<span class="red bold">Remote</span>
+			<?php 
+				endif;
+			?>
+			&nbsp;
+		</dd>
 		<dt><?php echo 'Description'; ?></dt>
 		<dd>
 			<?php echo h($org['Organisation']['description']); ?>
@@ -60,7 +75,8 @@
 	<div id="ajaxContent" style="width:100%;"></div>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'viewOrg'));
+	if ($isSiteAdmin) echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'viewOrg'));
+	else echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewOrg'));
 ?>
 <script type="text/javascript">
 	$(document).ready(function () {

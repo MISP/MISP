@@ -1,8 +1,8 @@
 <div class="organisations index">
 <?php if ($local): ?>
-	<h2>Organisations on this instance</h2>
+	<h2>Local organisations on this instance</h2>
 <?php else: ?>
-	<h2>Known external organisations</h2>
+	<h2>Known remote organisations on other instances</h2>
 <?php endif;?>
 <div class="pagination">
 <ul>
@@ -19,6 +19,10 @@ echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' =
 echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
 ?>
         </ul>
+    </div>
+    <div class="tabMenuFixedContainer">
+    	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($local) echo 'tabMenuActive';?>" onClick="window.location='/organisations/index'">Local Organisations</span>
+    	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if (!$local) echo 'tabMenuActive';?>" onClick="window.location='/organisations/index/remote'">Known Remote Organisations</span>
     </div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
@@ -51,8 +55,10 @@ foreach ($orgs as $org): ?>
 			?>
 		</td>
 		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['name']); ?></td>
-		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['uuid']); ?></td>
-		<td><?php echo h($org['Organisation']['description']); ?></td>
+		<?php if ($isSiteAdmin): ?>
+			<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['uuid']); ?></td>
+		<?php endif; ?>
+		<td ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['description']); ?></td>
 		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['nationality']); ?></td>
 		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['sector']); ?></td>
 		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['type']); ?></td>

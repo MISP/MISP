@@ -15,11 +15,14 @@ class Server extends AppModel {
 	), 'Trim');
 	
 	public $belongsTo = array(
-			'Organisation' => array(
-					'className' => 'Organisation',
-					'foreignKey' => 'org_id',
-					//'conditions' => array('SharingGroupElement.organisation_uuid' => 'Organisation.uuid')
-			)
+		'Organisation' => array(
+			'className' => 'Organisation',
+			'foreignKey' => 'org_id',
+		),
+		'RemoteOrg' => array(
+			'className' => 'Organisation',
+			'foreignKey' => 'remote_org_id',
+		)
 	);
 
 /**
@@ -60,12 +63,12 @@ class Server extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'org' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
+		'org_id' => array(
+			'numeric' => array(
+				'rule' => array('numeric'),
 				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
+				'allowEmpty' => false,
+				'required' => true,
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
@@ -736,6 +739,10 @@ class Server extends AppModel {
 		return array($successes, $fails, $pulledProposals, $lastpulledid);
 	}
 	
+	public function requestOrgUuids($id, $HttpSocket) {
+		
+	}
+	
 	public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $email = "Scheduled job") {
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
@@ -1153,5 +1160,9 @@ class Server extends AppModel {
 			}
 		}
 		return $validItems;
+	}
+	
+	public function connectionTest($id) {
+		
 	}
 }

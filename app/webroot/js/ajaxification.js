@@ -1656,6 +1656,48 @@ function sgSubmitForm(action) {
 	$(formName).submit();
 }
 
+function serverSubmitForm(action) {
+	var ajax = {};
+	switch ($('#ServerOrganisationType').val()) {
+	case '0':
+		ajax = {
+			'id': $('#ServerLocal').val()
+		};
+		break;
+	case '1':
+		ajax = {
+			'id': $('#ServerExternal').val()
+		};
+		break;
+	case '2':
+		ajax = {
+			'name': $('#ServerExternalName').val(),
+			'uuid': $('#ServerExternalUuid').val()
+		};
+		break;
+	}
+	
+	$('#ServerJson').val(JSON.stringify(ajax));
+	var formName = "#Server" + action + "Form";
+	$(formName).submit();
+}
+
+function serverOrgTypeChange() {
+	$(".hiddenField").hide();
+	switch ($('#ServerOrganisationType').val()) {
+		case '0':
+			$("#ServerLocalContainer").show();
+			break;
+		case '1':
+			$("#ServerExternalContainer").show();
+			break;
+		case '2':
+			$("#ServerExternalUuidContainer").show();
+			$("#ServerExternalNameContainer").show();
+			break;
+	}
+}
+
 function sharingGroupPopulateFromJson() {
 	var jsonparsed = JSON.parse($('#SharingGroupJson').val());
 	organisations = jsonparsed.organisations;

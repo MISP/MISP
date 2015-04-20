@@ -1,6 +1,6 @@
 <div class="actions <?php echo $debugMode;?> sideMenu">
 	<ul class="nav nav-list">
-		<?php
+		<?php 
 			switch ($menuList) {
 				case 'event': 
 					if ($menuItem === 'addAttribute' || 
@@ -112,7 +112,7 @@
 					<li id='limembers'><a href="/users/memberslist">Members List</a></li>
 					<li id='liindexOrg'><a href="/organisations/index">List Organisations</a></li>
 					<?php if ($menuItem === 'viewOrg'): ?>
-						<li class="active"><a href="/organisations/view/<?php echo $orgId;?>">View Organisation</a></li>
+						<li class="active"><a href="/organisations/view/<?php echo $id;?>">View Organisation</a></li>
 					<?php endif;?>
 					<li id='liroles'><a href="/roles/index">Role Permissions</a></li>
 					<li class="divider"></li>

@@ -20,7 +20,7 @@ class OrganisationsController extends AppController {
 	public function index($local = true) {
 		// We can either index all of the organisations existing on this instance (default)
 		// or we can pass the 'external' keyword in the URL to look at the added external organisations
-		if ($local === 'external') $local = false;
+		if ($local === 'external' || $local === 'remote') $local = false;
 		$this->paginate['conditions'] = array('Organisation.local' => $local);
 		$orgs = $this->paginate();
 		if ($this->_isSiteAdmin()) {
@@ -45,9 +45,6 @@ class OrganisationsController extends AppController {
 	public function admin_add() {
 		if($this->request->is('post')) {
 			$this->Organisation->create();
-			$date = date('Y-m-d H:i:s');
-			$this->request->data['Organisation']['date_created'] = $date;
-			$this->request->data['Organisation']['date_modified'] = $date;
 			$this->request->data['Organisation']['created_by'] = $this->Auth->user('id');
 			if ($this->Organisation->save($this->request->data)) {
 				$this->Session->setFlash('The organisation has been successfully added.');
@@ -101,7 +98,7 @@ class OrganisationsController extends AppController {
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
 		$fullAccess = false;
-		$fields = array('id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description');
+		$fields = array('id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description', 'local');
 		if ($this->_isSiteAdmin() || $this->Auth->user('Organisation')['id'] == $id) {
 			$fullAccess = true;
 			$fields = array_merge($fields, array('created_by', 'uuid'));
