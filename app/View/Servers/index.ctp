@@ -18,6 +18,7 @@
     </div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
+			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('push');?></th>
 			<th><?php echo $this->Paginator->sort('pull');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
@@ -32,13 +33,19 @@
 	<?php
 foreach ($servers as $server): ?>
 	<tr>
-		<td class="short" style="text-align: center;"><?php echo ($server['Server']['push'])? 'Yes' : 'No'; ?>&nbsp;</td>
-		<td class="short" style="text-align: center;"><?php echo ($server['Server']['pull'])? 'Yes' : 'No'; ?>&nbsp;</td>
+		<td>
+			<?php 
+				if (!empty($server['Server']['name'])) echo h($server['Server']['name']);
+				else echo h($server['Server']['url']); 
+			?>
+		</td>
+		<td class="short"><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span></td>
+		<td class="short"><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
 		<td><?php echo h($server['Server']['organization']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($server['Server']['cert_file']); ?>&nbsp;</td>
-		<td class="short"><?php echo ($server['Server']['self_signed'] ? 'Yes' : 'No'); ?>&nbsp;</td>
-		<td class="short"><?php echo h($server['Server']['org']); ?>&nbsp;</td>
+		<td class="short"><span class="<?php echo ($server['Server']['self_signed'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
+		<td class="short"><?php echo h($server['Organisation']['name']); ?>&nbsp;</td>
 		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="short action-links">

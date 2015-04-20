@@ -13,6 +13,14 @@ class Server extends AppModel {
 		'userKey' => 'user_id',
 		'change' => 'full'
 	), 'Trim');
+	
+	public $belongsTo = array(
+			'Organisation' => array(
+					'className' => 'Organisation',
+					'foreignKey' => 'org_id',
+					//'conditions' => array('SharingGroupElement.organisation_uuid' => 'Organisation.uuid')
+			)
+	);
 
 /**
  * Display field

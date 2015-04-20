@@ -18,7 +18,7 @@ class ServersController extends AppController {
 			'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
 			'order' => array(
 					'Server.url' => 'ASC'
-			)
+			),
 	);
 
 	public $uses = array('Server', 'Event');
@@ -43,11 +43,12 @@ class ServersController extends AppController {
 		$this->Server->recursive = 0;
 		if ($this->_isSiteAdmin()) {
 			$this->paginate = array(
-							'conditions' => array(),
+					'conditions' => array(),
+					'fields' => array('Server.*', 'Organisation.name', 'Organisation.id'),
 			);
 		} else {
 			if (!$this->userRole['perm_sync'] && !$this->userRole['perm_admin']) $this->redirect(array('controller' => 'events', 'action' => 'index'));
-			$conditions['Server.org LIKE'] = $this->Auth->user('org');
+			$conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
 			$this->paginate = array(
 					'conditions' => array($conditions),
 			);
