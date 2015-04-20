@@ -985,7 +985,7 @@ class Event extends AppModel {
 	// from: date string (YYYY-MM-DD)
 	// to: date string (YYYY-MM-DD)
 	public function fetchEvent($user, $options = array()) {
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'to_ids');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'to_ids', 'includeAllTags');
 		foreach ($possibleOptions as &$opt) if (!isset($options[$opt])) $options[$opt] = false;
 		if ($options['eventid']) {
 			$this->id = $options['eventid'];
@@ -1086,7 +1086,9 @@ class Event extends AppModel {
 		$fieldsServer = array('id', 'name');
 
 		if ($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) $fieldsOrg[] = 'uuid';
-
+		if (!$options['includeAllTags']) $tagConditions = array('exportable' => 1);
+		else $tagConditions = array();
+		
 		$params = array('conditions' => $conditions,
 			'recursive' => 0,
 			'fields' => $fields,
@@ -1108,11 +1110,12 @@ class Event extends AppModel {
 				'SharingGroup' => $fieldsSharingGroup[($user['Role']['perm_site_admin'] ? 1 : 0)],
 				'EventTag' => array(
 					'Tag' => array(
-						'conditions' => array('exportable' => 1)
+						'conditions' => $tagConditions
 					),
 				),
 			)
 		);
+		
 		if ($user['Role']['perm_site_admin']) {
 			$params['contain']['User'] = array('fields' => 'email');
 		}
@@ -1302,7 +1305,7 @@ class Event extends AppModel {
 	 } 
 	 
 	 public function sendAlertEmail($id, $senderUser, $processId = null) {
-	 	$event = $this->fetchEvent($senderUser, array('eventid' => $id));
+	 	$event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
 	 	$userConditions = array('autoalert' => 1);
 	 	$this->User = ClassRegistry::init('User');
 	 	$users = $this->User->getUsersWithAccess(
@@ -1422,6 +1425,12 @@ class Event extends AppModel {
 	 	if ($event['Event']['distribution'] == 4) {
 	 		$body .= 'Sharing Group:' . $event['SharingGroup']['name'] . "\n";
 	 	}
+	 	$tags = "";
+	 	foreach ($event['EventTag'] as $k => $tag) {
+	 		$tags .= $tag['Tag']['name'];
+	 		if (($k+1) != count($event['EventTag'])) $tags .= ", ";
+	 	}
+	 	$body .= 'Tags: ' . $tags . "\n";
 	 	$body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
 	 	$body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
 	 	$body .= 'Description : ' . $event['Event']['info'] . "\n\n";
