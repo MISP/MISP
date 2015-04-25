@@ -128,12 +128,22 @@ class SharingGroupsController extends AppController {
 	public function delete($id) {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('Action not allowed, post request expected.');
 		if (!$this->SharingGroup->checkIfOwner($this->Auth->user(), $id)) throw new MethodNotAllowedException('Action not allowed.');
-		$this->SharingGroup->delete($id);
-		$this->redirect('/SharingGroups/index');
+		$deletedSg = $this->SharingGroup->find('first', array(
+			'conditions' => array('id' => $id),
+			'recursive' => -1,
+			'fields' => array('active')
+		));
+		if ($this->SharingGroup->delete($id)) $this->Session->setFlash(__('Sharing Group deleted'));
+		else $this->Session->setFlash(__('Sharing Group could not be deleted. Make sure that there are no events, attributes or threads belonging to this sharing group.'));
+
+		if ($deletedSg['SharingGroup']['active']) $this->redirect('/SharingGroups/index');
+		else $this->redirect('/SharingGroups/index/true');
 	}
 	
-	public function index($active = false) {
-		if ($active == 'false') $active = false;
+	public function index($passive = false) {
+		if ($passive === 'true') $passive = true;
+		if ($passive === true) $this->paginate['conditions'][] = array('SharingGroup.active' => false);
+		else $this->paginate['conditions'][] = array('SharingGroup.active' => true);
 		$result = $this->paginate();
 		// check if the current user can modify or delete the SG
 		foreach ($result as $k => $sg) {
@@ -150,6 +160,7 @@ class SharingGroupsController extends AppController {
 			}
 			
 		}
+		$this->set('passive', $passive);
 		$this->set('sharingGroups', $result);
 	}
 	

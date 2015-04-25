@@ -80,12 +80,20 @@ class OrganisationsController extends AppController {
 	public function admin_delete($id) {
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
+		
+		$org = $this->Organisation->find('first', array(
+				'conditions' => array('id' => $id),
+				'recursive' => -1,
+				'fields' => array('local')
+		));
+		if ($org['Organisation']['local']) $url = '/organisations/index';
+		else $url = '/organisations/index/remote';
 		if ($this->Organisation->delete()) {
 			$this->Session->setFlash(__('Organisation deleted'));
-			$this->redirect(array('admin' => false, 'action' => 'index'));
+			$this->redirect($url);
 		} else {
 			$this->Session->setFlash(__('Organisation could not be deleted. Make sure that there are no users still tied to this organisation before deleting it.'));
-			$this->redirect(array('admin' => false, 'action' => 'index'));
+			$this->redirect($url);
 		}
 	}
 	

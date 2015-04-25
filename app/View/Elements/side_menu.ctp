@@ -153,11 +153,11 @@
 					<li class="divider"></li>
 					<?php endif; 
 					if ($isSiteAdmin): ?>
-					<li id='liaddUser'><?php echo $this->Html->link('New User', array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
+					<li id='liaddUser'><?php echo $this->Html->link('Add User', array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
 					<li id='liindexUser'><?php echo $this->Html->link('List Users', array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
 					<li id='licontact'><?php echo $this->Html->link('Contact Users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
 					<li class="divider"></li>
-					<li id='liaddOrg'><a href="/admin/organisations/add">New Organisation</a></li>
+					<li id='liaddOrg'><a href="/admin/organisations/add">Add Organisation</a></li>
 					<?php if ($menuItem === 'editOrg' || $menuItem === 'viewOrg'): ?>
 						<li id='lieditOrg'><a href="/admin/organisations/edit/<?php echo $id;?>">Edit Organisation</a></li>
 					<?php endif;?>
@@ -166,7 +166,7 @@
 					<?php endif;?>
 					<li id='liindexOrg'><a href="/organisations/index">List Organisations</a></li>
 					<li class="divider"></li>
-					<li id='liaddRole'><?php echo $this->Html->link('New Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+					<li id='liaddRole'><?php echo $this->Html->link('Add Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
 					<?php endif; ?>
 					<li id='liindexRole'><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 					<?php if ($isSiteAdmin): ?>

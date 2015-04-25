@@ -39,10 +39,10 @@
 		</div>
 		<div id="page3_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
 			<div style="display:block;">
-				<input type="checkbox" style="float:left;" title="Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled." value="1" id="SharingGroupLimitservers"></input>
+				<input type="checkbox" style="float:left;" title="Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled." value="1" id="SharingGroupLimitservers" checked></input>
 				<label for="SharingGroupLimitservers" style="padding-left:20px;">Limit instances to which data in this sharing group should be pushed to (keep in mind that eligible organisations can still pull data).</label>
 			</div>
-			<div id="serverList" style="display:none;">
+			<div id="serverList">
 				<div class="tabMenuFixedContainer">
 					<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="sharingGroupAdd('server');">Add instance</span>
 				</div>

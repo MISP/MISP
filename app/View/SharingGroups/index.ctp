@@ -16,6 +16,10 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
 ?>
         </ul>
     </div>
+	<div class="tabMenuFixedContainer">
+		<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive !== true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index'">Active Sharing Groups</span>
+		<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive === true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index/true'">Passive Sharing Groups</span>
+	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
@@ -23,7 +27,6 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
 			<th><?php echo $this->Paginator->sort('Creator');?></th>
 			<th>Description</th>
 			<th>Releasable to</th>
-			<th><?php echo $this->Paginator->sort('active');?></th>
 			<th class="actions">Actions</th>
 	</tr>
 	<?php
@@ -59,7 +62,6 @@ foreach ($sharingGroups as $k => $sharingGroup):
 				<?php echo h($sharingGroup['SharingGroup']['releasability']); ?>
 			</span>
 		</td>
-		<td class="short"><?php echo $sharingGroup['SharingGroup']['active'] ? 'Yes' : 'No'; ?></td>
 		<td class="action">
 		<?php if ($isSiteAdmin || $sharingGroup['editable']): ?>
 			<?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'icon-edit', 'title' => 'Edit')); ?>

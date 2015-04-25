@@ -226,8 +226,7 @@ class User extends AppModel {
 			'finderQuery' => '',
 			'counterQuery' => ''
 		),
-		'Post' => array(
-		)
+		'Post'
 	);
 
 	public $actsAs = array(
@@ -246,12 +245,6 @@ class User extends AppModel {
 			$this->data[$this->alias]['password'] = AuthComponent::password($this->data[$this->alias]['password']);
 		}
 		return true;
-
-		// only accept add and edit in own org
-		//if ($this->data[$this->alias]['org'] != "TEST") {
-		//	return false;
-		//}
-		//return true;
 	}
 
 /**

@@ -38,7 +38,10 @@ class SharingGroup extends AppModel {
 			'className' => 'SharingGroupServer',
 			'foreignKey' => 'sharing_group_id',
 			'dependent' => true,	// cascade deletes
-		)
+		),
+		'Event',
+		'Attribute',
+		'Thread'
 	);
 	
 	public $belongsTo = array(
@@ -60,6 +63,23 @@ class SharingGroup extends AppModel {
 		}
 		$this->data['SharingGroup']['date_modified'] = $date;
 		return true;
+	}
+	
+	public function beforeDelete($cascade = false){
+		$countEvent = $this->Event->find('count', array(
+				'recursive' => -1,
+				'conditions' => array('sharing_group_id' => $this->id)
+		));
+		$countThread = $this->Thread->find('count', array(
+				'recursive' => -1,
+				'conditions' => array('sharing_group_id' => $this->id)
+		));
+		$countAttribute = $this->Attribute->find('count', array(
+				'recursive' => -1,
+				'conditions' => array('sharing_group_id' => $this->id)
+		));
+		if (($countEvent + $countThread + $countAttribute) == 0) return true;
+		return false;
 	}
 	
 	// returns a list of all sharing groups that the user is allowed to see
