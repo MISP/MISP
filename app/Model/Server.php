@@ -1189,4 +1189,25 @@ class Server extends AppModel {
 			return array('status' => 3);
 		}
 	}
+	
+	public function checkVersionCompatibility($id, $HttpSocket = false) {
+		App::uses('Folder', 'Utility');
+		$file = new File (ROOT . DS . 'VERSION.json', true);
+		$version_array = json_decode($file->read());
+		$file->close();
+		
+		$server = $this->find('first', array('conditions' => array('Server.id' => $id)));
+		if (!$HttpSocket) {
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
+		}
+		$uri = $server['Server']['url'] . '/servers/getVersion';
+		try {
+			$response = $HttpSocket->get($uri);
+		} catch (Exception $e) {
+			return false;
+		}
+		return (json_decode($response));
+	}
 }

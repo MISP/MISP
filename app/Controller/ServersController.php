@@ -757,4 +757,18 @@ class ServersController extends AppController {
 			}
 		}
 	}
+	
+	// The server responds with its current version 
+	public function getVersion() {
+		if (!$this->Auth->user('Role')['perm_sync']) throw new MethodNotAllowedException('Only accessible by sync users');
+		App::uses('Folder', 'Utility');
+		$file = new File (ROOT . DS . 'VERSION.json', true);
+		$version_json = $file->read();
+		$file->close();
+		return new CakeResponse(array('body'=> $version_json));
+	}
+	
+	public function checkVersionCompatibility($id) {
+		debug($this->Server->checkVersionCompatibility($id));
+	}
 }
