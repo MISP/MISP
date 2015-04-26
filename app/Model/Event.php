@@ -1725,6 +1725,31 @@ class Event extends AppModel {
 		return $result;
 	}
 	
+	// When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
+	// or which we need to update. All of that is controller in this method.
+	private function __captureObjects($data, $user) {
+		if (isset($data['Event']['Orgc'])) {
+			$data['Event']['orgc_id'] = $this->Orgc->captureOrg($data['Event']['Orgc'], $user);
+			unset ($data['Event']['Orgc']);
+		}
+		if (isset($data['Event']['EventTag'])) {
+			if (isset($data['Event']['EventTag']['id'])) {
+				$temp = $data['Event']['EventTag'];
+				unset ($data['Event']['EventTag']);
+				$data['Event']['EventTag'][0] = $temp;
+			}
+			foreach ($data['Event']['EventTag'] as $k => $tag) {
+				$data['Event']['EventTag']['tag_id'] = $this->EventTag->Tag->captureTag($data['Event']['EventTag'][$k]['Tag'], $user);
+				unset ($data['Event']['EventTag'][$k]);
+			}
+		}
+		if ($data['Event']['distribution'] == 4) {
+			$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
+			unset ($data['Event']['EventTag'][$k]);
+		}
+		return $data;
+	}
+	
 	/**
 	 * Low level function to add an Event based on an Event $data array
 	 *
@@ -1738,7 +1763,7 @@ class Event extends AppModel {
 		// force check userid and orgname to be from yourself
 		$data['Event']['user_id'] = $user['id'];
 		$date = new DateTime();
-	
+
 		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
 		//else $data['Event']['org'] = $auth->user('org');
 		if ($fromPull) {
@@ -1765,12 +1790,18 @@ class Event extends AppModel {
 				// RESTfull, set responce location header..so client can find right URL to edit
 				if ($fromPull) return false;
 				$existingEvent = $this->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
-				return $existingEvent['Event']['id'];
+				//return $existingEvent['Event']['id'];
 			}
 		}
+		$data = $this->__captureObjects($data, $user);
+		debug($data);
+		throw new Exception();
 		if (isset($data['Attribute'])) {
 			foreach ($data['Attribute'] as &$attribute) {
 				unset ($attribute['id']);
+				if ($attribute['distribution'] == 4) {
+					$attribute = $attribute['sharing_group_id'] = $this->SharingGroup->captureSG($attribute['SharingGroup'], $user);
+				}
 			}
 		}
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !

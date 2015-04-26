@@ -1274,4 +1274,17 @@ class Server extends AppModel {
 	public function isJson($string) {
 		return (json_last_error() == JSON_ERROR_NONE);
 	}
+	
+	public function captureServer($server, $user) {
+		$existingServer = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('url' => $server['url'])
+		));
+		// unlike with other capture methods, if we find a server that we don't know
+		// we don't want to save it. 
+		if (empty($existingServer)) {
+			return false;
+		}
+		return $existingServer[$this->alias]['id'];
+	}
 }

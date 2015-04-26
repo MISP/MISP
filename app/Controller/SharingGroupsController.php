@@ -27,6 +27,7 @@ class SharingGroupsController extends AppController {
 			$this->SharingGroup->create();
 			$sg = $json['sharingGroup'];
 			$sg['organisation_uuid'] = $this->Auth->user('Organisation')['uuid'];
+			$sg['local'] = 1;
 			$sg['org_id'] = $this->Auth->user('org_id');
 			$this->request->data['SharingGroup']['organisation_uuid'] = $this->Auth->user('Organisation')['uuid'];
 			if ($this->SharingGroup->save(array('SharingGroup' => $sg))) {

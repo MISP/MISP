@@ -966,7 +966,7 @@ class EventsController extends AppController {
 						// If the distribution is set to something "traditional", set the SG id to 0. 
 						$this->request->data['Event']['sharing_group_id'] = 0;
 					}
-					if ($this->_isRest()) $this->request->data = $this->Event->updateXMLArray($this->request->data, false);
+					//if ($this->_isRest()) $this->request->data = $this->Event->updateXMLArray($this->request->data, false);
 					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
 					if ($add && !is_numeric($add)) {
 						if ($this->_isRest()) {
@@ -1113,6 +1113,7 @@ class EventsController extends AppController {
 		$this->Event->create();
 		// force check userid and orgname to be from yourself
 		$auth = $this->Auth;
+		
 		$data['Event']['user_id'] = $auth->user('id');
 		$date = new DateTime();
 		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');

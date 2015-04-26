@@ -103,4 +103,22 @@ class Tag extends AppModel {
 		}
 		return $ids;
 	}
+	
+	public function captureTag($tag, $user) {
+		$existingTag = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('name' => $tag['name'])
+		));
+		if (empty($existingTag)) {
+			$this->create();
+			$tag = array(
+					'name' => $tag['name'],
+					'colour' => $tag['colour'],
+					'exportable' => $tag['exportable'],
+			);
+			$this->save($tag);
+			return $this->id;
+		}
+		return $existingTag['Tag']['id'];
+	}
 }

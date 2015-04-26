@@ -76,4 +76,23 @@ class Organisation extends AppModel{
 		if($count == 0) return true;
 		return false;
 	}
+	
+	public function captureOrg($org, $user) {
+		$existingOrg = $this->find('first', array(
+			'recursive' => -1,
+			'conditions' => array('uuid' => $org['uuid'])
+		));
+		if (empty($existingOrg)) {
+			$this->create();
+			$organisation = array(
+					'uuid' => $org['uuid'], 
+					'name' => $org['name'], 
+					'local' => 0, 
+					'created_by' => $user['id']
+			);
+			$this->save($organisation);
+			return $this->id;
+		}
+		return $existingOrg[$this->alias]['id'];
+	}
 }

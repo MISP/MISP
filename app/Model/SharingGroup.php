@@ -230,4 +230,50 @@ class SharingGroup extends AppModel {
 		}
 		return $results;
 	}
+	
+	public function captureSG($sg, $user) {
+		$existingSG = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('SharingGroup.uuid' => $sg['uuid']),
+				'contain' => array(
+					'Organisation',
+					'SharingGroupServer' => array('Server'),
+					'SharingGroupOrg' => array('Organisation')
+				)				
+		));
+		if (empty($existingSG)) {
+			$this->create();
+			$newSG = array();
+			$attributes = array('name', 'releasability', 'description', 'uuid', 'organisation_uuid', 'created', 'modified');
+			foreach ($attributes as $a)	$newSG[$a] = $sg[$a];
+			$newSG['local'] = 0;
+			$this->save($newSG);
+		}
+		
+		$sg['org_id'] = $this->Organisation->captureOrg($sg['Organisation'], $user);
+		unset ($sg['Organisation']);
+		
+		if (isset($sg['SharingGroupOrg']['id'])) {
+			$temp = $sg['SharingGroupOrg'];
+			unset($sg['SharingGroupOrg']);
+			$sg['SharingGroupOrg'][0] = $temp;
+		}
+		foreach ($sg['SharingGroupOrg'] as $k => $org) {
+			$sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user);
+			unset ($sg['SharingGroupOrg'][$k]['Organisation']);
+		}
+		
+		if (isset($sg['SharingGroupServer']['id'])) {
+			$temp = $sg['SharingGroupServer'];
+			unset($sg['SharingGroupServer']);
+			$sg['SharingGroupServer'][0] = $temp;
+		}
+		foreach ($sg['SharingGroupServer'] as $k => $server) {
+			$sg['SharingGroupServer'][$k]['server_id'] = $this->SharingGroupServer->Server->captureServer($server['Server'], $user);
+			if ($sg['SharingGroupServer'][$k]['server_id'] === false) unset ($sg['SharingGroupServer'][$k]);
+			else unset ($sg['SharingGroupServer'][$k]['Server']);
+		}
+		if (!empty($existingSG)) return $existingSG[$this->alias]['id'];
+		return $this->id;
+	}
 }
