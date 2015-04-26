@@ -25,7 +25,9 @@ class Log extends AppModel {
 							'blacklisted',
 							'admin_email',
 							'tag',
-							'publish alert'
+							'publish alert',
+							'warning',
+							'error'
 						)),
 			'message' => 'Options : ...'
 		)

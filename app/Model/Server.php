@@ -941,7 +941,7 @@ class Server extends AppModel {
 					)
 			);
 			$uri = $server['Server']['url'] . '/events/checkuuid/' . $sa_id;
-			$response = $HttpSocket->get($uri);
+			$response = $HttpSocket->get($uri, '', $request);
 			if ($response->code == '200') {
 				$uuidList = json_decode($response->body());
 			} else {
@@ -1190,10 +1190,10 @@ class Server extends AppModel {
 		}
 	}
 	
-	public function checkVersionCompatibility($id, $HttpSocket = false) {
+	public function checkVersionCompatibility($id, $user, $HttpSocket = false) {
 		App::uses('Folder', 'Utility');
 		$file = new File (ROOT . DS . 'VERSION.json', true);
-		$version_array = json_decode($file->read());
+		$localVersion = json_decode($file->read(), true);
 		$file->close();
 		
 		$server = $this->find('first', array('conditions' => array('Server.id' => $id)));
@@ -1203,11 +1203,71 @@ class Server extends AppModel {
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 		}
 		$uri = $server['Server']['url'] . '/servers/getVersion';
+		$request = array(
+				'header' => array(
+						'Authorization' => $server['Server']['authkey'],
+						'Accept' => 'application/json',
+						'Content-Type' => 'application/json',
+				)
+		);
 		try {
-			$response = $HttpSocket->get($uri);
+			$response = $HttpSocket->get($uri, '', $request);
 		} catch (Exception $e) {
-			return false;
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => $user['email'],
+					'action' => 'error',
+					'user_id' => $user['id'],
+					'title' => 'Error: Connection to the server has failed.',
+			));
+			return 1;
 		}
-		return (json_decode($response));
+		$remoteVersion = json_decode($response, true);
+		if (!isset($remoteVersion['major'])) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => $user['email'],
+					'action' => 'error',
+					'user_id' => $user['id'],
+					'title' => 'Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.',
+			));
+			return 2;
+		}
+		$response = false;
+		$success = false;
+		$issueLevel = "warning";
+		if ($localVersion['major'] > $remoteVersion['major']) $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a major version.";
+		if ($response === false && $localVersion['major'] < $remoteVersion['major']) $response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full major version ahead - make sure you update your MISP instance!";
+		if ($response === false && $localVersion['minor'] > $remoteVersion['minor']) $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a minor version.";
+		if ($response === false && $localVersion['minor'] < $remoteVersion['minor']) $response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
+		
+		// if we haven't set a message yet, we're good to go. We are only behind by a hotfix version
+		if ($response === false) $success = true;
+		else $issueLevel = "error";
+		if ($response === false && $localVersion['hotfix'] > $remoteVersion['hotfix']) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes behind.";
+		if ($response === false && $localVersion['hotfix'] < $remoteVersion['hotfix']) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
+		
+		if ($response !== false) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => $user['email'],
+					'action' => $issueLevel,
+					'user_id' => $user['id'],
+					'title' => ucfirst($issueLevel) . ': ' . $response,
+			));
+		}
+		return array('success' => $success, 'response' => $response);
 	}
 }
