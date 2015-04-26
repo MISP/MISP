@@ -16,9 +16,9 @@
 		?>
 		</div>
 		<span class="btn btn-inverse" style="margin-top:25px;" onClick="generateOrgUUID();">Generate UUID</span>
-	<?php 
-		echo $this->Form->input('description', array('label' => 'A brief description of the organisation', 'div' => 'clear', 'class' => 'input-xxlarge', 'type' => 'textarea', 'placeholder' => 'A description of the organisation that is purely informational.'));
-	?>
+		<?php 
+			echo $this->Form->input('description', array('label' => 'A brief description of the organisation', 'div' => 'clear', 'class' => 'input-xxlarge', 'type' => 'textarea', 'placeholder' => 'A description of the organisation that is purely informational.'));
+		?>
 		<hr />
 		<p style="font-weight:bold;">The following fields are all optional.</p>
 	<?php 

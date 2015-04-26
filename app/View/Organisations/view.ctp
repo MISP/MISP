@@ -61,17 +61,19 @@
 		?>
 	</dl>
 	<br />
-	<button id="button_description" class="btn btn-inverse toggle-left qet orgViewButton" onClick="organisationViewContent('description', '<?php echo $id;?>');">Description</button>
-	<button id="button_description_active" style="display:none;" class="btn btn-primary toggle-left qet orgViewButtonActive" onClick="organisationViewContent('description', '<?php echo $id;?>');">Description</button>
+	<?php if ($local): ?>
+		<button id="button_description" class="btn btn-inverse toggle-left qet orgViewButton" onClick="organisationViewContent('description', '<?php echo $id;?>');">Description</button>
+		<button id="button_description_active" style="display:none;" class="btn btn-primary toggle-left qet orgViewButtonActive" onClick="organisationViewContent('description', '<?php echo $id;?>');">Description</button>
+		
+		<?php if ($fullAccess): ?>
+			<button id="button_members" class="btn btn-inverse toggle qet orgViewButton" onClick="organisationViewContent('members', '<?php echo $id;?>');">Members</button>
+			<button id="button_members_active" style="display:none;" class="btn btn-primary toggle qet orgViewButtonActive" onClick="organisationViewContent('members', '<?php echo $id;?>');">Members</button>
+		<?php endif; ?>
 	
-	<?php if ($fullAccess): ?>
-		<button id="button_members" class="btn btn-inverse toggle qet orgViewButton" onClick="organisationViewContent('members', '<?php echo $id;?>');">Members</button>
-		<button id="button_members_active" style="display:none;" class="btn btn-primary toggle qet orgViewButtonActive" onClick="organisationViewContent('members', '<?php echo $id;?>');">Members</button>
-	<?php endif; ?>
-	
-	<button id="button_events" class="btn btn-inverse toggle-right qet orgViewButton" onClick="organisationViewContent('events', '<?php echo $id;?>');">Events</button>
-	<button id="button_events_active" style="display:none;" class="btn btn-primary toggle-right qet orgViewButtonActive" onClick="organisationViewContent('events', '<?php echo $id;?>');">Events</button>
+		<button id="button_events" class="btn btn-inverse toggle-right qet orgViewButton" onClick="organisationViewContent('events', '<?php echo $id;?>');">Events</button>
+		<button id="button_events_active" style="display:none;" class="btn btn-primary toggle-right qet orgViewButtonActive" onClick="organisationViewContent('events', '<?php echo $id;?>');">Events</button>
 	<br /><br />
+	<?php endif;?>
 	<div id="ajaxContent" style="width:100%;"></div>
 </div>
 <?php 
@@ -79,7 +81,11 @@
 	else echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewOrg'));
 ?>
 <script type="text/javascript">
+	<?php 
+		$startingTab = 'description';
+		if (!$local) $startingTab = 'events';
+	?>
 	$(document).ready(function () {
-		organisationViewContent('description', '<?php echo $id;?>');
+		organisationViewContent('<?php echo $startingTab; ?>', '<?php echo h($id);?>');
 	});
 </script>

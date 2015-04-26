@@ -38,13 +38,15 @@ class SharingGroupsController extends AppController {
 							'extend' => $org['extend']
 					));
 				}
-				foreach ($json['servers'] as $server) {
-					$this->SharingGroup->SharingGroupServer->create();
-					$this->SharingGroup->SharingGroupServer->save(array(
-							'sharing_group_id' => $this->SharingGroup->id,
-							'server_id' => $server['id'],
-							'all_orgs' => $server['all_orgs']
-					));
+				if ($json['sharingGroup']['limitServers']) {
+					foreach ($json['servers'] as $server) {
+						$this->SharingGroup->SharingGroupServer->create();
+						$this->SharingGroup->SharingGroupServer->save(array(
+								'sharing_group_id' => $this->SharingGroup->id,
+								'server_id' => $server['id'],
+								'all_orgs' => $server['all_orgs']
+						));
+					}
 				}
 				$this->redirect('/SharingGroups/view/' . $this->SharingGroup->id);
 			} else {

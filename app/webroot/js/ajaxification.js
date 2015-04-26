@@ -1477,17 +1477,27 @@ function simpleTabPageLast() {
 			remoteorgcounter++;
 		}
 	});
-	if (orgcounter == 0) summaryorgs = "nobody";
-	if (remoteorgcounter == 0) remotesummaryorgs = "nobody";
+	if (orgcounter == 0) $('#localText').hide();
+	if (remoteorgcounter == 0) $('#externalText').hide();
 	if (extendcounter == 0) summaryextendorgs = "nobody";
 	if (remoteextendcounter == 0) remotesummaryextendorgs = "nobody";
 	servers.forEach(function(server){
 		if (servercounter > 0) summaryservers += ", ";
-		summaryservers += server.name;
-		if (extendcounter == 0) summaryextendorgs = "none";
-		servercounter++;
+		if (server.id != 0) {
+			summaryservers += server.name;
+			if (extendcounter == 0) summaryextendorgs = "none";
+			servercounter++;
+		}
+		if (server.id == 0 && server.all_orgs == true) summaryorgs = "all organisations on this instance";
 	});
-	if (servercounter == 0) summaryservers = "any interconnected instances that have users from eligible organisations."
+	if (servercounter == 0) {
+		if ($('#SharingGroupLimitservers').is(":checked")) $('#synchronisationText').hide();
+		else {
+			summaryservers = "any interconnected instances that have users from eligible organisations.";
+		}
+	} else {
+		$('#synchronisationText').show();
+	}
 	$('#summarylocal').text(summaryorgs);
 	$('#summarylocalextend').text(summaryextendorgs);
 	$('#summaryexternal').text(remotesummaryorgs);
