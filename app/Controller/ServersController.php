@@ -30,6 +30,7 @@ class ServersController extends AppController {
 		switch ($this->request->params['action']) {
 			case 'push':
 			case 'pull':
+			case 'getVersion': 
 			case 'testConnection':
 				$this->Security->csrfUseOnce = false;
 		}
