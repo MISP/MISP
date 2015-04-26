@@ -29,7 +29,7 @@ Some people might think about CIF (Collective Intelligence Framework) and CRITs 
 
 Website / Support 
 ------------------
-Checkout the [website](http://www.misp-project.org) for more information about MISP like [features](http://www.misp-project.org/#features), [roadmap](file:///Users/chri/GitHub/misp.github.io/index.html#roadmap), <small>(commercial)</small> [support](http://www.misp-project.org/#support), ... : http://misp-project.org
+Checkout the [website](http://www.misp-project.org) for more information about MISP like [features](http://www.misp-project.org/#features), [roadmap](http://www.misp-project.org/#roadmap), <small>(commercial)</small> [support](http://www.misp-project.org/#support), ... : http://misp-project.org
 
 
 Documentation
