@@ -188,4 +188,49 @@ class SharingGroup extends AppModel {
 		}
 		return $orgs;
 	}
+	
+	public function getSGSyncRulesForServer($sg, $server_id) {
+		$results = array(
+				'rule' => false,
+				'orgs' => array(),
+		);
+		
+		if (isset($sg['SharingGroupServer'])) {
+			foreach ($sg['SharingGroupServer'] as $server) {
+				if ($server['server_id'] == $server_id) {
+					if ($server['all_orgs']) $results['rule'] = 'full';
+					else $results['rule'] = 'conditional';
+				}
+			}
+			if ($results['rule'] === false) return false;
+		}
+		foreach ($sg['SharingGroupOrg'] as $org) {
+			$results['orgs'][] = $org['Organisation']['uuid'];
+		}
+		return $results;
+	}
+	
+	public function getSGSyncRules($sg) {
+		$results = array(
+			'conditional' => array(),
+			'full' => array(),
+			'orgs' => array(),
+			'no_server_settings' => false
+		);
+		if (isset($sg['SharingGroupServer'])) {
+			foreach ($sg['SharingGroupServer'] as $server) {
+				if ($server['server_id'] != 0) {
+					if ($server['all_orgs']) $results['full'][] = $server['id'];
+					else $results['conditional'][] = $server['id'];
+				}
+			}
+			if (empty($results['full']) && empty($results['conditional'])) return false;
+		} else {
+			$results['no_server_settings'] = true;
+		}
+		foreach ($sg['SharingGroupOrg'] as $org) {
+			$results['orgs'][] = $org['Organisation']['uuid'];
+		}
+		return $results;
+	}
 }

@@ -770,6 +770,6 @@ class ServersController extends AppController {
 	}
 	
 	public function checkVersionCompatibility($id) {
-		debug($this->Server->checkVersionCompatibility($id));
+		debug($this->Server->checkVersionCompatibility($id, $this->Auth->user()));
 	}
 }

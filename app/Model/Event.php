@@ -666,7 +666,10 @@ class Event extends AppModel {
  * @return bool true if success, false or error message if failed
  */
 	public function restfullEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
-		if ($event['Event']['distribution'] < 2) { // never upload private events
+		$rules = $this->checkEventForPush($event, $server['Server']['id']);
+		debug($rules);
+		throw new Exception();
+		if ($rules === false) { // never upload private events
 			return 403; //"Event is private and non exportable";
 		}
 
@@ -677,6 +680,19 @@ class Event extends AppModel {
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 		}
+		
+		if (is_array($result) && $result['rule'] === 'conditional') {
+			$request = array(
+				'header' => array(
+						'Authorization' => $authkey,
+						'Accept' => 'application/xml',
+						'Content-Type' => 'application/xml',
+				)
+			);
+			$uri = $server['url'] . '/organisations/getUUIDs';
+			$response = json_decode($HttpSocket->get($uri, '', $request));
+		}
+		
 		$request = array(
 				'header' => array(
 						'Authorization' => $authkey,
@@ -730,6 +746,8 @@ class Event extends AppModel {
 		}
 		// display the XML to the user
 		$xmlArray['Event'][] = $event['Event'];
+		debug($xmlArray);
+		throw new Exception();
 		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
 		$eventsXml = $xmlObject->asXML();
 		// do a REST POST request with the server
@@ -1749,6 +1767,16 @@ class Event extends AppModel {
 		return false;
 	}
 	
+
+	public function checkEventForPush($event, $server_id) {
+		$rules = array();
+		if ($event['Event']['distribution'] < 2) return false;
+		else if ($event['Event']['distribution'] == 4) $rules = $this->SharingGroup->getSGSyncRulesForServer($event['SharingGroup'], $server_id);
+		else return true;
+		return $rules;
+	}
+	
+	
 	/**
 	 * Uploads this specific event to all remote servers
 	 * TODO move this to a component
@@ -1757,10 +1785,23 @@ class Event extends AppModel {
 	 */
 	public function uploadEventToServersRouter($id, $passAlong = null) {
 		// make sure we have all the data of the Event
-		$this->id = $id;
-		$this->recursive = 1;
-		$this->read();
-		$this->data['Event']['locked'] = 1;
+		$event = $this->find('first', array(
+				'conditions' => array('Event.id' => $id),
+				'recursive' => -1,
+				'contain' => array(
+						'Attribute',
+						'EventTag' => array('Tag'),
+						'Org',
+						'Orgc',
+						'SharingGroup' => array(
+								'SharingGroupOrg' => array('Organisation'),
+								'SharingGroupServer' => array('Server'),
+						),
+				),
+		));
+		if (empty($event)) return true;
+
+		$event['Event']['locked'] = 1;
 		// get a list of the servers
 		$serverModel = ClassRegistry::init('Server');
 		$servers = $serverModel->find('all', array(
@@ -1778,7 +1819,7 @@ class Event extends AppModel {
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 			//Skip servers where the event has come from.
 			if (($passAlong != $server)) {
-				$thisUploaded = $this->uploadEventToServer($this->data, $server, $HttpSocket);
+				$thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket);
 				if (!$thisUploaded) {
 					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
 					$failedServers[] = $server['Server']['url'];
@@ -1794,7 +1835,7 @@ class Event extends AppModel {
 			return true;
 		}
 	}
-	
+
 	public function publishRouter($id, $passAlong = null, $user) {
 		if (Configure::read('MISP.background_jobs')) {
 			$job = ClassRegistry::init('Job');

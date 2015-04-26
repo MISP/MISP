@@ -170,4 +170,18 @@ class OrganisationsController extends AppController {
 		$this->set('extend', $extend);
 		$this->render('ajax/sg_org_row_empty');
 	}
+	
+	public function getUUIDs() {
+		if (!$this->Auth->user('Role')['perm_sync']) throw new MethodNotAllowedException('This action is restricted to sync users');
+		$temp = $this->Organisation->find('all', array(
+			'recursive' => -1,
+			'conditions' => array('local' => 1),
+			'fields' => array('Organisation.uuid')
+		));
+		$orgs = array();
+		foreach ($temp as $t) {
+			$orgs[] = $t['Organisation']['uuid'];
+		}
+		return new CakeResponse(array('body'=> json_encode($orgs)));
+	}
 }

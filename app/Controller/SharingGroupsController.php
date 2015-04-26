@@ -181,14 +181,5 @@ class SharingGroupsController extends AppController {
 		$this->set('id', $id);
 		$this->set('sg', $sg);
 	}
-	
-	public function access1() {
-		debug($this->SharingGroup->checkIfAuthorised($this->Auth->user(), 15));
-	}
-	
-	public function access2() {
-		debug($this->SharingGroup->fetchAllAuthorised($this->Auth->user()));
-	}
-	
 }
 	
