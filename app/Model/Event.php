@@ -666,10 +666,8 @@ class Event extends AppModel {
  * @return bool true if success, false or error message if failed
  */
 	public function restfullEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
-		$rules = $this->checkEventForPush($event, $server['Server']['id']);
-		debug($rules);
-		throw new Exception();
-		if ($rules === false) { // never upload private events
+		$result = $this->checkDistributionForPush($event, $server);
+		if ($result === false) { // never upload private events
 			return 403; //"Event is private and non exportable";
 		}
 
@@ -680,8 +678,8 @@ class Event extends AppModel {
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 		}
-		
-		if (is_array($result) && $result['rule'] === 'conditional') {
+		/*
+		if (is_array($rules) && $rules['rule'] === 'conditional') {
 			$request = array(
 				'header' => array(
 						'Authorization' => $authkey,
@@ -689,10 +687,15 @@ class Event extends AppModel {
 						'Content-Type' => 'application/xml',
 				)
 			);
-			$uri = $server['url'] . '/organisations/getUUIDs';
+			// First check if the organisation of the sync user can actually see the event
+			if (!in_array($server['RemoteOrg']['uuid'], $rules['orgs'])) return 403;
+			$uri = $server['Server']['url'] . '/organisations/getUUIDs';
 			$response = json_decode($HttpSocket->get($uri, '', $request));
+			$found = false;
+			foreach ($response as $orgUuid) if (in_array($orgUuid, $rules['orgs'])) $found = true; 
+			if (!$found) return 403;
 		}
-		
+		*/
 		$request = array(
 				'header' => array(
 						'Authorization' => $authkey,
@@ -704,55 +707,20 @@ class Event extends AppModel {
 		$uri = isset($urlPath) ? $urlPath : $url . '/events';
 		// LATER try to do this using a separate EventsController and renderAs() function
 		$xmlArray = array();
-		// rearrange things to be compatible with the Xml::fromArray()
-		if (isset($event['Attribute'])) {
-			$event['Event']['Attribute'] = $event['Attribute'];
-			unset($event['Attribute']);
-		}
+		
+		// update the event to ready it for the sync
+		// This involves checking which attribute can be synced to the server
+		// Rearranging things to be compatible with the XML conversion
+		// Removing unwanted properties
+		$event = $this->__updateEventForSync($event, $server);
 
-		// cleanup the array from things we do not want to expose
-		//unset($event['Event']['org']);
-		// remove value1 and value2 from the output
-		if (isset($event['Event']['Attribute'])) {
-			foreach ($event['Event']['Attribute'] as $key => &$attribute) {
-				// do not keep attributes that are private, nor cluster
-				if ($attribute['distribution'] < 2) {
-					unset($event['Event']['Attribute'][$key]);
-					continue; // stop processing this
-				}
-				// Distribution, correct Connected Community to Community in Attribute
-				if ($attribute['distribution'] == 2) {
-					$attribute['distribution'] = 1;
-				}
-				// remove value1 and value2 from the output
-				unset($attribute['value1']);
-				unset($attribute['value2']);
-				// also add the encoded attachment
-				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-					$attribute['data'] = $encodedFile;
-				}
-				// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
-				// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
-				// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
-				// solves the issue and a new attribute is always created.
-				unset($attribute['id']);
-			}
-		}
-		
-		// Distribution, correct All to Community in Event
-		if ($event['Event']['distribution'] == 2) {
-			$event['Event']['distribution'] = 1;
-		}
 		// display the XML to the user
-		$xmlArray['Event'][] = $event['Event'];
-		debug($xmlArray);
-		throw new Exception();
-		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
-		$eventsXml = $xmlObject->asXML();
+		$xmlObject = Xml::fromArray(array('Event' => $event['Event']), array('format' => 'tags'));
+		$data = $xmlObject->asXML();
 		// do a REST POST request with the server
-		$data = $eventsXml;
-		
+
+		debug($data);
+		throw new Exception();
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
 		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
@@ -801,6 +769,83 @@ class Event extends AppModel {
 			}
 		}
 	}
+	
+	private function __updateEventForSync($event, $server) {
+		// rearrange things to be compatible with the Xml::fromArray()
+		$objectsToRearrange = array('Attribute', 'Orgc', 'SharingGroup', 'EventTag');
+		foreach ($objectsToRearrange as $o) {
+			$event['Event'][$o] = $event[$o];
+			unset($event[$o]);
+		}
+		
+		// cleanup the array from things we do not want to expose
+		foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'locked', 'org', 'orgc') as $field) unset($event['Event'][$field]);
+		
+		foreach ($event['Event']['EventTag'] as $kt => $tag) {
+			if (!$tag['Tag']['exportable']) unset($event['Event']['EventTag'][$kt]);
+		}
+		
+		// Add the local server to the list of instances in the SG
+		if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
+			foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
+				if ($s['server_id'] == 0) {
+					$s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
+				}
+			}
+		}
+		
+		// remove value1 and value2 from the output
+		if (isset($event['Event']['Attribute'])) {
+			foreach ($event['Event']['Attribute'] as $key => &$attribute) {
+				// do not keep attributes that are private, nor cluster
+				if ($attribute['distribution'] < 2) {
+					unset($event['Event']['Attribute'][$key]);
+					continue; // stop processing this
+				}
+				// Downgrade the attribute from connected communities to community only
+				if ($attribute['distribution'] == 2) {
+					$attribute['distribution'] = 1;
+				}
+		
+				// If the attribute has a sharing group attached, make sure it can be transfered
+				if ($attribute['distribution'] == 4) {
+					if ($this->checkDistributionForPush(array('Attribute' => $attribute), $server, 'Attribute') === false) {
+						unset($event['Event']['Attribute'][$key]);
+						continue;
+					}
+					// Add the local server to the list of instances in the SG
+					if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
+						foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$s) {
+							if ($s['server_id'] == 0) {
+								$s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
+							}
+						}
+					}
+				}
+		
+				// remove value1 and value2 from the output
+				unset($attribute['value1']);
+				unset($attribute['value2']);
+				// also add the encoded attachment
+				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+					$attribute['data'] = $encodedFile;
+				}
+				// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
+				// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
+				// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
+				// solves the issue and a new attribute is always created.
+				unset($attribute['id']);
+			}
+		}
+		
+		// Downgrade the event from connected communities to community only
+		if ($event['Event']['distribution'] == 2) {
+			$event['Event']['distribution'] = 1;
+		}
+		return $event;
+	}
+	
 
 /**
  * Deletes the event and the associated Attributes from another Server
@@ -1767,13 +1812,18 @@ class Event extends AppModel {
 		return false;
 	}
 	
-
-	public function checkEventForPush($event, $server_id) {
+	// pass an event or an attribute together with the server id.
+	// If the distribution of the object outright allows for it to be shared, return true
+	// If the distribution is org only / comm only, return false
+	// If the distribution is sharing group only, check if the sync user is in the sharing group or not, return true if yes, false if no
+	public function checkDistributionForPush($object, $server, $context = 'Event') {
 		$rules = array();
-		if ($event['Event']['distribution'] < 2) return false;
-		else if ($event['Event']['distribution'] == 4) $rules = $this->SharingGroup->getSGSyncRulesForServer($event['SharingGroup'], $server_id);
-		else return true;
-		return $rules;
+		if ($object[$context]['distribution'] < 2) return false;
+		else if ($object[$context]['distribution'] == 4) {
+			if ($context === 'Event') return $this->SharingGroup->checkIfServerInSG($object['SharingGroup'], $server);
+			else return $this->SharingGroup->checkIfServerInSG($object[$context]['SharingGroup'], $server);
+		}
+		return true;
 	}
 	
 	
@@ -1789,13 +1839,41 @@ class Event extends AppModel {
 				'conditions' => array('Event.id' => $id),
 				'recursive' => -1,
 				'contain' => array(
-						'Attribute',
+						'Attribute' => array(
+								'SharingGroup' => array(
+										'SharingGroupOrg' => array(
+											'fields' => array('id', 'org_id'),
+											'Organisation' => array(
+												'fields' => array('id', 'uuid', 'name')
+											)
+										),
+										'SharingGroupServer' => array(
+											'fields' => array('id', 'server_id', 'all_orgs'),
+											'Server' => array(
+												'fields' => array('id', 'url', 'name')
+											)
+										),
+								)
+						),
 						'EventTag' => array('Tag'),
-						'Org',
-						'Orgc',
+						'Org' => array('fields' => array('id', 'uuid', 'name', 'local')),
+						'Orgc' => array('fields' => array('id', 'uuid', 'name', 'local')),
 						'SharingGroup' => array(
-								'SharingGroupOrg' => array('Organisation'),
-								'SharingGroupServer' => array('Server'),
+								'Organisation' => array(
+									'fields' => array('id', 'uuid', 'name', 'local'),
+								),
+								'SharingGroupOrg' => array(
+									'fields' => array('id', 'org_id'),
+									'Organisation' => array(
+										'fields' => array('id', 'uuid')
+									)
+								),
+								'SharingGroupServer' => array(
+									'fields' => array('id', 'server_id', 'all_orgs'),
+									'Server' => array(
+										'fields' => array('id', 'url')
+									)
+								),
 						),
 				),
 		));

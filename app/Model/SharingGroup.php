@@ -189,25 +189,22 @@ class SharingGroup extends AppModel {
 		return $orgs;
 	}
 	
-	public function getSGSyncRulesForServer($sg, $server_id) {
+	public function checkIfServerInSG($sg, $server) {
 		$results = array(
 				'rule' => false,
 				'orgs' => array(),
 		);
-		
-		if (isset($sg['SharingGroupServer'])) {
-			foreach ($sg['SharingGroupServer'] as $server) {
-				if ($server['server_id'] == $server_id) {
-					if ($server['all_orgs']) $results['rule'] = 'full';
+		if (isset($sg['SharingGroupServer']) && !empty($sg['SharingGroupServer'])) {
+			foreach ($sg['SharingGroupServer'] as $s) {
+				if ($s['server_id'] == $server['Server']['id']) {
+					if ($s['all_orgs']) return true;
 					else $results['rule'] = 'conditional';
 				}
 			}
 			if ($results['rule'] === false) return false;
 		}
-		foreach ($sg['SharingGroupOrg'] as $org) {
-			$results['orgs'][] = $org['Organisation']['uuid'];
-		}
-		return $results;
+		foreach ($sg['SharingGroupOrg'] as $org) if ($org['Organisation']['uuid'] == $server['RemoteOrg']['uuid']) return true;
+		return false;
 	}
 	
 	public function getSGSyncRules($sg) {
