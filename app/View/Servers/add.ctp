@@ -62,7 +62,8 @@
 			'type' => 'file',
 			'div' => 'clear'
 		));
-
+		echo $this->Form->input('push_rules', array('type' => 'textarea', 'label' => 'Push filters (in JSON format)', 'div' => 'clear', 'class' => 'input-xxlarge'));
+		echo $this->Form->input('pull_rules', array('type' => 'textarea', 'label' => 'Pull filters (in JSON format)', 'div' => 'clear', 'class' => 'input-xxlarge'));
 		echo $this->Form->input('json', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
 	</fieldset>

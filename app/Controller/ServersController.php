@@ -67,42 +67,57 @@ class ServersController extends AppController {
 		if (!$this->_isAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post')) {
 			$json = json_decode($this->request->data['Server']['json'], true);
-			// force check userid and orgname to be from yourself
-			$this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
+			
 			$fail = false;
-			if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
-			else {
-				$existingOrgs = $this->Server->Organisation->find('first', array(
-						'conditions' => array('uuid' => $json['uuid']),
-						'recursive' => -1,
-						'fields' => array('id', 'uuid')
-				));
-				if (!empty($existingOrgs)) {
-					$fail = true;
-					$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
-				}
 				
-				if (!$fail) {
-					$this->Server->Organisation->create();
-					if (!$this->Server->Organisation->save(array(
-							'name' => $json['name'],
-							'uuid' => $json['uuid'],
-							'local' => 0,
-							'created_by' => $this->Auth->user('id')
-						)
-					)) $this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
-					$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
-				}
+			// test the filter fields
+			if (!empty($this->request->data['Server']['pull_rules']) && !$this->Server->isJson($this->request->data['Server']['pull_rules'])) {
+				$fail = true;
+				$this->Session->setFlash(__('The pull filter rules must be in valid JSON format.'));
 			}
+				
+			if (!$fail && !empty($this->request->data['Server']['push_rules']) && !$this->Server->isJson($this->request->data['Server']['push_rules'])) {
+				$fail = true;
+				$this->Session->setFlash(__('The push filter rules must be in valid JSON format.'));
+			}
+				
 			if (!$fail) {
-				if ($this->Server->save($this->request->data)) {
-					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
-						$this->__saveCert($this->request->data, $this->Server->id);
+				// force check userid and orgname to be from yourself
+				$this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
+				if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
+				else {
+					$existingOrgs = $this->Server->Organisation->find('first', array(
+							'conditions' => array('uuid' => $json['uuid']),
+							'recursive' => -1,
+							'fields' => array('id', 'uuid')
+					));
+					if (!empty($existingOrgs)) {
+						$fail = true;
+						$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
 					}
-					$this->Session->setFlash(__('The server has been saved'));
-					$this->redirect(array('action' => 'index'));
-				} else {
-					$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+					
+					if (!$fail) {
+						$this->Server->Organisation->create();
+						if (!$this->Server->Organisation->save(array(
+								'name' => $json['name'],
+								'uuid' => $json['uuid'],
+								'local' => 0,
+								'created_by' => $this->Auth->user('id')
+							)
+						)) $this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+						$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+					}
+				}
+				if (!$fail) {
+					if ($this->Server->save($this->request->data)) {
+						if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
+							$this->__saveCert($this->request->data, $this->Server->id);
+						}
+						$this->Session->setFlash(__('The server has been saved'));
+						$this->redirect(array('action' => 'index'));
+					} else {
+						$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+					}
 				}
 			}
 		}
@@ -140,35 +155,47 @@ class ServersController extends AppController {
 		if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$json = json_decode($this->request->data['Server']['json'], true);
-			// say what fields are to be updated
-			$fieldList = array('id', 'url', 'push', 'pull', 'remote_org_id', 'name' ,'self_signed', 'cert_file');
-			$this->request->data['Server']['id'] = $id;
-			if ("" != $this->request->data['Server']['authkey'])
-				$fieldList[] = 'authkey';
-			
 			$fail = false;
-			if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
-			else {
-				$existingOrgs = $this->Server->Organisation->find('first', array(
-						'conditions' => array('uuid' => $json['uuid']),
-						'recursive' => -1,
-						'fields' => array('id', 'uuid')
-				));
-				if (!empty($existingOrgs)) {
-					$fail = true;
-					$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
-				}
 			
-				if (!$fail) {
-					$this->Server->Organisation->create();
-					if (!$this->Server->Organisation->save(array(
-							'name' => $json['name'],
-							'uuid' => $json['uuid'],
-							'local' => 0,
-							'created_by' => $this->Auth->user('id')
-					)
-					)) $this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
-					$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+			// test the filter fields
+			if (!empty($this->request->data['Server']['pull_rules']) && !$this->Server->isJson($this->request->data['Server']['pull_rules'])) {
+				$fail = true;
+				$this->Session->setFlash(__('The pull filter rules must be in valid JSON format.'));
+			}
+			
+			if (!$fail && !empty($this->request->data['Server']['push_rules']) && !$this->Server->isJson($this->request->data['Server']['push_rules'])) {
+				$fail = true;
+				$this->Session->setFlash(__('The push filter rules must be in valid JSON format.'));
+			}
+			
+			if (!$fail) {
+				// say what fields are to be updated
+				$fieldList = array('id', 'url', 'push', 'pull', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'push_rules', 'pull_rules');
+				$this->request->data['Server']['id'] = $id;
+				if ("" != $this->request->data['Server']['authkey']) $fieldList[] = 'authkey';
+				if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
+				else {
+					$existingOrgs = $this->Server->Organisation->find('first', array(
+							'conditions' => array('uuid' => $json['uuid']),
+							'recursive' => -1,
+							'fields' => array('id', 'uuid')
+					));
+					if (!empty($existingOrgs)) {
+						$fail = true;
+						$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+					}
+				
+					if (!$fail) {
+						$this->Server->Organisation->create();
+						if (!$this->Server->Organisation->save(array(
+								'name' => $json['name'],
+								'uuid' => $json['uuid'],
+								'local' => 0,
+								'created_by' => $this->Auth->user('id')
+						)
+						)) $this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?'));
+						$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+					}
 				}
 			}
 			

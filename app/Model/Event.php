@@ -659,6 +659,44 @@ class Event extends AppModel {
 		return 'Success';
 	}
 
+	// checks the filters in the json fields
+	// currently only org and tag are checked
+	// The format of the valid JSON string now is:
+	// "{"tag":[], "org":[]}"
+	// where both tag and org are the numeric IDs passed as a string
+	// the usual negation syntax is allowed
+	// for example:
+	// "{"tag":["1", "!2"], "org":["1"]}"
+	// this would only sync events having been tagged as 1 but not 2 and created by organisation 1
+	private function __checkFilterSbeforePush($event, $server) {
+		$temp = json_decode($server['Server']['push_rules'], true);
+		$rules = array();
+		$types = array('tag', 'org');
+		foreach ($types as $type) {
+			if (isset($temp[$type])) {
+				foreach ($temp[$type] as $rule) {
+					if (substr($rule, 0, 1) === '!') $rules[$type]['NOT'][] = substr($rule, 1);
+					else $rules[$type]['OR'][] = $rule;
+				}
+			}
+		}
+		$eventTags = array();
+		if (isset($event['EventTag'])) foreach ($event['EventTag'] as $tag) $eventTags[] = $tag['tag_id'];
+		if (isset ($rules['org']['OR'])) if (!in_array($event['Orgc']['id'], $rules['org']['OR'])) return false;
+		if (isset ($rules['org']['NOT'])) if (in_array($event['Orgc']['id'], $rules['org']['NOT'])) return false;
+		if (isset ($rules['tag']['OR'])) {
+			if (!isset($event['EventTag'])) return false;
+			$found = false;
+			foreach ($rules['tag']['OR'] as $tag) if (in_array($tag, $eventTags)) $found = true;
+			if (!$found) return false;
+		}
+		if (isset ($rules['tag']['NOT'])) {
+			if (isset($event['EventTag'])) foreach ($rules['tag']['NOT'] as $tag) if (in_array($tag, $eventTags)) return false;
+		}
+		return true;
+	}
+	
+	
 /**
  * Uploads the event and the associated Attributes to another Server
  * TODO move this to a component
@@ -667,8 +705,9 @@ class Event extends AppModel {
  */
 	public function restfullEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
 		$result = $this->checkDistributionForPush($event, $server);
-		if ($result === false) { // never upload private events
-			return 403; //"Event is private and non exportable";
+		$result2 = $this->__checkFiltersBeforePush($event, $server);
+		if ($result === false || $result2 === false) { // block the event if it failed either of the checks
+			return 403; //"Event cannot be exported to this instance";
 		}
 
 		$url = $server['Server']['url'];
@@ -1819,13 +1858,14 @@ class Event extends AppModel {
 	public function checkDistributionForPush($object, $server, $context = 'Event') {
 		$rules = array();
 		if ($object[$context]['distribution'] < 2) return false;
-		else if ($object[$context]['distribution'] == 4) {
+		
+		
+		if ($object[$context]['distribution'] == 4) {
 			if ($context === 'Event') return $this->SharingGroup->checkIfServerInSG($object['SharingGroup'], $server);
 			else return $this->SharingGroup->checkIfServerInSG($object[$context]['SharingGroup'], $server);
 		}
 		return true;
 	}
-	
 	
 	/**
 	 * Uploads this specific event to all remote servers

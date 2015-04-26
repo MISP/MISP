@@ -1270,4 +1270,8 @@ class Server extends AppModel {
 		}
 		return array('success' => $success, 'response' => $response);
 	}
+	
+	public function isJson($string) {
+		return (json_last_error() == JSON_ERROR_NONE);
+	}
 }
