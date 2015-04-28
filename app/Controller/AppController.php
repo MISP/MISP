@@ -92,7 +92,7 @@ class AppController extends Controller {
 			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
 				$user = $this->checkAuthUser($_SERVER['HTTP_AUTHORIZATION']);
 				if ($user) {
-					unset($user['gpgkey']);
+					unset($user['User']['gpgkey']);
 				    // User found in the db, add the user info to the session
 				    $this->Session->renew();
 				    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
