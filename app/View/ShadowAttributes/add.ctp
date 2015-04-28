@@ -31,12 +31,12 @@
 			?>
 			<div class="input clear"></div>
 			<?php
-			echo $this->Form->input('batch_import', array(
-					'type' => 'checkbox',
-			));
 			echo $this->Form->input('to_ids', array(
 					'checked' => true,
-					'label' => 'IDS Signature?',
+					'label' => 'for Intrusion Detection System',
+			));
+			echo $this->Form->input('batch_import', array(
+					'type' => 'checkbox',
 			));
 			// link an onchange event to the form elements
 			$this->Js->get('#ShadowAttributeCategory')->event('change', 'formCategoryChanged("#ShadowAttributeCategory")');
