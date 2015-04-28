@@ -25,7 +25,6 @@ Configure::write('CertAuth',
       'O'           => 'org',
       'emailAddress'=>'email',
     ),
-    'enableSession' => true,         // if FALSE then disables session cookies
     'syncUser'      => true,         // should the User be synchronized with an external REST API
     'restApi'       => array(        // API parameters
       'url'         => 'https://example.com/data/users',  // URL to query

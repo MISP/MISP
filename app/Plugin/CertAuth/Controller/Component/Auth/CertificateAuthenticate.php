@@ -176,13 +176,6 @@ class CertificateAuthenticate extends BaseAuthenticate
             }
         }
 
-        if(Configure::read('CertAuth.enableSession')) {
-            if(!CakeSession::read(AuthComponent::$sessionKey)) {
-                CakeSession::write(AuthComponent::$sessionKey, self::$user);
-            }
-        } else {
-            AuthComponent::$sessionKey = false;
-        }
         return self::$user;
     }
 
@@ -263,5 +256,18 @@ class CertificateAuthenticate extends BaseAuthenticate
         return self::$user;
     }
 
+    protected static $instance; 
+
+    public static function ca()
+    {
+        if(is_null(self::$ca)) new CertificateAuthenticate();
+        return self::$ca;
+    }
+
+    public static function client()
+    {
+        if(is_null(self::$client)) new CertificateAuthenticate();
+        return self::$client;
+    }
 
 }

@@ -61,7 +61,6 @@ $config = array (
       'O'           => 'org',
       'emailAddress'=>'email',
     ),
-    'enableSession' => true,         // if FALSE then disables session cookies
     'syncUser'      => true,         // should the User be synchronized with an external REST API
     'userDefaults'=> array(          // default user attributes, only used when creating new users
       'role_id'   => 4,
