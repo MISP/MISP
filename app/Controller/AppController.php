@@ -97,8 +97,6 @@ class AppController extends Controller {
 						continue;
 					}
 				}
-				debug($user);
-				throw new Exception();
 				if ($user) {
 				    // User found in the db, add the user info to the session
 				    $this->Session->renew();
