@@ -87,10 +87,18 @@ class AppController extends Controller {
 			// disable CSRF for REST access
 			if (array_key_exists('Security', $this->components))
 				$this->Security->csrfCheck = false;
-
 			// Authenticate user with authkey in Authorization HTTP header
 			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
-				$user = $this->checkAuthUser($_SERVER['HTTP_AUTHORIZATION']);
+				$authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
+				$user = false;
+				foreach ($authentication as $auth_key) {
+					if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
+						$user = $this->checkAuthUser(trim($auth_key));
+						continue;
+					}
+				}
+				debug($user);
+				throw new Exception();
 				if ($user) {
 				    // User found in the db, add the user info to the session
 				    $this->Session->renew();
