@@ -36,7 +36,7 @@ class Event extends AppModel {
  * @var array
  */
 	public $fieldDescriptions = array(
-		'threat_level_id' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
+		'threat_level_id' => array('desc' => 'Urgency levels: *low* means needs attention this week, *medium* means needs attention today, *high* means immediate attention', 'formdesc' => 'Urgency levels: low: this week, medium: today, high: now'),
 		'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
 		'submittedgfi' => array('desc' => 'GFI sandbox: export upload', 'formdesc' => 'GFI sandbox: export upload'),
 		'submittedioc' => array('desc' => '', 'formdesc' => ''),

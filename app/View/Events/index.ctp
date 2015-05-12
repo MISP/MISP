@@ -73,7 +73,7 @@
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 			<?php endif; ?>
 			<th class="filter"><?php echo $this->Paginator->sort('date');?></th>
-			<th class="filter" title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo $this->Paginator->sort('threat_level_id');?></th>
+			<th class="filter" title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo $this->Paginator->sort('threat_level_id','Urgency Level');?></th>
 			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>">
 				<?php echo $this->Paginator->sort('analysis');?>
 			</th>
