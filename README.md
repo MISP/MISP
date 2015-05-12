@@ -49,6 +49,6 @@ There are 2 branches:
 License
 -------
 
-This software is licensed under GNU Affero General Public License version 3
+This software is licensed under [GNU Affero General Public License version 3](http://www.gnu.org/licenses/agpl-3.0.html)
 
 Copyright (c) 2012, 2013 Christophe Vandeplas, Belgian Defence, NATO / NCIRC.
