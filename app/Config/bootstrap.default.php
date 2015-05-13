@@ -109,6 +109,12 @@ CakePlugin::load('SysLogLogable');
 CakePlugin::load('UrlCache');
 
 /**
+ * Uncomment the following line to enable client SSL certificate authentication.
+ * It's also necessary to configure the plugin — for more information, please read app/Plugin/CertAuth/reame.md
+ */
+// CakePlugin::load('CertAuth');
+
+/**
  * You can attach event listeners to the request lifecyle as Dispatcher Filter . By Default CakePHP bundles two filters:
  *
  * - AssetDispatcher filter will serve your asset files (css, images, js, etc) from your themes and plugins
