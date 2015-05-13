@@ -1725,6 +1725,8 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
+		if ($from) $from = $this->Event->dateFieldCheck($from);
+		if ($to) $from = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		
 		$eventIdArray = array();
@@ -1802,6 +1804,9 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
+		
+		if ($from) $from = $this->Event->dateFieldCheck($from);
+		if ($to) $from = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		// backwards compatibility, swap key and format
 		if ($format != 'snort' && $format != 'suricata') {
@@ -1837,6 +1842,9 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
+		
+		if ($from) $from = $this->Event->dateFieldCheck($from);
+		if ($to) $from = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
@@ -1869,6 +1877,9 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
+		
+		if ($from) $from = $this->Event->dateFieldCheck($from);
+		if ($to) $from = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		$list = array();
 		if ($key != 'download') {
@@ -2399,6 +2410,9 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
+		
+		if ($from) $from = $this->Event->dateFieldCheck($from);
+		if ($to) $from = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		if ($searchall === 'true') $searchall = "1";
 
@@ -2974,6 +2988,8 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
+		if ($from) $from = $this->Event->dateFieldCheck($from);
+		if ($to) $from = $this->Event->dateFieldCheck($to);
 		
 		// set null if a null string is passed
 		$numeric = false;
