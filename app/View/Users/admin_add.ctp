@@ -13,6 +13,9 @@
 		echo $this->Form->input('authkey', array('value' => $authkey, 'readonly' => 'readonly'));
 		echo $this->Form->input('nids_sid');
 		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
+	?>
+		<div class="clear"><span onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
+	<?php 
 		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published'));
 		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests'));
 
