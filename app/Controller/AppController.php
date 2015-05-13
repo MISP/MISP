@@ -98,6 +98,7 @@ class AppController extends Controller {
 					}
 				}
 				if ($user) {
+					unset($user['User']['gpgkey']);
 				    // User found in the db, add the user info to the session
 				    $this->Session->renew();
 				    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
@@ -107,14 +108,33 @@ class AppController extends Controller {
 					$this->Session->destroy();
 					throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
 				}
+				unset($user);
 			}
+		} else if(!$this->Session->read(AuthComponent::$sessionKey)) {
+			// load authentication plugins from Configure::read('Security.auth')
+			$auth = Configure::read('Security.auth');
+			if($auth) {
+				$this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
+				if($this->Auth->startup($this)) {
+					$user = $this->Auth->user();
+					if ($user) {
+						unset($user['gpgkey']);
+						// User found in the db, add the user info to the session
+						$this->Session->renew();
+						$this->Session->write(AuthComponent::$sessionKey, $user);
+					}
+					unset($user);
+				}
+			}
+			unset($auth);
 		}
+
 		// user must accept terms
 		//
-		if ($this->Session->check('Auth.User') && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
+		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
 		    $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 		}
-		if ($this->Session->check('Auth.User') && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
+		if ($this->Session->check(AuthComponent::$sessionKey) && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
 		    $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
 		}
 
