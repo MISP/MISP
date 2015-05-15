@@ -1314,6 +1314,55 @@ class Attribute extends AppModel {
 	 	return $attributes;
 	 }
 	 
+	 public function rpz($org, $isSiteAdmin, $tags = false, $eventId = false, $from = false, $to = false) {
+	 	// we can group hostname and domain as well as ip-src and ip-dst in this case
+	 	$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
+	 	$typesToFetch = array('ip' => array('ip-src', 'ip-dst'), 'hostname' => array('hostname'), 'domain' => array('domain'));
+	 	if ($from) $conditions['AND']['Event.date >='] = $from;
+	 	if ($to) $conditions['AND']['Event.date <='] = $to;
+	 	if (!$isSiteAdmin) {
+	 		$temp = array();
+	 		$distribution = array();
+	 		array_push($temp, array('Attribute.distribution >' => 0));
+	 		array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
+	 		$conditions['OR'] = $temp;
+	 	}
+	 	if ($eventId !== false) {
+	 		$conditions['AND'][] = array('Event.id' => $eventId);
+	 	} elseif ($tags !== false) {
+	 		// If we sent any tags along, load the associated tag names for each attribute
+	 		$tag = ClassRegistry::init('Tag');
+	 		$args = $this->dissectArgs($tags);
+	 		$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+	 		$temp = array();
+	 		foreach ($tagArray[0] as $accepted) {
+	 			$temp['OR'][] = array('Event.id' => $accepted);
+	 		}
+	 		$conditions['AND'][] = $temp;
+	 		$temp = array();
+	 		foreach ($tagArray[1] as $rejected) {
+	 			$temp['AND'][] = array('Event.id !=' => $rejected);
+	 		}
+	 		$conditions['AND'][] = $temp;
+	 	}
+	 	
+	 	foreach ($typesToFetch as $k => $v) {
+	 		$params = array(
+ 				'conditions' => array('AND' => 
+ 					$conditions,
+ 					array('type' => $v),
+ 				),
+ 				'fields' => array('Attribute.value'), //array of field names
+ 				'order' => array('Attribute.value'), //string or array defining order
+ 				'group' => array('Attribute.value'), //fields to GROUP BY
+ 				);
+	 		$temp = $this->find('all', $params);
+	 		foreach ($temp as $value) $values[$k][] = $value['Attribute']['value'];
+	 		unset($temp);
+	 	}
+	 	return $values;
+	 }
+	 
 	 public function generateCorrelation() {
 	 	$this->Correlation = ClassRegistry::init('Correlation');
 	 	$this->Correlation->deleteAll(array('id !=' => ''), false);

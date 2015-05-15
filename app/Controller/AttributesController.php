@@ -1792,6 +1792,41 @@ class AttributesController extends AppController {
 		$this->set('attributes', $attributes);
 	}
 	
+	public function rpz($key='download', $tags=false, $eventId=false, $from=false, $to=false, $policy='DROP') {
+		$simpleFalse = array('eventId', 'tags', 'from', 'to');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
+		if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP'))) $policy = 'DROP';
+		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
+		if ($to) $from = $this->Attribute->Event->dateFieldCheck($to);
+		if ($key != 'download') {
+			// check if the key is valid -> search for users based on key
+			$user = $this->checkAuthUser($key);
+			if (!$user) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
+		} else {
+			if (!$this->Auth->user('id')) {
+				throw new UnauthorizedException('You have to be logged in to do that.');
+			}
+		}
+		$values = $this->Attribute->rpz($this->_checkOrg(), $this->_isSiteAdmin(), $tags, $eventId, $from, $to);
+		$this->response->type('txt');	// set the content type
+		$file = '';
+		if ($tags) $file = 'filtered.';
+		if ($eventId) $file .= 'event-' . $eventId . '.';
+		if ($from) $file .= 'from-' . $from . '.';
+		if ($to) $file .= 'to-' . $to . '.';
+		if ($file == '') $file = 'all';
+		$this->header('Content-Disposition: download; filename="misp.rpz.' . $file . '.txt"');
+		$this->layout = 'text/default';
+		$this->loadModel('Whitelist');
+		$values = $this->Whitelist->removeWhitelistedValuesFromArray($values);
+		$this->set('values', $values);
+		$this->set('policy', $policy);
+		//debug($values);
+	}
 
 	public function reportValidationIssuesAttributes() {
 		// TODO improve performance of this function by eliminating the additional SQL query per attribute
