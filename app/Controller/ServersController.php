@@ -170,16 +170,15 @@ class ServersController extends AppController {
 		}
 		if (!Configure::read('MISP.background_jobs')) {
 			$result = $this->Server->pull($this->Auth->user(), $id, $technique, $s);
-			
 			// error codes
-			if (is_numeric($result)) {
-				switch ($result) {
+			if (isset($result[0]) && is_numeric($result[0])) {
+				switch ($result[0]) {
 					case '1' :
-						$this->Session->setFlash(__('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server.'));
+						$this->Session->setFlash(__('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'));
 						$this->redirect(array('action' => 'index'));
 						break;
 					case '2' :
-						$this->Session->setFlash($eventIds);
+						$this->Session->setFlash($result[1]);
 						$this->redirect(array('action' => 'index'));
 						break;
 					case '3' :
