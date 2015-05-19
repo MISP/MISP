@@ -9,6 +9,7 @@ class RPZExport {
 				'hostname' => '# The following hostnames will '
 		);
 		$policy_explanations = array(
+			'walled-garden' => 'returns the defined alternate location.',
 			'NXDOMAIN' => 'return NXDOMAIN (name does not exist) irrespective of actual result received.',
 			'NODATA' => 'returns NODATA (name exists but no answers returned) irrespective of actual result received.',
 			'DROP' => 'timeout.',
@@ -16,34 +17,51 @@ class RPZExport {
 		return $explanations[$type] . $policy_explanations[$policy] . PHP_EOL . PHP_EOL;
 	}
 	
-	public function export($items, $policy) {
-		switch ($policy) {
-			case 'NXDOMAIN':
-				$action = '.';
-				break;
-			case 'NODATA':
-				$action = '*.';
-				break;
-			default:
+	private function __buildHeader() {
+		$header = '';
+		return $header;
+	}
+	
+	public function export($items, $rpzSettings) {
+		$result = '';
+		switch ($rpzSettings['policy']) {
+			case 0:
 				$policy = 'DROP';
 				$action = 'rpz-drop.';
+				break;
+			case 1:
+				$policy = 'NXDOMAIN';
+				$action = '.';
+				break;
+			case 2:
+				$policy = 'NODATA';
+				$action = '*.';
+				break;
+			case 3:
+				$policy = 'walled-garden';
+				$action = $rpzSettings['walled'];
+				break;
 		}
-		$result = '';
 		
-		$result .= $this->explain('ip', $policy);
-		foreach ($items['ip'] as $item) {
-			$result .= $this->__convertIP($item, $action);
+		if (isset($items['ip'])) {
+			$result .= $this->explain('ip', $policy);
+			foreach ($items['ip'] as $item) {
+				$result .= $this->__convertIP($item, $action);
+			}
 		}
 		
-		$result .= $this->explain('domain', $policy);
-		foreach ($items['domain'] as $item) {
-			$result .= $this->__convertdomain($item, $action);
+		if (isset($items['domain'])) {
+			$result .= $this->explain('domain', $policy);
+			foreach ($items['domain'] as $item) {
+				$result .= $this->__convertdomain($item, $action);
+			}
 		}
 		
-		$result .= $this->explain('hostname', $policy);
-		foreach ($items['hostname'] as $item) {
-
-			$result .= $this->__converthostname($item, $action);
+		if (isset($items['hostname'])) {
+			$result .= $this->explain('hostname', $policy);
+			foreach ($items['hostname'] as $item) {
+				$result .= $this->__converthostname($item, $action);
+			}
 		}
 		return $result;
 	}

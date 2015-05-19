@@ -2,7 +2,7 @@
 	<h2>Server settings</h2>
 	<?php
 		echo $this->element('healthElements/tabs');
-		if (in_array($tab, array('MISP', 'Security', 'GnuPG', 'Proxy', 'misc'))) {
+		if (in_array($tab, array('MISP', 'Security', 'GnuPG', 'Proxy', 'misc', 'Plugin'))) {
 			echo $this->element('healthElements/settings_tab');
 		} else if ($tab == 'diagnostics') {
 			echo $this->element('healthElements/diagnostics');

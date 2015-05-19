@@ -290,7 +290,8 @@ class ServersController extends AppController {
 					'GnuPG' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-					'misc' => array('count' => 0, 'errors' => 0, 'severity' => 5)
+					'misc' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+					'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
 			);
 			$writeableErrors = array(0 => 'OK', 1 => 'Directory doesn\'t exist', 2 => 'Directory is not writeable');
 			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: bad GnuPG.*', 3 => 'FAIL: encrypt failed');

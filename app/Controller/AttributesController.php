@@ -1792,12 +1792,56 @@ class AttributesController extends AppController {
 		$this->set('attributes', $attributes);
 	}
 	
-	public function rpz($key='download', $tags=false, $eventId=false, $from=false, $to=false, $policy='DROP') {
-		$simpleFalse = array('eventId', 'tags', 'from', 'to');
+	public function rpz($key='download', $tags=false, $eventId=false, $from=false, $to=false, $policy=false, $garden = false, $ns = false, $email = false, $serial = false, $refresh = false, $retry = false, $expiry = false, $minimum_ttl = false, $ttl = false) {
+		
+		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
+		// The correct format for both is a "request" root element, as shown by the examples below:
+		// For Json: {"request":{"policy": "walled-garden","gargen":"garden.example.com"}}
+		// For XML: <request><policy>walled-garden</policy><gargen>garden.example.com</gargen></request>
+		// the response type is used to determine the parsing method (xml/json)
+		if ($this->request->is('post')) {
+			if ($this->response->type() === 'application/json') {
+				$data = $this->request->input('json_decode', true);
+			} elseif ($this->response->type() === 'application/xml') {
+				$data = $this->request->data;
+			} else {
+				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
+			}
+			$paramArray = array('eventId', 'tags', 'from', 'to', 'policy', 'garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+				else ${$p} = null;
+			}
+		}
+		
+		$simpleFalse = array('eventId', 'tags', 'from', 'to', 'policy','garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
-		if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP'))) $policy = 'DROP';
+		if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP'))) $policy = false;
+		$lookupData = array(
+				'policy' => 'RPZ_policy', 
+				'garden' => 'RPZ_walled_garden', 
+				'ns' => 'RPZ_NS',
+				'email' => 'RPZ_EMAIL', 
+				'serial' => 'RPZ_SOA_serial', 
+				'refresh' => 'RPZ_SOA_refresh', 
+				'retry' => 'RPZ_SOA_retry', 
+				'expiry' => 'RPZ_SOA_expiry', 
+				'minimum_ttl' => 'RPZ_SOA_minimum_ttl',
+				'ttl' => 'RPZ_ttl',
+		);
+		$this->loadModel('Server');
+		$rpzSettings = array();
+		foreach ($lookupData as $k => $v) {
+			if (${$k} !== false) $rpzSettings[$k] = ${$k};
+			else {
+				$tempSetting = Configure::read('Plugin.' . $v);
+				if (isset($tempSetting)) $rpzSettings[$k] = Configure::read('Plugin.' . $v);
+				else $rpzSettings[$k] = $this->Server->serverSettings['Plugin'][$v]['value'];
+			}
+		}
+
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
 		if ($to) $from = $this->Attribute->Event->dateFieldCheck($to);
 		if ($key != 'download') {
@@ -1819,12 +1863,12 @@ class AttributesController extends AppController {
 		if ($from) $file .= 'from-' . $from . '.';
 		if ($to) $file .= 'to-' . $to . '.';
 		if ($file == '') $file = 'all';
-		$this->header('Content-Disposition: download; filename="misp.rpz.' . $file . '.txt"');
+		#$this->header('Content-Disposition: download; filename="misp.rpz.' . $file . '.txt"');
 		$this->layout = 'text/default';
 		$this->loadModel('Whitelist');
 		$values = $this->Whitelist->removeWhitelistedValuesFromArray($values);
 		$this->set('values', $values);
-		$this->set('policy', $policy);
+		$this->set('rpzSettings', $rpzSettings);
 		//debug($values);
 	}
 
