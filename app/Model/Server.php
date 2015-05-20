@@ -517,14 +517,6 @@ class Server extends AppModel {
 			),
 			'Plugin' => array(
 					'branch' => 1,
-					'RPZ_TTL'  => array(
-						'level' => 2,
-						'description' => 'The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.',
-						'value' => '',
-						'errorMessage' => '',
-						'test' => 'testForNumeric',
-						'type' => 'string',
-					),
 					'RPZ_policy' => array(
 						'level' => 1,
 						'description' => 'The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.',
@@ -542,7 +534,7 @@ class Server extends AppModel {
 						'test' => 'testForEmpty',
 						'type' => 'string',
 					),
-					'RPZ_SOA_serial' => array(
+					'RPZ_serial' => array(
 							'level' => 2,
 							'description' => 'The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting).',
 							'value' => '$date00',
@@ -550,7 +542,7 @@ class Server extends AppModel {
 							'test' => 'testForRPZSerial',
 							'type' => 'string',
 					),
-					'RPZ_SOA_refresh' => array(
+					'RPZ_refresh' => array(
 							'level' => 2,
 							'description' => 'The refresh specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
 							'value' => '2h',
@@ -558,7 +550,7 @@ class Server extends AppModel {
 							'test' => 'testForRPZDuration',
 							'type' => 'string',
 					),
-					'RPZ_SOA_retry' => array(
+					'RPZ_retry' => array(
 							'level' => 2,
 							'description' => 'The retry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
 							'value' => '30m',
@@ -566,7 +558,7 @@ class Server extends AppModel {
 							'test' => 'testForRPZDuration',
 							'type' => 'string',
 					),
-					'RPZ_SOA_expiry' => array(
+					'RPZ_expiry' => array(
 							'level' => 2,
 							'description' => 'The expiry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
 							'value' => '30d',
@@ -574,7 +566,7 @@ class Server extends AppModel {
 							'test' => 'testForRPZDuration',
 							'type' => 'string',
 					),
-					'RPZ_SOA_minimum_ttl' => array(
+					'RPZ_minimum_ttl' => array(
 							'level' => 2,
 							'description' => 'The minimum TTL specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
 							'value' => '1h',
@@ -590,7 +582,7 @@ class Server extends AppModel {
 							'test' => 'testForRPZDuration',
 							'type' => 'string',
 					),
-					'RPZ_NS' => array(
+					'RPZ_ns' => array(
 							'level' => 2,
 							'description' => '',
 							'value' => 'localhost.',
@@ -598,7 +590,7 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
-					'RPZ_EMAIL' => array(
+					'RPZ_email' => array(
 						'level' => 2,
 						'description' => 'The e-mail address specified in the SOA portion of the zone file.',
 						'value' => 'root.localhost',
@@ -1265,5 +1257,17 @@ class Server extends AppModel {
 			}
 		}
 		return $validItems;
+	}
+	
+	public function retrieveCurrentSettings($branch, $subString) {
+		$settings = array();
+		foreach ($this->serverSettings[$branch] as $settingName => $setting) {
+			if (strpos($settingName, $subString) !== false) {
+				$settings[$settingName] = $setting['value'];
+				if (Configure::read('Plugin.' . $settingName)) $settings[$settingName] = Configure::read('Plugin.' . $settingName);
+				if (isset($setting['options'])) $settings[$settingName] = $setting['options'][$settings[$settingName]];
+			}
+		}
+		return $settings;
 	}
 }

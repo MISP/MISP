@@ -26,6 +26,7 @@ class AttributesController extends AppController {
 		$this->Auth->allow('returnAttributes');
 		$this->Auth->allow('downloadAttachment');
 		$this->Auth->allow('text');
+		$this->Auth->allow('rpz');
 
 		// permit reuse of CSRF tokens on the search page.
 		if ('search' == $this->request->params['action']) {
@@ -1792,56 +1793,57 @@ class AttributesController extends AppController {
 		$this->set('attributes', $attributes);
 	}
 	
-	public function rpz($key='download', $tags=false, $eventId=false, $from=false, $to=false, $policy=false, $garden = false, $ns = false, $email = false, $serial = false, $refresh = false, $retry = false, $expiry = false, $minimum_ttl = false, $ttl = false) {
+	public function rpz($key='download', $tags=false, $eventId=false, $from=false, $to=false, $policy=false, $walled_garden = false, $ns = false, $email = false, $serial = false, $refresh = false, $retry = false, $expiry = false, $minimum_ttl = false, $ttl = false) {
 		
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
-		// For Json: {"request":{"policy": "walled-garden","gargen":"garden.example.com"}}
-		// For XML: <request><policy>walled-garden</policy><gargen>garden.example.com</gargen></request>
+		// For Json: {"request":{"policy": "walled-garden","garden":"garden.example.com"}}
+		// For XML: <request><policy>walled-garden</policy><garden>garden.example.com</gargen></request>
 		// the response type is used to determine the parsing method (xml/json)
 		if ($this->request->is('post')) {
-			if ($this->response->type() === 'application/json') {
+			if ($this->request->input('json_decode', true)) {
 				$data = $this->request->input('json_decode', true);
-			} elseif ($this->response->type() === 'application/xml') {
-				$data = $this->request->data;
 			} else {
-				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
+				$data = $this->request->data;
 			}
-			$paramArray = array('eventId', 'tags', 'from', 'to', 'policy', 'garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
+			if (empty($data)) throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
+			$paramArray = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
 		
-		$simpleFalse = array('eventId', 'tags', 'from', 'to', 'policy','garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
+		$simpleFalse = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
 		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || ${$sF} === null || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
-		if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP'))) $policy = false;
+		if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP', 'walled-garden'))) $policy = false;
+		App::uses('RPZExport', 'Export');
+		$rpzExport = new RPZExport();
+		if ($policy) $policy = $rpzExport->getIdByPolicy($policy);
 		$lookupData = array(
-				'policy' => 'RPZ_policy', 
-				'garden' => 'RPZ_walled_garden', 
-				'ns' => 'RPZ_NS',
-				'email' => 'RPZ_EMAIL', 
-				'serial' => 'RPZ_SOA_serial', 
-				'refresh' => 'RPZ_SOA_refresh', 
-				'retry' => 'RPZ_SOA_retry', 
-				'expiry' => 'RPZ_SOA_expiry', 
-				'minimum_ttl' => 'RPZ_SOA_minimum_ttl',
-				'ttl' => 'RPZ_ttl',
+				'policy', 
+				'walled_garden', 
+				'ns',
+				'email', 
+				'serial', 
+				'refresh', 
+				'retry', 
+				'expiry', 
+				'minimum_ttl',
+				'ttl',
 		);
 		$this->loadModel('Server');
 		$rpzSettings = array();
-		foreach ($lookupData as $k => $v) {
-			if (${$k} !== false) $rpzSettings[$k] = ${$k};
+		foreach ($lookupData as $v) {
+			if (${$v} !== false) $rpzSettings[$v] = ${$v};
 			else {
-				$tempSetting = Configure::read('Plugin.' . $v);
-				if (isset($tempSetting)) $rpzSettings[$k] = Configure::read('Plugin.' . $v);
-				else $rpzSettings[$k] = $this->Server->serverSettings['Plugin'][$v]['value'];
+				$tempSetting = Configure::read('Plugin.RPZ_' . $v);
+				if (isset($tempSetting)) $rpzSettings[$v] = Configure::read('Plugin.RPZ_' . $v);
+				else $rpzSettings[$v] = $this->Server->serverSettings['Plugin']['RPZ_' . $v]['value'];
 			}
 		}
-
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
 		if ($to) $from = $this->Attribute->Event->dateFieldCheck($to);
 		if ($key != 'download') {

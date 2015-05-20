@@ -1597,6 +1597,9 @@ class EventsController extends AppController {
 		// generate the list of Attribute types
 		$this->loadModel('Attribute');
 		$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
+		$this->loadModel('Server');
+		$rpzSettings = $this->Server->retrieveCurrentSettings('Plugin', 'RPZ_');
+		$this->set('rpzSettings', $rpzSettings);
 	}
 
 	public function export() {

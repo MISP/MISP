@@ -30,7 +30,7 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <b>withattachments</b>: A boolean field that determines whether attachments should be encoded and a second parameter that controls the eligible tags. <br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+Use semicolons instead (the search will automatically search for colons instead).<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-03)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-03)<br />
 </p>
@@ -49,7 +49,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>ignore</b>: Setting this flag to true will include attributes that are not marked "to_ids".<br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+Use semicolons instead (the search will automatically search for colons instead).<br />
 <b>category</b>: The attribute category, any valid MISP attribute category is accepted.<br />
 <b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
 <b>includeContext</b>: Include the event data with each attribute.<br />
@@ -74,7 +74,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>frame</b>: Some commented out explanation framing the data. The reason to disable this would be if you would like to concatenate a list of exports from various select events in order to avoid unnecasary duplication of the comments.<br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+Use semicolons instead (the search will automatically search for colons instead).<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-03)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-03)<br />
 </p>
@@ -94,7 +94,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>format</b>: The export format, can be "md5" or "sha1"<br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+Use semicolons instead (the search will automatically search for colons instead).<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-03)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-03)<br /><br />
 <p>For example, to only show sha1 values from events tagged tag1, use:</p>
@@ -110,7 +110,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>withAttachments</b>: Encode attachments where applicable<br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+Use semicolons instead (the search will automatically search for colons instead).<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-03)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-03)
 </p>
@@ -122,6 +122,26 @@ Use semicolons instead (the search will automatically search for colons instead)
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download</pre>
 <code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-01-01&lt;/to&gt;&lt;/request&gt;</code><br /><br />
 
+<h3>RPZ export</h3>
+<p>You can export RPZ zone files for DNS level firewalling by using the RPZ export functionality of MISP. The file generated will include all of the IDS flagged domain, hostname and IP-src/IP-dst attribute values that you have access to.</p>
+<p>It is possible to further restrict the exported values using the following filters:</p>
+<p>
+	<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
+	You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search when passed through the url. 
+	Use semicolons instead (the search will automatically search for colons instead).<br />
+	<b>id</b>: The event's ID<br />
+	<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-03)<br />
+	<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-03)
+</p>
+<p>MISP will inject header values into the zone file as well as define the action taken for each of the values that can all be overriden. By default these values are either the default values shipped with the application, or ones that are overriden by your site administrator. The values are as follows:</p>
+<?php foreach ($rpzSettings as $k => $v): ?>
+<b><?php echo h($k);?></b>: <?php echo h($v);?><br />
+<?php endforeach; ?>
+<p>To override the above values, either use the url parameters as described below:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/attributes/rpz/download/[tags]/[eventId]/[from]/[to]/[policy]/[walled_garden]/[ns]/[email]/[serial]/[refresh]/[retry]/[expiry]/[minimum_ttl]/[ttl]</pre>
+<p>or POST an XML or JSON object with the above listed options: </p>
+<code><?php echo h('<request><tags>OSINT&&!OUTDATED</tags><policy>walled-garden</policy><walled_garden>teamliquid.net</walled_garden><refresh>5h</refresh></request>');?></code><br /><br />
+<code>{"request": {"tags": ["OSINT", "!OUTDATED"], "policy": "walled-garden", "walled_garden": "teamliquid.net", "refresh": "5h"}</code>
 <h4>Various ways to narrow down the search results of the STIX export</h4>
 <p>For example, to retrieve all events tagged "APT1" but excluding events tagged "OSINT" and excluding events #51 and #62 without any attachments:
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download/!51&amp;&amp;!62/false/APT1&amp;&amp;!OSINT/2015-01-01</pre>
@@ -159,7 +179,7 @@ foreach ($sigTypes as $sigType) {
 <b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+Use semicolons instead (the search will automatically search for colons instead).<br />
 <b>event_id</b>: Restrict the results to the given event IDs. <br />
 <b>allowNonIDS</b>: Allow attributes to be exported that are not marked as "to_ids".<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-03)<br />
@@ -185,7 +205,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>org</b>: Search by the creator organisation by supplying the organisation idenfitier. <br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+Use semicolons instead (the search will automatically search for colons instead).<br />
 <b>quickfilter</b>: Enabling this (by passing "1" as the argument) will make the search ignore all of the other arguments, except for the auth key and value. MISP will return an xml / json (depending on the header sent) of all events that have a sub-string match on value in the event info, event orgc, or any of the attribute value1 / value2 fields, or in the attribute comment. <br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-03)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-03)<br /><br />
@@ -211,7 +231,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>org</b>: Search by the creator organisation by supplying the organisation idenfitier. <br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+Use semicolons instead (the search will automatically search for colons instead).<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-03)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-03)<br /><br />
 <pre>

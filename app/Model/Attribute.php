@@ -1345,7 +1345,7 @@ class Attribute extends AppModel {
 	 		}
 	 		$conditions['AND'][] = $temp;
 	 	}
-	 	
+	 	$values = array();
 	 	foreach ($typesToFetch as $k => $v) {
 	 		$params = array(
  				'conditions' => array('AND' => 
