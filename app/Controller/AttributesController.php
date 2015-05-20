@@ -1532,7 +1532,7 @@ class AttributesController extends AppController {
 		}
 
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
-		if ($to) $from = $this->Attribute->Event->dateFieldCheck($to);
+		if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
 		if (!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') {
 			$this->response->type('xml');	// set the content type
 			$this->layout = 'xml/default';
@@ -1772,7 +1772,7 @@ class AttributesController extends AppController {
 		}
 		if ($type === 'null' || $type === '0' || $type === 'false') $type = 'all';
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
-		if ($to) $from = $this->Attribute->Event->dateFieldCheck($to);
+		if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
