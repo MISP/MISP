@@ -3167,7 +3167,7 @@ class EventsController extends AppController {
 					'checkbox_set' => '/true'
 			),
 			'rpz' => array(
-					'url' => '/attributes/rpz/download',
+					'url' => '/attributes/rpz/download/false/' . $id,
 					'text' => 'RPZ Zone file',
 					'requiresPublished' => true,
 					'checkbox' => false,

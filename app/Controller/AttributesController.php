@@ -1854,8 +1854,8 @@ class AttributesController extends AppController {
 		if ($eventId) $file .= 'event-' . $eventId . '.';
 		if ($from) $file .= 'from-' . $from . '.';
 		if ($to) $file .= 'to-' . $to . '.';
-		if ($file == '') $file = 'all';
-		$this->header('Content-Disposition: download; filename="misp.rpz.' . $file . '.txt"');
+		if ($file == '') $file = 'all.';
+		$this->header('Content-Disposition: download; filename="misp.rpz.' . $file . 'txt"');
 		$this->layout = 'text/default';
 		$this->loadModel('Whitelist');
 		$values = $this->Whitelist->removeWhitelistedValuesFromArray($values);
