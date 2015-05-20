@@ -89,26 +89,30 @@ class AppController extends Controller {
 				$this->Security->csrfCheck = false;
 			// Authenticate user with authkey in Authorization HTTP header
 			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+				$found_misp_auth_key = false;
 				$authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
 				$user = false;
 				foreach ($authentication as $auth_key) {
 					if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
+						$found_misp_auth_key = true;
 						$user = $this->checkAuthUser(trim($auth_key));
 						continue;
 					}
 				}
-				if ($user) {
-					unset($user['User']['gpgkey']);
-				    // User found in the db, add the user info to the session
-				    $this->Session->renew();
-				    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
-				} else {
-					// User not authenticated correctly
-					// reset the session information
-					$this->Session->destroy();
-					throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
+				if ($found_misp_auth_key) {
+					if ($user) {
+						unset($user['User']['gpgkey']);
+					    // User found in the db, add the user info to the session
+					    $this->Session->renew();
+					    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+					} else {
+						// User not authenticated correctly
+						// reset the session information
+						$this->Session->destroy();
+						throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
+					}
+					unset($user);
 				}
-				unset($user);
 			}
 		} else if(!$this->Session->read(AuthComponent::$sessionKey)) {
 			// load authentication plugins from Configure::read('Security.auth')
@@ -190,7 +194,8 @@ class AppController extends Controller {
 
 	public $userRole = null;
 
-	protected function _isJson(){
+	protected function _isJson($data=false){
+		if ($data) return (json_decode($data) != NULL) ? true : false;
 		return $this->request->header('Accept') === 'application/json';
 	}
 
