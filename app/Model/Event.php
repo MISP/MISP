@@ -98,6 +98,11 @@ class Event extends AppModel {
 					'type' => 'Snort',
 					'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
 			),
+			'rpz' => array(
+					'extension' => '.txt',
+					'type' => 'RPZ',
+					'description' => 'Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.'
+			),
 			'md5' => array(
 					'extension' => '.txt',
 					'type' => 'MD5',
@@ -112,7 +117,7 @@ class Event extends AppModel {
 					'extension' => '.txt',
 					'type' => 'TEXT',
 					'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
-			)
+			),
 	);
 	
 	public $csv_event_context_fields_to_fetch = array(

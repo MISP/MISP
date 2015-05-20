@@ -3166,6 +3166,12 @@ class EventsController extends AppController {
 					'checkbox_text' => 'Encode Attachments',
 					'checkbox_set' => '/true'
 			),
+			'rpz' => array(
+					'url' => '/attributes/rpz/download',
+					'text' => 'RPZ Zone file',
+					'requiresPublished' => true,
+					'checkbox' => false,
+			),
 			'suricata' => array(
 					'url' => '/events/nids/suricata/download/' . $id,
 					'text' => 'Download Suricata rules',

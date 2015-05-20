@@ -1822,20 +1822,10 @@ class AttributesController extends AppController {
 		App::uses('RPZExport', 'Export');
 		$rpzExport = new RPZExport();
 		if ($policy) $policy = $rpzExport->getIdByPolicy($policy);
-		$lookupData = array(
-				'policy', 
-				'walled_garden', 
-				'ns',
-				'email', 
-				'serial', 
-				'refresh', 
-				'retry', 
-				'expiry', 
-				'minimum_ttl',
-				'ttl',
-		);
+
 		$this->loadModel('Server');
 		$rpzSettings = array();
+		$lookupData = array('policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
 		foreach ($lookupData as $v) {
 			if (${$v} !== false) $rpzSettings[$v] = ${$v};
 			else {
@@ -1865,13 +1855,12 @@ class AttributesController extends AppController {
 		if ($from) $file .= 'from-' . $from . '.';
 		if ($to) $file .= 'to-' . $to . '.';
 		if ($file == '') $file = 'all';
-		#$this->header('Content-Disposition: download; filename="misp.rpz.' . $file . '.txt"');
+		$this->header('Content-Disposition: download; filename="misp.rpz.' . $file . '.txt"');
 		$this->layout = 'text/default';
 		$this->loadModel('Whitelist');
 		$values = $this->Whitelist->removeWhitelistedValuesFromArray($values);
 		$this->set('values', $values);
 		$this->set('rpzSettings', $rpzSettings);
-		//debug($values);
 	}
 
 	public function reportValidationIssuesAttributes() {
