@@ -205,7 +205,7 @@ chmod 700 /var/www/MISP/.gnupg
 # can't connect to `/var/www/MISP/.gnupg/S.gpg-agent': No such file or directory
 gpg --homedir /var/www/MISP/.gnupg --gen-key
 chown -R apache:apache /var/www/MISP/.gnupg
-# Recommended key type: RSA
+
 # The email address should match the one set in the config.php configuration file
 # Make sure that you use the same settings in the MISP Server Settings tool (Described on line 226)
 

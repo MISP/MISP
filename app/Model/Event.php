@@ -1928,4 +1928,12 @@ class Event extends AppModel {
 		}
 		return $fn;
 	}
+	
+	// expects a date string in the DD-MM-YYYY format
+	// returns the passed string or false if the format is invalid
+	// based on the fix provided by stevengoosensB
+	public function dateFieldCheck($date) {
+		// regex check for from / to field by stevengoossensB
+		return (preg_match('/^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|1[0-9]|2[0-9]|3[01])$/', $date)) ? $date : false;
+	}
 }

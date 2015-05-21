@@ -1350,3 +1350,18 @@ function freetextImportResultsSubmit(id, count) {
 		},
 	});
 }
+
+function lookupPGPKey(emailFieldName) {
+	$.ajax({
+		type: "get",
+		url: "https://pgp.mit.edu/pks/lookup?op=get&search=" + $('#' + emailFieldName).val(),
+		success: function (data) {
+			var result = $("<div>").html(data)[0].getElementsByTagName("pre")[0]['innerText'];
+			$("#UserGpgkey").val(result);
+			showMessage('success', "Key found!");
+		},
+		error: function (data, textStatus, errorThrown) {
+			showMessage('fail', textStatus + ": " + errorThrown);
+		}
+	});
+}

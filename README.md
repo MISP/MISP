@@ -26,39 +26,10 @@ The Red October malware for example gives a similar view:
 
 Some people might think about CIF (Collective Intelligence Framework) and CRITs (Collaborative Research Into Threats), however those tools are different. Each one has its strenghts and weaknesses, but in the end MISP will rule the world of course.
 
-Changelog
----------
-v2.3 brings important improvements in features, performance and usability:
-- STIX export
-- Easier editing of large data sets, thanks to AJAX
-- Impressive performance improvements in load time (and memory usage)
-- Templating system: create templates for your organisation for easier data entry, and optionally share the templates with other organisations on your MISP instance
-- Free-text import tool: just paste a list of indicators and let MISP figure out what it is
-- Attribute merge tool: update the list of all attributes of the same type by pasting a new list of values 
-- Diagnostic and configuration tool
-- Improved synchronisation
-- API improvements
-- New Filtering for events / users with bookmarks
- 
-v2.2 brings some minor improvements and fixes
 
-v2.1 implements important changes in the database format:
-- A complete redesign of the UI
-- Added a lot more import/exports formats
-- Serious code cleanup
-
-Roadmap
--------
-v2.4
-- Sharing groups : more control over sharability of data
-- Modular import / export: make it easier to add more import/export plugins
-
-v3.0+
-- Reworking the MISP data model (phase 1): Move away from the current attribute model and go to a hierarchical object model that allows composite objects (for example a file described by hashes, filename, filesize, etc. being one object). Compatibility with STIX and OpenIOC, allowing us to import data in those formats
-- Reworking the MISP data model (phase 2): Build extra structures on top of the current event / attribute structure, such as campaigns, threat actors, TTPs, and so on.
-- Integration with other tools: Wide range of possibilities. Import from other sandboxes, directly import from feeds in popular formats. Automate sandboxing procedure (upload sample to your sandbox, automatically create an event based on the result, etc). 
-- Automatic enrichment: Automatically gather additional information on the data that you are entering. Do look-ups based on hashes, IP addresses, domain and host-names.
-
+Website / Support 
+------------------
+Checkout the [website](http://www.misp-project.org) for more information about MISP like [features](http://www.misp-project.org/#features), [roadmap](http://www.misp-project.org/#roadmap), <small>(commercial)</small> [support](http://www.misp-project.org/#support), ... : http://misp-project.org
 
 
 Documentation
@@ -78,6 +49,6 @@ There are 2 branches:
 License
 -------
 
-This software is licensed under GNU Affero General Public License version 3
+This software is licensed under [GNU Affero General Public License version 3](http://www.gnu.org/licenses/agpl-3.0.html)
 
 Copyright (c) 2012, 2013 Christophe Vandeplas, Belgian Defence, NATO / NCIRC.

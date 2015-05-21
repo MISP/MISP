@@ -1,31 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Event>
 	<id>25</id>
-	<org>NCIRC</org>
-	<date>2013-12-12</date>
+	<date>2015-04-14</date>
 	<threat_level_id>1</threat_level_id>
-	<info>test5</info>
+	<info>This is a sample event</info>
 	<published>0</published>
-	<uuid>52b9bca5-2e04-4fed-acf3-1f60c0a80e0a</uuid>
-	<attribute_count>1</attribute_count>
 	<analysis>0</analysis>
-	<timestamp>1386855599</timestamp>
 	<distribution>1</distribution>
-	<proposal_email_lock>0</proposal_email_lock>
-	<orgc>NCIRC</orgc>
-	<locked>0</locked>
+	<orgc>Iglocska</orgc>
 	<Attribute>
 		<id>7</id>
 		<type>ip-src</type>
 		<category>Network activity</category>
 		<to_ids>0</to_ids>
-		<uuid>52a9bcbe-d87c-4c5e-8408-22e8c0a80e0a</uuid>
 		<event_id>9</event_id>
 		<distribution>1</distribution>
-		<timestamp>1386855599</timestamp>
-		<comment/>
-		<value>1.1.1.2</value>
-		<ShadowAttribute/>
+		<comment>This is a sample attribute</comment>
+		<value>8.8.8.8</value>
 	</Attribute>
-	<ShadowAttribute/>
 </Event>

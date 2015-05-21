@@ -87,28 +87,58 @@ class AppController extends Controller {
 			// disable CSRF for REST access
 			if (array_key_exists('Security', $this->components))
 				$this->Security->csrfCheck = false;
-
 			// Authenticate user with authkey in Authorization HTTP header
 			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
-				$user = $this->checkAuthUser($_SERVER['HTTP_AUTHORIZATION']);
-				if ($user) {
-				    // User found in the db, add the user info to the session
-				    $this->Session->renew();
-				    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
-				} else {
-					// User not authenticated correctly
-					// reset the session information
-					$this->Session->destroy();
-					throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
+				$found_misp_auth_key = false;
+				$authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
+				$user = false;
+				foreach ($authentication as $auth_key) {
+					if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
+						$found_misp_auth_key = true;
+						$user = $this->checkAuthUser(trim($auth_key));
+						continue;
+					}
+				}
+				if ($found_misp_auth_key) {
+					if ($user) {
+						unset($user['User']['gpgkey']);
+					    // User found in the db, add the user info to the session
+					    $this->Session->renew();
+					    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+					} else {
+						// User not authenticated correctly
+						// reset the session information
+						$this->Session->destroy();
+						throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
+					}
+					unset($user);
 				}
 			}
+		} else if(!$this->Session->read(AuthComponent::$sessionKey)) {
+			// load authentication plugins from Configure::read('Security.auth')
+			$auth = Configure::read('Security.auth');
+			if($auth) {
+				$this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
+				if($this->Auth->startup($this)) {
+					$user = $this->Auth->user();
+					if ($user) {
+						unset($user['gpgkey']);
+						// User found in the db, add the user info to the session
+						$this->Session->renew();
+						$this->Session->write(AuthComponent::$sessionKey, $user);
+					}
+					unset($user);
+				}
+			}
+			unset($auth);
 		}
+
 		// user must accept terms
 		//
-		if ($this->Session->check('Auth.User') && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
+		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
 		    $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 		}
-		if ($this->Session->check('Auth.User') && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
+		if ($this->Session->check(AuthComponent::$sessionKey) && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
 		    $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
 		}
 
@@ -164,7 +194,8 @@ class AppController extends Controller {
 
 	public $userRole = null;
 
-	protected function _isJson(){
+	protected function _isJson($data=false){
+		if ($data) return (json_decode($data) != NULL) ? true : false;
 		return $this->request->header('Accept') === 'application/json';
 	}
 
