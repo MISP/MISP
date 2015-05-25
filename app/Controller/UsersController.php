@@ -963,6 +963,14 @@ class UsersController extends AppController {
 		}
 		// User didn't see the contact form yet. Present it to him.
 	}
+	
+	public function testEmail($id) {
+		
+		$user = $this->User->read(null, $id);
+		$this->User->sendEmail($user['User']['email'], array('gpgkey' => $user['User']['gpgkey']), "Test message", "no key message", "Hello thar", "test@test.com", $user['User']['gpgkey']);
+	}
+	
+	
 
 	// shows some statistics about the instance
 	public function statistics() {

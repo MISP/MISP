@@ -283,6 +283,14 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
+					'extended_alert_subject' => array(
+							'level' => 1,
+							'description' => 'enabling this flag will allow the event description to be transmitted in the alert e-mail\'s subject. Be aware that this is not encrypted by PGP, so only enable it if you accept that part of the event description will be sent out in clear-text.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
+					),
 					'default_event_distribution' => array(
 							'level' => 0,
 							'description' => 'The default distribution setting for events (0-3).',
