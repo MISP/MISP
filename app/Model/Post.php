@@ -89,15 +89,24 @@ class Post extends AppModel {
 		$body = "";
 		$body .= "Hello, \n";
 		$body .= "\n";
-		$body .= "Someone just posted to a MISP discussion you participated in with title:\n";
-		$body .= $title . "\n";
+		$body .= "Someone just posted to a MISP discussion you participated in.\n";
 		$body .= "\n";
 		$body .= "The full discussion can be found at: \n";
 		$body .= Configure::read('MISP.baseurl') . '/posts/view/' . $post['Post']['id'] . "\n";
-		$body .= "\n";
-		$body .= "The following message was added: \n";
-		$body .= "\n";
-		$body .= $message . "\n";
+
+		// body containing all details ($title and $message)
+		$bodyDetail = "";
+		$bodyDetail .= "Hello, \n";
+		$bodyDetail .= "\n";
+		$bodyDetail .= "Someone just posted to a MISP discussion you participated in with title:\n";
+		$bodyDetail .= $title . "\n";
+		$bodyDetail .= "\n";
+		$bodyDetail .= "The full discussion can be found at: \n";
+		$bodyDetail .= Configure::read('MISP.baseurl') . '/posts/view/' . $post['Post']['id'] . "\n";
+		$bodyDetail .= "\n";
+		$bodyDetail .= "The following message was added: \n";
+		$bodyDetail .= "\n";
+		$bodyDetail .= $message . "\n";
 
 		// LATER place event-to-email-layout in a function
 		$Email = new CakeEmail();
@@ -106,6 +115,7 @@ class Post extends AppModel {
 		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 		$bodySigned = $gpg->sign($body,Crypt_GPG::SIGN_MODE_CLEAR);
+		$bodyDetailSigned = $gpg->sign($bodyDetail,Crypt_GPG::SIGN_MODE_CLEAR);
 		$result = false;
 		foreach ($orgMembers as &$recipient) {
 			if (!empty($recipient['User']['gpgkey'])) {
@@ -116,7 +126,7 @@ class Post extends AppModel {
 				try {
 				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 				$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-				$bodyEncSig = $gpg->encrypt($bodySigned, true);
+				$bodyEncSig = $gpg->encrypt($bodyDetailSigned, true);
 				} catch (Exception $e){
 				// catch errors like expired PGP keys
 					$this->log($e->getMessage());
@@ -124,8 +134,10 @@ class Post extends AppModel {
 				}
 			} elseif (Configure::read('GnuPG.onlyencrypted')) {
 				continue;
-			} else {
+			} elseif (Configure::read('GnuPG.bodyonlyencrypted')) {
 				$bodyEncSig = $bodySigned;
+			} else {
+				$bodyEncSig = $bodyDetailSigned;
 			}
 			$Email->from(Configure::read('MISP.email'));
 			$Email->to($recipient['User']['email']);

@@ -394,7 +394,15 @@ class Server extends AppModel {
 					'branch' => 1,
 					'onlyencrypted' => array(
 							'level' => 0,
-							'description' => 'Allow unencrypted e-mails to be sent to users that don\'t have a PGP key.',
+							'description' => 'Allow (false) unencrypted e-mails to be sent to users that don\'t have a PGP key.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
+					'bodyonlyencrypted' => array(
+							'level' => 2,
+							'description' => 'Allow (false) the body of unencrypted e-mails to contain details about the event.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testBool',

@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::import('Controller', 'Attributes');
+Configure::load('config'); // This is needed to load GnuPG.bodyonlyencrypted
 /**
  * Event Model
  *
@@ -1182,7 +1183,11 @@ class Event extends AppModel {
 		try {
 			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+			if (Configure::read('GnuPG.bodyonlyencrypted')) {
+				$bodySigned = $gpg->sign("A new or modified event was just published on " . Configure::read('MISP.baseurl') . "/events/view/" . $event['Event']['id'], Crypt_GPG::SIGN_MODE_CLEAR);
+			} else {
+				$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+			}
 			//
 			// Build a list of the recipients that get a non-encrypted mail
 			// But only do this if it is allowed in the bootstrap.php file.
@@ -1215,6 +1220,9 @@ class Event extends AppModel {
 				}
 			}
 
+			if (Configure::read('GnuPG.bodyonlyencrypted')) {
+				$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+			}
 			//
 			// Build a list of the recipients that wish to receive encrypted mails.
 			//
@@ -1235,7 +1243,7 @@ class Event extends AppModel {
  				$Email = new CakeEmail();
  				$Email->from(Configure::read('MISP.email'));
  				$Email->to($user['User']['email']);
-				$Email->subject("[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
+				$Email->subject("[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
  				$Email->emailFormat('text');		// both text or html
   					// import the key of the user into the keyring
  				// this is not really necessary, but it enables us to find
@@ -1310,41 +1318,43 @@ class Event extends AppModel {
 		// LATER place event-to-email-layout in a function
 		$appendlen = 20;
 		$body .= 'URL		 : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
-		$body .= 'Event	   : ' . $event['Event']['id'] . "\n";
-		$body .= 'Date		: ' . $event['Event']['date'] . "\n";
+		$bodyevent = $body;
+		$bodyevent .= 'Event	   : ' . $event['Event']['id'] . "\n";
+		$bodyevent .= 'Date		: ' . $event['Event']['date'] . "\n";
 		if (Configure::read('MISP.showorg')) {
-			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
+			$bodyevent .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
-		$body .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
-		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
+		$bodyevent .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
+		$bodyevent .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
 		$relatedEvents = $this->getRelatedEvents($user['User'], $isSiteAdmin);
 		if (!empty($relatedEvents)) {
 			foreach ($relatedEvents as &$relatedEvent) {
-				$body .= 'Related to  : ' . Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
+				$bodyevent .= 'Related to  : ' . Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
 	
 			}
 		}
-		$body .= 'Info  : ' . "\n";
-		$body .= $event['Event']['info'] . "\n";
-		$body .= "\n";
-		$body .= 'Attributes  :' . "\n";
+		$bodyevent .= 'Info  : ' . "\n";
+		$bodyevent .= $event['Event']['info'] . "\n";
+		$bodyevent .= "\n";
+		$bodyevent .= 'Attributes  :' . "\n";
 		$bodyTempOther = "";
 		if (!empty($event['Attribute'])) {
 			foreach ($event['Attribute'] as &$attribute) {
 				$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])) . ': ' . $attribute['value'] . "\n";
 				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
 					$bodyTempOther .= $line;
-				else $body .= $line;
+				else $bodyevent .= $line;
 			}
 		}
-		$body .= "\n";
-		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
+		$bodyevent .= "\n";
+		$bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$Email = new CakeEmail();
 		// sign the body
 		require_once 'Crypt/GPG.php';
 		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
 		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 		$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+		$bodyeventSigned = $gpg->sign($bodyevent, Crypt_GPG::SIGN_MODE_CLEAR);
 		// Add the GPG key of the user as attachment
 		// LATER sign the attached GPG key
 		if ($user['User']['gpgkey'] != null) {
@@ -1368,14 +1378,16 @@ class Event extends AppModel {
 				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
 				$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
 	
-				$bodyEncSig = $gpg->encrypt($bodySigned, true);
+				$bodyEncSig = $gpg->encrypt($bodyeventSigned, true);
 				} catch (Exception $e){
 				// catch errors like expired PGP keys
 					$this->log($e->getMessage());
 					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
 				}
-			} else {
+			} elseif (Configure::read('GnuPG.bodyonlyencrypted')) {
 				$bodyEncSig = $bodySigned;
+			} else {
+				$bodyEncSig = $bodyeventSigned;
 				// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
 			}
 			$Email->from(Configure::read('MISP.email'));
