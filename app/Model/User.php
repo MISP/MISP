@@ -425,11 +425,12 @@ class User extends AppModel {
 	
 	// all e-mail sending is now handled by this method
 	// Just pass the user ID in an array that is the target of the e-mail along with the message body and the alternate message body if the message cannot be encrypted
-	public function sendEmail($email, $keys = array(), $body, $bodyNoEnc = false, $subject, $replyTo = false, $replyToKey = false) {
-		
+	public function sendEmail($user, $body, $bodyNoEnc = false, $subject, $replyToUser = false) {
+		$failed = false;
+		$failureReason = "";
 		// check if the e-mail can be encrypted
 		$canEncrypt = false;
-		if (isset($keys['gpgkey']) && !empty($keys['gpgkey'])) $canEncrypt = true;
+		if (isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey'])) $canEncrypt = true;
 		
 		// If bodyonlencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
 		if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncrypt && $bodyNoEnc) {
@@ -443,40 +444,75 @@ class User extends AppModel {
 			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 			$body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
 		} catch (Exception $e) {
+			$failureReason = " the message could not be signed. The following error message was returned by gpg: " . $e->getMessage();
 			$this->log($e->getMessage());
-			return false;
- 		}
- 		
- 		// If we cannot encrypt the mail and the server settings restricts sending unencrypted messages, return false 
- 		if (!$canEncrypt && Configure::read('GnuPG.onlyencrypted')) return false;
- 		
- 		// Let's encrypt the message if we can
- 		if ($canEncrypt) {
- 			$keyImportOutput = $gpg->importKey($keys['gpgkey']);
- 			try {
-				$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
- 				$body = $gpg->encrypt($body, true);
- 			} catch (Exception $e){
- 				// despite the user having a PGP key and the signing already succeeding earlier, we get an exception. This must mean that there is an issue with the user's key.
- 				$this->log($e->getMessage());
- 				return false;
- 			}
- 		}
- 		
- 		$Email = new CakeEmail();
- 		
- 		// If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender
- 		// For this reason we should also attach the public key of the sender along with the message (if applicable)
- 		if ($replyToKey != false && !empty($replyToKey)) $Email->attachments(array('gpgkey.asc' => array('data' => $replyToKey)));
- 		
- 		$Email->from(Configure::read('MISP.email'));
- 		$Email->to($email);
- 		$Email->subject($subject);
- 		$Email->emailFormat('text');
- 		$response = $Email->send($body);
- 		$Email->reset();
- 		
-		debug($response['headers']);
-		debug($response['message']);
+			$failed = true;
+		}
+		
+		// If we cannot encrypt the mail and the server settings restricts sending unencrypted messages, return false 
+		if (!$failed && !$canEncrypt && Configure::read('GnuPG.onlyencrypted')) {
+			$failed = true;
+			$failureReason = " encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.";
+		}
+		
+		// Let's encrypt the message if we can
+		if (!$failed && $canEncrypt) {
+			$keyImportOutput = $gpg->importKey($user['User']['gpgkey']);
+			try {
+			$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
+				$body = $gpg->encrypt($body, true);
+			} catch (Exception $e){
+				// despite the user having a PGP key and the signing already succeeding earlier, we get an exception. This must mean that there is an issue with the user's key.
+				$failureReason = " the message could not be encrypted because there was an issue with the user's PGP key. The following error message was returned by gpg: " . $e->getMessage();
+				$this->log($e->getMessage());
+				$failed = true;
+			}
+		}
+		$replyToLog = '';
+		if (!$failed) {
+			$Email = new CakeEmail();
+			
+			// If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender
+			// For this reason we should also attach the public key of the sender along with the message (if applicable)
+			if ($replyToUser != false) {
+				$Email->replyTo($replyToUser['User']['email']);
+				if (!empty($replyToUser['User']['gpgkey'])) $Email->attachments(array('gpgkey.asc' => array('data' => $replyToUser['User']['gpgkey'])));
+				$replyToLog = 'from ' . $replyToUser['User']['email'];
+			}
+			$Email->from(Configure::read('MISP.email'));
+			$Email->to($user['User']['email']);
+			$Email->subject($subject);
+			$Email->emailFormat('text');
+			$result = $Email->send($body);
+			$Email->reset();
+			debug($result['headers']);
+			debug($result['message']);
+		}
+		$this->Log = ClassRegistry::init('Log');
+		$this->Log->create();
+		if (!$failed && $result) {
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'User',
+					'model_id' => $user['User']['id'],
+					'email' => $user['User']['email'],
+					'action' => 'email',
+					'title' => 'Email ' . $replyToLog  . ' to ' . $user['User']['email'] . ' sent, titled "' . $subject . '".',
+					'change' => null,
+			));
+			return true;
+		} else {
+			if (isset($result) && !$result) $failureReason = " there was an error sending the e-mail.";
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'User',
+					'model_id' => $user['User']['id'],
+					'email' => $user['User']['email'],
+					'action' => 'email',
+					'title' => 'Email ' . $replyToLog  . ' to ' . $user['User']['email'] . ', titled "' . $subject . ' failed. Reason: ' . $failureReason,
+					'change' => null,
+			));
+		}
+		return false;
 	}
 }

@@ -805,11 +805,9 @@ class UsersController extends AppController {
 	}
 
 	public function admin_email() {
-		if (!$this->_isSiteAdmin()) {
-			throw new MethodNotAllowedException();
-		}
-		$this->User->recursive = 0;
-		$temp = $this->User->find('all', array('fields' => array('email', 'gpgkey'), 'order' => array('email ASC')));
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		$this->User->recursive = -1;
+		$temp = $this->User->find('all', array('fields' => array('id', 'email', 'gpgkey'), 'order' => array('email ASC')));
 		$emails = array();
 		$gpgKeys = array();
 		// save all the emails of the users and set it for the dropdown list in the form
@@ -817,6 +815,7 @@ class UsersController extends AppController {
 			array_push($emails, $user['User']['email']);
 			array_push($gpgKeys, $user['User']['gpgkey']);
 		}
+		$this->set('users', $temp);
 		$this->set('recipientEmail', $emails);
 
 		// User has filled in his contact form, send out the email.
@@ -825,6 +824,7 @@ class UsersController extends AppController {
 			$message2 = null;
 			$recipients = array();
 			$messageP = array();
+			
 			// Formulating the message and the subject that will be common to the e-mail(s) sent
 			if ($this->request->data['User']['action'] == '0') {
 				// Custom message
@@ -922,28 +922,7 @@ class UsersController extends AppController {
 
 				// send it
 				$result = $this->Email->send();
-				$this->Log->create();
-				if ($result) {
-					$this->Log->save(array(
-							'org' => $this->Auth->user('org'),
-							'model' => 'User',
-							'model_id' => $this->Auth->user('id'),
-							'email' => $this->Auth->user('email'),
-							'action' => 'admin_email',
-							'title' => 'Admin email to ' . $recipients[$i] . ' sent, titled "' . $subject . '".',
-							'change' => null,
-					));
-				} else {
-					$this->Log->save(array(
-							'org' => $this->Auth->user('org'),
-							'model' => 'User',
-							'model_id' => $this->Auth->user('id'),
-							'email' => $this->Auth->user('email'),
-							'action' => 'admin_email',
-							'title' => 'Admin email to ' . $recipients[$i] . ' failed.',
-							'change' => null,
-					));
-				}
+
 
 				// if sending successful and action was a password change, update the user's password.
 				if ($result && $this->request->data['User']['action'] == '1') {

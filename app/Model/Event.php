@@ -1193,7 +1193,7 @@ class Event extends AppModel {
 		$max = count($alertUsers);
 
 		foreach ($alertUsers as $k => &$user) {
-			$this->User->sendEmail($user['User']['email'], array('gpgkey' => $user['User']['gpgkey']), $body, $bodyNoEnc, $subject);
+			$this->User->sendEmail($user, $body, $bodyNoEnc, $subject);
 			if ($processId) {
 				$this->Job->id = $processId;
 				$this->Job->saveField('progress', $k / $max * 100);
@@ -1201,7 +1201,6 @@ class Event extends AppModel {
 		}
 	 	if ($processId) $this->Job->saveField('message', 'Mails sent.');
 	 	// LATER check if sending email succeeded and return appropriate result
-	 	throw new Exception();
 	 	return true;
 	}
 	
@@ -1274,14 +1273,13 @@ class Event extends AppModel {
 		}
 		$bodyevent .= "\n";
 		$bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
-		
 		foreach ($orgMembers as &$reporter) {
 			$bodyNoEnc = false;
 			if (Configure::read('GnuPG.bodyonlyencrypted') && empty($reporter['User']['gpgkey'])) {
 				$bodyNoEnc = $body;
 			}
 			$subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - TLP Amber";
-			$result = $this->User->sendEmail($reporter['User']['email'], array('gpgkey' => $reporter['User']['gpgkey']), $bodyevent, $bodyNoEnc, $subject, $user['User']['email'], $user['User']['gpgkey']);
+			$result = $this->User->sendEmail($reporter, $bodyevent, $bodyNoEnc, $subject, $user);
 		}
 		return $result;
 	}
