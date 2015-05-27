@@ -485,8 +485,6 @@ class User extends AppModel {
 			$Email->emailFormat('text');
 			$result = $Email->send($body);
 			$Email->reset();
-			debug($result['headers']);
-			debug($result['message']);
 		}
 		$this->Log = ClassRegistry::init('Log');
 		$this->Log->create();
@@ -509,10 +507,19 @@ class User extends AppModel {
 					'model_id' => $user['User']['id'],
 					'email' => $user['User']['email'],
 					'action' => 'email',
-					'title' => 'Email ' . $replyToLog  . ' to ' . $user['User']['email'] . ', titled "' . $subject . ' failed. Reason: ' . $failureReason,
+					'title' => 'Email ' . $replyToLog  . ' to ' . $user['User']['email'] . ', titled "' . $subject . '" failed. Reason: ' . $failureReason,
 					'change' => null,
 			));
 		}
 		return false;
+	}
+	
+	public function adminMessageResolve($message) {
+		$resolveVars = array('$contact' => 'MISP.contact', '$org' => 'MISP.org', '$misp' => 'MISP.baseurl');
+		foreach ($resolveVars as $k => $v) {
+			$v = Configure::read($v);
+			$message = str_replace($k, $v, $message);
+		}
+		return $message;
 	}
 }
