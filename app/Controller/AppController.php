@@ -73,6 +73,7 @@ class AppController extends Controller {
 				//'authorize' => array('Controller', // Added this line
 				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
 				),
+			'Security'
 	);
 	
 	public $mispVersion = '2.3.0';
