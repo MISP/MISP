@@ -35,6 +35,7 @@ $config = array (
     'email' => '',
     'homedir' => '',
     'password' => '',
+    'bodyonlyencrypted' => false,
   ),
   'Proxy' =>
   array (

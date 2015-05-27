@@ -805,165 +805,91 @@ class UsersController extends AppController {
 	}
 
 	public function admin_email() {
-		if (!$this->_isSiteAdmin()) {
-			throw new MethodNotAllowedException();
+		if (!$this->_isAdmin()) throw new MethodNotAllowedException();
+		// User has filled in his contact form, send out the email.
+		if ($this->request->is('post') || $this->request->is('put')) {
+			$conditions = array();
+			if (!$this->_isSiteAdmin()) $conditions = array('org' => $this->Auth->user('org'));
+			if ($this->request->data['User']['recipient'] != 1) $conditions['id'] = $this->request->data['User']['recipientEmailList'];
+			$users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
+			$this->request->data['User']['message'] = $this->User->adminMessageResolve($this->request->data['User']['message']);
+			$failures = '';
+			foreach ($users as $user) {
+				$password = $this->User->generateRandomPassword();
+				$body = str_replace('$password', $password, $this->request->data['User']['message']);
+				$body = str_replace('$username', $user['User']['email'], $body);
+				$result = $this->User->sendEmail($user, $body, false, $this->request->data['User']['subject']);
+				// if sending successful and action was a password change, update the user's password.
+				if ($result && $this->request->data['User']['action'] != '0') {
+					$this->User->id = $user['User']['id'];
+					$this->User->saveField('password', $password);
+					$this->User->saveField('change_pw', '1');
+				}
+				if (!$result) {
+					if ($failures != '') $failures .= ', ';
+					$failures .= $user['User']['email'];
+				}
+			}
+			if ($failures != '') $this->Session->setFlash(__('E-mails sent, but failed to deliver the messages to the following recipients: ' . $failures));
+			else $this->Session->setFlash(__('E-mails sent.'));
 		}
-		$this->User->recursive = 0;
-		$temp = $this->User->find('all', array('fields' => array('email', 'gpgkey'), 'order' => array('email ASC')));
+		$conditions = array();
+		if (!$this->_isSiteAdmin()) $conditions = array('org' => $this->Auth->user('org'));
+		$temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email'), 'order' => array('email ASC'), 'conditions' => $conditions));
 		$emails = array();
 		$gpgKeys = array();
 		// save all the emails of the users and set it for the dropdown list in the form
 		foreach ($temp as $user) {
-			array_push($emails, $user['User']['email']);
-			array_push($gpgKeys, $user['User']['gpgkey']);
+			$emails[$user['User']['id']] = $user['User']['email'];
 		}
+		$this->set('users', $temp);
 		$this->set('recipientEmail', $emails);
-
-		// User has filled in his contact form, send out the email.
-		if ($this->request->is('post') || $this->request->is('put')) {
-			$message1 = null;
-			$message2 = null;
-			$recipients = array();
-			$messageP = array();
-			// Formulating the message and the subject that will be common to the e-mail(s) sent
-			if ($this->request->data['User']['action'] == '0') {
-				// Custom message
-				$subject = $this->request->data['User']['subject'];
-				$message1 .= $this->request->data['User']['message'];
-			} else {
-				// Temp password
-				if ($this->request->data['User']['customMessage']) {
-					$message1 .= $this->request->data['User']['message'];
-				} else {
-					$message1 .= "Dear MISP user,\n\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at ";
-					$message1 .= Configure::read('MISP.baseurl');
-					$message1 .= ", where you will be prompted to manually change your password to something of your own choice.";
-				}
-				//$message .= "\n\nYour temporary password: " . $password;
-				$subject = 'Password reset on ' . Configure::read('MISP.org') . ' MISP';
-			}
-			if (Configure::read('MISP.contact')) {
-				$message2 .= "\n\nIf you have any questions, contact us at: " . Configure::read('MISP.contact') . ".";
-			}
-			$message2 .= "\n\nBest Regards,\n" . Configure::read('MISP.org') . ' MISP support';
-
-			// Return an error message if the action is a password reset for a new user
-
-			if ($this->request->data['User']['recipient'] == 2 && $this->request->data['User']['action'] == '1') {
-				$this->Session->setFlash(__('Cannot reset the password of a user that doesn\'t exist.'));
-				$this->redirect(array('action' => 'email', 'admin' => true));
-			}
-
-			// Setting up the list of recipient(s) based on the setting and creating the final message for each user, including the password
-			// If the recipient is all users, and the action to create a password, create it and for each user and squeeze it between the main message and the signature
-			if ($this->request->data['User']['recipient'] == 0) {
-				$recipients = $emails;
-				$recipientGPG = $gpgKeys;
-				if ($this->request->data['User']['action'] == '1') {
-					$i = 0;
-					foreach ($recipients as $rec) {
-						$password = $this->User->generateRandomPassword();
-						$messageP = "\n\nYour temporary password: " . $password;
-						$message[$i] = $message1 . $messageP . $message2;
-						$recipientPass[$i] = $password;
-						$i++;
-					}
-				} else {
-					$i = 0;
-					foreach ($recipients as $rec) {
-						$message[$i] = $message1;
-						$i++;
-					}
-				}
-			}
-			// If the recipient is a user, and the action to create a password, create it and squeeze it between the main message and the signature
-			if ($this->request->data['User']['recipient'] == 1) {
-				$recipients[0] = $emails[$this->request->data['User']['recipientEmailList']];
-				$recipientGPG[0] = $gpgKeys[$this->request->data['User']['recipientEmailList']];
-				if ($this->request->data['User']['action'] == '1') {
-					$password = $this->User->generateRandomPassword();
-					$message[0] = $message1 . "\n\nYour temporary password: " . $password . $message2;
-					$recipientPass[0] = $password;
-				} else {
-					$message[0] = $message1;
-				}
-			}
-
-			require_once 'Crypt/GPG.php';
-			$i = 0;
-			$this->Log = ClassRegistry::init('Log');
-			foreach ($recipients as $recipient) {
-				if (!empty($recipientGPG[$i])) {
-					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
-					$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-					$messageSigned = $gpg->sign($message[$i], Crypt_GPG::SIGN_MODE_CLEAR);
-					$keyImportOutput = $gpg->importKey($recipientGPG[$i]);
-					try {
-						$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-						$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-
-						$encryptedMessage = $gpg->encrypt($messageSigned, true);
-					} catch (Exception $e){
-						// catch errors like expired PGP keys
-						$this->log($e->getMessage());
-						// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
-					}
-				} else {
-					$encryptedMessage = $message[$i];
-				}
-				// prepare the email
-				$this->Email->from = Configure::read('MISP.email');
-				$this->Email->to = $recipients[$i];
-				$this->Email->subject = $subject;
-				//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
-				$this->Email->template = 'body';
-				$this->Email->sendAs = 'text';		// both text or html
-				$this->set('body', $encryptedMessage);
-
-				// send it
-				$result = $this->Email->send();
-				$this->Log->create();
-				if ($result) {
-					$this->Log->save(array(
-							'org' => $this->Auth->user('org'),
-							'model' => 'User',
-							'model_id' => $this->Auth->user('id'),
-							'email' => $this->Auth->user('email'),
-							'action' => 'admin_email',
-							'title' => 'Admin email to ' . $recipients[$i] . ' sent, titled "' . $subject . '".',
-							'change' => null,
-					));
-				} else {
-					$this->Log->save(array(
-							'org' => $this->Auth->user('org'),
-							'model' => 'User',
-							'model_id' => $this->Auth->user('id'),
-							'email' => $this->Auth->user('email'),
-							'action' => 'admin_email',
-							'title' => 'Admin email to ' . $recipients[$i] . ' failed.',
-							'change' => null,
-					));
-				}
-
-				// if sending successful and action was a password change, update the user's password.
-				if ($result && $this->request->data['User']['action'] == '1') {
-					$this->User->recursive = 0;
-					$temp = $this->User->findByEmail($recipients[$i]);
-					$this->User->id = $temp['User']['id'];
-					$this->User->read();
-					$this->User->saveField('password', $recipientPass[$i]);
-					$this->User->saveField('change_pw', '1');
-				}
-				// If you wish to send multiple emails using a loop, you'll need
-				// to reset the email fields using the reset method of the Email component.
-				$this->Email->reset();
-				$i++;
-			}
-			$this->Session->setFlash(__('E-mails sent.'));
+		$this->set('org', Configure::read('MISP.org'));
+		$textsToFetch = array('newUserText', 'passwordResetText');
+		$this->loadModel('Server');
+		foreach ($textsToFetch as $text) {
+			${$text} = Configure::read('MISP.' . $text);
+			if (!${$text}) ${$text} = $this->Server->serverSettings['MISP'][$text]['value'];
+			$this->set($text, ${$text});
 		}
-		// User didn't see the contact form yet. Present it to him.
 	}
 
+	public function initiatePasswordReset($id, $firstTime = false) {
+		if (!$this->_isAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
+		$user = $this->User->find('first', array(
+			'conditions' => array('id' => $id),
+			'recursive' => -1
+		));
+		if (!$this->_isSiteAdmin() && $this->Auth->user('org') != $user['User']['org']) throw new MethodNotAllowedException('You are not authorised to do that.');
+		if ($this->request->is('post')) {
+			$org = Configure::read('MISP.org');
+			$options = array('passwordResetText', 'newUserText');
+			$subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
+			$textToFetch = $options[($firstTime ? 1 : 0)];
+			$subject = $subjects[($firstTime ? 1 : 0)]; 
+			$this->loadModel('Server');
+			$body = Configure::read('MISP.' . $textToFetch);
+			if (!$body) $body = $this->Server->serverSettings['MISP'][$textToFetch]['value'];
+			$body = $this->User->adminMessageResolve($body);
+			$password = $this->User->generateRandomPassword();
+			$body = str_replace('$password', $password, $body);
+			$body = str_replace('$username', $user['User']['email'], $body);
+			$result = $this->User->sendEmail($user, $body, false, $subject);
+			if ($result) {
+				$this->User->id = $user['User']['id'];
+				$this->User->saveField('password', $password);
+				$this->User->saveField('change_pw', '1');
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'New credentials sent.')),'status'=>200));
+			}
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'There was an error notifying the user. His/her credentials were not altered.')),'status'=>200));
+		} else {
+			$this->layout = 'ajax';
+			$this->set('user', $user);
+			$this->set('firstTime', $firstTime);
+			$this->render('ajax/passwordResetConfirmationForm');
+		}
+	}
+	
 	// shows some statistics about the instance
 	public function statistics() {
 		

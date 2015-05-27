@@ -73,11 +73,13 @@ class AppController extends Controller {
 				//'authorize' => array('Controller', // Added this line
 				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
 				),
+			'Security'
 	);
 	
 	public $mispVersion = '2.3.0';
 	
 	public function beforeFilter() {
+		$this->Security->blackHoleCallback = 'blackHole';
 		// send users away that are using ancient versions of IE
 		// Make sure to update this if IE 20 comes out :)
 		if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
@@ -192,6 +194,11 @@ class AppController extends Controller {
 		$this->set('mispVersion', $this->mispVersion);
 	}
 
+	public function blackhole($type) {
+		if ($type === 'csrf') throw new BadRequestException(__d('cake_dev', $type));
+		throw new BadRequestException(__d('cake_dev', 'The request has been black-holed'));
+	}
+	
 	public $userRole = null;
 
 	protected function _isJson($data=false){

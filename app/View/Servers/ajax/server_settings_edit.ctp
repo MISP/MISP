@@ -25,8 +25,10 @@
 				'div' => false
 		));
 	} else {
+		$type = 'text';
+		if (isset($setting['bigField'])) $type = 'textarea';
 		echo $this->Form->input('value', array(
-				'type' => 'text',
+				'type' => $type,
 				'label' => false,
 				'value' => $setting['value'],
 				'error' => array('escape' => false),
