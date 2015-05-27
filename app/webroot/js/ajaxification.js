@@ -63,6 +63,37 @@ function submitDeletion(context_id, action, type, id) {
 	});
 }
 
+function initiatePasswordReset(id) {
+	$.get( "/users/initiatePasswordReset/" + id, function(data) {
+		$("#confirmation_box").fadeIn();
+		$("#gray_out").fadeIn();
+		$("#confirmation_box").html(data);
+	});
+}
+
+function submitPasswordReset(id) {
+	var formData = $('#PromptForm').serialize();
+	var url = "/users/initiatePasswordReset/" + id;
+	if ($('#firstTime').is(":checked")) url += "/true";
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		data: formData, 
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+		}, 
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+		},
+		type:"post", 
+		cache: false,
+		url:url,
+	});
+}
+
 function acceptObject(type, id, event) {
 	name = '#ShadowAttribute_' + id + '_accept';
 	var formData = $(name).serialize();
@@ -287,6 +318,7 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 }
 
 function handleGenericAjaxResponse(data) {
+	console.log(data);
 	if (typeof data == 'string') {
 		responseArray = JSON.parse(data);
 	} else {
