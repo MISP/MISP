@@ -152,6 +152,7 @@ cp -a config.default.php config.php
 # require_once dirname(__DIR__) . '/Vendor/autoload.php';
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
+# The salt key must be an at least 32 byte long string.
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
 # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt, 
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
@@ -165,7 +166,7 @@ mkdir /var/www/MISP/.gnupg
 chown www-data:www-data /var/www/MISP/.gnupg
 chmod 700 /var/www/MISP/.gnupg
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
-# Recommended key type: RSA
+
 # The email address should match the one set in the config.php configuration file
 # Make sure that you use the same settings in the MISP Server Settings tool (Described on line 184)
 

@@ -1495,11 +1495,6 @@ class AttributesController extends AppController {
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
 	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags=false, $from=false, $to=false) {
 		if ($tags) $tags = str_replace(';', ':', $tags);
-		if ($tags === 'null') $tags = null;
-		if ($value === 'null') $value = null;
-		if ($type === 'null') $type = null;
-		if ($category === 'null') $category = null;
-		if ($org === 'null') $org = null;
 		if ($key!=null && $key!='download') {
 			$user = $this->checkAuthUser($key);
 		} else {
@@ -1530,6 +1525,13 @@ class AttributesController extends AppController {
 				else ${$p} = null;
 			}
 		}
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
+
+		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
+		if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
 		if (!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') {
 			$this->response->type('xml');	// set the content type
 			$this->layout = 'xml/default';
@@ -1768,8 +1770,8 @@ class AttributesController extends AppController {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
 		if ($type === 'null' || $type === '0' || $type === 'false') $type = 'all';
-		if ($from && !preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/', $from)) $from = false;
-		if ($to && !preg_match('/^[0-9]{4}-[l0-9]{2}-[0-9]{2}$/', $from)) $from = false;
+		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
+		if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);

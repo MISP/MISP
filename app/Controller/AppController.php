@@ -73,11 +73,13 @@ class AppController extends Controller {
 				//'authorize' => array('Controller', // Added this line
 				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
 				),
+			'Security'
 	);
 	
 	public $mispVersion = '2.3.0';
 	
 	public function beforeFilter() {
+		$this->Security->blackHoleCallback = 'blackHole';
 		// send users away that are using ancient versions of IE
 		// Make sure to update this if IE 20 comes out :)
 		if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
@@ -87,28 +89,58 @@ class AppController extends Controller {
 			// disable CSRF for REST access
 			if (array_key_exists('Security', $this->components))
 				$this->Security->csrfCheck = false;
-
 			// Authenticate user with authkey in Authorization HTTP header
 			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
-				$user = $this->checkAuthUser($_SERVER['HTTP_AUTHORIZATION']);
-				if ($user) {
-				    // User found in the db, add the user info to the session
-				    $this->Session->renew();
-				    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
-				} else {
-					// User not authenticated correctly
-					// reset the session information
-					$this->Session->destroy();
-					throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
+				$found_misp_auth_key = false;
+				$authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
+				$user = false;
+				foreach ($authentication as $auth_key) {
+					if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
+						$found_misp_auth_key = true;
+						$user = $this->checkAuthUser(trim($auth_key));
+						continue;
+					}
+				}
+				if ($found_misp_auth_key) {
+					if ($user) {
+						unset($user['User']['gpgkey']);
+					    // User found in the db, add the user info to the session
+					    $this->Session->renew();
+					    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+					} else {
+						// User not authenticated correctly
+						// reset the session information
+						$this->Session->destroy();
+						throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
+					}
+					unset($user);
 				}
 			}
+		} else if(!$this->Session->read(AuthComponent::$sessionKey)) {
+			// load authentication plugins from Configure::read('Security.auth')
+			$auth = Configure::read('Security.auth');
+			if($auth) {
+				$this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
+				if($this->Auth->startup($this)) {
+					$user = $this->Auth->user();
+					if ($user) {
+						unset($user['gpgkey']);
+						// User found in the db, add the user info to the session
+						$this->Session->renew();
+						$this->Session->write(AuthComponent::$sessionKey, $user);
+					}
+					unset($user);
+				}
+			}
+			unset($auth);
 		}
+
 		// user must accept terms
 		//
-		if ($this->Session->check('Auth.User') && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
+		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
 		    $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 		}
-		if ($this->Session->check('Auth.User') && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
+		if ($this->Session->check(AuthComponent::$sessionKey) && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
 		    $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
 		}
 
@@ -162,9 +194,15 @@ class AppController extends Controller {
 		$this->set('mispVersion', $this->mispVersion);
 	}
 
+	public function blackhole($type) {
+		if ($type === 'csrf') throw new BadRequestException(__d('cake_dev', $type));
+		throw new BadRequestException(__d('cake_dev', 'The request has been black-holed'));
+	}
+	
 	public $userRole = null;
 
-	protected function _isJson(){
+	protected function _isJson($data=false){
+		if ($data) return (json_decode($data) != NULL) ? true : false;
 		return $this->request->header('Accept') === 'application/json';
 	}
 
