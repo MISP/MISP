@@ -72,6 +72,7 @@ php composer.phar install
 # CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis
 pecl install redis
 apt-get install php5-redis
+# Note that the php5-redis package in Debian stable (wheezy) only exists in the backports repository: http://backports.debian.org/Instructions/
 # After installing it, enable it in your php.ini file
 vim /etc/php5/apache2/php.ini
 # add the following line:
