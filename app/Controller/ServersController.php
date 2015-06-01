@@ -525,7 +525,8 @@ class ServersController extends AppController {
 		}
 		if ($this->request->is('get')) {
 			if ($found != null) {
-				$found['value'] = Configure::read($setting);
+				$value = Configure::read($setting);
+				if ($value) $found['value'] = $value;
 				$found['setting'] = $setting;
 			}
 			$this->set('setting', $found);

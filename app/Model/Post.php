@@ -54,12 +54,12 @@ class Post extends AppModel {
 
 		// If the post belongs to an event, E-mail all users in the org that have contactalert set
 		if ($event_id) {
-			$Event = new Event();
-			$event = $Event->read(null, $event_id);
+			$this->Event = ClassRegistry::init('Event');;
+			$event = $this->Event->read(null, $event_id);
 			//Insert extra field here: alertOrg or something, then foreach all the org members
 			//limit this array to users with contactalerts turned on!
 			$orgMembers = array();
-			$this->User->recursive = 0;
+			$this->User->recursive = -1;
 			$temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert', 'id'));
 			foreach ($temp as $tempElement) {
 				if ($tempElement['User']['id'] != $user_id && ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id'])) {
@@ -107,49 +107,9 @@ class Post extends AppModel {
 		$bodyDetail .= "The following message was added: \n";
 		$bodyDetail .= "\n";
 		$bodyDetail .= $message . "\n";
-
-		// LATER place event-to-email-layout in a function
-		$Email = new CakeEmail();
-		// sign the body
-		require_once 'Crypt/GPG.php';
-		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
-		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-		$bodySigned = $gpg->sign($body,Crypt_GPG::SIGN_MODE_CLEAR);
-		$bodyDetailSigned = $gpg->sign($bodyDetail,Crypt_GPG::SIGN_MODE_CLEAR);
-		$result = false;
+		$subject = "[" . Configure::read('MISP.org') . " MISP] New post in discussion " . $post['Post']['thread_id'] . " - TLP Amber";
 		foreach ($orgMembers as &$recipient) {
-			if (!empty($recipient['User']['gpgkey'])) {
-				// import the key of the user into the keyring
-				// this isn't really necessary, but it gives it the fingerprint necessary for the next step
-				$keyImportOutput = $gpg->importKey($recipient['User']['gpgkey']);
-				// say what key should be used to encrypt
-				try {
-				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-				$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-				$bodyEncSig = $gpg->encrypt($bodyDetailSigned, true);
-				} catch (Exception $e){
-				// catch errors like expired PGP keys
-					$this->log($e->getMessage());
-					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
-				}
-			} elseif (Configure::read('GnuPG.onlyencrypted')) {
-				continue;
-			} elseif (Configure::read('GnuPG.bodyonlyencrypted')) {
-				$bodyEncSig = $bodySigned;
-			} else {
-				$bodyEncSig = $bodyDetailSigned;
-			}
-			$Email->from(Configure::read('MISP.email'));
-			$Email->to($recipient['User']['email']);
-			$Email->subject("[" . Configure::read('MISP.org') . " MISP] New post in discussion " . $post['Post']['thread_id'] . " - TLP Amber");
-			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
-			$Email->emailFormat('text');		// both text or html
-
-			// send it
-			$result = $Email->send($bodyEncSig);
-			// If you wish to send multiple emails using a loop, you'll need
-			// to reset the email fields using the reset method of the Email component.
-			$Email->reset();
+			$result = $this->User->sendEmail($recipient, $bodyDetail, $body, $subject);
 		}
 		return $result;
 	}

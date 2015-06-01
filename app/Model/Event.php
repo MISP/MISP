@@ -1170,6 +1170,8 @@ class Event extends AppModel {
 		} else {
 			$subject = '';
 		}
+		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber";
+		
 		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$body .= '==============================================' . "\n";
 		// find out whether the event is private, to limit the alerted user's list to the org only
@@ -1178,105 +1180,28 @@ class Event extends AppModel {
 		} else {
 			$eventIsPrivate = false;
 		}
-		// sign the body
-		require_once 'Crypt/GPG.php';
-		try {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
-			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-			if (Configure::read('GnuPG.bodyonlyencrypted')) {
-				$bodySigned = $gpg->sign("A new or modified event was just published on " . Configure::read('MISP.baseurl') . "/events/view/" . $event['Event']['id'], Crypt_GPG::SIGN_MODE_CLEAR);
-			} else {
-				$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-			}
-			//
-			// Build a list of the recipients that get a non-encrypted mail
-			// But only do this if it is allowed in the bootstrap.php file.
-			//
-			if ($eventIsPrivate) {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "", 'User.org =' => $event['Event']['org']);
-			} else {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "");
-			}
-			if (!Configure::read('GnuPG.onlyencrypted')) {
-				$alertUsers = $this->User->find('all', array(
-						'conditions' => $conditions,
-						'recursive' => 0,
-				));
-				$max = count($alertUsers);
-				foreach ($alertUsers as $k => &$user) {
-				// prepare the the unencrypted email
-					$Email = new CakeEmail();
-					$Email->from(Configure::read('MISP.email'));
-					$Email->to($user['User']['email']);
-					$Email->subject("[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
-					$Email->emailFormat('text');	// both text or html
-					// send it
-					$Email->send($bodySigned);
-					$Email->reset();
-					if ($processId) {
-						$this->Job->id = $processId;
-						$this->Job->saveField('progress', $k / $max * 50);
-					}
-				}
-			}
 
-			if (Configure::read('GnuPG.bodyonlyencrypted')) {
-				$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+		$bodyNoEnc = "A new or modified event was just published on " . Configure::read('MISP.baseurl') . "/events/view/" . $event['Event']['id'];
+		
+		$conditions = array('User.autoalert' => 1);
+		if ($eventIsPrivate) $conditions['User.org'] = $event['Event']['org'];
+
+		$alertUsers = $this->User->find('all', array(
+				'conditions' => $conditions,
+				'recursive' => -1,
+		));
+		$max = count($alertUsers);
+
+		foreach ($alertUsers as $k => &$user) {
+			$this->User->sendEmail($user, $body, $bodyNoEnc, $subject);
+			if ($processId) {
+				$this->Job->id = $processId;
+				$this->Job->saveField('progress', $k / $max * 100);
 			}
-			//
-			// Build a list of the recipients that wish to receive encrypted mails.
-			//
-			if ($eventIsPrivate) {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "", 'User.org =' => $event['Event']['org']);
-			} else {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "");
-			}
-	 		$alertUsers = $this->User->find('all', array(
-	 				'conditions' => $conditions,
-	 				'recursive' => 0,
-	 			)
-			);
-	 		$max = count($alertUsers);
- 			// encrypt the mail for each user and send it separately
- 			foreach ($alertUsers as $k => &$user) {
- 				// send the email
- 				$Email = new CakeEmail();
- 				$Email->from(Configure::read('MISP.email'));
- 				$Email->to($user['User']['email']);
-				$Email->subject("[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
- 				$Email->emailFormat('text');		// both text or html
-  					// import the key of the user into the keyring
- 				// this is not really necessary, but it enables us to find
- 				// the correct key-id even if it is not the same as the emailaddress
- 				$keyImportOutput = $gpg->importKey($user['User']['gpgkey']);
- 				// say what key should be used to encrypt
- 				try {
- 					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
- 					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-  						$bodyEncSig = $gpg->encrypt($bodySigned, true);
- 						$Email->send($bodyEncSig);
- 				} catch (Exception $e){
- 					// catch errors like expired PGP keys
- 					$this->log($e->getMessage());
- 					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
- 				}
- 				// If you wish to send multiple emails using a loop, you'll need
- 				// to reset the email fields using the reset method of the Email component.
- 				$Email->reset();
- 				if ($processId) {
- 					$this->Job->saveField('progress', ($k / $max * 50) + 50);
- 				}
- 			}
-		} catch (Exception $e){
- 			// catch errors like expired PGP keys
-			$this->log($e->getMessage());
- 			return $e->getMessage();
- 		}
- 	if ($processId) {
- 		$this->Job->saveField('message', 'Mails sent.');
- 	}
- 	// LATER check if sending email succeeded and return appropriate result
- 	return true;
+		}
+	 	if ($processId) $this->Job->saveField('message', 'Mails sent.');
+	 	// LATER check if sending email succeeded and return appropriate result
+	 	return true;
 	}
 	
 	public function sendContactEmail($id, $message, $all, $user, $isSiteAdmin) {
@@ -1287,7 +1212,7 @@ class Event extends AppModel {
 			//Insert extra field here: alertOrg or something, then foreach all the org members
 			//limit this array to users with contactalerts turned on!
 			$orgMembers = array();
-			$this->User->recursive = 0;
+			$this->User->recursive = -1;
 			$temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert', 'id'));
 			foreach ($temp as $tempElement) {
 				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
@@ -1348,71 +1273,14 @@ class Event extends AppModel {
 		}
 		$bodyevent .= "\n";
 		$bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
-		$Email = new CakeEmail();
-		// sign the body
-		require_once 'Crypt/GPG.php';
-		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
-		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-		$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-		$bodyeventSigned = $gpg->sign($bodyevent, Crypt_GPG::SIGN_MODE_CLEAR);
-		// Add the GPG key of the user as attachment
-		// LATER sign the attached GPG key
-		if ($user['User']['gpgkey'] != null) {
-			// save the gpg key to a temporary file
-			$tmpfname = tempnam(TMP, "GPGkey");
-			$handle = fopen($tmpfname, "w");
-			fwrite($handle, $user['User']['gpgkey']);
-			fclose($handle);
-			// attach it
-			$Email->attachments(array(
-					'gpgkey.asc' => $tmpfname
-			));
-		}
 		foreach ($orgMembers as &$reporter) {
-			if (!empty($reporter['User']['gpgkey'])) {
-				// import the key of the user into the keyring
-				// this isn't really necessary, but it gives it the fingerprint necessary for the next step
-				$keyImportOutput = $gpg->importKey($reporter['User']['gpgkey']);
-				// say what key should be used to encrypt
-				try {
-				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-				$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-	
-				$bodyEncSig = $gpg->encrypt($bodyeventSigned, true);
-				} catch (Exception $e){
-				// catch errors like expired PGP keys
-					$this->log($e->getMessage());
-					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
-				}
-			} elseif (Configure::read('GnuPG.bodyonlyencrypted')) {
-				$bodyEncSig = $bodySigned;
-			} else {
-				$bodyEncSig = $bodyeventSigned;
-				// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
+			$bodyNoEnc = false;
+			if (Configure::read('GnuPG.bodyonlyencrypted') && empty($reporter['User']['gpgkey'])) {
+				$bodyNoEnc = $body;
 			}
-			$Email->from(Configure::read('MISP.email'));
-			$Email->replyTo($user['User']['email']);
-			$Email->to($reporter['User']['email']);
-			$Email->subject("[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - TLP Amber");
-			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
-			$Email->emailFormat('text');		// both text or html
-
-			// Add the GPG key of the user as attachment
-			// LATER sign the attached GPG key
-			if ($user['User']['gpgkey'] != null) {
-				// attach the gpg key
-				$Email->attachments(array(
-					'gpgkey.asc' => $tmpfname
-				));
-			}
-			// send it
-			$result = $Email->send($bodyEncSig);
-			// If you wish to send multiple emails using a loop, you'll need
-			// to reset the email fields using the reset method of the Email component.
-			$Email->reset();
+			$subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - TLP Amber";
+			$result = $this->User->sendEmail($reporter, $bodyevent, $bodyNoEnc, $subject, $user);
 		}
-		// remove the temporary gpg file
-		if ($user['User']['gpgkey'] != null) unlink($tmpfname);
 		return $result;
 	}
 	

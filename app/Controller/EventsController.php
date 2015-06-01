@@ -977,6 +977,8 @@ class EventsController extends AppController {
 			}
 		}
 
+		$this->request->data['Event']['date'] = date('Y-m-d');
+		
 		// combobox for distribution
 		$distributions = array_keys($this->Event->distributionDescriptions);
 		$distributions = $this->_arrayToValuesIndexArray($distributions);

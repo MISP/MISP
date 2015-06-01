@@ -1,8 +1,3 @@
-<script>
-function showMessage(){
-	document.getElementById("messageDiv").style.display="none"){
-}
-</script>
 <div class="events form">
 <?php echo $this->Form->create('User');?>
 	<fieldset>
@@ -19,8 +14,8 @@ function showMessage(){
 		</ul>
 		<?php
 		// This choice will determine
-		$actionOptions=array('Custom message', 'Send temporary password');
-		$recipientOptions=array('All existing users', 'An existing user', 'New user');
+		$actionOptions=array('Custom message', 'Welcome message', 'Reset password');
+		$recipientOptions=array('A single user', 'All users');
 		?>
 		<div class="row-fluid">
 			<?php echo $this->Form->input('action', array('type' => 'select', 'options' => $actionOptions, 'id' => 'action')); ?>
@@ -30,31 +25,25 @@ function showMessage(){
 		</div>
 		<div class="row-fluid">
 			<?php echo $this->Form->input('recipient', array('type' => 'select', 'options' => $recipientOptions, 'id' => 'recipient'));	?>
-			<div id="recipientEmail">
-				<?php echo $this->Form->input('recipientEmail', array('type' => 'text', 'label' => 'Recipient Email', 'style' => 'width:300px;')); ?>
-			</div>
-			<div id="recipientEmailList">
+			<div id="recipientEmailList" class="hideAble">
 				<?php echo $this->Form->input('recipientEmailList', array('type' => 'select', 'options' => $recipientEmail, 'label' => 'Recipient Email')); ?>
 			</div>
 		</div>
-		<div id="gpg" class="row-fluid">
-			<?php echo $this->Form->input('gpg', array('type' => 'textarea', 'class' => 'input-xxlarge')); ?>
-		</div>
-		<div id="customMessage" class="row-fluid">
+		<div id="customMessage" class="row-fluid hideAble">
 			<?php
 			echo $this->Form->input('customMessage', array(
 				'label' => __('Enter a custom message', true),
 				'type' => 'checkbox',
-				'checked' => 'checked',
 				'id' => 'customMessageToggle'
 			));
 			?>
 		</div>
 		<div class="row-fluid">
-			<?php
-			$str=$this->Form->input('message', array('type' => 'textarea', 'class' => 'input-xxlarge'));
-			echo $this->Html->div('messageDiv', $str, array('id' => 'messageDiv'));
-			?>
+			<div id="messageDiv" class="messageDiv hideAble">
+				<?php
+				echo $this->Form->input('message', array('type' => 'textarea', 'class' => 'input-xxlarge'));
+				?>
+			</div>
 		</div>
 		<div class="row-fluid">
 			<?php
@@ -68,56 +57,31 @@ function showMessage(){
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'contact'));
 ?>
 <script>
-$("#recipient").change(setRecipientEmailList);
-$("#recipient").change(setGPG);
-$("#action").change(setMessage);
-$("#customMessage").change(setMessage2);
-$(document).ready(setRecipientEmailList);
-$(document).ready(setGPG);
-$(document).ready(setMessage);
+$("#recipient").change(setAll);
+$("#action").change(setAll);
+$("#customMessage").change(setAll);
+$("#action").change(populateSubject);
+var subjects = [];
+var standardTexts = [];
+$(document).ready(function() {
+	var org = "<?php echo $org;?>";
+	subjects = ["", "[" + org + " MISP] New user registration", "[" + org + " MISP] Password reset"];
+	standardTexts = ['', '<?php echo h($newUserText); ?>', '<?php echo h($passwordResetText); ?>'];
+	//setAll();
+});
 
-
-function setRecipientEmailList() {
-	if ($("#recipient option:selected").text() == "An existing user") {
-		document.getElementById("recipientEmailList").style.display="";
-		document.getElementById("recipientEmail").style.display="none";
-	} else if ($("#recipient option:selected").text() == "All existing users") {
-		document.getElementById("recipientEmailList").style.display="none";
-		document.getElementById("recipientEmail").style.display="none";
-	} else if ($("#recipient option:selected").text() == "New user") {
-		document.getElementById("recipientEmailList").style.display="none";
-		document.getElementById("recipientEmail").style.display="";
-	}
+function populateSubject() {
+	$("#UserSubject").val(subjects[$("#action").val()]);
+	$("#UserMessage").html(standardTexts[$("#action").val()]).text();
 }
 
-
-
-function setMessage() {
-	if ($("#action option:selected").text() == "Custom message") {
-		document.getElementById("customMessage").style.display="none";
-		document.getElementById("messageDiv").style.display="";
-		document.getElementById("subject").style.display="";
-	} else {
-		document.getElementById("customMessage").style.display="";
-		document.getElementById("subject").style.display="none";
-		setMessage2();
-	}
+function setAll() {
+	$(".hideAble").hide();
+	if ($("#action option:selected").val() == 0 || $("#customMessageToggle").prop('checked')) $("#messageDiv").show();
+	if ($("#action option:selected").val() == 0) $("#subject").show();
+	else $("#customMessage").show();
+	if ($("#recipient option:selected").val() == 0) $("#recipientEmailList").show();
 }
 
-function setMessage2() {
-	if ($("#customMessageToggle").prop('checked')) {
-		document.getElementById("messageDiv").style.display="";
-	} else {
-		document.getElementById("messageDiv").style.display="none";
-	}
-}
-
-function setGPG(){
-	if ($("#recipient option:selected").text() == "New user") {
-		document.getElementById("gpg").style.display="";
-	} else {
-		document.getElementById("gpg").style.display="none";
-	}
-}
 
 </script>
