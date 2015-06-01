@@ -648,6 +648,10 @@ class Server extends AppModel {
 						}
 						if (is_array($event['Event']['Attribute'])) {
 							$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
+							if ($size == 0) {
+								$fails[$eventId] = 'Empty event received.';
+								continue;
+							}
 							for ($i = 0; $i < $size; $i++) {
 								if (!isset($event['Event']['Attribute'][$i]['distribution'])) { // version 1
 									$event['Event']['Attribute'][$i]['distribution'] = 1;
@@ -673,7 +677,8 @@ class Server extends AppModel {
 							}
 							$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 						} else {
-							unset($event['Event']['Attribute']);
+							$fails[$eventId] = 'Empty event received.';
+							continue;
 						}
 						// Distribution, set reporter of the event, being the admin that initiated the pull
 						$event['Event']['user_id'] = $user['id'];
