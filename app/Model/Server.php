@@ -277,8 +277,8 @@ class Server extends AppModel {
 					),
 					'disablerestalert' => array(
 							'level' => 1,
-							'description' => 'This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to disable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull.',
-							'value' => '',
+							'description' => 'This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to disable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull. Quick recap: True = Emails are NOT sent, False = Emails are sent on events published via sync / REST.',
+							'value' => true,
 							'errorMessage' => '',
 							'test' => 'testBool',
 							'type' => 'boolean',

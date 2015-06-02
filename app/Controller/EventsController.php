@@ -1818,7 +1818,9 @@ class EventsController extends AppController {
 			$format = 'suricata'; // default format
 		}
 		$this->response->type('txt');	// set the content type
-		$this->header('Content-Disposition: download; filename="misp.rules"');
+		$filename = 'misp.' . $format . '.rules';
+		if ($id) $filename = 'misp.' . $format . '.event' . $id . '.rules';
+		$this->header('Content-Disposition: download; filename="' . $filename . '"');
 		$this->layout = 'text/default';
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
@@ -2885,7 +2887,7 @@ class EventsController extends AppController {
 					'hostname' => 'Network activity',
 					'domain' => 'Network activity',
 					'url' => 'Network activity',
-					'link' => 'Network activity',
+					'link' => 'External analysis',
 					'email-src' => 'Payload delivery',
 					'email-dst' => 'Payload delivery',
 					'text' => 'Other',

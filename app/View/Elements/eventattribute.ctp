@@ -140,7 +140,7 @@
 							<?php echo h($object['type']); ?>
 						</div>
 					</td>
-					<td class="showspaces <?php echo $extra; ?>">
+					<td class="showspaces <?php echo $extra; ?> limitedWidth">
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
 						<?php if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ): ?>
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">
