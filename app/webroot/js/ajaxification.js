@@ -318,7 +318,6 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 }
 
 function handleGenericAjaxResponse(data) {
-	console.log(data);
 	if (typeof data == 'string') {
 		responseArray = JSON.parse(data);
 	} else {
