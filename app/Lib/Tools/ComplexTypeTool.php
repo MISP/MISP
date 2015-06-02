@@ -63,12 +63,13 @@ class ComplexTypeTool {
 		$resultArray = array();
 		foreach ($iocArray as $ioc) {
 			$ioc = trim($ioc);
+			$ioc = trim($ioc, ',');
 			$ioc = preg_replace('/\p{C}+/u', '', $ioc);
 			if (empty($ioc)) continue;
 			$typeArray = $this->__resolveType($ioc);
 			if ($typeArray === false) continue;
 			$temp = $typeArray;
-			$temp['value'] = $ioc;
+			if (!isset($temp['value'])) $temp['value'] = $ioc;
 			$resultArray[] = $temp;
 		}
 		return $resultArray;
@@ -84,12 +85,20 @@ class ComplexTypeTool {
 		if (strlen($input) == 40 && preg_match("#[0-9a-f]{40}$#", $input)) return array('types' => array('sha1'), 'to_ids' => true, 'default_type' => 'sha1');
 		if (strlen($input) == 64 && preg_match("#[0-9a-f]{64}$#", $input)) return array('types' => array('sha256'), 'to_ids' => true, 'default_type' => 'sha256');
 		
+		// note down and remove the port if it's a url / domain name / hostname / ip
+		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
+		$comment = false;
+		if (preg_match('/(:[0-9]{2,5})$/', $input, $port)) {
+			$comment = 'On port ' . substr($port[0], 1);
+			$input2 = str_replace($port[0], '', $input);
+		} else $input2 = $input;		
+		
 		// check for IP
-		if (filter_var($input, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst');
-		if (strpos($input, '/')) {
-			$temp = explode('/', $input);
+		if (filter_var($input2, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $input2);
+		if (strpos($input2, '/')) {
+			$temp = explode('/', $input2);
 			if (count($temp == 2)) {
-				if (filter_var($temp[0], FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst');
+				if (filter_var($temp[0], FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $input2);
 			}
 		}
 		
@@ -103,16 +112,17 @@ class ComplexTypeTool {
 			}
 			
 			// check if it is a URL
-			if (filter_var($input, FILTER_VALIDATE_URL)) {
-				return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url');
+			if (filter_var($input2, FILTER_VALIDATE_URL)) {
+				if (preg_match('/^https:\/\/www.virustotal.com\//i', $input2)) return array('types' => array('link'), 'to_ids' => true, 'default_type' => 'link', 'comment' => $comment, 'value' => $input2);
+				return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $input2);
 			}
-			
+
 			//if (filter_var($input, FILTER_VALIDATE_URL)) {
-			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)$/u', $input)) {
+			if (preg_match('/^' . $extra . '([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/u', $input)) {
 				if (count($temp) > 2) {
-					return array('types' => array('hostname', 'domain'), 'to_ids' => true, 'default_type' => 'hostname');
+					return array('types' => array('hostname', 'domain'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $comment, 'value' => $input2);
 				} else {
-					return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain');
+					return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $input2);
 				}
 			} else {
 				if (!preg_match('/[?:<>|\\*:\/@]/', $input) && strpos($input, '.') != 0 && strpos($input, '.') != (strlen($input)-1)) {
