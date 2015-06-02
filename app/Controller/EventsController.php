@@ -2885,7 +2885,7 @@ class EventsController extends AppController {
 					'hostname' => 'Network activity',
 					'domain' => 'Network activity',
 					'url' => 'Network activity',
-					'link' => 'Network activity',
+					'link' => 'External analysis',
 					'email-src' => 'Payload delivery',
 					'email-dst' => 'Payload delivery',
 					'text' => 'Other',
