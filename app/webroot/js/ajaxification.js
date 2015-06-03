@@ -14,9 +14,9 @@ function publishPopup(id, type) {
 	if (type == "publish") action = "publish";
 	var destination = 'attributes';
 	$.get( "/events/" + action + "/" + id, function(data) {
+		$("#confirmation_box").html(data);
 		$("#confirmation_box").fadeIn();
 		$("#gray_out").fadeIn();
-		$("#confirmation_box").html(data);
 	});
 }
 
@@ -505,6 +505,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			type:"post", 
 			url:url
 		});
+		$("#popover_form").empty();
 	}
 };
 
