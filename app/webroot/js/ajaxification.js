@@ -1387,7 +1387,7 @@ function lookupPGPKey(emailFieldName) {
 		type: "get",
 		url: "https://pgp.mit.edu/pks/lookup?op=get&search=" + $('#' + emailFieldName).val(),
 		success: function (data) {
-			var result = $("<div>").html(data)[0].getElementsByTagName("pre")[0]['innerText'];
+			var result = data.split("<pre>")[1].split("</pre>")[0];
 			$("#UserGpgkey").val(result);
 			showMessage('success', "Key found!");
 		},
