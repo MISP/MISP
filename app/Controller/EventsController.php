@@ -938,7 +938,10 @@ class EventsController extends AppController {
 						is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
-					if ($this->_isRest()) $this->request->data = $this->Event->updateXMLArray($this->request->data, false);
+					if ($this->_isRest()) {
+						$this->request->data = $this->Event->updateXMLArray($this->request->data, false);
+						if (isset($this->request->data['Event']['orgc']) && !$this->userRole['perm_sync']) $this->request->data['Event']['orgc'] = $this->Auth->user('org');
+					}
 					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
 					if ($add && !is_numeric($add)) {
 						if ($this->_isRest()) {
