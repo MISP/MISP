@@ -2870,6 +2870,13 @@ class EventsController extends AppController {
 				}
 				$r['types'] = $temp;
 			}
+			
+			// remove all duplicates
+			foreach ($resultArray as $k => $v) {
+				for ($i = 0; $i < $k; $i++) {
+					if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset ($resultArray[$k]);
+				}
+			}
 			$typeCategoryMapping = array();
 			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
 				foreach ($cat['types'] as $type) {
