@@ -599,7 +599,11 @@ class Event extends AppModel {
 				// solves the issue and a new attribute is always created.
 				unset($attribute['id']);
 			}
-		}
+		} else return 403;
+		
+		// If we ran out of attributes, or we never had any to begin with, we want to prevent the event from being pushed.
+		// It should show up the same way as if the event was not exportable
+		if (count($event['Event']['Attribute']) == 0) return 403;
 		
 		// Distribution, correct All to Community in Event
 		if ($event['Event']['distribution'] == 2) {
