@@ -1,9 +1,6 @@
 INSTALLATION INSTRUCTIONS
 ------------------------- for ubuntu 14.04-server
 
-# steps 2 (besides acquiring git), 4, 5 can be skipped by running INSTALL.SH 
-# The correct order in this case is 1/, apt get git, 3/ and then executing INSTALL.SH in /var/www/MISP/INSTALL/INSTALL.SH
-
 1/ Minimal ubuntu install
 -------------------------
 
