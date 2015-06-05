@@ -796,7 +796,7 @@ class EventsController extends AppController {
 						'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
 						));
 				$this->set('tags', $tags);
-				$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
+				$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1, 'order' => array('Tag.name ASC')));
 				$tagNames = array('None');
 				foreach ($tags as $k => $v) {
 					$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
