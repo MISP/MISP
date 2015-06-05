@@ -1468,7 +1468,7 @@ class EventsController extends AppController {
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(null, $id);
 		if (!$this->_isSiteAdmin()) {
-			if (!$this->userRole['perm_publish'] && !$this->Auth->user('org') === $this->Event->data['Event']['orgc']) {
+			if (!$this->userRole['perm_publish'] || $this->Auth->user('org') !== $this->Event->data['Event']['orgc']) {
 				throw new MethodNotAllowedException('You don\'t have the permission to do that.');
 			}
 		}
@@ -1517,7 +1517,7 @@ class EventsController extends AppController {
 		$this->Event->recursive = -1;
 		$this->Event->read(null, $id);
 		if (!$this->_isSiteAdmin()) {
-			if (!$this->userRole['perm_publish'] && !$this->Auth->user('org') === $this->Event->data['Event']['orgc']) {
+			if (!$this->userRole['perm_publish'] || $this->Auth->user('org') !== $this->Event->data['Event']['orgc']) {
 				throw new MethodNotAllowedException('You don\'t have the permission to do that.');
 			}
 		}
