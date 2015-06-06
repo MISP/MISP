@@ -1493,7 +1493,7 @@ class AttributesController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags=false, $from=false, $to=false) {
+	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags=false, $from=false, $to=false, $last=false) {
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		if ($key!=null && $key!='download') {
 			$user = $this->checkAuthUser($key);
@@ -1519,19 +1519,21 @@ class AttributesController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
 			} 
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to', 'last');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
 
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
+		if ($last) $last = $this->Attribute->Event->resolveTimeDelta($last);
+		
 		if (!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') {
 			$this->response->type('xml');	// set the content type
 			$this->layout = 'xml/default';
@@ -1617,6 +1619,7 @@ class AttributesController extends AppController {
 		
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		
 		// change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
 		
@@ -1764,14 +1767,16 @@ class AttributesController extends AppController {
 		$this->__downloadAttachment($this->Attribute->data['Attribute']);
 	}
 
-	public function text($key='download', $type='all', $tags=false, $eventId=false, $allowNonIDS=false, $from=false, $to=false) {
-		$simpleFalse = array('eventId', 'allowNonIDS', 'tags', 'from', 'to');
+	public function text($key='download', $type='all', $tags=false, $eventId=false, $allowNonIDS=false, $from=false, $to=false, $last=false) {
+		$simpleFalse = array('eventId', 'allowNonIDS', 'tags', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
 		if ($type === 'null' || $type === '0' || $type === 'false') $type = 'all';
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
+		if ($last) $last = $this->Attribute->Event->resolveTimeDelta($last);
+		
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1786,7 +1791,7 @@ class AttributesController extends AppController {
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.txt"');
 		$this->layout = 'text/default';
-		$attributes = $this->Attribute->text($this->_checkOrg(), $this->_isSiteAdmin(), $type, $tags, $eventId, $allowNonIDS, $from, $to);
+		$attributes = $this->Attribute->text($this->_checkOrg(), $this->_isSiteAdmin(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last);
 		$this->loadModel('Whitelist');
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		$this->set('attributes', $attributes);
