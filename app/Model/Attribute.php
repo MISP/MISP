@@ -1164,7 +1164,7 @@ class Attribute extends AppModel {
 		return $fails;
 	}
 	
-	public function hids($isSiteAdmin, $org ,$type, $tags = '') {
+	public function hids($isSiteAdmin, $org ,$type, $tags = '', $from, $to, $last) {
 		if (empty($org)) throw new MethodNotAllowedException('No org supplied.');
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1') {
@@ -1197,6 +1197,9 @@ class Attribute extends AppModel {
 			}
 			$conditions['AND'][] = $temp;
 		}
+		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
+		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
+		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 		
 		$params = array(
 				'conditions' => $conditions, //array of conditions
@@ -1210,7 +1213,7 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 	
-	public function nids($isSiteAdmin, $org, $format, $sid, $id = false, $continue = false, $tags = false, $from = false, $to = false) {
+	public function nids($isSiteAdmin, $org, $format, $sid, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last) {
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
 		$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
@@ -1226,6 +1229,7 @@ class Attribute extends AppModel {
 		if ($id) array_push($conditions['AND'], array('Event.id' => $id));
 		if ($from) array_push($conditions['AND'], array('Event.date >=' => $from));
 		if ($to) array_push($conditions['AND'], array('Event.date <=' => $to));
+		if ($last) array_push($conditions['AND'], array('Event.publish_timestamp >=' => $last));
 		
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($tags) {
@@ -1266,13 +1270,14 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	 public function text($org, $isSiteAdmin, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false) {
+	 public function text($org, $isSiteAdmin, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false) {
 	 	//restricting to non-private or same org if the user is not a site-admin.
 	 	$conditions['AND'] = array();
 	 	if (defined($allowNonIDS) && $allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
 	 	if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type; 
 	 	if ($from) $conditions['AND']['Event.date >='] = $from;
 	 	if ($to) $conditions['AND']['Event.date <='] = $to;
+	 	if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
 	 	if (!$isSiteAdmin) {
 	 		$temp = array();
 	 		$distribution = array();
@@ -1306,10 +1311,9 @@ class Attribute extends AppModel {
 	 			'order' => array('Attribute.value'), //string or array defining order
 	 			'group' => array('Attribute.value'), //fields to GROUP BY
 	 			'contain' => array('Event' => array(
-	 					'fields' => array('Event.id', 'Event.published', 'Event.date'),
+	 					'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
 	 	
 	 			)));
-	 	
 	 	$attributes = $this->find('all', $params);
 	 	return $attributes;
 	 }

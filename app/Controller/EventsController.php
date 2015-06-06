@@ -1707,7 +1707,7 @@ class EventsController extends AppController {
 		return $difference . " " . $periods[$j] . " ago";
 	}
 
-	public function xml($key, $eventid=null, $withAttachment = false, $tags = false, $from = false, $to = false) {
+	public function xml($key, $eventid=null, $withAttachment = false, $tags = false, $from = false, $to = false, $last = false) {
 		App::uses('XMLConverterTool', 'Tools');
 		$converter = new XMLConverterTool();
 		$this->loadModel('Whitelist');
@@ -1721,20 +1721,21 @@ class EventsController extends AppController {
 			} else {
 				$data = $this->request->data;
 			}
-			$paramArray = array('eventid', 'withAttachment', 'tags', 'from', 'to');
+			$paramArray = array('eventid', 'withAttachment', 'tags', 'from', 'to', 'last');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
 		
-		$simpleFalse = array('tags', 'eventid', 'withAttachment', 'from', 'to');
+		$simpleFalse = array('tags', 'eventid', 'withAttachment', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
+		if ($last) $last = $this->Event->resolveTimeDelta($last);
 		
 		$eventIdArray = array();
 		
@@ -1768,7 +1769,7 @@ class EventsController extends AppController {
 		$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
 		
 		if (!$eventid) {
-			$events = $this->Event->fetchEventIds($org, $isSiteAdmin, $from, $to);
+			$events = $this->Event->fetchEventIds($org, $isSiteAdmin, $from, $to, $last);
 			foreach ($events as $event) $eventIdArray[] = $event['Event']['id'];
 		}
 		
@@ -1806,8 +1807,8 @@ class EventsController extends AppController {
 		return $results;
 	}
 
-	public function nids($format = 'suricata', $key = 'download', $id = false, $continue = false, $tags = false, $from = false, $to = false) {
-		$simpleFalse = array('id', 'continue', 'tags', 'from', 'to');
+	public function nids($format = 'suricata', $key = 'download', $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false) {
+		$simpleFalse = array('id', 'continue', 'tags', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
@@ -1815,6 +1816,7 @@ class EventsController extends AppController {
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
+		if ($last) $last = $this->Event->resolveTimeDelta($last);
 		// backwards compatibility, swap key and format
 		if ($format != 'snort' && $format != 'suricata') {
 			$key = $format;
@@ -1842,12 +1844,12 @@ class EventsController extends AppController {
 		
 		// display the full snort rulebase
 		$this->loadModel('Attribute');
-		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid'], $id, $continue, $tags, $from, $to);
+		$rules = $this->Attribute->nids($user['User']['siteAdmin'], $user['User']['org'], $format, $user['User']['nids_sid'], $id, $continue, $tags, $from, $to, $last);
 		$this->set('rules', $rules);
 	}
 
-	public function hids($type, $key='download', $tags = false, $from = false, $to = false) {
-		$simpleFalse = array('tags', 'from', 'to');
+	public function hids($type, $key='download', $tags = false, $from = false, $to = false, $last = false) {
+		$simpleFalse = array('tags', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
@@ -1855,6 +1857,7 @@ class EventsController extends AppController {
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
+		if ($last) $last = $this->Event->resolveTimeDelta($last);
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
 		$this->layout = 'text/default';
@@ -1874,15 +1877,15 @@ class EventsController extends AppController {
 		}	
 		$this->loadModel('Attribute');
 
-		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type, $tags, $from, $to);
+		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type, $tags, $from, $to, $last);
 		$this->set('rules', $rules);
 	}
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
 	// $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything. 
-	public function csv($key, $eventid=false, $ignore=false, $tags = false, $category=false, $type=false, $includeContext=false, $from=false, $to=false) {
-		$simpleFalse = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to');
+	public function csv($key, $eventid=false, $ignore=false, $tags = false, $category=false, $type=false, $includeContext=false, $from=false, $to=false, $last = false) {
+		$simpleFalse = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
@@ -1890,6 +1893,7 @@ class EventsController extends AppController {
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
+		if ($last) $last = $this->Event->resolveTimeDelta($last);
 		$list = array();
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
@@ -1926,7 +1930,7 @@ class EventsController extends AppController {
 				$list[] = $attribute['Attribute']['id'];
 			}
 		}
-		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type, $includeContext, $from, $to);
+		$attributes = $this->Event->csv($org, $isSiteAdmin, $eventid, $ignore, $list, $tags, $category, $type, $includeContext, $from, $to, $last);
 		$this->loadModel('Whitelist');
 		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
@@ -2384,7 +2388,7 @@ class EventsController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags = false, $searchall=false, $from=false, $to=false) {
+	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags = false, $searchall=false, $from=false, $to=false, $last = false) {
 		if ($key!='download') {
 			$user = $this->checkAuthUser($key);
 		} else {
@@ -2408,14 +2412,14 @@ class EventsController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
 		
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
@@ -2423,6 +2427,7 @@ class EventsController extends AppController {
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
+		if ($last) $last = $this->Event->resolveTimeDelta($last);
 		if ($searchall === 'true') $searchall = "1";
 
 		$conditions['AND'] = array();
@@ -2504,6 +2509,7 @@ class EventsController extends AppController {
 
 			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+			if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 			
 			$params = array(
 					'conditions' => $conditions,
@@ -2723,7 +2729,7 @@ class EventsController extends AppController {
 			$conditions['OR'][] = array('Event.id =' => -1);
 		}
 		$this->paginate = array(
-				'fields' => array('Event.id', 'Event.org', 'Event.orgc', 'Event.timestamp', 'Event.distribution', 'Event.info', 'Event.date', 'Event.published'),
+				'fields' => array('Event.id', 'Event.org', 'Event.orgc', 'Event.publish_timestamp', 'Event.distribution', 'Event.info', 'Event.date', 'Event.published'),
 				'conditions' => $conditions,
 				'contain' => array(
 					'User' => array(
@@ -2966,7 +2972,7 @@ class EventsController extends AppController {
 		}
 	}
 	
-	public function stix($key, $id = false, $withAttachments = false, $tags = false, $from = false, $to = false) {
+	public function stix($key, $id = false, $withAttachments = false, $tags = false, $from = false, $to = false, $last = false) {
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -2993,20 +2999,21 @@ class EventsController extends AppController {
 			} else {
 				$data = $this->request->data;
 			}
-			$paramArray = array('id', 'withAttachment', 'tags', 'from', 'to');
+			$paramArray = array('id', 'withAttachment', 'tags', 'from', 'to', 'last');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
 		
-		$simpleFalse = array('id', 'withAttachments', 'tags', 'from', 'to');
+		$simpleFalse = array('id', 'withAttachments', 'tags', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
-		
+		if ($last) $last = $this->Event->resolveTimeDelta($last);
+				
 		// set null if a null string is passed
 		$numeric = false;
 		if (is_numeric($id)) $numeric = true;
@@ -3017,7 +3024,7 @@ class EventsController extends AppController {
 			$this->response->type('xml');	// set the content type
 			$this->layout = 'xml/default';
 		}
-		$result = $this->Event->stix($id, $tags, $withAttachments, $org, $isSiteAdmin, $returnType, $from, $to);
+		$result = $this->Event->stix($id, $tags, $withAttachments, $org, $isSiteAdmin, $returnType, $from, $to, $last);
 		
 		if ($result['success'] == 1) {
 			// read the output file and pass it to the view
