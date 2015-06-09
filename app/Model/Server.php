@@ -418,6 +418,14 @@ class Server extends AppModel {
 			),
 			'GnuPG' => array(
 					'branch' => 1,
+					'binary' => array(
+							'level' => 0,
+							'description' => 'The location of the GPG executable. If you would like to use a different gpg executable than /usr/bin/gpg, you can set it here. If the default is fine, just keep the setting suggested by MISP.',
+							'value' => '/usr/bin/gpg',
+							'errorMessage' => '',
+							'test' => 'testForGPGBinary',
+							'type' => 'string',
+					),
 					'onlyencrypted' => array(
 							'level' => 0,
 							'description' => 'Allow (false) unencrypted e-mails to be sent to users that don\'t have a PGP key.',
@@ -1088,6 +1096,12 @@ class Server extends AppModel {
 	public function testPasswordResetText($value) {
 		if (strpos($value, '$password') === false || strpos($value, '$username') === false || strpos($value, '$misp') === false) return 'The text served to the users must include the following replacement strings: "$username", "$password", "$misp"';
 		return true;
+	}
+	
+	public function testForGPGBinary($value) {
+		if (empty($value)) $value = $this->serverSettings['GnuPG']['binary']['value'];
+		if (file_exists($value)) return true;
+		return 'Could not find the gnupg executable at the defined location.';
 	}
 	
 	

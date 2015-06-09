@@ -377,7 +377,7 @@ class ServersController extends AppController {
 				$continue = true;
 				try {
 					require_once 'Crypt/GPG.php';
-					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 					$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 				} catch (Exception $e) {
 					$gpgStatus = 2;
@@ -545,7 +545,20 @@ class ServersController extends AppController {
 				else $errorMessage = $testResult;
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errorMessage)),'status'=>200));
 			} else {
+				$oldValue = Configure::read($setting);
 				$this->Server->serverSettingsSaveValue($setting, $this->request->data['Server']['value']);
+				$this->loadModel('Log');
+				$this->Log->create();
+				$result = $this->Log->save(array(
+						'org' => $this->Auth->user('org'),
+						'model' => 'Server',
+						'model_id' => 0,
+						'email' => $this->Auth->user('email'),
+						'action' => 'serverSettingsEdit',
+						'user_id' => $this->Auth->user('id'),
+						'title' => 'Server setting changed',
+						'change' => $setting . ' (' . $oldValue . ') => (' . $this->request->data['Server']['value'] . ')',
+				));
 				$this->autoRender = false;
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')),'status'=>200));
 			}
