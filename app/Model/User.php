@@ -276,7 +276,7 @@ class User extends AppModel {
 		// key is entered
 		require_once 'Crypt/GPG.php';
 		try {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 			try {
 				$keyImportOutput = $gpg->importKey($check['gpgkey']);
 				if (!empty($keyImportOutput['fingerprint'])) {
@@ -401,7 +401,7 @@ class User extends AppModel {
 			'recursive' => -1,
 		));
 		foreach ($users as $k => $user) {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 			$key = $gpg->importKey($user['User']['gpgkey']);
 			$gpg->addEncryptKey($key['fingerprint']); // use the key that was given in the import
 			try {
@@ -441,7 +441,7 @@ class User extends AppModel {
 		// Sign the body
 		require_once 'Crypt/GPG.php';
 		try {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));	// , 'debug' => true
 			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 			$body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
 		} catch (Exception $e) {

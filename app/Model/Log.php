@@ -24,7 +24,8 @@ class Log extends AppModel {
 							'push',
 							'blacklisted',
 							'admin_email',
-							'email'
+							'email',
+							'serverSettingsEdit'
 						)),
 			'message' => 'Options : ...'
 		)
