@@ -377,7 +377,7 @@ class ServersController extends AppController {
 				$continue = true;
 				try {
 					require_once 'Crypt/GPG.php';
-					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 					$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 				} catch (Exception $e) {
 					$gpgStatus = 2;
