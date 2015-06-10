@@ -1205,4 +1205,53 @@ class Server extends AppModel {
 		}
 		return $validItems;
 	}
+	
+	public function writeableDirDiagnostics(&$diagnostic_errors) {
+		App::uses('File', 'Utility');
+		App::uses('Folder', 'Utility');
+		// check writeable directories
+		$writeableDirs = array(
+				'tmp' => 0, 'files' => 0, 'files' . DS . 'scripts' . DS . 'tmp' => 0,
+				'tmp' . DS . 'csv_all' => 0, 'tmp' . DS . 'csv_sig' => 0, 'tmp' . DS . 'md5' => 0, 'tmp' . DS . 'sha1' => 0,
+				'tmp' . DS . 'snort' => 0, 'tmp' . DS . 'suricata' => 0, 'tmp' . DS . 'text' => 0, 'tmp' . DS . 'xml' => 0,
+				'tmp' . DS . 'files' => 0, 'tmp' . DS . 'logs' => 0,
+		);
+		foreach ($writeableDirs as $path => &$error) {
+			$dir = new Folder(APP . DS . $path);
+			if (is_null($dir->path)) $error = 1;
+			$file = new File (APP . DS . $path . DS . 'test.txt', true);
+			if ($error == 0 && !$file->write('test')) $error = 2;
+			if ($error != 0) $diagnostic_errors++;
+			$file->delete();
+			$file->close();
+		}
+		return $writeableDirs;
+	}
+	
+	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion) {
+		$result = array();
+		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.10');
+		// check if the STIX and Cybox libraries are working using the test script stixtest.py
+		$scriptResult = shell_exec('python ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
+		$scriptResult = json_decode($scriptResult, true);
+		if ($scriptResult !== null) {
+			$scriptResult['operational'] = $scriptResult['success'];
+			if ($scriptResult['operational'] == 0) {
+				$diagnostic_errors++;
+				return $scriptResult;
+			}
+		} else {
+			return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']));
+		}
+		$result['operational'] = $scriptResult['operational'];
+		foreach ($expected as $package => $version) {
+			$result[$package]['version'] = $scriptResult[$package];
+			$result[$package]['expected'] = $expected[$package];
+			$result[$package]['status'] = $result[$package]['version'] == $result[$package]['expected'] ? 1 : 0; 
+			if ($result[$package]['status'] == 0) $diagnostic_errors++;
+			${$package . 'Version'}[0] = str_replace('$current', $result[$package]['version'], ${$package . 'Version'}[0]);
+			${$package . 'Version'}[0] = str_replace('$expected', $result[$package]['expected'], ${$package . 'Version'}[0]);
+		}
+		return $result;
+	}
 }

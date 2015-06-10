@@ -295,7 +295,9 @@ class ServersController extends AppController {
 			$writeableErrors = array(0 => 'OK', 1 => 'Directory doesn\'t exist', 2 => 'Directory is not writeable');
 			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: bad GnuPG.*', 3 => 'FAIL: encrypt failed');
 			$proxyErrors = array(0 => 'OK', 1 => 'not configured (so not tested)', 2 => 'Getting URL via proxy failed');
-			$stixErrors = array(0 => 'ERROR', 1 => 'OK');
+			$stixOperational = array(0 => 'STIX or CyBox library not installed correctly', 1 => 'OK');
+			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
+			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
 			
 			$results = $this->Server->serverSettingsRead();
 			$issues = array(	
@@ -346,30 +348,14 @@ class ServersController extends AppController {
 				$files = $this->__manageFiles();
 				$this->set('files', $files);
 			}
-			
-			// check writeable directories
-			$writeableDirs = array(
-					'tmp' => 0, 'files' => 0, 'files' . DS . 'scripts' . DS . 'tmp' => 0,
-					'tmp' . DS . 'csv_all' => 0, 'tmp' . DS . 'csv_sig' => 0, 'tmp' . DS . 'md5' => 0, 'tmp' . DS . 'sha1' => 0,
-					'tmp' . DS . 'snort' => 0, 'tmp' . DS . 'suricata' => 0, 'tmp' . DS . 'text' => 0, 'tmp' . DS . 'xml' => 0,
-					'tmp' . DS . 'files' => 0, 'tmp' . DS . 'logs' => 0,
-			);
-			foreach ($writeableDirs as $path => &$error) {
-				$dir = new Folder(APP . DS . $path);
-				if (is_null($dir->path)) $error = 1;
-				$file = new File (APP . DS . $path . DS . 'test.txt', true);
-				if ($error == 0 && !$file->write('test')) $error = 2;
-				if ($error != 0) $diagnostic_errors++;
-				$file->delete();
-				$file->close();
-			}
-			$this->set('writeableDirs', $writeableDirs);
+
+			// check whether the files are writeable
+			$this->set('writeableDirs', $this->Server->writeableDirDiagnostics($diagnostic_errors));
 			
 			// check if the STIX and Cybox libraries are working using the test script stixtest.py
-			$stix = shell_exec('python ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
-			$stix = json_decode($stix)->success;
-			$this->set('stix', $stix);
-			if ($stix == 0) $diagnostic_errors++;
+			$stixStatus = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion);
+			$this->set('stix', $stixStatus);
+
 
 			// if GPG is set up in the settings, try to encrypt a test message
 			$gpgStatus = 0;
@@ -427,7 +413,9 @@ class ServersController extends AppController {
 			$this->set('writeableErrors', $writeableErrors);
 			$this->set('gpgErrors', $gpgErrors);
 			$this->set('proxyErrors', $proxyErrors);
-			$this->set('stixErrors', $stixErrors);
+			$this->set('stixOperational', $stixOperational);
+			$this->set('stixVersion', $stixVersion);
+			$this->set('cyboxVersion', $cyboxVersion);
 			
 			if (Configure::read('MISP.background_jobs')) {
 				$worker_array = array(
