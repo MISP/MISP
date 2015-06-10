@@ -865,8 +865,8 @@ class UsersController extends AppController {
 			$org = Configure::read('MISP.org');
 			$options = array('passwordResetText', 'newUserText');
 			$subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
-			$textToFetch = $options[($firstTime ? 1 : 0)];
-			$subject = $subjects[($firstTime ? 1 : 0)]; 
+			$textToFetch = $options[($firstTime ? 0 : 1)];
+			$subject = $subjects[($firstTime ? 0 : 1)]; 
 			$this->loadModel('Server');
 			$body = Configure::read('MISP.' . $textToFetch);
 			if (!$body) $body = $this->Server->serverSettings['MISP'][$textToFetch]['value'];
