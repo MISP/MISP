@@ -437,6 +437,7 @@ class User extends AppModel {
 		if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncrypt && $bodyNoEnc) {
 			$body = $bodyNoEnc;
 		}
+		$body = str_replace('\n', PHP_EOL, $body);
 
 		// Sign the body
 		require_once 'Crypt/GPG.php';

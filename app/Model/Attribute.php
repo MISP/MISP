@@ -1167,11 +1167,13 @@ class Attribute extends AppModel {
 	public function hids($isSiteAdmin, $org ,$type, $tags = '', $from, $to, $last) {
 		if (empty($org)) throw new MethodNotAllowedException('No org supplied.');
 		// check if it's a valid type
-		if ($type != 'md5' && $type != 'sha1') {
+		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
 			throw new UnauthorizedException('Invalid hash type.');
 		}
+		$typeArray = array($type, 'filename|' . $type);
+		if ($type == 'md5') $typeArray[] = 'malware-sample';
 		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $type);
+		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray);
 		if (!$isSiteAdmin) {
 			$temp = array();
 			$distribution = array();

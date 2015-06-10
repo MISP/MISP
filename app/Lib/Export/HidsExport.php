@@ -27,6 +27,7 @@ class HidsExport {
 			switch ($attribute['type']) {
 				case 'md5':
 				case 'sha1':
+				case 'sha256':
 					if (!in_array ($attribute['value1'], $itemsDone)) {
 						$this->checksumRule($ruleFormat, $attribute);
 						$itemsDone[] = $attribute['value1'];
@@ -35,6 +36,7 @@ class HidsExport {
 				case 'filename|md5':
 				case 'malware-sample':
 				case 'filename|sha1':
+				case 'filename|sha256':
 					if (!in_array ($attribute['value2'], $itemsDone)) {
 						$this->partRule($ruleFormat, $attribute);
 						$itemsDone[] = $attribute['value2'];
