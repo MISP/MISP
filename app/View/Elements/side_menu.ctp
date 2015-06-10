@@ -59,7 +59,7 @@
 					<?php endif; ?>
 					<li class="divider"></li>
 					<li id='lilistAttributes'><a href="/attributes/index">List Attributes</a></li>
-					<li id='lisearchAttributes' || $menuItem === 'searchAttributes2'><a href="/attributes/search">Search Attributes</a></li>
+					<li id='lisearchAttributes'><a href="/attributes/search">Search Attributes</a></li>
 					<?php if ($menuItem == 'searchAttributes2'): ?>
 					<li class="divider"></li>
 					<li><a href="/events/downloadSearchResult">Download results as XML</a></li>
@@ -143,6 +143,7 @@
 				case 'admin': 
 					if ($menuItem === 'editUser' || $menuItem === 'viewUser'): ?>
 					<li id='liviewUser'><?php echo $this->Html->link('View User', array('controller' => 'users', 'action' => 'view', 'admin' => true, $id)); ?> </li>
+					<li><a href="#/" onClick="initiatePasswordReset('<?php echo h($id); ?>');">Send Credentials</a></li>
 					<li id='lieditUser'><?php echo $this->Html->link('Edit User', array('controller' => 'users', 'action' => 'edit', 'admin' => true, $id)); ?> </li>
 					<li><?php echo $this->Form->postLink('Delete User', array('admin' => true, 'action' => 'delete', $id), null, __('Are you sure you want to delete # %s?', $id));?></li>
 					<li class="divider"></li>
@@ -155,8 +156,12 @@
 					if ($isSiteAdmin): ?>
 					<li id='liaddUser'><?php echo $this->Html->link('Add User', array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
 					<li id='liindexUser'><?php echo $this->Html->link('List Users', array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
+					<?php endif; ?>
+					<?php if ($isAdmin): ?>
 					<li id='licontact'><?php echo $this->Html->link('Contact Users', array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+					<?php endif; ?>
 					<li class="divider"></li>
+					<?php if ($isSiteAdmin): ?>
 					<li id='liaddOrg'><a href="/admin/organisations/add">Add Organisation</a></li>
 					<?php if ($menuItem === 'editOrg' || $menuItem === 'viewOrg'): ?>
 						<li id='lieditOrg'><a href="/admin/organisations/edit/<?php echo $id;?>">Edit Organisation</a></li>

@@ -61,15 +61,21 @@
 	<h3>
 	STIX and Cybox libraries
 	</h3>
-	<p>Mitre's STIX and Cybox python libraries have to be installed in order for MISP's STIX export to work. Make sure that you install them (as described in the MISP installation instructions) if you receive an error below.</p>
-	<div style="background-color:#f7f7f9;width:300px;">
+	<p>Mitre's STIX and Cybox python libraries have to be installed in order for MISP's STIX export to work. Make sure that you install them (as described in the MISP installation instructions) if you receive an error below.<br />
+	If you run into any issues here, make sure that both STIX and CyBox are installed as described in the INSTALL.txt file. The required versions are:<br /><b>STIX</b>: <?php echo $stix['stix']['expected'];?><br /><b>CyBox</b>: <?php echo $stix['cybox']['expected'];?><br />
+	Other versions might work but are not tested / recommended.</p>
+	<div style="background-color:#f7f7f9;width:600px;">
 		<?php 
 			$colour = 'green';
-			$message = $stixErrors[$stix];
-			if ($stix == 0) {
-				$colour = 'red';
+			if ($stix['operational'] == 0) $colour = 'red';
+			echo 'STIX and Cybox libraries....<span style="color:' . $colour . ';">' . $stixOperational[$stix['operational']] . '</span><br />';
+			if ($stix['operational'] == 1) {
+				foreach (array('stix', 'cybox') as $package) {
+					$colour = 'green';
+					if ($stix[$package]['status'] == 0) $colour = 'red';
+					echo strtoupper($package) . ' library version....<span style="color:' . $colour . ';">' . ${$package . 'Version'}[$stix[$package]['status']] . '</span><br />';
+				}
 			}
-			echo 'Testing STIX and Cybox libraries....<span style="color:' . $colour . ';">' . $message . '</span>';
 		?>
 	</div>
 	<h3>

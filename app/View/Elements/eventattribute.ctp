@@ -140,7 +140,7 @@
 							<?php echo h($object['type']); ?>
 						</div>
 					</td>
-					<td class="showspaces <?php echo $extra; ?>">
+					<td class="showspaces <?php echo $extra; ?> limitedWidth">
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
 						<?php if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ): ?>
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">
@@ -171,9 +171,9 @@
 									} else {
 										$cveUrl = "http://www.google.com/search?q=";
 									}
-									echo $this->Html->link(h($sigDisplay), h($cveUrl) . h($sigDisplay), array('target' => '_blank'));
+									echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
 								} elseif ('link' == $object['type']) {
-									echo $this->Html->link(h($sigDisplay), h($sigDisplay));
+									echo $this->Html->link($sigDisplay, $sigDisplay);
 								} else {
 									$sigDisplay = str_replace("\r", '', $sigDisplay);
 									echo nl2br(h($sigDisplay));

@@ -729,7 +729,7 @@ class ShadowAttributesController extends AppController {
 	
 			// sign the body
 			require_once 'Crypt/GPG.php';
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
 			// Add the GPG key of the user as attachment
@@ -753,7 +753,7 @@ class ShadowAttributesController extends AppController {
 					$keyImportOutput = $gpg->importKey($reporter['User']['gpgkey']);
 					// say what key should be used to encrypt
 					try {
-						$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+						$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 						$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
 						$bodyEncSig = $gpg->encrypt($bodySigned, true);
 					} catch (Exception $e){

@@ -83,6 +83,7 @@ class ServerShell extends AppShell
 		$user = $this->User->getAuthUser($userId);
 		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('push' => 1)));
 		$count = count($servers);
+		$failCount = 0;
 		foreach ($servers as $k => $server) {
 			$this->Job->create();
 			$data = array(
@@ -97,6 +98,9 @@ class ServerShell extends AppShell
 			);
 			$this->Job->save($data);
 			$jobId = $this->Job->id;
+			
+			if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueuePull', $userId, $taskId);
+			
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
 			$result = $this->Server->pull($user['User'], $server['Server']['id'], 'full', $server, $jobId);
@@ -122,29 +126,11 @@ class ServerShell extends AppShell
 						break;
 			
 				}
+				$failCount++;
 			}
 		}
-		$task['Task']['message'] = count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.';
-		if ($task['Task']['timer'] > 0) {
-			$time = time();
-			// Keep adding the timer's time interval until we get a date that is in the future! We don't want to keep queuing tasks in the past since they will execute until it catches up.
-			while ($task['Task']['next_execution_time'] < $time) {
-				$task['Task']['next_execution_time'] = strtotime('+' . $task['Task']['timer'] . ' hours', $task['Task']['next_execution_time']);
-			}
-			$task['Task']['scheduled_time'] = $this->Task->breakTime($task['Task']['scheduled_time'], $task['Task']['timer']);
-			$task['Task']['scheduled_time'] = date('H:i', $task['Task']['next_execution_time']);
-		
-			// Now that we have figured out when the next execution should happen, it's time to enqueue it.
-			$process_id = CakeResque::enqueueAt(
-					$task['Task']['next_execution_time'],
-					'default',
-					'ServerShell',
-					array('enqueuePull', $task['Task']['next_execution_time'],$userId, $taskId),
-					true
-			);
-			$task['Task']['job_id'] = $process_id;
-			$this->Task->save($task);
-		}
+		$this->Task->id = $task['Task']['id'];
+		$this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '. Failed jobs: ' . $failCount . '/' . $count);
 	}
 	
 	public function enqueuePush() {
@@ -157,6 +143,8 @@ class ServerShell extends AppShell
 		if ($timestamp != $task['Task']['next_execution_time']) {
 			return;
 		}
+		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueuePush', $userId, $taskId);
+		
 		$this->User->recursive = -1;
 		$user = $this->User->getAuthUser($userId);
 		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('push' => 1)));
@@ -180,26 +168,7 @@ class ServerShell extends AppShell
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 			$result = $this->Server->push($server['Server']['id'], 'full', $jobId, $HttpSocket, $user['email']);
 		}
-		$task['Task']['message'] = count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.';
-		if ($task['Task']['timer'] > 0) {
-			$time = time();
-			// Keep adding the timer's time interval until we get a date that is in the future! We don't want to keep queuing tasks in the past since they will execute until it catches up.
-			while ($task['Task']['next_execution_time'] < $time) {
-				$task['Task']['next_execution_time'] = strtotime('+' . $task['Task']['timer'] . ' hours', $task['Task']['next_execution_time']);
-			}
-			$task['Task']['scheduled_time'] = $this->Task->breakTime($task['Task']['scheduled_time'], $task['Task']['timer']);
-			$task['Task']['scheduled_time'] = date('H:i', $task['Task']['next_execution_time']);
-		
-		// Now that we have figured out when the next execution should happen, it's time to enqueue it.
-			$process_id = CakeResque::enqueueAt(
-					$task['Task']['next_execution_time'],
-					'default',
-					'ServerShell',
-					array('enqueuePush', $task['Task']['next_execution_time'], $taskId, $org, $userId),
-					true
-			);
-			$task['Task']['job_id'] = $process_id;
-			$this->Task->save($task);
-		}
+		$this->Task->id = $task['Task']['id'];
+		$this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.');
 	}
 }

@@ -7,16 +7,18 @@ git pull
 
 # 2. Update CakePHP to the latest 2.6 code
 
-cd /var/www/MISP/Lib/cakephp
+cd /var/www/MISP/app/Lib/cakephp
 git fetch origin
 git checkout 2.6
 
 # 3. Update Mitre's STIX and its dependencies
 
 cd /var/www/MISP/app/files/scripts/python-cybox
+git checkout v2.1.0.10
 git pull
 python setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
+git checkout v1.1.1.4
 git pull
 python setup.py install
 

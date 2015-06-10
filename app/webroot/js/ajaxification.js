@@ -14,9 +14,9 @@ function publishPopup(id, type) {
 	if (type == "publish") action = "publish";
 	var destination = 'attributes';
 	$.get( "/events/" + action + "/" + id, function(data) {
+		$("#confirmation_box").html(data);
 		$("#confirmation_box").fadeIn();
 		$("#gray_out").fadeIn();
-		$("#confirmation_box").html(data);
 	});
 }
 
@@ -60,6 +60,37 @@ function submitDeletion(context_id, action, type, id) {
 		type:"post", 
 		cache: false,
 		url:"/" + type + "/" + action + "/" + id,
+	});
+}
+
+function initiatePasswordReset(id) {
+	$.get( "/users/initiatePasswordReset/" + id, function(data) {
+		$("#confirmation_box").fadeIn();
+		$("#gray_out").fadeIn();
+		$("#confirmation_box").html(data);
+	});
+}
+
+function submitPasswordReset(id) {
+	var formData = $('#PromptForm').serialize();
+	var url = "/users/initiatePasswordReset/" + id;
+	if ($('#firstTime').is(":checked")) url += "/true";
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		data: formData, 
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+		}, 
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+		},
+		type:"post", 
+		cache: false,
+		url:url,
 	});
 }
 
@@ -474,6 +505,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			type:"post", 
 			url:url
 		});
+		$("#popover_form").empty();
 	}
 };
 
@@ -1749,5 +1781,18 @@ function testConnection(id) {
 				break;
 	    	}
 	    }
+
+function lookupPGPKey(emailFieldName) {
+	$.ajax({
+		type: "get",
+		url: "https://pgp.mit.edu/pks/lookup?op=get&search=" + $('#' + emailFieldName).val(),
+		success: function (data) {
+			var result = data.split("<pre>")[1].split("</pre>")[0];
+			$("#UserGpgkey").val(result);
+			showMessage('success', "Key found!");
+		},
+		error: function (data, textStatus, errorThrown) {
+			showMessage('fail', textStatus + ": " + errorThrown);
+		}
 	});
 }

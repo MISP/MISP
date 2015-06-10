@@ -27,7 +27,9 @@ class Log extends AppModel {
 							'tag',
 							'publish alert',
 							'warning',
-							'error'
+							'error',
+							'email',
+							'serverSettingsEdit'
 						)),
 			'message' => 'Options : ...'
 		)

@@ -8,7 +8,7 @@
 	echo $this->Form->input('value', array(
 			'type' => 'textarea',
 			'label' => false,
-			'value' => h($object['value']),
+			'value' => $object['value'],
 			'error' => array('escape' => false),
 			'class' => 'inline-input',
 			'id' => 'ShadowAttribute_' . $object['id'] . '_value_field',

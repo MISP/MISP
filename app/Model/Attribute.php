@@ -1166,17 +1166,16 @@ class Attribute extends AppModel {
 		return $fails;
 	}
 	
-	// TEMP: convert to user
-	public function hids($user ,$type, $tags = '') {
+	public function hids($user ,$type, $tags = '', $from, $to, $last) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		// check if it's a valid type
-		if ($type != 'md5' && $type != 'sha1') {
+		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
 			throw new UnauthorizedException('Invalid hash type.');
 		}
 		$conditions = array();
-
-		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $type);
+		$typeArray = array($type, 'filename|' . $type);
+		if ($type == 'md5') $typeArray[] = 'malware-sample';
+		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray);
 		
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($tags !== '') {
@@ -1194,6 +1193,9 @@ class Attribute extends AppModel {
 			}
 			$conditions['AND'][] = $temp;
 		}
+		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
+		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
+		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 		
 		$options = array(
 				'conditions' => $conditions,
@@ -1206,9 +1208,7 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 	
-	// convert to user
-	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false) {
-		//restricting to non-private or same org if the user is not a site-admin.
+	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last) {
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
 		$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
 		$conditions['AND']['Attribute.type'] = $valid_types;
@@ -1216,6 +1216,8 @@ class Attribute extends AppModel {
 		if ($id) array_push($conditions['AND'], array('Event.id' => $id));
 		if ($from) array_push($conditions['AND'], array('Event.date >=' => $from));
 		if ($to) array_push($conditions['AND'], array('Event.date <=' => $to));
+		if ($last) array_push($conditions['AND'], array('Event.publish_timestamp >=' => $last));
+		
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($tags) {
 			$tag = ClassRegistry::init('Tag');
@@ -1255,14 +1257,15 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	// convert to user!
-	 public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false) {
+	 public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false) {
 	 	//restricting to non-private or same org if the user is not a site-admin.
 	 	$conditions['AND'] = array();
-	 	if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+	 	if (defined($allowNonIDS) && $allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
 	 	if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type; 
 	 	if ($from) $conditions['AND']['Event.date >='] = $from;
 	 	if ($to) $conditions['AND']['Event.date <='] = $to;
+		if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
+
 	 	if ($eventId !== false) {
 	 		$conditions['AND'][] = array('Event.id' => $eventId);
 	 	} elseif ($tags !== false) {
@@ -1286,7 +1289,9 @@ class Attribute extends AppModel {
 	 			'order' => 'Attribute.value', 
 	 			'group' => 'Attribute.value',
 	 			'fields' => array('value'),
-	 	));
+				'contain' => array('Event' => array(
+					'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
+		))));
 	 	return $attributes;
 	 }
 	 

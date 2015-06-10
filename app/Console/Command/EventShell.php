@@ -5,7 +5,7 @@ App::uses('File', 'Utility');
 require_once 'AppShell.php';
 class EventShell extends AppShell
 {
-	public $uses = array('Event', 'Attribute', 'Job', 'User', 'Task', 'Whitelist');
+	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist');
 	
 	public function doPublish() {
 		$id = $this->args[0];
@@ -234,6 +234,22 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', '100');
 		if ($result != true) $this->Job->saveField('message', 'Job done.');
 	}
+
+	public function postsemail() {
+		$user_id = $this->args[0];
+		$post_id = $this->args[1];
+		$event_id = $this->args[2];
+		$title = $this->args[3];
+		$message = $this->args[4];
+		$processId = $this->args[5];
+		$this->Job->id = $processId;
+		$user = $this->User->read(null, $user_id);
+		$eventId = $this->args[2];
+		$result = $this->Post->sendPostsEmail($user_id, $post_id, $event_id, $title, $message);
+		$job['Job']['progress'] = 100;
+		$job['Job']['message'] = 'Emails sent.';
+		$this->Job->save($job);
+	}
 	
 	public function enqueueCaching() {
 		$timestamp = $this->args[0];
@@ -242,9 +258,10 @@ class EventShell extends AppShell
 		// If the next execution time and the timestamp don't match, it means that this task is no longer valid as the time for the execution has since being scheduled
 		// been updated. 
 		if ($task['Task']['next_execution_time'] != $timestamp) return;
-		$task['Task']['scheduled_time'] = date('H:i', $task['Task']['next_execution_time']);
-		$this->Task->save($task);
+
 		$orgs = $this->User->getOrgs();
+		
+		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'cache', 'EventShell', 'enqueueCaching', false, false);
 		
 		// Queue a set of exports for admins. This "ADMIN" organisation. The organisation of the admin users doesn't actually matter, it is only used to indentify
 		// the special cache files containing all events
@@ -257,27 +274,8 @@ class EventShell extends AppShell
 			$this->Job->cache($k, true, 'ADMIN', 'All events.', 'ADMIN');
 			$i++;
 		}
-		$task['Task']['message'] = $i . ' jobs started at ' . date('d/m/Y - H:i:s') . '.';
-		if ($task['Task']['timer'] > 0) {
-			$time = time();
-			// Keep adding the timer's time interval until we get a date that is in the future! We don't want to keep queuing tasks in the past since they will execute until it catches up.
-			while ($task['Task']['next_execution_time'] < $time) {
-				$task['Task']['next_execution_time'] = strtotime('+' . $task['Task']['timer'] . ' hours', $task['Task']['next_execution_time']);
-			}
-			$task['Task']['scheduled_time'] = $this->Task->breakTime($task['Task']['scheduled_time'], $task['Task']['timer']);
-			$task['Task']['scheduled_time'] = date('H:i', $task['Task']['next_execution_time']);
-			
-			// Now that we have figured out when the next execution should happen, it's time to enqueue it.
-			$process_id = CakeResque::enqueueAt(
-					$task['Task']['next_execution_time'],
-					'cache',
-					'EventShell',
-					array('enqueueCaching', $task['Task']['next_execution_time']),
-					true
-			);
-			$task['Task']['job_id'] = $process_id;
-			$this->Task->save($task);
-		}
+		$this->Task->id = $task['Task']['id'];
+		$this->Task->saveField('message', $i . ' job(s) started at ' . date('d/m/Y - H:i:s') . '.');
 	}
 	
 	public function publish() {

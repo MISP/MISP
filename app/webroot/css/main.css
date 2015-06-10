@@ -241,6 +241,11 @@ td.shortish {
 	text-align: left;
 }
 
+td.limitedWidth {
+	max-width:400px;
+	word-wrap:break-word;
+}
+
 td.bitwider {
 	width:20%;
 	text-align: left;
