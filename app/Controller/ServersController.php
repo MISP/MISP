@@ -299,7 +299,7 @@ class ServersController extends AppController {
 			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
 			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
 			
-			$results = $this->Server->serverSettingsRead();
+			$finalSettings = $this->Server->serverSettingsRead();
 			$issues = array(	
 				'errors' => array(
 						0 => array(
@@ -319,7 +319,7 @@ class ServersController extends AppController {
 				'overallHealth' => 3, 
 			);
 			$dumpResults = array();
-			foreach ($results as $k => $result) {
+			foreach ($finalSettings as $k => $result) {
 				if ($result['level'] == 3) $issues['deprecated']++;
 				$tabs[$result['tab']]['count']++;
 				if (isset($result['error']) && $result['level'] < 3) {
@@ -329,7 +329,7 @@ class ServersController extends AppController {
 					if ($result['level'] < $tabs[$result['tab']]['severity']) $tabs[$result['tab']]['severity'] = $result['level'];
 				}
 				$dumpResults[] = $result;
-				if ($result['tab'] != $tab) unset($results[$k]);
+				if ($result['tab'] != $tab) unset($finalSettings[$k]);
 			}
 			// Diagnostics portion
 			$diagnostic_errors = 0;
@@ -350,72 +350,22 @@ class ServersController extends AppController {
 			}
 
 			// check whether the files are writeable
-			$this->set('writeableDirs', $this->Server->writeableDirDiagnostics($diagnostic_errors));
+			$writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
 			
-			// check if the STIX and Cybox libraries are working using the test script stixtest.py
-			$stixStatus = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion);
-			$this->set('stix', $stixStatus);
-
+			// check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
+			$stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion);
 
 			// if GPG is set up in the settings, try to encrypt a test message
-			$gpgStatus = 0;
-			if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
-				$continue = true;
-				try {
-					require_once 'Crypt/GPG.php';
-					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
-					$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-				} catch (Exception $e) {
-					$gpgStatus = 2;
-					$continue = false;		
-				}
-				if ($continue) {
-					try {
-						$gpgStatus = 0;
-						$signed = $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
-					} catch (Exception $e){
-						$gpgStatus = 3;
-					}
-				}
-			} else {
-				$gpgStatus = 1;
-			}
-			if ($gpgStatus != 0) $diagnostic_errors++;
+			$gpgStatus = $this->Server->gpgDiagnostics($diagnostic_errors);
 
 			// if Proxy is set up in the settings, try to connect to a test URL
-			$proxyStatus = 0;
-			$proxy = Configure::read('Proxy');
-			if(!empty($proxy['host'])) {
-				App::uses('SyncTool', 'Tools');
-				$syncTool = new SyncTool();
-				try {
-					$HttpSocket = $syncTool->setupHttpSocket();
-					$proxyResponse = $HttpSocket->get('http://www.example.com/');
-				} catch (Exception $e) {
-					$proxyStatus = 2;
-				}
-				if(empty($proxyResponse) || $proxyResponse->code > 399) {
-					$proxyStatus = 2;
-				}
-			} else {
-					$proxyStatus = 1;
-			}
-			if ($proxyStatus > 1) $diagnostic_errors++;
+			$proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
 
-			$this->set('gpgStatus', $gpgStatus);
-			$this->set('proxyStatus', $proxyStatus);
-			$this->set('diagnostic_errors', $diagnostic_errors);
-			$this->set('tab', $tab);
-			$this->set('tabs', $tabs);
-			$this->set('issues', $issues);
-			$this->set('finalSettings', $results);
+			$viewVars = array(
+					'gpgStatus', 'proxyStatus', 'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors','gpgErrors', 'proxyErrors', 'stixOperational', 'stixVersion', 'cyboxVersion', 'stix', 'writeableDirs'
+			);
 			
-			$this->set('writeableErrors', $writeableErrors);
-			$this->set('gpgErrors', $gpgErrors);
-			$this->set('proxyErrors', $proxyErrors);
-			$this->set('stixOperational', $stixOperational);
-			$this->set('stixVersion', $stixVersion);
-			$this->set('cyboxVersion', $cyboxVersion);
+			foreach ($viewVars as $viewVar) $this->set($viewVar, ${$viewVar});
 			
 			if (Configure::read('MISP.background_jobs')) {
 				$worker_array = array(
@@ -449,7 +399,7 @@ class ServersController extends AppController {
 				foreach ($dumpResults as &$dr) {
 					unset($dr['description']);
 				}
-				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'stix' => $stixErrors[$stix], 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
+				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
 				$this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
 				$this->response->type('json');
 				$this->response->download('MISP.report.json');

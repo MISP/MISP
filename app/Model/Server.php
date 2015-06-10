@@ -1206,7 +1206,7 @@ class Server extends AppModel {
 		return $validItems;
 	}
 	
-	public function writeableDirDiagnostics(&$diagnostic_errors) {
+	public function writeableDirsDiagnostics(&$diagnostic_errors) {
 		App::uses('File', 'Utility');
 		App::uses('Folder', 'Utility');
 		// check writeable directories
@@ -1253,5 +1253,54 @@ class Server extends AppModel {
 			${$package . 'Version'}[0] = str_replace('$expected', $result[$package]['expected'], ${$package . 'Version'}[0]);
 		}
 		return $result;
+	}
+	
+	public function gpgDiagnostics(&$diagnostic_errors) {
+		$gpgStatus = 0;
+		if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
+			$continue = true;
+			try {
+				require_once 'Crypt/GPG.php';
+				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+				$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+			} catch (Exception $e) {
+				$gpgStatus = 2;
+				$continue = false;
+			}
+			if ($continue) {
+				try {
+					$gpgStatus = 0;
+					$signed = $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
+				} catch (Exception $e){
+					$gpgStatus = 3;
+				}
+			}
+		} else {
+			$gpgStatus = 1;
+		}
+		if ($gpgStatus != 0) $diagnostic_errors++;
+		return $gpgStatus;
+	}
+	
+	public function proxyDiagnostics(&$diagnostic_errors) {
+		$proxyStatus = 0;
+		$proxy = Configure::read('Proxy');
+		if(!empty($proxy['host'])) {
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			try {
+				$HttpSocket = $syncTool->setupHttpSocket();
+				$proxyResponse = $HttpSocket->get('http://www.example.com/');
+			} catch (Exception $e) {
+				$proxyStatus = 2;
+			}
+			if(empty($proxyResponse) || $proxyResponse->code > 399) {
+				$proxyStatus = 2;
+			}
+		} else {
+			$proxyStatus = 1;
+		}
+		if ($proxyStatus > 1) $diagnostic_errors++;
+		return $proxyStatus;
 	}
 }
