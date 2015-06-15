@@ -57,8 +57,6 @@ Use semicolons instead (the search will automatically search for colons instead)
 </p>
 <p>For example, to only download a csv generated of the "domain" type and the "Network Activity" category attributes all events except for the one and further restricting it to events that are tagged "tag1" or "tag2" but not "tag3", only allowing attributes that are IDS flagged use the following syntax:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/false/false/tag1&amp;&amp;tag2&amp;&amp;!tag3/Network%20Activity/domain</pre>
-<p>To export the attributes of all events that are of the type "domain", use the following syntax:</p>
-<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/false/false/false/false/domain</pre>
 <p>
 <b>category</b>: The attribute category, any valid MISP attribute category is accepted.<br />
 <b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
@@ -68,6 +66,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
 </p>
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
+<p>To export the attributes of all events that are of the type "domain", use the following syntax:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/false/false/false/false/domain</pre>
 
 <h3>NIDS rules export</h3>
 <p>Automatic export of all network related attributes is available under the Snort rule format. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
