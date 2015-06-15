@@ -1805,7 +1805,7 @@ class Event extends AppModel {
 		return $fn;
 	}
 	
-	// expects a date string in the DD-MM-YYYY format
+	// expects a date string in the YYYY-MM-DD format
 	// returns the passed string or false if the format is invalid
 	// based on the fix provided by stevengoosensB
 	public function dateFieldCheck($date) {
