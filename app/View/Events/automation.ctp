@@ -31,13 +31,14 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/xml/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
+<p>
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br /><br />
 <b>The keywords false or null should be used for optional empty parameters in the URL.<br />
 </p>
-
-<pre><?php echo Configure::read('MISP.baseurl');?>/events/xml/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
 <p>Also check out the <a href="/pages/display/doc/using_the_system#rest">User Guide</a> to read about the REST API.</p>
 <p></p>
 <h3>CSV Export</h3>
@@ -52,6 +53,12 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+</p>
+<p>For example, to only download a csv generated of the "domain" type and the "Network Activity" category attributes all events except for the one and further restricting it to events that are tagged "tag1" or "tag2" but not "tag3", only allowing attributes that are IDS flagged use the following syntax:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/false/false/tag1&amp;&amp;tag2&amp;&amp;!tag3/Network%20Activity/domain</pre>
+<p>To export the attributes of all events that are of the type "domain", use the following syntax:</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/false/false/false/false/domain</pre>
+<p>
 <b>category</b>: The attribute category, any valid MISP attribute category is accepted.<br />
 <b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
 <b>includeContext</b>: Include the event data with each attribute.<br />
@@ -59,11 +66,6 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br /><br />
 <b>The keywords false or null should be used for optional empty parameters in the URL.<br />
-</p>
-<p>For example, to only download a csv generated of the "domain" type and the "Network Activity" category attributes all events except for the one and further restricting it to events that are tagged "tag1" or "tag2" but not "tag3", only allowing attributes that are IDS flagged use the following syntax:</p>
-<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/false/false/tag1&amp;&amp;tag2&amp;&amp;!tag3/Network%20Activity/domain</pre>
-<p>To export the attributes of all events that are of the type "domain", use the following syntax:</p>
-<pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/false/false/false/false/domain</pre>
 
 <h3>NIDS rules export</h3>
 <p>Automatic export of all network related attributes is available under the Snort rule format. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
@@ -79,6 +81,9 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+<p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/nids/snort/download/false/false/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
+</p>
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 6d or 12h or 30m)<br /><br />
@@ -101,6 +106,9 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/hids/md5/download/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
+<p>
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br /><br />
@@ -119,6 +127,9 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+</p>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
+<p>
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br /><br />
@@ -170,6 +181,13 @@ foreach ($sigTypes as $sigType) {
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+</p>
+<pre>
+<?php 
+	echo Configure::read('MISP.baseurl').'/attributes/text/download/all/tag1&amp;&amp;tag2&amp;&amp;!tag3';
+?>
+</pre>
+<p>
 <b>event_id</b>: Restrict the results to the given event IDs. <br />
 <b>allowNonIDS</b>: Allow attributes to be exported that are not marked as "to_ids".<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
@@ -198,6 +216,13 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+<p>
+<pre>
+<?php
+	echo Configure::read('MISP.baseurl').'/events/restSearch/download/null/null/null/null/tag1&amp;&amp;tag2&amp;&amp;!tag3';
+?>
+</pre>
+</p>
 <b>quickfilter</b>: Enabling this (by passing "1" as the argument) will make the search ignore all of the other arguments, except for the auth key and value. MISP will return an xml / json (depending on the header sent) of all events that have a sub-string match on value in the event info, event orgc, or any of the attribute value1 / value2 fields, or in the attribute comment. <br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
@@ -225,7 +250,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>org</b>: Search by the creator organisation by supplying the organisation idenfitier. <br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+Use semicolons instead (the search will automatically search for colons instead).<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br /><br />
