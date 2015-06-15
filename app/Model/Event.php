@@ -1726,11 +1726,11 @@ class Event extends AppModel {
 		return false;
 	}
 	
-	public function stix($id, $tags, $attachments, $org, $isSiteAdmin, $returnType, $last) {
+	public function stix($id, $tags, $attachments, $org, $isSiteAdmin, $returnType, $from, $to, $last) {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
-		$events = $this->fetchEvent(null, $idList, $org, $isSiteAdmin, false, false, false, false, $last);
+		$events = $this->fetchEvent(null, $idList, $org, $isSiteAdmin, false, false, $from, $to, $last);
 		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
 		if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
 			foreach ($events as &$event) {
