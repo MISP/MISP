@@ -19,10 +19,10 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <p>You can post an XML or JSON object containing additional parameters in the following formats:</p>
 <p>JSON:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/xml/download.json</pre>
-<code>{"request": {"eventid":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-01-01"}}</code><br /><br />
+<code>{"request": {"eventid":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
 <p>XML:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/xml/download</pre>
-<code>&lt;request&gt;&lt;eventid&gt;!51&lt;/eventid&gt;&lt;eventid&gt;!62&lt;/eventid&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-01-01&lt;/to&gt;&lt;/request&gt;</code><br /><br />
+<code>&lt;request&gt;&lt;eventid&gt;!51&lt;/eventid&gt;&lt;eventid&gt;!62&lt;/eventid&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-02-15&lt;/to&gt;&lt;/request&gt;</code><br /><br />
 <p>The xml download also accepts two additional the following optional parameters in the url: </p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/xml/download/[eventid]/[withattachments]/[tags]/[from]/[to]/[last]</pre>
 <p>
@@ -122,22 +122,22 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>You can post an XML or JSON object containing additional parameters in the following formats:</p>
 <p>JSON:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download.json</pre>
-<code>{"request": {"id":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-01-01"}}</code><br /><br />
+<code>{"request": {"id":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
 <p>XML:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download</pre>
-<code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-01-01&lt;/to&gt;&lt;/request&gt;</code><br /><br />
+<code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-02-15&lt;/to&gt;&lt;/request&gt;</code><br /><br />
 
 <h4>Various ways to narrow down the search results of the STIX export</h4>
 <p>For example, to retrieve all events tagged "APT1" but excluding events tagged "OSINT" and excluding events #51 and #62 without any attachments:
-<pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download/!51&amp;&amp;!62/false/APT1&amp;&amp;!OSINT/2015-01-01</pre>
+<pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download/!51&amp;&amp;!62/false/APT1&amp;&amp;!OSINT/2015-02-15</pre>
 <p>To export the same events using a POST request use:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download.json</pre>
 <p>Together with this JSON object in the POST message:</p>
-<code>{"request": {"id":["!51","!62"],"tags":["APT1","!OSINT"],"from":"2015-01-01"}}</code><br /><br />
+<code>{"request": {"id":["!51","!62"],"tags":["APT1","!OSINT"],"from":"2015-02-15"}}</code><br /><br />
 <p>XML is automatically assumed when using the stix export:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/stix/download</pre>
 <p>The same search could be accomplished using the following POSTed XML object (note that ampersands need to be escaped, or alternatively separate id and tag elements can be used): </p>
-<code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;2015-01-01&lt;/from&gt;&lt;/request&gt;</code>
+<code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;2015-02-15&lt;/from&gt;&lt;/request&gt;</code>
 <h3>Text export</h3>
 <p>An automatic export of all attributes of a specific type to a plain text file.</p>
 <p>You can configure your tools to automatically download the following files:</p>
