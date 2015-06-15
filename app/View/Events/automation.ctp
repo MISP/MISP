@@ -33,7 +33,8 @@ You can also chain several tag commands together with the '&amp;&amp;' operator.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br /><br />
+<b>The keywords false or null should be used for optional empty parameters in the URL.<br />
 </p>
 
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/xml/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
@@ -56,7 +57,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>includeContext</b>: Include the event data with each attribute.<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br /><br />
+<b>The keywords false or null should be used for optional empty parameters in the URL.<br />
 </p>
 <p>For example, to only download a csv generated of the "domain" type and the "Network Activity" category attributes all events except for the one and further restricting it to events that are tagged "tag1" or "tag2" but not "tag3", only allowing attributes that are IDS flagged use the following syntax:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/csv/download/false/false/tag1&amp;&amp;tag2&amp;&amp;!tag3/Network%20Activity/domain</pre>
@@ -79,7 +81,8 @@ You can also chain several tag commands together with the '&amp;&amp;' operator.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 6d or 12h or 30m)<br /><br />
+<b>The keywords false or null should be used for optional empty parameters in the URL.<br />
 </p>
 <p>An example for a suricata export for all events excluding those tagged tag1, without all of the commented information at the start of the file would look like this:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/nids/suricata/download/null/true/!tag1</pre>
@@ -101,6 +104,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br /><br />
+<b>The keywords false or null should be used for optional empty parameters in the URL.<br />
 <p>For example, to only show sha1 values from events tagged tag1, use:</p>
 <pre><?php echo Configure::read('MISP.baseurl');?>/events/hids/sha1/download/tag1</pre>
 
@@ -117,7 +121,8 @@ You can also chain several tag commands together with the '&amp;&amp;' operator.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br /><br />
+<b>The keywords false or null should be used for optional empty parameters in the URL.<br />
 </p>
 <p>You can post an XML or JSON object containing additional parameters in the following formats:</p>
 <p>JSON:</p>
@@ -169,7 +174,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>allowNonIDS</b>: Allow attributes to be exported that are not marked as "to_ids".<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br /><br />
+<b>The keywords false or null should be used for optional empty parameters in the URL.<br />
 <p>For example, to retrieve all attributes for event #5, including non IDS marked attributes too, use the following line:</p>
 <pre>
 <?php 
@@ -196,6 +202,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br /><br />
+<b>The keywords false or null should be used for optional empty parameters in the URL.<br />
 <p>For example, to find any event with the term "red october" mentioned, use the following syntax (the example is shown as a POST request instead of a GET, which is highly recommended):</p>
 <p>POST to:</p>
 <pre>
@@ -222,6 +229,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br /><br />
+<b>The keywords false or null should be used for optional empty parameters in the URL.<br />
 <pre>
 <?php
 	echo Configure::read('MISP.baseurl').'/attributes/restSearch/download/[value]/[type]/[category]/[org]/[tag]/[from]/[to]/[last]';
