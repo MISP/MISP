@@ -421,9 +421,18 @@ If you ever need to change the data about the linked servers or remove any conne
 </ul>
 <hr />
 <a id="rest"></a><h2>Rest API:</h2>
-The platform is also <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTfull</a>, so this means that you can use structured format (XML) to access Events data.<br /><br />
+The platform is also <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTfull</a>, so this means that you can use structured format (XML or JSON) to access Events data.<br /><br />
 <h3>Requests</h3>
-Use any HTTP compliant library to perform requests. However to make clear you are doing a REST request you need to either specify the Accept type to application/xml, or append .xml to the url<br /><br />
+Use any HTTP compliant library to perform requests.<br /><br />
+You can choose which format you would like to use as input/output for the REST calls by specifying the Accept and Content-Type headers.<br /><br />
+The following headers are required if you wish to recieve / push XML data:<br /><br />
+<b>Authorization</b>: <span class=red><?php echo h($user['authkey']); ?></span><br />
+<b>Accept</b>: <span class=red>application/xml</span><br />
+<b>Content-Type</b>: <span class=red>application/xml</span><br /><br />
+The following headers are required if you wish to recieve / push JSON data:<br /><br />
+<b>Authorization</b>: <span class=red><?php echo h($user['authkey']); ?></span><br />
+<b>Accept</b>: <span class=red>application/json</span><br />
+<b>Content-Type</b>: <span class=red>application/json</span><br /><br />
 The following table shows the relation of the request type and the resulting action:<br /><br />
 
 <table style="width:350px;" summary="">
@@ -467,9 +476,8 @@ The following table shows the relation of the request type and the resulting act
 </table>
 <small>(1) Warning, there's a limit on the number of results when you call <code>index</code>.</small><br/>
 <small>(2) Attachments are included using base64 encoding below the <code>data</code> tag.</small><br/>
-<br/>
-<h3>Authentication</h3>
-<p>REST being stateless you need to authenticate your request by using your <?php echo $this->Html->link(__('authkey/apikey', true), array('controller' => 'users', 'action' => 'view', 'me')); ?>. Simply set the <code>Authorization</code> HTTP header.</p>
+<br/><br />
+<h3></h3>
 <h3>Example - Get single Event</h3>
 <p>In this example we fetch the details of a single Event (and thus also his Attributes).<br/>
 The request should be:</p>
@@ -520,39 +528,23 @@ Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
 The request should be:</p>
 <pre>POST <?php echo Configure::read('MISP.baseurl');?>/events
 Accept: application/xml
-Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
+Authorization: <?php echo h($user['authkey']); ?></pre>
 <p>And the request body:</p>
-<pre>&lt;Event&gt;
-	&lt;id&gt;72&lt;/id&gt;
-	&lt;org&gt;NCIRC&lt;/org&gt;
+<pre>&lt;Event&gt
 	&lt;date&gt;2014-03-04&lt;/date&gt;
 	&lt;threat_level_id&gt;1&lt;/threat_level_id&gt;
 	&lt;info&gt;Something concise&lt;/info&gt;
 	&lt;published&gt;1&lt;/published&gt;
-	&lt;uuid&gt;50aa54aa-f7a0-4d74-920d-10f0ff32448e&lt;/uuid&gt;
-	&lt;attribute_count&gt;1&lt;/attribute_count&gt;
 	&lt;analysis&gt;1&lt;/analysis&gt;
-	&lt;timestamp&gt;1393328991&lt;/timestamp&gt;
 	&lt;distribution&gt;1&lt;/distribution&gt;
-	&lt;proposal_email_lock&gt;0&lt;/proposal_email_lock&gt;
-	&lt;orgc&gt;Iglocska&lt;/orgc&gt;
-	&lt;locked&gt;0&lt;/locked&gt;
-	&lt;publish_timestamp&gt;1393329599&lt;/publish_timestamp&gt;
 	&lt;Attribute&gt;
-		&lt;id&gt;9577&lt;/id&gt;
 		&lt;type&gt;other&lt;/type&gt;
 		&lt;category&gt;Artifacts dropped&lt;/category&gt;
 		&lt;to_ids&gt;1&lt;/to_ids&gt;
-		&lt;uuid&gt;50aa54bd-adec-4544-b412-10f0ff32448e&lt;/uuid&gt;
-		&lt;event_id&gt;57&lt;/event_id&gt;
 		&lt;distribution&gt;1&lt;/distribution&gt;
-		&lt;timestamp&gt;1393328991&lt;/timestamp&gt;
 		&lt;comment&gt;This is an Attribute&lt;/comment&gt;
 		&lt;value&gt;Some_attribute&lt;/value&gt;
-		&lt;ShadowAttribute /&gt;
 	&lt;/Attribute&gt;
-	&lt;ShadowAttribute /&gt;
-	&lt;RelatedEvent /&gt;
 &lt;/Event&gt;</pre>
 <p>The response you're going to get is the following data:</p>
 <pre>
