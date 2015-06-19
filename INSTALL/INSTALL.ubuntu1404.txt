@@ -1,9 +1,6 @@
 INSTALLATION INSTRUCTIONS
 ------------------------- for ubuntu 14.04-server
 
-# steps 2 (besides acquiring git), 4, 5 can be skipped by running INSTALL.SH 
-# The correct order in this case is 1/, apt get git, 3/ and then executing INSTALL.SH in /var/www/MISP/INSTALL/INSTALL.SH
-
 1/ Minimal ubuntu install
 -------------------------
 
@@ -50,8 +47,10 @@ cd /var/www/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
+git checkout v2.1.0.10
 python setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
+git checkout v1.1.1.4
 python setup.py install
 
 4/ CakePHP
@@ -173,9 +172,6 @@ sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 # And export the public key to the webroot
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
 
-# Start the workers to enable background jobs 
-/var/www/MISP/app/Console/worker/start.sh
-
 # To make the background workers start on boot
 chmod +x /var/www/MISP/app/Console/worker/start.sh
 sudo vim /etc/rc.local
@@ -187,6 +183,7 @@ su www-data -c 'bash /var/www/MISP/app/Console/worker/start.sh'
 
 # Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
 # It is especially vital that no critical issues remain!
+# start the workers by navigating to the workers tab and clicking restart all workers
 
 Don't forget to change the email, password and authentication key after installation.
 

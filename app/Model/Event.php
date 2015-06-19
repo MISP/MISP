@@ -599,7 +599,11 @@ class Event extends AppModel {
 				// solves the issue and a new attribute is always created.
 				unset($attribute['id']);
 			}
-		}
+		} else return 403;
+		
+		// If we ran out of attributes, or we never had any to begin with, we want to prevent the event from being pushed.
+		// It should show up the same way as if the event was not exportable
+		if (count($event['Event']['Attribute']) == 0) return 403;
 		
 		// Distribution, correct All to Community in Event
 		if ($event['Event']['distribution'] == 2) {
@@ -806,7 +810,7 @@ class Event extends AppModel {
 		return null;
 	}
 
-	public function fetchEventIds($org, $isSiteAdmin, $from = false, $to = false) {
+	public function fetchEventIds($org, $isSiteAdmin, $from = false, $to = false, $last = false) {
 		$conditions = array();
 		if (!$isSiteAdmin) {
 			$conditions['OR'] = array(
@@ -821,6 +825,7 @@ class Event extends AppModel {
 		
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		
 		$params = array(
 			'conditions' => $conditions,
@@ -832,7 +837,7 @@ class Event extends AppModel {
 	}
 	
 	//Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller.
-	public function fetchEvent($eventid = false, $idList = false, $org, $isSiteAdmin = false, $bkgrProcess = false, $tags = false, $from = false, $to = false) {
+	public function fetchEvent($eventid = false, $idList = false, $org, $isSiteAdmin = false, $bkgrProcess = false, $tags = false, $from = false, $to = false, $last = false) {
 		if ($eventid) {
 			$this->id = $eventid;
 			if (!$this->exists()) {
@@ -863,6 +868,7 @@ class Event extends AppModel {
 		
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		
 		if ($idList && !$tags) {
 			$conditions['AND'][] = array('Event.id' => $idList);
@@ -937,7 +943,7 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	public function csv($org, $isSiteAdmin, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false) {
+	public function csv($org, $isSiteAdmin, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last) {
 		$final = array();
 		$attributeList = array();
 		$conditions = array();
@@ -948,6 +954,7 @@ class Event extends AppModel {
 	 	if ($eventid !== 'search') {
 	 		if ($from) $econditions['AND'][] = array('Event.date >=' => $from);
 	 		if ($to) $econditions['AND'][] = array('Event.date <=' => $to);
+	 		if ($last) $econditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
 			if(!$isSiteAdmin) $econditions['AND']['OR'] = array(
 				"AND" => array(
@@ -983,6 +990,7 @@ class Event extends AppModel {
 	 					'fields' => array('id', 'distribution', 'org', 'published', 'date'),
 	 			);
 	 			$events = $this->find('all', $params);
+	 			if (empty($events)) return array();
 	 		}
 	 		// if we have items in events, add their IDs to the conditions. If we're a site admin, or we have a single event selected for download, this should be empty
 	 		if (isset($events)) {
@@ -1213,7 +1221,8 @@ class Event extends AppModel {
 			//limit this array to users with contactalerts turned on!
 			$orgMembers = array();
 			$this->User->recursive = -1;
-			$temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert', 'id'));
+			$temp = $this->User->findAllByOrg($event['Event']['orgc'], array('email', 'gpgkey', 'contactalert', 'id'));
+			if (empty($temp)) $temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert', 'id'));
 			foreach ($temp as $tempElement) {
 				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
 					array_push($orgMembers, $tempElement);
@@ -1718,11 +1727,11 @@ class Event extends AppModel {
 		return false;
 	}
 	
-	public function stix($id, $tags, $attachments, $org, $isSiteAdmin, $returnType) {
+	public function stix($id, $tags, $attachments, $org, $isSiteAdmin, $returnType, $last) {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
-		$events = $this->fetchEvent(null, $idList, $org, $isSiteAdmin);
+		$events = $this->fetchEvent(null, $idList, $org, $isSiteAdmin, false, false, false, false, $last);
 		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
 		if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
 			foreach ($events as &$event) {
@@ -1741,10 +1750,10 @@ class Event extends AppModel {
 		// save the json_encoded event(s) to the temporary file
 		$result = $tempFile->write(json_encode($events));
 		$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-		
+
 		// Execute the python script and point it to the temporary filename
 		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType . ' ' . Configure::read('MISP.baseurl') . ' "' . Configure::read('MISP.org') . '"');
-		
+
 		// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
 		// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
 		$decoded = json_decode($result);
@@ -1803,5 +1812,18 @@ class Event extends AppModel {
 	public function dateFieldCheck($date) {
 		// regex check for from / to field by stevengoossensB
 		return (preg_match('/^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|1[0-9]|2[0-9]|3[01])$/', $date)) ? $date : false;
+	}
+	
+	//
+	public function resolveTimeDelta($delta) {
+		$multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60);
+		$multiplier = $multiplierArray['d'];
+		$lastChar = strtolower(substr($delta, -1));
+		if (!is_numeric($lastChar) && array_key_exists($lastChar, $multiplierArray)) {
+			$multiplier = $multiplierArray[$lastChar];
+			$delta = substr($delta, 0, -1);
+		}
+		if (!is_numeric($delta)) return false;
+		return time() - ($delta * $multiplier); 
 	}
 }
