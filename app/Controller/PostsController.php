@@ -61,6 +61,7 @@ class PostsController extends AppController {
 				}
 				$distribution = $this->Event->data['Event']['distribution'];
 				$org = $this->Event->data['Event']['org'];
+				$event_id = $this->Event->data['Event']['id'];
 			break;
 			case 'thread' :
 				$target_thread_id = $target_id;
@@ -75,6 +76,7 @@ class PostsController extends AppController {
 						}
 					}
 					$title = $this->Thread->data['Thread']['title'];
+					$event_id = $this->Thread->data['Thread']['event_id'];
 				}
 			break;
 			case 'post' :
@@ -110,10 +112,9 @@ class PostsController extends AppController {
 			if ($target_thread_id == null) {
 				// We have a post that was posted in a new thread. This could also mean that someone created the first post related to an event!
 				$this->Thread->create();
-				// Take the title from above and the id of the event as event_id if we are adding a post to an event. 
+				// Take the title from above if we are adding a post to an event. 
 				if ($target_type === 'event') {
 					$title = $eventDiscussionTitle;
-					$event_id = $this->Event->data['Event']['id'];
 				}
 				$newThread = array(
 						'date_created' => date('Y/m/d H:i:s'),
@@ -150,6 +151,7 @@ class PostsController extends AppController {
 				$this->Thread->read(null, $target_thread_id);
 				$this->Thread->updateAfterPostChange(true);
 				$this->Session->setFlash(__('Post added'));
+				$this->Post->sendPostsEmailRouter($this->Auth->user('id'), $this->Post->getId(), $event_id, $title, $this->request->data['Post']['message']);
 				$this->redirect(array('action' => 'view', $this->Post->getId()));
 			} else {
 				$this->Session->setFlash('The post could not be added.');

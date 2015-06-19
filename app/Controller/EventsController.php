@@ -467,6 +467,8 @@ class EventsController extends AppController {
 		
 		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
 			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
+		} elseif ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
+			$this->Session->setFlash(__('No GPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
 		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
@@ -975,6 +977,8 @@ class EventsController extends AppController {
 			}
 		}
 
+		$this->request->data['Event']['date'] = date('Y-m-d');
+		
 		// combobox for distribution
 		$distributions = array_keys($this->Event->distributionDescriptions);
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
@@ -1253,17 +1257,19 @@ class EventsController extends AppController {
 				$c = 0;
 				if (isset($this->request->data['Attribute'])) {
 					foreach ($this->request->data['Attribute'] as $attribute) {
-						$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
-						if (count($existingAttribute)) {
-							$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
-							// Check if the attribute's timestamp is bigger than the one that already exists.
-							// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-							// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-							if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-
-							} else {
-								unset($this->request->data['Attribute'][$c]);
-								//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+						if (isset($attribute['uuid'])) {
+							$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
+							if (count($existingAttribute)) {
+								$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
+								// Check if the attribute's timestamp is bigger than the one that already exists.
+								// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+								// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+								if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+	
+								} else {
+									unset($this->request->data['Attribute'][$c]);
+									//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+								}
 							}
 						}
 						$c++;
@@ -1723,6 +1729,8 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
+		if ($from) $from = $this->Event->dateFieldCheck($from);
+		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		
 		$eventIdArray = array();
@@ -1800,6 +1808,9 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
+		
+		if ($from) $from = $this->Event->dateFieldCheck($from);
+		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		// backwards compatibility, swap key and format
 		if ($format != 'snort' && $format != 'suricata') {
@@ -1835,6 +1846,9 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
+		
+		if ($from) $from = $this->Event->dateFieldCheck($from);
+		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
@@ -1867,6 +1881,9 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
+		
+		if ($from) $from = $this->Event->dateFieldCheck($from);
+		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		$list = array();
 		if ($key != 'download') {
@@ -2397,6 +2414,9 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
+		
+		if ($from) $from = $this->Event->dateFieldCheck($from);
+		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		if ($searchall === 'true') $searchall = "1";
 
@@ -2972,6 +2992,8 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
+		if ($from) $from = $this->Event->dateFieldCheck($from);
+		if ($to) $to = $this->Event->dateFieldCheck($to);
 		
 		// set null if a null string is passed
 		$numeric = false;
