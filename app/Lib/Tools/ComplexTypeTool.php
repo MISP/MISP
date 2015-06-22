@@ -59,7 +59,7 @@ class ComplexTypeTool {
 	}
 	
 	public function checkFreeText($input) {
-		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+/", $input);
+		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,/", $input);
 		$resultArray = array();
 		foreach ($iocArray as $ioc) {
 			$ioc = trim($ioc);
@@ -79,6 +79,17 @@ class ComplexTypeTool {
 		$result = array();
 		$input = trim($input);
 		$input = strtolower($input);
+		
+		if (strpos($input, '|')) {
+			$compositeParts = explode('|', $input);
+			if (count($compositeParts) == 2) {
+				if ($this->__resolveFilename($compositeParts[0])) {
+					if (strlen($compositeParts[1]) == 32 && preg_match("#[0-9a-f]{32}$#", $compositeParts[1])) return array('types' => array('filename|md5'), 'to_ids' => true, 'default_type' => 'filename|md5');
+					if (strlen($compositeParts[1]) == 40 && preg_match("#[0-9a-f]{40}$#", $compositeParts[1])) return array('types' => array('filename|sha1'), 'to_ids' => true, 'default_type' => 'filename|sha1');
+					if (strlen($compositeParts[1]) == 64 && preg_match("#[0-9a-f]{64}$#", $compositeParts[1])) return array('types' => array('filename|sha256'), 'to_ids' => true, 'default_type' => 'filename|sha256');
+				}
+			}
+		}
 		
 		// check for hashes
 		if (strlen($input) == 32 && preg_match("#[0-9a-f]{32}$#", $input)) return array('types' => array('md5'), 'to_ids' => true, 'default_type' => 'md5');
@@ -153,6 +164,7 @@ class ComplexTypeTool {
 			strpos($input, '.') != 0 &&
 			strpos($input, '..') == 0 &&
 			strpos($input, '.') != (strlen($input)-1) &&
+			preg_match('/(.*)\.[^(\|\<\>\^\=\?\/\[\]\"\;\*)]*$/', $input) &&
 			!preg_match('/[?:<>|\\*:\/@]/', $input)
 		) return true;
 		return false;
