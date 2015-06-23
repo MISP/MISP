@@ -1317,7 +1317,6 @@ class Server extends AppModel {
 		return $validItems;
 	}
 	
-<<<<<<< HEAD
 	public function writeableDirsDiagnostics(&$diagnostic_errors) {
 		App::uses('File', 'Utility');
 		App::uses('Folder', 'Utility');
@@ -1414,7 +1413,8 @@ class Server extends AppModel {
 		}
 		if ($proxyStatus > 1) $diagnostic_errors++;
 		return $proxyStatus;
-=======
+	}
+	
 	public function retrieveCurrentSettings($branch, $subString) {
 		$settings = array();
 		foreach ($this->serverSettings[$branch] as $settingName => $setting) {
@@ -1425,6 +1425,5 @@ class Server extends AppModel {
 			}
 		}
 		return $settings;
->>>>>>> feature/rpz
 	}
 }
