@@ -944,4 +944,17 @@ class UsersController extends AppController {
 		$user_results = $this->User->verifyGPG();
 		$this->set('users', $user_results);
 	}
+	
+	public function fetchPGPKey($email) {
+		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
+		$keys = $this->User->fetchPGPKey($email);
+		if (is_numeric($keys)) {
+			
+			throw new NotFoundException('Could not retrieved any keys from the key server.');
+		}
+		$this->set('keys', $keys);
+		$this->autorender = false;
+		$this->layout = false;
+		$this->render('ajax/fetchpgpkey');
+	}
 }
