@@ -561,8 +561,4 @@ class User extends AppModel {
 		}
 		return $final;
 	}
-	
-	private function __fetchPGPKey() {
-		
-	}
 }
