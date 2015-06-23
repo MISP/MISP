@@ -34,6 +34,7 @@ class Job extends AppModel {
 			$type = 'nids';
 			$extra2 = $sid;
 		}
+		if ($type === 'rpz') $extra = $type;
 		$this->save($data);
 		$id = $this->id;
 		$process_id = CakeResque::enqueue(

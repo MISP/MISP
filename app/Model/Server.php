@@ -557,6 +557,90 @@ class Server extends AppModel {
 							'type' => 'string',
 					),
 			),
+			'Plugin' => array(
+					'branch' => 1,
+					'RPZ_policy' => array(
+						'level' => 1,
+						'description' => 'The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.',
+						'value' => 0,
+						'errorMessage' => '',
+						'test' => 'testForRPZBehaviour',
+						'type' => 'numeric',
+						'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'walled-garden'),
+					),
+					'RPZ_walled_garden' => array(
+						'level' => 2,
+						'description' => 'The default walled garden used by the RPZ export if the walled garden setting is picked for the export.',
+						'value' => '127.0.0.1',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+					),
+					'RPZ_serial' => array(
+							'level' => 2,
+							'description' => 'The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting).',
+							'value' => '$date00',
+							'errorMessage' => '',
+							'test' => 'testForRPZSerial',
+							'type' => 'string',
+					),
+					'RPZ_refresh' => array(
+							'level' => 2,
+							'description' => 'The refresh specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '2h',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_retry' => array(
+							'level' => 2,
+							'description' => 'The retry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '30m',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_expiry' => array(
+							'level' => 2,
+							'description' => 'The expiry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '30d',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_minimum_ttl' => array(
+							'level' => 2,
+							'description' => 'The minimum TTL specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '1h',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_ttl' => array(
+							'level' => 2,
+							'description' => 'The TTL of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '1w',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_ns' => array(
+							'level' => 2,
+							'description' => '',
+							'value' => 'localhost.',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'RPZ_email' => array(
+						'level' => 2,
+						'description' => 'The e-mail address specified in the SOA portion of the zone file.',
+						'value' => 'root.localhost',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+					),
+			),
 			'debug' => array(
 					'level' => 0,
 					'description' => 'The debug level of the instance, always use 0 for production instances.',
@@ -1084,7 +1168,7 @@ class Server extends AppModel {
 	public function testPasswordLength($value) {
 		$numeric = $this->testforNumeric($value);
 		if ($numeric !== true) return $numeric;
-		if ($numeric < 0) return 'Length cannot be negative, set a positive integer or 0 (to choose the default option).';
+		if ($value < 0) return 'Length cannot be negative, set a positive integer or 0 (to choose the default option).';
 		return true;
 	}
 	
@@ -1103,6 +1187,34 @@ class Server extends AppModel {
 		if (file_exists($value)) return true;
 		return 'Could not find the gnupg executable at the defined location.';
 	}
+
+	public function testForRPZDuration($value) {
+		if (($this->testForNumeric($value) !== true && preg_match('/^[0-9]*[mhdw]$/i', $value)) || $value >= 0) {
+			return true;
+		} else {
+			return 'Negative seconds found. The following formats are accepted: seconds (positive integer), or duration (positive integer) followed by a letter denoting scale (such as m, h, d, w for minutes, hours, days, weeks)';
+		}
+	}
+	
+	public function testForRPZBehaviour($value) {
+		$numeric = $this->testforNumeric($value);
+		if ($numeric !== true) return $numeric;
+		if ($value < 0 || $value > 3) return 'Invalid setting, valid range is 0-3 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden.';
+		return true;
+	}
+	
+	public function testForRPZSerial($value) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if (!preg_match('/^((\$date(\d*)|\d*))$/', $value)) return 'Invalid format.';
+		//if (!preg_match('/^\w+(\.\w+)*(\.?) \w+(\.\w+)* \((\$date(\d*)|\d*)( ((\d*)|(\d*)[hHmMdD])){4}\)$/', $value)) return 'Invalid format.';
+		return true;
+	}
+	
+	public function testForRPZNS($value) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if (!preg_match('/^\w+(\.\w+)*(\.?) \w+(\.\w+)*$/', $value)) return 'Invalid format.';
+		return true;
+	}
 	
 	
 	// never come here directly, always go through a secondary check like testForTermsFile in order to also pass along the expected file path
@@ -1114,10 +1226,9 @@ class Server extends AppModel {
 		return true;
 	}
 	
-	
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
-		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'Proxy', 'SecureAuth', 'Security', 'debug'));
+		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'Proxy', 'SecureAuth', 'Security', 'debug', 'Plugin'));
 	}
 	
 	public function checkVersion($newest) {
@@ -1206,6 +1317,7 @@ class Server extends AppModel {
 		return $validItems;
 	}
 	
+<<<<<<< HEAD
 	public function writeableDirsDiagnostics(&$diagnostic_errors) {
 		App::uses('File', 'Utility');
 		App::uses('Folder', 'Utility');
@@ -1302,5 +1414,17 @@ class Server extends AppModel {
 		}
 		if ($proxyStatus > 1) $diagnostic_errors++;
 		return $proxyStatus;
+=======
+	public function retrieveCurrentSettings($branch, $subString) {
+		$settings = array();
+		foreach ($this->serverSettings[$branch] as $settingName => $setting) {
+			if (strpos($settingName, $subString) !== false) {
+				$settings[$settingName] = $setting['value'];
+				if (Configure::read('Plugin.' . $settingName)) $settings[$settingName] = Configure::read('Plugin.' . $settingName);
+				if (isset($setting['options'])) $settings[$settingName] = $setting['options'][$settings[$settingName]];
+			}
+		}
+		return $settings;
+>>>>>>> feature/rpz
 	}
 }
