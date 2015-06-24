@@ -26,6 +26,7 @@ class AttributesController extends AppController {
 		$this->Auth->allow('returnAttributes');
 		$this->Auth->allow('downloadAttachment');
 		$this->Auth->allow('text');
+		$this->Auth->allow('rpz');
 
 		// permit reuse of CSRF tokens on the search page.
 		if ('search' == $this->request->params['action']) {
@@ -1797,6 +1798,75 @@ class AttributesController extends AppController {
 		$this->set('attributes', $attributes);
 	}
 	
+	public function rpz($key='download', $tags=false, $eventId=false, $from=false, $to=false, $policy=false, $walled_garden = false, $ns = false, $email = false, $serial = false, $refresh = false, $retry = false, $expiry = false, $minimum_ttl = false, $ttl = false) {
+		
+		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
+		// The correct format for both is a "request" root element, as shown by the examples below:
+		// For Json: {"request":{"policy": "walled-garden","garden":"garden.example.com"}}
+		// For XML: <request><policy>walled-garden</policy><garden>garden.example.com</gargen></request>
+		// the response type is used to determine the parsing method (xml/json)
+		if ($this->request->is('post')) {
+			if ($this->request->input('json_decode', true)) {
+				$data = $this->request->input('json_decode', true);
+			} else {
+				$data = $this->request->data;
+			}
+			if (empty($data)) throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
+			$paramArray = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+				else ${$p} = null;
+			}
+		}
+		
+		$simpleFalse = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || ${$sF} === null || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
+		if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP', 'walled-garden'))) $policy = false;
+		App::uses('RPZExport', 'Export');
+		$rpzExport = new RPZExport();
+		if ($policy) $policy = $rpzExport->getIdByPolicy($policy);
+
+		$this->loadModel('Server');
+		$rpzSettings = array();
+		$lookupData = array('policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
+		foreach ($lookupData as $v) {
+			if (${$v} !== false) $rpzSettings[$v] = ${$v};
+			else {
+				$tempSetting = Configure::read('Plugin.RPZ_' . $v);
+				if (isset($tempSetting)) $rpzSettings[$v] = Configure::read('Plugin.RPZ_' . $v);
+				else $rpzSettings[$v] = $this->Server->serverSettings['Plugin']['RPZ_' . $v]['value'];
+			}
+		}
+		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
+		if ($to) $from = $this->Attribute->Event->dateFieldCheck($to);
+		if ($key != 'download') {
+			// check if the key is valid -> search for users based on key
+			$user = $this->checkAuthUser($key);
+			if (!$user) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
+		} else {
+			if (!$this->Auth->user('id')) {
+				throw new UnauthorizedException('You have to be logged in to do that.');
+			}
+		}
+		$values = $this->Attribute->rpz($this->_checkOrg(), $this->_isSiteAdmin(), $tags, $eventId, $from, $to);
+		$this->response->type('txt');	// set the content type
+		$file = '';
+		if ($tags) $file = 'filtered.';
+		if ($eventId) $file .= 'event-' . $eventId . '.';
+		if ($from) $file .= 'from-' . $from . '.';
+		if ($to) $file .= 'to-' . $to . '.';
+		if ($file == '') $file = 'all.';
+		$this->header('Content-Disposition: download; filename="misp.rpz.' . $file . 'txt"');
+		$this->layout = 'text/default';
+		$this->loadModel('Whitelist');
+		$values = $this->Whitelist->removeWhitelistedValuesFromArray($values);
+		$this->set('values', $values);
+		$this->set('rpzSettings', $rpzSettings);
+	}
 
 	public function reportValidationIssuesAttributes() {
 		// TODO improve performance of this function by eliminating the additional SQL query per attribute

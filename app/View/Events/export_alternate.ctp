@@ -37,6 +37,13 @@
 				domain name and IP numbers to exclude from the NIDS export.
 		</div>
 	</div>
+		<div class="row bottom-buffer">
+		<div class="span3">
+		<?php echo $this->Html->link('Download RPZ Zone File', array('controller' => 'attributes', 'action' => 'rpz', 'download'), array('class' => 'btn btn-block full-width')); ?>
+		</div>
+		<div class="span9">Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.
+		</div>
+	</div>
 	<div class="row bottom-buffer">
 		<div class="span3">
 			<?php echo $this->Html->link('Download all MD5 hashes', array('action' => 'hids', 'md5','download'), array('class' => 'btn btn-block full-width')); ?>
