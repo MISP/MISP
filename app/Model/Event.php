@@ -1519,6 +1519,13 @@ class Event extends AppModel {
 			$this->save($event, array('fieldList' => $fieldList));
 		}		
 		$uploaded = false;
+		if (Configure::read('Plugin.ZeroMQ_enable')) {
+			App::uses('PubSubTool', 'Tools');
+			$pubSubTool = new PubSubTool();
+			$hostOrg = Configure::read('MISP.org');
+			$fullEvent = $this->fetchEvent($id, false, $hostOrg, false);
+			$pubSubTool->publishEvent($fullEvent[0]);
+		}
 		if ($event['Event']['distribution'] > 1) {
 			$uploaded = $this->uploadEventToServersRouter($id, $passAlong);
 		} else {

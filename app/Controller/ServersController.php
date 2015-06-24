@@ -296,6 +296,7 @@ class ServersController extends AppController {
 			$writeableErrors = array(0 => 'OK', 1 => 'Directory doesn\'t exist', 2 => 'Directory is not writeable');
 			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: bad GnuPG.*', 3 => 'FAIL: encrypt failed');
 			$proxyErrors = array(0 => 'OK', 1 => 'not configured (so not tested)', 2 => 'Getting URL via proxy failed');
+			$zmqErrors = array(0 => 'OK', 1 => 'not enabled (so not tested)', 2 => 'zmq extension not installed correctly.');
 			$stixOperational = array(0 => 'STIX or CyBox library not installed correctly', 1 => 'OK');
 			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
 			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
@@ -359,11 +360,14 @@ class ServersController extends AppController {
 			// if GPG is set up in the settings, try to encrypt a test message
 			$gpgStatus = $this->Server->gpgDiagnostics($diagnostic_errors);
 
+			// if the message queue pub/sub is enabled, check whether the extension works
+			$zmqStatus = $this->Server->zmqDiagnostics($diagnostic_errors);
+			
 			// if Proxy is set up in the settings, try to connect to a test URL
 			$proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
 
 			$viewVars = array(
-					'gpgStatus', 'proxyStatus', 'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors','gpgErrors', 'proxyErrors', 'stixOperational', 'stixVersion', 'cyboxVersion', 'stix', 'writeableDirs'
+					'gpgStatus', 'proxyStatus', 'zmqStatus', 'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors','gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stixVersion', 'cyboxVersion', 'stix', 'writeableDirs'
 			);
 			
 			foreach ($viewVars as $viewVar) $this->set($viewVar, ${$viewVar});
@@ -400,7 +404,7 @@ class ServersController extends AppController {
 				foreach ($dumpResults as &$dr) {
 					unset($dr['description']);
 				}
-				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
+				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'zmqStatus' => $zmqStatus, 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
 				$this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
 				$this->response->type('json');
 				$this->response->download('MISP.report.json');

@@ -637,8 +637,24 @@ class Server extends AppModel {
 						'description' => 'The e-mail address specified in the SOA portion of the zone file.',
 						'value' => 'root.localhost',
 						'errorMessage' => '',
-						'test' => 'testForEmpty',
+						'test' => 'testBool',
 						'type' => 'string',
+					),
+					'ZeroMQ_enable' => array(						
+						'level' => 2,
+						'description' => 'Enables or disables the pub/sub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+					),
+					'ZeroMQ_port' => array(						
+						'level' => 2,
+						'description' => 'The port that the pub/sub feature will use.',
+						'value' => 50000,
+						'errorMessage' => '',
+						'test' => 'testForPortNumber',
+						'type' => 'numeric',
 					),
 			),
 			'debug' => array(
@@ -1166,9 +1182,16 @@ class Server extends AppModel {
 	}
 	
 	public function testPasswordLength($value) {
-		$numeric = $this->testforNumeric($value);
+		$numeric = $this->testForNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 0) return 'Length cannot be negative, set a positive integer or 0 (to choose the default option).';
+		return true;
+	}
+	
+	public function testForPortNumber($value) {
+		$numeric = $this->testForNumeric($value);
+		if ($numeric !== true) return $numeric;
+		if ($value < 49152 || $value > 65535) return 'It is recommended that you pick a port number in the dynamic range (49152-65535). However, if you have a valid reason to use a different port, ignore this message.';
 		return true;
 	}
 	
@@ -1391,6 +1414,15 @@ class Server extends AppModel {
 		}
 		if ($gpgStatus != 0) $diagnostic_errors++;
 		return $gpgStatus;
+	}
+	
+	public function zmqDiagnostics(&$diagnostic_errors) {
+		if (!Configure::read('Plugin.ZeroMQ_enable')) return 1;
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		if ($pubSubTool->testZMQ()) return 0;
+		$diagnostic_errors++;
+		return 2;
 	}
 	
 	public function proxyDiagnostics(&$diagnostic_errors) {
