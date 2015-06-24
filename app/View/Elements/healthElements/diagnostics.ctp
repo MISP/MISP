@@ -93,6 +93,20 @@
 		?>
 	</div>
 	<h3>
+	ZeroMQ
+	</h3>
+	<p>This tool tests whether the ZeroMQ extension is installed and functional.</p>
+	<div style="background-color:#f7f7f9;width:300px;">
+		<?php
+			$colour = 'green';
+			$message = $zmqErrors[$zmqStatus];
+			if ($zmqStatus > 1) {
+				$colour = 'red';
+			}
+			echo 'Proxy settings....<span style="color:' . $colour . ';">' . $message . '</span>';
+		?>
+	</div>
+	<h3>
 	Proxy
 	</h3>
 	<p>This tool tests whether your HTTP proxy settings are correct.</p>

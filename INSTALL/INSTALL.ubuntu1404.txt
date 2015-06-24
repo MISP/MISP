@@ -212,3 +212,14 @@ Recommended actions
 - You should really harden the configuration of MySQL
 - Keep your software up2date (MISP, CakePHP and everything else)
 - Log and audit
+
+Optional features
+-------------------
+# MISP has a new pub/sub feature, using ZeroMQ. To enable it, follow the following instructions
+apt-get install libzmq-dev libtool pkg-config build-essential autoconf automake
+pecl install zmq-beta
+# after this is done add the following line to your php.ini
+# Do this for both the apache and the CLI php.ini, for ubuntu this would be in /etc/php5/apache2/php.ini and /etc/php5/cli/php.ini
+extension=zmq.so
+service apache2 restart
+# You can now enable the feature in the server settings

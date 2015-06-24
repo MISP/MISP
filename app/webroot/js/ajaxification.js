@@ -1383,14 +1383,31 @@ function freetextImportResultsSubmit(id, count) {
 	});
 }
 
-function lookupPGPKey(emailFieldName) {
+function pgpChoiceSelect(uri) {
+	$("#popover_form").fadeOut();
+	$("#gray_out").fadeOut();
 	$.ajax({
 		type: "get",
-		url: "https://pgp.mit.edu/pks/lookup?op=get&search=" + $('#' + emailFieldName).val(),
+		url: "https://pgp.mit.edu/" + uri,
 		success: function (data) {
 			var result = data.split("<pre>")[1].split("</pre>")[0];
 			$("#UserGpgkey").val(result);
 			showMessage('success', "Key found!");
+		},
+		error: function (data, textStatus, errorThrown) {
+			showMessage('fail', textStatus + ": " + errorThrown);
+		}
+	});
+}
+
+function lookupPGPKey(emailFieldName) {
+	$.ajax({
+		type: "get",
+		url: "/users/fetchPGPKey/" + $('#' + emailFieldName).val(),
+		success: function (data) {
+			$("#popover_form").fadeIn();
+			$("#gray_out").fadeIn();
+			$("#popover_form").html(data);
 		},
 		error: function (data, textStatus, errorThrown) {
 			showMessage('fail', textStatus + ": " + errorThrown);
