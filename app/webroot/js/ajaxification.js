@@ -1381,6 +1381,10 @@ function changeFreetextImportFrom() {
 	});
 }
 
+function changeFreetextImportCommentExecute() {
+	$('.freetextCommentField').val($('#changeComments').val());
+}
+
 function changeFreetextImportExecute() {
 	var from = $('#changeFrom').val();
 	var to = $('#changeTo').val();
