@@ -977,7 +977,7 @@ class AttributesController extends AppController {
 		}
 		// get a json object with a list of attribute IDs to be deleted
 		// check each of them and return a json object with the successful deletes and the failed ones.
-		$ids = json_decode($this->request->data['Attribute']['ids']);
+		$ids = json_decode($this->request->data['Attribute']['ids_delete']);
 
 		if (!$this->_isSiteAdmin()) {
 			$event = $this->Attribute->Event->find('first', array(

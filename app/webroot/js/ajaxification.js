@@ -1,3 +1,7 @@
+String.prototype.ucfirst = function() {
+	return this.charAt(0).toUpperCase() + this.slice(1);
+}
+
 function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
 	if (type == 'shadow_attributes') destination = 'shadow_attributes';
@@ -49,6 +53,7 @@ function submitDeletion(context_id, action, type, id) {
 		}, 
 		data: formData, 
 		success:function (data, textStatus) {
+			console.log(data);
 			updateIndex(context_id, context);
 			handleGenericAjaxResponse(data);
 		}, 
@@ -335,14 +340,21 @@ function handleGenericAjaxResponse(data) {
 function toggleAllAttributeCheckboxes() {
 	if ($(".select_all").is(":checked")) {
 		$(".select_attribute").prop("checked", true);
+		$(".select_proposal").prop("checked", true);
 	} else {
 		$(".select_attribute").prop("checked", false);
+		$(".select_proposal").prop("checked", false);
 	}
 }
 
-function attributeListAnyCheckBoxesChecked() {
-	if ($('input[type="checkbox"]:checked').length > 0) $('.mass-select').show();
+function attributeListAnyAttributeCheckBoxesChecked() {
+	if ($('.select_attribute:checked').length > 0) $('.mass-select').show();
 	else $('.mass-select').hide();
+}
+
+function attributeListAnyProposalCheckBoxesChecked() {
+	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').show();
+	else $('.mass-proposal-select').hide();
 }
 
 
@@ -367,6 +379,56 @@ function deleteSelectedAttributes(event) {
 				updateIndex(event, 'event');
 				var result = handleGenericAjaxResponse(data);
 				if (result == true) eventUnpublish(); 
+			}, 
+		});
+	}
+	return false;
+}
+
+function multiSelectAction(event, context) {
+	var settings = {
+			deleteAttributes: {
+				confirmation: "Are you sure you want to delete all selected attributes?",
+				controller: "attributes",
+				camelCase: "Attribute",
+				alias: "attribute",
+				action: "delete",
+			},
+			acceptProposals: {
+				confirmation: "Are you sure you want to accept all selected proposals?",
+				controller: "shadow_attributes",
+				camelCase: "ShadowAttribute",
+				alias: "proposal",
+				action: "accept",
+			},
+			discardProposals: {
+				confirmation: "Are you sure you want to discard all selected proposals?",
+				controller: "shadow_attributes",
+				camelCase: "ShadowAttribute",
+				alias: "proposal",
+				action: "discard",
+			},
+	};
+	var answer = confirm("Are you sure you want to " + settings[context]["action"] + " all selected " + settings[context]["alias"] + "s?");
+	if (answer) {
+		var selected = [];
+		$(".select_" + settings[context]["alias"]).each(function() {
+			if ($(this).is(":checked")) {
+				var temp= $(this).data("id");
+				selected.push(temp);
+			}
+		});
+		$('#' + settings[context]["camelCase"] + 'Ids' + settings[context]["action"].ucfirst()).attr('value', JSON.stringify(selected));
+		var formData = $('#' + settings[context]["action"] + '_selected').serialize();
+		$.ajax({
+			data: formData, 
+			cache: false,
+			type:"POST", 
+			url:"/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event,
+			success:function (data, textStatus) {
+				updateIndex(event, 'event');
+				var result = handleGenericAjaxResponse(data);
+				if (settings[context]["action"] != "discard" && result == true) eventUnpublish(); 
 			}, 
 		});
 	}
@@ -1317,6 +1379,10 @@ function changeFreetextImportFrom() {
 	options[$('#changeFrom').val()].forEach(function(element) {
 		$('#changeTo').append('<option value="' + element + '">' + element + '</option>');
 	});
+}
+
+function changeFreetextImportCommentExecute() {
+	$('.freetextCommentField').val($('#changeComments').val());
 }
 
 function changeFreetextImportExecute() {
