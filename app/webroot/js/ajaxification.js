@@ -53,7 +53,6 @@ function submitDeletion(context_id, action, type, id) {
 		}, 
 		data: formData, 
 		success:function (data, textStatus) {
-			console.log(data);
 			updateIndex(context_id, context);
 			handleGenericAjaxResponse(data);
 		}, 
@@ -355,34 +354,6 @@ function attributeListAnyAttributeCheckBoxesChecked() {
 function attributeListAnyProposalCheckBoxesChecked() {
 	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').show();
 	else $('.mass-proposal-select').hide();
-}
-
-
-function deleteSelectedAttributes(event) {
-	var answer = confirm("Are you sure you want to delete all selected attributes?");
-	if (answer) {
-		var selected = [];
-		$(".select_attribute").each(function() {
-			if ($(this).is(":checked")) {
-				var temp= $(this).data("id");
-				selected.push(temp);
-			}
-		});
-		$('#AttributeIds').attr('value', JSON.stringify(selected));
-		var formData = $('#delete_selected').serialize();
-		$.ajax({
-			data: formData, 
-			cache: false,
-			type:"POST", 
-			url:"/attributes/deleteSelected/" + event,
-			success:function (data, textStatus) {
-				updateIndex(event, 'event');
-				var result = handleGenericAjaxResponse(data);
-				if (result == true) eventUnpublish(); 
-			}, 
-		});
-	}
-	return false;
 }
 
 function multiSelectAction(event, context) {
