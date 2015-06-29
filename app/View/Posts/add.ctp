@@ -1,6 +1,5 @@
 <div class="posts form">
-<?php debug('/posts/add/' . $target_type . '/' . $target_id);?>
-<?php echo $this->Form->create('Post', array('url' => '/posts/add/' . $target_type . '/' . $target_id));?>
+<?php echo $this->Form->create('Post');?>
 	<fieldset>
 		<legend>Add Post</legend>
 	<?php
