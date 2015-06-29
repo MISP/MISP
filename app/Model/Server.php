@@ -568,6 +568,154 @@ class Server extends AppModel {
 							'type' => 'string',
 					),
 			),
+			'Plugin' => array(
+					'branch' => 1,
+					'RPZ_policy' => array(
+						'level' => 1,
+						'description' => 'The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.',
+						'value' => 0,
+						'errorMessage' => '',
+						'test' => 'testForRPZBehaviour',
+						'type' => 'numeric',
+						'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'walled-garden'),
+					),
+					'RPZ_walled_garden' => array(
+						'level' => 2,
+						'description' => 'The default walled garden used by the RPZ export if the walled garden setting is picked for the export.',
+						'value' => '127.0.0.1',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+					),
+					'RPZ_serial' => array(
+							'level' => 2,
+							'description' => 'The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting).',
+							'value' => '$date00',
+							'errorMessage' => '',
+							'test' => 'testForRPZSerial',
+							'type' => 'string',
+					),
+					'RPZ_refresh' => array(
+							'level' => 2,
+							'description' => 'The refresh specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '2h',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_retry' => array(
+							'level' => 2,
+							'description' => 'The retry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '30m',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_expiry' => array(
+							'level' => 2,
+							'description' => 'The expiry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '30d',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_minimum_ttl' => array(
+							'level' => 2,
+							'description' => 'The minimum TTL specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '1h',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_ttl' => array(
+							'level' => 2,
+							'description' => 'The TTL of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '1w',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_ns' => array(
+							'level' => 2,
+							'description' => '',
+							'value' => 'localhost.',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'RPZ_email' => array(
+						'level' => 2,
+						'description' => 'The e-mail address specified in the SOA portion of the zone file.',
+						'value' => 'root.localhost',
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'string',
+					),
+					'ZeroMQ_enable' => array(						
+						'level' => 2,
+						'description' => 'Enables or disables the pub/sub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_port' => array(						
+						'level' => 2,
+						'description' => 'The port that the pub/sub feature will use.',
+						'value' => 50000,
+						'errorMessage' => '',
+						'test' => 'testForPortNumber',
+						'type' => 'numeric',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_host' => array(
+						'level' => 2,
+						'description' => 'Location of the Redis db used by MISP and the Python PUB script to queue data to be published.',
+						'value' => 'localhost',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_port' => array(
+						'level' => 2,
+						'description' => 'The port that Redis is listening on.',
+						'value' => 6379,
+						'errorMessage' => '',
+						'test' => 'testForPortNumber',
+						'type' => 'numeric',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_password' => array(
+						'level' => 2,
+						'description' => 'The password, if set for Redis.',
+						'value' => '',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_database' => array(
+						'level' => 2,
+						'description' => 'The database to be used for queuing messages for the pub/sub functionality.',
+						'value' => '1',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_namespace' => array(
+						'level' => 2,
+						'description' => 'The namespace to be used for queuing messages for the pub/sub functionality.',
+						'value' => 'mispq',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+						'afterHook' => 'zmqAfterHook',
+					),
+					
+			),
 			'debug' => array(
 					'level' => 0,
 					'description' => 'The debug level of the instance, always use 0 for production instances.',
@@ -1034,6 +1182,13 @@ class Server extends AppModel {
 		return $finalSettings;
 	}
 	
+	public function serverSettingReadSingle($settingObject, $settingName, $leafKey) {
+		$setting = Configure::read($settingName);
+		$result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
+		$result['setting'] = $settingName;
+		return $result;
+	}
+	
 	private function __evaluateLeaf($leafValue, $leafKey, $setting) {
 		if (isset($setting)) {
 			$result = $this->{$leafValue['test']}($setting);
@@ -1096,9 +1251,16 @@ class Server extends AppModel {
 	}
 	
 	public function testPasswordLength($value) {
-		$numeric = $this->testforNumeric($value);
+		$numeric = $this->testForNumeric($value);
 		if ($numeric !== true) return $numeric;
-		if ($numeric < 0) return 'Length cannot be negative, set a positive integer or 0 (to choose the default option).';
+		if ($value < 0) return 'Length cannot be negative, set a positive integer or 0 (to choose the default option).';
+		return true;
+	}
+	
+	public function testForPortNumber($value) {
+		$numeric = $this->testForNumeric($value);
+		if ($numeric !== true) return $numeric;
+		if ($value < 49152 || $value > 65535) return 'It is recommended that you pick a port number in the dynamic range (49152-65535). However, if you have a valid reason to use a different port, ignore this message.';
 		return true;
 	}
 	
@@ -1117,6 +1279,51 @@ class Server extends AppModel {
 		if (file_exists($value)) return true;
 		return 'Could not find the gnupg executable at the defined location.';
 	}
+
+	public function testForRPZDuration($value) {
+		if (($this->testForNumeric($value) !== true && preg_match('/^[0-9]*[mhdw]$/i', $value)) || $value >= 0) {
+			return true;
+		} else {
+			return 'Negative seconds found. The following formats are accepted: seconds (positive integer), or duration (positive integer) followed by a letter denoting scale (such as m, h, d, w for minutes, hours, days, weeks)';
+		}
+	}
+	
+	public function testForRPZBehaviour($value) {
+		$numeric = $this->testforNumeric($value);
+		if ($numeric !== true) return $numeric;
+		if ($value < 0 || $value > 3) return 'Invalid setting, valid range is 0-3 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden.';
+		return true;
+	}
+	
+	public function testForRPZSerial($value) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if (!preg_match('/^((\$date(\d*)|\d*))$/', $value)) return 'Invalid format.';
+		//if (!preg_match('/^\w+(\.\w+)*(\.?) \w+(\.\w+)* \((\$date(\d*)|\d*)( ((\d*)|(\d*)[hHmMdD])){4}\)$/', $value)) return 'Invalid format.';
+		return true;
+	}
+	
+	public function testForRPZNS($value) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if (!preg_match('/^\w+(\.\w+)*(\.?) \w+(\.\w+)*$/', $value)) return 'Invalid format.';
+		return true;
+	}
+	
+	public function zmqAfterHook($setting, $value) {
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		// If we are trying to change the enable setting to false, we don't need to test anything, just kill the server and return true.
+		if ($setting == 'Plugin.ZeroMQ_enable') {
+			if ($value == false || $value == 0) {
+				$pubSubTool->killService();
+				return true;
+			}
+		} elseif (!Configure::read('Plugin.ZeroMQ_enable')) {
+			// If we are changing any other ZeroMQ settings but the feature is disabled, don't reload the service
+			return true;
+		}
+		$pubSubTool->reloadServer();
+		return true;
+	}
 	
 	
 	// never come here directly, always go through a secondary check like testForTermsFile in order to also pass along the expected file path
@@ -1128,10 +1335,9 @@ class Server extends AppModel {
 		return true;
 	}
 	
-	
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
-		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'Proxy', 'SecureAuth', 'Security', 'debug'));
+		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'Proxy', 'SecureAuth', 'Security', 'debug', 'Plugin'));
 	}
 	
 	public function checkVersion($newest) {
@@ -1422,6 +1628,19 @@ class Server extends AppModel {
 		return $gpgStatus;
 	}
 	
+	public function zmqDiagnostics(&$diagnostic_errors) {
+		if (!Configure::read('Plugin.ZeroMQ_enable')) return 1;
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		if (!$pubSubTool->checkIfPythonLibInstalled()) {
+			$diagnostic_errors++;
+			return 2;
+		}
+		if ($pubSubTool->checkIfRunning()) return 0;
+		$diagnostic_errors++;
+		return 3;
+	}
+	
 	public function proxyDiagnostics(&$diagnostic_errors) {
 		$proxyStatus = 0;
 		$proxy = Configure::read('Proxy');
@@ -1442,5 +1661,17 @@ class Server extends AppModel {
 		}
 		if ($proxyStatus > 1) $diagnostic_errors++;
 		return $proxyStatus;
+	}
+	
+	public function retrieveCurrentSettings($branch, $subString) {
+		$settings = array();
+		foreach ($this->serverSettings[$branch] as $settingName => $setting) {
+			if (strpos($settingName, $subString) !== false) {
+				$settings[$settingName] = $setting['value'];
+				if (Configure::read('Plugin.' . $settingName)) $settings[$settingName] = Configure::read('Plugin.' . $settingName);
+				if (isset($setting['options'])) $settings[$settingName] = $setting['options'][$settings[$settingName]];
+			}
+		}
+		return $settings;
 	}
 }

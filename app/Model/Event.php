@@ -101,6 +101,11 @@ class Event extends AppModel {
 					'type' => 'Snort',
 					'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
 			),
+			'rpz' => array(
+					'extension' => '.txt',
+					'type' => 'RPZ',
+					'description' => 'Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.'
+			),
 			'md5' => array(
 					'extension' => '.txt',
 					'type' => 'MD5',
@@ -115,7 +120,7 @@ class Event extends AppModel {
 					'extension' => '.txt',
 					'type' => 'TEXT',
 					'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
-			)
+			),
 	);
 	
 	public $csv_event_context_fields_to_fetch = array(
@@ -1580,9 +1585,16 @@ class Event extends AppModel {
 			$orgMembers = array();
 			$this->User->recursive = 0;
 			$temp = $this->User->find('all', array(
-					'org_id' => $event['Event']['org_id'], 
+					'org_id' => $event['Event']['orgc_id'], 
 					'fields' => array('email', 'gpgkey', 'contactalert', 'id')
 			));
+			if (empty($temp)) {
+				$temp = $this->User->find('all', array(
+						'org_id' => $event['Event']['org_id'], 
+						'fields' => array('email', 'gpgkey', 'contactalert', 'id')
+				));
+			}
+
 			foreach ($temp as $tempElement) {
 				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
 					array_push($orgMembers, $tempElement);
@@ -1967,6 +1979,13 @@ class Event extends AppModel {
 			$this->save($event, array('fieldList' => $fieldList));
 		}		
 		$uploaded = false;
+		if (Configure::read('Plugin.ZeroMQ_enable')) {
+			App::uses('PubSubTool', 'Tools');
+			$pubSubTool = new PubSubTool();
+			$hostOrg = Configure::read('MISP.org');
+			$fullEvent = $this->fetchEvent($id, false, $hostOrg, false);
+			$pubSubTool->publishEvent($fullEvent[0]);
+		}
 		if ($event['Event']['distribution'] > 1) {
 			$uploaded = $this->uploadEventToServersRouter($id, $passAlong);
 		} else {
@@ -2180,12 +2199,13 @@ class Event extends AppModel {
 		return false;
 	}
 	
-	public function stix($id, $tags, $attachments, $user, $returnType, $last) {
+	public function stix($id, $tags, $attachments, $user, $returnType, $from, $to, $last) {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
-		$events = $this->fetchEvent($user, array('idList' => $idList, 'last' => $last));
+		$events = $this->fetchEvent($user, array('idList' => $idList, 'last' => $last, 'from' => $from, 'last' => $last));
 		if (empty($events)) throw new Exception('No matching events found to export.');
+
 		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
 		if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
 			foreach ($events as &$event) {
@@ -2260,6 +2280,7 @@ class Event extends AppModel {
 		return $fn;
 	}
 	
+
 	public function sharingGroupRequired($field) {
 		if ($this->data[$this->alias]['distribution'] == 4) {
 			return (!empty($field));
@@ -2282,8 +2303,8 @@ class Event extends AppModel {
 		if ($event['Event']['distribution'] == 4 && $this->SharingGroup->checkIfAuthorised($user, $event['Event']['sharing_group_id'])) return true;
 		return false;
 	}
-	
-	// expects a date string in the DD-MM-YYYY format
+
+	// expects a date string in the YYYY-MM-DD format
 	// returns the passed string or false if the format is invalid
 	// based on the fix provided by stevengoosensB
 	public function dateFieldCheck($date) {

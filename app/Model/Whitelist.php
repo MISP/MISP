@@ -126,4 +126,20 @@ class Whitelist extends AppModel {
 		}
 		return $data;
 	}
+	
+	// A simplified whitelist removal, for when we just want to throw values against the list instead of attributes / events
+	public function removeWhitelistedValuesFromArray($data) {
+		$whitelists = $this->getBlockedValues();
+		// if we don't have any whitelist items in the db, don't loop through each attribute
+		if (!empty($whitelists)) {
+			foreach ($data as $k => $value) {
+				foreach ($whitelists as $wlitem) {
+					if (preg_match($wlitem, $value)) {
+						unset($data[$k]);
+					}
+				}
+			}
+		}
+		return $data;
+	}
 }

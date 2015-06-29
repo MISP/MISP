@@ -1638,6 +1638,9 @@ class EventsController extends AppController {
 		// generate the list of Attribute types
 		$this->loadModel('Attribute');
 		$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
+		$this->loadModel('Server');
+		$rpzSettings = $this->Server->retrieveCurrentSettings('Plugin', 'RPZ_');
+		$this->set('rpzSettings', $rpzSettings);
 	}
 
 	public function export() {
@@ -2916,6 +2919,9 @@ class EventsController extends AppController {
 					'md5' => 'Payload delivery',
 					'sha1' => 'Payload delivery',
 					'sha256' => 'Payload delivery',
+					'filename|md5' => 'Payload delivery',
+					'filename|sha1' => 'Payload delivery',
+					'filename|sha256' => 'Payload delivery',
 					'regkey' => 'Persistence mechanism',
 					'filename' => 'Payload delivery',
 					'ip-src' => 'Network activity',
@@ -3202,6 +3208,12 @@ class EventsController extends AppController {
 					'checkbox' => true,
 					'checkbox_text' => 'Encode Attachments',
 					'checkbox_set' => '/true'
+			),
+			'rpz' => array(
+					'url' => '/attributes/rpz/download/false/' . $id,
+					'text' => 'RPZ Zone file',
+					'requiresPublished' => true,
+					'checkbox' => false,
 			),
 			'suricata' => array(
 					'url' => '/events/nids/suricata/download/' . $id,

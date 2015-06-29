@@ -50,9 +50,29 @@
 <div id="edit_object_div">
 	<?php 
 		echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'url' => '/attributes/deleteSelected/' . $event['Event']['id']));
-		echo $this->Form->input('ids', array(
+		echo $this->Form->input('ids_delete', array(
 			'type' => 'text',
 			'value' => 'test',
+			'style' => 'display:none;',
+			'label' => false,
+		)); 
+		echo $this->Form->end();
+	?>
+		<?php 
+		echo $this->Form->create('ShadowAttribute', array('id' => 'accept_selected', 'url' => '/shadow_attributes/acceptSelected/' . $event['Event']['id']));
+		echo $this->Form->input('ids_accept', array(
+			'type' => 'text',
+			'value' => '',
+			'style' => 'display:none;',
+			'label' => false,
+		)); 
+		echo $this->Form->end();
+	?>
+		<?php 
+		echo $this->Form->create('ShadowAttribute', array('id' => 'discard_selected', 'url' => '/shadow_attributes/discardSelected/' . $event['Event']['id']));
+		echo $this->Form->input('ids_discard', array(
+			'type' => 'text',
+			'value' => '',
 			'style' => 'display:none;',
 			'label' => false,
 		)); 
@@ -62,8 +82,10 @@
 <div id="attributeList" class="attributeListContainer">
 	<div class="tabMenu tabMenuEditBlock noPrint">
 		<span id="create-button" title="Add attribute" class="icon-plus useCursorPointer" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>, '<?php echo $possibleAction; ?>');"></span>
-		<span id="multi-edit-button" title="Edit selected" class="icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
-		<span id="multi-delete-button" title="Delete selected" class = "icon-trash mass-select useCursorPointer" onClick="deleteSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+		<span id="multi-edit-button" title="Edit selected Attributes" class="icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+		<span id="multi-delete-button" title="Delete selected Attributes" class = "icon-trash mass-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'deleteAttributes');"></span>
+		<span id="multi-accept-button" title="Accept selected Proposals" class="icon-ok mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'acceptProposals');"></span>
+		<span id="multi-discard-button" title="Discard selected Proposals" class = "icon-remove mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'discardProposals');"></span>
 	</div>
 	<?php if ($mayModify): ?>
 	<div class="tabMenu tabMenuToolsBlock noPrint">
@@ -116,7 +138,9 @@
 					<?php if ($mayModify): ?>
 						<td class="<?php echo $extra; ?>" style="width:10px;">
 							<?php if ($object['objectType'] == 0): ?>
-							<input id = "select_<?php echo $object['id']; ?>" class="select_attribute" type="checkbox" data-id="<?php echo $object['id'];?>" />
+								<input id = "select_<?php echo $object['id']; ?>" class="select_attribute" type="checkbox" data-id="<?php echo $object['id'];?>" />
+							<?php else: ?>
+								<input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal" type="checkbox" data-id="<?php echo $object['id'];?>" />
 							<?php endif; ?>
 						</td>
 					<?php endif; ?>
@@ -314,8 +338,12 @@
 	$(document).ready(function(){
 		$('input:checkbox').removeAttr('checked');
 		$('.mass-select').hide();
-		$('input[type="checkbox"]').click(function(){
-			attributeListAnyCheckBoxesChecked();
+		$('.mass-proposal-select').hide();
+		$('.select_attribute, .select_all').click(function(){
+			attributeListAnyAttributeCheckBoxesChecked();
+		});
+		$('.select_proposal, .select_all').click(function(){
+			attributeListAnyProposalCheckBoxesChecked();
 		});
 		if (<?php echo $pageCount; ?> > 10) restrictEventViewPagination();
 	});
