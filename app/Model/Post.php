@@ -109,8 +109,7 @@ class Post extends AppModel {
 		$bodyDetail .= $message . "\n";
 		$subject = "[" . Configure::read('MISP.org') . " MISP] New post in discussion " . $post['Post']['thread_id'] . " - TLP Amber";
 		foreach ($orgMembers as &$recipient) {
-			$result = $this->User->sendEmail($recipient, $bodyDetail, $body, $subject);
+			$this->User->sendEmail($recipient, $bodyDetail, $body, $subject);
 		}
-		return $result;
 	}
 }

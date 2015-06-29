@@ -64,7 +64,7 @@
 	<p>Mitre's STIX and Cybox python libraries have to be installed in order for MISP's STIX export to work. Make sure that you install them (as described in the MISP installation instructions) if you receive an error below.<br />
 	If you run into any issues here, make sure that both STIX and CyBox are installed as described in the INSTALL.txt file. The required versions are:<br /><b>STIX</b>: <?php echo $stix['stix']['expected'];?><br /><b>CyBox</b>: <?php echo $stix['cybox']['expected'];?><br />
 	Other versions might work but are not tested / recommended.</p>
-	<div style="background-color:#f7f7f9;width:600px;">
+	<div style="background-color:#f7f7f9;width:300px;">
 		<?php 
 			$colour = 'green';
 			if ($stix['operational'] == 0) $colour = 'red';
@@ -103,8 +103,13 @@
 			if ($zmqStatus > 1) {
 				$colour = 'red';
 			}
-			echo 'Proxy settings....<span style="color:' . $colour . ';">' . $message . '</span>';
+			echo 'ZeroMQ settings....<span style="color:' . $colour . ';">' . $message . '</span>';
 		?>
+	</div>
+	<div>
+		<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('start')">Start / Restart</span>
+		<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('stop')">Stop</span>
+		<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('status')">Status</span>
 	</div>
 	<h3>
 	Proxy

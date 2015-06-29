@@ -23,6 +23,9 @@
 /app/files/scripts/python-cybox/
 /app/files/scripts/*.pyc
 /app/files/scripts/*.py~
+/app/files/scripts/mispzmq/*
+!/app/files/scripts/mispzmq/mispzmq.py
+!/app/files/scripts/mispzmq/mispzmqtest.py
 /app/files/scripts/tmp/*
 !/app/files/scripts/tmp/empty
 /app/tmp/files/*

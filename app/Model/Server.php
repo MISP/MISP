@@ -647,6 +647,7 @@ class Server extends AppModel {
 						'errorMessage' => '',
 						'test' => 'testBool',
 						'type' => 'boolean',
+						'afterHook' => 'zmqAfterHook',
 					),
 					'ZeroMQ_port' => array(						
 						'level' => 2,
@@ -655,7 +656,54 @@ class Server extends AppModel {
 						'errorMessage' => '',
 						'test' => 'testForPortNumber',
 						'type' => 'numeric',
+						'afterHook' => 'zmqAfterHook',
 					),
+					'ZeroMQ_redis_host' => array(
+						'level' => 2,
+						'description' => 'Location of the Redis db used by MISP and the Python PUB script to queue data to be published.',
+						'value' => 'localhost',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_port' => array(
+						'level' => 2,
+						'description' => 'The port that Redis is listening on.',
+						'value' => 6379,
+						'errorMessage' => '',
+						'test' => 'testForPortNumber',
+						'type' => 'numeric',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_password' => array(
+						'level' => 2,
+						'description' => 'The password, if set for Redis.',
+						'value' => '',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_database' => array(
+						'level' => 2,
+						'description' => 'The database to be used for queuing messages for the pub/sub functionality.',
+						'value' => '1',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_namespace' => array(
+						'level' => 2,
+						'description' => 'The namespace to be used for queuing messages for the pub/sub functionality.',
+						'value' => 'mispq',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+						'afterHook' => 'zmqAfterHook',
+					),
+					
 			),
 			'debug' => array(
 					'level' => 0,
@@ -1120,6 +1168,13 @@ class Server extends AppModel {
 		return $finalSettings;
 	}
 	
+	public function serverSettingReadSingle($settingObject, $settingName, $leafKey) {
+		$setting = Configure::read($settingName);
+		$result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
+		$result['setting'] = $settingName;
+		return $result;
+	}
+	
 	private function __evaluateLeaf($leafValue, $leafKey, $setting) {
 		if (isset($setting)) {
 			$result = $this->{$leafValue['test']}($setting);
@@ -1236,6 +1291,23 @@ class Server extends AppModel {
 	public function testForRPZNS($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if (!preg_match('/^\w+(\.\w+)*(\.?) \w+(\.\w+)*$/', $value)) return 'Invalid format.';
+		return true;
+	}
+	
+	public function zmqAfterHook($setting, $value) {
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		// If we are trying to change the enable setting to false, we don't need to test anything, just kill the server and return true.
+		if ($setting == 'Plugin.ZeroMQ_enable') {
+			if ($value == false || $value == 0) {
+				$pubSubTool->killService();
+				return true;
+			}
+		} elseif (!Configure::read('Plugin.ZeroMQ_enable')) {
+			// If we are changing any other ZeroMQ settings but the feature is disabled, don't reload the service
+			return true;
+		}
+		$pubSubTool->reloadServer();
 		return true;
 	}
 	
@@ -1420,9 +1492,13 @@ class Server extends AppModel {
 		if (!Configure::read('Plugin.ZeroMQ_enable')) return 1;
 		App::uses('PubSubTool', 'Tools');
 		$pubSubTool = new PubSubTool();
-		if ($pubSubTool->testZMQ()) return 0;
+		if (!$pubSubTool->checkIfPythonLibInstalled()) {
+			$diagnostic_errors++;
+			return 2;
+		}
+		if ($pubSubTool->checkIfRunning()) return 0;
 		$diagnostic_errors++;
-		return 2;
+		return 3;
 	}
 	
 	public function proxyDiagnostics(&$diagnostic_errors) {

@@ -58,10 +58,4 @@ su www-data -c 'bash /var/www/MISP/app/Console/worker/start.sh'
 # 7. Add any new dependencies that might have been added since you've last updated (shown below)
 
 # 7.a requirements for the pubsub optional feature
-apt-get install libzmq-dev libtool pkg-config build-essential autoconf automake
-pecl install zmq-beta
-# after this is done add the following line to your php.ini
-# Do this for both the apache and the CLI php.ini, for ubuntu this would be in /etc/php5/apache2/php.ini and /etc/php5/cli/php.ini
-extension=zmq.so
-service apache2 restart
-# You can now enable the feature in the server settings
+pip install pyzmq
