@@ -1329,8 +1329,21 @@ function serverSettingSubmitForm(name, setting, id) {
 	$.ajax({
 		data: formData,
 		cache: false,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
 		success:function (data, textStatus) {
-			window.location.reload();
+			$.ajax({
+				type:"get",
+				url:"/servers/serverSettingsReloadSetting/" + setting + "/" + id,
+				success:function (data2, textStatus2) {
+					$('#' + id + '_row').replaceWith(data2);
+					$(".loading").hide();
+				},
+				error:function() {
+					showMessage('fail', 'Could not refresh the table.');
+				}
+			});
 		}, 
 		error:function() {
 			showMessage('fail', 'Request failed for an unknown reason.');
@@ -1445,6 +1458,29 @@ function lookupPGPKey(emailFieldName) {
 			$("#popover_form").fadeIn();
 			$("#gray_out").fadeIn();
 			$("#popover_form").html(data);
+		},
+		error: function (data, textStatus, errorThrown) {
+			showMessage('fail', textStatus + ": " + errorThrown);
+		}
+	});
+}
+
+function zeroMQServerAction(action) {
+	$.ajax({
+		type: "get",
+		url: "/servers/" + action + "ZeroMQServer/",
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		success: function (data) {
+			$(".loading").hide();
+			if (action !== 'status') {
+				window.location.reload();
+			} else {
+				$("#confirmation_box").html(data);
+				$("#confirmation_box").fadeIn();
+				$("#gray_out").fadeIn();
+			}
 		},
 		error: function (data, textStatus, errorThrown) {
 			showMessage('fail', textStatus + ": " + errorThrown);
