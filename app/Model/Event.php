@@ -1725,11 +1725,10 @@ class Event extends AppModel {
 				if ($fromPull) return false;
 				$existingEvent = $this->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 				//return $existingEvent['Event']['id'];
+			} else {
+				$data = $this->__captureObjects($data, $user);
 			}
 		}
-		$data = $this->__captureObjects($data, $user);
-		debug($data);
-		throw new Exception();
 		if (isset($data['Attribute'])) {
 			foreach ($data['Attribute'] as &$attribute) {
 				unset ($attribute['id']);

@@ -1781,6 +1781,8 @@ function testConnection(id) {
 				break;
 	    	}
 	    }
+	})
+}
 
 function lookupPGPKey(emailFieldName) {
 	$.ajax({
