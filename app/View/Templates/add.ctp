@@ -56,7 +56,7 @@ var selectedTags = [];
 var allTags = [
 	<?php 
 		foreach ($tagInfo as $tag) {
-			echo "{'id' : '" . $tag['Tags']['id'] . "', 'name' : '" . $tag['Tags']['name'] . "', 'colour' : '" . $tag['Tags']['colour'] . "'},";
+			echo "{'id' : '" . h($tag['Tags']['id']) . "', 'name' : '" . h($tag['Tags']['name']) . "', 'colour' : '" . h($tag['Tags']['colour']) . "'},";
 		}
 	?>
 ];
