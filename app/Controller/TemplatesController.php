@@ -334,7 +334,7 @@ class TemplatesController extends AppController {
 				$this->loadModel('Attribute');
 				$fails = 0;
 				foreach($attributes as $k => &$attribute) {
-					if (isset($attribute['data'])) {
+					if (isset($attribute['data']) && preg_match('/^[a-zA-Z0-9]{12}$/', $attribute['data'])) {
 						$file = new File(APP . 'tmp/files/' . $attribute['data']);
 						$content = $file->read();
 						$attribute['data'] = base64_encode($content);
