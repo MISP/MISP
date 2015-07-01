@@ -282,6 +282,25 @@ class ServersController extends AppController {
 		if ($result) $this->Server->save($s);
 	}
 	
+	public function serverSettingsReloadSetting($setting, $id) {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		$pathToSetting = explode('.', $setting);
+		$settingObject = $this->Server->serverSettings;
+		foreach ($pathToSetting as $key) {
+			if (!isset($settingObject[$key])) throw new MethodNotAllowedException();
+			$settingObject = $settingObject[$key];
+		}
+		$result = $this->Server->serverSettingReadSingle($settingObject, $setting, $key);
+		$this->set('setting', $result);
+		$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
+		$this->set('priorityErrorColours', $priorityErrorColours);
+		$priorities = array(0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated');
+		$this->set('priorities', $priorities);
+		$this->set('k', $id);
+		$this->layout = false;
+		$this->render('/Elements/healthElements/settings_row');
+	}
+	
 	public function serverSettings($tab=false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if ($this->request->is('Get')) {
@@ -290,11 +309,13 @@ class ServersController extends AppController {
 					'GnuPG' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-					'misc' => array('count' => 0, 'errors' => 0, 'severity' => 5)
+					'misc' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+					'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
 			);
 			$writeableErrors = array(0 => 'OK', 1 => 'Directory doesn\'t exist', 2 => 'Directory is not writeable');
 			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: bad GnuPG.*', 3 => 'FAIL: encrypt failed');
 			$proxyErrors = array(0 => 'OK', 1 => 'not configured (so not tested)', 2 => 'Getting URL via proxy failed');
+			$zmqErrors = array(0 => 'OK', 1 => 'not enabled (so not tested)', 2 => 'Python ZeroMQ library not installed correctly.', 3 => 'ZeroMQ script not running.');
 			$stixOperational = array(0 => 'STIX or CyBox library not installed correctly', 1 => 'OK');
 			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
 			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
@@ -335,36 +356,39 @@ class ServersController extends AppController {
 			$diagnostic_errors = 0;
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
-			
-			// Only run this check on the diagnostics tab
-			if ($tab == 'diagnostics') {
-				// check if the current version of MISP is outdated or not
-				$version = $this->__checkVersion();
-				$this->set('version', $version);
-				if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) $diagnostic_errors++;
-			}
-			
+			$additionalViewVars = array();
 			if ($tab == 'files') {
 				$files = $this->__manageFiles();
 				$this->set('files', $files);
 			}
-
+			// Only run this check on the diagnostics tab
+			if ($tab == 'diagnostics' || $tab == 'download') {
+				// check if the current version of MISP is outdated or not
+				$version = $this->__checkVersion();
+				$this->set('version', $version);
+				if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) $diagnostic_errors++;
+					
+				// check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
+				$stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion);
+				
+				// if GPG is set up in the settings, try to encrypt a test message
+				$gpgStatus = $this->Server->gpgDiagnostics($diagnostic_errors);
+				
+				// if the message queue pub/sub is enabled, check whether the extension works
+				$zmqStatus = $this->Server->zmqDiagnostics($diagnostic_errors);
+					
+				// if Proxy is set up in the settings, try to connect to a test URL
+				$proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
+				
+				$additionalViewVars = array('gpgStatus', 'proxyStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion','gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix');
+			}
 			// check whether the files are writeable
 			$writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
 			
-			// check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
-			$stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion);
-
-			// if GPG is set up in the settings, try to encrypt a test message
-			$gpgStatus = $this->Server->gpgDiagnostics($diagnostic_errors);
-
-			// if Proxy is set up in the settings, try to connect to a test URL
-			$proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
-
 			$viewVars = array(
-					'gpgStatus', 'proxyStatus', 'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors','gpgErrors', 'proxyErrors', 'stixOperational', 'stixVersion', 'cyboxVersion', 'stix', 'writeableDirs'
+					'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'writeableDirs'
 			);
-			
+			$viewVars = array_merge($viewVars, $additionalViewVars);
 			foreach ($viewVars as $viewVar) $this->set($viewVar, ${$viewVar});
 			
 			if (Configure::read('MISP.background_jobs')) {
@@ -399,16 +423,17 @@ class ServersController extends AppController {
 				foreach ($dumpResults as &$dr) {
 					unset($dr['description']);
 				}
-				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
+				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'zmqStatus' => $zmqStatus, 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
 				$this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
 				$this->response->type('json');
 				$this->response->download('MISP.report.json');
 				return $this->response;
 			}
+			
 			$priorities = array(0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated');
-			$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
 			$this->set('priorities', $priorities);
 			$this->set('workerIssueCount', $workerIssueCount);
+			$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
 			$this->set('priorityErrorColours', $priorityErrorColours);
 		}
 	}
@@ -471,6 +496,25 @@ class ServersController extends AppController {
 			$this->render('ajax/server_settings_edit');
 		}
 		if ($this->request->is('post')) {
+			$this->autoRender = false;
+			$this->loadModel('Log');
+			if (isset($found['beforeHook'])) {
+				$beforeResult = call_user_func_array(array($this->Server, $found['beforeHook']), array($setting, $this->request->data['Server']['value']));
+				if ($afterResult !== true) {
+					$this->Log->create();
+					$result = $this->Log->save(array(
+							'org' => $this->Auth->user('org'),
+							'model' => 'Server',
+							'model_id' => 0,
+							'email' => $this->Auth->user('email'),
+							'action' => 'serverSettingsEdit',
+							'user_id' => $this->Auth->user('id'),
+							'title' => 'Server setting issue',
+							'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
+					));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)),'status'=>200));
+				}
+			}
 			if ($found['type'] == 'boolean') {
 				$this->request->data['Server']['value'] = ($this->request->data['Server']['value'] ? true : false);
 			}
@@ -485,7 +529,6 @@ class ServersController extends AppController {
 			} else {
 				$oldValue = Configure::read($setting);
 				$this->Server->serverSettingsSaveValue($setting, $this->request->data['Server']['value']);
-				$this->loadModel('Log');
 				$this->Log->create();
 				$result = $this->Log->save(array(
 						'org' => $this->Auth->user('org'),
@@ -497,7 +540,24 @@ class ServersController extends AppController {
 						'title' => 'Server setting changed',
 						'change' => $setting . ' (' . $oldValue . ') => (' . $this->request->data['Server']['value'] . ')',
 				));
-				$this->autoRender = false;
+				// execute after hook
+				if (isset($found['afterHook'])) {
+					$afterResult = call_user_func_array(array($this->Server, $found['afterHook']), array($setting, $this->request->data['Server']['value']));
+					if ($afterResult !== true) {
+						$this->Log->create();
+						$result = $this->Log->save(array(
+								'org' => $this->Auth->user('org'),
+								'model' => 'Server',
+								'model_id' => 0,
+								'email' => $this->Auth->user('email'),
+								'action' => 'serverSettingsEdit',
+								'user_id' => $this->Auth->user('id'),
+								'title' => 'Server setting issue',
+								'change' => 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult,
+						));
+						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)),'status'=>200));
+					}
+				}
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')),'status'=>200));
 			}
 		}
@@ -567,5 +627,35 @@ class ServersController extends AppController {
 			$this->Session->setFlash(__('Upload failed.', true), 'default', array(), 'error');
 		}
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
+	}
+	
+	public function startZeroMQServer() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		$result = $pubSubTool->restartServer();
+		if ($result === true) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully started.')),'status'=>200));
+		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)),'status'=>200));
+	}
+	
+	public function stopZeroMQServer() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		$result = $pubSubTool->killService();
+		if ($result === true) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully killed.')),'status'=>200));
+		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not kill the previous instance of the ZeroMQ script.')),'status'=>200));
+	}
+	
+	public function statusZeroMQServer() {
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		$result = $pubSubTool->statusCheck();
+		if (!empty($result)) {
+			$this->set('events', $result['publishCount']);
+			$this->set('time', date('Y/m/d H:i:s', $result['timestamp']));
+			$this->set('time2', date('Y/m/d H:i:s', $result['timestampSettings']));
+		}		
+		$this->render('ajax/zeromqstatus');
 	}
 }

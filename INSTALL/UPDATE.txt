@@ -54,3 +54,8 @@ chown -R www-data:www-data /var/www/MISP/app/webroot/img/custom
 su www-data -c 'bash /var/www/MISP/app/Console/worker/start.sh'
 
 # You can also do this using the MISP application by navigating to the workers tab in the server settings and clicking on the "Restart all workers" button.
+
+# 7. Add any new dependencies that might have been added since you've last updated (shown below)
+
+# 7.a requirements for the pubsub optional feature
+pip install pyzmq

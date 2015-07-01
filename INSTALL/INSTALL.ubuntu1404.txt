@@ -212,3 +212,8 @@ Recommended actions
 - You should really harden the configuration of MySQL
 - Keep your software up2date (MISP, CakePHP and everything else)
 - Log and audit
+
+Optional features
+-------------------
+# MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
+pip install pyzmq
