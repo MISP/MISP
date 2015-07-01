@@ -20,10 +20,10 @@
 		endif;
 		if ($target_type === 'post'):
 		?>
-		<div class="input clear">
-		<label for="PostResponseTo">In response to</label>
-			<textarea class="input-xxlarge" disabled="disabled" cols="30" rows="6" id="PostResponseTo"><?php echo h($previous); ?></textarea>
-		</div>
+			<div class="input clear">
+				<label for="PostResponseTo">In response to</label>
+				<textarea class="input-xxlarge" disabled="disabled" cols="30" rows="6" id="PostResponseTo"><?php echo h($previous); ?></textarea>
+			</div>
 		<?php 
 			$quote = '[QUOTE]' . $previous . '[/QUOTE]' . "\n";
 		endif;
