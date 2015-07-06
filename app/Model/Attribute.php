@@ -3,6 +3,7 @@
 App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
+App::uses('FinancialTool', 'Tools');
 
 /**
  * Attribute Model
@@ -120,7 +121,7 @@ class Attribute extends AppModel {
 			'attachment' => array('desc' => 'Attachment with external information', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button."),
 			'malware-sample' => array('desc' => 'Attachment containing encrypted malware sample', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button."),
 			'link' => array('desc' => 'Link to an external information'),
-			'comment' => array('desc' => 'Comment or description in a human language', 'formdesc' => 'Comment or description in a human language.  This will not be correlated with other attributes (NOT IMPLEMENTED YET)'),
+			'comment' => array('desc' => 'Comment or description in a human language', 'formdesc' => 'Comment or description in a human language.  This will not be correlated with other attributes'),
 			'text' => array('desc' => 'Name, ID or a reference'),
 			'other' => array('desc' => 'Other attribute'),
 			'named pipe' => array('desc' => 'Named pipe, use the format \\.\pipe\<PipeName>'),
@@ -131,6 +132,46 @@ class Attribute extends AppModel {
  			'target-org' => array('desc' => 'Attack Targets Department or Orginization(s)'),
  			'target-location' => array('desc' => 'Attack Targets Physical Location(s)'),
  			'target-external' => array('desc' => 'External Target Orginizations Affected by this Attack'),
+			'btc' => array('desc' => 'Bitcoin Address'),//
+			'iban' => array('desc' => 'International Bank Account Number'),//
+			'bic' => array('desc' => 'Bank Identifier Code Number'),//
+			'bin' => array('desc' => 'Bank Identification Number'),//
+			'cc-number' => array('desc' => 'Credit-Card Number'),//
+			'prtn' => array('desc' => 'Premium-Rate Telephone Number'),//
+			'threat-actor' => array('desc' => 'A string identifying the threat actor'),//
+			'campaign-name' => array('desc' => 'Associated campaign name'),//
+			'campaign-id' => array('desc' => 'Associated campaign ID'),//
+			'malware-type' => array('desc' => 'test'),//
+			'uri' => array('desc' => 'test'),
+			'authentihash' => array('desc' => 'Authenticode executable signature hash', 'formdesc' => "You are encouraged to use filename|authentihash instead. Authenticode executable signature hash, only use this if you don't know the correct filename"),//x
+			'ssdeep' => array('desc' => 'A checksum in ssdeep format', 'formdesc' => "You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"),////x
+			'imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.', 'formdesc' => "You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"),//x
+			'pehash' => array('desc' => 'test'),//x
+			'sha-224' => array('desc' => 'A checksum in sha-224 format', 'formdesc' => "You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"),//x
+			'sha-384' => array('desc' => 'A checksum in sha-384 format', 'formdesc' => "You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename"),//x
+			'sha-512' => array('desc' => 'A checksum in sha-512 format', 'formdesc' => "You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename"),//x
+			'sha-512/224' => array('desc' => 'A checksum in the sha-512/224 format', 'formdesc' => "You are encouraged to use filename|sha512/224 instead. A checksum in sha512/224 format, only use this if you don't know the correct filename"),//x
+			'sha-512/256' => array('desc' => 'A checksum in the sha-512/256 format', 'formdesc' => "You are encouraged to use filename|sha512/256 instead. A checksum in sha512/256 format, only use this if you don't know the correct filename"),//x
+			'tlsh' => array('desc' => 'A checksum in the Trend Micro Locality Sensitive Hash format', 'formdesc' => "You are encouraged to use filename|tlsh instead. A checksum in the Trend Micro Locality Sensitive Hash format, only use this if you don't know the correct filename"),//x
+			'filename|authentihash' => array('desc' => 'A checksum in md5 format'),
+			'filename|ssdeep' => array('desc' => 'A checksum in ssdeep format'),//x
+			'filename|imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.'),//x
+			'filename|pehash' => array('desc' => ''),//x
+			'filename|sha-224' => array('desc' => 'A filename and a sha-224 hash separated by a |'),//x
+			'filename|sha-384' => array('desc' => 'A filename and a sha-384 hash separated by a |'),//x
+			'filename|sha-512' => array('desc' => 'A filename and a sha-512 hash separated by a |'),//x
+			'filename|sha-512/224' => array('desc' => 'A filename and a sha-512/224 hash separated by a |'),//x
+			'filename|sha-512/256' => array('desc' => 'A filename and a sha-512/256 hash separated by a |'),//x
+			'filename|tlsh' => array('desc' => 'A filename and a Trend Micro Locality Sensitive Hash separated by a |'),//x
+			'windows-scheduled-task' => array('desc' => 'A scheduled task in windows'),
+			'windows-service-name' => array('desc' => 'A windows service name. This is the name used internally by windows. Not to be confused with the windows-service-displayname.'),//x
+			'windows-service-displayname' => array('desc' => 'A windows service\'s displayname, not to be confused with the windows-service-name. This is the name that applications will generally display as the service\'s name in applications.'),//x
+			'whois-registrant-email' => array('desc' => 'The e-mail of a domain\'s registrant, obtained from the WHOIS information.'),//x
+			'whois-registrant-phone' => array('desc' => 'The phone number of a domain\'s registrant, obtained from the WHOIS information.'),//x
+			'targeted-threat-index' => array('desc' => 'test'),
+			'mailslot' => array('desc' => 'test'),
+			'pipe' => array('desc' => 'test'),
+			'ssl-cert-attributes' => array('desc' => 'test'),
 	);
 
 	// definitions of categories
@@ -152,16 +193,16 @@ class Attribute extends AppModel {
 			'Payload delivery' => array(
 					'desc' => 'Information about how the malware is delivered',
 					'formdesc' => 'Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.',
-					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'ip-dst', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'vulnerability', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'ip-dst', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'vulnerability', 'other')
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
-					'types' => array('md5', 'sha1', 'sha256', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'yara', 'attachment', 'malware-sample', 'comment', 'text', 'other', 'named pipe', 'mutex')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'yara', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'other')
 					),
 			'Payload installation' => array(
 					'desc' => 'Info on where the malware gets installed in the system',
 					'formdesc' => 'Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.',
-					'types' => array('md5', 'sha1', 'sha256', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'attachment', 'malware-sample', 'comment', 'text', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'other')
 					),
 			'Persistence mechanism' => array(
 					'desc' => 'Mechanisms used by the malware to start at boot',
@@ -170,7 +211,7 @@ class Attribute extends AppModel {
 					),
 			'Network activity' => array(
 					'desc' => 'Information about network traffic generated by the malware',
-					'types' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'email-dst', 'url', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'other')
+					'types' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'other')
 					),
 			'Payload type' => array(
 					'desc' => 'Information about the final payload(s)',
@@ -179,12 +220,17 @@ class Attribute extends AppModel {
 					),
 			'Attribution' => array(
 					'desc' => 'Identification of the group, organisation, or country behind the attack',
-					'types' => array('comment', 'text', 'other')
+					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'comment', 'text', 'other')
 					),
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
 					'formdesc' => 'Any other result from additional analysis of the malware like tools output Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.',
 					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'other')
+					),
+			'Financial fraud' => array(
+					'desc' => 'Financial Fraud indicators',
+					'formdesc' => 'Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.',
+					'types' => array('btc', 'iban', 'bic', 'bin', 'cc-number', 'prtn', 'comment', 'text', 'other'),
 					),
 			'Other' => array(
 					'desc' => 'Attributes that are not part of any other category',
@@ -234,6 +280,7 @@ class Attribute extends AppModel {
 							'Payload type',
 							'Attribution',
 							'External analysis',
+							'Financial fraud',
 							'Other',
 							'' // FIXME remove this once all attributes have a category. Otherwise sigs without category are not shown in the list
 						)),
@@ -328,8 +375,7 @@ class Attribute extends AppModel {
 
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
-
-}
+	}
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
@@ -429,24 +475,10 @@ class Attribute extends AppModel {
 		if (!isset($this->data['Attribute']['type'])) {
 			return false;
 		}
-
-		switch($this->data['Attribute']['type']) {
-			// lowercase these things
-			case 'md5':
-			case 'sha1':
-			case 'sha256':
-			case 'domain':
-			case 'hostname':
-				$this->data['Attribute']['value'] = strtolower($this->data['Attribute']['value']);
-				break;
-			case 'filename|md5':
-			case 'filename|sha1':
-			case 'filename|sha256':
-				$pieces = explode('|', $this->data['Attribute']['value']);
-				$this->data['Attribute']['value'] = $pieces[0] . '|' . strtolower($pieces[1]);
-				break;
-		}
-
+		
+		// make some last changes to the inserted value
+		$this->data['Attribute']['value'] = $this->modifyBeforeValidation($this->data['Attribute']['type'], $this->data['Attribute']['value']);
+		
 		// uppercase the following types
 		switch($this->data['Attribute']['type']) {
 			case 'http-method':
@@ -519,30 +551,61 @@ class Attribute extends AppModel {
 		return $this->runValidation($value, $this->data['Attribute']['type']);
 	}
 	
+	private $__hexHashLengths = array(
+			'authentihash' => 64,
+			'md5' => 32,
+			'imphash' => 32,
+			'sha1' => 40,
+			'pehash' => 40,
+			'sha224' => 56,
+			'sha256' => 64,
+			'sha384' => 96,
+			'sha512' => 128,
+			'sha512/224' => 56,
+			'sha512/256' => 64,
+	);
+	
 	public function runValidation($value, $type) {
 		$returnValue = false;
 		// check data validation
 		switch($type) {
 			case 'md5':
-				if (preg_match("#^[0-9a-f]{32}$#", $value)) {
+			case 'imphash':
+			case 'sha1':
+			case 'sha224':
+			case 'sha256':
+			case 'sha384':
+			case 'sha512':
+			case 'sha512/224':
+			case 'sha512/256':
+			case 'authentihash':
+				$length = $this->__hexHashLengths[$type];
+				if (preg_match("#^[0-9a-f]{" . $length . "}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
+					$returnValue = 'Checksum has invalid length or format (expected: ' . $length . ' hexadecimal characters). Please double check the value or select "other" for a type.';
 				}
 				break;
-			case 'sha1':
+			case 'tlsh':
+				if (preg_match("#^[0-9a-f]{35,}$#", $value)) {
+					$returnValue = true;
+				} else {
+					$returnValue = 'Checksum has invalid length or format (expected: at least 35 hexadecimal characters). Please double check the value or select "other" for a type.';
+				}
+				break;
+			case 'pehash':
 				if (preg_match("#^[0-9a-f]{40}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
+					$returnValue = 'The input doesn\'t match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!';
 				}
 				break;
-			case 'sha256':
-				if (preg_match("#^[0-9a-f]{64}$#", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
-				}
+			case 'ssdeep':
+				if (substr_count($value, ':') == 2) {
+					$parts = explode(':', $value);
+					if (is_numeric($parts[0])) $returnValue = true;
+				} 
+				if (!$returnValue) $returnValue = 'Invalid SSDeep hash. The format has to be blocksize:hash:hash';
 				break;
 			case 'http-method':
 				if (preg_match("#(OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|PROPFIND|PROPPATCH|MKCOL|COPY|MOVE|LOCK|UNLOCK|VERSION-CONTROL|REPORT|CHECKOUT|CHECKIN|UNCHECKOUT|MKWORKSPACE|UPDATE|LABEL|MERGE|BASELINE-CONTROL|MKACTIVITY|ORDERPATCH|ACL|PATCH|SEARCH)#", $value)) {
@@ -551,57 +614,52 @@ class Attribute extends AppModel {
 					$returnValue = 'Unknown HTTP method.';
 				}
 				break;
-			case 'filename':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'filename|md5':
-				// no newline
-				if (preg_match("#^.+\|[0-9a-f]{32}$#", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'filename|sha1':
+			case 'filename|pehash':
 				// no newline
 				if (preg_match("#^.+\|[0-9a-f]{40}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
+					$returnValue = 'The input doesn\'t match the expected filename|sha1 format (expected: filename|40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!';
 				}
 				break;
+			case 'filename|md5':
+			case 'filename|sha1':	
+			case 'filename|imphash':
+			case 'filename|sha224':
 			case 'filename|sha256':
-				// no newline
-				if (preg_match("#^.+\|[0-9a-f]{64}$#", $value)) {
+			case 'filename|sha384':
+			case 'filename|sha512':
+			case 'filename|sha512/224':
+			case 'filename|sha512/256':
+			case 'filename|authentihash':
+				$parts = explode('|', $type);
+				$length = $this->__hexHashLengths[$parts[1]];
+				if (preg_match("#^.+\|[0-9a-f]{" . $length . "}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
+					$returnValue = 'Checksum has invalid length or format (expected: filename|' . $length . ' hexadecimal characters). Please double check the value or select "other" for a type.';
+				}
+				break;
+			case 'filename|ssdeep':
+				if (substr_count($value, '|') != 1 || !preg_match("#^.+\|.+$#", $value)) $returnValue = 'Invalid composite type. The format has to be ' . $type . '.'; 
+				else {
+					$composite = explode('|', $value);
+					$value = $composite[1];
+					if (substr_count($value, ':') == 2) {
+						$parts = explode(':', $value);
+						if (is_numeric($parts[0])) $returnValue = true;
+					}
+					if (!$returnValue) $returnValue = 'Invalid SSDeep hash (expected: blocksize:hash:hash).';
+				}
+				break;
+			case 'filename|tlsh':
+				if (preg_match("#^.+\|[0-9a-f]{35,}$#", $value)) {
+					$returnValue = true;
+				} else {
+					$returnValue = 'Checksum has invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select "other" for a type.';
 				}
 				break;
 			case 'ip-src':
-				$parts = explode("/", $value);
-				// [0] = the ip
-				// [1] = the network address
-				if (count($parts) <= 2 ) {
-					// ipv4 and ipv6 matching
-					if (filter_var($parts[0],FILTER_VALIDATE_IP)) {
-						// ip is validated, now check if we have a valid network mask
-						if (empty($parts[1])) {
-							$returnValue = true;
-						} else {
-							if (is_numeric($parts[1]) && $parts[1] < 129) {
-								$returnValue = true;
-							}
-						}
-					}
-				}
-				if (!$returnValue) {
-					$returnValue = 'IP address has invalid format. Please double check the value or select "other" for a type.';
-				}
-				break;
 			case 'ip-dst':
 				$parts = explode("/", $value);
 				// [0] = the ip
@@ -632,55 +690,14 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'email-src':
-				// we don't use the native function to prevent issues with partial email addresses
-				if (preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
-					$returnValue = true;
-				} else {
-					$returnValue = 'Email address has invalid format. Please double check the value or select "other" for a type.';
-				}
-				break;
 			case 'email-dst':
+			case 'target-email':
+			case 'whois-registrant-email':
 				// we don't use the native function to prevent issues with partial email addresses
 				if (preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Email address has invalid format. Please double check the value or select "other" for a type.';
-				}
-				break;
-			case 'email-subject':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'email-attachment':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'url':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'user-agent':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'regkey':
-				// no newline
-				if (!preg_match("#\n#", $value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'regkey|value':
-				// no newline
-				if (preg_match("#(.)+\|(.)+#", $value) && !preg_match("#\n#", $value)) {
-					$returnValue = true;
 				}
 				break;
 			case 'vulnerability':
@@ -694,6 +711,10 @@ class Attribute extends AppModel {
 				if (!preg_match("#\n#", $value)) {
 					$returnValue = true;
 				}
+				break;
+			case 'windows-service-name':
+			case 'windows-service-displayname':
+				if (strlen($value) > 256 || preg_match('#[\\\/]#')) $returnValue = 'Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.';
 				break;
 			case 'mutex':
 			case 'AS':
@@ -717,43 +738,129 @@ class Attribute extends AppModel {
 				$returnValue = true;
 				break;
  			case 'target-user':
- 				// no newline
- 				if (!preg_match("#\n#", $value)) {
- 					$returnValue = true;
- 				}
- 				break;
- 			case 'target-email':
- 				if (preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.-]+\.[A-Z]{2,4}$#i", $value)) {
- 					$returnValue = true;
- 				} else {
- 					$returnValue = 'Email address has invalid format. Please double check the value or select "other" for a type.';
- 				}
- 				break;
+			case 'campaign-name':
+			case 'campaign-id':
+			case 'threat-actor':
  			case 'target-machine':
- 				// no newline
- 				if (!preg_match("#\n#", $value)) {
- 					$returnValue = true;
- 				}
- 				break;
  			case 'target-org':
- 				// no newline
- 				if (!preg_match("#\n#", $value)) {
- 					$returnValue = true;
- 				}
- 				break;
  			case 'target-location':
- 				// no newline
+ 			case 'target-external':
+ 			case 'email-subject':
+ 			case 'email-attachment':
+ 			case 'url':
+ 			case 'user-agent':
+ 			case 'regkey':
+ 			case 'regkey|value':
+			case 'filename':
+			case 'windows-scheduled-task':
+ 				// no newline	
  				if (!preg_match("#\n#", $value)) {
  					$returnValue = true;
  				}
  				break;
- 			case 'target-external':
- 				// no newline
- 				if (!preg_match("#\n#", $value)) {
- 					$returnValue = true;
- 				}
+ 			case 'targeted-threat-index':
+ 				if (!is_numeric($value) || $value < 0 || $value > 10) $returnValue = 'The value has to be a number between 0 and 10.';
+ 				else $returnValue = true;
+ 				break;
+			case 'btc':
+				$fTool = new FinancialTool();
+				if ($fTool->validateBTC($value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'iban':
+				$fTool = new FinancialTool();
+				if ($fTool->validateIBAN($value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'bic':
+				$fTool = new FinancialTool();
+				if ($fTool->validateBIC($value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'bin':
+				$fTool = new FinancialTool();
+				if ($fTool->validateBIN($value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'cc-number':
+				$fTool = new FinancialTool();
+				if ($fTool->validateCC($value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'prtn':
+			case 'whois-registrant-phone':
+				if (is_numeric($value)) {
+					$returnValue = true;
+				}
+				break;	
 		}
 		return $returnValue;
+	}
+	
+	// do some last second modifications before the validation
+	public function modifyBeforeValidation($type, $value) {
+		switch($type) {
+			case 'md5':
+			case 'sha1':
+			case 'sha224':
+			case 'sha256':
+			case 'sha384':
+			case 'sha512':
+			case 'sha512/224':
+			case 'sha512/256':
+			case 'sha256':
+			case 'domain':
+			case 'hostname':
+			case 'pehash':
+			case 'authentihash':
+			case 'imphash':
+			case 'tlsh':
+			case 'email-src':
+			case 'email-dst':
+			case 'target-email':
+			case 'whois-registrant-email':
+				$value = strtolower($value);
+				break;
+			case 'filename|md5':
+			case 'filename|sha1':	
+			case 'filename|imphash':
+			case 'filename|sha224':
+			case 'filename|sha256':
+			case 'filename|sha384':
+			case 'filename|sha512':
+			case 'filename|sha512/224':
+			case 'filename|sha512/256':
+			case 'filename|authentihash':
+			case 'filename|pehash':
+			case 'filename|tlsh':
+				$pieces = explode('|', $value);
+				$value = $pieces[0] . '|' . strtolower($pieces[1]);
+				break;
+			case 'http-method':
+				$value = strtoupper($value);
+				break;
+			case 'cc-number':
+			case 'bic':
+			case 'bin':
+				$value = preg_replace('/[^0-9]+/', '', $value);
+				break;
+			case 'iban':
+				$value = strtoupper($value);
+				$value = preg_replace('/[^0-9A-Z]+/', '', $value);
+				break;
+			case 'prtn':
+			case 'whois-registrant-phone':
+				if (substr($value, 0, 1) == '+') $value = '00' . $value(substr($value, 1));
+				$value = preg_replace('/[^0-9]+/', '', $value);
+				break;
+				
+		}
+		return $value;
 	}
 
 	public function getCompositeTypes() {
