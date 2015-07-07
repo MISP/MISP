@@ -37,9 +37,9 @@ class RPZExport {
 	
 	public function explain($type, $policy) {
 		$explanations = array(
-			'ip' => '# The following list of IP addresses will ',
-			'domain' => '# The following domain names and all of their sub-domains will ',
-			'hostname' => '# The following hostnames will '
+			'ip' => '; The following list of IP addresses will ',
+			'domain' => '; The following domain names and all of their sub-domains will ',
+			'hostname' => '; The following hostnames will '
 		);
 		$policy_explanations = array(
 			'walled-garden' => 'returns the defined alternate location.',
@@ -53,7 +53,7 @@ class RPZExport {
 	public function buildHeader($rpzSettings) {
 		$rpzSettings['serial'] = str_replace('$date', date('Ymd'), $rpzSettings['serial']);
 		$header = '';
-		$header .= '$TTL ' . $rpzSettings['ttl'] . PHP_EOL;
+		$header .= '$TTL ' . $rpzSettings['ttl'] . ';' . PHP_EOL;
 		$header .= '@               SOA ' . $rpzSettings['ns'] . ' ' . $rpzSettings['email'] . ' ('  . $rpzSettings['serial'] . ' ' . $rpzSettings['refresh'] . ' ' . $rpzSettings['retry'] . ' ' . $rpzSettings['expiry'] . ' ' . $rpzSettings['minimum_ttl'] . ')' . PHP_EOL;
 		$header .= '                NS ' . $rpzSettings['ns'] . PHP_EOL . PHP_EOL;
 		return $header;
@@ -106,7 +106,7 @@ class RPZExport {
 		if (strpos($input, '/')) {
 			list($input, $prefix) = explode('/', $input);
 		}
-		return $prefix . '.' . $this->{'__' . $type}($input) . ' CNAME ' . $action . PHP_EOL;
+		return $prefix . '.' . $this->{'__' . $type}($input) . '.rpz-ip CNAME ' . $action . PHP_EOL;
 	}
 	
 	private function __ipv6($input) {
