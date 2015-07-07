@@ -297,6 +297,8 @@ class TemplatesController extends AppController {
 		}
 	}
 	
+	
+	// called when the user is finished populating a template and is has finished reviewing the resulting attributes at the last stage of the process
 	public function submitEventPopulation($template_id, $event_id) {
 		if ($this->request->is('post')) {
 			$this->loadModel('Event');
@@ -412,6 +414,9 @@ class TemplatesController extends AppController {
 		return $array;
 	}
 
+	// deletes a temporary file created by the user while populating a template 
+	// users can add files to attachment fields and when they change their mind about it, they can remove a file (deleting the temporary file) 
+	// before it gets saved as an attribute and moved to the persistent attachment store
 	public function deleteTemporaryFile($filename) {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is restricted to accepting POST requests only.');
 		//if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible through AJAX.');
