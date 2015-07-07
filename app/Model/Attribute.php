@@ -1323,7 +1323,7 @@ class Attribute extends AppModel {
 	 public function rpz($org, $isSiteAdmin, $tags = false, $eventId = false, $from = false, $to = false) {
 	 	// we can group hostname and domain as well as ip-src and ip-dst in this case
 	 	$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
-	 	$typesToFetch = array('ip' => array('ip-src', 'ip-dst'), 'hostname' => array('hostname'), 'domain' => array('domain'));
+	 	$typesToFetch = array('ip' => array('ip-src', 'ip-dst'), 'domain' => array('domain'), 'hostname' => array('hostname'));
 	 	if ($from) $conditions['AND']['Event.date >='] = $from;
 	 	if ($to) $conditions['AND']['Event.date <='] = $to;
 	 	if (!$isSiteAdmin) {
@@ -1363,7 +1363,17 @@ class Attribute extends AppModel {
  				'group' => array('Attribute.value'), //fields to GROUP BY
  				);
 	 		$temp = $this->find('all', $params);
-	 		foreach ($temp as $value) $values[$k][] = $value['Attribute']['value'];
+	 		if ($k == 'hostname') {
+	 			foreach ($temp as $value) {
+	 				$found = false;
+	 				foreach ($values['domain'] as $domain) {
+	 					if (strpos($value['Attribute']['value'], $domain) != 0) { 
+	 						$found = true;
+	 					}
+	 				}
+	 				if (!$found) $values[$k][] = $value['Attribute']['value'];
+	 			}
+	 		} else foreach ($temp as $value) $values[$k][] = $value['Attribute']['value'];
 	 		unset($temp);
 	 	}
 	 	return $values;
