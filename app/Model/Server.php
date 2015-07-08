@@ -430,7 +430,7 @@ class Server extends AppModel {
 			'GnuPG' => array(
 					'branch' => 1,
 					'binary' => array(
-							'level' => 0,
+							'level' => 2,
 							'description' => 'The location of the GPG executable. If you would like to use a different gpg executable than /usr/bin/gpg, you can set it here. If the default is fine, just keep the setting suggested by MISP.',
 							'value' => '/usr/bin/gpg',
 							'errorMessage' => '',

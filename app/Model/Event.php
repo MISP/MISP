@@ -799,14 +799,18 @@ class Event extends AppModel {
 		// Rearranging things to be compatible with the XML conversion
 		// Removing unwanted properties
 		$event = $this->__updateEventForSync($event, $server);
+		$xmlArray['Event'][] = $event['Event'];
+		App::uses('XMLConverterTool', 'Tools');
+		$converter = new XMLConverterTool();
+		$data = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . $converter->event2XML($event) . PHP_EOL;
 
-		// display the XML to the user
-		$xmlObject = Xml::fromArray(array('Event' => $event['Event']), array('format' => 'tags'));
-		$data = $xmlObject->asXML();
 		// do a REST POST request with the server
 
 		debug($data);
 		throw new Exception();
+		
+		
+		
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
 		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {

@@ -29,7 +29,7 @@ endforeach;?>
 							'id' => 'attributes',
 							'label' => false,
 							'type' => 'hidden',
-							'value' => serialize($attributes),
+							'value' => json_encode($attributes),
 					));
 				?>
 			</fieldset>

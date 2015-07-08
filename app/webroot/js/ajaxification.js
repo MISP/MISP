@@ -904,7 +904,13 @@ function templateFileHiddenAdd(files, element_id, batch) {
 	}
 }
 
+function htmlEncode(value){
+	return $('<div/>').text(value).html();
+}
+
 function templateAddFileBubble(element_id, iframe, filename, tmp_name, batch) {
+	filename = htmlEncode(filename);
+	tmp_name = htmlEncode(tmp_name);
 	if (batch == 'no') {
 		if (iframe == true) {
 			$('#filenames_' + element_id, window.parent.document).html('<div id ="' + tmp_name + '_container" class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + filename + '</span><span onClick="templateDeleteFileBubble(\'' + filename + '\', \'' + tmp_name + '\', \'' + element_id + '\', \'normal\', \'no\');" class="tagSecondHalf useCursorPointer">x</span></div>');

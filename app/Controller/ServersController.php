@@ -484,17 +484,16 @@ class ServersController extends AppController {
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
 			$additionalViewVars = array();
+			if ($tab == 'files') {
+				$files = $this->__manageFiles();
+				$this->set('files', $files);
+			}
 			// Only run this check on the diagnostics tab
 			if ($tab == 'diagnostics' || $tab == 'download') {
 				// check if the current version of MISP is outdated or not
 				$version = $this->__checkVersion();
 				$this->set('version', $version);
 				if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) $diagnostic_errors++;
-
-				if ($tab == 'files') {
-					$files = $this->__manageFiles();
-					$this->set('files', $files);
-				}
 					
 				// check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
 				$stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion);
