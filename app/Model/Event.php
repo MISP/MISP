@@ -575,7 +575,8 @@ class Event extends AppModel {
 			$event['Event']['Attribute'] = $event['Attribute'];
 			unset($event['Attribute']);
 		}
-
+		if (isset($event['ShadowAttribute'])) unset($event['ShadowAttribute']);
+		
 		// cleanup the array from things we do not want to expose
 		//unset($event['Event']['org']);
 		// remove value1 and value2 from the output
@@ -616,10 +617,10 @@ class Event extends AppModel {
 		}
 		// display the XML to the user
 		$xmlArray['Event'][] = $event['Event'];
-		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
-		$eventsXml = $xmlObject->asXML();
-		// do a REST POST request with the server
-		$data = $eventsXml;
+		
+		App::uses('XMLConverterTool', 'Tools');
+		$converter = new XMLConverterTool();
+		$data = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . $converter->event2XML($event) . PHP_EOL;
 		
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
