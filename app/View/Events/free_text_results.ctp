@@ -84,7 +84,7 @@
 				<input type="checkbox" id="<?php echo 'Attribute' . $k . 'To_ids'; ?>" <?php if ($item['to_ids']) echo 'checked'; ?>/>
 			</td>
 			<td class="short">
-				<input type="text" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="Imported via the freetext import." />
+				<input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="Imported via the freetext import." <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . $item['comment'] . '"'?>/>
 			</td>
 			<td class="action short">
 				<span class="icon-remove pointer" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event_id; ?>');"></span>
@@ -103,34 +103,38 @@
 		}
 	?>
 	</table>
-	<button class="btn btn-primary" onClick="freetextImportResultsSubmit('<?php echo h($event_id); ?>', '<?php echo count($resultArray); ?>');">Submit</button>
-	<?php
-		if (!empty($optionsRearranged)):
-	?>
+	<span>
+		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event_id); ?>', '<?php echo count($resultArray); ?>');">Submit</button>
 		<span style="float:right">
-			<select id="changeFrom" style="margin-left:50px;margin-top:10px;">
-				<?php 
-					foreach (array_keys($optionsRearranged) as $fromElement):
-				?>
-						<option><?php echo $fromElement; ?></option>
-				<?php 	
-					endforeach;
-				?>
-			</select>
-			<span class="icon-arrow-right"></span>
-			<select id="changeTo" style="margin-top:10px;">
-				<?php 
-					$keys = array_keys($optionsRearranged);
-					foreach ($optionsRearranged[$keys[0]] as $toElement):
-				?>
-						<option value="<?php echo $toElement; ?>"><?php echo $toElement; ?></option>
-				<?php 	
-					endforeach;
-				?>
-			</select>
-			<span class="btn btn-inverse" onClick="changeFreetextImportExecute();">Change all</span>
+			<?php
+				if (!empty($optionsRearranged)):
+			?>
+				<select id="changeFrom" style="margin-left:50px;margin-top:10px;">
+					<?php 
+						foreach (array_keys($optionsRearranged) as $fromElement):
+					?>
+							<option><?php echo $fromElement; ?></option>
+					<?php 	
+						endforeach;
+					?>
+				</select>
+				<span class="icon-arrow-right"></span>
+				<select id="changeTo" style="margin-top:10px;">
+					<?php 
+						$keys = array_keys($optionsRearranged);
+						foreach ($optionsRearranged[$keys[0]] as $toElement):
+					?>
+							<option value="<?php echo $toElement; ?>"><?php echo $toElement; ?></option>
+					<?php 	
+						endforeach;
+					?>
+				</select>
+				<span class="btn btn-inverse" onClick="changeFreetextImportExecute();">Change all</span><br />
+			<?php endif; ?>
+			<input type="text" id="changeComments" style="margin-left:50px;margin-top:10px;width:446px;" placeholder="Update all comment fields">
+			<span class="btn btn-inverse" onClick="changeFreetextImportCommentExecute();">Change all</span>
 		</span>
-	<?php endif; ?>
+	</span>
 </div>
 <?php if (!empty($optionsRearranged)):?>
 	<script>

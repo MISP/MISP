@@ -12,7 +12,7 @@ class SyncTool {
 		$HttpSocket = new HttpSocket($params);
 
 		$proxy = Configure::read('Proxy');
-		$HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
+		if ($proxy) $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
 
 		return $HttpSocket;
 	}

@@ -10,6 +10,7 @@
 /app/Vendor
 /app/composer*
 /README
+/app/tmp/GPG*
 /app/tmp/sessions/sess_*
 /app/tmp/logs/*.log
 /app/tmp/cache/models/myapp*
@@ -18,6 +19,13 @@
 /app/files/*
 !/app/files/empty
 !/app/files/scripts/
+/app/files/scripts/python-stix/
+/app/files/scripts/python-cybox/
+/app/files/scripts/*.pyc
+/app/files/scripts/*.py~
+/app/files/scripts/mispzmq/*
+!/app/files/scripts/mispzmq/mispzmq.py
+!/app/files/scripts/mispzmq/mispzmqtest.py
 /app/files/scripts/tmp/*
 !/app/files/scripts/tmp/empty
 /app/tmp/files/*

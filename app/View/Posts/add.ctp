@@ -5,30 +5,28 @@
 	<?php
 		$quote = '';
 		// If it is a new thread, let the user enter a subject
-		if (empty($thread_id) && empty($target_type)) {
+		if (empty($thread_id) && empty($target_type)):
 			echo $this->Form->input('title', array(
 					'label' => 'Thread Subject',
 					'class' => 'input-xxlarge'
 				));
-		} else {
-			echo $this->Form->input('title', array(
-					'label' => 'Thread Subject',
-					'class' => 'input-xxlarge',
-					'disabled' => 'true',
-					'default' => $title
-			));
-		}
-		if ($target_type === 'post') {
-			echo $this->Form->input('responseTo', array(
-					'label' => 'In response to',
-					'type' => 'textarea',
-					'div' => 'input clear',
-					'class' => 'input-xxlarge',
-					'disabled' => 'true',
-					'default' => h($previous)
-			));
+		else:
+		?>
+			<div class="input text">
+				<label for="PostTitle">Thread Subject</label>
+				<input class = "input-xxlarge" disabled="disabled" value="<?php echo h($title);?>" id="PostTitle" type="text">
+			</div>
+		<?php 
+		endif;
+		if ($target_type === 'post'):
+		?>
+			<div class="input clear">
+				<label for="PostResponseTo">In response to</label>
+				<textarea class="input-xxlarge" disabled="disabled" cols="30" rows="6" id="PostResponseTo"><?php echo h($previous); ?></textarea>
+			</div>
+		<?php 
 			$quote = '[QUOTE]' . $previous . '[/QUOTE]' . "\n";
-		}
+		endif;
 		?>
 		<div class="input clear">
 			<button type="button" title="Insert a quote - just paste your quote between the [quote][/quote] tags." class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()">Quote</button>

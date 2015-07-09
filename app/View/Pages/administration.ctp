@@ -17,6 +17,7 @@ if (!$isSiteAdmin) exit();
 <li><a href="/users/verifyGPG">Verify GPG keys</a> (Check whether every user's GPG key is usable)</li>
 <li><a href="/events/generateThreatLevelFromRisk">Upgrade Risk to Threat Level</a> (As of version 2.2 the risk field is replaced by Threat Level. This script will convert all values in risk to threat level.)</li>
 <li><a href="/servers/updateDatabase/extendServerOrganizationLength">Extend Organization length</a> (Hotfix 2.3.57: Increase the max length of the organization field when adding a new server connection.)</li>
+<li><a href="/servers/updateDatabase/convertLogFieldsToText">Convert log fields to text</a> (Hotfix 2.3.78: Some of the log fields that were varchar(255) ended up truncating the data. This function will change them to "text")</li>
 </ul>
 </div>
 <?php 

@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::import('Controller', 'Attributes');
+Configure::load('config'); // This is needed to load GnuPG.bodyonlyencrypted
 /**
  * Event Model
  *
@@ -98,6 +99,11 @@ class Event extends AppModel {
 					'type' => 'Snort',
 					'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
 			),
+			'rpz' => array(
+					'extension' => '.txt',
+					'type' => 'RPZ',
+					'description' => 'Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.'
+			),
 			'md5' => array(
 					'extension' => '.txt',
 					'type' => 'MD5',
@@ -112,7 +118,7 @@ class Event extends AppModel {
 					'extension' => '.txt',
 					'type' => 'TEXT',
 					'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
-			)
+			),
 	);
 	
 	public $csv_event_context_fields_to_fetch = array(
@@ -569,7 +575,8 @@ class Event extends AppModel {
 			$event['Event']['Attribute'] = $event['Attribute'];
 			unset($event['Attribute']);
 		}
-
+		if (isset($event['ShadowAttribute'])) unset($event['ShadowAttribute']);
+		
 		// cleanup the array from things we do not want to expose
 		//unset($event['Event']['org']);
 		// remove value1 and value2 from the output
@@ -598,7 +605,11 @@ class Event extends AppModel {
 				// solves the issue and a new attribute is always created.
 				unset($attribute['id']);
 			}
-		}
+		} else return 403;
+		
+		// If we ran out of attributes, or we never had any to begin with, we want to prevent the event from being pushed.
+		// It should show up the same way as if the event was not exportable
+		if (count($event['Event']['Attribute']) == 0) return 403;
 		
 		// Distribution, correct All to Community in Event
 		if ($event['Event']['distribution'] == 2) {
@@ -606,10 +617,10 @@ class Event extends AppModel {
 		}
 		// display the XML to the user
 		$xmlArray['Event'][] = $event['Event'];
-		$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
-		$eventsXml = $xmlObject->asXML();
-		// do a REST POST request with the server
-		$data = $eventsXml;
+		
+		App::uses('XMLConverterTool', 'Tools');
+		$converter = new XMLConverterTool();
+		$data = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . $converter->event2XML($event) . PHP_EOL;
 		
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
@@ -805,7 +816,7 @@ class Event extends AppModel {
 		return null;
 	}
 
-	public function fetchEventIds($org, $isSiteAdmin, $from = false, $to = false) {
+	public function fetchEventIds($org, $isSiteAdmin, $from = false, $to = false, $last = false) {
 		$conditions = array();
 		if (!$isSiteAdmin) {
 			$conditions['OR'] = array(
@@ -820,6 +831,7 @@ class Event extends AppModel {
 		
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		
 		$params = array(
 			'conditions' => $conditions,
@@ -831,7 +843,7 @@ class Event extends AppModel {
 	}
 	
 	//Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller.
-	public function fetchEvent($eventid = false, $idList = false, $org, $isSiteAdmin = false, $bkgrProcess = false, $tags = false, $from = false, $to = false) {
+	public function fetchEvent($eventid = false, $idList = false, $org, $isSiteAdmin = false, $bkgrProcess = false, $tags = false, $from = false, $to = false, $last = false) {
 		if ($eventid) {
 			$this->id = $eventid;
 			if (!$this->exists()) {
@@ -862,6 +874,7 @@ class Event extends AppModel {
 		
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		
 		if ($idList && !$tags) {
 			$conditions['AND'][] = array('Event.id' => $idList);
@@ -936,7 +949,7 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	public function csv($org, $isSiteAdmin, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false) {
+	public function csv($org, $isSiteAdmin, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last) {
 		$final = array();
 		$attributeList = array();
 		$conditions = array();
@@ -947,6 +960,7 @@ class Event extends AppModel {
 	 	if ($eventid !== 'search') {
 	 		if ($from) $econditions['AND'][] = array('Event.date >=' => $from);
 	 		if ($to) $econditions['AND'][] = array('Event.date <=' => $to);
+	 		if ($last) $econditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
 			if(!$isSiteAdmin) $econditions['AND']['OR'] = array(
 				"AND" => array(
@@ -982,6 +996,7 @@ class Event extends AppModel {
 	 					'fields' => array('id', 'distribution', 'org', 'published', 'date'),
 	 			);
 	 			$events = $this->find('all', $params);
+	 			if (empty($events)) return array();
 	 		}
 	 		// if we have items in events, add their IDs to the conditions. If we're a site admin, or we have a single event selected for download, this should be empty
 	 		if (isset($events)) {
@@ -1169,6 +1184,8 @@ class Event extends AppModel {
 		} else {
 			$subject = '';
 		}
+		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber";
+		
 		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$body .= '==============================================' . "\n";
 		// find out whether the event is private, to limit the alerted user's list to the org only
@@ -1177,98 +1194,28 @@ class Event extends AppModel {
 		} else {
 			$eventIsPrivate = false;
 		}
-		// sign the body
-		require_once 'Crypt/GPG.php';
-		try {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
-			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-			//
-			// Build a list of the recipients that get a non-encrypted mail
-			// But only do this if it is allowed in the bootstrap.php file.
-			//
-			if ($eventIsPrivate) {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "", 'User.org =' => $event['Event']['org']);
-			} else {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey =' => "");
-			}
-			if (!Configure::read('GnuPG.onlyencrypted')) {
-				$alertUsers = $this->User->find('all', array(
-						'conditions' => $conditions,
-						'recursive' => 0,
-				));
-				$max = count($alertUsers);
-				foreach ($alertUsers as $k => &$user) {
-				// prepare the the unencrypted email
-					$Email = new CakeEmail();
-					$Email->from(Configure::read('MISP.email'));
-					$Email->to($user['User']['email']);
-					$Email->subject("[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber");
-					$Email->emailFormat('text');	// both text or html
-					// send it
-					$Email->send($bodySigned);
-					$Email->reset();
-					if ($processId) {
-						$this->Job->id = $processId;
-						$this->Job->saveField('progress', $k / $max * 50);
-					}
-				}
-			}
 
-			//
-			// Build a list of the recipients that wish to receive encrypted mails.
-			//
-			if ($eventIsPrivate) {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "", 'User.org =' => $event['Event']['org']);
-			} else {
-				$conditions = array('User.autoalert' => 1, 'User.gpgkey !=' => "");
+		$bodyNoEnc = "A new or modified event was just published on " . Configure::read('MISP.baseurl') . "/events/view/" . $event['Event']['id'];
+		
+		$conditions = array('User.autoalert' => 1);
+		if ($eventIsPrivate) $conditions['User.org'] = $event['Event']['org'];
+
+		$alertUsers = $this->User->find('all', array(
+				'conditions' => $conditions,
+				'recursive' => -1,
+		));
+		$max = count($alertUsers);
+
+		foreach ($alertUsers as $k => &$user) {
+			$this->User->sendEmail($user, $body, $bodyNoEnc, $subject);
+			if ($processId) {
+				$this->Job->id = $processId;
+				$this->Job->saveField('progress', $k / $max * 100);
 			}
-	 		$alertUsers = $this->User->find('all', array(
-	 				'conditions' => $conditions,
-	 				'recursive' => 0,
-	 			)
-			);
-	 		$max = count($alertUsers);
- 			// encrypt the mail for each user and send it separately
- 			foreach ($alertUsers as $k => &$user) {
- 				// send the email
- 				$Email = new CakeEmail();
- 				$Email->from(Configure::read('MISP.email'));
- 				$Email->to($user['User']['email']);
-				$Email->subject("[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . " - " . $event['ThreatLevel']['name'] . " - TLP Amber");
- 				$Email->emailFormat('text');		// both text or html
-  					// import the key of the user into the keyring
- 				// this is not really necessary, but it enables us to find
- 				// the correct key-id even if it is not the same as the emailaddress
- 				$keyImportOutput = $gpg->importKey($user['User']['gpgkey']);
- 				// say what key should be used to encrypt
- 				try {
- 					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
- 					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-  						$bodyEncSig = $gpg->encrypt($bodySigned, true);
- 						$Email->send($bodyEncSig);
- 				} catch (Exception $e){
- 					// catch errors like expired PGP keys
- 					$this->log($e->getMessage());
- 					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
- 				}
- 				// If you wish to send multiple emails using a loop, you'll need
- 				// to reset the email fields using the reset method of the Email component.
- 				$Email->reset();
- 				if ($processId) {
- 					$this->Job->saveField('progress', ($k / $max * 50) + 50);
- 				}
- 			}
-		} catch (Exception $e){
- 			// catch errors like expired PGP keys
-			$this->log($e->getMessage());
- 			return $e->getMessage();
- 		}
- 	if ($processId) {
- 		$this->Job->saveField('message', 'Mails sent.');
- 	}
- 	// LATER check if sending email succeeded and return appropriate result
- 	return true;
+		}
+	 	if ($processId) $this->Job->saveField('message', 'Mails sent.');
+	 	// LATER check if sending email succeeded and return appropriate result
+	 	return true;
 	}
 	
 	public function sendContactEmail($id, $message, $all, $user, $isSiteAdmin) {
@@ -1279,8 +1226,9 @@ class Event extends AppModel {
 			//Insert extra field here: alertOrg or something, then foreach all the org members
 			//limit this array to users with contactalerts turned on!
 			$orgMembers = array();
-			$this->User->recursive = 0;
-			$temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert', 'id'));
+			$this->User->recursive = -1;
+			$temp = $this->User->findAllByOrg($event['Event']['orgc'], array('email', 'gpgkey', 'contactalert', 'id'));
+			if (empty($temp)) $temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert', 'id'));
 			foreach ($temp as $tempElement) {
 				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
 					array_push($orgMembers, $tempElement);
@@ -1310,97 +1258,44 @@ class Event extends AppModel {
 		// LATER place event-to-email-layout in a function
 		$appendlen = 20;
 		$body .= 'URL		 : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
-		$body .= 'Event	   : ' . $event['Event']['id'] . "\n";
-		$body .= 'Date		: ' . $event['Event']['date'] . "\n";
+		$bodyevent = $body;
+		$bodyevent .= 'Event	   : ' . $event['Event']['id'] . "\n";
+		$bodyevent .= 'Date		: ' . $event['Event']['date'] . "\n";
 		if (Configure::read('MISP.showorg')) {
-			$body .= 'Reported by : ' . $event['Event']['org'] . "\n";
+			$bodyevent .= 'Reported by : ' . $event['Event']['org'] . "\n";
 		}
-		$body .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
-		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
+		$bodyevent .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
+		$bodyevent .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
 		$relatedEvents = $this->getRelatedEvents($user['User'], $isSiteAdmin);
 		if (!empty($relatedEvents)) {
 			foreach ($relatedEvents as &$relatedEvent) {
-				$body .= 'Related to  : ' . Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
+				$bodyevent .= 'Related to  : ' . Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
 	
 			}
 		}
-		$body .= 'Info  : ' . "\n";
-		$body .= $event['Event']['info'] . "\n";
-		$body .= "\n";
-		$body .= 'Attributes  :' . "\n";
+		$bodyevent .= 'Info  : ' . "\n";
+		$bodyevent .= $event['Event']['info'] . "\n";
+		$bodyevent .= "\n";
+		$bodyevent .= 'Attributes  :' . "\n";
 		$bodyTempOther = "";
 		if (!empty($event['Attribute'])) {
 			foreach ($event['Attribute'] as &$attribute) {
 				$line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen( $attribute['type'])) . ': ' . $attribute['value'] . "\n";
 				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
 					$bodyTempOther .= $line;
-				else $body .= $line;
+				else $bodyevent .= $line;
 			}
 		}
-		$body .= "\n";
-		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
-		$Email = new CakeEmail();
-		// sign the body
-		require_once 'Crypt/GPG.php';
-		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
-		$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-		$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-		// Add the GPG key of the user as attachment
-		// LATER sign the attached GPG key
-		if ($user['User']['gpgkey'] != null) {
-			// save the gpg key to a temporary file
-			$tmpfname = tempnam(TMP, "GPGkey");
-			$handle = fopen($tmpfname, "w");
-			fwrite($handle, $user['User']['gpgkey']);
-			fclose($handle);
-			// attach it
-			$Email->attachments(array(
-					'gpgkey.asc' => $tmpfname
-			));
-		}
+		$bodyevent .= "\n";
+		$bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		foreach ($orgMembers as &$reporter) {
-			if (!empty($reporter['User']['gpgkey'])) {
-				// import the key of the user into the keyring
-				// this isn't really necessary, but it gives it the fingerprint necessary for the next step
-				$keyImportOutput = $gpg->importKey($reporter['User']['gpgkey']);
-				// say what key should be used to encrypt
-				try {
-				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-				$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-	
-				$bodyEncSig = $gpg->encrypt($bodySigned, true);
-				} catch (Exception $e){
-				// catch errors like expired PGP keys
-					$this->log($e->getMessage());
-					// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
-				}
-			} else {
-				$bodyEncSig = $bodySigned;
-				// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
+			$bodyNoEnc = false;
+			if (Configure::read('GnuPG.bodyonlyencrypted') && empty($reporter['User']['gpgkey'])) {
+				$bodyNoEnc = $body;
 			}
-			$Email->from(Configure::read('MISP.email'));
-			$Email->replyTo($user['User']['email']);
-			$Email->to($reporter['User']['email']);
-			$Email->subject("[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - TLP Amber");
-			//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
-			$Email->emailFormat('text');		// both text or html
-
-			// Add the GPG key of the user as attachment
-			// LATER sign the attached GPG key
-			if ($user['User']['gpgkey'] != null) {
-				// attach the gpg key
-				$Email->attachments(array(
-					'gpgkey.asc' => $tmpfname
-				));
-			}
-			// send it
-			$result = $Email->send($bodyEncSig);
-			// If you wish to send multiple emails using a loop, you'll need
-			// to reset the email fields using the reset method of the Email component.
-			$Email->reset();
+			$subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - TLP Amber";
+			$result = $this->User->sendEmail($reporter, $bodyevent, $bodyNoEnc, $subject, $user);
 		}
-		// remove the temporary gpg file
-		if ($user['User']['gpgkey'] != null) unlink($tmpfname);
 		return $result;
 	}
 	
@@ -1625,6 +1520,13 @@ class Event extends AppModel {
 			$this->save($event, array('fieldList' => $fieldList));
 		}		
 		$uploaded = false;
+		if (Configure::read('Plugin.ZeroMQ_enable')) {
+			App::uses('PubSubTool', 'Tools');
+			$pubSubTool = new PubSubTool();
+			$hostOrg = Configure::read('MISP.org');
+			$fullEvent = $this->fetchEvent($id, false, $hostOrg, false);
+			$pubSubTool->publishEvent($fullEvent[0]);
+		}
 		if ($event['Event']['distribution'] > 1) {
 			$uploaded = $this->uploadEventToServersRouter($id, $passAlong);
 		} else {
@@ -1838,11 +1740,11 @@ class Event extends AppModel {
 		return false;
 	}
 	
-	public function stix($id, $tags, $attachments, $org, $isSiteAdmin, $returnType) {
+	public function stix($id, $tags, $attachments, $org, $isSiteAdmin, $returnType, $from, $to, $last) {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
-		$events = $this->fetchEvent(null, $idList, $org, $isSiteAdmin);
+		$events = $this->fetchEvent(null, $idList, $org, $isSiteAdmin, false, false, $from, $to, $last);
 		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
 		if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
 			foreach ($events as &$event) {
@@ -1861,10 +1763,10 @@ class Event extends AppModel {
 		// save the json_encoded event(s) to the temporary file
 		$result = $tempFile->write(json_encode($events));
 		$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-		
+
 		// Execute the python script and point it to the temporary filename
 		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType . ' ' . Configure::read('MISP.baseurl') . ' "' . Configure::read('MISP.org') . '"');
-		
+
 		// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
 		// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
 		$decoded = json_decode($result);
@@ -1915,5 +1817,26 @@ class Event extends AppModel {
 			$fn .= $characters[rand(0, $charLen)];
 		}
 		return $fn;
+	}
+	
+	// expects a date string in the YYYY-MM-DD format
+	// returns the passed string or false if the format is invalid
+	// based on the fix provided by stevengoosensB
+	public function dateFieldCheck($date) {
+		// regex check for from / to field by stevengoossensB
+		return (preg_match('/^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|1[0-9]|2[0-9]|3[01])$/', $date)) ? $date : false;
+	}
+	
+	//
+	public function resolveTimeDelta($delta) {
+		$multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60);
+		$multiplier = $multiplierArray['d'];
+		$lastChar = strtolower(substr($delta, -1));
+		if (!is_numeric($lastChar) && array_key_exists($lastChar, $multiplierArray)) {
+			$multiplier = $multiplierArray[$lastChar];
+			$delta = substr($delta, 0, -1);
+		}
+		if (!is_numeric($delta)) return false;
+		return time() - ($delta * $multiplier); 
 	}
 }

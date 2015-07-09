@@ -24,4 +24,26 @@ class Task extends AppModel {
 		if ($temp[0] > 23) $temp[0] = $temp[0] - 24;
 		return $temp[0] . ':' . $temp[1];
 	}
+	
+	public function reQueue($task, $worker, $shell, $action, $userId, $taskId) {
+		$time = time();
+		// Keep adding the timer's time interval until we get a date that is in the future! We don't want to keep queuing tasks in the past since they will execute until it catches up.
+		while ($task['Task']['next_execution_time'] < $time) {
+			$task['Task']['next_execution_time'] = strtotime('+' . $task['Task']['timer'] . ' hours', $task['Task']['next_execution_time']);
+		}
+		$task['Task']['scheduled_time'] = $this->breakTime($task['Task']['scheduled_time'], $task['Task']['timer']);
+		$task['Task']['scheduled_time'] = date('H:i', $task['Task']['next_execution_time']);
+		
+		// Now that we have figured out when the next execution should happen, it's time to enqueue it.
+		$process_id = CakeResque::enqueueAt(
+				$task['Task']['next_execution_time'],
+				$worker,
+				$shell,
+				array($action, $task['Task']['next_execution_time'],$userId, $taskId),
+				true
+		);
+		$task['Task']['job_id'] = $process_id;
+		$this->id = $task['Task']['id'];
+		$this->save($task);
+	}
 }

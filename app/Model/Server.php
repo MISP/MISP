@@ -277,11 +277,19 @@ class Server extends AppModel {
 					),
 					'disablerestalert' => array(
 							'level' => 1,
-							'description' => 'This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to disable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull.',
-							'value' => '',
+							'description' => 'This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to disable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull. Quick recap: True = Emails are NOT sent, False = Emails are sent on events published via sync / REST.',
+							'value' => true,
 							'errorMessage' => '',
 							'test' => 'testBool',
 							'type' => 'boolean',
+					),
+					'extended_alert_subject' => array(
+							'level' => 1,
+							'description' => 'enabling this flag will allow the event description to be transmitted in the alert e-mail\'s subject. Be aware that this is not encrypted by PGP, so only enable it if you accept that part of the event description will be sent out in clear-text.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
 					),
 					'default_event_distribution' => array(
 							'level' => 0,
@@ -389,12 +397,46 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean'
 					),
+					'newUserText' => array(
+							'level' => 1,
+							'bigField' => true,
+							'description' => 'The message sent to the user after account creation (has to be sent manually from the administration interface). Use \\n for line-breaks. The following variables will be automatically replaced in the text: $password = a new temporary password that MISP generates, $username = the user\'s e-mail address, $misp = the url of this instance, $org = the organisation that the instance belongs to, as set in MISP.org, $contact = the e-mail address used to contact the support team, as set in MISP.contact. For example, "the password for $username is $password" would appear to a user with the e-mail address user@misp.org as "the password for user@misp.org is hNamJae81".',
+							'value' => 'Dear new MISP user,\n\nWe would hereby like to welcome you to the $org MISP community.\n\n Use the credentials below to log into MISP at $misp, where you will be prompted to manually change your password to something of your own choice.\n\nUsername: $username\nPassword: $password\n\nIf you have any questions, don\'t hesitate to contact us at: $contact.\n\nBest regards,\nYour $org MISP support team',
+							'errorMessage' => '',
+							'test' => 'testPasswordResetText',
+							'type' => 'string'
+					),
+					'passwordResetText' => array(
+							'level' => 1,
+							'bigField' => true,
+							'description' => 'The message sent to the users when a password reset is triggered. Use \\n for line-breaks. The following variables will be automatically replaced in the text: $password = a new temporary password that MISP generates, $username = the user\'s e-mail address, $misp = the url of this instance, $contact = the e-mail address used to contact the support team, as set in MISP.contact. For example, "the password for $username is $password" would appear to a user with the e-mail address user@misp.org as "the password for user@misp.org is hNamJae81".',
+							'value' => 'Dear MISP user,\n\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at $misp, where you will be prompted to manually change your password to something of your own choice.\n\nUsername: $username\nYour temporary password: $password\n\nIf you have any questions, don\'t hesitate to contact us at: $contact.\n\nBest regards,\nYour $org MISP support team',
+							'errorMessage' => '',
+							'test' => 'testPasswordResetText',
+							'type' => 'string'
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
+					'binary' => array(
+							'level' => 2,
+							'description' => 'The location of the GPG executable. If you would like to use a different gpg executable than /usr/bin/gpg, you can set it here. If the default is fine, just keep the setting suggested by MISP.',
+							'value' => '/usr/bin/gpg',
+							'errorMessage' => '',
+							'test' => 'testForGPGBinary',
+							'type' => 'string',
+					),
 					'onlyencrypted' => array(
 							'level' => 0,
-							'description' => 'Allow unencrypted e-mails to be sent to users that don\'t have a PGP key.',
+							'description' => 'Allow (false) unencrypted e-mails to be sent to users that don\'t have a PGP key.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
+					'bodyonlyencrypted' => array(
+							'level' => 2,
+							'description' => 'Allow (false) the body of unencrypted e-mails to contain details about the event.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testBool',
@@ -515,6 +557,154 @@ class Server extends AppModel {
 							'type' => 'string',
 					),
 			),
+			'Plugin' => array(
+					'branch' => 1,
+					'RPZ_policy' => array(
+						'level' => 1,
+						'description' => 'The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.',
+						'value' => 0,
+						'errorMessage' => '',
+						'test' => 'testForRPZBehaviour',
+						'type' => 'numeric',
+						'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'walled-garden'),
+					),
+					'RPZ_walled_garden' => array(
+						'level' => 2,
+						'description' => 'The default walled garden used by the RPZ export if the walled garden setting is picked for the export.',
+						'value' => '127.0.0.1',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+					),
+					'RPZ_serial' => array(
+							'level' => 2,
+							'description' => 'The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting).',
+							'value' => '$date00',
+							'errorMessage' => '',
+							'test' => 'testForRPZSerial',
+							'type' => 'string',
+					),
+					'RPZ_refresh' => array(
+							'level' => 2,
+							'description' => 'The refresh specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '2h',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_retry' => array(
+							'level' => 2,
+							'description' => 'The retry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '30m',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_expiry' => array(
+							'level' => 2,
+							'description' => 'The expiry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '30d',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_minimum_ttl' => array(
+							'level' => 2,
+							'description' => 'The minimum TTL specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '1h',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_ttl' => array(
+							'level' => 2,
+							'description' => 'The TTL of the zone file. (in seconds, or shorthand duration such as 15m)',
+							'value' => '1w',
+							'errorMessage' => '',
+							'test' => 'testForRPZDuration',
+							'type' => 'string',
+					),
+					'RPZ_ns' => array(
+							'level' => 2,
+							'description' => '',
+							'value' => 'localhost.',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'RPZ_email' => array(
+						'level' => 2,
+						'description' => 'The e-mail address specified in the SOA portion of the zone file.',
+						'value' => 'root.localhost',
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'string',
+					),
+					'ZeroMQ_enable' => array(						
+						'level' => 2,
+						'description' => 'Enables or disables the pub/sub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_port' => array(						
+						'level' => 2,
+						'description' => 'The port that the pub/sub feature will use.',
+						'value' => 50000,
+						'errorMessage' => '',
+						'test' => 'testForPortNumber',
+						'type' => 'numeric',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_host' => array(
+						'level' => 2,
+						'description' => 'Location of the Redis db used by MISP and the Python PUB script to queue data to be published.',
+						'value' => 'localhost',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_port' => array(
+						'level' => 2,
+						'description' => 'The port that Redis is listening on.',
+						'value' => 6379,
+						'errorMessage' => '',
+						'test' => 'testForPortNumber',
+						'type' => 'numeric',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_password' => array(
+						'level' => 2,
+						'description' => 'The password, if set for Redis.',
+						'value' => '',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_database' => array(
+						'level' => 2,
+						'description' => 'The database to be used for queuing messages for the pub/sub functionality.',
+						'value' => '1',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_redis_namespace' => array(
+						'level' => 2,
+						'description' => 'The namespace to be used for queuing messages for the pub/sub functionality.',
+						'value' => 'mispq',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+						'afterHook' => 'zmqAfterHook',
+					),
+					
+			),
 			'debug' => array(
 					'level' => 0,
 					'description' => 'The debug level of the instance, always use 0 for production instances.',
@@ -614,6 +804,10 @@ class Server extends AppModel {
 						}
 						if (is_array($event['Event']['Attribute'])) {
 							$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
+							if ($size == 0) {
+								$fails[$eventId] = 'Empty event received.';
+								continue;
+							}
 							for ($i = 0; $i < $size; $i++) {
 								if (!isset($event['Event']['Attribute'][$i]['distribution'])) { // version 1
 									$event['Event']['Attribute'][$i]['distribution'] = 1;
@@ -639,7 +833,8 @@ class Server extends AppModel {
 							}
 							$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 						} else {
-							unset($event['Event']['Attribute']);
+							$fails[$eventId] = 'Empty event received.';
+							continue;
 						}
 						// Distribution, set reporter of the event, being the admin that initiated the pull
 						$event['Event']['user_id'] = $user['id'];
@@ -973,6 +1168,13 @@ class Server extends AppModel {
 		return $finalSettings;
 	}
 	
+	public function serverSettingReadSingle($settingObject, $settingName, $leafKey) {
+		$setting = Configure::read($settingName);
+		$result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
+		$result['setting'] = $settingName;
+		return $result;
+	}
+	
 	private function __evaluateLeaf($leafValue, $leafKey, $setting) {
 		if (isset($setting)) {
 			$result = $this->{$leafValue['test']}($setting);
@@ -1035,14 +1237,77 @@ class Server extends AppModel {
 	}
 	
 	public function testPasswordLength($value) {
-		$numeric = $this->testforNumeric($value);
+		$numeric = $this->testForNumeric($value);
 		if ($numeric !== true) return $numeric;
-		if ($numeric < 0) return 'Length cannot be negative, set a positive integer or 0 (to choose the default option).';
+		if ($value < 0) return 'Length cannot be negative, set a positive integer or 0 (to choose the default option).';
+		return true;
+	}
+	
+	public function testForPortNumber($value) {
+		$numeric = $this->testForNumeric($value);
+		if ($numeric !== true) return $numeric;
+		if ($value < 49152 || $value > 65535) return 'It is recommended that you pick a port number in the dynamic range (49152-65535). However, if you have a valid reason to use a different port, ignore this message.';
 		return true;
 	}
 	
 	public function testPasswordRegex($value) {
 		if (!empty($value) && @preg_match($value, 'test') === false) return 'Invalid regex.';
+		return true;
+	}
+	
+	public function testPasswordResetText($value) {
+		if (strpos($value, '$password') === false || strpos($value, '$username') === false || strpos($value, '$misp') === false) return 'The text served to the users must include the following replacement strings: "$username", "$password", "$misp"';
+		return true;
+	}
+	
+	public function testForGPGBinary($value) {
+		if (empty($value)) $value = $this->serverSettings['GnuPG']['binary']['value'];
+		if (file_exists($value)) return true;
+		return 'Could not find the gnupg executable at the defined location.';
+	}
+
+	public function testForRPZDuration($value) {
+		if (($this->testForNumeric($value) !== true && preg_match('/^[0-9]*[mhdw]$/i', $value)) || $value >= 0) {
+			return true;
+		} else {
+			return 'Negative seconds found. The following formats are accepted: seconds (positive integer), or duration (positive integer) followed by a letter denoting scale (such as m, h, d, w for minutes, hours, days, weeks)';
+		}
+	}
+	
+	public function testForRPZBehaviour($value) {
+		$numeric = $this->testforNumeric($value);
+		if ($numeric !== true) return $numeric;
+		if ($value < 0 || $value > 3) return 'Invalid setting, valid range is 0-3 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden.';
+		return true;
+	}
+	
+	public function testForRPZSerial($value) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if (!preg_match('/^((\$date(\d*)|\d*))$/', $value)) return 'Invalid format.';
+		//if (!preg_match('/^\w+(\.\w+)*(\.?) \w+(\.\w+)* \((\$date(\d*)|\d*)( ((\d*)|(\d*)[hHmMdD])){4}\)$/', $value)) return 'Invalid format.';
+		return true;
+	}
+	
+	public function testForRPZNS($value) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if (!preg_match('/^\w+(\.\w+)*(\.?) \w+(\.\w+)*$/', $value)) return 'Invalid format.';
+		return true;
+	}
+	
+	public function zmqAfterHook($setting, $value) {
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		// If we are trying to change the enable setting to false, we don't need to test anything, just kill the server and return true.
+		if ($setting == 'Plugin.ZeroMQ_enable') {
+			if ($value == false || $value == 0) {
+				$pubSubTool->killService();
+				return true;
+			}
+		} elseif (!Configure::read('Plugin.ZeroMQ_enable')) {
+			// If we are changing any other ZeroMQ settings but the feature is disabled, don't reload the service
+			return true;
+		}
+		$pubSubTool->reloadServer();
 		return true;
 	}
 	
@@ -1056,10 +1321,9 @@ class Server extends AppModel {
 		return true;
 	}
 	
-	
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
-		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'Proxy', 'SecureAuth', 'Security', 'debug'));
+		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'Proxy', 'SecureAuth', 'Security', 'debug', 'Plugin'));
 	}
 	
 	public function checkVersion($newest) {
@@ -1146,5 +1410,128 @@ class Server extends AppModel {
 			}
 		}
 		return $validItems;
+	}
+	
+	public function writeableDirsDiagnostics(&$diagnostic_errors) {
+		App::uses('File', 'Utility');
+		App::uses('Folder', 'Utility');
+		// check writeable directories
+		$writeableDirs = array(
+				'tmp' => 0, 'files' => 0, 'files' . DS . 'scripts' . DS . 'tmp' => 0,
+				'tmp' . DS . 'csv_all' => 0, 'tmp' . DS . 'csv_sig' => 0, 'tmp' . DS . 'md5' => 0, 'tmp' . DS . 'sha1' => 0,
+				'tmp' . DS . 'snort' => 0, 'tmp' . DS . 'suricata' => 0, 'tmp' . DS . 'text' => 0, 'tmp' . DS . 'xml' => 0,
+				'tmp' . DS . 'files' => 0, 'tmp' . DS . 'logs' => 0,
+		);
+		foreach ($writeableDirs as $path => &$error) {
+			$dir = new Folder(APP . DS . $path);
+			if (is_null($dir->path)) $error = 1;
+			$file = new File (APP . DS . $path . DS . 'test.txt', true);
+			if ($error == 0 && !$file->write('test')) $error = 2;
+			if ($error != 0) $diagnostic_errors++;
+			$file->delete();
+			$file->close();
+		}
+		return $writeableDirs;
+	}
+	
+	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion) {
+		$result = array();
+		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.10');
+		// check if the STIX and Cybox libraries are working using the test script stixtest.py
+		$scriptResult = shell_exec('python ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
+		$scriptResult = json_decode($scriptResult, true);
+		if ($scriptResult !== null) {
+			$scriptResult['operational'] = $scriptResult['success'];
+			if ($scriptResult['operational'] == 0) {
+				$diagnostic_errors++;
+				return $scriptResult;
+			}
+		} else {
+			return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']));
+		}
+		$result['operational'] = $scriptResult['operational'];
+		foreach ($expected as $package => $version) {
+			$result[$package]['version'] = $scriptResult[$package];
+			$result[$package]['expected'] = $expected[$package];
+			$result[$package]['status'] = $result[$package]['version'] == $result[$package]['expected'] ? 1 : 0; 
+			if ($result[$package]['status'] == 0) $diagnostic_errors++;
+			${$package . 'Version'}[0] = str_replace('$current', $result[$package]['version'], ${$package . 'Version'}[0]);
+			${$package . 'Version'}[0] = str_replace('$expected', $result[$package]['expected'], ${$package . 'Version'}[0]);
+		}
+		return $result;
+	}
+	
+	public function gpgDiagnostics(&$diagnostic_errors) {
+		$gpgStatus = 0;
+		if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
+			$continue = true;
+			try {
+				require_once 'Crypt/GPG.php';
+				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+				$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+			} catch (Exception $e) {
+				$gpgStatus = 2;
+				$continue = false;
+			}
+			if ($continue) {
+				try {
+					$gpgStatus = 0;
+					$signed = $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
+				} catch (Exception $e){
+					$gpgStatus = 3;
+				}
+			}
+		} else {
+			$gpgStatus = 1;
+		}
+		if ($gpgStatus != 0) $diagnostic_errors++;
+		return $gpgStatus;
+	}
+	
+	public function zmqDiagnostics(&$diagnostic_errors) {
+		if (!Configure::read('Plugin.ZeroMQ_enable')) return 1;
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		if (!$pubSubTool->checkIfPythonLibInstalled()) {
+			$diagnostic_errors++;
+			return 2;
+		}
+		if ($pubSubTool->checkIfRunning()) return 0;
+		$diagnostic_errors++;
+		return 3;
+	}
+	
+	public function proxyDiagnostics(&$diagnostic_errors) {
+		$proxyStatus = 0;
+		$proxy = Configure::read('Proxy');
+		if(!empty($proxy['host'])) {
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			try {
+				$HttpSocket = $syncTool->setupHttpSocket();
+				$proxyResponse = $HttpSocket->get('http://www.example.com/');
+			} catch (Exception $e) {
+				$proxyStatus = 2;
+			}
+			if(empty($proxyResponse) || $proxyResponse->code > 399) {
+				$proxyStatus = 2;
+			}
+		} else {
+			$proxyStatus = 1;
+		}
+		if ($proxyStatus > 1) $diagnostic_errors++;
+		return $proxyStatus;
+	}
+	
+	public function retrieveCurrentSettings($branch, $subString) {
+		$settings = array();
+		foreach ($this->serverSettings[$branch] as $settingName => $setting) {
+			if (strpos($settingName, $subString) !== false) {
+				$settings[$settingName] = $setting['value'];
+				if (Configure::read('Plugin.' . $settingName)) $settings[$settingName] = Configure::read('Plugin.' . $settingName);
+				if (isset($setting['options'])) $settings[$settingName] = $setting['options'][$settings[$settingName]];
+			}
+		}
+		return $settings;
 	}
 }
