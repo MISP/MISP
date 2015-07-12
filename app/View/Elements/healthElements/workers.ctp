@@ -1,35 +1,92 @@
-<table class="table table-hover table-condensed" style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">
-<tr>
-		<th>Worker Type</th>
-		<th>Worker Id</th>
-		<th>Status</th>
-</tr>
-<?php 
-	foreach ($worker_array as $type => $workers):
-		if (empty($workers)):
-?>
-	<tr>
-		<td class="short" style="background-color:red; color:white;"><?php echo (h($type));?></td>
-		<td class="short" style="background-color:red; color:white;">N/A</td>
-		<td style="background-color:red; color:white;">Worker not running!</td>
-	</tr>
-<?php 
+<div style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">
+	<?php 
+		foreach ($worker_array as $type => $data):
+		$queueStatusMessage = "Issues prevent jobs from being processed. Please resolve them below.";
+		$queueStatus = false;
+		if ($data['ok']) {
+			$queueStatus = true;
+			$queueStatusMessage = "OK";
+		} else if (!empty($data['workers'])) {
+			foreach ($data['workers'] as $worker) {
+				if ($worker['alive']) {
+					$queueStatus = true;
+					$queueStatusMessage = "There are issues with the worker(s), but at least one healthy worker is monitoring the queue.";
+				}
+			}
+		}
+
+	?>
+	<h3><?php echo 'Worker type: ' . h($type);?></h3>
+	<?php if ($type !== 'scheduler'): ?>
+		<p><b>Jobs in the queue: </b><?php echo h($data['jobCount']);?></p>
+		<p><b>Queue status: </b><?php echo ($queueStatus ? '<span style="color:green;">' . $queueStatusMessage . '</span>' : '<span style="color:red;font-weight:bold;">' . $queueStatusMessage . '</span>' )?></p>
+	<?php endif; ?>
+	<table class="table table-hover table-condensed" style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">
+		<tr>
+				<th>Worker PID</th>
+				<th>User</th>
+				<th>Worker process</th>
+				<th>Information</th>
+				<th>Actions</th>
+		</tr>
+	<?php 
+		if (empty($data['workers'])):
+	?>
+		<tr>
+			<td class="shortish" style="background-color:red; color:white;">N/A</td>
+			<td class="short" style="background-color:red; color:white;">N/A</td>
+			<td style="background-color:red; color:white;">N/A</td>
+			<td style="background-color:red; color:white;">Worker not running!</td>
+			<td style="background-color:red; color:white;">&nbsp;</td>
+		</tr>
+	<?php 
 		else:
-			foreach ($workers as $worker):
-				$style = "";
+			foreach ($data['workers'] as $worker):
+				$style = "color:green;";
+				$process = 'OK';
+				$message = 'The worker appears to be healthy.';
+				$icon_modifier = '';
+				if (!$worker['correct_user']) {
+					$message = 'The worker was started with a user other than the apache user.';
+					$style = "color:white;background-color:red;";
+					$icon_modifier = ' icon-white';
+				}
+				if (!$worker['alive']) {
+					$process = 'Dead';
+					$message = 'The Worker appears to be dead.';
+					$style = "color:white;background-color:red;";
+					$icon_modifier = ' icon-white';
+				}
+				
 				$status = '<span style="color:green;">OK</span>';
+	?>
+		<tr>
+			<td class="shortish" style="<?php echo $style; ?>"><?php echo h($worker['pid']);?></td>
+			<td class="short" style="<?php echo $style; ?>"><?php echo h($worker['user']); ?></td>
+			<td class="short" style="<?php echo $style; ?>"><?php echo $process; ?></td>
+			<td style="<?php echo $style; ?>"><?php echo $message; ?></td>
+			<td class="actions short" style="<?php echo $style; ?>">
+			<?php 
+				echo $this->Form->postLink('', '/servers/stopWorker/' . h($worker['pid']), array('class' => 'icon-trash' . $icon_modifier, 'title' => 'Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.'));
+			?>
+			</td>
+		</tr>
+	<?php 
+				endforeach;
+			endif;
+	?>
+	</table>
+	<?php 
+			echo $this->Form->create('Server', array('url' => '/servers/startWorker/' . h($type)));
+			echo $this->Form->button('Start a worker', array('class' => 'btn btn-inverse'));
+			echo $this->Form->end();
+		endforeach;
+	?>
+	
+</div>
+
+<?php echo $this->Form->create('Server', array('url' => '/servers/restartWorkers'));
+echo $this->Form->button('Restart all workers', array('class' => 'btn btn-primary'));
+echo $this->Form->end();
 ?>
-	<tr>
-		<td class="short" <?php echo $style; ?>><?php echo h($type);?></td>
-		<td class="short" <?php echo $style; ?>><?php echo h($worker); ?></td>
-		<td <?php echo $style; ?>><?php echo $status; ?></td>
-	</tr>
-<?php 
-			endforeach;
-		endif;
-?>
-<?php 
-	endforeach;
-?>
-</table>
-<a href="/servers/restartWorkers" class="btn btn-primary">Restart all workers</a> This will start / restart all of the workers and refresh the page. Keep in mind, this process can take a few seconds to complete, so refresh the page again in 5-10 seconds to see the correct results.
+

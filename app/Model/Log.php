@@ -25,7 +25,8 @@ class Log extends AppModel {
 							'blacklisted',
 							'admin_email',
 							'email',
-							'serverSettingsEdit'
+							'serverSettingsEdit',
+							'remove_dead_workers'
 						)),
 			'message' => 'Options : ...'
 		)
