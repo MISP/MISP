@@ -16,6 +16,7 @@ git checkout 2.6
 cd /var/www/MISP/app/files/scripts/python-cybox
 git checkout v2.1.0.10
 git pull
+git checkout v2.1.0.11
 python setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
 git checkout v1.1.1.4
