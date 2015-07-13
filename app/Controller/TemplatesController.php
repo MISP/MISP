@@ -22,12 +22,9 @@ class TemplatesController extends AppController {
 
 	public function beforeFilter() { // TODO REMOVE
 		parent::beforeFilter();
-		$this->Security->unlockedActions = array('saveElementSorting', 'populateEventFromTemplate', 'uploadFile', 'deleteTemporaryFile');
+		$this->Security->unlockedActions = array('uploadFile', 'deleteTemporaryFile');
 	}
 	
-	public function fetchFormFromTemplate($id) {
-		
-	}
 	
 	public function index() {
 		$conditions = array();
@@ -136,6 +133,7 @@ class TemplatesController extends AppController {
 	}
 	
 	public function add() {
+		if (!$this->userRole['perm_template']) throw new MethodNotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('post')) {
 			unset($this->request->data['Template']['tagsPusher']);
 			$tags = $this->request->data['Template']['tags'];
@@ -299,6 +297,8 @@ class TemplatesController extends AppController {
 		}
 	}
 	
+	
+	// called when the user is finished populating a template and is has finished reviewing the resulting attributes at the last stage of the process
 	public function submitEventPopulation($template_id, $event_id) {
 		if ($this->request->is('post')) {
 			$this->loadModel('Event');
@@ -332,11 +332,11 @@ class TemplatesController extends AppController {
 			}
 			
 			if (isset($this->request->data['Template']['attributes'])) {
-				$attributes = unserialize($this->request->data['Template']['attributes']);
+				$attributes = json_decode($this->request->data['Template']['attributes'], true);
 				$this->loadModel('Attribute');
 				$fails = 0;
 				foreach($attributes as $k => &$attribute) {
-					if (isset($attribute['data'])) {
+					if (isset($attribute['data']) && preg_match('/^[a-zA-Z0-9]{12}$/', $attribute['data'])) {
 						$file = new File(APP . 'tmp/files/' . $attribute['data']);
 						$content = $file->read();
 						$attribute['data'] = base64_encode($content);
@@ -414,6 +414,9 @@ class TemplatesController extends AppController {
 		return $array;
 	}
 
+	// deletes a temporary file created by the user while populating a template 
+	// users can add files to attachment fields and when they change their mind about it, they can remove a file (deleting the temporary file) 
+	// before it gets saved as an attribute and moved to the persistent attachment store
 	public function deleteTemporaryFile($filename) {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is restricted to accepting POST requests only.');
 		//if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible through AJAX.');

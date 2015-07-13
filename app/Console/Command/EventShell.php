@@ -5,8 +5,8 @@ App::uses('File', 'Utility');
 require_once 'AppShell.php';
 class EventShell extends AppShell
 {
-	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist');
-	
+	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server');
+
 	public function doPublish() {
 		$id = $this->args[0];
 		$this->Event->id = $id;
@@ -177,6 +177,35 @@ class EventShell extends AppShell
 		foreach ($rules as $rule) {
 			$file->append($rule . PHP_EOL);
 		}
+		$file->close();
+		$this->Job->saveField('progress', '100');
+	}
+	
+	public function cacherpz() {
+		$org = $this->args[0];
+		$isSiteAdmin = $this->args[1];
+		$id = $this->args[2];
+		$this->Job->id = $id;
+		$extra = $this->args[3];
+		$this->Job->saveField('progress', 1);
+		$values = $this->Attribute->rpz($org, $isSiteAdmin);
+		$this->Job->saveField('progress', 80);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
+		if ($isSiteAdmin) {
+			$file = new File($dir->pwd() . DS . 'misp.rpz.ADMIN.txt');
+		} else {
+			$file = new File($dir->pwd() . DS . 'misp.rpz.' . $org . '.txt');
+		}
+		App::uses('RPZExport', 'Export');
+		$rpzExport = new RPZExport();
+		$rpzSettings = array();
+		$lookupData = array('policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
+		foreach ($lookupData as $v) {
+			$tempSetting = Configure::read('Plugin.RPZ_' . $v);
+			if (isset($tempSetting)) $rpzSettings[$v] = Configure::read('Plugin.RPZ_' . $v);
+			else $rpzSettings[$v] = $this->Server->serverSettings['Plugin']['RPZ_' . $v]['value'];
+		}
+		$file->write($rpzExport->export($values, $rpzSettings));
 		$file->close();
 		$this->Job->saveField('progress', '100');
 	}

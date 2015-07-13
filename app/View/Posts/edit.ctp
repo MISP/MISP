@@ -2,13 +2,11 @@
 <?php echo $this->Form->create('Post');?>
 	<fieldset>
 		<legend>Edit Post</legend>
+		<div class="input text">
+			<label for="PostTitle">Thread Subject</label>
+			<input class = "input-xxlarge" disabled="disabled" value="<?php echo h($title);?>" id="PostTitle" type="text">
+		</div>
 	<?php
-		echo $this->Form->input('title', array(
-				'label' => 'Thread Subject',
-				'class' => 'input-xxlarge',
-				'disabled' => 'true',
-				'default' => $title
-		));
 		echo $this->Form->input('contents', array(
 				'type' => 'textarea',
 				'div' => 'input clear',

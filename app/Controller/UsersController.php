@@ -865,8 +865,8 @@ class UsersController extends AppController {
 			$org = Configure::read('MISP.org');
 			$options = array('passwordResetText', 'newUserText');
 			$subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
-			$textToFetch = $options[($firstTime ? 1 : 0)];
-			$subject = $subjects[($firstTime ? 1 : 0)]; 
+			$textToFetch = $options[($firstTime ? 0 : 1)];
+			$subject = $subjects[($firstTime ? 0 : 1)]; 
 			$this->loadModel('Server');
 			$body = Configure::read('MISP.' . $textToFetch);
 			if (!$body) $body = $this->Server->serverSettings['MISP'][$textToFetch]['value'];
@@ -943,5 +943,18 @@ class UsersController extends AppController {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$user_results = $this->User->verifyGPG();
 		$this->set('users', $user_results);
+	}
+	
+	public function fetchPGPKey($email) {
+		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
+		$keys = $this->User->fetchPGPKey($email);
+		if (is_numeric($keys)) {
+			
+			throw new NotFoundException('Could not retrieved any keys from the key server.');
+		}
+		$this->set('keys', $keys);
+		$this->autorender = false;
+		$this->layout = false;
+		$this->render('ajax/fetchpgpkey');
 	}
 }

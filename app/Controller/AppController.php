@@ -46,7 +46,7 @@ class AppController extends Controller {
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats 
 	public $automationArray = array(
 		'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix'),
-		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch'),
+		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz'),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
@@ -356,8 +356,12 @@ class AppController extends Controller {
 		$sql = '';
 		switch ($command) {
 			case 'extendServerOrganizationLength':
-				$sql = 'ALTER TABLE servers MODIFY COLUMN organization varchar(255) NOT NULL';
+				$sql = 'ALTER TABLE `servers` MODIFY COLUMN `organization` varchar(255) NOT NULL;';
 				$controller = 'Servers';
+				break;
+			case 'convertLogFieldsToText':
+				$sql = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
+				$controller = 'Logs';
 				break;
 			default:
 				$this->Session->setFlash('Invalid command.');

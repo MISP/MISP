@@ -1,3 +1,7 @@
+String.prototype.ucfirst = function() {
+	return this.charAt(0).toUpperCase() + this.slice(1);
+}
+
 function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
 	if (type == 'shadow_attributes') destination = 'shadow_attributes';
@@ -335,38 +339,67 @@ function handleGenericAjaxResponse(data) {
 function toggleAllAttributeCheckboxes() {
 	if ($(".select_all").is(":checked")) {
 		$(".select_attribute").prop("checked", true);
+		$(".select_proposal").prop("checked", true);
 	} else {
 		$(".select_attribute").prop("checked", false);
+		$(".select_proposal").prop("checked", false);
 	}
 }
 
-function attributeListAnyCheckBoxesChecked() {
-	if ($('input[type="checkbox"]:checked').length > 0) $('.mass-select').show();
+function attributeListAnyAttributeCheckBoxesChecked() {
+	if ($('.select_attribute:checked').length > 0) $('.mass-select').show();
 	else $('.mass-select').hide();
 }
 
+function attributeListAnyProposalCheckBoxesChecked() {
+	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').show();
+	else $('.mass-proposal-select').hide();
+}
 
-function deleteSelectedAttributes(event) {
-	var answer = confirm("Are you sure you want to delete all selected attributes?");
+function multiSelectAction(event, context) {
+	var settings = {
+			deleteAttributes: {
+				confirmation: "Are you sure you want to delete all selected attributes?",
+				controller: "attributes",
+				camelCase: "Attribute",
+				alias: "attribute",
+				action: "delete",
+			},
+			acceptProposals: {
+				confirmation: "Are you sure you want to accept all selected proposals?",
+				controller: "shadow_attributes",
+				camelCase: "ShadowAttribute",
+				alias: "proposal",
+				action: "accept",
+			},
+			discardProposals: {
+				confirmation: "Are you sure you want to discard all selected proposals?",
+				controller: "shadow_attributes",
+				camelCase: "ShadowAttribute",
+				alias: "proposal",
+				action: "discard",
+			},
+	};
+	var answer = confirm("Are you sure you want to " + settings[context]["action"] + " all selected " + settings[context]["alias"] + "s?");
 	if (answer) {
 		var selected = [];
-		$(".select_attribute").each(function() {
+		$(".select_" + settings[context]["alias"]).each(function() {
 			if ($(this).is(":checked")) {
 				var temp= $(this).data("id");
 				selected.push(temp);
 			}
 		});
-		$('#AttributeIds').attr('value', JSON.stringify(selected));
-		var formData = $('#delete_selected').serialize();
+		$('#' + settings[context]["camelCase"] + 'Ids' + settings[context]["action"].ucfirst()).attr('value', JSON.stringify(selected));
+		var formData = $('#' + settings[context]["action"] + '_selected').serialize();
 		$.ajax({
 			data: formData, 
 			cache: false,
 			type:"POST", 
-			url:"/attributes/deleteSelected/" + event,
+			url:"/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event,
 			success:function (data, textStatus) {
 				updateIndex(event, 'event');
 				var result = handleGenericAjaxResponse(data);
-				if (result == true) eventUnpublish(); 
+				if (settings[context]["action"] != "discard" && result == true) eventUnpublish(); 
 			}, 
 		});
 	}
@@ -871,7 +904,13 @@ function templateFileHiddenAdd(files, element_id, batch) {
 	}
 }
 
+function htmlEncode(value){
+	return $('<div/>').text(value).html();
+}
+
 function templateAddFileBubble(element_id, iframe, filename, tmp_name, batch) {
+	filename = htmlEncode(filename);
+	tmp_name = htmlEncode(tmp_name);
 	if (batch == 'no') {
 		if (iframe == true) {
 			$('#filenames_' + element_id, window.parent.document).html('<div id ="' + tmp_name + '_container" class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + filename + '</span><span onClick="templateDeleteFileBubble(\'' + filename + '\', \'' + tmp_name + '\', \'' + element_id + '\', \'normal\', \'no\');" class="tagSecondHalf useCursorPointer">x</span></div>');
@@ -1296,8 +1335,21 @@ function serverSettingSubmitForm(name, setting, id) {
 	$.ajax({
 		data: formData,
 		cache: false,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
 		success:function (data, textStatus) {
-			window.location.reload();
+			$.ajax({
+				type:"get",
+				url:"/servers/serverSettingsReloadSetting/" + setting + "/" + id,
+				success:function (data2, textStatus2) {
+					$('#' + id + '_row').replaceWith(data2);
+					$(".loading").hide();
+				},
+				error:function() {
+					showMessage('fail', 'Could not refresh the table.');
+				}
+			});
 		}, 
 		error:function() {
 			showMessage('fail', 'Request failed for an unknown reason.');
@@ -1317,6 +1369,10 @@ function changeFreetextImportFrom() {
 	options[$('#changeFrom').val()].forEach(function(element) {
 		$('#changeTo').append('<option value="' + element + '">' + element + '</option>');
 	});
+}
+
+function changeFreetextImportCommentExecute() {
+	$('.freetextCommentField').val($('#changeComments').val());
 }
 
 function changeFreetextImportExecute() {
@@ -1383,14 +1439,54 @@ function freetextImportResultsSubmit(id, count) {
 	});
 }
 
-function lookupPGPKey(emailFieldName) {
+function pgpChoiceSelect(uri) {
+	$("#popover_form").fadeOut();
+	$("#gray_out").fadeOut();
 	$.ajax({
 		type: "get",
-		url: "https://pgp.mit.edu/pks/lookup?op=get&search=" + $('#' + emailFieldName).val(),
+		url: "https://pgp.mit.edu/" + uri,
 		success: function (data) {
 			var result = data.split("<pre>")[1].split("</pre>")[0];
 			$("#UserGpgkey").val(result);
 			showMessage('success', "Key found!");
+		},
+		error: function (data, textStatus, errorThrown) {
+			showMessage('fail', textStatus + ": " + errorThrown);
+		}
+	});
+}
+
+function lookupPGPKey(emailFieldName) {
+	$.ajax({
+		type: "get",
+		url: "/users/fetchPGPKey/" + $('#' + emailFieldName).val(),
+		success: function (data) {
+			$("#popover_form").fadeIn();
+			$("#gray_out").fadeIn();
+			$("#popover_form").html(data);
+		},
+		error: function (data, textStatus, errorThrown) {
+			showMessage('fail', textStatus + ": " + errorThrown);
+		}
+	});
+}
+
+function zeroMQServerAction(action) {
+	$.ajax({
+		type: "get",
+		url: "/servers/" + action + "ZeroMQServer/",
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		success: function (data) {
+			$(".loading").hide();
+			if (action !== 'status') {
+				window.location.reload();
+			} else {
+				$("#confirmation_box").html(data);
+				$("#confirmation_box").fadeIn();
+				$("#gray_out").fadeIn();
+			}
 		},
 		error: function (data, textStatus, errorThrown) {
 			showMessage('fail', textStatus + ": " + errorThrown);

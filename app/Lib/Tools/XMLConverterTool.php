@@ -26,9 +26,9 @@ class XMLConverterTool {
 	public function event2xmlArray($event, $isSiteAdmin=false) {
 		$toEscape = array("&", "<", ">", "\"", "'");
 		$escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
-		$event['Event']['Attribute'] = $event['Attribute'];
-		$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
-		$event['Event']['RelatedEvent'] = $event['RelatedEvent'];
+		if (isset($event['Attribute'])) $event['Event']['Attribute'] = $event['Attribute'];
+		if (isset($event['ShadowAttribute'])) $event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
+		if (isset($event['RelatedEvent'])) $event['Event']['RelatedEvent'] = $event['RelatedEvent'];
 		$event['Event']['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['info']);
 		$event['Event']['info'] = str_replace($toEscape, $escapeWith, $event['Event']['info']);
 		
@@ -53,11 +53,13 @@ class XMLConverterTool {
 				unset($event['Event']['Attribute'][$key]['value1']);
 				unset($event['Event']['Attribute'][$key]['value2']);
 				unset($event['Event']['Attribute'][$key]['category_order']);
-				foreach($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
-					$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
-					$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = str_replace($toEscape, $escapeWith, $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
-					$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
-					$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = str_replace($toEscape, $escapeWith, $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
+				if (isset($event['Event']['Attribute'][$key]['ShadowAttribute'])) {
+					foreach($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
+						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
+						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = str_replace($toEscape, $escapeWith, $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
+						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
+						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = str_replace($toEscape, $escapeWith, $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
+					}
 				}
 			}
 		}

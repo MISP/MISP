@@ -139,13 +139,13 @@ CREATE TABLE IF NOT EXISTS `jobs` (
 
 CREATE TABLE IF NOT EXISTS `logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `title` varchar(255) COLLATE utf8_bin DEFAULT NULL,
+  `title` text COLLATE utf8_bin DEFAULT NULL,
   `created` datetime DEFAULT NULL,
   `model` varchar(20) COLLATE utf8_bin DEFAULT NULL,
   `model_id` int(11) DEFAULT NULL,
   `action` varchar(20) COLLATE utf8_bin DEFAULT NULL,
   `user_id` int(11) DEFAULT NULL,
-  `change` varchar(255) COLLATE utf8_bin DEFAULT NULL,
+  `change` text COLLATE utf8_bin DEFAULT NULL,
   `email` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   `org` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   `description` varchar(255) COLLATE utf8_bin DEFAULT NULL,

@@ -276,7 +276,7 @@ class User extends AppModel {
 		// key is entered
 		require_once 'Crypt/GPG.php';
 		try {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 			try {
 				$keyImportOutput = $gpg->importKey($check['gpgkey']);
 				if (!empty($keyImportOutput['fingerprint'])) {
@@ -401,7 +401,7 @@ class User extends AppModel {
 			'recursive' => -1,
 		));
 		foreach ($users as $k => $user) {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 			$key = $gpg->importKey($user['User']['gpgkey']);
 			$gpg->addEncryptKey($key['fingerprint']); // use the key that was given in the import
 			try {
@@ -437,11 +437,12 @@ class User extends AppModel {
 		if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncrypt && $bodyNoEnc) {
 			$body = $bodyNoEnc;
 		}
+		$body = str_replace('\n', PHP_EOL, $body);
 
 		// Sign the body
 		require_once 'Crypt/GPG.php';
 		try {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));	// , 'debug' => true
 			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 			$body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
 		} catch (Exception $e) {
@@ -522,5 +523,42 @@ class User extends AppModel {
 			$message = str_replace($k, $v, $message);
 		}
 		return $message;
+	}
+	
+	public function fetchPGPKey($email) {
+		App::uses('HttpSocket', 'Network/Http');
+		$HttpSocket = new HttpSocket();
+		$response = $HttpSocket->get('https://pgp.mit.edu/pks/lookup?search=' . $email . '&op=index&fingerprint=on');
+		if ($response->code != 200) return $response->code;
+		$string = str_replace(array("\r", "\n"), "", $response->body);
+		$result = preg_match_all('/<pre>pub(.*?)<\/pre>/', $string, $matches);
+		$results = $this->__extractPGPInfo($matches[1]);
+		return $results;
+	}
+	
+	private function __extractPGPInfo($lines) {
+		$extractionRules = array(
+			'key_id' => array('regex' => '/\">(.*?)<\/a>/', 'all' => false, 'alternate' => false),
+			'date' => array('regex' => '/([0-9]{4}\-[0-9]{2}\-[0-9]{2})/', 'all' => false, 'alternate' => false),
+			'fingerprint' => array('regex' => '/Fingerprint=(.*)$/m', 'all' => false, 'alternate' => false),
+			'uri' => array('regex' => '/<a href=\"(.*?)\">/', 'all' => false, 'alternate' => false),
+			'address' => array('regex' => '/<a href="\/pks\/lookup\?op=vindex[^>]*>([^\<]*)<\/a>(.*)Fingerprint/s', 'all' => true, 'alternate' => true),
+		);
+		$final = array();
+		foreach ($lines as $line) {
+			if (strpos($line, 'KEY REVOKED')) continue;
+			$temp = array();
+			foreach ($extractionRules as $ruleName => $rule) {
+				if ($rule['all']) preg_match_all($rule['regex'], $line, ${$ruleName});
+				else preg_match($rule['regex'], $line, ${$ruleName});
+				if ($rule['alternate'] && isset(${$ruleName}[2]) && trim(${$ruleName}[2][0]) != '') $temp[$ruleName] = ${$ruleName}[2];
+				else $temp[$ruleName] = ${$ruleName}[1];
+				if ($rule['all']) $temp[$ruleName] = $temp[$ruleName][0];
+				$temp[$ruleName] = html_entity_decode($temp[$ruleName]);
+			}
+			$temp['address'] = preg_replace('/\s{2,}/', PHP_EOL, trim($temp['address']));
+			$final[] = $temp;
+		}
+		return $final;
 	}
 }

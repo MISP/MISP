@@ -1,21 +1,12 @@
-<table class="table table-hover table-condensed" style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">
-<tr>
-		<th>Priority</th>
-		<th>Setting</th>
-		<th>Value</th>
-		<th>Description</th>
-		<th>Error Message</th>
-</tr>
 <?php
-	foreach ($finalSettings as $k => $setting):
-		$bgColour = '';
-		if (isset($setting['error']) && $setting['level'] < 3) {
-			$bgColour = 'background-color:' . $priorityErrorColours[$setting['level']] . ';';
-			if ($setting['level'] == 0 || $setting['level'] == 2) $bgColour .= 'color:white;';
-		}
-		if ($setting['level'] == 3) $bgColour = 'background-color:gray;color:white;';
-		if ($setting['type'] == 'boolean') $setting['value'] = ($setting['value'] === true ? 'true' : 'false');
-		if (isset($setting['options'])) $setting['value'] = ($setting['options'][$setting['value']]);
+	$bgColour = '';
+	if (isset($setting['error']) && $setting['level'] < 3) {
+		$bgColour = 'background-color:' . $priorityErrorColours[$setting['level']] . ';';
+		if ($setting['level'] == 0 || $setting['level'] == 2) $bgColour .= 'color:white;';
+	}
+	if ($setting['level'] == 3) $bgColour = 'background-color:gray;color:white;';
+	if ($setting['type'] == 'boolean') $setting['value'] = ($setting['value'] === true ? 'true' : 'false');
+	if (isset($setting['options'])) $setting['value'] = ($setting['options'][$setting['value']]);
 ?>
 <tr id ="<?php echo h($k); ?>_row">
 	<td class="short" style="<?php echo $bgColour; ?>"><?php echo h($priorities[$setting['level']]);?></td>
@@ -29,6 +20,3 @@
 	<td style="<?php echo $bgColour; ?>"><?php echo h($setting['description']);?></td>
 	<td style="<?php echo $bgColour; ?>"><?php if (isset($setting['error']) && $setting['level'] != 3) echo h($setting['errorMessage']); ?></td>
 </tr>
-<?php
-	endforeach; ?>
-</table>

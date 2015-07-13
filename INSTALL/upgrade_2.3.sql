@@ -126,6 +126,16 @@ CREATE TABLE IF NOT EXISTS `template_tags` (
 -- --------------------------------------------------------
 
 --
+-- Change in the servers table and the logs table, addressing
+-- hotfixes 2.3.57 and 2.3.78
+--
+
+ALTER TABLE `servers` MODIFY COLUMN `organization` varchar(255) NOT NULL;
+ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;
+
+-- --------------------------------------------------------
+
+--
 -- Default templates
 --
 

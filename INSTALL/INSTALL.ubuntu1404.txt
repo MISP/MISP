@@ -1,9 +1,6 @@
 INSTALLATION INSTRUCTIONS
 ------------------------- for ubuntu 14.04-server
 
-# steps 2 (besides acquiring git), 4, 5 can be skipped by running INSTALL.SH 
-# The correct order in this case is 1/, apt get git, 3/ and then executing INSTALL.SH in /var/www/MISP/INSTALL/INSTALL.SH
-
 1/ Minimal ubuntu install
 -------------------------
 
@@ -50,8 +47,10 @@ cd /var/www/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
+git checkout v2.1.0.10
 python setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
+git checkout v1.1.1.4
 python setup.py install
 
 4/ CakePHP
@@ -213,3 +212,8 @@ Recommended actions
 - You should really harden the configuration of MySQL
 - Keep your software up2date (MISP, CakePHP and everything else)
 - Log and audit
+
+Optional features
+-------------------
+# MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
+pip install pyzmq
