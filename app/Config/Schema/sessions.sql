@@ -13,4 +13,4 @@ CREATE TABLE cake_sessions (
   data text,
   expires int(11) default NULL,
   PRIMARY KEY  (id)
-);
+)  ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
