@@ -41,6 +41,7 @@ def generateObservable(indicator, attribute):
             action = getattr(this_module, simple_type_to_method[attribute["type"]], None)
             if (action != None):
                 property = action(attribute)
+		property.condition = "Equals"
                 object = Object(property)
                 object.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":" + property.__class__.__name__ + "-" + attribute["uuid"]
                 observable = Observable(object)
@@ -71,7 +72,7 @@ def generateFileObservable(filenameValue, hashValue):
         else:
             file_object.file_name = filenameValue
     if (hashValue != ""):
-        file_object.add_hash(Hash(hashValue))
+        file_object.add_hash(Hash(hash_value=hashValue, exact=True))
     return file_object
 
 def generateIPObservable(attribute):
