@@ -3,6 +3,7 @@ from misp2cybox import *
 from misp2ciq import *
 from dateutil.tz import tzutc
 from stix.indicator import Indicator
+from stix.indicator.valid_time import ValidTime
 from stix.ttp import TTP, Behavior
 from stix.ttp.malware_instance import MalwareInstance
 from stix.incident import Incident, Time, ImpactAssessment, ExternalID, AffectedAsset
@@ -186,6 +187,7 @@ def resolveAttributes(incident, ttps, attributes):
 def handleIndicatorAttribute(incident, ttps, attribute):
     indicator = generateIndicator(attribute)
     indicator.add_indicator_type("Malware Artifacts")
+    indicator.add_valid_time_position(ValidTime())
     if attribute["type"] == "email-attachment":
         indicator.add_indicator_type("Malicious E-mail")
         generateEmailAttachmentObject(indicator, attribute)
