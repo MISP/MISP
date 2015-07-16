@@ -38,7 +38,7 @@ cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResqu
 
 # 5. Make sure all file permissions are set correctly
 
-chown -R root:www-data /var/www/MISP
+chown -R www-data:www-data /var/www/MISP
 find /var/www/MISP -type d -exec chmod g=rx {} \;
 chmod -R g+r,o= /var/www/MISP
 chown www-data:www-data /var/www/MISP/app/files
