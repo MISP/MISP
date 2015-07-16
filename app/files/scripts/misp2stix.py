@@ -185,7 +185,9 @@ def resolveAttributes(incident, ttps, attributes):
 # Create the indicator and pass the attribute further for observable creation - this can be called from resolveattributes directly or from handleNonindicatorAttribute, for some special cases
 def handleIndicatorAttribute(incident, ttps, attribute):
     indicator = generateIndicator(attribute)
+    indicator.add_indicator_type("Malware Artifacts")
     if attribute["type"] == "email-attachment":
+        indicator.add_indicator_type("Malicious E-mail")
         generateEmailAttachmentObject(indicator, attribute)
     else:
         generateObservable(indicator, attribute)
