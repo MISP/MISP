@@ -181,6 +181,17 @@ def resolveAttributes(incident, ttps, attributes):
         else:
             #types that may become indicators
             handleIndicatorAttribute(incident, ttps, attribute)
+    if incident.related_indicators and not ttps:
+        ttp = TTP(timestamp=incident.timestamp)
+        ttp.id_= incident.id_.replace("incident","ttp")
+        ttp.title = "Unknown"
+	ttps.append(ttp)
+        rttp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
+        relatedTTP = RelatedTTP(rttp, relationship="Indicated")
+    for rindicator in incident.related_indicators:
+        for ttp in ttps:
+            ittp=TTP(idref=ttp.id_, timestamp=ttp.timestamp)
+            rindicator.item.add_indicated_ttp(ittp)
     return [incident, ttps]
 
 # Create the indicator and pass the attribute further for observable creation - this can be called from resolveattributes directly or from handleNonindicatorAttribute, for some special cases
@@ -203,7 +214,7 @@ def handleIndicatorAttribute(incident, ttps, attribute):
 def handleNonIndicatorAttribute(incident, ttps, attribute):
     if attribute["type"] in ("comment", "text", "other"):
         if attribute["category"] == "Payload type":
-            generateTTP(incident, attribute)
+            generateTTP(incident, attribute, ttps)
         elif attribute["category"] == "Attribution":
             ta = generateThreatActor(attribute)
             rta = RelatedThreatActor(ta, relationship="Attribution")
@@ -219,7 +230,7 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
             aa.description = attribute["value"]
         incident.affected_assets.append(aa)
     elif attribute["type"] == "vulnerability":
-        generateTTP(incident, attribute)
+        generateTTP(incident, attribute, ttps)
     elif attribute["type"] == "link":
         if attribute["category"] == "Payload delivery":
             handleIndicatorAttribute(incident, ttps, attribute)
@@ -234,7 +245,7 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
     return [incident, ttps]
 
 # TTPs are only used to describe malware names currently (attribute with category Payload Type and type text/comment/other)
-def generateTTP(incident, attribute):
+def generateTTP(incident, attribute, ttps):
     ttp = TTP(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     ttp.id_= namespace[1] + ":ttp-" + attribute["uuid"]
     setTLP(ttp, attribute["distribution"])
@@ -252,7 +263,9 @@ def generateTTP(incident, attribute):
         ttp.behavior.add_malware_instance(malware)
     if attribute["comment"] != "":
         ttp.description = attribute["comment"]
-    relatedTTP = RelatedTTP(ttp, relationship=attribute["category"])
+    ttps.append(ttp)
+    rttp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
+    relatedTTP = RelatedTTP(rttp, relationship=attribute["category"])
     incident.leveraged_ttps.append(relatedTTP)
 
 # Threat actors are currently only used for the category:attribution / type:(text|comment|other) attributes 
