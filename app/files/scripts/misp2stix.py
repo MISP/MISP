@@ -185,7 +185,7 @@ def resolveAttributes(incident, ttps, attributes):
         ttp = TTP(timestamp=incident.timestamp)
         ttp.id_= incident.id_.replace("incident","ttp")
         ttp.title = "Unknown"
-	ttps.append(ttp)
+        ttps.append(ttp)
     for rindicator in incident.related_indicators:
         for ttp in ttps:
             ittp=TTP(idref=ttp.id_, timestamp=ttp.timestamp)
