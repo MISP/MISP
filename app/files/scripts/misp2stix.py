@@ -297,7 +297,7 @@ def generateIndicator(attribute):
 
 # converts timestamp to the format used by STIX
 def getDateFromTimestamp(timestamp):
-    return datetime.datetime.fromtimestamp(timestamp).isoformat()
+    return datetime.datetime.fromtimestamp(timestamp).isoformat() + "+00:00"
 
 # converts a date (YYYY-mm-dd) to the format used by stix
 def convertToStixDate(date):
