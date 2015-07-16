@@ -146,7 +146,7 @@ def generateEventPackage(event):
 
 # generate the incident information. MISP events are currently mapped to incidents with the event metadata being stored in the incident information
 def generateSTIXObjects(event):
-    incident = Incident(id_ = namespace[1] + ":incident-" + event["Event"]["uuid"], description=event["Event"]["info"])
+    incident = Incident(id_ = namespace[1] + ":incident-" + event["Event"]["uuid"], title=event["Event"]["info"])
     setDates(incident, event["Event"]["date"], int(event["Event"]["publish_timestamp"]))
     addJournalEntry(incident, "Event Threat Level: " + event["ThreatLevel"]["name"])
     ttps = []
@@ -287,6 +287,7 @@ def generateIndicator(attribute):
         indicator.description = attribute["comment"]
     setTLP(indicator, attribute["distribution"])
     indicator.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
+    indicator.description = indicator.title
     confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
     confidence_value = confidence_mapping.get(attribute["to_ids"], None)
     if confidence_value is None:
