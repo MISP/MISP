@@ -561,7 +561,7 @@ class Server extends AppModel {
 					'branch' => 1,
 					'RPZ_policy' => array(
 						'level' => 1,
-						'description' => 'The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.',
+						'description' => 'The default policy action for the values added to the RPZ.',
 						'value' => 0,
 						'errorMessage' => '',
 						'test' => 'testForRPZBehaviour',
@@ -1523,6 +1523,39 @@ class Server extends AppModel {
 		return $proxyStatus;
 	}
 	
+	public function workerDiagnostics(&$workerIssueCount) {
+		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+		$workers = $this->ResqueStatus->getWorkers();
+		$currentUser = get_current_user();
+		$worker_array = array(
+				'cache' => array('ok' => true),
+				'default' => array('ok' => true),
+				'email' => array('ok' => true),
+				'scheduler' => array('ok' => true)
+		);
+		foreach ($workers as $pid => $worker) {
+			$alive = file_exists("/proc/$pid");
+			$entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
+			$correct_user = ($currentUser === $worker['user']);
+			$ok = true;
+			if (!$alive || !$correct_user) {
+				$ok = false;
+				$workerIssueCount++;
+				$worker_array[$entry]['ok'] = false;
+			}
+			$worker_array[$entry]['workers'][] = array('pid' => $pid, 'user' => $worker['user'], 'alive' => $alive, 'correct_user' => $correct_user, 'ok' => $ok);
+		}
+		foreach ($worker_array as $k => &$queue) {
+			if ($k != 'scheduler') $worker_array[$k]['jobCount'] = CakeResque::getQueueSize($k);
+			if (!isset($queue['workers'])) {
+				$workerIssueCount++;
+				$queue['ok'] = false;
+			}
+		}
+		return $worker_array;
+		
+	}
+	
 	public function retrieveCurrentSettings($branch, $subString) {
 		$settings = array();
 		foreach ($this->serverSettings[$branch] as $settingName => $setting) {
@@ -1533,5 +1566,65 @@ class Server extends AppModel {
 			}
 		}
 		return $settings;
+	}
+	
+	public function killWorker($pid, $user) {
+		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+		$workers = $this->ResqueStatus->getWorkers();
+		$this->Log = ClassRegistry::init('Log');
+		if (isset($workers[$pid])) {
+			$worker = $workers[$pid];
+			if (file_exists("/proc/$pid")) {
+				shell_exec('kill ' . $pid . ' > /dev/null &');
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => $user['org'],
+						'model' => 'User',
+						'model_id' => $user['id'],
+						'email' => $user['email'],
+						'action' => 'stop_worker',
+						'user_id' => $user['id'],
+						'title' => 'Stopping a worker.',
+						'change' => 'Stopping a worker. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
+				));
+			} else {
+				$this->ResqueStatus->removeWorker($pid);
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => $user['org'],
+						'model' => 'User',
+						'model_id' => $user['id'],
+						'email' => $user['email'],
+						'action' => 'remove_dead_workers',
+						'user_id' => $user['id'],
+						'title' => 'Removing a dead worker.',
+						'change' => 'Removind dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
+				));
+			}
+			$this->ResqueStatus->removeWorker($pid);
+		}
+	}
+	
+	public function workerRemoveDead($user) {
+		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+		$workers = $this->ResqueStatus->getWorkers();
+		$this->Log = ClassRegistry::init('Log');
+		foreach ($workers as $pid => $worker) {
+			$test = $pid;
+			if (!file_exists("/proc/$pid")) {
+				$this->ResqueStatus->removeWorker($pid);
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => $user['org'],
+						'model' => 'User',
+						'model_id' => $user['id'],
+						'email' => $user['email'],
+						'action' => 'remove_dead_workers',
+						'user_id' => $user['id'],
+						'title' => 'Removing a dead worker.',
+						'change' => 'Removind dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
+				));
+			}
+		}
 	}
 }
