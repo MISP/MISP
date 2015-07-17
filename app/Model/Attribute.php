@@ -1164,7 +1164,7 @@ class Attribute extends AppModel {
 		return $fails;
 	}
 	
-	public function hids($isSiteAdmin, $org ,$type, $tags = '', $from, $to, $last) {
+	public function hids($isSiteAdmin, $org ,$type, $tags = '', $from = false, $to = false, $last = false) {
 		if (empty($org)) throw new MethodNotAllowedException('No org supplied.');
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
@@ -1206,6 +1206,7 @@ class Attribute extends AppModel {
 		$params = array(
 				'conditions' => $conditions, //array of conditions
 				'recursive' => 0, //int
+				'fields' => array('Attribute.type', 'Attribute.value1', 'Attribute.value2'),
 				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
 		);
 		$items = $this->find('all', $params);
@@ -1215,7 +1216,7 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 	
-	public function nids($isSiteAdmin, $org, $format, $sid, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last) {
+	public function nids($isSiteAdmin, $org, $format, $sid, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false) {
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
 		$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');

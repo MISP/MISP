@@ -47,16 +47,16 @@
 				$message = 'The worker appears to be healthy.';
 				$icon_modifier = '';
 				if (!$worker['correct_user']) {
-					$message = 'The worker was started with a user other than the apache user.';
+					$message = 'The worker was started with a user other than the apache user. MISP cannot check whether the worker is alive or not.';
 					$style = "color:white;background-color:red;";
 					$icon_modifier = ' icon-white';
-				}
-				if (!$worker['alive']) {
+					$process = 'Unknown';
+				} else if (!$worker['alive']) {
 					$process = 'Dead';
 					$message = 'The Worker appears to be dead.';
 					$style = "color:white;background-color:red;";
 					$icon_modifier = ' icon-white';
-				}
+				} 
 				
 				$status = '<span style="color:green;">OK</span>';
 	?>
