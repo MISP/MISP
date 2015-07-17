@@ -3,6 +3,7 @@ from misp2cybox import *
 from misp2ciq import *
 from dateutil.tz import tzutc
 from stix.indicator import Indicator
+from stix.indicator.valid_time import ValidTime
 from stix.ttp import TTP, Behavior
 from stix.ttp.malware_instance import MalwareInstance
 from stix.incident import Incident, Time, ImpactAssessment, ExternalID, AffectedAsset
@@ -145,7 +146,7 @@ def generateEventPackage(event):
 
 # generate the incident information. MISP events are currently mapped to incidents with the event metadata being stored in the incident information
 def generateSTIXObjects(event):
-    incident = Incident(id_ = namespace[1] + ":incident-" + event["Event"]["uuid"], description=event["Event"]["info"])
+    incident = Incident(id_ = namespace[1] + ":incident-" + event["Event"]["uuid"], title=event["Event"]["info"])
     setDates(incident, event["Event"]["date"], int(event["Event"]["publish_timestamp"]))
     addJournalEntry(incident, "Event Threat Level: " + event["ThreatLevel"]["name"])
     ttps = []
@@ -180,12 +181,24 @@ def resolveAttributes(incident, ttps, attributes):
         else:
             #types that may become indicators
             handleIndicatorAttribute(incident, ttps, attribute)
+    if incident.related_indicators and not ttps:
+        ttp = TTP(timestamp=incident.timestamp)
+        ttp.id_= incident.id_.replace("incident","ttp")
+        ttp.title = "Unknown"
+        ttps.append(ttp)
+    for rindicator in incident.related_indicators:
+        for ttp in ttps:
+            ittp=TTP(idref=ttp.id_, timestamp=ttp.timestamp)
+            rindicator.item.add_indicated_ttp(ittp)
     return [incident, ttps]
 
 # Create the indicator and pass the attribute further for observable creation - this can be called from resolveattributes directly or from handleNonindicatorAttribute, for some special cases
 def handleIndicatorAttribute(incident, ttps, attribute):
     indicator = generateIndicator(attribute)
+    indicator.add_indicator_type("Malware Artifacts")
+    indicator.add_valid_time_position(ValidTime())
     if attribute["type"] == "email-attachment":
+        indicator.add_indicator_type("Malicious E-mail")
         generateEmailAttachmentObject(indicator, attribute)
     else:
         generateObservable(indicator, attribute)
@@ -199,7 +212,7 @@ def handleIndicatorAttribute(incident, ttps, attribute):
 def handleNonIndicatorAttribute(incident, ttps, attribute):
     if attribute["type"] in ("comment", "text", "other"):
         if attribute["category"] == "Payload type":
-            generateTTP(incident, attribute)
+            generateTTP(incident, attribute, ttps)
         elif attribute["category"] == "Attribution":
             ta = generateThreatActor(attribute)
             rta = RelatedThreatActor(ta, relationship="Attribution")
@@ -215,7 +228,7 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
             aa.description = attribute["value"]
         incident.affected_assets.append(aa)
     elif attribute["type"] == "vulnerability":
-        generateTTP(incident, attribute)
+        generateTTP(incident, attribute, ttps)
     elif attribute["type"] == "link":
         if attribute["category"] == "Payload delivery":
             handleIndicatorAttribute(incident, ttps, attribute)
@@ -230,7 +243,7 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
     return [incident, ttps]
 
 # TTPs are only used to describe malware names currently (attribute with category Payload Type and type text/comment/other)
-def generateTTP(incident, attribute):
+def generateTTP(incident, attribute, ttps):
     ttp = TTP(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     ttp.id_= namespace[1] + ":ttp-" + attribute["uuid"]
     setTLP(ttp, attribute["distribution"])
@@ -248,7 +261,9 @@ def generateTTP(incident, attribute):
         ttp.behavior.add_malware_instance(malware)
     if attribute["comment"] != "":
         ttp.description = attribute["comment"]
-    relatedTTP = RelatedTTP(ttp, relationship=attribute["category"])
+    ttps.append(ttp)
+    rttp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
+    relatedTTP = RelatedTTP(rttp, relationship=attribute["category"])
     incident.leveraged_ttps.append(relatedTTP)
 
 # Threat actors are currently only used for the category:attribution / type:(text|comment|other) attributes 
@@ -270,6 +285,7 @@ def generateIndicator(attribute):
         indicator.description = attribute["comment"]
     setTLP(indicator, attribute["distribution"])
     indicator.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
+    indicator.description = indicator.title
     confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
     confidence_value = confidence_mapping.get(attribute["to_ids"], None)
     if confidence_value is None:
@@ -279,7 +295,7 @@ def generateIndicator(attribute):
 
 # converts timestamp to the format used by STIX
 def getDateFromTimestamp(timestamp):
-    return datetime.datetime.fromtimestamp(timestamp).isoformat()
+    return datetime.datetime.fromtimestamp(timestamp).isoformat() + "+00:00"
 
 # converts a date (YYYY-mm-dd) to the format used by stix
 def convertToStixDate(date):
