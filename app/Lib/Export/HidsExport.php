@@ -15,7 +15,7 @@ class HidsExport {
 		array_unshift($this->rules, '# These HIDS export contains ' . $type . ' checksums.');
 	}
 
-	public function export($items, $type = 'MD5') {
+	public function export($items, $type = 'MD5', $continue = false) {
 		foreach ($items as &$item) {
 			# md5
 			$ruleFormat = '%s';
@@ -39,8 +39,7 @@ class HidsExport {
 
 			}
 		}
-		sort($this->rules);
-		$this->explain($type);
+		if (!$continue) $this->explain($type);
 		return $this->rules;
 	}
 }
