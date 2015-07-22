@@ -29,7 +29,8 @@ class Log extends AppModel {
 							'warning',
 							'error',
 							'email',
-							'serverSettingsEdit'
+							'serverSettingsEdit',
+							'remove_dead_workers'
 						)),
 			'message' => 'Options : ...'
 		)

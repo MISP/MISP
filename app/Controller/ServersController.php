@@ -517,31 +517,10 @@ class ServersController extends AppController {
 			);
 			$viewVars = array_merge($viewVars, $additionalViewVars);
 			foreach ($viewVars as $viewVar) $this->set($viewVar, ${$viewVar});
-			
+
+			$workerIssueCount = 0;
 			if (Configure::read('MISP.background_jobs')) {
-				$worker_array = array(
-					'cache' => array(),
-					'default' => array(),
-					'email' => array(),
-					'_schdlr_' => array()
-				);
-				// disable notice errors, getWorkers() is meant to be run from the command line and throws a notice
-				// because STDIN is not defined - since we don't actually log anything this is safe to ignore.
-				$error_reporting = error_reporting();
-				error_reporting(0);
-				$results = CakeResque::getWorkers();
-				error_reporting($error_reporting);
-				foreach ($results as $result) {
-					$result = (array)$result;
-					if (in_array($result["\0*\0queues"][0], array_keys($worker_array))) {
-						$worker_array[$result["\0*\0queues"][0]][] = $result["\0*\0id"];
-					}
-				}
-				$workerIssueCount = 0;
-				foreach ($worker_array as $k => $queue) {
-					if (empty($queue)) $workerIssueCount++;
-				}
-				$this->set('worker_array', $worker_array);
+				$this->set('worker_array', $this->Server->workerDiagnostics($workerIssueCount));
 			} else {
 				$workerIssueCount = 4;
 				$this->set('worker_array', array());
@@ -563,6 +542,21 @@ class ServersController extends AppController {
 			$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
 			$this->set('priorityErrorColours', $priorityErrorColours);
 		}
+	}
+
+	public function startWorker($type) {
+		if (!$this->_isSiteAdmin() || !$this->request->is('Post')) throw new MethodNotAllowedException();
+		$validTypes = array('default', 'email', 'scheduler', 'cache');
+		if (!in_array($type, $validTypes)) throw new MethodNotAllowedException('Invalid worker type.');
+		if ($type != 'scheduler') shell_exec(APP . 'Console' . DS . 'cake ' . DS . 'CakeResque.CakeResque start --interval 5 --queue ' . $type .' > /dev/null &');
+		else shell_exec(APP . 'Console' . DS . 'cake ' . DS . 'CakeResque.CakeResque startscheduler -i 5 > /dev/null &');
+		$this->redirect('/servers/serverSettings/workers');
+	}
+	
+	public function stopWorker($pid) {
+		if (!$this->_isSiteAdmin() || !$this->request->is('Post')) throw new MethodNotAllowedException();
+		$this->Server->killWorker($pid, $this->Auth->user());
+		$this->redirect('/servers/serverSettings/workers');
 	}
 	
 	private function __checkVersion() {
@@ -691,7 +685,8 @@ class ServersController extends AppController {
 	}
 	
 	public function restartWorkers() {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
+		$this->Server->workerRemoveDead($this->Auth->user());
 		shell_exec(APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null &');
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
 	}
@@ -829,7 +824,8 @@ class ServersController extends AppController {
 		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not kill the previous instance of the ZeroMQ script.')),'status'=>200));
 	}
 	
-	public function statusZeroMQServer() {
+	private function statusZeroMQServer() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		App::uses('PubSubTool', 'Tools');
 		$pubSubTool = new PubSubTool();
 		$result = $pubSubTool->statusCheck();
