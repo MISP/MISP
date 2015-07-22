@@ -1220,7 +1220,7 @@ class Attribute extends AppModel {
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
 			if ($id) {
 				foreach ($eventIds as $k => $v) {
-					//if ($)
+					if ($v['Event']['id'] !== $id) unset($eventIds[$k]);
 				}
 			}
 			if (!empty($tagArray[0])) {
@@ -1235,6 +1235,9 @@ class Attribute extends AppModel {
 			}
 		}
 
+		if ($format == 'suricata') App::uses('NidsSuricataExport', 'Export');
+		else App::uses('NidsSnortExport', 'Export');
+		
 		$rules = array();
 		foreach ($eventIds as $event) {
 			$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
@@ -1252,11 +1255,9 @@ class Attribute extends AppModel {
 			// export depending of the requested type
 			switch ($format) {
 				case 'suricata':
-	-				App::uses('NidsSuricataExport', 'Export');
 					$export = new NidsSuricataExport();
 					break;
 				case 'snort':
-					App::uses('NidsSnortExport', 'Export');
 					$export = new NidsSnortExport();
 					break;
 			}
