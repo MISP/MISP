@@ -1331,7 +1331,7 @@ class Attribute extends AppModel {
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
 			if ($id) {
 				foreach ($eventIds as $k => $v) {
-					//if ($)
+					if ($v['Event']['id'] !== $id) unset($eventIds[$k]);
 				}
 			}
 			if (!empty($tagArray[0])) {
@@ -1345,6 +1345,7 @@ class Attribute extends AppModel {
 				}
 			}
 		}
+
 		if ($format == 'suricata') App::uses('NidsSuricataExport', 'Export');
 		else App::uses('NidsSnortExport', 'Export');
 		
