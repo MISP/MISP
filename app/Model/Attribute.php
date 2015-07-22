@@ -1273,8 +1273,10 @@ class Attribute extends AppModel {
 		return $fails;
 	}
 	
-	public function hids($user ,$type, $tags = '', $from, $to, $last) {
+
+	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
+
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
 			throw new UnauthorizedException('Invalid hash type.');
@@ -1282,85 +1284,98 @@ class Attribute extends AppModel {
 		$conditions = array();
 		$typeArray = array($type, 'filename|' . $type);
 		if ($type == 'md5') $typeArray[] = 'malware-sample';
-		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray);
-		
-		// If we sent any tags along, load the associated tag names for each attribute
+		$rules = array();
+		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
 		if ($tags !== '') {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-			$temp = array();
-			foreach ($tagArray[0] as $accepted) {
-				$temp['OR'][] = array('Event.id' => $accepted);
+			if (!empty($tagArray[0])) {
+				foreach ($eventIds as $k => $v) {
+					if (!in_array($v['Event']['id'], $tagArray[0])) unset($eventIds[$k]);
+				}
 			}
-			$conditions['AND'][] = $temp;
-			$temp = array();
-			foreach ($tagArray[1] as $rejected) {
-				$temp['AND'][] = array('Event.id !=' => $rejected);
+			if (!empty($tagArray[1])) {
+				foreach ($eventIds as $k => $v) {
+					if (in_array($v['Event']['id'], $tagArray[1])) unset($eventIds[$k]);
+				}
 			}
-			$conditions['AND'][] = $temp;
 		}
-		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
-		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
-		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
-		
-		$options = array(
-				'conditions' => $conditions,
-				'group' => array('Attribute.type', 'Attribute.value1'),
-		);
-		$items = $this->fetchAttributes($user, $options);
+		$continue = false;
 		App::uses('HidsExport', 'Export');
-		$export = new HidsExport();
-		$rules = $export->export($items, strtoupper($type));
+		$continue = false;
+		foreach ($eventIds as $event) {
+			$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray, 'Attribute.event_id' => $event['Event']['id']);		
+			$options = array(
+					'conditions' => $conditions,
+					'group' => array('Attribute.type', 'Attribute.value1'),
+			);
+			$items = $this->fetchAttributes($user, $options);
+			if (empty($items)) continue;
+			$export = new HidsExport();
+			$rules = array_merge($rules, $export->export($items, strtoupper($type), $continue));
+			$continue = true;
 		return $rules;
+		}
 	}
+
 	
-	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last) {
-		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
-		$conditions['AND']['Attribute.type'] = $valid_types;
-		
-		if ($id) array_push($conditions['AND'], array('Event.id' => $id));
-		if ($from) array_push($conditions['AND'], array('Event.date >=' => $from));
-		if ($to) array_push($conditions['AND'], array('Event.date <=' => $to));
-		if ($last) array_push($conditions['AND'], array('Event.publish_timestamp >=' => $last));
+	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false) {
+		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
+		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
 		
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($tags) {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-			$temp = array();
-			foreach ($tagArray[0] as $accepted) {
-				$temp['OR'][] = array('Event.id' => $accepted);
+			if ($id) {
+				foreach ($eventIds as $k => $v) {
+					//if ($)
+				}
 			}
-			$conditions['AND'][] = $temp;
-			$temp = array();
-			foreach ($tagArray[1] as $rejected) {
-				$temp['AND'][] = array('Event.id !=' => $rejected);
+			if (!empty($tagArray[0])) {
+				foreach ($eventIds as $k => $v) {
+					if (!in_array($v['Event']['id'], $tagArray[0])) unset($eventIds[$k]);
+				}
 			}
-			$conditions['AND'][] = $temp;
+			if (!empty($tagArray[1])) {
+				foreach ($eventIds as $k => $v) {
+					if (in_array($v['Event']['id'], $tagArray[1])) unset($eventIds[$k]);
+				}
+			}
 		}
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => -1, //int
-				'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'),
-				'contain' => array('Event'=> array('fields' => array('Event.id', 'Event.threat_level_id'))),
-				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
-		);
-		$items = $this->fetchAttributes($user, $params);
-		// export depending of the requested type
-		switch ($format) {
-			case 'suricata':
--				App::uses('NidsSuricataExport', 'Export');
-				$export = new NidsSuricataExport();
-				break;
-			case 'snort':
-				App::uses('NidsSnortExport', 'Export');
-				$export = new NidsSnortExport();
-				break;
+		if ($format == 'suricata') App::uses('NidsSuricataExport', 'Export');
+		else App::uses('NidsSnortExport', 'Export');
+		
+		$rules = array();
+		foreach ($eventIds as $event) {
+			$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
+			$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
+			$conditions['AND']['Attribute.type'] = $valid_types;
+					
+			$params = array(
+					'conditions' => $conditions, //array of conditions
+					'recursive' => -1, //int
+					'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'),
+					'contain' => array('Event'=> array('fields' => array('Event.id', 'Event.threat_level_id'))),
+					'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+			);
+			$items = $this->fetchAttributes($user, $params);
+			if (empty($items)) continue;
+			// export depending of the requested type
+			switch ($format) {
+				case 'suricata':
+					$export = new NidsSuricataExport();
+					break;
+				case 'snort':
+					$export = new NidsSnortExport();
+					break;
+			}
+			$rules = array_merge($rules, $export->export($items, $user['nids_sid'], $format, $continue));
+			// Only pre-pend the comments once
+			$continue = true;
 		}
-		$rules = $export->export($items, $user['nids_sid'], $format, $continue);
 		return $rules;
 	}
 

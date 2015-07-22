@@ -2202,8 +2202,8 @@ class Event extends AppModel {
 		if (empty($localEvent) || $incomingEvent['timestamp'] > $localEvent['Event']['timestamp']) return true;
 		return false;
 	}
-	
-	public function stix($id, $tags, $attachments, $user, $returnType, $from, $to, $last) {
+
+	public function stix($id, $tags, $attachments, $user, $returnType, $from = false, $to = false, $last = false) {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);

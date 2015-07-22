@@ -1674,9 +1674,10 @@ class Server extends AppModel {
 				'scheduler' => array('ok' => true)
 		);
 		foreach ($workers as $pid => $worker) {
-			$alive = file_exists("/proc/$pid");
 			$entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
 			$correct_user = ($currentUser === $worker['user']);
+			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found.');
+			$alive = $correct_user ? (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0) : false;
 			$ok = true;
 			if (!$alive || !$correct_user) {
 				$ok = false;
@@ -1709,13 +1710,14 @@ class Server extends AppModel {
 	}
 	
 	public function killWorker($pid, $user) {
+		if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found!');
 		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
 		$workers = $this->ResqueStatus->getWorkers();
 		$this->Log = ClassRegistry::init('Log');
 		if (isset($workers[$pid])) {
 			$worker = $workers[$pid];
-			if (file_exists("/proc/$pid")) {
-				shell_exec('kill ' . $pid . ' > /dev/null &');
+			if (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false) {
+				shell_exec('kill ' . $pid . ' > /dev/null 2>&1 &');
 				$this->Log->create();
 				$this->Log->save(array(
 						'org' => $user['org'],
@@ -1749,9 +1751,11 @@ class Server extends AppModel {
 		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
 		$workers = $this->ResqueStatus->getWorkers();
 		$this->Log = ClassRegistry::init('Log');
+		$currentUser = get_current_user();
 		foreach ($workers as $pid => $worker) {
-			$test = $pid;
-			if (!file_exists("/proc/$pid")) {
+			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found!');
+			$pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false; 
+			if ($worker['user'] == $currentUser && !$pidTest) {
 				$this->ResqueStatus->removeWorker($pid);
 				$this->Log->create();
 				$this->Log->save(array(
