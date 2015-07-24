@@ -16,6 +16,16 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['Organisation']['
 		'options' => array($distributionLevels),
 		'label' => 'Distribution',
 	));
+?>
+	<div id="SGContainer" style="display:none;">
+		<?php 
+			echo $this->Form->input('sharing_group_id', array(
+				'options' => array($sharingGroups),
+				'label' => 'Sharing Group',
+			));
+		?>
+	</div>
+<?php 
 	echo $this->Form->input('threat_level_id', array(
 			'div' => 'input clear'
 			));
@@ -69,6 +79,11 @@ foreach ($analysisDescriptions as $type => $def) {
 
 $(document).ready(function() {
 
+	$('#EventDistribution').change(function() {
+		if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
+		else $('#SGContainer').hide();
+	});
+	
 	$("#EventAnalysis, #EventThreatLevelId, #EventDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {

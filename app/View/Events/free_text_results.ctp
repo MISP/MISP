@@ -16,7 +16,7 @@
 				<th>Value</th>
 				<th>Category</th>
 				<th>Type</th>
-				<th>IDS</th>
+				<th>IDS<input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
 				<th>Comment</th>
 				<th>Actions</th>
 		</tr>
@@ -80,8 +80,8 @@
 					?>
 				</select>
 			</td>
-			<td class="short" style="width:30px;">
-				<input type="checkbox" id="<?php echo 'Attribute' . $k . 'To_ids'; ?>" <?php if ($item['to_ids']) echo 'checked'; ?>/>
+			<td class="short" style="width:40px;text-align:center;">
+				<input type="checkbox" id="<?php echo 'Attribute' . $k . 'To_ids'; ?>" <?php if ($item['to_ids']) echo 'checked'; ?> class="idsCheckbox" />
 			</td>
 			<td class="short">
 				<input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="Imported via the freetext import." <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . $item['comment'] . '"'?>/>
@@ -144,6 +144,9 @@
 				changeFreetextImportFrom();
 			});
 			$('#changeFrom').trigger('change');
+			$('#checkAll').change(function() {
+				$('.idsCheckbox').prop('checked', $('#checkAll').is(':checked'));
+			});
 		});
 	</script>
 <?php 

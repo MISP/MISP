@@ -97,7 +97,7 @@ class AppController extends Controller {
 				foreach ($authentication as $auth_key) {
 					if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
 						$found_misp_auth_key = true;
-						$user = $this->checkAuthUser(trim($auth_key));
+						$user['User'] = $this->checkAuthUser(trim($auth_key));
 						continue;
 					}
 				}

@@ -2,6 +2,12 @@
 <?php echo $this->Form->create('Organisation');?>
 	<fieldset>
 		<legend><?php echo __('Edit Organisation'); ?></legend>
+		<p style="font-weight:bold;">If the organisation should have access to this instance, make sure that the Local organisation setting is checked. <br />If you would only like to add a known external organisation for inclusion in sharing groups, uncheck the Local organisation setting.</p>
+		<div style="float:left;width:345px;">
+			<?php echo $this->Form->input('local', array('label' => 'Local organisation'));?>
+		</div>
+		<div class="clear"></div>
+		<hr />
 		<p style="font-weight:bold;">Mandatory fields. Leave the UUID field empty if the organisation doesn't have a UUID from another instance.</p>
 		<div style="float:left;width:345px;">
 		<?php

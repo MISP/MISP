@@ -24,6 +24,14 @@ class Server extends AppModel {
 			'foreignKey' => 'remote_org_id',
 		)
 	);
+	
+	public $hasMany = array(
+		'SharingGroupServer' => array(
+			'className' => 'SharingGroupServer',
+			'foreignKey' => 'server_id',
+			'dependent'=> true,
+		)	
+	);
 
 /**
  * Display field
@@ -1720,7 +1728,7 @@ class Server extends AppModel {
 				shell_exec('kill ' . $pid . ' > /dev/null 2>&1 &');
 				$this->Log->create();
 				$this->Log->save(array(
-						'org' => $user['org'],
+						'org' => $user['Organisation']['name'],
 						'model' => 'User',
 						'model_id' => $user['id'],
 						'email' => $user['email'],
@@ -1733,7 +1741,7 @@ class Server extends AppModel {
 				$this->ResqueStatus->removeWorker($pid);
 				$this->Log->create();
 				$this->Log->save(array(
-						'org' => $user['org'],
+						'org' => $user['Organisation']['name'],
 						'model' => 'User',
 						'model_id' => $user['id'],
 						'email' => $user['email'],
@@ -1759,7 +1767,7 @@ class Server extends AppModel {
 				$this->ResqueStatus->removeWorker($pid);
 				$this->Log->create();
 				$this->Log->save(array(
-						'org' => $user['org'],
+						'org' => $user['Organisation']['name'],
 						'model' => 'User',
 						'model_id' => $user['id'],
 						'email' => $user['email'],

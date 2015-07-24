@@ -1987,8 +1987,12 @@ class Event extends AppModel {
 			App::uses('PubSubTool', 'Tools');
 			$pubSubTool = new PubSubTool();
 			$hostOrg = Configure::read('MISP.org');
-			$fullEvent = $this->fetchEvent($id, false, $hostOrg, false);
-			$pubSubTool->publishEvent($fullEvent[0]);
+			$hostOrg = $this->Org->find('first', array('conditions' => array('name' => $hostOrg), 'fields' => array('id')));
+			if (!empty($hostOrg)) {
+				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => false, 'perm_site_admin' => false));
+				$fullEvent = $this->fetchEvent($user, array('eventid' => $id));
+				$pubSubTool->publishEvent($fullEvent[0]);
+			}
 		}
 		if ($event['Event']['distribution'] > 1) {
 			$uploaded = $this->uploadEventToServersRouter($id, $passAlong);

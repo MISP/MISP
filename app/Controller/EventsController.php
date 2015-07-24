@@ -748,6 +748,7 @@ class EventsController extends AppController {
 			
 			// Show the discussion
 			$this->loadModel('Thread');
+			$this->Thread->Behaviors->unload('SysLogLogable.SysLogLogable');
 			$params = array('conditions' => array('event_id' => $id),
 					'recursive' => -1,
 					'fields' => array('id', 'event_id', 'distribution', 'title')
@@ -1366,7 +1367,7 @@ class EventsController extends AppController {
 				}
 			}
 			// say what fields are to be updated
-			$fieldList = array('date', 'threat_level_id', 'analysis', 'info', 'published', 'distribution', 'timestamp');
+			$fieldList = array('date', 'threat_level_id', 'analysis', 'info', 'published', 'distribution', 'timestamp', 'sharing_group_id');
 
 			$this->Event->read();
 			// always force the org, but do not force it for admins
@@ -1398,6 +1399,10 @@ class EventsController extends AppController {
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 
+		$this->loadModel('SharingGroup');
+		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+		$this->set('sharingGroups', $sgs);
+		
 		// combobox for types
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));

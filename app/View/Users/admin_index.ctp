@@ -83,7 +83,7 @@
 			<?php echo h($user['User']['newsread']); ?>&nbsp;</td>
 			<td class="short action-links">
 				<?php
-		if (($isAclAdmin && (($user['User']['org'] == $me['org_id'])) || ('1' == $me['id'])) || ($isSiteAdmin)) {
+		if (($isAclAdmin && (($user['User']['org_id'] == $me['org_id'])) || ('1' == $me['id'])) || ($isSiteAdmin)) {
 		?>
 			<span class="icon-refresh useCursorPointer" onClick="initiatePasswordReset('<?php echo $user['User']['id']; ?>');"></span>
 		<?php
