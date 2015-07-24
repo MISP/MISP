@@ -75,17 +75,17 @@
 		));
 	?>
 	    <br /><b>Push rules:</b><br />
-	    <span id="push_tags_allowed" style="display:none;">Tags allowed:<span id="push_tags_allowed_text" style="color:green;"></span><br /></span>
-	    <span id="push_tags_blocked" style="display:none;">Tags blocked:<span id="push_tags_blocked_text" style="color:red;"></span><br /></span>
-	    <span id="push_orgs_allowed" style="display:none;">Organisations allowed:<span id="push_orgs_allowed_text" style="color:green;"></span><br /></span>
-	    <span id="push_orgs_blocked" style="display:none;">Organisations blocked:<span id="push_orgs_blocked_text" style="color:red;"></span><br /></span>
-		<span class="btn btn-inverse">Modify</span><br /><br />
+	    <span id="push_tags_allowed" style="display:none;">Events with the following tags allowed: <span id="push_tags_allowed_text" style="color:green;"></span><br /></span>
+	    <span id="push_tags_blocked" style="display:none;">Events with the following tags blocked: <span id="push_tags_blocked_text" style="color:red;"></span><br /></span>
+	    <span id="push_orgs_allowed" style="display:none;">Events with the following organisations allowed: <span id="push_orgs_allowed_text" style="color:green;"></span><br /></span>
+	    <span id="push_orgs_blocked" style="display:none;">Events with the following organisations blocked: <span id="push_orgs_blocked_text" style="color:red;"></span><br /></span>
+		<span class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Modify</span><br /><br />
 	    <b>Pull rules:</b><br />
-	    <span id="pull_tags_allowed" style="display:none;">Tags allowed:<span id="pull_tags_allowed_text" style="color:green;"></span><br /></span>
-	    <span id="pull_tags_blocked" style="display:none;">Tags blocked:<span id="pull_tags_blocked_text" style="color:red;"></span><br /></span>
-	    <span id="pull_orgs_allowed" style="display:none;">Organisations allowed:<span id="pull_orgs_allowed_text" style="color:green;"></span><br /></span>
-	    <span id="pull_orgs_blocked" style="display:none;">Organisations blocked:<span id="pull_orgs_blocked_text" style="color:red;"></span><br /></span>
-		<span class="btn btn-inverse">Modify</span><br /><br />
+	    <span id="pull_tags_allowed" style="display:none;">Events with the following tags allowed: <span id="pull_tags_allowed_text" style="color:green;"></span><br /></span>
+	    <span id="pull_tags_blocked" style="display:none;">Events with the following tags blocked: <span id="pull_tags_blocked_text" style="color:red;"></span><br /></span>
+	    <span id="pull_orgs_allowed" style="display:none;">Events with the following organisations allowed: <span id="pull_orgs_allowed_text" style="color:green;"></span><br /></span>
+	    <span id="pull_orgs_blocked" style="display:none;">Events with the following organisations blocked: <span id="pull_orgs_blocked_text" style="color:red;"></span><br /></span>
+		<span class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Modify</span><br /><br />
 	<?php 
 		echo $this->Form->input('push_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
