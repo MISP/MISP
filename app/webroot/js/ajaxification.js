@@ -1894,3 +1894,40 @@ function zeroMQServerAction(action) {
 		}
 	});
 }
+
+function convertServerFilterRulesToHTML(type) {
+	validOptions = ['pull', 'push'];
+	validFields = ['tags', 'orgs'];
+	if ($.inArray(type, validOptions) == -1) return false;
+	container = "#Server" + type.ucfirst() + "Rules";
+	var rules = {};
+	var tempJson = JSON.parse($(container).val());
+	validFields.forEach(function(field){
+		if (typeof tempJson[field] != 'undefined') {
+			var allowed = [];
+			var blocked = [];
+			tempJson[field].forEach(function(item) {
+				if (item.charAt(0) == '!') blocked.push(item);
+				else allowed.push(item);
+			});
+			if (allowed.length > 0) {
+				$('#' + type + '_' + field + '_allowed').show();
+				var t = '';
+				allowed.forEach(function(item) {
+					if (t.length > 0) t += ', ';
+					t += item;
+				});
+				$('#' + type + '_' + field + '_allowed_text').text(t);
+			}
+			if (blocked.length > 0) {
+				$('#' + type + '_' + field + '_blocked').show();
+				var t = '';
+				blocked.forEach(function(item) {
+					if (t.length > 0) t += ', ';
+					t += item.substring(1);
+				});
+				$('#' + type + '_' + field + '_blocked_text').text(t);
+			}
+		}
+	});
+}

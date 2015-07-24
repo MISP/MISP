@@ -73,8 +73,22 @@
 			'type' => 'file',
 			'div' => 'clear'
 		));
-		echo $this->Form->input('push_rules', array('type' => 'textarea', 'label' => 'Push filters (in JSON format)', 'div' => 'clear', 'class' => 'input-xxlarge'));
-		echo $this->Form->input('pull_rules', array('type' => 'textarea', 'label' => 'Pull filters (in JSON format)', 'div' => 'clear', 'class' => 'input-xxlarge'));
+	?>
+	    <br /><b>Push rules:</b><br />
+	    <span id="push_tags_allowed" style="display:none;">Tags allowed:<span id="push_tags_allowed_text" style="color:green;"></span><br /></span>
+	    <span id="push_tags_blocked" style="display:none;">Tags blocked:<span id="push_tags_blocked_text" style="color:red;"></span><br /></span>
+	    <span id="push_orgs_allowed" style="display:none;">Organisations allowed:<span id="push_orgs_allowed_text" style="color:green;"></span><br /></span>
+	    <span id="push_orgs_blocked" style="display:none;">Organisations blocked:<span id="push_orgs_blocked_text" style="color:red;"></span><br /></span>
+		<span class="btn btn-inverse">Modify</span><br /><br />
+	    <b>Pull rules:</b><br />
+	    <span id="pull_tags_allowed" style="display:none;">Tags allowed:<span id="pull_tags_allowed_text" style="color:green;"></span><br /></span>
+	    <span id="pull_tags_blocked" style="display:none;">Tags blocked:<span id="pull_tags_blocked_text" style="color:red;"></span><br /></span>
+	    <span id="pull_orgs_allowed" style="display:none;">Organisations allowed:<span id="pull_orgs_allowed_text" style="color:green;"></span><br /></span>
+	    <span id="pull_orgs_blocked" style="display:none;">Organisations blocked:<span id="pull_orgs_blocked_text" style="color:red;"></span><br /></span>
+		<span class="btn btn-inverse">Modify</span><br /><br />
+	<?php 
+		echo $this->Form->input('push_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
+		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 		echo $this->Form->input('json', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
 	</fieldset>
@@ -120,5 +134,7 @@ $(document).ready(function() {
 	            content: formInfoValues[e.currentTarget.id],
 	        }).popover('show');
 	});
+	convertServerFilterRulesToHTML("push");
+	convertServerFilterRulesToHTML("pull");
 });
 </script>
