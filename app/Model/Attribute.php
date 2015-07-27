@@ -1164,7 +1164,7 @@ class Attribute extends AppModel {
 		return $fails;
 	}
 	
-	public function hids($isSiteAdmin, $org ,$type, $tags = '', $from, $to, $last) {
+	public function hids($isSiteAdmin, $org ,$type, $tags = '', $from = false, $to = false, $last = false) {
 		if (empty($org)) throw new MethodNotAllowedException('No org supplied.');
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
@@ -1172,103 +1172,99 @@ class Attribute extends AppModel {
 		}
 		$typeArray = array($type, 'filename|' . $type);
 		if ($type == 'md5') $typeArray[] = 'malware-sample';
-		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray);
-		if (!$isSiteAdmin) {
-			$temp = array();
-			$distribution = array();
-			array_push($temp, array('Attribute.distribution >' => 0));
-			array_push($temp, array('AND' => array('Attribute.distribution >' => 0, 'Event.distribution >' => 0)));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
-			$conditions['OR'] = $temp;
-		}
-		
-		// If we sent any tags along, load the associated tag names for each attribute
+		$rules = array();
+		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin, $from, $to, $last);
 		if ($tags !== '') {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-			$temp = array();
-			foreach ($tagArray[0] as $accepted) {
-				$temp['OR'][] = array('Event.id' => $accepted);
+			if (!empty($tagArray[0])) {
+				foreach ($eventIds as $k => $v) {
+					if (!in_array($v['Event']['id'], $tagArray[0])) unset($eventIds[$k]);
+				}
 			}
-			$conditions['AND'][] = $temp;
-			$temp = array();
-			foreach ($tagArray[1] as $rejected) {
-				$temp['AND'][] = array('Event.id !=' => $rejected);
+			if (!empty($tagArray[1])) {
+				foreach ($eventIds as $k => $v) {
+					if (in_array($v['Event']['id'], $tagArray[1])) unset($eventIds[$k]);
+				}
 			}
-			$conditions['AND'][] = $temp;
 		}
-		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
-		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
-		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
-		
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
-		);
-		$items = $this->find('all', $params);
-		App::uses('HidsExport', 'Export');
-		$export = new HidsExport();
-		$rules = $export->export($items, strtoupper($type));
+		$continue = false;
+		foreach ($eventIds as $event) {
+			//restricting to non-private or same org if the user is not a site-admin.
+			$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray, 'Attribute.event_id' => $event['Event']['id']);
+			if (!$isSiteAdmin && ($org !== $event['Event']['org'])) $conditions['AND']['Attribute.distribution >'] = 0; 
+			$params = array(
+					'conditions' => $conditions, //array of conditions
+					'recursive' => 0, //int
+					'fields' => array('Attribute.type', 'Attribute.value1', 'Attribute.value2'),
+					'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+			);
+			$items = $this->find('all', $params);
+			App::uses('HidsExport', 'Export');
+			$export = new HidsExport();
+			$rules = array_merge($rules, $export->export($items, strtoupper($type), $continue));
+			$continue = true;
+		}
 		return $rules;
 	}
 	
-	public function nids($isSiteAdmin, $org, $format, $sid, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last) {
+	public function nids($isSiteAdmin, $org, $format, $sid, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false) {
+		if (empty($org)) throw new MethodNotAllowedException('No org supplied.');
 		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
-		$conditions['AND']['Attribute.type'] = $valid_types;
-		if (!$isSiteAdmin) {
-			$temp = array();
-			$distribution = array();
-			array_push($temp, array('AND' => array('Attribute.distribution >' => 0, 'Event.distribution >' => 0)));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
-			$conditions['OR'] = $temp;
-		}
-		
-		if ($id) array_push($conditions['AND'], array('Event.id' => $id));
-		if ($from) array_push($conditions['AND'], array('Event.date >=' => $from));
-		if ($to) array_push($conditions['AND'], array('Event.date <=' => $to));
-		if ($last) array_push($conditions['AND'], array('Event.publish_timestamp >=' => $last));
-		
-		// If we sent any tags along, load the associated tag names for each attribute
-		if ($tags) {
+
+		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin, $from, $to, $last);
+		if ($tags !== '') {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-			$temp = array();
-			foreach ($tagArray[0] as $accepted) {
-				$temp['OR'][] = array('Event.id' => $accepted);
+			if ($id) {
+				foreach ($eventIds as $k => $v) {
+					if ($v['Event']['id'] !== $id) unset($eventIds[$k]);
+				}
 			}
-			$conditions['AND'][] = $temp;
-			$temp = array();
-			foreach ($tagArray[1] as $rejected) {
-				$temp['AND'][] = array('Event.id !=' => $rejected);
+			if (!empty($tagArray[0])) {
+				foreach ($eventIds as $k => $v) {
+					if (!in_array($v['Event']['id'], $tagArray[0])) unset($eventIds[$k]);
+				}
 			}
-			$conditions['AND'][] = $temp;
+			if (!empty($tagArray[1])) {
+				foreach ($eventIds as $k => $v) {
+					if (in_array($v['Event']['id'], $tagArray[1])) unset($eventIds[$k]);
+				}
+			}
 		}
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
-		);
-		unset($this->virtualFields['category_order']);  // not needed for IDS export and speeds things up
-		$items = $this->find('all', $params);
+
+		if ($format == 'suricata') App::uses('NidsSuricataExport', 'Export');
+		else App::uses('NidsSnortExport', 'Export');
 		
-		// export depending of the requested type
-		switch ($format) {
-			case 'suricata':
--				App::uses('NidsSuricataExport', 'Export');
-				$export = new NidsSuricataExport();
-				break;
-			case 'snort':
-				App::uses('NidsSnortExport', 'Export');
-				$export = new NidsSnortExport();
-				break;
+		$rules = array();
+		foreach ($eventIds as $event) {
+			$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
+			$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
+			$conditions['AND']['Attribute.type'] = $valid_types;
+			if (!$isSiteAdmin && ($org !== $event['Event']['org'])) $conditions['AND']['Attribute.distribution >'] = 0; 
+			$params = array(
+					'conditions' => $conditions, //array of conditions
+					'recursive' => 0, //int
+					'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+			);
+			unset($this->virtualFields['category_order']);  // not needed for IDS export and speeds things up
+			$items = $this->find('all', $params);
+			
+			// export depending of the requested type
+			switch ($format) {
+				case 'suricata':
+					$export = new NidsSuricataExport();
+					break;
+				case 'snort':
+					$export = new NidsSnortExport();
+					break;
+			}
+			$rules = array_merge($rules, $export->export($items, $sid, $format, $continue));
+			// Only pre-pend the comments once
+			$continue = true;
 		}
-		$rules = $export->export($items, $sid, $format, $continue);
 		return $rules;
 	}
 

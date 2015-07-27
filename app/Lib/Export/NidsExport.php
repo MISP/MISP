@@ -35,22 +35,6 @@ class NidsExport {
 		}
 		// generate the rules
 		foreach ($items as &$item) {
-			/*switch ($item['Event']['risk']) {
-				case 'Undefined':
-					$priority = '4';
-					break;
-				case 'Low':
-					$priority = '3';
-					break;
-				case 'Medium':
-					$priority = '2';
-					break;
-				case 'High':
-					$priority = '1';
-					break;
-				default:
-					$priority = '4';
-			}*/
 
 			# proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
 			$ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' %s"';
