@@ -1895,39 +1895,107 @@ function zeroMQServerAction(action) {
 	});
 }
 
-function convertServerFilterRulesToHTML(type) {
-	validOptions = ['pull', 'push'];
-	validFields = ['tags', 'orgs'];
+function convertServerFilterRules(type, rules) {
 	if ($.inArray(type, validOptions) == -1) return false;
 	container = "#Server" + type.ucfirst() + "Rules";
-	var rules = {};
 	var tempJson = JSON.parse($(container).val());
 	validFields.forEach(function(field){
+		var allowed = [];
+		var blocked = [];
 		if (typeof tempJson[field] != 'undefined') {
-			var allowed = [];
-			var blocked = [];
 			tempJson[field].forEach(function(item) {
-				if (item.charAt(0) == '!') blocked.push(item);
+				if (item.charAt(0) == '!') blocked.push(item.substr(1));
 				else allowed.push(item);
 			});
-			if (allowed.length > 0) {
-				$('#' + type + '_' + field + '_allowed').show();
-				var t = '';
-				allowed.forEach(function(item) {
-					if (t.length > 0) t += ', ';
-					t += item;
-				});
-				$('#' + type + '_' + field + '_allowed_text').text(t);
-			}
-			if (blocked.length > 0) {
-				$('#' + type + '_' + field + '_blocked').show();
-				var t = '';
-				blocked.forEach(function(item) {
-					if (t.length > 0) t += ', ';
-					t += item.substring(1);
-				});
-				$('#' + type + '_' + field + '_blocked_text').text(t);
-			}
 		}
+		rules[type][field]["allowed"] = allowed;
+		rules[type][field]["blocked"] = blocked; 
 	});
+	serverRuleUpdate();
+	return rules;
+}
+
+function serverRuleUpdate() {
+	var statusOptions = ["allowed", "blocked"];
+	validOptions.forEach(function(type) {
+		validFields.forEach(function(field) {
+			statusOptions.forEach(function(status) {
+				if (rules[type][field][status].length > 0) {
+					$('#' + type + '_' + field + '_' + status).show();
+					var t = '';
+					rules[type][field][status].forEach(function(item) {
+						if (t.length > 0) t += ', ';
+						t += item;
+					});
+					$('#' + type + '_' + field + '_' + status + '_text').text(t);
+				}
+			});
+		});
+	});
+	serverRuleGenerateJSON();
+}
+
+function serverRuleFormActivate(type) {
+	if (type != 'pull' && type != 'push') return false;
+	$('.server_rule_popover').hide();
+	$('#gray_out').fadeIn();
+	$('#server_' + type + '_rule_popover').show();
+}
+
+function serverRuleCancel() {
+	$("#gray_out").fadeOut();
+	$(".server_rule_popover").fadeOut();
+}
+
+function serverRuleGenerateJSON() {
+	jsonObject = {"push":{"tags":[], "orgs":[]}, "pull":{"tags":[], "orgs":[]}};
+	validOptions.forEach(function(type) {
+		validFields.forEach(function(field) {
+			if (rules[type][field]["allowed"].length > 0) {
+				rules[type][field]["allowed"].forEach(function(value) {
+					jsonObject[type][field].push(value);	
+				});
+			}
+			if (rules[type][field]["blocked"].length > 0) {
+				rules[type][field]["blocked"].forEach(function(value) {
+					jsonObject[type][field].push("!" + value);	
+				});
+			}
+		});
+	});
+	$('#ServerJson').val(JSON.stringify(jsonObject));
+}
+
+function serverRulePopulateTagPicklist() {
+	var fields = ["tags", "orgs"];
+	fields.forEach(function(field) {
+		var target = "";
+		window[field].forEach(function(element) {
+			if ($.inArray(element.name, rules["push"][field]["allowed"]) != -1) target = "#" + field + "LeftValues";
+			else if ($.inArray(element.name, rules["push"][field]["blocked"]) != -1) target = "#" + field + "RightValues";
+			else target = "#" + field + "MiddleValues";
+			$(target).append($('<option/>', { 
+				value: element.name,
+				text : element.name 
+			}));
+		});
+	});
+}
+
+function submitServerRulePopulateTagPicklistValues(context) {
+	if (context == "push") {
+		validFields.forEach(function(field) {
+			rules["push"][field]["allowed"] = [];
+			$("#" + field + "LeftValues option").each(function() {
+				rules["push"][field]["allowed"].push($(this).val());
+			});
+			rules["push"][field]["blocked"] = [];
+			$("#" + field + "RightValues option").each(function() {
+				rules["push"][field]["blocked"].push($(this).val());
+			});
+		});
+	}
+	$('#server_push_rule_popover').fadeOut();
+	$('#gray_out').fadeOut();
+	serverRuleUpdate();
 }

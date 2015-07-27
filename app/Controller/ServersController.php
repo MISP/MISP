@@ -239,6 +239,19 @@ class ServersController extends AppController {
 		$this->set('organisationOptions', $organisationOptions);
 		$this->set('localOrganisations', $localOrganisations);
 		$this->set('externalOrganisations', $externalOrganisations);
+
+		// list all orgs for the rule picker
+		$temp = $localOrganisations + $externalOrganisations;
+		$allOrgs = array();
+		foreach ($temp as $k => $v) $allOrgs[] = array('id' => $k, 'name' => $v);
+		$this->set('allOrganisations', $allOrgs);
+		
+		// list all tags for the rule picker
+		$this->loadModel('Tag');
+		$temp = $this->Tag->find('all', array('recursive' => -1));
+		$allTags = array();
+		foreach ($temp as $t) $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
+		$this->set('allTags', $allTags);
 	}
 
 /**

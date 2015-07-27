@@ -79,13 +79,13 @@
 	    <span id="push_tags_blocked" style="display:none;">Events with the following tags blocked: <span id="push_tags_blocked_text" style="color:red;"></span><br /></span>
 	    <span id="push_orgs_allowed" style="display:none;">Events with the following organisations allowed: <span id="push_orgs_allowed_text" style="color:green;"></span><br /></span>
 	    <span id="push_orgs_blocked" style="display:none;">Events with the following organisations blocked: <span id="push_orgs_blocked_text" style="color:red;"></span><br /></span>
-		<span class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Modify</span><br /><br />
+		<span id="push_modify" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Modify</span><br /><br />
 	    <b>Pull rules:</b><br />
 	    <span id="pull_tags_allowed" style="display:none;">Events with the following tags allowed: <span id="pull_tags_allowed_text" style="color:green;"></span><br /></span>
 	    <span id="pull_tags_blocked" style="display:none;">Events with the following tags blocked: <span id="pull_tags_blocked_text" style="color:red;"></span><br /></span>
 	    <span id="pull_orgs_allowed" style="display:none;">Events with the following organisations allowed: <span id="pull_orgs_allowed_text" style="color:green;"></span><br /></span>
 	    <span id="pull_orgs_blocked" style="display:none;">Events with the following organisations blocked: <span id="pull_orgs_blocked_text" style="color:red;"></span><br /></span>
-		<span class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Modify</span><br /><br />
+		<span id="pull_modify" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Modify</span><br /><br />
 	<?php 
 		echo $this->Form->input('push_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
@@ -96,6 +96,10 @@
 <?php
 	echo $this->Form->end();
 ?>
+</div>
+<div id="hiddenRuleForms">
+	<?php echo $this->element('serverRuleElements/push'); ?>
+	<?php echo $this->element('serverRuleElements/pull'); ?>
 </div>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'edit'));
@@ -114,6 +118,12 @@ var formInfoValues = {
 		'ServerSubmittedCert' : "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.",
 		'ServerSelfSigned' : "Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended)."
 };
+
+var rules = {"push": {"tags": {"allowed":[], "blocked":[]}, "orgs": {"allowed":[], "blocked":[]}}, "pull": {"tags": {"allowed":[], "blocked":[]}, "orgs": {"allowed":[], "blocked":[]}}};
+var validOptions = ['pull', 'push'];
+var validFields = ['tags', 'orgs'];
+var tags = <?php echo json_encode($allTags); ?>;
+var orgs = <?php echo json_encode($allOrganisations); ?>;
 
 $(document).ready(function() {
 	serverOrgTypeChange();
@@ -134,7 +144,14 @@ $(document).ready(function() {
 	            content: formInfoValues[e.currentTarget.id],
 	        }).popover('show');
 	});
-	convertServerFilterRulesToHTML("push");
-	convertServerFilterRulesToHTML("pull");
+	rules = convertServerFilterRules("push", rules);
+	rules = convertServerFilterRules("pull", rules);
+	serverRulePopulateTagPicklist();
+	$("#push_modify").click(function() {
+		serverRuleFormActivate('push');
+	});
+	$("#pull_modify").click(function() {
+		serverRuleFormActivate('pull');
+	});
 });
 </script>
