@@ -43,15 +43,21 @@ class RegexpController extends AppController {
 					}
 				}
 			} else {
+				$success = false;
 				foreach ($types as $key => $type) {
 					if ($this->request->data['Regexp'][$key] == 1) {
 						$this->Regexp->create();
 						$this->request->data['Regexp']['type'] = $type;
 						$this->Regexp->save($this->request->data);
+						$success = true;
 					}
 				}
-				$this->Session->setFlash(__('The Regular expressions have been saved.'));
-				$this->redirect(array('action' => 'index'));
+				if ($success) {
+					$this->Session->setFlash(__('The Regular expressions have been saved.'));
+					$this->redirect(array('action' => 'index'));
+				} else {
+					$this->Session->setFlash(__('Could not create the Regex entry as no types were selected. Either check "All" or check the types that you wish the Regex to affect.'));
+				}
 			}
 		}
 		$this->set('types', $types);
