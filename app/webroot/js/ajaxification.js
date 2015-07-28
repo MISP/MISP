@@ -1965,8 +1965,8 @@ function serverRuleGenerateJSON() {
 				});
 			}
 		});
+		$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(jsonObject[type]));
 	});
-	$('#ServerJson').val(JSON.stringify(jsonObject));
 }
 
 function serverRulePopulateTagPicklist() {
@@ -2010,7 +2010,6 @@ function submitServerRulePopulateTagPicklistValues(context) {
 		$("#" + field + context + "RightValues option").each(function() {
 			rules[context][field]["blocked"].push($(this).val());
 		});
-		console.log(rules);
 	});
 
 	$('#server_' + context + '_rule_popover').fadeOut();
