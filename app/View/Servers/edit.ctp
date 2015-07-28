@@ -144,8 +144,8 @@ $(document).ready(function() {
 	            content: formInfoValues[e.currentTarget.id],
 	        }).popover('show');
 	});
-	rules = convertServerFilterRules("push", rules);
-	rules = convertServerFilterRules("pull", rules);
+	rules = convertServerFilterRules(rules);
+	rules = convertServerFilterRules(rules);
 	serverRulePopulateTagPicklist();
 	$("#push_modify").click(function() {
 		serverRuleFormActivate('push');

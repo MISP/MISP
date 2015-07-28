@@ -1895,21 +1895,22 @@ function zeroMQServerAction(action) {
 	});
 }
 
-function convertServerFilterRules(type, rules) {
-	if ($.inArray(type, validOptions) == -1) return false;
-	container = "#Server" + type.ucfirst() + "Rules";
-	var tempJson = JSON.parse($(container).val());
-	validFields.forEach(function(field){
-		var allowed = [];
-		var blocked = [];
-		if (typeof tempJson[field] != 'undefined') {
-			tempJson[field].forEach(function(item) {
-				if (item.charAt(0) == '!') blocked.push(item.substr(1));
-				else allowed.push(item);
-			});
-		}
-		rules[type][field]["allowed"] = allowed;
-		rules[type][field]["blocked"] = blocked; 
+function convertServerFilterRules(rules) {
+	validOptions.forEach(function (type) {
+		container = "#Server" + type.ucfirst() + "Rules";
+		var tempJson = JSON.parse($(container).val());
+		validFields.forEach(function(field){
+			var allowed = [];
+			var blocked = [];
+			if (typeof tempJson[field] != 'undefined') {
+				tempJson[field].forEach(function(item) {
+					if (item.charAt(0) == '!') blocked.push(item.substr(1));
+					else allowed.push(item);
+				});
+			}
+			rules[type][field]["allowed"] = allowed;
+			rules[type][field]["blocked"] = blocked; 
+		});
 	});
 	serverRuleUpdate();
 	return rules;
@@ -1928,6 +1929,8 @@ function serverRuleUpdate() {
 						t += item;
 					});
 					$('#' + type + '_' + field + '_' + status + '_text').text(t);
+				} else {
+					$('#' + type + '_' + field + '_' + status).hide();
 				}
 			});
 		});
@@ -1968,34 +1971,87 @@ function serverRuleGenerateJSON() {
 
 function serverRulePopulateTagPicklist() {
 	var fields = ["tags", "orgs"];
+	var target = "";
 	fields.forEach(function(field) {
-		var target = "";
+		target = "";
 		window[field].forEach(function(element) {
-			if ($.inArray(element.name, rules["push"][field]["allowed"]) != -1) target = "#" + field + "LeftValues";
-			else if ($.inArray(element.name, rules["push"][field]["blocked"]) != -1) target = "#" + field + "RightValues";
-			else target = "#" + field + "MiddleValues";
+			if ($.inArray(element.name, rules["push"][field]["allowed"]) != -1) target = "#" + field + "pushLeftValues";
+			else if ($.inArray(element.name, rules["push"][field]["blocked"]) != -1) target = "#" + field + "pushRightValues";
+			else target = "#" + field + "pushMiddleValues";
 			$(target).append($('<option/>', { 
 				value: element.name,
 				text : element.name 
+			}));
+		});
+		target = "#" + field + "pullLeftValues";
+		rules["pull"][field]["allowed"].forEach(function(t) {
+			$(target).append($('<option/>', { 
+				value: t,
+				text : t 
+			}));
+		});
+		target = "#" + field + "pullRightValues";
+		rules["pull"][field]["blocked"].forEach(function(t) {
+			$(target).append($('<option/>', { 
+				value: t,
+				text : t 
 			}));
 		});
 	});
 }
 
 function submitServerRulePopulateTagPicklistValues(context) {
-	if (context == "push") {
-		validFields.forEach(function(field) {
-			rules["push"][field]["allowed"] = [];
-			$("#" + field + "LeftValues option").each(function() {
-				rules["push"][field]["allowed"].push($(this).val());
-			});
-			rules["push"][field]["blocked"] = [];
-			$("#" + field + "RightValues option").each(function() {
-				rules["push"][field]["blocked"].push($(this).val());
-			});
+	validFields.forEach(function(field) {
+		rules[context][field]["allowed"] = [];
+		$("#" + field + context + "LeftValues option").each(function() {
+			rules[context][field]["allowed"].push($(this).val());
 		});
-	}
-	$('#server_push_rule_popover').fadeOut();
+		rules[context][field]["blocked"] = [];
+		$("#" + field + context + "RightValues option").each(function() {
+			rules[context][field]["blocked"].push($(this).val());
+		});
+		console.log(rules);
+	});
+
+	$('#server_' + context + '_rule_popover').fadeOut();
 	$('#gray_out').fadeOut();
 	serverRuleUpdate();
 }
+
+// type = pull/push, field = tags/orgs, from = Left/Middle/Right, to = Left/Middle/Right
+function serverRuleMoveFilter(type, field, from, to) {
+	var opposites = {"Left": "Right", "Right": "Left"};
+	// first fetch the value
+	var value = "";
+	if (type == "pull" && from == "Middle") {
+		var doInsert = true;
+		value = $("#" + field + type + "NewValue").val();
+		if (value.length !== 0 && value.trim()) {
+			$("#" + field + type + to + "Values" + " option").each(function() {
+				if (value == $(this).val()) doInsert = false;
+			});
+			$("#" + field + type + opposites[to] + "Values" + " option").each(function() {
+				if (value == $(this).val()) $(this).remove();
+			});
+			if (doInsert) {
+				$("#" + field + type + to + "Values").append($('<option/>', { 
+					value: value,
+					text : value 
+				}));
+			}
+		}
+		$("#" + field + type + "NewValue").val('');
+	} else {
+		$("#" + field + type + from + "Values option:selected").each(function () {
+			if (type != "pull" || to != "Middle") {
+				value = $(this).val();
+				$("#" + field + type + to + "Values").append($('<option/>', { 
+					value: value,
+					text : value 
+				}));
+			}
+			$(this).remove();
+		});
+	}
+}
+
