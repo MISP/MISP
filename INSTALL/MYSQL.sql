@@ -263,7 +263,6 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `organization` varchar(10) COLLATE utf8_bin DEFAULT NULL,
   `remote_org_id` int(11) NOT NULL,
   `self_signed` tinyint(1) NOT NULL,
-  `cert_file` varchar(255) COLLATE utf8_bin NOT NULL,
   `pull_rules` text COLLATE utf8_bin NOT NULL,
   `push_rules` text COLLATE utf8_bin NOT NULL,
   `cert_file` varchar(255) COLLATE utf8_bin NOT NULL,
