@@ -137,6 +137,19 @@ class ServersController extends AppController {
 		$this->set('organisationOptions', $organisationOptions);
 		$this->set('localOrganisations', $localOrganisations);
 		$this->set('externalOrganisations', $externalOrganisations);
+		
+		// list all orgs for the rule picker
+		$temp = $localOrganisations + $externalOrganisations;
+		$allOrgs = array();
+		foreach ($temp as $k => $v) $allOrgs[] = array('id' => $k, 'name' => $v);
+		$this->set('allOrganisations', $allOrgs);
+		
+		// list all tags for the rule picker
+		$this->loadModel('Tag');
+		$temp = $this->Tag->find('all', array('recursive' => -1));
+		$allTags = array();
+		foreach ($temp as $t) $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
+		$this->set('allTags', $allTags);
 	}
 
 /**
@@ -167,7 +180,6 @@ class ServersController extends AppController {
 				$fail = true;
 				$this->Session->setFlash(__('The push filter rules must be in valid JSON format.'));
 			}
-			
 			if (!$fail) {
 				// say what fields are to be updated
 				$fieldList = array('id', 'url', 'push', 'pull', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'push_rules', 'pull_rules');

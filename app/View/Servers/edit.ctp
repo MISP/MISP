@@ -145,7 +145,6 @@ $(document).ready(function() {
 	        }).popover('show');
 	});
 	rules = convertServerFilterRules(rules);
-	rules = convertServerFilterRules(rules);
 	serverRulePopulateTagPicklist();
 	$("#push_modify").click(function() {
 		serverRuleFormActivate('push');
