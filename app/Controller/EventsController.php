@@ -1397,11 +1397,14 @@ class EventsController extends AppController {
 
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
-		$this->set('distributionLevels', $this->Event->distributionLevels);
 
 		$this->loadModel('SharingGroup');
 		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		$this->set('sharingGroups', $sgs);
+		
+		$distributionLevels = $this->Event->distributionLevels;
+		if (empty($sgs)) unset ($distributionLevels[4]);
+		$this->set('distributionLevels', $distributionLevels);
 		
 		// combobox for types
 		$threat_levels = $this->Event->ThreatLevel->find('all');
