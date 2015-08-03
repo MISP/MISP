@@ -361,7 +361,7 @@ class ServersController extends AppController {
 					'job_input' => 'Server: ' . $id,
 					'status' => 0,
 					'retries' => 0,
-					'org' => $this->Auth->user('org'),
+					'org' => $this->Auth->user('Organisation')['name'],
 					'message' => 'Pulling.',
 			);
 			$this->Job->save($data);

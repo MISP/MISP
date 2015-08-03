@@ -1225,13 +1225,13 @@ class Event extends AppModel {
 		$fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id');
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id');
-		$fieldsOrg = array(array('id', 'name'), array('id', 'name', 'uuid'));
+		$fieldsOrg = array('id', 'name', 'uuid');
 		$fieldsSharingGroup = array(
 			array('fields' => array('SharingGroup.id','SharingGroup.name', 'SharingGroup.releasability', 'SharingGroup.description')),
 			array(
 				'fields' => array('SharingGroup.*'),
 					'SharingGroupOrg' => array(
-						'Organisation' => array('fields' => $fieldsOrg[1]),
+						'Organisation' => array('fields' => $fieldsOrg),
 					),
 					'SharingGroupServer' => array(
 						'Server',
@@ -1240,7 +1240,6 @@ class Event extends AppModel {
 		);
 		$fieldsServer = array('id', 'name');
 
-		if ($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) $fieldsOrg[] = 'uuid';
 		if (!$options['includeAllTags']) $tagConditions = array('exportable' => 1);
 		else $tagConditions = array();
 		
@@ -1251,18 +1250,18 @@ class Event extends AppModel {
 				'ThreatLevel' => array(
 						'fields' => array('ThreatLevel.name')
 				),
-				'Org' => array('fields' => $fieldsOrg[($user['Role']['perm_site_admin'] ? 1 : 0)]), 
-				'Orgc' => array('fields' => $fieldsOrg[($user['Role']['perm_site_admin'] ? 1 : 0)]),
+				'Org' => array('fields' => $fieldsOrg), 
+				'Orgc' => array('fields' => $fieldsOrg),
 				'Attribute' => array(
 					'fields' => $fieldsAtt,
 					'conditions' => $conditionsAttributes,
-					'SharingGroup' => $fieldsSharingGroup[($user['Role']['perm_site_admin'] ? 1 : 0)],
+					'SharingGroup' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)],
 				),
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,
 					'conditions' => array('deleted' => 0),
 				),
-				'SharingGroup' => $fieldsSharingGroup[($user['Role']['perm_site_admin'] ? 1 : 0)],
+				'SharingGroup' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)],
 				'EventTag' => array(
 					'Tag' => array(
 						'conditions' => $tagConditions
