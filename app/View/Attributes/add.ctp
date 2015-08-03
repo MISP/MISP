@@ -36,10 +36,12 @@
 			?>
 				<div id="SGContainer" style="display:none;">
 			<?php
+				if (!empty($sharingGroups)) {
 					echo $this->Form->input('sharing_group_id', array(
 							'options' => array($sharingGroups),
 							'label' => 'Sharing Group',
 					));
+				}
 			?>
 				</div>
 			<?php 

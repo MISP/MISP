@@ -22,10 +22,12 @@
 		?>
 			<div id="SGContainer" style="display:none;">
 		<?php
-			echo $this->Form->input('sharing_group_id', array(
-					'options' => array($sharingGroups),
-					'label' => 'Sharing Group',
-				));
+			if (!empty($sharingGroups)) {
+				echo $this->Form->input('sharing_group_id', array(
+						'options' => array($sharingGroups),
+						'label' => 'Sharing Group',
+					));
+			}
 		?>
 		</div>
 		<?php 
