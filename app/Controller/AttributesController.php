@@ -265,7 +265,7 @@ class AttributesController extends AppController {
 		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		$this->set('sharingGroups', $sgs);
 		
-		$distributionLevels = $this->Event->distributionLevels;
+		$distributionLevels = $this->Attribute->distributionLevels;
 		if (empty($sgs)) unset ($distributionLevels[4]);
 		$this->set('distributionLevels', $distributionLevels);
 		
@@ -784,7 +784,7 @@ class AttributesController extends AppController {
 		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		$this->set('sharingGroups', $sgs);
 		
-		$distributionLevels = $this->Event->distributionLevels;
+		$distributionLevels = $this->Attribute->distributionLevels;
 		if (empty($sgs)) unset ($distributionLevels[4]);
 		$this->set('distributionLevels', $distributionLevels);
 		
