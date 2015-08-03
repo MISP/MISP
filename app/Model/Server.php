@@ -9,10 +9,13 @@ class Server extends AppModel {
 	public $name = 'Server';					// TODO general
 
 	public $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable, check: 'userModel' and 'userKey' can be removed given default
-		'userModel' => 'User',
-		'userKey' => 'user_id',
-		'change' => 'full'
-	), 'Trim');
+			'userModel' => 'User',
+			'userKey' => 'user_id',
+			'change' => 'full'
+		), 
+		'Trim',
+		'Containable'
+	);
 	
 	public $belongsTo = array(
 		'Organisation' => array(
@@ -30,7 +33,11 @@ class Server extends AppModel {
 			'className' => 'SharingGroupServer',
 			'foreignKey' => 'server_id',
 			'dependent'=> true,
-		)	
+		),
+		'User' => array(
+			'className' => 'User',
+			'foreignKey' => 'server_id',
+		),
 	);
 
 /**
@@ -863,7 +870,7 @@ class Server extends AppModel {
 						if (!$existingEvent) {
 							// add data for newly imported events
 							$passAlong = $server['Server']['url'];
-							$result = $eventModel->_add($event, $fromXml = true, $user, $server['Server']['org'], $passAlong, true, $jobId);
+							$result = $eventModel->_add($event, $fromXml = true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
 							if ($result) $successes[] = $eventId;
 							else {
 								$fails[$eventId] = 'Failed (partially?) because of validation errors: '. print_r($eventModel->validationErrors, true);

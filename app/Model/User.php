@@ -204,6 +204,13 @@ class User extends AppModel {
 			'conditions' => '',
 			'fields' => '',
 			'order' => ''
+		),
+		'Server' => array(
+			'className' => 'Server',
+			'foreignKey' => 'server_id',
+			'conditions' => '',
+			'fields' => '',
+			'order' => ''
 		)
 	);
 
@@ -237,7 +244,6 @@ class User extends AppModel {
 		),
 		'Trim',
 		'Containable'
-		//'RemoveNewline' => array('fields' => array('gpgkey')),
 	);
 
 	public function beforeSave($options = array()) {

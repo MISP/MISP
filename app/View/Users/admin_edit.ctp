@@ -20,10 +20,17 @@
 				'type' => 'text',
 				'class' => 'datepicker',
 		));
+	?>
+		<div id = "syncServers" class="hidden">
+	<?php 
+			echo $this->Form->input('server_id', array('label' => 'Sync user for', 'div' => 'clear', 'options' => $servers));
+	?>
+		</div>
+	<?php 
 		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
-		?>
+	?>
 			<div class="clear"><span onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
-		<?php 
+	<?php 
 		echo $this->Form->input('termsaccepted', array('label' => 'Terms accepted'));
 		echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => 'Change Password'));
 		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published'));
@@ -40,3 +47,12 @@ echo $this->Form->end();?>
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'editUser'));
 ?>
 
+<script type="text/javascript">
+var syncRoles = <?php echo json_encode($syncRoles); ?>;
+$(document).ready(function() {
+	syncUserSelected();
+	$('#UserRoleId').change(function() {
+		syncUserSelected();
+	});
+});
+</script>

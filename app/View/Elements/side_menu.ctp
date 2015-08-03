@@ -130,13 +130,15 @@
 				break;
 				
 				case 'sync':
-					if ($menuItem === 'edit' && $isAdmin): ?>
-					<li class="active"><?php if ($isAdmin) echo $this->Html->link('Edit Server', array('controller' => 'servers', 'action' => 'edit')); ?></li>
+					if ($menuItem === 'edit' && $isSiteAdmin): ?>
+					<li class="active"><?php echo $this->Html->link('Edit Server', array('controller' => 'servers', 'action' => 'edit')); ?></li>
 					<li><?php echo $this->Form->postLink('Delete', array('action' => 'delete', $this->Form->value('Server.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Server.id'))); ?></li>
 					<li class="divider"></li>
 					<?php endif; ?>
 					<li id='liindex'><?php echo $this->Html->link('List Servers', array('controller' => 'servers', 'action' => 'index'));?></li>
+					<?php if ($isSiteAdmin): ?>
 					<li id='liadd'><?php echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
+					<?php endif;?>
 					<?php 
 				break;	
 					

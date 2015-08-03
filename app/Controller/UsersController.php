@@ -340,7 +340,9 @@ class UsersController extends AppController {
 			$params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));
 		}
 		$roles = $this->User->Role->find('list', $params);
+		$syncRoles = $this->User->Role->find('list', array('conditions' => array('perm_sync' => 1), 'recursive' => -1));
 		if ($this->request->is('post')) {
+			if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) $this->request->data['User']['server_id'] = 0;
 			$this->User->create();
 			// set invited by
 			$this->loadModel('Role');
@@ -373,15 +375,25 @@ class UsersController extends AppController {
 				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
 			}
 		} else {
-			$orgs = $this->User->Organisation->find('list', array(
-				'conditions' => array('local' => 1),
-			));
-			$this->set('orgs', $orgs);
-			// generate auth key for a new user
 			$this->newkey = $this->User->generateAuthKey();
 			$this->set('authkey', $this->newkey);
 		}
+		$orgs = $this->User->Organisation->find('list', array(
+				'conditions' => array('local' => 1),
+		));
+		$this->set('orgs', $orgs);
+		// generate auth key for a new user
+		$this->loadModel('Server');
+		$conditions = array();
+		if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
+		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name')));
+		$servers = array(0 => 'Nothing');
+		foreach ($temp as $t) {
+			$servers[$t['Server']['id']] = $t['Server']['name'];
+		}
+		$this->set('servers', $servers);
 		$this->set(compact('roles'));
+		$this->set(compact('syncRoles'));
 	}
 
 /**
@@ -392,7 +404,6 @@ class UsersController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
-		//debug($fields);debug(tru);
 		$this->set('currentOrg', $this->Auth->User('org_id'));
 		$this->User->id = $id;
 		if (!$this->User->exists()) {
@@ -424,8 +435,11 @@ class UsersController extends AppController {
 			));
 		}
 		$roles = $this->User->Role->find('list', $params);
+		$syncRoles = $this->User->Role->find('list', array('conditions' => array('perm_sync' => 1), 'recursive' => -1));
+		
 		$this->set('currentId', $id);
 		if ($this->request->is('post') || $this->request->is('put')) {
+			if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) $this->request->data['User']['server_id'] = 0;
 			$fields = array();
 			foreach (array_keys($this->request->data['User']) as $field) {
 				if($field != 'password') array_push($fields, $field);
@@ -499,9 +513,19 @@ class UsersController extends AppController {
 					'conditions' => array('local' => 1),
 			));
 		}
+		$this->loadModel('Server');
+		$conditions = array();
+		if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
+		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name')));
+		$servers = array(0 => 'Nothing');
+		foreach ($temp as $t) {
+			$servers[$t['Server']['id']] = $t['Server']['name'];
+		}
+		$this->set('servers', $servers);
 		$this->set('orgs', $orgs);
 		$this->set('id', $id);
 		$this->set(compact('roles'));
+		$this->set(compact('syncRoles'));
 	}
 
 /**

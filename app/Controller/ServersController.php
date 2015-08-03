@@ -15,6 +15,18 @@ class ServersController extends AppController {
 
 	public $paginate = array(
 			'limit' => 60,
+			'recursive' => -1,
+			'contain' => array(
+					'User' => array(
+							'fields' => array('User.id', 'User.org_id', 'User.email'),
+					),
+					'Organisation' => array(
+							'fields' => array('Organisation.name', 'Organisation.id'),
+					),
+					'RemoteOrg' => array(
+							'fields' => array('RemoteOrg.name', 'RemoteOrg.id'),
+					),
+			),
 			'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
 			'order' => array(
 					'Server.url' => 'ASC'
@@ -42,18 +54,11 @@ class ServersController extends AppController {
  * @return void
  */
 	public function index() {
-		$this->Server->recursive = 0;
 		if ($this->_isSiteAdmin()) {
-			$this->paginate = array(
-					'conditions' => array(),
-					'fields' => array('Server.*', 'Organisation.name', 'Organisation.id', 'RemoteOrg.name', 'RemoteOrg.id'),
-			);
+
 		} else {
 			if (!$this->userRole['perm_sync'] && !$this->userRole['perm_admin']) $this->redirect(array('controller' => 'events', 'action' => 'index'));
-			$conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
-			$this->paginate = array(
-					'conditions' => array($conditions),
-			);
+			$this->paginate['conditions'] = array('Server.org_id LIKE' => $this->Auth->user('org_id'));
 		}
 		$this->set('servers', $this->paginate());
 	}
@@ -64,7 +69,7 @@ class ServersController extends AppController {
  * @return void
  */
 	public function add() {
-		if (!$this->_isAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post')) {
 			$json = json_decode($this->request->data['Server']['json'], true);
 			
@@ -165,7 +170,7 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 		$s = $this->Server->read(null, $id);
-		if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$json = json_decode($this->request->data['Server']['json'], true);
 			$fail = false;
@@ -283,7 +288,7 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 		$s = $this->Server->read(null, $id);
-		if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->Server->delete()) {
 			$this->Session->setFlash(__('Server deleted'));
 			$this->redirect(array('action' => 'index'));

@@ -1705,7 +1705,7 @@ class Event extends AppModel {
 	 *
 	 * @return bool true if success
 	 */
-	public function _add(&$data, $fromXml, $user, $org='', $passAlong = null, $fromPull = false, $jobId = null) {
+	public function _add(&$data, $fromXml, $user, $org_id='', $passAlong = null, $fromPull = false, $jobId = null) {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
@@ -1717,7 +1717,7 @@ class Event extends AppModel {
 		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
 		//else $data['Event']['org'] = $auth->user('org');
 		if ($fromPull) {
-			$data['Event']['org_id'] = $org;
+			$data['Event']['org_id'] = $org_id;
 		} else {
 			$data['Event']['org_id'] = $user['Organisation']['id'];
 		}

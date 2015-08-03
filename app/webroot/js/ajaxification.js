@@ -2054,3 +2054,10 @@ function serverRuleMoveFilter(type, field, from, to) {
 	}
 }
 
+function syncUserSelected() {
+	if ($('#UserRoleId :selected').val() in syncRoles) {
+		$('#syncServers').show();
+	} else {
+		$('#syncServers').hide();
+	}
+}

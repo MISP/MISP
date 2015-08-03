@@ -13,6 +13,7 @@
 		<div class="input clear"></div>
 
 	<?php	
+		if ($isSiteAdmin) :
 		echo $this->Form->input('organisation_type', array(
 				'label' => 'Organisation Type',
 				'options' => $organisationOptions,
@@ -40,6 +41,7 @@
 		</div>
 		<div class = "input clear"></div>
 	<?php	
+		endif;
 		echo $this->Form->input('authkey', array(
 		));
 	?>

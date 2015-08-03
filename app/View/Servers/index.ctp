@@ -59,7 +59,7 @@ foreach ($servers as $server): ?>
 			?>
 			&nbsp;
 			<?php
-			$mayModify = ($isSiteAdmin || ($isAdmin && ($server['Server']['org'] == $me['org'])));
+			$mayModify = ($isSiteAdmin);
 			if ($mayModify) echo $this->Html->link('', array('action' => 'edit', $server['Server']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
 			if ($mayModify) echo $this->Form->postLink('', array('action' => 'delete', $server['Server']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $server['Server']['id']));
 			?>
