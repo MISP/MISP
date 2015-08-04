@@ -169,8 +169,8 @@ class Event extends AppModel {
 		),
 		'threat_level_id' => array(
 			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Please specify threat level',
+				'rule' => array('inList', array('1', '2', '3', '4')),
+				'message' => 'Options : 1, 2, 3, 4 (for High, Medium, Low, Undefined)',
 				'required' => true
 			),
 		),
@@ -186,7 +186,7 @@ class Event extends AppModel {
 		),
 		'analysis' => array(
 			'rule' => array('inList', array('0', '1', '2')),
-				'message' => 'Options : 0, 1, 2',
+				'message' => 'Options : 0, 1, 2 (for Initial, Ongoing, Completed)',
 				//'allowEmpty' => false,
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
