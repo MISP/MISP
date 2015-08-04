@@ -332,9 +332,12 @@ The event ID is optional. MISP will accept either a JSON or an XML object posted
 <br /><br />
 <p><b>The following optional parameters are expected:</b></p>
 <p><b>event_id</b>: The Event's ID is optional. It can be either supplied via the URL or the POSTed object, but the URL has priority if both are provided. Not supplying an event ID will cause MISP to create a single new event for all of the POSTed malware samples. You can define the default settings for the event, otherwise a set of default settings will be used.<br />
-<b>distribution</b>: The distribution setting used for the attributes and for the newly created event, if relevant.<br />
+<b>distribution</b>: The distribution setting used for the attributes and for the newly created event, if relevant. [0-3]<br />
 <b>to_ids</b>: You can flag all attributes created during the transaction to be marked as "to_ids" or not.<br />
 <b>category</b>: The category that will be assigned to the uploaded samples. Valid options are: Payload delivery, Artifacts dropped, Payload Installation, External Analysis.<br />
+<b>info</b>: Used to populate the event info field if no event ID supplied. Alternatively, if not set, MISP will simply generate a message showing that it's a malware sample collection generated on the given day.<br />
+<b>analysis</b>: The analysis level of the newly created event, if applicatble. [0-2]<br />
+<b>threat_level_id</b>: The threat level ID of the newly created event, if applicatble. [0-3]<br />
 </div>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'automation'));

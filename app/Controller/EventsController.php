@@ -3232,6 +3232,21 @@ class EventsController extends AppController {
 	// Either send it to an existing event, or let MISP create a new one automatically
 	public function upload_sample($event_id = null) {
 		$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
+		$categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
+		$types = array();
+		foreach ($categoryDefinitions as $k => $v) {
+			if (in_array('malware-sample', $v['types']) && !in_array($k, $types)) $types[] = $k;
+		}
+		$parameter_options = array(
+				'distribution' => array('valid_options' => array(0, 1, 2, 3), 'default' => 0),
+				'threat_level_id' => array('valid_options' => array(0, 1, 2 ,3), 'default' => 4),
+				'analysis' => array('valid_options' => array(0, 1, 2), 'default' => 0),
+				'info' => array('default' =>  'Malware samples uploaded on ' . date('Y-m-d')),
+				'to_ids' => array('valid_options' => array(0, 1), 'default' => 1),
+				'category' => array('valid_options' => $types, 'default' => 'Payload installation')
+		);
+		
+	
 		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('Please POST the samples as described on the automation page.');
 		$isJson = false;
@@ -3246,6 +3261,14 @@ class EventsController extends AppController {
 		
 		if (isset($data['request'])) $data = $data['request'];
 		
+		foreach ($parameter_options as $k => $v) {
+			if (isset($data[$k])) {
+				if (isset($v['valid_options']) && !in_array($data[$k], $v['valid_options'])) $data[$k] = $v['default'];
+			} else {
+				$data[$k] = $v['default'];
+			}
+		}
+		
 		if (isset($data['files'])) {
 			foreach ($data['files'] as $k => $file) {
 				if (!isset($file['filename']) || !isset($file['data'])) unset ($data['files'][$k]);
@@ -3254,10 +3277,6 @@ class EventsController extends AppController {
 		}
 		
 		if (empty($data['files'])) throw new BadRequestException('No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page.');
-
-		if (!isset($data['distribution']) || !in_array($data['distribution'], array('0', '1', '2', '3'))) {
-			$data['distribution'] = '0';
-		}
 		if (isset($event_id)) $data['event_id'] = $event_id;
 		
 		// check if the user has permission to create attributes for an event, if the event ID has been passed
@@ -3280,31 +3299,22 @@ class EventsController extends AppController {
 			$this->Event->create();
 			$result = $this->Event->save(
 				array(	
-					'info' => (isset($data['info']) && !empty($data['info'])) ? $data['info'] : 'Samples uploaded on ' . date('Y-m-d'),
-					'analysis' => '0',
-					'threat_level_id' => '4',
+					'info' => $data['info'],
+					'analysis' => $data['analysis'],
+					'threat_level_id' => $data['threat_level_id'],
 					'distribution' => $data['distribution'],
 					'date' => date('Y-m-d'),
 					'orgc' => $this->Auth->user('org'),
 					'org' => $this->Auth->user('org'),
-					'user_id' => $this->Auth->user('id')
+					'user_id' => $this->Auth->user('id'),
 				)
 			);
 			if (!$result) throw new BadRequestException('The creation of a new event with the supplied information has failed.');
 			$data['event_id'] = $this->Event->id;
 		}
-		
+
 		if (!isset($data['to_ids']) || !in_array($data['to_ids'], array('0', '1', 0, 1))) $data['to_ids'] = 1;
-		if (isset($data['category'])) {
-			$categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
-			$types = array();
-			foreach ($categodyDefinitions as $k => $v) {
-				if (in_array('malware-sample', $v['types']) && !in_array($k, $types)) $types[] = $k; 
-			}
-			if (!in_array($data['category'], $types)) $data['category'] = 'Payload installation';
-		} else {
-			$data['category'] = 'Payload installation';
-		}
+
 
 		foreach ($data['files'] as $file) {
 			$temp = $this->Event->Attribute->handleMaliciousBase64($data['event_id'], $file['filename'], $file['data'], array_keys($hashes));
