@@ -3231,6 +3231,7 @@ class EventsController extends AppController {
 	// API for pushing samples to MISP
 	// Either send it to an existing event, or let MISP create a new one automatically
 	public function upload_sample($event_id = null) {
+		$this->loadModel('Log');
 		$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
 		$categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
 		$types = array();
@@ -3239,7 +3240,7 @@ class EventsController extends AppController {
 		}
 		$parameter_options = array(
 				'distribution' => array('valid_options' => array(0, 1, 2, 3), 'default' => 0),
-				'threat_level_id' => array('valid_options' => array(0, 1, 2 ,3), 'default' => 4),
+				'threat_level_id' => array('valid_options' => array(1, 2, 3, 4), 'default' => 4),
 				'analysis' => array('valid_options' => array(0, 1, 2), 'default' => 0),
 				'info' => array('default' =>  'Malware samples uploaded on ' . date('Y-m-d')),
 				'to_ids' => array('valid_options' => array(0, 1), 'default' => 1),
@@ -3309,13 +3310,23 @@ class EventsController extends AppController {
 					'user_id' => $this->Auth->user('id'),
 				)
 			);
-			if (!$result) throw new BadRequestException('The creation of a new event with the supplied information has failed.');
+			if (!$result) {
+				$this->Log->save(array(
+						'org' => $this->Auth->user('org'),
+						'model' => 'Event',
+						'model_id' => 0,
+						'email' => $this->Auth->user('email'),
+						'action' => 'upload_sample',
+						'user_id' => $this->Auth->user('id'),
+						'title' => 'Error: Failed to create event using the upload sample functionality',
+						'change' => 'There was an issue creating an event (' . $data['info'] . '). The validation errors were: ' . json_encode($this->Event->validationErrors),
+				));
+				throw new BadRequestException('The creation of a new event with the supplied information has failed.');
+			}
 			$data['event_id'] = $this->Event->id;
 		}
 
 		if (!isset($data['to_ids']) || !in_array($data['to_ids'], array('0', '1', 0, 1))) $data['to_ids'] = 1;
-
-
 		foreach ($data['files'] as $file) {
 			$temp = $this->Event->Attribute->handleMaliciousBase64($data['event_id'], $file['filename'], $file['data'], array_keys($hashes));
 			if ($temp['success']) {
@@ -3333,7 +3344,19 @@ class EventsController extends AppController {
 							'to_ids' => $data['to_ids']
 					);
 					if ($hash == 'md5') $attribute['data'] = $file['data'];
-					$this->Event->Attribute->save($attribute);
+					$result = $this->Event->Attribute->save($attribute);
+					if (!$result) {
+						$this->Log->save(array(
+								'org' => $this->Auth->user('org'),
+								'model' => 'Event',
+								'model_id' => $data['event_id'],
+								'email' => $this->Auth->user('email'),
+								'action' => 'upload_sample',
+								'user_id' => $this->Auth->user('id'),
+								'title' => 'Error: Failed to create attribute using the upload sample functionality',
+								'change' => 'There was an issue creating an attribute (' . $typeName . ': ' . $file['filename'] . '|' . $file[$hash] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
+						));
+					}
 				}
 			}
 		}
