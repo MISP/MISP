@@ -1856,7 +1856,6 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
-		
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
@@ -1879,10 +1878,10 @@ class EventsController extends AppController {
 			$user['User']['siteAdmin'] = $this->_isSiteAdmin();
 		}	
 		$this->loadModel('Attribute');
-
 		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type, $tags, $from, $to, $last);
 		$this->set('rules', $rules);
 	}
+	
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
@@ -2599,7 +2598,7 @@ class EventsController extends AppController {
 		$final = $this->IOCExport->buildAll($event, $isMyEvent, $isSiteAdmin);
 		$this->set('final', $final);
 	}
-
+	
 	public function create_dummy_event() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
 		$date = new DateTime();
@@ -3228,4 +3227,108 @@ class EventsController extends AppController {
 		$this->set('id', $id);
 		$this->render('ajax/exportChoice');
 	}
+	
+	// API for pushing samples to MISP
+	// Either send it to an existing event, or let MISP create a new one automatically
+	public function upload_sample($event_id = null) {
+		$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
+		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
+		if (!$this->request->is('post')) throw new MethodNotAllowedException('Please POST the samples as described on the automation page.');
+		$isJson = false;
+		if ($this->response->type() === 'application/json') {
+			$isJson = true;
+			$data = $this->request->input('json_decode', true);
+		} elseif ($this->response->type() === 'application/xml') {
+			$data = $this->request->data;
+		} else {
+			throw new BadRequestException('Please POST the samples as described on the automation page.');
+		}
+		
+		if (isset($data['request'])) $data = $data['request'];
+		
+		if (isset($data['files'])) {
+			foreach ($data['files'] as $k => $file) {
+				if (!isset($file['filename']) || !isset($file['data'])) unset ($data['files'][$k]);
+				else $data['files'][$k]['md5'] = md5(base64_decode($file['data']));
+			}
+		}
+		
+		if (empty($data['files'])) throw new BadRequestException('No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page.');
+
+		if (!isset($data['distribution']) || !in_array($data['distribution'], array('0', '1', '2', '3'))) {
+			$data['distribution'] = '0';
+		}
+		if (isset($event_id)) $data['event_id'] = $event_id;
+		
+		// check if the user has permission to create attributes for an event, if the event ID has been passed
+		// If not, create an event
+		if (isset($data['event_id']) && !empty($data['event_id']) && is_numeric($data['event_id'])) {
+			$conditons = array();
+			if (!$this->_isSiteAdmin()) {
+				$conditions = array('Event.orgc' => $this->Auth->user('org'));
+				if (!$this->userRole['perm_modify_org']) $conditions[] = array('Event.user_id' => $this->Auth->user('id'));
+			}		
+			$event = $this->Event->find('first', array(
+				'recursive' => -1,
+				'conditions' => $conditions,
+				'fields' => array('id'),
+			));
+			if (empty($event)) throw new MethodNotFoundException('Event not found.');
+			$this->Event->id = $data['event_id'];
+			$this->Event->saveField('published', 0);
+		} else {
+			$this->Event->create();
+			$result = $this->Event->save(
+				array(	
+					'info' => (isset($data['info']) && !empty($data['info'])) ? $data['info'] : 'Samples uploaded on ' . date('Y-m-d'),
+					'analysis' => '0',
+					'threat_level_id' => '4',
+					'distribution' => $data['distribution'],
+					'date' => date('Y-m-d'),
+					'orgc' => $this->Auth->user('org'),
+					'org' => $this->Auth->user('org'),
+					'user_id' => $this->Auth->user('id')
+				)
+			);
+			if (!$result) throw new BadRequestException('The creation of a new event with the supplied information has failed.');
+			$data['event_id'] = $this->Event->id;
+		}
+		
+		if (!isset($data['to_ids']) || !in_array($data['to_ids'], array('0', '1', 0, 1))) $data['to_ids'] = 1;
+		if (isset($data['category'])) {
+			$categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
+			$types = array();
+			foreach ($categodyDefinitions as $k => $v) {
+				if (in_array('malware-sample', $v['types']) && !in_array($k, $types)) $types[] = $k; 
+			}
+			if (!in_array($data['category'], $types)) $data['category'] = 'Payload installation';
+		} else {
+			$data['category'] = 'Payload installation';
+		}
+
+		foreach ($data['files'] as $file) {
+			$temp = $this->Event->Attribute->handleMaliciousBase64($data['event_id'], $file['filename'], $file['data'], array_keys($hashes));
+			if ($temp['success']) {
+				foreach ($hashes as $hash => $typeName) {
+					if ($temp[$hash] == false) continue;
+					$file[$hash] = $temp[$hash];
+					$file['data'] = $temp['data'];
+					$this->Event->Attribute->create();
+					$attribute = array(
+							'value' => $file['filename'] . '|' . $file[$hash],
+							'distribution' => $data['distribution'],
+							'category' => $data['category'],
+							'type' => $typeName,
+							'event_id' => $data['event_id'],
+							'to_ids' => $data['to_ids']
+					);
+					if ($hash == 'md5') $attribute['data'] = $file['data'];
+					$this->Event->Attribute->save($attribute);
+				}
+			}
+		}
+		$this->view($data['event_id']);
+		$this->render('view');
+	}
+
 }
