@@ -314,22 +314,24 @@ For example, to get all IDS signature attributes of type md5 and sha256, but not
 <h3>Download malware sample by hash</h3>
 <p>You can also download samples by knowing its MD5 hash. Simply pass the hash along as a JSON/XML object or in the URL (with the URL having overruling the passed objects) to receive a JSON/XML object back with the zipped sample base64 encoded along with some contextual information.</p>
 <p>You can also use this API to get all samples from events that contain the passed hash. For this functionality, just pass the "allSamples" flag along. Note that if you are getting all samples from matching events, you can use all supported hash types (<?php echo h(implode(', ', $hashTypes)); ?>) for the lookup.</p>
+<p>You can also get all the samples from an event with a given event ID, by passing along the eventID parameter. Make sure that either an event ID or a hash is passed along, otherwise an error message will be returned. Also, if no hash is set, the allSamples flag will get set automatically.</p>
 <pre>
 <?php
-	echo Configure::read('MISP.baseurl').'/attributes/downloadSample/[hash]/[allSamples]';
+	echo Configure::read('MISP.baseurl').'/attributes/downloadSample/[hash]/[allSamples]/[eventID]';
 ?>
 </pre>
 <p>POST message payload (XML):</p>
 <p><code>
-<?php echo h("<request><hash>7c12772809c1c0c3deda6103b10fdfa0</hash><allSamples>1</allSamples></request>"); ?>
+<?php echo h("<request><hash>7c12772809c1c0c3deda6103b10fdfa0</hash><allSamples>1</allSamples><eventID>13</eventID</request>"); ?>
 </code></p>
 <p>POST message payload (json):</p>
 <p><code>
-{"request": {"hash": "7c12772809c1c0c3deda6103b10fdfa0", "allSamples": 1}}
+{"request": {"hash": "7c12772809c1c0c3deda6103b10fdfa0", "allSamples": 1, "eventID": 13}}
 </code></p>
 <p>A quick description of all the parameters in the passed object:</p>
 <b>hash</b>: A hash in MD5 format. If allSamples is set, this can be any one of the following: <?php echo h(implode(', ', $hashTypes)); ?><br />
 <b>allSamples</b>: If set, it will return all samples from events that have a match for the hash provided above.<br />
+<b>eventID</b>: If set, it will only fetch data from the given event ID.<br />
 <h3>Upload malware samples using the "Upload Sample" API</h3>
 <pre>
 <?php
