@@ -116,6 +116,7 @@ class AppController extends Controller {
 					unset($user);
 				}
 			}
+			if ($this->Auth->user() == null) throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
 		} else if(!$this->Session->read(AuthComponent::$sessionKey)) {
 			// load authentication plugins from Configure::read('Security.auth')
 			$auth = Configure::read('Security.auth');

@@ -161,7 +161,7 @@ class Attribute extends AppModel {
 			'Payload delivery' => array(
 					'desc' => 'Information about how the malware is delivered',
 					'formdesc' => 'Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.',
-					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'ip-dst', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'vulnerability', 'other')
+					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'vulnerability', 'other')
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
@@ -355,6 +355,24 @@ class Attribute extends AppModel {
 			'fields' => '',
 			'order' => '',
 			'counterCache' => true
+		)
+	);
+	
+	public $hashTypes = array(
+		'md5' => array(
+			'length' => 32,
+			'pattern' => '#^[0-9a-f]{32}$#',
+			'lowerCase' => true,
+		),
+		'sha1' => array(
+			'length' => 40,
+			'pattern' => '#^[0-9a-f]{40}$#',
+			'lowerCase' => true,
+		),
+		'sha256' => array(
+			'length' => 64,
+			'pattern' => '#^[0-9a-f]{64}$#',
+			'lowerCase' => true,
 		)
 	);
 
@@ -1651,5 +1669,16 @@ class Attribute extends AppModel {
 			$fn .= $characters[rand(0, $charLen)];
 		}
 		return $fn;
+	}
+	
+	public function resolveHashType($hash) {
+		$hashTypes = $this->hashTypes;
+		$validTypes = array();
+		$length = strlen($hash);
+		foreach ($hashTypes as $k => $hashType) {
+			$temp = $hashType['lowerCase'] ? strtolower($hash) : $hash;
+			if ($hashType['length'] == $length && preg_match($hashType['pattern'], $temp)) $validTypes[] = $k;
+		}
+		return $validTypes;
 	}
 }
