@@ -2071,4 +2071,121 @@ class AttributesController extends AppController {
 		return '';
 	}
 	
+	// download a sample by passing along an md5
+	public function downloadSample($hash=false, $allSamples = false) {
+		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
+		//if (!$this->request->is('post')) throw new MethodNotAllowedException('Please POST the samples as described on the automation page.');
+		$isJson = false;
+		$error = false;
+		if ($this->response->type() === 'application/json') {
+			$isJson = true;
+			$data = $this->request->input('json_decode', true);
+		} elseif ($this->response->type() === 'application/xml') {
+			$data = $this->request->data;
+		} else {
+			throw new BadRequestException('This action is for the API only. Please refer to the automation page for information on how to use it.');
+		}
+		if (!$hash && isset($data['request']['hash'])) $hash = $data['request']['hash'];
+		if (!$allSamples && isset($data['request']['hash'])) $allSamples = $data['request']['allSamples'];
+		
+		$validTypes = $this->Attribute->resolveHashType($hash);
+		$types = array();
+		if ($allSamples) {
+			if (empty($validTypes)) {
+				$error = 'Invalid hash format (valid options are ' . implode(', ', array_keys($this->Attribute->hashTypes)) . ')';
+			}
+			else {
+				foreach ($validTypes as $t) {
+					if ($t == 'md5') $types = array_merge($types, array('malware-sample', 'filename|md5', 'md5'));
+					else $types = array_merge($types, array('filename|' . $t, $t));
+				}
+			}
+			if (empty($error)) {
+				$event_ids = $this->Attribute->find('list', array(
+					'recursive' => -1,
+					'contain' => array('Event'),
+					'fields' => array('Event.id'),	
+					'conditions' => array(
+						'OR' => array(
+							'AND' => array(
+								'LOWER(Attribute.value1) LIKE' => strtolower($hash),
+								'Attribute.value2' => '',
+							),
+							'LOWER(Attribute.value2) LIKE' => strtolower($hash)
+						)
+					),
+				));
+				$searchConditions = array(
+						'Event.id' => array_values($event_ids)
+				);
+				if (empty($event_ids)) $error = 'No hits on the passed hash.';
+			}
+		} else {
+			if (!in_array('md5', $validTypes)) $error = 'Only MD5 hashes can be used to fetch malware samples at this point in time.';
+			if (empty($error)) {
+				$types = array('malware-sample', 'filename|md5');
+				$searchConditions = array(
+					'LOWER(Attribute.value2) LIKE' => strtolower($hash)	
+				);
+			}
+		}
+		
+		if (empty($error)) {
+			$distributionConditions = array();
+			if (!$this->_isSiteAdmin()) {
+				$distributionConditions = array("OR" =>
+					array(
+						array('Event.org =' => $this->Auth->user('org')),
+						array("AND" =>
+							array('Event.org !=' => $this->Auth->user('org')),
+							array('Event.distribution !=' => 0),
+							array('Attribute.distribution !=' => 0),
+							Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+						)
+					)
+				);
+			}
+			$attributes = $this->Attribute->find('all', array(
+				'recursive' => -1,
+				'contain' => array('Event'),
+				'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.value1', 'Attribute.value2', 'Event.info'),
+				'conditions' => array(
+					'AND' => array(
+						$searchConditions, 
+						$distributionConditions, 
+						array('Attribute.type' => 'malware-sample')
+			))));
+			if (empty($attributes)) $error = 'No hits on the passed hash.';
+			
+			$results = array();
+			foreach ($attributes as $attribute) {
+				$found = false;
+				foreach ($results as $previous) {
+					if ($previous['md5'] == $attribute['Attribute']['value2']) $found = true;
+				}
+				if (!$found) {
+					$results[] = array(
+						'md5' => $attribute['Attribute']['value2'],
+						'base64' => $this->Attribute->base64EncodeAttachment($attribute['Attribute']),
+						'filename' => $attribute['Attribute']['value1'],
+						'attribute_id' => $attribute['Attribute']['id'],
+						'event_id' => $attribute['Attribute']['event_id'],
+						'event_info' => $attribute['Event']['info'],
+					);
+				}
+			}
+			if ($error) {
+				$this->set('error', $error);
+				$this->set('_serialize', array('error'));
+			} else {
+				$this->set('result', $results);
+				$this->set('_serialize', array('result'));
+			}
+		} else {
+			$this->set('error', $error);
+			$this->set('_serialize', array('error'));
+		}
+		
+	}
+	
 }

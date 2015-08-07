@@ -1607,6 +1607,7 @@ class EventsController extends AppController {
 		$this->loadModel('Server');
 		$rpzSettings = $this->Server->retrieveCurrentSettings('Plugin', 'RPZ_');
 		$this->set('rpzSettings', $rpzSettings);
+		$this->set('hashTypes', array_keys($this->Event->Attribute->hashTypes));
 	}
 
 	public function export() {

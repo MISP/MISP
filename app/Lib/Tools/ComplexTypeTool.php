@@ -59,7 +59,7 @@ class ComplexTypeTool {
 	}
 	
 	public function checkFreeText($input) {
-		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,/", $input);
+		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
 		$resultArray = array();
 		foreach ($iocArray as $ioc) {
 			$ioc = trim($ioc);
