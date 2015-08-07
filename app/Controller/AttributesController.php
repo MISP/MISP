@@ -2072,7 +2072,7 @@ class AttributesController extends AppController {
 	}
 	
 	// download a sample by passing along an md5
-	public function downloadSample($hash=false, $allSamples = false) {
+	public function downloadSample($hash=false, $allSamples=false, $eventID=false) {
 		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
 		//if (!$this->request->is('post')) throw new MethodNotAllowedException('Please POST the samples as described on the automation page.');
 		$isJson = false;
@@ -2086,49 +2086,67 @@ class AttributesController extends AppController {
 			throw new BadRequestException('This action is for the API only. Please refer to the automation page for information on how to use it.');
 		}
 		if (!$hash && isset($data['request']['hash'])) $hash = $data['request']['hash'];
-		if (!$allSamples && isset($data['request']['hash'])) $allSamples = $data['request']['allSamples'];
+		if (!$allSamples && isset($data['request']['allSamples'])) $allSamples = $data['request']['allSamples'];
+		if (!$eventID && isset($data['request']['eventID'])) $eventID = $data['request']['eventID'];
+		if (!$eventID && !$hash) throw new MethodNotAllowedException('No hash or event ID received. You need to set at least one of the two.');
+		if (!$hash) $allSamples = true;
 		
-		$validTypes = $this->Attribute->resolveHashType($hash);
+		
+		$simpleFalse = array('hash', 'allSamples', 'eventID');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
+		
+		// valid combinations of settings are:
+		// hash
+		// eventID + all samples
+		// hash + eventID
+		// hash + eventID + all samples 
+		
+		if ($hash) $validTypes = $this->Attribute->resolveHashType($hash);
 		$types = array();
-		if ($allSamples) {
-			if (empty($validTypes)) {
-				$error = 'Invalid hash format (valid options are ' . implode(', ', array_keys($this->Attribute->hashTypes)) . ')';
-			}
-			else {
-				foreach ($validTypes as $t) {
-					if ($t == 'md5') $types = array_merge($types, array('malware-sample', 'filename|md5', 'md5'));
-					else $types = array_merge($types, array('filename|' . $t, $t));
+		if ($hash && $allSamples) {
+			if ($hash) {
+				debug($hash);
+				if (empty($validTypes)) {
+					$error = 'Invalid hash format (valid options are ' . implode(', ', array_keys($this->Attribute->hashTypes)) . ')';
+				}
+				else {
+					foreach ($validTypes as $t) {
+						if ($t == 'md5') $types = array_merge($types, array('malware-sample', 'filename|md5', 'md5'));
+						else $types = array_merge($types, array('filename|' . $t, $t));
+					}
+				}
+				if (empty($error)) {
+					$event_ids = $this->Attribute->find('list', array(
+						'recursive' => -1,
+						'contain' => array('Event'),
+						'fields' => array('Event.id'),	
+						'conditions' => array(
+							'OR' => array(
+								'AND' => array(
+									'LOWER(Attribute.value1) LIKE' => strtolower($hash),
+									'Attribute.value2' => '',
+								),
+								'LOWER(Attribute.value2) LIKE' => strtolower($hash)
+							)
+						),
+					));
+					$searchConditions = array(
+						'AND' => array('Event.id' => array_values($event_ids))
+					);
+					if (empty($event_ids)) $error = 'No hits with the given parameters.';
+				}
+			} else {
+				if (!in_array('md5', $validTypes)) $error = 'Only MD5 hashes can be used to fetch malware samples at this point in time.';
+				if (empty($error)) {
+					$types = array('malware-sample', 'filename|md5');
+					$searchConditions = array('AND' => array('LOWER(Attribute.value2) LIKE' => strtolower($hash)));
 				}
 			}
-			if (empty($error)) {
-				$event_ids = $this->Attribute->find('list', array(
-					'recursive' => -1,
-					'contain' => array('Event'),
-					'fields' => array('Event.id'),	
-					'conditions' => array(
-						'OR' => array(
-							'AND' => array(
-								'LOWER(Attribute.value1) LIKE' => strtolower($hash),
-								'Attribute.value2' => '',
-							),
-							'LOWER(Attribute.value2) LIKE' => strtolower($hash)
-						)
-					),
-				));
-				$searchConditions = array(
-						'Event.id' => array_values($event_ids)
-				);
-				if (empty($event_ids)) $error = 'No hits on the passed hash.';
-			}
-		} else {
-			if (!in_array('md5', $validTypes)) $error = 'Only MD5 hashes can be used to fetch malware samples at this point in time.';
-			if (empty($error)) {
-				$types = array('malware-sample', 'filename|md5');
-				$searchConditions = array(
-					'LOWER(Attribute.value2) LIKE' => strtolower($hash)	
-				);
-			}
 		}
+		
+		if (!empty($eventID)) $searchConditions['AND'][] = array('Event.id' => $eventID);
 		
 		if (empty($error)) {
 			$distributionConditions = array();
@@ -2155,7 +2173,7 @@ class AttributesController extends AppController {
 						$distributionConditions, 
 						array('Attribute.type' => 'malware-sample')
 			))));
-			if (empty($attributes)) $error = 'No hits on the passed hash.';
+			if (empty($attributes)) $error = 'No hits with the given parameters.';
 			
 			$results = array();
 			foreach ($attributes as $attribute) {
@@ -2175,15 +2193,15 @@ class AttributesController extends AppController {
 				}
 			}
 			if ($error) {
-				$this->set('error', $error);
-				$this->set('_serialize', array('error'));
+				$this->set('message', $error);
+				$this->set('_serialize', array('message'));
 			} else {
 				$this->set('result', $results);
 				$this->set('_serialize', array('result'));
 			}
 		} else {
-			$this->set('error', $error);
-			$this->set('_serialize', array('error'));
+				$this->set('message', $error);
+				$this->set('_serialize', array('message'));
 		}
 		
 	}
