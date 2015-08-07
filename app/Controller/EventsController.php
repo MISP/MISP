@@ -3328,6 +3328,8 @@ class EventsController extends AppController {
 		}
 
 		if (!isset($data['to_ids']) || !in_array($data['to_ids'], array('0', '1', 0, 1))) $data['to_ids'] = 1;
+		$successCount = 0;
+		$errors = array();
 		foreach ($data['files'] as $file) {
 			$temp = $this->Event->Attribute->handleMaliciousBase64($data['event_id'], $file['filename'], $file['data'], array_keys($hashes));
 			if ($temp['success']) {
@@ -3357,9 +3359,27 @@ class EventsController extends AppController {
 								'title' => 'Error: Failed to create attribute using the upload sample functionality',
 								'change' => 'There was an issue creating an attribute (' . $typeName . ': ' . $file['filename'] . '|' . $file[$hash] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
 						));
-					}
+						if ($typeName == 'malware-sample') $errors[] = array('filename' => $file['filename'], 'hash' => $file[$hash], 'error' => $this->Event->Attribute->validationErrors);
+					} else if ($typeName == 'malware-sample') $successCount++;
 				}
+			} else {
+				$errors[] = array('filename' => $file['filename'], 'hash' => $file['hash'], 'error' => 'Failed to encrypt and compress the file.');
 			}
+		}
+		if (!empty($errors)) {
+			$this->set('errors', $errors);
+			if ($successCount > 0) {
+				$this->set('name', 'Partial success');
+				$this->set('message', 'Successfuly saved ' . $successCount . ' sample(s), but some samples could not be saved.');
+			} else {
+				$this->set('name', 'Failed');
+				$this->set('message', 'Failed to save any of the supplied samples.');
+			}
+			$this->set('_serialize', array('name', 'message', 'errors'));
+		} else {
+			$this->set('name', 'Success');
+			$this->set('message', 'Success, saved all attributes.');
+			$this->set('_serialize', array('name', 'message'));
 		}
 		$this->view($data['event_id']);
 		$this->render('view');
