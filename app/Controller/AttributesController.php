@@ -111,17 +111,13 @@ class AttributesController extends AppController {
 			if ($this->request->is('ajax')) $this->autoRender = false;
 			$this->loadModel('Event');
 			$date = new DateTime();
-			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
-			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
-			if (isset($this->request->data['Attribute']['type']) && $this->Attribute->typeIsAttachment($this->request->data['Attribute']['type'])) {
-				$this->Session->setFlash(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
-			}
-
+			
 			// remove the published flag from the event
 			$this->Event->recursive = -1;
-			if (isset($eventId)) $this->Event->read(null, $eventId);
-			else $this->Event->read(null, $this->request->data['Attribute']['event_id']);
+			if (isset($eventId)) {
+				$this->Event->read(null, $eventId);
+				$this->request->data['Attribute']['event_id'] = $eventId;
+			} else $this->Event->read(null, $this->request->data['Attribute']['event_id']);
 			if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
 				throw new UnauthorizedException('You do not have permission to do that.');
 			}
@@ -211,13 +207,13 @@ class AttributesController extends AppController {
 						$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
 					}
 				}
-
+				
+				if (isset($this->request->data['Attribute']['base64'])) $this->request->data['Attribute']['data'] = $this->request->data['Attribute']['base64'];
 				//
 				// single attribute
 				//
 				// create the attribute
 				$this->Attribute->create();
-
 				$savedId = $this->Attribute->getID();
 				if ($this->Attribute->save($this->request->data)) {
 					if ($this->_isRest() || $this->response->type() === 'application/json') {
@@ -321,17 +317,15 @@ class AttributesController extends AppController {
 		$this->response->file($path . $file, array('download' => true, 'name' => $filename . '.' . $fileExt));
 	}
 
-/**
- * add_attachment method
- *
- * @return void
- * @throws InternalErrorException
- */
+	/**
+	 * add_attachment method
+	 *
+	 * @return void
+	 * @throws InternalErrorException
+	 */
 	public function add_attachment($eventId = null) {
-		$sha256 = null;
-		$sha1 = null;
-		//$ssdeep = null;
 		if ($this->request->is('post')) {
+			$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
 			$this->loadModel('Event');
 			$this->Event->id = $this->request->data['Attribute']['event_id'];
 			$this->Event->recursive = -1;
@@ -344,7 +338,7 @@ class AttributesController extends AppController {
 			$filename = basename($this->request->data['Attribute']['value']['name']);
 			$tmpfile = new File($this->request->data['Attribute']['value']['tmp_name']);
 			if ((isset($this->request->data['Attribute']['value']['error']) && $this->request->data['Attribute']['value']['error'] == 0) ||
-					(!empty( $this->request->data['Attribute']['value']['tmp_name']) && $this->request->data['Attribute']['value']['tmp_name'] != 'none')
+			(!empty( $this->request->data['Attribute']['value']['tmp_name']) && $this->request->data['Attribute']['value']['tmp_name'] != 'none')
 			) {
 				if (!is_uploaded_file($tmpfile->path))
 					throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
@@ -353,110 +347,67 @@ class AttributesController extends AppController {
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 			}
 
-			// save the file-info in the database
-			$this->Attribute->create();
+			$fails = array();
+			$completeFail = false;
+			
 			if ($this->request->data['Attribute']['malware']) {
-				$this->request->data['Attribute']['type'] = "malware-sample";
-				// Validate filename
-				if (!preg_match('@^[\w\-. ]+$@', $filename)) throw new Exception ('Filename not allowed');
-				$this->request->data['Attribute']['value'] = $filename . '|' . hash_file('md5', $tmpfile->path); // TODO gives problems with bigger files
-				$sha256 = (hash_file('sha256', $tmpfile->path));
-				$sha1 = (hash_file('sha1', $tmpfile->path));
-				$this->request->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
+				$result = $this->Event->Attribute->handleMaliciousBase64($this->request->data['Attribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
+				if (!$result['success']) {
+					$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
+					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
+				}
+				foreach ($hashes as $hash => $typeName) {
+					if (!$result[$hash]) continue;
+					$attribute = array(
+						'Attribute' => array(
+							'value' => $filename . '|' . $result[$hash],
+							'category' => $this->request->data['Attribute']['category'],
+							'type' => $typeName,
+							'event_id' => $this->request->data['Attribute']['event_id'],
+							'to_ids' => 1
+						)
+					);
+					if ($hash == 'md5') $attribute['Attribute']['data'] = $result['data'];
+					$this->Attribute->create();
+					$r = $this->Attribute->save($attribute);
+					if ($r == false) $fails[] = array($typeName);
+					if (count($fails) == count($hashes)) $completeFail = true;
+				}
 			} else {
-				$this->request->data['Attribute']['type'] = "attachment";
-				// Validate filename
-				if (!preg_match('@^[\w\-. ]+$@', $filename)) throw new Exception ('Filename not allowed');
-				$this->request->data['Attribute']['value'] = $filename;
-				$this->request->data['Attribute']['to_ids'] = 0;
+				$attribute = array(
+						'Attribute' => array(
+							'value' => $filename,
+							'category' => $this->request->data['Attribute']['category'],
+							'type' => 'attachment',
+							'event_id' => $this->request->data['Attribute']['event_id'],
+							'data' => base64_encode($tmpfile->read()),
+							'to_ids' => 0
+						)
+				);
+				$this->Attribute->create();
+				$r = $this->Attribute->save($attribute);
+				if ($r == false) {
+					$fails[] = array('attachment');
+					$completeFail = true;
+				}
 			}
-			$this->request->data['Attribute']['uuid'] = String::uuid();
-			$this->request->data['Attribute']['batch_import'] = 0;
-
-			if ($this->Attribute->save($this->request->data)) {
-				// attribute saved correctly in the db
+			
+			if (!$completeFail) {
+				// attribute(s) saved correctly in the db
 				// remove the published flag from the event
+				if (empty($fails)) $this->Session->setFlash(__('The attachment has been uploaded'));
+				else $this->Session->setFlash(__('The attachment has been uploaded, but some of the attributes could not be created. The failed attributes are: ' . implode(', ', $fails)));
 				$this->Event->id = $this->request->data['Attribute']['event_id'];
 				$this->Event->saveField('published', 0);
 			} else {
-				$this->Session->setFlash(__('The attribute could not be saved. Did you already upload this file?'));
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
+				$this->Session->setFlash(__('The attachment could not be saved, please contact your administrator.'));
 			}
-
-			// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
-			// no sanitization is required on the filename, path or type as we save
-			// create directory structure
-			if (PHP_OS == 'WINNT') {
-				$rootDir = APP . "files" . DS . $this->request->data['Attribute']['event_id'];
-			} else {
-				$rootDir = APP . DS . "files" . DS . $this->request->data['Attribute']['event_id'];
-			}
-			$dir = new Folder($rootDir, true);
-			// move the file to the correct location
-			$destpath = $rootDir . DS . $this->Attribute->id; // id of the new attribute in the database
-			$file = new File ($destpath);
-			$zipfile = new File ($destpath . '.zip');
-			$fileInZip = new File($rootDir . DS . $filename); // FIXME do sanitization of the filename
-
-			if ($file->exists() || $zipfile->exists() || $fileInZip->exists()) {
-				// this should never happen as the attribute id should be unique
-				$this->Session->setFlash(__('Attachment with this name already exist in this event.', true), 'default', array(), 'error');
-				// remove the entry from the database
-				$this->Attribute->delete();
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
-			}
-			if (!move_uploaded_file($tmpfile->path, $file->path)) {
-				$this->Session->setFlash(__('Problem with uploading attachment. Cannot move it to its final location.', true), 'default', array(), 'error');
-				// remove the entry from the database
-				$this->Attribute->delete();
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
-			}
-
-			// zip and password protect the malware files
-			if ($this->request->data['Attribute']['malware']) {
-				// TODO check if CakePHP has no easy/safe wrapper to execute commands
-				$execRetval = '';
-				$execOutput = array();
-				rename($file->path, $fileInZip->path); // TODO check if no workaround exists for the current filtering mechanisms
-				if (PHP_OS == 'WINNT') {
-					exec("zip -j -P infected " . $zipfile->path . ' "' . $fileInZip->path . '"', $execOutput, $execRetval);
-				} else {
-					exec("zip -j -P infected " . $zipfile->path . ' "' . addslashes($fileInZip->path) . '"', $execOutput, $execRetval);
-				}
-				if ($execRetval != 0) {	// not EXIT_SUCCESS
-					$this->Session->setFlash(__('Problem with zipping the attachment. Please report to administrator. ' . $execOutput, true), 'default', array(), 'error');
-					// remove the entry from the database
-					$this->Attribute->delete();
-					$fileInZip->delete();
-					$file->delete();
-					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
-				};
-				$fileInZip->delete();	// delete the original not-zipped-file
-				rename($zipfile->path, $file->path); // rename the .zip to .nothing
-			}
-			if ($this->request->data['Attribute']['malware']) {
-				$temp = $this->request->data;
-				$this->Attribute->create();
-				$temp['Attribute']['type'] = 'filename|sha256';
-				$temp['Attribute']['value'] = $filename . '|' .$sha256;
-				$temp['Attribute']['uuid'] = String::uuid();
-				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids', 'comment')));
-				$this->Attribute->create();
-				$temp['Attribute']['type'] = 'filename|sha1';
-				$temp['Attribute']['value'] = $filename . '|' .$sha1;
-				$temp['Attribute']['uuid'] = String::uuid();
-				$this->Attribute->save($temp, array('fieldlist' => array('value', 'type', 'category', 'event_id', 'distribution', 'to_ids', 'comment')));
-			}
-
-			// everything is done, now redirect to event view
-			$this->Session->setFlash(__('The attachment has been uploaded'));
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
-
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));	
 		} else {
 			// set the event_id in the form
 			$this->request->data['Attribute']['event_id'] = $eventId;
 		}
-
+	
 		// combobos for categories
 		$categories = $this->Attribute->validate['category']['rule'][1];
 		// just get them with attachments..
@@ -477,14 +428,14 @@ class AttributesController extends AppController {
 		};
 		$categories = $this->_arrayToValuesIndexArray($selectedCategories);
 		$this->set('categories',$categories);
-
+	
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-
+	
 		$this->set('zippedDefinitions', $this->Attribute->zippedDefinitions);
 		$this->set('uploadDefinitions', $this->Attribute->uploadDefinitions);
-
+	
 		// combobox for distribution
 		$this->loadModel('Event');
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
@@ -493,7 +444,8 @@ class AttributesController extends AppController {
 		$this->set('currentDist', $events['Event']['distribution']);
 		$this->set('published', $events['Event']['published']);
 	}
-
+	
+	
 	/**
 	 * Imports the CSV threatConnect file to multiple attributes
 	 * @param int $id  The id of the event
@@ -2117,6 +2069,141 @@ class AttributesController extends AppController {
 	private function __checkCountForOne($number) {
 		if ($number != 1) return 's';
 		return '';
+	}
+	
+	// download a sample by passing along an md5
+	public function downloadSample($hash=false, $allSamples=false, $eventID=false) {
+		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
+		//if (!$this->request->is('post')) throw new MethodNotAllowedException('Please POST the samples as described on the automation page.');
+		$isJson = false;
+		$error = false;
+		if ($this->response->type() === 'application/json') {
+			$isJson = true;
+			$data = $this->request->input('json_decode', true);
+		} elseif ($this->response->type() === 'application/xml') {
+			$data = $this->request->data;
+		} else {
+			throw new BadRequestException('This action is for the API only. Please refer to the automation page for information on how to use it.');
+		}
+		if (!$hash && isset($data['request']['hash'])) $hash = $data['request']['hash'];
+		if (!$allSamples && isset($data['request']['allSamples'])) $allSamples = $data['request']['allSamples'];
+		if (!$eventID && isset($data['request']['eventID'])) $eventID = $data['request']['eventID'];
+		if (!$eventID && !$hash) throw new MethodNotAllowedException('No hash or event ID received. You need to set at least one of the two.');
+		if (!$hash) $allSamples = true;
+		
+		
+		$simpleFalse = array('hash', 'allSamples', 'eventID');
+		foreach ($simpleFalse as $sF) {
+			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+		}
+		
+		// valid combinations of settings are:
+		// hash
+		// eventID + all samples
+		// hash + eventID
+		// hash + eventID + all samples 
+		
+		if ($hash) $validTypes = $this->Attribute->resolveHashType($hash);
+		$types = array();
+		if ($hash && $allSamples) {
+			if ($hash) {
+				debug($hash);
+				if (empty($validTypes)) {
+					$error = 'Invalid hash format (valid options are ' . implode(', ', array_keys($this->Attribute->hashTypes)) . ')';
+				}
+				else {
+					foreach ($validTypes as $t) {
+						if ($t == 'md5') $types = array_merge($types, array('malware-sample', 'filename|md5', 'md5'));
+						else $types = array_merge($types, array('filename|' . $t, $t));
+					}
+				}
+				if (empty($error)) {
+					$event_ids = $this->Attribute->find('list', array(
+						'recursive' => -1,
+						'contain' => array('Event'),
+						'fields' => array('Event.id'),	
+						'conditions' => array(
+							'OR' => array(
+								'AND' => array(
+									'LOWER(Attribute.value1) LIKE' => strtolower($hash),
+									'Attribute.value2' => '',
+								),
+								'LOWER(Attribute.value2) LIKE' => strtolower($hash)
+							)
+						),
+					));
+					$searchConditions = array(
+						'AND' => array('Event.id' => array_values($event_ids))
+					);
+					if (empty($event_ids)) $error = 'No hits with the given parameters.';
+				}
+			} else {
+				if (!in_array('md5', $validTypes)) $error = 'Only MD5 hashes can be used to fetch malware samples at this point in time.';
+				if (empty($error)) {
+					$types = array('malware-sample', 'filename|md5');
+					$searchConditions = array('AND' => array('LOWER(Attribute.value2) LIKE' => strtolower($hash)));
+				}
+			}
+		}
+		
+		if (!empty($eventID)) $searchConditions['AND'][] = array('Event.id' => $eventID);
+		
+		if (empty($error)) {
+			$distributionConditions = array();
+			if (!$this->_isSiteAdmin()) {
+				$distributionConditions = array("OR" =>
+					array(
+						array('Event.org =' => $this->Auth->user('org')),
+						array("AND" =>
+							array('Event.org !=' => $this->Auth->user('org')),
+							array('Event.distribution !=' => 0),
+							array('Attribute.distribution !=' => 0),
+							Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+						)
+					)
+				);
+			}
+			$attributes = $this->Attribute->find('all', array(
+				'recursive' => -1,
+				'contain' => array('Event'),
+				'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.value1', 'Attribute.value2', 'Event.info'),
+				'conditions' => array(
+					'AND' => array(
+						$searchConditions, 
+						$distributionConditions, 
+						array('Attribute.type' => 'malware-sample')
+			))));
+			if (empty($attributes)) $error = 'No hits with the given parameters.';
+			
+			$results = array();
+			foreach ($attributes as $attribute) {
+				$found = false;
+				foreach ($results as $previous) {
+					if ($previous['md5'] == $attribute['Attribute']['value2']) $found = true;
+				}
+				if (!$found) {
+					$results[] = array(
+						'md5' => $attribute['Attribute']['value2'],
+						'base64' => $this->Attribute->base64EncodeAttachment($attribute['Attribute']),
+						'filename' => $attribute['Attribute']['value1'],
+						'attribute_id' => $attribute['Attribute']['id'],
+						'event_id' => $attribute['Attribute']['event_id'],
+						'event_info' => $attribute['Event']['info'],
+					);
+				}
+			}
+			if ($error) {
+				$this->set('message', $error);
+				$this->set('_serialize', array('message'));
+			} else {
+				$this->set('result', $results);
+				$this->set('_serialize', array('result'));
+			}
+		} else {
+				$this->set('message', $error);
+				$this->set('_serialize', array('message'));
+		}
+		
 	}
 	
 }

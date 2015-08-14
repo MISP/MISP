@@ -161,7 +161,7 @@ class Attribute extends AppModel {
 			'Payload delivery' => array(
 					'desc' => 'Information about how the malware is delivered',
 					'formdesc' => 'Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.',
-					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'ip-dst', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'vulnerability', 'other')
+					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'vulnerability', 'other')
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
@@ -355,6 +355,24 @@ class Attribute extends AppModel {
 			'fields' => '',
 			'order' => '',
 			'counterCache' => true
+		)
+	);
+	
+	public $hashTypes = array(
+		'md5' => array(
+			'length' => 32,
+			'pattern' => '#^[0-9a-f]{32}$#',
+			'lowerCase' => true,
+		),
+		'sha1' => array(
+			'length' => 40,
+			'pattern' => '#^[0-9a-f]{40}$#',
+			'lowerCase' => true,
+		),
+		'sha256' => array(
+			'length' => 64,
+			'pattern' => '#^[0-9a-f]{64}$#',
+			'lowerCase' => true,
 		)
 	);
 
@@ -1164,7 +1182,7 @@ class Attribute extends AppModel {
 		return $fails;
 	}
 	
-	public function hids($isSiteAdmin, $org ,$type, $tags = '', $from, $to, $last) {
+	public function hids($isSiteAdmin, $org ,$type, $tags = '', $from = false, $to = false, $last = false) {
 		if (empty($org)) throw new MethodNotAllowedException('No org supplied.');
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
@@ -1172,103 +1190,99 @@ class Attribute extends AppModel {
 		}
 		$typeArray = array($type, 'filename|' . $type);
 		if ($type == 'md5') $typeArray[] = 'malware-sample';
-		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray);
-		if (!$isSiteAdmin) {
-			$temp = array();
-			$distribution = array();
-			array_push($temp, array('Attribute.distribution >' => 0));
-			array_push($temp, array('AND' => array('Attribute.distribution >' => 0, 'Event.distribution >' => 0)));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
-			$conditions['OR'] = $temp;
-		}
-		
-		// If we sent any tags along, load the associated tag names for each attribute
+		$rules = array();
+		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin, $from, $to, $last);
 		if ($tags !== '') {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-			$temp = array();
-			foreach ($tagArray[0] as $accepted) {
-				$temp['OR'][] = array('Event.id' => $accepted);
+			if (!empty($tagArray[0])) {
+				foreach ($eventIds as $k => $v) {
+					if (!in_array($v['Event']['id'], $tagArray[0])) unset($eventIds[$k]);
+				}
 			}
-			$conditions['AND'][] = $temp;
-			$temp = array();
-			foreach ($tagArray[1] as $rejected) {
-				$temp['AND'][] = array('Event.id !=' => $rejected);
+			if (!empty($tagArray[1])) {
+				foreach ($eventIds as $k => $v) {
+					if (in_array($v['Event']['id'], $tagArray[1])) unset($eventIds[$k]);
+				}
 			}
-			$conditions['AND'][] = $temp;
 		}
-		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
-		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
-		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
-		
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
-		);
-		$items = $this->find('all', $params);
-		App::uses('HidsExport', 'Export');
-		$export = new HidsExport();
-		$rules = $export->export($items, strtoupper($type));
+		$continue = false;
+		foreach ($eventIds as $event) {
+			//restricting to non-private or same org if the user is not a site-admin.
+			$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray, 'Attribute.event_id' => $event['Event']['id']);
+			if (!$isSiteAdmin && ($org !== $event['Event']['org'])) $conditions['AND']['Attribute.distribution >'] = 0; 
+			$params = array(
+					'conditions' => $conditions, //array of conditions
+					'recursive' => 0, //int
+					'fields' => array('Attribute.type', 'Attribute.value1', 'Attribute.value2'),
+					'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+			);
+			$items = $this->find('all', $params);
+			App::uses('HidsExport', 'Export');
+			$export = new HidsExport();
+			$rules = array_merge($rules, $export->export($items, strtoupper($type), $continue));
+			$continue = true;
+		}
 		return $rules;
 	}
 	
-	public function nids($isSiteAdmin, $org, $format, $sid, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last) {
+	public function nids($isSiteAdmin, $org, $format, $sid, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false) {
+		if (empty($org)) throw new MethodNotAllowedException('No org supplied.');
 		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1);
-		$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
-		$conditions['AND']['Attribute.type'] = $valid_types;
-		if (!$isSiteAdmin) {
-			$temp = array();
-			$distribution = array();
-			array_push($temp, array('AND' => array('Attribute.distribution >' => 0, 'Event.distribution >' => 0)));
-			array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
-			$conditions['OR'] = $temp;
-		}
-		
-		if ($id) array_push($conditions['AND'], array('Event.id' => $id));
-		if ($from) array_push($conditions['AND'], array('Event.date >=' => $from));
-		if ($to) array_push($conditions['AND'], array('Event.date <=' => $to));
-		if ($last) array_push($conditions['AND'], array('Event.publish_timestamp >=' => $last));
-		
-		// If we sent any tags along, load the associated tag names for each attribute
-		if ($tags) {
+
+		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin, $from, $to, $last);
+		if ($tags !== '') {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-			$temp = array();
-			foreach ($tagArray[0] as $accepted) {
-				$temp['OR'][] = array('Event.id' => $accepted);
+			if ($id) {
+				foreach ($eventIds as $k => $v) {
+					if ($v['Event']['id'] !== $id) unset($eventIds[$k]);
+				}
 			}
-			$conditions['AND'][] = $temp;
-			$temp = array();
-			foreach ($tagArray[1] as $rejected) {
-				$temp['AND'][] = array('Event.id !=' => $rejected);
+			if (!empty($tagArray[0])) {
+				foreach ($eventIds as $k => $v) {
+					if (!in_array($v['Event']['id'], $tagArray[0])) unset($eventIds[$k]);
+				}
 			}
-			$conditions['AND'][] = $temp;
+			if (!empty($tagArray[1])) {
+				foreach ($eventIds as $k => $v) {
+					if (in_array($v['Event']['id'], $tagArray[1])) unset($eventIds[$k]);
+				}
+			}
 		}
-		$params = array(
-				'conditions' => $conditions, //array of conditions
-				'recursive' => 0, //int
-				'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
-		);
-		unset($this->virtualFields['category_order']);  // not needed for IDS export and speeds things up
-		$items = $this->find('all', $params);
+
+		if ($format == 'suricata') App::uses('NidsSuricataExport', 'Export');
+		else App::uses('NidsSnortExport', 'Export');
 		
-		// export depending of the requested type
-		switch ($format) {
-			case 'suricata':
--				App::uses('NidsSuricataExport', 'Export');
-				$export = new NidsSuricataExport();
-				break;
-			case 'snort':
-				App::uses('NidsSnortExport', 'Export');
-				$export = new NidsSnortExport();
-				break;
+		$rules = array();
+		foreach ($eventIds as $event) {
+			$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
+			$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
+			$conditions['AND']['Attribute.type'] = $valid_types;
+			if (!$isSiteAdmin && ($org !== $event['Event']['org'])) $conditions['AND']['Attribute.distribution >'] = 0; 
+			$params = array(
+					'conditions' => $conditions, //array of conditions
+					'recursive' => 0, //int
+					'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+			);
+			unset($this->virtualFields['category_order']);  // not needed for IDS export and speeds things up
+			$items = $this->find('all', $params);
+			
+			// export depending of the requested type
+			switch ($format) {
+				case 'suricata':
+					$export = new NidsSuricataExport();
+					break;
+				case 'snort':
+					$export = new NidsSnortExport();
+					break;
+			}
+			$rules = array_merge($rules, $export->export($items, $sid, $format, $continue));
+			// Only pre-pend the comments once
+			$continue = true;
 		}
-		$rules = $export->export($items, $sid, $format, $continue);
 		return $rules;
 	}
 
@@ -1497,112 +1511,174 @@ class Attribute extends AppModel {
 	 }
 	 
 
-	 private function __resolveElementAttribute($element, $value) {
-	 	$attributes = array();
-	 	$results = array();
-	 	$errors=null;
-	 	if (!empty($value)) {
-	 		if ($element['batch']) {
-	 			$values = explode("\n", $value);
-	 			foreach ($values as $v) {
-	 				$v = trim($v);
-	 				$attributes[] = $this->__createAttribute($element, $v);
-	 			}
-	 		} else {
-	 			$attributes[] = $this->__createAttribute($element, trim($value));
-	 		}
-	 		foreach ($attributes as $att) {
-	 			if (isset($att['multi'])) {
-	 				foreach ($att['multi'] as $a) {
-	 					$results[] = $a;
-	 				}
-	 			} else {
-	 				$results[] = $att;
-	 			}
-	 		}
-	 	} else {
-	 		if ($element['mandatory']) $errors = 'This field is mandatory.';
-	 	}
-	 	return array('attributes' => $results, 'errors' => $errors);
-	 }
+	private function __resolveElementAttribute($element, $value) {
+		$attributes = array();
+		$results = array();
+		$errors=null;
+		if (!empty($value)) {
+				if ($element['batch']) {
+				$values = explode("\n", $value);
+				foreach ($values as $v) {
+					$v = trim($v);
+					$attributes[] = $this->__createAttribute($element, $v);
+				}
+			} else {
+				$attributes[] = $this->__createAttribute($element, trim($value));
+			}
+			foreach ($attributes as $att) {
+				if (isset($att['multi'])) {
+					foreach ($att['multi'] as $a) {
+						$results[] = $a;
+					}
+				} else {
+					$results[] = $att;
+				}
+			}
+		} else {
+			if ($element['mandatory']) $errors = 'This field is mandatory.';
+		}
+		return array('attributes' => $results, 'errors' => $errors);
+	}
 	 
-	 private function __resolveElementFile($element, $files) {
-	 	$attributes = array();
-	 	$errors = null;
-	 	$results = array();
-	 	$count = count($files);
-	 	$element['complex'] = false;
-	 	if ($element['malware']) {
-	 		$element['type'] = 'malware-sample';
-	 		$element['to_ids'] = true;
-	 	} else {
-	 		$element['type'] = 'attachment';
-	 		$element['to_ids'] = false;
-	 	}
-	 	foreach ($files as $file) {	
- 			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) {
- 				$errors = 'Filename not allowed.';
- 				continue;
- 			}
- 			if ($element['malware']) {
- 				$malwareName = $file['filename'] . '|' . hash_file('md5', APP . 'tmp/files/' . $file['tmp_name']);
- 				$tmp_file = new File(APP . 'tmp/files/' . $file['tmp_name']);
- 				if (!$tmp_file->exists()) {
- 					$errors = 'File cannot be read.';
- 				} else {
- 					$element['type'] = 'malware-sample';
- 					$attributes[] = $this->__createAttribute($element, $malwareName);
-	 				$content = $tmp_file->read();
-	 				$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];
-	 				$element['type'] = 'filename|sha256';
-	 				$sha256 = $file['filename'] . '|' . (hash_file('sha256', APP . 'tmp/files/' . $file['tmp_name']));
-	 				$attributes[] = $this->__createAttribute($element, $sha256);
-	 				$element['type'] = 'filename|sha1';
-	 				$sha1 = $file['filename'] . '|' . (hash_file('sha1', APP . 'tmp/files/' . $file['tmp_name']));
-	 				$attributes[] = $this->__createAttribute($element, $sha1);
- 				}
- 			} else {
- 				$attributes[] = $this->__createAttribute($element, $file['filename']);
- 				$tmp_file = new File(APP . 'tmp/files/' . $file['tmp_name']);
- 				if (!$tmp_file->exists()) {
+	private function __resolveElementFile($element, $files) {
+		$attributes = array();
+		$errors = null;
+		$results = array();
+		$count = count($files);
+		$element['complex'] = false;
+		if ($element['malware']) {
+			$element['type'] = 'malware-sample';
+			$element['to_ids'] = true;
+		} else {
+			$element['type'] = 'attachment';
+			$element['to_ids'] = false;
+		}
+		foreach ($files as $file) {	
+			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) {
+				$errors = 'Filename not allowed.';
+				continue;
+			}
+			if ($element['malware']) {
+				$malwareName = $file['filename'] . '|' . hash_file('md5', APP . 'tmp/files/' . $file['tmp_name']);
+				$tmp_file = new File(APP . 'tmp/files/' . $file['tmp_name']);
+				if (!$tmp_file->exists()) {
+					$errors = 'File cannot be read.';
+				} else {
+					$element['type'] = 'malware-sample';
+					$attributes[] = $this->__createAttribute($element, $malwareName);
+					$content = $tmp_file->read();
+					$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];
+					$element['type'] = 'filename|sha256';
+					$sha256 = $file['filename'] . '|' . (hash_file('sha256', APP . 'tmp/files/' . $file['tmp_name']));
+					$attributes[] = $this->__createAttribute($element, $sha256);
+					$element['type'] = 'filename|sha1';
+					$sha1 = $file['filename'] . '|' . (hash_file('sha1', APP . 'tmp/files/' . $file['tmp_name']));
+					$attributes[] = $this->__createAttribute($element, $sha1);
+				}
+			} else {
+				$attributes[] = $this->__createAttribute($element, $file['filename']);
+				$tmp_file = new File(APP . 'tmp/files/' . $file['tmp_name']);
+				if (!$tmp_file->exists()) {
 				$errors = 'File cannot be read.';
- 				} else {
- 					$content = $tmp_file->read();
- 					$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];
- 				}
- 			}
-	 	}
-	 	return array('attributes' => $attributes, 'errors' => $errors, 'files' => $files);
-	 }
+				} else {
+					$content = $tmp_file->read();
+					$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];
+				}
+			}
+		}
+		return array('attributes' => $attributes, 'errors' => $errors, 'files' => $files);
+	}
 
-	 private function __createAttribute($element, $value) {
-	 	$attribute = array(
-	 			'comment' => $element['name'],
-	 			'to_ids' => $element['to_ids'],
-	 			'category' => $element['category'],
-	 			'value' => $value,
-	 	);
-	 	if ($element['complex']) {
-	 		App::uses('ComplexTypeTool', 'Tools');
-	 		$complexTypeTool = new ComplexTypeTool();
-	 		$result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type']));
-	 		if (isset($result['multi'])) {
-	 			$temp = $attribute;
-	 			$attribute = array();
-	 			foreach($result['multi'] as $k => $r) {
-	 				$attribute['multi'][] = $temp;
-	 				$attribute['multi'][$k]['type'] = $r['type'];
-	 				$attribute['multi'][$k]['value'] = $r['value'];
-	 			}
-	 		} else if ($result != false) {
-	 			$attribute['type'] = $result['type'];
-	 			$attribute['value'] = $result['value'];
-	 		} else {
-	 			return false;
-	 		}
-	 	} else {
-	 		$attribute['type'] = $element['type'];
-	 	}
-	 	return $attribute;
-	 }
+	private function __createAttribute($element, $value) {
+		$attribute = array(
+				'comment' => $element['name'],
+				'to_ids' => $element['to_ids'],
+				'category' => $element['category'],
+				'value' => $value,
+		);
+		if ($element['complex']) {
+			App::uses('ComplexTypeTool', 'Tools');
+			$complexTypeTool = new ComplexTypeTool();
+			$result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type']));
+			if (isset($result['multi'])) {
+				$temp = $attribute;
+				$attribute = array();
+				foreach($result['multi'] as $k => $r) {
+					$attribute['multi'][] = $temp;
+					$attribute['multi'][$k]['type'] = $r['type'];
+					$attribute['multi'][$k]['value'] = $r['value'];
+				}
+			} else if ($result != false) {
+				$attribute['type'] = $result['type'];
+				$attribute['value'] = $result['value'];
+			} else {
+				return false;
+			}
+		} else {
+			$attribute['type'] = $element['type'];
+		}
+		return $attribute;
+	}
+	
+	// get and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive
+	// The zip archive is then passed back as a base64 encoded string along with the md5 hash and a flag whether the transaction was successful
+	// The archive is password protected using the "infected" password
+	// The contents of the archive will be the actual sample, named <md5> and the original filename in a text file named <md5>.filename.txt
+	public function handleMaliciousBase64($event_id, $original_filename, $base64, $hash_types) {
+		if (!is_numeric($event_id)) throw new Exception('Something went wrong. Received a non numeric event ID while trying to create a zip archive of an uploaded malware sample.');
+		$dir = new Folder(APP . "files" . DS . $event_id, true);
+		$tmpFile = new File($dir->path . DS . $this->generateRandomFileName(), true, 0600);
+		$tmpFile->write(base64_decode($base64));
+		$hashes = array();
+		foreach ($hash_types as $hash) {
+			$hashes[$hash] = $this->__hashRouter($hash, $tmpFile->path);
+		}
+		$contentsFile = new File($dir->path . DS . $hashes['md5']);
+		rename($tmpFile->path, $contentsFile->path);
+		$fileNameFile = new File($dir->path . DS . $hashes['md5'] . '.filename.txt');
+		$fileNameFile->write($original_filename);
+		$fileNameFile->close();
+		$zipFile = new File($dir->path . DS . $hashes['md5'] . '.zip');
+		exec('zip -j -P infected "' . addslashes($zipFile->path) . '" "' . addslashes($contentsFile->path) . '" "' . addslashes($fileNameFile->path) . '"', $execOutput, $execRetval);
+		if ($execRetval != 0) $result = array('success' => false);
+		else $result = array_merge(array('data' => base64_encode($zipFile->read()), 'success' => true), $hashes);
+		$fileNameFile->delete();
+		$zipFile->delete();
+		$contentsFile->delete();
+		return $result;
+	}
+	
+	private function __hashRouter($hashType, $file) {
+		$validHashes = array('md5', 'sha1', 'sha256');
+		if (!in_array($hashType, $validHashes)) return false;
+		switch ($hashType) {
+			case 'md5':
+			case 'sha1':
+			case 'sha256':
+				return hash_file($hashType, $file);
+				break;
+		}
+	}
+	
+	public function generateRandomFileName() {
+		$length = 12;
+		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		$charLen = strlen($characters) - 1;
+		$fn = '';
+		for ($p = 0; $p < $length; $p++) {
+			$fn .= $characters[rand(0, $charLen)];
+		}
+		return $fn;
+	}
+	
+	public function resolveHashType($hash) {
+		$hashTypes = $this->hashTypes;
+		$validTypes = array();
+		$length = strlen($hash);
+		foreach ($hashTypes as $k => $hashType) {
+			$temp = $hashType['lowerCase'] ? strtolower($hash) : $hash;
+			if ($hashType['length'] == $length && preg_match($hashType['pattern'], $temp)) $validTypes[] = $k;
+		}
+		return $validTypes;
+	}
 }
