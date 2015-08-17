@@ -945,6 +945,9 @@ class EventsController extends AppController {
 					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
 					if ($add && !is_numeric($add)) {
 						if ($this->_isRest()) {
+							if ($add === 'blocked') {
+								throw new ForbiddenException('Event blocked by local blacklist.');
+							}
 							// REST users want to see the newly created event
 							$this->view($this->Event->getId());
 							$this->render('view');
@@ -1263,15 +1266,31 @@ class EventsController extends AppController {
 						if (isset($attribute['uuid'])) {
 							$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
 							if (count($existingAttribute)) {
-								$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
-								// Check if the attribute's timestamp is bigger than the one that already exists.
-								// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-								// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-								if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-	
-								} else {
+								if ($existingAttribute['Attribute']['event_id'] != $id) {
+									$this->loadModel('Log');
+									$result = $this->Log->save(array(
+											'org' => $this->Auth->user('org'),
+											'model' => 'Event',
+											'model_id' => $id,
+											'email' => $this->Auth->user('email'),
+											'action' => 'edit',
+											'user_id' => $this->Auth->user('id'),
+											'title' => 'Duplicate UUID found in attribute',
+											'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
+									));
 									unset($this->request->data['Attribute'][$c]);
-									//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+								}
+								else {
+									$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
+									// Check if the attribute's timestamp is bigger than the one that already exists.
+									// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+									// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+									if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+		
+									} else {
+										unset($this->request->data['Attribute'][$c]);
+										//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+									}
 								}
 							}
 						}

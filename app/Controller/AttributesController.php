@@ -193,9 +193,7 @@ class AttributesController extends AppController {
 						// TODO RESTfull, set responce location header..so client can find right URL to edit
 						$this->response->header('Location', Configure::read('MISP.baseurl') . '/attributes/' . $existingAttribute['Attribute']['id']);
 						$this->response->send();
-						$this->view($this->Attribute->getID());
-						$this->render('view');
-						return false;
+						throw new NotFoundException('Attribute already exists, if you would like to edit it, use the url in the location header.');
 					} else {
 						// if the attribute doesn't exist yet, check whether it has a timestamp - if yes, it's from a push, keep the timestamp we had, if no create a timestamp
 						if (!isset($this->request->data['Attribute']['timestamp'])) {
@@ -238,8 +236,7 @@ class AttributesController extends AppController {
 				} else {
 					if ($this->_isRest()) { // TODO return error if REST
 						// REST users want to see the failed attribute
-						$this->view($savedId);
-						$this->render('view');
+						throw new NotFoundException('Could not save the attribute. ' . $this->Attribute->validationErrors);
 					}  elseif ($this->request->is('ajax')) {
 						$this->autoRender = false;
 						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)),'status'=>200));

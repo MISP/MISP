@@ -327,15 +327,24 @@ class Event extends AppModel {
 	);
 
 	public function beforeDelete($cascade = true) {
-		// delete event from the disk
-		$this->read();	// first read the event from the db
+		// blacklist the event UUID if the feature is enabled
+		if (Configure::read('MISP.enableEventBlacklisting')) {
+			$event = $this->find('first', array(
+					'recursive' => -1,
+					'fields' => array('uuid'),
+					'conditions' => array('id' => $this->id),
+			));
+			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+			$this->EventBlacklist->create();
+			$this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid']));
+		}
 		
 		// delete all of the event->tag combinations that involve the deleted event
 		$this->EventTag->deleteAll(array('event_id' => $this->id));
 		
 		// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 		// only delete the file if it exists
-		$filepath = APP . "files" . DS . $this->data['Event']['id'];
+		$filepath = APP . "files" . DS . $this->id;
 		App::uses('Folder', 'Utility');
 		$file = new Folder ($filepath);
 		if (is_dir($filepath)) {
@@ -1307,6 +1316,16 @@ class Event extends AppModel {
 	public function _add(&$data, $fromXml, $user, $org='', $passAlong = null, $fromPull = false, $jobId = null) {
 		if ($jobId) {
 			App::import('Component','Auth');
+		}
+		if (Configure::read('MISP.enableEventBlacklisting')) {
+			$event = $this->find('first', array(
+					'recursive' => -1,
+					'fields' => array('uuid'),
+					'conditions' => array('id' => $this->id),
+			));
+			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+			$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $data['Event']['uuid'])));
+			if (!empty($r))	return 'blocked';
 		}
 		$this->create();
 		// force check userid and orgname to be from yourself
