@@ -293,6 +293,11 @@ class Attribute extends AppModel {
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
+			'unique' => array(
+				'rule' => 'isUnique',
+				'message' => 'The UUID provided is not unique',
+				'required' => 'create'
+			)
 		),
 		'revision' => array(
 			'numeric' => array(

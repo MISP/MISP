@@ -352,25 +352,37 @@ class AppController extends Controller {
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 	
+	public function pruneDuplicateUUIDs() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		$this->LoadModel('Attribute');
+		$duplicates = $this->Attribute->find('all', array(
+			'fields' => array('Attribute.uuid', 'count(*) as occurance'),
+			'recursive' => -1,
+			'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
+		));
+		$counter = 0;
+		foreach ($duplicates as $duplicate) {
+			$attributes = $this->Attribute->find('all', array(
+				'recursive' => -1,
+				'conditions' => array('uuid' => $duplicate['Attribute']['uuid'])
+			));
+			foreach ($attributes as $k => $attribute) {
+				if ($k > 0) {
+					$attribute['Attribute']['uuid'] = String::uuid();
+					$this->Attribute->save($attribute);
+					$counter++;
+				}
+			}
+		}
+		$this->Server->updateDatabase('makeAttributeUUIDsUnique');
+		$this->Session->setFlash('Done. Assigned new UUIDs to ' . $counter . ' attribute(s).');
+		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+	}
+	
 	public function updateDatabase($command) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
-		$sql = '';
-		switch ($command) {
-			case 'extendServerOrganizationLength':
-				$sql = 'ALTER TABLE `servers` MODIFY COLUMN `organization` varchar(255) NOT NULL;';
-				$controller = 'Servers';
-				break;
-			case 'convertLogFieldsToText':
-				$sql = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
-				$controller = 'Logs';
-				break;
-			default:
-				$this->Session->setFlash('Invalid command.');
-				$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-				break;
-		}
-		$this->loadModel($controller);
-		$this->$controller->query($sql);
+		$this->loadModel('Server');
+		$this->Server->updateDatabase($command);
 		$this->Session->setFlash('Done.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
