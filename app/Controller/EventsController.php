@@ -945,6 +945,9 @@ class EventsController extends AppController {
 					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
 					if ($add && !is_numeric($add)) {
 						if ($this->_isRest()) {
+							if ($add === 'blocked') {
+								throw new ForbiddenException('Event blocked by local blacklist.');
+							}
 							// REST users want to see the newly created event
 							$this->view($this->Event->getId());
 							$this->render('view');
@@ -1263,15 +1266,31 @@ class EventsController extends AppController {
 						if (isset($attribute['uuid'])) {
 							$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
 							if (count($existingAttribute)) {
-								$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
-								// Check if the attribute's timestamp is bigger than the one that already exists.
-								// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-								// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-								if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-	
-								} else {
+								if ($existingAttribute['Attribute']['event_id'] != $id) {
+									$this->loadModel('Log');
+									$result = $this->Log->save(array(
+											'org' => $this->Auth->user('org'),
+											'model' => 'Event',
+											'model_id' => $id,
+											'email' => $this->Auth->user('email'),
+											'action' => 'edit',
+											'user_id' => $this->Auth->user('id'),
+											'title' => 'Duplicate UUID found in attribute',
+											'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
+									));
 									unset($this->request->data['Attribute'][$c]);
-									//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+								}
+								else {
+									$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
+									// Check if the attribute's timestamp is bigger than the one that already exists.
+									// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+									// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+									if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+		
+									} else {
+										unset($this->request->data['Attribute'][$c]);
+										//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+									}
 								}
 							}
 						}
@@ -1607,6 +1626,7 @@ class EventsController extends AppController {
 		$this->loadModel('Server');
 		$rpzSettings = $this->Server->retrieveCurrentSettings('Plugin', 'RPZ_');
 		$this->set('rpzSettings', $rpzSettings);
+		$this->set('hashTypes', array_keys($this->Event->Attribute->hashTypes));
 	}
 
 	public function export() {
@@ -1856,7 +1876,6 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
-		
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
@@ -1879,10 +1898,10 @@ class EventsController extends AppController {
 			$user['User']['siteAdmin'] = $this->_isSiteAdmin();
 		}	
 		$this->loadModel('Attribute');
-
 		$rules = $this->Attribute->hids($user['User']['siteAdmin'], $user['User']['org'], $type, $tags, $from, $to, $last);
 		$this->set('rules', $rules);
 	}
+	
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
@@ -2599,7 +2618,7 @@ class EventsController extends AppController {
 		$final = $this->IOCExport->buildAll($event, $isMyEvent, $isSiteAdmin);
 		$this->set('final', $final);
 	}
-
+	
 	public function create_dummy_event() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
 		$date = new DateTime();
@@ -3228,4 +3247,161 @@ class EventsController extends AppController {
 		$this->set('id', $id);
 		$this->render('ajax/exportChoice');
 	}
+	
+	// API for pushing samples to MISP
+	// Either send it to an existing event, or let MISP create a new one automatically
+	public function upload_sample($event_id = null) {
+		$this->loadModel('Log');
+		$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
+		$categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
+		$types = array();
+		foreach ($categoryDefinitions as $k => $v) {
+			if (in_array('malware-sample', $v['types']) && !in_array($k, $types)) $types[] = $k;
+		}
+		$parameter_options = array(
+				'distribution' => array('valid_options' => array(0, 1, 2, 3), 'default' => 0),
+				'threat_level_id' => array('valid_options' => array(1, 2, 3, 4), 'default' => 4),
+				'analysis' => array('valid_options' => array(0, 1, 2), 'default' => 0),
+				'info' => array('default' =>  'Malware samples uploaded on ' . date('Y-m-d')),
+				'to_ids' => array('valid_options' => array(0, 1), 'default' => 1),
+				'category' => array('valid_options' => $types, 'default' => 'Payload installation')
+		);
+		
+	
+		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
+		if (!$this->request->is('post')) throw new MethodNotAllowedException('Please POST the samples as described on the automation page.');
+		$isJson = false;
+		if ($this->response->type() === 'application/json') {
+			$isJson = true;
+			$data = $this->request->input('json_decode', true);
+		} elseif ($this->response->type() === 'application/xml') {
+			$data = $this->request->data;
+		} else {
+			throw new BadRequestException('Please POST the samples as described on the automation page.');
+		}
+		
+		if (isset($data['request'])) $data = $data['request'];
+		
+		foreach ($parameter_options as $k => $v) {
+			if (isset($data[$k])) {
+				if (isset($v['valid_options']) && !in_array($data[$k], $v['valid_options'])) $data[$k] = $v['default'];
+			} else {
+				$data[$k] = $v['default'];
+			}
+		}
+		
+		if (isset($data['files'])) {
+			foreach ($data['files'] as $k => $file) {
+				if (!isset($file['filename']) || !isset($file['data'])) unset ($data['files'][$k]);
+				else $data['files'][$k]['md5'] = md5(base64_decode($file['data']));
+			}
+		}
+		
+		if (empty($data['files'])) throw new BadRequestException('No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page.');
+		if (isset($event_id)) $data['event_id'] = $event_id;
+		
+		// check if the user has permission to create attributes for an event, if the event ID has been passed
+		// If not, create an event
+		if (isset($data['event_id']) && !empty($data['event_id']) && is_numeric($data['event_id'])) {
+			$conditons = array();
+			if (!$this->_isSiteAdmin()) {
+				$conditions = array('Event.orgc' => $this->Auth->user('org'));
+				if (!$this->userRole['perm_modify_org']) $conditions[] = array('Event.user_id' => $this->Auth->user('id'));
+			}		
+			$event = $this->Event->find('first', array(
+				'recursive' => -1,
+				'conditions' => $conditions,
+				'fields' => array('id'),
+			));
+			if (empty($event)) throw new MethodNotFoundException('Event not found.');
+			$this->Event->id = $data['event_id'];
+			$this->Event->saveField('published', 0);
+		} else {
+			$this->Event->create();
+			$result = $this->Event->save(
+				array(	
+					'info' => $data['info'],
+					'analysis' => $data['analysis'],
+					'threat_level_id' => $data['threat_level_id'],
+					'distribution' => $data['distribution'],
+					'date' => date('Y-m-d'),
+					'orgc' => $this->Auth->user('org'),
+					'org' => $this->Auth->user('org'),
+					'user_id' => $this->Auth->user('id'),
+				)
+			);
+			if (!$result) {
+				$this->Log->save(array(
+						'org' => $this->Auth->user('org'),
+						'model' => 'Event',
+						'model_id' => 0,
+						'email' => $this->Auth->user('email'),
+						'action' => 'upload_sample',
+						'user_id' => $this->Auth->user('id'),
+						'title' => 'Error: Failed to create event using the upload sample functionality',
+						'change' => 'There was an issue creating an event (' . $data['info'] . '). The validation errors were: ' . json_encode($this->Event->validationErrors),
+				));
+				throw new BadRequestException('The creation of a new event with the supplied information has failed.');
+			}
+			$data['event_id'] = $this->Event->id;
+		}
+
+		if (!isset($data['to_ids']) || !in_array($data['to_ids'], array('0', '1', 0, 1))) $data['to_ids'] = 1;
+		$successCount = 0;
+		$errors = array();
+		foreach ($data['files'] as $file) {
+			$temp = $this->Event->Attribute->handleMaliciousBase64($data['event_id'], $file['filename'], $file['data'], array_keys($hashes));
+			if ($temp['success']) {
+				foreach ($hashes as $hash => $typeName) {
+					if ($temp[$hash] == false) continue;
+					$file[$hash] = $temp[$hash];
+					$file['data'] = $temp['data'];
+					$this->Event->Attribute->create();
+					$attribute = array(
+							'value' => $file['filename'] . '|' . $file[$hash],
+							'distribution' => $data['distribution'],
+							'category' => $data['category'],
+							'type' => $typeName,
+							'event_id' => $data['event_id'],
+							'to_ids' => $data['to_ids']
+					);
+					if ($hash == 'md5') $attribute['data'] = $file['data'];
+					$result = $this->Event->Attribute->save($attribute);
+					if (!$result) {
+						$this->Log->save(array(
+								'org' => $this->Auth->user('org'),
+								'model' => 'Event',
+								'model_id' => $data['event_id'],
+								'email' => $this->Auth->user('email'),
+								'action' => 'upload_sample',
+								'user_id' => $this->Auth->user('id'),
+								'title' => 'Error: Failed to create attribute using the upload sample functionality',
+								'change' => 'There was an issue creating an attribute (' . $typeName . ': ' . $file['filename'] . '|' . $file[$hash] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
+						));
+						if ($typeName == 'malware-sample') $errors[] = array('filename' => $file['filename'], 'hash' => $file[$hash], 'error' => $this->Event->Attribute->validationErrors);
+					} else if ($typeName == 'malware-sample') $successCount++;
+				}
+			} else {
+				$errors[] = array('filename' => $file['filename'], 'hash' => $file['hash'], 'error' => 'Failed to encrypt and compress the file.');
+			}
+		}
+		if (!empty($errors)) {
+			$this->set('errors', $errors);
+			if ($successCount > 0) {
+				$this->set('name', 'Partial success');
+				$this->set('message', 'Successfuly saved ' . $successCount . ' sample(s), but some samples could not be saved.');
+			} else {
+				$this->set('name', 'Failed');
+				$this->set('message', 'Failed to save any of the supplied samples.');
+			}
+			$this->set('_serialize', array('name', 'message', 'errors'));
+		} else {
+			$this->set('name', 'Success');
+			$this->set('message', 'Success, saved all attributes.');
+			$this->set('_serialize', array('name', 'message'));
+		}
+		$this->view($data['event_id']);
+		$this->render('view');
+	}
+
 }

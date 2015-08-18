@@ -421,8 +421,8 @@ class ServersController extends AppController {
 		if (!$this->_isSiteAdmin() || !$this->request->is('Post')) throw new MethodNotAllowedException();
 		$validTypes = array('default', 'email', 'scheduler', 'cache');
 		if (!in_array($type, $validTypes)) throw new MethodNotAllowedException('Invalid worker type.');
-		if ($type != 'scheduler') shell_exec(APP . 'Console' . DS . 'cake ' . DS . 'CakeResque.CakeResque start --interval 5 --queue ' . $type .' > /dev/null &');
-		else shell_exec(APP . 'Console' . DS . 'cake ' . DS . 'CakeResque.CakeResque startscheduler -i 5 > /dev/null &');
+		if ($type != 'scheduler') shell_exec(APP . 'Console' . DS . 'cake ' . DS . 'CakeResque.CakeResque start --interval 5 --queue ' . $type .' > /dev/null 2>&1 &');
+		else shell_exec(APP . 'Console' . DS . 'cake ' . DS . 'CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
 		$this->redirect('/servers/serverSettings/workers');
 	}
 	
@@ -494,7 +494,7 @@ class ServersController extends AppController {
 			$this->loadModel('Log');
 			if (isset($found['beforeHook'])) {
 				$beforeResult = call_user_func_array(array($this->Server, $found['beforeHook']), array($setting, $this->request->data['Server']['value']));
-				if ($afterResult !== true) {
+				if ($beforeResult !== true) {
 					$this->Log->create();
 					$result = $this->Log->save(array(
 							'org' => $this->Auth->user('org'),
@@ -560,7 +560,7 @@ class ServersController extends AppController {
 	public function restartWorkers() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->Server->workerRemoveDead($this->Auth->user());
-		shell_exec(APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null &');
+		shell_exec(APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
 	}
 	

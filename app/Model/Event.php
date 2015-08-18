@@ -169,8 +169,8 @@ class Event extends AppModel {
 		),
 		'threat_level_id' => array(
 			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Please specify threat level',
+				'rule' => array('inList', array('1', '2', '3', '4')),
+				'message' => 'Options : 1, 2, 3, 4 (for High, Medium, Low, Undefined)',
 				'required' => true
 			),
 		),
@@ -186,7 +186,7 @@ class Event extends AppModel {
 		),
 		'analysis' => array(
 			'rule' => array('inList', array('0', '1', '2')),
-				'message' => 'Options : 0, 1, 2',
+				'message' => 'Options : 0, 1, 2 (for Initial, Ongoing, Completed)',
 				//'allowEmpty' => false,
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -327,15 +327,24 @@ class Event extends AppModel {
 	);
 
 	public function beforeDelete($cascade = true) {
-		// delete event from the disk
-		$this->read();	// first read the event from the db
+		// blacklist the event UUID if the feature is enabled
+		if (Configure::read('MISP.enableEventBlacklisting')) {
+			$event = $this->find('first', array(
+					'recursive' => -1,
+					'fields' => array('uuid'),
+					'conditions' => array('id' => $this->id),
+			));
+			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+			$this->EventBlacklist->create();
+			$this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid']));
+		}
 		
 		// delete all of the event->tag combinations that involve the deleted event
 		$this->EventTag->deleteAll(array('event_id' => $this->id));
 		
 		// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 		// only delete the file if it exists
-		$filepath = APP . "files" . DS . $this->data['Event']['id'];
+		$filepath = APP . "files" . DS . $this->id;
 		App::uses('Folder', 'Utility');
 		$file = new Folder ($filepath);
 		if (is_dir($filepath)) {
@@ -949,7 +958,7 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	public function csv($org, $isSiteAdmin, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last) {
+	public function csv($org, $isSiteAdmin, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false) {
 		$final = array();
 		$attributeList = array();
 		$conditions = array();
@@ -1307,6 +1316,16 @@ class Event extends AppModel {
 	public function _add(&$data, $fromXml, $user, $org='', $passAlong = null, $fromPull = false, $jobId = null) {
 		if ($jobId) {
 			App::import('Component','Auth');
+		}
+		if (Configure::read('MISP.enableEventBlacklisting')) {
+			$event = $this->find('first', array(
+					'recursive' => -1,
+					'fields' => array('uuid'),
+					'conditions' => array('id' => $this->id),
+			));
+			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+			$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $data['Event']['uuid'])));
+			if (!empty($r))	return 'blocked';
 		}
 		$this->create();
 		// force check userid and orgname to be from yourself
@@ -1740,7 +1759,7 @@ class Event extends AppModel {
 		return false;
 	}
 	
-	public function stix($id, $tags, $attachments, $org, $isSiteAdmin, $returnType, $from, $to, $last) {
+	public function stix($id, $tags, $attachments, $org, $isSiteAdmin, $returnType, $from = false, $to = false, $last = false) {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
