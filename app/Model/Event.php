@@ -1317,7 +1317,7 @@ class Event extends AppModel {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
-		if (Configure::read('MISP.enableEventBlacklisting')) {
+		if (Configure::read('MISP.enableEventBlacklisting') && isset($data['Event']['uuid'])) {
 			$event = $this->find('first', array(
 					'recursive' => -1,
 					'fields' => array('uuid'),
