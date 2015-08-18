@@ -1688,7 +1688,33 @@ class Server extends AppModel {
 				break;
 		}
 		$m = ClassRegistry::init($model);
-		$m->query($sql);
+		$this->Log = ClassRegistry::init('Log');
+		try {
+			$m->query($sql);
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => 0,
+					'email' => 'SYSTEM',
+					'action' => 'update_database',
+					'user_id' => 0,
+					'title' => 'Successfuly executed the SQL query for ' . $command,
+					'change' => 'The executed SQL query was: ' . $sql
+			));
+		} catch (Exception $e) {
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => 0,
+					'email' => 'SYSTEM',
+					'action' => 'update_database',
+					'user_id' => 0,
+					'title' => 'Issues executing the SQL query for ' . $command,
+					'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
+			));
+		}
 		$this->__cleanCacheFiles();
 	}
 	

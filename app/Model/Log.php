@@ -27,7 +27,8 @@ class Log extends AppModel {
 							'email',
 							'serverSettingsEdit',
 							'remove_dead_workers',
-							'upload_sample'
+							'upload_sample',
+							'update_database'
 						)),
 			'message' => 'Options : ...'
 		)
