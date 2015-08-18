@@ -68,15 +68,21 @@ class IOCImportComponent extends Component {
 		// Since the tree created by simplexml is a bit of a pain to traverse (partially because of branches with 1 leaves and with several leaves ending up in a different format -
 		// $branch['leaf'] vs $branch[0]['leaf'] we convert it to an easier to deal with tree structure
 		// This tree also only contains the information that we care about.
-		$tree = array(
-				'uuid' => $xmlArray['ioc']['@attributes']['id'],
-				'info' =>  $xmlArray['ioc']['short_description'] . PHP_EOL . 'by ' . $xmlArray['ioc']['authored_by'],
-				'long_info' => $xmlArray['ioc']['description'],
-				'date' => $xmlArray['ioc']['authored_date'],
+		$tree = array(				
 				'type' => 'OR',
 				'branches' => array(),
 				'leaves' => array()
-			);
+		);
+		if (isset($xmlArray['ioc']['@attributes']['id'])) $tree['uuid'] = $xmlArray['ioc']['@attributes']['id'];
+		$temp = '';
+		if (isset($xmlArray['ioc']['short_description'])) {
+			$temp = $xmlArray['ioc']['short_description'];
+			if (isset($xmlArray['ioc']['authored_by'])) $temp .= PHP_EOL . 'by ' . $xmlArray['ioc']['authored_by'];
+		}
+		if ($temp !== '') $tree['info'] = $temp;
+		if (isset($xmlArray['ioc']['description'])) $tree['longinfo'] = $xmlArray['ioc']['description'];
+		if (isset($xmlArray['ioc']['authored_date'])) $tree['date'] = $xmlArray['ioc']['authored_date'];
+
 		$tree['branches'] = $this->__createRootNode($xmlArray);
 
 		// Once we're done, let's back the tree up for later use, so we can start shuffling things around and converting it to our own attribute format
@@ -93,10 +99,15 @@ class IOCImportComponent extends Component {
 		// attach the attributes to the event
 		$event['Attribute'] = $attributes;
 
+		$duplicateFilter = array();
 		// check if we have any attributes, if yes, add their UUIDs to our list of success-array
 		if (count ($event['Attribute']) > 0) {
-			foreach ($event['Attribute'] as $attribute) {
-				$this->saved_uuids[] = $attribute['uuid'];
+			foreach ($event['Attribute'] as $k => $attribute) {
+				$condensed = strtolower($attribute['value']) . $attribute['category'] . $attribute['type'];
+				if (!in_array($condensed, $duplicateFilter)) {
+					$this->saved_uuids[] = $attribute['uuid'];
+					$duplicateFilter[] = $condensed;
+				} else unset($event['Attribute'][$k]);
 			}
 		}
 
@@ -107,7 +118,7 @@ class IOCImportComponent extends Component {
 		// Add a special attribute that captures the basic data about the .ioc such as the ioc-s uuid, info, long info, author, etc.
 		// Define the fields used in the global iocinfo variable.
 		foreach ($this->iocinfo as $k => $v) {
-			$event['Attribute'][] = array('uuid' => String::uuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => false, 'distribution' => $this->distribution, 'comment' => 'OpenIOC import');
+			if (isset($event[$v])) $event['Attribute'][] = array('uuid' => String::uuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => false, 'distribution' => $this->distribution, 'comment' => 'OpenIOC import');
 		}
 
 		// attach the graph to the event
@@ -231,6 +242,12 @@ class IOCImportComponent extends Component {
 				break;
 			case 'FileItem/Md5sum':
 				return array('Payload installation', 'md5');
+				break;
+			case 'FileItem/Sha1sum':
+				return array('Payload installation', 'sha1');
+				break;
+			case 'FileItem/Sha256sum':
+				return array('Payload installation', 'sha256');
 				break;
 			case 'TaskItem/sha1sum':
 				return array('Payload installation', 'sha1');
