@@ -1177,9 +1177,17 @@ class AttributesController extends AppController {
 						$saveWord = trim($keywordArrayElement);
 						if (empty($saveWord)) continue;
 						if ($saveWord[0] == '!') {
-							$temp[] = array('Attribute.event_id !=' => substr($saveWord, 1));
+							if (strlen(substr($saveWord, 1)) == 36) {
+								$temp[] = array('Event.uuid !=' => substr($saveWord, 1));
+							} else {
+								$temp[] = array('Attribute.event_id !=' => substr($saveWord, 1));
+							}
 						} else {
-							$temp['OR'][] = array('Attribute.event_id =' => $saveWord);
+							if (strlen($saveWord) == 36) {
+								$temp['OR'][] = array('Event.uuid =' => $saveWord);
+							} else {
+								$temp['OR'][] = array('Attribute.event_id =' => $saveWord);
+							}
 						}
 						if ($i == 1 && $saveWord != '') $keyWordText2 = $saveWord;
 						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText2 = $keyWordText2 . ', ' . $saveWord;

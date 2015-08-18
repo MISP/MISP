@@ -301,6 +301,28 @@ class EventsController extends AppController {
 						if ($v == 2) continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.' . substr($k, 6) . ' =' => $v);
 						break;
+					case 'eventid':
+						if ($v == "") continue 2;
+						$pieces = explode('|', $v);
+						$temp = array();
+						foreach ($pieces as $piece) {
+							$piece = trim($piece);
+							if ($piece[0] == '!') {
+								if (strlen($piece) == 37) {
+									$this->paginate['conditions']['AND'][] = array('Event.uuid !=' => substr($piece, 1));
+								} else {
+									$this->paginate['conditions']['AND'][] = array('Event.id !=' => substr($piece, 1));
+								}
+							} else {
+								if (strlen($piece) == 36) {
+									$temp['OR'][] = array('Event.uuid' => $piece);
+								} else {
+									$temp['OR'][] = array('Event.id' => $piece);
+								}
+							}
+						}
+						$this->paginate['conditions']['AND'][] = $temp;
+						break;
 					case 'Datefrom' :
 						if ($v == "") continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.date >=' => $v);
@@ -484,6 +506,7 @@ class EventsController extends AppController {
 			'published' => 2,
 			'org' => array('OR' => array(), 'NOT' => array()),
 			'tag' => array('OR' => array(), 'NOT' => array()),
+			'eventid' => array('OR' => array(), 'NOT' => array()), 
 			'date' => array('from' => "", 'until' => ""),
 			'eventinfo' => array('OR' => array(), 'NOT' => array()),
 			'threatlevel' => array('OR' => array(), 'NOT' => array()),
@@ -506,6 +529,7 @@ class EventsController extends AppController {
 						$filtering['date']['until'] = $v;
 						break;
 					case 'org' :
+					case 'eventid' :
 					case 'tag' :
 					case 'eventinfo' :
 					case 'attribute' :
@@ -545,7 +569,7 @@ class EventsController extends AppController {
 			'conditions' => $conditions,
 			'group' => 'orgc'
 		));
-		$rules = array('published', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
+		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
 		if (Configure::read('MISP.showorg')){
 			$orgs = array();
 			foreach ($events as $e) {
