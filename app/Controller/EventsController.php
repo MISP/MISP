@@ -1047,10 +1047,6 @@ class EventsController extends AppController {
 					$file = new File($this->data['Event']['submittedioc']['name']);
 					$ext = $file->ext();
 				}
-				if (isset($this->data['Event']['submittedioc']) && ($ext != 'ioc') && $this->data['Event']['submittedioc']['size'] > 0 &&
-						is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
-					$this->Session->setFlash(__('You may only upload OpenIOC ioc files.'));
-				}
 				if (isset($this->data['Event']['submittedioc'])) $this->_addIOCFile($id);
 
 				// redirect to the view of the newly created event
@@ -2180,7 +2176,6 @@ class EventsController extends AppController {
 			);
 			// Save it all
 			$saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
-			
 			// set stuff for the view and render the showIOCResults view.
 			$this->set('attributes', $saveEvent['Attribute']);
 			if (isset($fails)) {
