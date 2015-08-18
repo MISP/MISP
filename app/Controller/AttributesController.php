@@ -1451,7 +1451,7 @@ class AttributesController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags=false, $from=false, $to=false, $last=false) {
+	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags=false, $from=false, $to=false, $last=false, $eventid=false) {
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		if ($key!=null && $key!='download') {
 			$user = $this->checkAuthUser($key);
@@ -1477,15 +1477,15 @@ class AttributesController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
 			} 
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to', 'last');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid');
 		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF})) === 'false') ${$sF} = false;
 		}
 
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
@@ -1506,11 +1506,11 @@ class AttributesController extends AppController {
 		$this->loadModel('Attribute');
 		// add the values as specified in the 2nd parameter to the conditions
 		$values = explode('&&', $value);
-		$parameters = array('value', 'type', 'category', 'org');
-		
+		$parameters = array('value', 'type', 'category', 'org', 'eventid');
 		foreach ($parameters as $k => $param) {
 			if (isset(${$parameters[$k]}) && ${$parameters[$k]}!=='null') {
-				$elements = explode('&&', ${$parameters[$k]});
+				if (is_array(${$parameters[$k]})) $elements = ${$parameters[$k]};
+				else $elements = explode('&&', ${$parameters[$k]});
 				foreach($elements as $v) {
 					if (substr($v, 0, 1) == '!') {
 						if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
@@ -1521,6 +1521,8 @@ class AttributesController extends AppController {
 						} else {
 							if ($parameters[$k] === 'org') {
 								$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+							} elseif ($parameters[$k] === 'eventid') {
+								$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
 							} else {
 								$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
 							}
@@ -1534,6 +1536,8 @@ class AttributesController extends AppController {
 						} else {
 							if ($parameters[$k] === 'org') {
 								$subcondition['OR'][] = array('Event.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+							} elseif ($parameters[$k] === 'eventid') {
+								$subcondition['OR'][] = array('Attribute.event_id' => $v);
 							} else {
 								$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
 							}
@@ -1544,7 +1548,6 @@ class AttributesController extends AppController {
 				$subcondition = array();
 			}
 		}
-
 		// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
 
 		if (!$user['User']['siteAdmin']) {
