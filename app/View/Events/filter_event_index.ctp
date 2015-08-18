@@ -87,6 +87,12 @@
 						'style' => 'display:none;width:424px;',
 						'div' => false
 				));
+				echo $this->Form->input('searcheventid', array(
+						'label' => false,
+						'class' => 'input-large',
+						'style' => 'display:none;width:424px;',
+						'div' => false
+				));
 				echo $this->Form->input('searchattribute', array(
 						'label' => false,
 						'class' => 'input-large',
@@ -179,7 +185,7 @@ var operators = ["OR", "NOT"];
 
 var allFields = ["published", "tag", "date", "eventinfo", "threatlevel", "distribution", "analysis", "attribute"];
 
-var simpleFilters = ["tag", "eventinfo", "threatlevel", "distribution", "analysis", "attribute"];
+var simpleFilters = ["tag", "eventinfo", "threatlevel", "distribution", "analysis", "attribute", "eventid"];
 
 var differentFilters = ["published", "date"];
 
