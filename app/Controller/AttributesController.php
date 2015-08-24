@@ -2113,9 +2113,8 @@ class AttributesController extends AppController {
 		
 		if ($hash) $validTypes = $this->Attribute->resolveHashType($hash);
 		$types = array();
-		if ($hash && $allSamples) {
-			if ($hash) {
-				debug($hash);
+		if ($hash) {
+			if ($allSamples) {
 				if (empty($validTypes)) {
 					$error = 'Invalid hash format (valid options are ' . implode(', ', array_keys($this->Attribute->hashTypes)) . ')';
 				}
