@@ -265,7 +265,7 @@ class Attribute extends AppModel {
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
-			'unique' => array(
+			'uniqueValue' => array(
 					'rule' => array('valueIsUnique'),
 					'message' => 'A similar attribute already exists for this event.',
 					//'allowEmpty' => false,
@@ -522,7 +522,7 @@ class Attribute extends AppModel {
 			$conditions['Attribute.id !='] = $this->data['Attribute']['id'];
 		}
 
-		$params = array('recursive' => 0,
+		$params = array('recursive' => -1,
 				'conditions' => $conditions,
 		);
 		if (0 != $this->find('count', $params)) {
@@ -1002,8 +1002,9 @@ class Attribute extends AppModel {
 			            	'AND' => array(
 			            		'Attribute.type !=' => $this->nonCorrelatingTypes,
 						)),
-			            'recursive' => 0,
-			    		//'contain' => 'Event',
+			            'recursive' => -1,
+			    		'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution'),
+			    		'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org', 'Event.distribution'))),
 			            //'fields' => '', // we want to have the Attribute AND Event, so do not filter here
 			    );
 			    // search for the related attributes for that "value(1|2)"

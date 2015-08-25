@@ -1680,7 +1680,12 @@ class Server extends AppModel {
 				$sql = 'CREATE TABLE IF NOT EXISTS `event_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;';
 				break;
 			case 'makeAttributeUUIDsUnique':
-				$sql = 'ALTER TABLE `attributes` ADD UNIQUE (uuid);';
+				$indexCheck = "SELECT COUNT(1) IndexIsThere FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='attributes' AND index_name LIKE 'uuid%'";
+				if ($this->query($indexCheck)[0][0]['IndexIsThere'] == '0') $sql = 'ALTER TABLE `attributes` ADD UNIQUE (uuid);';
+				break;
+			case 'makeEventUUIDsUnique':
+				$indexCheck = "SELECT COUNT(1) IndexIsThere FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='events' AND index_name LIKE 'uuid%'";
+				if ($this->query($indexCheck)[0][0]['IndexIsThere'] == '0') $sql = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
 				break;
 			default:
 				$this->Session->setFlash('Invalid command.');

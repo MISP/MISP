@@ -323,6 +323,7 @@ class Event extends AppModel {
 		),
 		'EventTag' => array(
 				'className' => 'EventTag',
+				'dependent' => true,
 		)
 	);
 
