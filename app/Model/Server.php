@@ -1664,9 +1664,36 @@ class Server extends AppModel {
 		}
 	}
 	
+	private function __dropIndex($table, $field) {
+		$this->Log = ClassRegistry::init('Log');
+		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%'";
+		$indexCheckResult = $this->query($indexCheck);
+		foreach ($indexCheckResult as $icr) {
+			$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'];
+			$result = true;
+			try {
+				$this->query($dropIndex);
+			} catch (Exception $e) {
+				$result = false;
+			}
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => 0,
+					'email' => 'SYSTEM',
+					'action' => 'update_database',
+					'user_id' => 0,
+					'title' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
+					'change' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
+			));
+		}
+	}
+	
 	public function updateDatabase($command) {
 		$sql = '';
 		$model = 'Event';
+		$this->Log = ClassRegistry::init('Log');
 		switch ($command) {
 			case 'extendServerOrganizationLength':
 				$sql = 'ALTER TABLE `servers` MODIFY COLUMN `organization` varchar(255) NOT NULL;';
@@ -1680,12 +1707,12 @@ class Server extends AppModel {
 				$sql = 'CREATE TABLE IF NOT EXISTS `event_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;';
 				break;
 			case 'makeAttributeUUIDsUnique':
-				$indexCheck = "SELECT COUNT(1) IndexIsThere FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='attributes' AND index_name LIKE 'uuid%'";
-				if ($this->query($indexCheck)[0][0]['IndexIsThere'] == '0') $sql = 'ALTER TABLE `attributes` ADD UNIQUE (uuid);';
+				$this->__dropIndex('attributes', 'uuid');
+				$sql = 'ALTER TABLE `attributes` ADD UNIQUE (uuid);';
 				break;
 			case 'makeEventUUIDsUnique':
-				$indexCheck = "SELECT COUNT(1) IndexIsThere FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='events' AND index_name LIKE 'uuid%'";
-				if ($this->query($indexCheck)[0][0]['IndexIsThere'] == '0') $sql = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
+				$this->__dropIndex('events', 'uuid');
+				$sql = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
 				break;
 			default:
 				$this->Session->setFlash('Invalid command.');
@@ -1693,7 +1720,6 @@ class Server extends AppModel {
 				break;
 		}
 		$m = ClassRegistry::init($model);
-		$this->Log = ClassRegistry::init('Log');
 		try {
 			$m->query($sql);
 			$this->Log->create();
