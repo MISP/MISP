@@ -242,6 +242,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>eventid</b>: The events that should be included / excluded from the search<br />
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>For example, to find any event with the term "red october" mentioned, use the following syntax (the example is shown as a POST request instead of a GET, which is highly recommended):</p>
 <p>POST to:</p>
@@ -251,13 +252,9 @@ Use semicolons instead (the search will automatically search for colons instead)
 ?>
 </pre>
 <p>POST message payload (XML):</p>
-<p><code>
-&lt;request&gt;&lt;value&gt;red october&lt;/value&gt;&lt;searchall&gt;1&lt;/searchall&gt;&lt;/request&gt;
-</code></p>
+<p><code><?php echo h('<request><value>red october</value><searchall>1</searchall><eventid>!15</eventid></request>'); ?></code></p>
 <p>POST message payload (json):</p>
-<p><code>
-{"request": {"value":"red october","searchall":1}}
-</code></p>
+<p><code>{"request": {"value":"red october","searchall":1,"eventid":"!15"}}</code></p>
 <p>To just return a list of attributes, use the following syntax:</p>
 <b>value</b>: Search for the given value in the attributes' value field.<br />
 <b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
@@ -269,10 +266,11 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>eventid</b>: The events that should be included / excluded from the search<br /><br />
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <pre>
 <?php
-	echo Configure::read('MISP.baseurl').'/attributes/restSearch/download/[value]/[type]/[category]/[org]/[tag]/[from]/[to]/[last]';
+	echo Configure::read('MISP.baseurl').'/attributes/restSearch/download/[value]/[type]/[category]/[org]/[tag]/[from]/[to]/[last]/[eventid]';
 ?>
 </pre>
 <p>value, type, category and org are optional. It is possible to search for several terms in each category by joining them with the '&amp;&amp;' operator. It is also possible to negate a term with the '!' operator. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead).

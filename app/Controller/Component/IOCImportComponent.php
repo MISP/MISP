@@ -9,6 +9,7 @@ class IOCImportComponent extends Component {
 	private $attributePairs = array(
 			array('filename', 'md5', 'filename|md5', 'Payload installation', 'both', '|'),
 			array('filename', 'sha1', 'filename|sha1', 'Payload installation', 'both', '|'),
+			array('filename', 'sha256', 'filename|sha256', 'Payload installation', 'both', '|'),
 			array('regkey', 'tempRegValue', 'regkey|value', 'Persistence mechanism', 'both', '|'),
 			array('filename', 'tempCertificateSubject', 'filename', 'Payload installation', 'first', ''),
 			array('filename', 'tempExtension', 'filename', 'Payload installation', 'both', '.'),
@@ -25,6 +26,33 @@ class IOCImportComponent extends Component {
 			//'FileItem/PEInfo/DigitalSignature/CertificateSubject',
 			);
 
+	// the default settings for the IDS flag / type
+	private $typeToIdsSettings = array(
+			'filename' => true,
+			'md5' => true,
+			'sha1' => true,
+			'sha256' => true,
+			'ip-src' => true,
+			'ip-dst' => true,
+			'domain' => true,
+			'hostname' => true,
+			'email-dst' => true,
+			'email-src' => true,
+			'email-subject' => true,
+			'email-attachment' => true,
+			'url' => true,
+			'user-agent' => false,
+			'regkey' => true,
+			'snort' => true,
+			'pattern-in-file' => true,
+			'comment' => false,
+			'other' => false,
+			'filename|md5' => true,
+			'filename|sha1' => true,
+			'filename|sha256' => true,
+			'regkey|value' => true,
+	);
+	
 	// Set up the data that you would like to fetch from the ioc's root and add as comments.
 	private $iocinfo = array('info', 'uuid', 'date', 'long_info');
 
@@ -51,8 +79,11 @@ class IOCImportComponent extends Component {
 
 	// stores the graph that will be passed back along with the event and attributes
 	private $graph = array();
+	
+	private $filename = "";
 
-	public function readXML($data, $id, $dist) {
+	public function readXML($data, $id, $dist, $filename) {
+		$this->filename = $filename;
 		$event = array();
 		$attributes = array();
 		$this->fails = array();
@@ -68,15 +99,21 @@ class IOCImportComponent extends Component {
 		// Since the tree created by simplexml is a bit of a pain to traverse (partially because of branches with 1 leaves and with several leaves ending up in a different format -
 		// $branch['leaf'] vs $branch[0]['leaf'] we convert it to an easier to deal with tree structure
 		// This tree also only contains the information that we care about.
-		$tree = array(
-				'uuid' => $xmlArray['ioc']['@attributes']['id'],
-				'info' =>  $xmlArray['ioc']['short_description'] . PHP_EOL . 'by ' . $xmlArray['ioc']['authored_by'],
-				'long_info' => $xmlArray['ioc']['description'],
-				'date' => $xmlArray['ioc']['authored_date'],
+		$tree = array(				
 				'type' => 'OR',
 				'branches' => array(),
 				'leaves' => array()
-			);
+		);
+		if (isset($xmlArray['ioc']['@attributes']['id'])) $tree['uuid'] = $xmlArray['ioc']['@attributes']['id'];
+		$temp = '';
+		if (isset($xmlArray['ioc']['short_description'])) {
+			$temp = $xmlArray['ioc']['short_description'];
+			if (isset($xmlArray['ioc']['authored_by'])) $temp .= PHP_EOL . 'by ' . $xmlArray['ioc']['authored_by'];
+		}
+		if ($temp !== '') $tree['info'] = $temp;
+		if (isset($xmlArray['ioc']['description'])) $tree['longinfo'] = $xmlArray['ioc']['description'];
+		if (isset($xmlArray['ioc']['authored_date'])) $tree['date'] = $xmlArray['ioc']['authored_date'];
+
 		$tree['branches'] = $this->__createRootNode($xmlArray);
 
 		// Once we're done, let's back the tree up for later use, so we can start shuffling things around and converting it to our own attribute format
@@ -93,10 +130,15 @@ class IOCImportComponent extends Component {
 		// attach the attributes to the event
 		$event['Attribute'] = $attributes;
 
+		$duplicateFilter = array();
 		// check if we have any attributes, if yes, add their UUIDs to our list of success-array
 		if (count ($event['Attribute']) > 0) {
-			foreach ($event['Attribute'] as $attribute) {
-				$this->saved_uuids[] = $attribute['uuid'];
+			foreach ($event['Attribute'] as $k => $attribute) {
+				$condensed = strtolower($attribute['value']) . $attribute['category'] . $attribute['type'];
+				if (!in_array($condensed, $duplicateFilter)) {
+					$this->saved_uuids[] = $attribute['uuid'];
+					$duplicateFilter[] = $condensed;
+				} else unset($event['Attribute'][$k]);
 			}
 		}
 
@@ -107,7 +149,7 @@ class IOCImportComponent extends Component {
 		// Add a special attribute that captures the basic data about the .ioc such as the ioc-s uuid, info, long info, author, etc.
 		// Define the fields used in the global iocinfo variable.
 		foreach ($this->iocinfo as $k => $v) {
-			$event['Attribute'][] = array('uuid' => String::uuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => false, 'distribution' => $this->distribution, 'comment' => 'OpenIOC import');
+			if (isset($event[$v])) $event['Attribute'][] = array('uuid' => String::uuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => $this->typeToIdsSettings['comment'], 'distribution' => $this->distribution, 'comment' => 'OpenIOC import from file ' . $filename);
 		}
 
 		// attach the graph to the event
@@ -149,7 +191,6 @@ class IOCImportComponent extends Component {
 
 	// dissect the indicator and convert it into an attribute
 	private function __analyseIndicator($attribute) {
-		$attribute['to_ids'] = false;
 		$attribute['distribution'] = $this->distribution;
 		$temp = $this->__checkType($attribute['search']);
 		if ($attribute['condition'] !== 'containsnot') {
@@ -161,11 +202,12 @@ class IOCImportComponent extends Component {
 			$attribute['type'] = 'other';
 			$attribute['value'] = 'containsnot: ' . $attribute['value'];
 		}
+		$attribute['to_ids'] = $this->typeToIdsSettings[$attribute['type']];
 		// If we couldn't figure out the category / type and got Other/other, append the search term in the value
 		if ($temp[0] == 'Other' && $temp[1] == 'other') {
 			$attribute['value'] = $attribute['search'] . ': ' . $attribute['value'];
 		}
-		$attribute['comment'] = 'OpenIOC import';
+		$attribute['comment'] = 'OpenIOC import from file ' . $this->filename;
 		return $attribute;
 	}
 
@@ -227,55 +269,59 @@ class IOCImportComponent extends Component {
 			case 'FileItem/FileName':
 			case 'DriverItem/DriverName':
 			case 'FileItem/FullPath':
-				return array('Payload installation', 'filename');
+				return array('Payload installation', 'filename', true);
 				break;
 			case 'FileItem/Md5sum':
-				return array('Payload installation', 'md5');
+				return array('Payload installation', 'md5', true);
 				break;
 			case 'TaskItem/sha1sum':
-				return array('Payload installation', 'sha1');
+			case 'FileItem/Sha1sum':
+				return array('Payload installation', 'sha1', true);
+				break;
+			case 'FileItem/Sha256sum':
+				return array('Payload installation', 'sha256', true);
 				break;
 			case 'PortItem/remoteIP':
-				return array('Network activity', 'ip-src');
+				return array('Network activity', 'ip-src', true);
 				break;
 			case 'RouteEntryItem/Gateway':
 			case 'RouteEntryItem/Destination':
-				return array('Network activity', 'ip-dst');
+				return array('Network activity', 'ip-dst', true);
 				break;
 			case 'Network/DNS':
-				return array('Network activity', 'domain');
+				return array('Network activity', 'domain', true);
 				break;
 			case 'Email/To':
-				return array('Payload delivery', 'email-dst');
+				return array('Payload delivery', 'email-dst', true);
 				break;
 			case 'Email/From':
-				return array('Payload delivery', 'email-src');
+				return array('Payload delivery', 'email-src', true);
 				break;
 			case 'Email/Subject':
-				return array('Payload delivery', 'email-subject');
+				return array('Payload delivery', 'email-subject', true);
 				break;
 			case 'Email/Attachment/Na':
-				return array('Payload delivery', 'email-attachment');
+				return array('Payload delivery', 'email-attachment', true);
 				break;
 			case 'UrlHistoryItem/URL':
 			case 'UrlHistoryItem/VisitFrom':
 			case 'FileDownloadHistoryItem/SourceURL':
 			case 'FormHistoryItem/FormSubmitURL':
-				return array('Network activity', 'url');
+				return array('Network activity', 'url', true);
 				break;
 			case 'Network/UserAgent':
-				return array('Network activity', 'user-agent');
+				return array('Network activity', 'user-agent', false);
 				break;
 			case 'RegistryItem/KeyPath':
 			case 'RegistryItem/Modified':
 			case 'RegistryItem/Path':
-				return array('Persistence mechanism', 'regkey');
+				return array('Persistence mechanism', 'regkey', true);
 				break;
 			case 'Snort/Snort':
-				return array('Network activity', 'snort');
+				return array('Network activity', 'snort', true);
 				break;
 			case 'TaskItem/Comment':
-				return array('Other', 'comment');
+				return array('Other', 'comment', false);
 				break;
 			case 'CookieHistoryItem/HostName':
 			case 'FormHistoryItem/HostName':
@@ -283,21 +329,21 @@ class IOCImportComponent extends Component {
 			case 'UrlHistoryItem/HostName':
 			case 'DnsEntryItem/RecordName':
 			case 'DnsEntryItem/Host':
-				return array('Network activity', 'hostname');
+				return array('Network activity', 'hostname', true);
 				break;
 			case 'RegistryItem/Text':
-				return array('Persistence mechanism', 'tempRegValue');
+				return array('Persistence mechanism', 'tempRegValue', false);
 				break;
 				// We don't keep the following, they are often used with AND and a filename. We'll only keep the filename in those cases.
 			case 'FileItem/PEInfo/DigitalSignature/CertificateSubject':
 			case 'FileItem/PEInfo/DigitalSignature/SignatureExists':
-				return array('Payload delivery', 'tempCertificateSubject');
+				return array('Payload delivery', 'tempCertificateSubject', false);
 				break;
 			case 'FileItem/PEInfo/DetectedAnomalies/string':
-				return array('Payload delivery', 'pattern-in-file');
+				return array('Payload delivery', 'pattern-in-file', true);
 				break;
 		}
-		return array('Other', 'other');
+		return array('Other', 'other', false);
 	}
 
 	// Create the array used in the visualisation of the original ioc file
@@ -515,7 +561,7 @@ class IOCImportComponent extends Component {
 					default:
 						$value = $att1['value'] . '|' . $att2['value'];
 				}
-				return array('type' => $pair[2], 'value' => $value, 'uuid' => String::uuid(), 'category' => $pair[3], 'to_ids' => false, 'distribution' => $this->distribution);
+				return array('type' => $pair[2], 'value' => $value, 'uuid' => String::uuid(), 'category' => $pair[3], 'to_ids' => $this->typeToIdsSettings[$pair[2]], 'distribution' => $this->distribution);
 			}
 			// Try the same thing above with the attributes reversed
 			if ($att2['type'] == $pair[0] && $att1['type'] == $pair[1]) {
@@ -533,7 +579,7 @@ class IOCImportComponent extends Component {
 					default:
 						$value = $att2['value'] . '|' . $att1['value'];
 				}
-				return array('type' => $pair[2], 'value' => $value, 'uuid' => String::uuid(), 'category' => $pair[3], 'to_ids' => false, 'distribution' => $this->distribution);
+				return array('type' => $pair[2], 'value' => $value, 'uuid' => String::uuid(), 'category' => $pair[3], 'to_ids' => $this->typeToIdsSettings[$pair[2]], 'distribution' => $this->distribution);
 			}
 		}
 		// If no match found, return false, it's not a valid composite attribute for MISP

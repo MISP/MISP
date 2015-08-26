@@ -301,6 +301,28 @@ class EventsController extends AppController {
 						if ($v == 2) continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.' . substr($k, 6) . ' =' => $v);
 						break;
+					case 'eventid':
+						if ($v == "") continue 2;
+						$pieces = explode('|', $v);
+						$temp = array();
+						foreach ($pieces as $piece) {
+							$piece = trim($piece);
+							if ($piece[0] == '!') {
+								if (strlen($piece) == 37) {
+									$this->paginate['conditions']['AND'][] = array('Event.uuid !=' => substr($piece, 1));
+								} else {
+									$this->paginate['conditions']['AND'][] = array('Event.id !=' => substr($piece, 1));
+								}
+							} else {
+								if (strlen($piece) == 36) {
+									$temp['OR'][] = array('Event.uuid' => $piece);
+								} else {
+									$temp['OR'][] = array('Event.id' => $piece);
+								}
+							}
+						}
+						$this->paginate['conditions']['AND'][] = $temp;
+						break;
 					case 'Datefrom' :
 						if ($v == "") continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.date >=' => $v);
@@ -484,6 +506,7 @@ class EventsController extends AppController {
 			'published' => 2,
 			'org' => array('OR' => array(), 'NOT' => array()),
 			'tag' => array('OR' => array(), 'NOT' => array()),
+			'eventid' => array('OR' => array(), 'NOT' => array()), 
 			'date' => array('from' => "", 'until' => ""),
 			'eventinfo' => array('OR' => array(), 'NOT' => array()),
 			'threatlevel' => array('OR' => array(), 'NOT' => array()),
@@ -506,6 +529,7 @@ class EventsController extends AppController {
 						$filtering['date']['until'] = $v;
 						break;
 					case 'org' :
+					case 'eventid' :
 					case 'tag' :
 					case 'eventinfo' :
 					case 'attribute' :
@@ -545,7 +569,7 @@ class EventsController extends AppController {
 			'conditions' => $conditions,
 			'group' => 'orgc'
 		));
-		$rules = array('published', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
+		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
 		if (Configure::read('MISP.showorg')){
 			$orgs = array();
 			foreach ($events as $e) {
@@ -945,6 +969,9 @@ class EventsController extends AppController {
 					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
 					if ($add && !is_numeric($add)) {
 						if ($this->_isRest()) {
+							if ($add === 'blocked') {
+								throw new ForbiddenException('Event blocked by local blacklist.');
+							}
 							// REST users want to see the newly created event
 							$this->view($this->Event->getId());
 							$this->render('view');
@@ -1019,10 +1046,6 @@ class EventsController extends AppController {
 					App::uses('File', 'Utility');
 					$file = new File($this->data['Event']['submittedioc']['name']);
 					$ext = $file->ext();
-				}
-				if (isset($this->data['Event']['submittedioc']) && ($ext != 'ioc') && $this->data['Event']['submittedioc']['size'] > 0 &&
-						is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
-					$this->Session->setFlash(__('You may only upload OpenIOC ioc files.'));
 				}
 				if (isset($this->data['Event']['submittedioc'])) $this->_addIOCFile($id);
 
@@ -1263,15 +1286,31 @@ class EventsController extends AppController {
 						if (isset($attribute['uuid'])) {
 							$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
 							if (count($existingAttribute)) {
-								$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
-								// Check if the attribute's timestamp is bigger than the one that already exists.
-								// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-								// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-								if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-	
-								} else {
+								if ($existingAttribute['Attribute']['event_id'] != $id) {
+									$this->loadModel('Log');
+									$result = $this->Log->save(array(
+											'org' => $this->Auth->user('org'),
+											'model' => 'Event',
+											'model_id' => $id,
+											'email' => $this->Auth->user('email'),
+											'action' => 'edit',
+											'user_id' => $this->Auth->user('id'),
+											'title' => 'Duplicate UUID found in attribute',
+											'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
+									));
 									unset($this->request->data['Attribute'][$c]);
-									//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+								}
+								else {
+									$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
+									// Check if the attribute's timestamp is bigger than the one that already exists.
+									// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+									// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+									if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+		
+									} else {
+										unset($this->request->data['Attribute'][$c]);
+										//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+									}
 								}
 							}
 						}
@@ -2105,7 +2144,7 @@ class EventsController extends AppController {
 				}
 			}
 			// read XML
-			$event = $this->IOCImport->readXML($fileData, $id, $dist);
+			$event = $this->IOCImport->readXML($fileData, $id, $dist, $this->data['Event']['submittedioc']['name']);
 
 			// make some changes to have $saveEvent in the format that is needed to save the event together with its attributes
 			$fails = $event['Fails'];
@@ -2137,7 +2176,6 @@ class EventsController extends AppController {
 			);
 			// Save it all
 			$saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
-			
 			// set stuff for the view and render the showIOCResults view.
 			$this->set('attributes', $saveEvent['Attribute']);
 			if (isset($fails)) {
@@ -2391,7 +2429,7 @@ class EventsController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags = false, $searchall=false, $from=false, $to=false, $last = false) {
+	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags=false, $searchall=false, $from=false, $to=false, $last=false, $eventid=false) {
 		if ($key!='download') {
 			$user = $this->checkAuthUser($key);
 		} else {
@@ -2415,16 +2453,16 @@ class EventsController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
 		
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid');
 		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF})) === 'false') ${$sF} = false;
 		}
 		
 		if ($from) $from = $this->Event->dateFieldCheck($from);
@@ -2441,10 +2479,11 @@ class EventsController extends AppController {
 		if (isset($searchall) && ($searchall == 1 || $searchall === true || $searchall == 'true')) {
 			$eventIds = $this->__quickFilter($value);
 		} else {
-			$parameters = array('value', 'type', 'category', 'org');
+			$parameters = array('value', 'type', 'category', 'org', 'eventid');
 			foreach ($parameters as $k => $param) {
 				if (isset(${$parameters[$k]})) {
-					$elements = explode('&&', ${$parameters[$k]});
+					if (is_array(${$parameters[$k]})) $elements = ${$parameters[$k]};
+					else $elements = explode('&&', ${$parameters[$k]});
 					foreach($elements as $v) {
 						if (substr($v, 0, 1) == '!') {
 							if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
@@ -2455,6 +2494,8 @@ class EventsController extends AppController {
 							} else {
 								if ($parameters[$k] === 'org') {
 									$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+								} elseif ($parameters[$k] === 'eventid') {
+									$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
 								} else {
 									$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
 								}
@@ -2468,6 +2509,8 @@ class EventsController extends AppController {
 							} else {
 								if ($parameters[$k] === 'org') {
 									$subcondition['OR'][] = array('Event.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+								} elseif ($parameters[$k] === 'eventid') {
+									$subcondition['OR'][] = array('Attribute.event_id' => $v);
 								} else {
 									$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
 								}
