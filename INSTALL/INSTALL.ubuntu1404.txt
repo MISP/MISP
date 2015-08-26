@@ -27,7 +27,7 @@ Once the system is installed you can perform the following steps as root:
 apt-get install vim
 
 # Install the dependencies:
-apt-get install zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev libapache2-mod-php5 curl
+apt-get install gcc zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev libapache2-mod-php5 curl
 pear install Crypt_GPG    # we need version >1.3.0 
 pear install Net_GeoIP
 
