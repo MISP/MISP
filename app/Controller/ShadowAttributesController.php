@@ -831,9 +831,12 @@ class ShadowAttributesController extends AppController {
 		}
 		$this->ShadowAttribute->recursive = -1;
 		$temp = $this->ShadowAttribute->findAllByEventUuid($uuid);
-		if ($temp == null) throw new NotFoundException(__('Invalid event'));
-		$this->set('proposal', $temp);
-		$this->render('get_proposals_by_uuid');
+		if ($temp == null && Configure::read('debug') > 0 ) {
+			throw new NotFoundException(__('Invalid event'));
+		} else {
+			$this->set('proposal', $temp);
+			$this->render('get_proposals_by_uuid');
+		}
 	}
 	
 	public function fetchEditForm($id, $field = null) {
