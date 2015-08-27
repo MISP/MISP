@@ -356,6 +356,18 @@ The event ID is optional. MISP will accept either a JSON or an XML object posted
 <b>info</b>: Used to populate the event info field if no event ID supplied. Alternatively, if not set, MISP will simply generate a message showing that it's a malware sample collection generated on the given day.<br />
 <b>analysis</b>: The analysis level of the newly created event, if applicatble. [0-2]<br />
 <b>threat_level_id</b>: The threat level ID of the newly created event, if applicatble. [0-3]<br />
+<h3>Add or remove tags from events</h3>
+<p>You can add or remove an existing tag from an event in the following way:</p>
+<pre>
+<?php echo Configure::read('MISP.baseurl').'/attributes/addTag'; ?>
+</pre>
+<pre>
+<?php  echo Configure::read('MISP.baseurl').'/attributes/removeTag'; ?>
+</pre>
+<p>Just POST a json object in the following format (to the appropriate API depending on whether you want to add or delete a tag from an event):</p>
+<code>{"request": {"Event": {"id": "228", "tag": "8"}}}</code><br /><br />
+<p>Where "tag" is the ID of the tag. You can also use the name of the tag the following way (has to be an exact match):</p>
+<code>{"request": {"Event": {"id": "228", "tag": "OSINT"}}}</code>
 </div>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'automation'));
