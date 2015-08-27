@@ -361,7 +361,8 @@ class AttributesController extends AppController {
 							'category' => $this->request->data['Attribute']['category'],
 							'type' => $typeName,
 							'event_id' => $this->request->data['Attribute']['event_id'],
-							'to_ids' => 1
+							'to_ids' => 1,
+							'distribution' => $this->request->data['Attribute']['distribution'],
 						)
 					);
 					if ($hash == 'md5') $attribute['Attribute']['data'] = $result['data'];
@@ -378,7 +379,8 @@ class AttributesController extends AppController {
 							'type' => 'attachment',
 							'event_id' => $this->request->data['Attribute']['event_id'],
 							'data' => base64_encode($tmpfile->read()),
-							'to_ids' => 0
+							'to_ids' => 0,
+							'distribution' => $this->request->data['Attribute']['distribution'],
 						)
 				);
 				$this->Attribute->create();

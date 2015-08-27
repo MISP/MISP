@@ -69,7 +69,7 @@ class AppController extends Controller {
 				),
 				'authError' => 'Unauthorised access.',
 				'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
-				'logoutRedirect' => array('controller' => 'users', 'action' => 'login'),
+				'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
 				//'authorize' => array('Controller', // Added this line
 				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
 				),

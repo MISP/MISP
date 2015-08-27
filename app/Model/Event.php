@@ -965,7 +965,7 @@ class Event extends AppModel {
 		$conditions = array();
 	 	$econditions = array();
 	 	$this->recursive = -1;
-	 	
+
 	 	// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
 	 	if ($eventid !== 'search') {
 	 		if ($from) $econditions['AND'][] = array('Event.date >=' => $from);
@@ -985,7 +985,7 @@ class Event extends AppModel {
 	 		if (!$eventid) {
 	 			$this->recursive = -1;
 	 			// If we sent any tags along, load the associated tag names for each attribute
-	 			if (!$tags) {
+	 			if ($tags) {
 	 				$tag = ClassRegistry::init('Tag');
 	 				$args = $this->Attribute->dissectArgs($tags);
 	 				$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
@@ -993,7 +993,7 @@ class Event extends AppModel {
 	 				foreach ($tagArray[0] as $accepted) {
 	 					$temp['OR'][] = array('Event.id' => $accepted);
 	 				}
-	 				$conditions['AND'][] = $temp;
+	 				$econditions['AND'][] = $temp;
 	 				$temp = array();
 	 				foreach ($tagArray[1] as $rejected) {
 	 					$temp['AND'][] = array('Event.id !=' => $rejected);
