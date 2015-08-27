@@ -19,7 +19,7 @@ if (!$isSiteAdmin) exit();
 <li><a href="/servers/updateDatabase/extendServerOrganizationLength">Extend Organization length</a> (Hotfix 2.3.57: Increase the max length of the organization field when adding a new server connection.)</li>
 <li><a href="/servers/updateDatabase/convertLogFieldsToText">Convert log fields to text</a> (Hotfix 2.3.78: Some of the log fields that were varchar(255) ended up truncating the data. This function will change them to "text")</li>
 <li><a href="/servers/pruneDuplicateUUIDs">Fix duplicate UUIDs</a> (Hotfix 2.3.107: it was previously possible to get duplicate attribute UUIDs in the database, this script will remove all duplicates and ensure that duplicates will not be entered into the database in the future.)</li>
-<li><a href="/servers/removeDuplicateEvents">Remove dupicate events (with the same UUID)</a> (Hotfix 2.3.114: In some rare situations it could occur that a duplicate of an event was created on an instance, with the exact same uuid. This action will remove any such duplicates and make sure that this cannot happen again.)</li>
+<li><a href="/servers/removeDuplicateEvents">Remove dupicate events (with the same UUID)</a> (Hotfix 2.3.115: In some rare situations it could occur that a duplicate of an event was created on an instance, with the exact same uuid. This action will remove any such duplicates and make sure that this cannot happen again.)</li>
 </ul>
 </div>
 <?php 
