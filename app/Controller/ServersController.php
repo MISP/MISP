@@ -651,7 +651,7 @@ class ServersController extends AppController {
 			$this->loadModel('Log');
 			if (isset($found['beforeHook'])) {
 				$beforeResult = call_user_func_array(array($this->Server, $found['beforeHook']), array($setting, $this->request->data['Server']['value']));
-				if ($afterResult !== true) {
+				if ($beforeResult !== true) {
 					$this->Log->create();
 					$result = $this->Log->save(array(
 							'org_id' => $this->Auth->user('org_id'),

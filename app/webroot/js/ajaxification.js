@@ -78,7 +78,6 @@ function initiatePasswordReset(id) {
 function submitPasswordReset(id) {
 	var formData = $('#PromptForm').serialize();
 	var url = "/users/initiatePasswordReset/" + id;
-	if ($('#firstTime').is(":checked")) url += "/true";
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();

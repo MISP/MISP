@@ -316,6 +316,28 @@ class EventsController extends AppController {
 						if ($v == 2) continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.' . substr($k, 6) . ' =' => $v);
 						break;
+					case 'eventid':
+						if ($v == "") continue 2;
+						$pieces = explode('|', $v);
+						$temp = array();
+						foreach ($pieces as $piece) {
+							$piece = trim($piece);
+							if ($piece[0] == '!') {
+								if (strlen($piece) == 37) {
+									$this->paginate['conditions']['AND'][] = array('Event.uuid !=' => substr($piece, 1));
+								} else {
+									$this->paginate['conditions']['AND'][] = array('Event.id !=' => substr($piece, 1));
+								}
+							} else {
+								if (strlen($piece) == 36) {
+									$temp['OR'][] = array('Event.uuid' => $piece);
+								} else {
+									$temp['OR'][] = array('Event.id' => $piece);
+								}
+							}
+						}
+						$this->paginate['conditions']['AND'][] = $temp;
+						break;
 					case 'Datefrom' :
 						if ($v == "") continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.date >=' => $v);
@@ -501,6 +523,7 @@ class EventsController extends AppController {
 			'published' => 2,
 			'org' => array('OR' => array(), 'NOT' => array()),
 			'tag' => array('OR' => array(), 'NOT' => array()),
+			'eventid' => array('OR' => array(), 'NOT' => array()), 
 			'date' => array('from' => "", 'until' => ""),
 			'eventinfo' => array('OR' => array(), 'NOT' => array()),
 			'threatlevel' => array('OR' => array(), 'NOT' => array()),
@@ -523,6 +546,7 @@ class EventsController extends AppController {
 						$filtering['date']['until'] = $v;
 						break;
 					case 'org' :
+					case 'eventid' :
 					case 'tag' :
 					case 'eventinfo' :
 					case 'attribute' :
@@ -564,7 +588,7 @@ class EventsController extends AppController {
 			'conditions' => $conditions,
 			'group' => 'orgc_id'
 		));
-		$rules = array('published', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
+		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
 		if (Configure::read('MISP.showorg')){
 			$orgs = array();
 			foreach ($events as $e) {
@@ -976,6 +1000,9 @@ class EventsController extends AppController {
 					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
 					if ($add && !is_numeric($add)) {
 						if ($this->_isRest()) {
+							if ($add === 'blocked') {
+								throw new ForbiddenException('Event blocked by local blacklist.');
+							}
 							// REST users want to see the newly created event
 							$this->view($this->Event->getId());
 							$this->render('view');
@@ -1053,10 +1080,6 @@ class EventsController extends AppController {
 					App::uses('File', 'Utility');
 					$file = new File($this->data['Event']['submittedioc']['name']);
 					$ext = $file->ext();
-				}
-				if (isset($this->data['Event']['submittedioc']) && ($ext != 'ioc') && $this->data['Event']['submittedioc']['size'] > 0 &&
-						is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
-					$this->Session->setFlash(__('You may only upload OpenIOC ioc files.'));
 				}
 				if (isset($this->data['Event']['submittedioc'])) $this->_addIOCFile($id);
 
@@ -1298,15 +1321,31 @@ class EventsController extends AppController {
 						if (isset($attribute['uuid'])) {
 							$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
 							if (count($existingAttribute)) {
-								$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
-								// Check if the attribute's timestamp is bigger than the one that already exists.
-								// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-								// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-								if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-	
-								} else {
+								if ($existingAttribute['Attribute']['event_id'] != $id) {
+									$this->loadModel('Log');
+									$result = $this->Log->save(array(
+											'org' => $this->Auth->user('org'),
+											'model' => 'Event',
+											'model_id' => $id,
+											'email' => $this->Auth->user('email'),
+											'action' => 'edit',
+											'user_id' => $this->Auth->user('id'),
+											'title' => 'Duplicate UUID found in attribute',
+											'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
+									));
 									unset($this->request->data['Attribute'][$c]);
-									//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+								}
+								else {
+									$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
+									// Check if the attribute's timestamp is bigger than the one that already exists.
+									// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+									// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+									if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+		
+									} else {
+										unset($this->request->data['Attribute'][$c]);
+										//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+									}
 								}
 							}
 						}
@@ -1649,6 +1688,7 @@ class EventsController extends AppController {
 		$this->loadModel('Server');
 		$rpzSettings = $this->Server->retrieveCurrentSettings('Plugin', 'RPZ_');
 		$this->set('rpzSettings', $rpzSettings);
+		$this->set('hashTypes', array_keys($this->Event->Attribute->hashTypes));
 	}
 
 	public function export() {
@@ -1887,7 +1927,6 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
-		
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
@@ -1912,6 +1951,7 @@ class EventsController extends AppController {
 		$rules = $this->Attribute->hids($this->Auth->user(), $type, $tags, $from, $to, $last);
 		$this->set('rules', $rules);
 	}
+	
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
@@ -2131,7 +2171,7 @@ class EventsController extends AppController {
 				}
 			}
 			// read XML
-			$event = $this->IOCImport->readXML($fileData, $id, $dist);
+			$event = $this->IOCImport->readXML($fileData, $id, $dist, $this->data['Event']['submittedioc']['name']);
 
 			// make some changes to have $saveEvent in the format that is needed to save the event together with its attributes
 			$fails = $event['Fails'];
@@ -2163,7 +2203,6 @@ class EventsController extends AppController {
 			);
 			// Save it all
 			$saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
-			
 			// set stuff for the view and render the showIOCResults view.
 			$this->set('attributes', $saveEvent['Attribute']);
 			if (isset($fails)) {
@@ -2417,7 +2456,7 @@ class EventsController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags = false, $searchall=false, $from=false, $to=false, $last = false) {
+	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags=false, $searchall=false, $from=false, $to=false, $last=false, $eventid=false) {
 		if ($key!='download') {
 			$user = $this->checkAuthUser($key);
 		} else {
@@ -2441,15 +2480,15 @@ class EventsController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid');
 		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF})) === 'false') ${$sF} = false;
 		}
 		
 		if ($from) $from = $this->Event->dateFieldCheck($from);
@@ -2465,10 +2504,11 @@ class EventsController extends AppController {
 		if (isset($searchall) && ($searchall == 1 || $searchall === true || $searchall == 'true')) {
 			$eventIds = $this->__quickFilter($value);
 		} else {
-			$parameters = array('value', 'type', 'category', 'org');
+			$parameters = array('value', 'type', 'category', 'org', 'eventid');
 			foreach ($parameters as $k => $param) {
 				if (isset(${$parameters[$k]})) {
-					$elements = explode('&&', ${$parameters[$k]});
+					if (is_array(${$parameters[$k]})) $elements = ${$parameters[$k]};
+					else $elements = explode('&&', ${$parameters[$k]});
 					foreach($elements as $v) {
 						if (substr($v, 0, 1) == '!') {
 							if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
@@ -2483,6 +2523,8 @@ class EventsController extends AppController {
 										'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
 									));
 									foreach ($found_orgs as $o) $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
+								} elseif ($parameters[$k] === 'eventid') {
+									$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
 								} else {
 									$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
 								}
@@ -2500,6 +2542,8 @@ class EventsController extends AppController {
 											'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
 									));
 									foreach ($found_orgs as $o) $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
+								} elseif ($parameters[$k] === 'eventid') {
+									$subcondition['OR'][] = array('Attribute.event_id' => $v);
 								} else {
 									if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
 								}
@@ -2623,7 +2667,7 @@ class EventsController extends AppController {
 		$final = $this->IOCExport->buildAll($this->Auth->user(), $event);
 		$this->set('final', $final);
 	}
-
+	
 	public function create_dummy_event() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
 		$date = new DateTime();
@@ -2826,8 +2870,10 @@ class EventsController extends AppController {
 		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $id);
 		
 		// Anyone with the right to tag that can see the event should be able to tag it.
-		if (!$this->_isSiteAdmin() && ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-			if (!$this->userRole['perm_tagger'] || $event['Event']['distribution'] == 0 || ($event['Event']['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $event['Event']['sharing_group_id']))) throw new MethodNotAllowedException('You don\'t have permission to do that.');			
+		if (!$this->_isSiteAdmin() || !$this->userRole['perm_tagger'] || !$this->userRole['perm_sync']) throw new MethodNotAllowedException('You don\'t have permission to do that.');
+		
+		if ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0 || ($event['Event']['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $event['Event']['sharing_group_id']))) {
+			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
 
 		$this->Event->EventTag->Tag->id = $tag_id;
@@ -3261,4 +3307,161 @@ class EventsController extends AppController {
 		$this->set('id', $id);
 		$this->render('ajax/exportChoice');
 	}
+	
+	// API for pushing samples to MISP
+	// Either send it to an existing event, or let MISP create a new one automatically
+	public function upload_sample($event_id = null) {
+		$this->loadModel('Log');
+		$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
+		$categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
+		$types = array();
+		foreach ($categoryDefinitions as $k => $v) {
+			if (in_array('malware-sample', $v['types']) && !in_array($k, $types)) $types[] = $k;
+		}
+		$parameter_options = array(
+				'distribution' => array('valid_options' => array(0, 1, 2, 3), 'default' => 0),
+				'threat_level_id' => array('valid_options' => array(1, 2, 3, 4), 'default' => 4),
+				'analysis' => array('valid_options' => array(0, 1, 2), 'default' => 0),
+				'info' => array('default' =>  'Malware samples uploaded on ' . date('Y-m-d')),
+				'to_ids' => array('valid_options' => array(0, 1), 'default' => 1),
+				'category' => array('valid_options' => $types, 'default' => 'Payload installation')
+		);
+		
+	
+		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
+		if (!$this->request->is('post')) throw new MethodNotAllowedException('Please POST the samples as described on the automation page.');
+		$isJson = false;
+		if ($this->response->type() === 'application/json') {
+			$isJson = true;
+			$data = $this->request->input('json_decode', true);
+		} elseif ($this->response->type() === 'application/xml') {
+			$data = $this->request->data;
+		} else {
+			throw new BadRequestException('Please POST the samples as described on the automation page.');
+		}
+		
+		if (isset($data['request'])) $data = $data['request'];
+		
+		foreach ($parameter_options as $k => $v) {
+			if (isset($data[$k])) {
+				if (isset($v['valid_options']) && !in_array($data[$k], $v['valid_options'])) $data[$k] = $v['default'];
+			} else {
+				$data[$k] = $v['default'];
+			}
+		}
+		
+		if (isset($data['files'])) {
+			foreach ($data['files'] as $k => $file) {
+				if (!isset($file['filename']) || !isset($file['data'])) unset ($data['files'][$k]);
+				else $data['files'][$k]['md5'] = md5(base64_decode($file['data']));
+			}
+		}
+		
+		if (empty($data['files'])) throw new BadRequestException('No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page.');
+		if (isset($event_id)) $data['event_id'] = $event_id;
+		
+		// check if the user has permission to create attributes for an event, if the event ID has been passed
+		// If not, create an event
+		if (isset($data['event_id']) && !empty($data['event_id']) && is_numeric($data['event_id'])) {
+			$conditons = array();
+			if (!$this->_isSiteAdmin()) {
+				$conditions = array('Event.orgc' => $this->Auth->user('org'));
+				if (!$this->userRole['perm_modify_org']) $conditions[] = array('Event.user_id' => $this->Auth->user('id'));
+			}		
+			$event = $this->Event->find('first', array(
+				'recursive' => -1,
+				'conditions' => $conditions,
+				'fields' => array('id'),
+			));
+			if (empty($event)) throw new MethodNotFoundException('Event not found.');
+			$this->Event->id = $data['event_id'];
+			$this->Event->saveField('published', 0);
+		} else {
+			$this->Event->create();
+			$result = $this->Event->save(
+				array(	
+					'info' => $data['info'],
+					'analysis' => $data['analysis'],
+					'threat_level_id' => $data['threat_level_id'],
+					'distribution' => $data['distribution'],
+					'date' => date('Y-m-d'),
+					'orgc' => $this->Auth->user('org'),
+					'org' => $this->Auth->user('org'),
+					'user_id' => $this->Auth->user('id'),
+				)
+			);
+			if (!$result) {
+				$this->Log->save(array(
+						'org' => $this->Auth->user('org'),
+						'model' => 'Event',
+						'model_id' => 0,
+						'email' => $this->Auth->user('email'),
+						'action' => 'upload_sample',
+						'user_id' => $this->Auth->user('id'),
+						'title' => 'Error: Failed to create event using the upload sample functionality',
+						'change' => 'There was an issue creating an event (' . $data['info'] . '). The validation errors were: ' . json_encode($this->Event->validationErrors),
+				));
+				throw new BadRequestException('The creation of a new event with the supplied information has failed.');
+			}
+			$data['event_id'] = $this->Event->id;
+		}
+
+		if (!isset($data['to_ids']) || !in_array($data['to_ids'], array('0', '1', 0, 1))) $data['to_ids'] = 1;
+		$successCount = 0;
+		$errors = array();
+		foreach ($data['files'] as $file) {
+			$temp = $this->Event->Attribute->handleMaliciousBase64($data['event_id'], $file['filename'], $file['data'], array_keys($hashes));
+			if ($temp['success']) {
+				foreach ($hashes as $hash => $typeName) {
+					if ($temp[$hash] == false) continue;
+					$file[$hash] = $temp[$hash];
+					$file['data'] = $temp['data'];
+					$this->Event->Attribute->create();
+					$attribute = array(
+							'value' => $file['filename'] . '|' . $file[$hash],
+							'distribution' => $data['distribution'],
+							'category' => $data['category'],
+							'type' => $typeName,
+							'event_id' => $data['event_id'],
+							'to_ids' => $data['to_ids']
+					);
+					if ($hash == 'md5') $attribute['data'] = $file['data'];
+					$result = $this->Event->Attribute->save($attribute);
+					if (!$result) {
+						$this->Log->save(array(
+								'org' => $this->Auth->user('org'),
+								'model' => 'Event',
+								'model_id' => $data['event_id'],
+								'email' => $this->Auth->user('email'),
+								'action' => 'upload_sample',
+								'user_id' => $this->Auth->user('id'),
+								'title' => 'Error: Failed to create attribute using the upload sample functionality',
+								'change' => 'There was an issue creating an attribute (' . $typeName . ': ' . $file['filename'] . '|' . $file[$hash] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
+						));
+						if ($typeName == 'malware-sample') $errors[] = array('filename' => $file['filename'], 'hash' => $file[$hash], 'error' => $this->Event->Attribute->validationErrors);
+					} else if ($typeName == 'malware-sample') $successCount++;
+				}
+			} else {
+				$errors[] = array('filename' => $file['filename'], 'hash' => $file['hash'], 'error' => 'Failed to encrypt and compress the file.');
+			}
+		}
+		if (!empty($errors)) {
+			$this->set('errors', $errors);
+			if ($successCount > 0) {
+				$this->set('name', 'Partial success');
+				$this->set('message', 'Successfuly saved ' . $successCount . ' sample(s), but some samples could not be saved.');
+			} else {
+				$this->set('name', 'Failed');
+				$this->set('message', 'Failed to save any of the supplied samples.');
+			}
+			$this->set('_serialize', array('name', 'message', 'errors'));
+		} else {
+			$this->set('name', 'Success');
+			$this->set('message', 'Success, saved all attributes.');
+			$this->set('_serialize', array('name', 'message'));
+		}
+		$this->view($data['event_id']);
+		$this->render('view');
+	}
+
 }

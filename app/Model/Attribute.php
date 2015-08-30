@@ -193,7 +193,7 @@ class Attribute extends AppModel {
 			'Payload delivery' => array(
 					'desc' => 'Information about how the malware is delivered',
 					'formdesc' => 'Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'ip-dst', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'vulnerability', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'vulnerability', 'other')
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
@@ -303,7 +303,7 @@ class Attribute extends AppModel {
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
-			'unique' => array(
+			'uniqueValue' => array(
 					'rule' => array('valueIsUnique'),
 					'message' => 'A similar attribute already exists for this event.',
 					//'allowEmpty' => false,
@@ -331,6 +331,11 @@ class Attribute extends AppModel {
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
+			'unique' => array(
+				'rule' => 'isUnique',
+				'message' => 'The UUID provided is not unique',
+				'required' => 'create'
+			)
 		),
 		'revision' => array(
 			'numeric' => array(
@@ -396,6 +401,24 @@ class Attribute extends AppModel {
 		'SharingGroup' => array(
 				'className' => 'SharingGroup',
 				'foreignKey' => 'sharing_group_id'
+		)
+	);
+	
+	public $hashTypes = array(
+		'md5' => array(
+			'length' => 32,
+			'pattern' => '#^[0-9a-f]{32}$#',
+			'lowerCase' => true,
+		),
+		'sha1' => array(
+			'length' => 40,
+			'pattern' => '#^[0-9a-f]{40}$#',
+			'lowerCase' => true,
+		),
+		'sha256' => array(
+			'length' => 64,
+			'pattern' => '#^[0-9a-f]{64}$#',
+			'lowerCase' => true,
 		)
 	);
 
@@ -528,7 +551,7 @@ class Attribute extends AppModel {
 			$conditions['Attribute.id !='] = $this->data['Attribute']['id'];
 		}
 
-		$params = array('recursive' => 0,
+		$params = array('recursive' => -1,
 				'conditions' => $conditions,
 		);
 		if (0 != $this->find('count', $params)) {
@@ -1084,9 +1107,8 @@ class Attribute extends AppModel {
 			            		'Attribute.type !=' => $this->nonCorrelatingTypes,
 						)),
 			            'recursive' => -1,
-			    		'contain' => array(
-			    			'Event'
-			    		),
+			    		'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution'),
+			    		'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org', 'Event.distribution'))),
 			            //'fields' => '', // we want to have the Attribute AND Event, so do not filter here
 			    );
 			    // search for the related attributes for that "value(1|2)"
@@ -1595,83 +1617,83 @@ class Attribute extends AppModel {
 	 }
 	 
 
-	 private function __resolveElementAttribute($element, $value) {
-	 	$attributes = array();
-	 	$results = array();
-	 	$errors=null;
-	 	if (!empty($value)) {
-	 		if ($element['batch']) {
-	 			$values = explode("\n", $value);
-	 			foreach ($values as $v) {
-	 				$v = trim($v);
-	 				$attributes[] = $this->__createAttribute($element, $v);
-	 			}
-	 		} else {
-	 			$attributes[] = $this->__createAttribute($element, trim($value));
-	 		}
-	 		foreach ($attributes as $att) {
-	 			if (isset($att['multi'])) {
-	 				foreach ($att['multi'] as $a) {
-	 					$results[] = $a;
-	 				}
-	 			} else {
-	 				$results[] = $att;
-	 			}
-	 		}
-	 	} else {
-	 		if ($element['mandatory']) $errors = 'This field is mandatory.';
-	 	}
-	 	return array('attributes' => $results, 'errors' => $errors);
-	 }
+	private function __resolveElementAttribute($element, $value) {
+		$attributes = array();
+		$results = array();
+		$errors=null;
+		if (!empty($value)) {
+				if ($element['batch']) {
+				$values = explode("\n", $value);
+				foreach ($values as $v) {
+					$v = trim($v);
+					$attributes[] = $this->__createAttribute($element, $v);
+				}
+			} else {
+				$attributes[] = $this->__createAttribute($element, trim($value));
+			}
+			foreach ($attributes as $att) {
+				if (isset($att['multi'])) {
+					foreach ($att['multi'] as $a) {
+						$results[] = $a;
+					}
+				} else {
+					$results[] = $att;
+				}
+			}
+		} else {
+			if ($element['mandatory']) $errors = 'This field is mandatory.';
+		}
+		return array('attributes' => $results, 'errors' => $errors);
+	}
 	 
-	 private function __resolveElementFile($element, $files) {
-	 	$attributes = array();
-	 	$errors = null;
-	 	$results = array();
-	 	$count = count($files);
-	 	$element['complex'] = false;
-	 	if ($element['malware']) {
-	 		$element['type'] = 'malware-sample';
-	 		$element['to_ids'] = true;
-	 	} else {
-	 		$element['type'] = 'attachment';
-	 		$element['to_ids'] = false;
-	 	}
-	 	foreach ($files as $file) {	
- 			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) {
- 				$errors = 'Filename not allowed.';
- 				continue;
- 			}
- 			if ($element['malware']) {
- 				$malwareName = $file['filename'] . '|' . hash_file('md5', APP . 'tmp/files/' . $file['tmp_name']);
- 				$tmp_file = new File(APP . 'tmp/files/' . $file['tmp_name']);
- 				if (!$tmp_file->exists()) {
- 					$errors = 'File cannot be read.';
- 				} else {
- 					$element['type'] = 'malware-sample';
- 					$attributes[] = $this->__createAttribute($element, $malwareName);
-	 				$content = $tmp_file->read();
-	 				$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];
-	 				$element['type'] = 'filename|sha256';
-	 				$sha256 = $file['filename'] . '|' . (hash_file('sha256', APP . 'tmp/files/' . $file['tmp_name']));
-	 				$attributes[] = $this->__createAttribute($element, $sha256);
-	 				$element['type'] = 'filename|sha1';
-	 				$sha1 = $file['filename'] . '|' . (hash_file('sha1', APP . 'tmp/files/' . $file['tmp_name']));
-	 				$attributes[] = $this->__createAttribute($element, $sha1);
- 				}
- 			} else {
- 				$attributes[] = $this->__createAttribute($element, $file['filename']);
- 				$tmp_file = new File(APP . 'tmp/files/' . $file['tmp_name']);
- 				if (!$tmp_file->exists()) {
+	private function __resolveElementFile($element, $files) {
+		$attributes = array();
+		$errors = null;
+		$results = array();
+		$count = count($files);
+		$element['complex'] = false;
+		if ($element['malware']) {
+			$element['type'] = 'malware-sample';
+			$element['to_ids'] = true;
+		} else {
+			$element['type'] = 'attachment';
+			$element['to_ids'] = false;
+		}
+		foreach ($files as $file) {	
+			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) {
+				$errors = 'Filename not allowed.';
+				continue;
+			}
+			if ($element['malware']) {
+				$malwareName = $file['filename'] . '|' . hash_file('md5', APP . 'tmp/files/' . $file['tmp_name']);
+				$tmp_file = new File(APP . 'tmp/files/' . $file['tmp_name']);
+				if (!$tmp_file->exists()) {
+					$errors = 'File cannot be read.';
+				} else {
+					$element['type'] = 'malware-sample';
+					$attributes[] = $this->__createAttribute($element, $malwareName);
+					$content = $tmp_file->read();
+					$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];
+					$element['type'] = 'filename|sha256';
+					$sha256 = $file['filename'] . '|' . (hash_file('sha256', APP . 'tmp/files/' . $file['tmp_name']));
+					$attributes[] = $this->__createAttribute($element, $sha256);
+					$element['type'] = 'filename|sha1';
+					$sha1 = $file['filename'] . '|' . (hash_file('sha1', APP . 'tmp/files/' . $file['tmp_name']));
+					$attributes[] = $this->__createAttribute($element, $sha1);
+				}
+			} else {
+				$attributes[] = $this->__createAttribute($element, $file['filename']);
+				$tmp_file = new File(APP . 'tmp/files/' . $file['tmp_name']);
+				if (!$tmp_file->exists()) {
 				$errors = 'File cannot be read.';
- 				} else {
- 					$content = $tmp_file->read();
- 					$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];
- 				}
- 			}
-	 	}
-	 	return array('attributes' => $attributes, 'errors' => $errors, 'files' => $files);
-	 }
+				} else {
+					$content = $tmp_file->read();
+					$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];
+				}
+			}
+		}
+		return array('attributes' => $attributes, 'errors' => $errors, 'files' => $files);
+	}
 
 	 private function __createAttribute($element, $value) {
 	 	$attribute = array(
@@ -1762,4 +1784,66 @@ class Attribute extends AppModel {
 	 	if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('Event.published' => 1);
 	 	return $this->find('all', $params);
 	 }
+	
+	// get and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive
+	// The zip archive is then passed back as a base64 encoded string along with the md5 hash and a flag whether the transaction was successful
+	// The archive is password protected using the "infected" password
+	// The contents of the archive will be the actual sample, named <md5> and the original filename in a text file named <md5>.filename.txt
+	public function handleMaliciousBase64($event_id, $original_filename, $base64, $hash_types) {
+		if (!is_numeric($event_id)) throw new Exception('Something went wrong. Received a non numeric event ID while trying to create a zip archive of an uploaded malware sample.');
+		$dir = new Folder(APP . "files" . DS . $event_id, true);
+		$tmpFile = new File($dir->path . DS . $this->generateRandomFileName(), true, 0600);
+		$tmpFile->write(base64_decode($base64));
+		$hashes = array();
+		foreach ($hash_types as $hash) {
+			$hashes[$hash] = $this->__hashRouter($hash, $tmpFile->path);
+		}
+		$contentsFile = new File($dir->path . DS . $hashes['md5']);
+		rename($tmpFile->path, $contentsFile->path);
+		$fileNameFile = new File($dir->path . DS . $hashes['md5'] . '.filename.txt');
+		$fileNameFile->write($original_filename);
+		$fileNameFile->close();
+		$zipFile = new File($dir->path . DS . $hashes['md5'] . '.zip');
+		exec('zip -j -P infected "' . addslashes($zipFile->path) . '" "' . addslashes($contentsFile->path) . '" "' . addslashes($fileNameFile->path) . '"', $execOutput, $execRetval);
+		if ($execRetval != 0) $result = array('success' => false);
+		else $result = array_merge(array('data' => base64_encode($zipFile->read()), 'success' => true), $hashes);
+		$fileNameFile->delete();
+		$zipFile->delete();
+		$contentsFile->delete();
+		return $result;
+	}
+	
+	private function __hashRouter($hashType, $file) {
+		$validHashes = array('md5', 'sha1', 'sha256');
+		if (!in_array($hashType, $validHashes)) return false;
+		switch ($hashType) {
+			case 'md5':
+			case 'sha1':
+			case 'sha256':
+				return hash_file($hashType, $file);
+				break;
+		}
+	}
+	
+	public function generateRandomFileName() {
+		$length = 12;
+		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		$charLen = strlen($characters) - 1;
+		$fn = '';
+		for ($p = 0; $p < $length; $p++) {
+			$fn .= $characters[rand(0, $charLen)];
+		}
+		return $fn;
+	}
+	
+	public function resolveHashType($hash) {
+		$hashTypes = $this->hashTypes;
+		$validTypes = array();
+		$length = strlen($hash);
+		foreach ($hashTypes as $k => $hashType) {
+			$temp = $hashType['lowerCase'] ? strtolower($hash) : $hash;
+			if ($hashType['length'] == $length && preg_match($hashType['pattern'], $temp)) $validTypes[] = $k;
+		}
+		return $validTypes;
+	}
 }

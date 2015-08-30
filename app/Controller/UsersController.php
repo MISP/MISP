@@ -916,6 +916,7 @@ class UsersController extends AppController {
 		));
 		if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $user['User']['org_id']) throw new MethodNotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('post')) {
+			if (isset($this->request->data['User']['firstTime'])) $firstTime = $this->request->data['User']['firstTime']; 
 			$org = Configure::read('MISP.org');
 			$options = array('passwordResetText', 'newUserText');
 			$subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
