@@ -64,7 +64,7 @@ class Post extends AppModel {
 			//limit this array to users with contactalerts turned on!
 			$orgMembers = array();
 			$this->User->recursive = -1;
-			$temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert', 'id'));
+			$temp = $this->User->findAllByOrgId($event['Event']['org_id'], array('email', 'gpgkey', 'contactalert', 'id'));
 			foreach ($temp as $tempElement) {
 				if ($tempElement['User']['id'] != $user_id && ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id'])) {
 					array_push($orgMembers, $tempElement);

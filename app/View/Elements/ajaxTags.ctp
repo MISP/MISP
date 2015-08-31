@@ -22,7 +22,7 @@
 			<?php endif; ?>
 			<?php 
 		endforeach;
-		if ($isAclTagger) : ?>
+		if ($isAclTagger): ?>
 			<td id ="addTagTD" style="display:none;">
 				<?php
 					echo $this->Form->create('Event', array('url' => '/events/addTag/' . $event['Event']['id'], 'style' => 'margin:0px;'));

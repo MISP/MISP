@@ -81,6 +81,9 @@ foreach ($analysisDescriptions as $type => $def) {
 
 $(document).ready(function() {
 
+	if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
+	else $('#SGContainer').hide();
+
 	$('#EventDistribution').change(function() {
 		if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();

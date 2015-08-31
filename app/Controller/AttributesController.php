@@ -355,6 +355,7 @@ class AttributesController extends AppController {
 							'event_id' => $this->request->data['Attribute']['event_id'],
 							'to_ids' => 1,
 							'distribution' => $this->request->data['Attribute']['distribution'],
+							'sharing_group_id' => $this->request->data['Attribute']['sharing_group_id'],
 						)
 					);
 					if ($hash == 'md5') $attribute['Attribute']['data'] = $result['data'];
@@ -373,6 +374,7 @@ class AttributesController extends AppController {
 							'data' => base64_encode($tmpfile->read()),
 							'to_ids' => 0,
 							'distribution' => $this->request->data['Attribute']['distribution'],
+							'sharing_group_id' => $this->request->data['Attribute']['sharing_group_id'],
 						)
 				);
 				$this->Attribute->create();
@@ -1866,7 +1868,7 @@ class AttributesController extends AppController {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
 		}
-		$values = $this->Attribute->rpz($this->_checkOrg(), $this->_isSiteAdmin(), $tags, $eventId, $from, $to);
+		$values = $this->Attribute->rpz($this->Auth->user(), $tags, $eventId, $from, $to);
 		$this->response->type('txt');	// set the content type
 		$file = '';
 		if ($tags) $file = 'filtered.';
@@ -2225,16 +2227,19 @@ class AttributesController extends AppController {
 					)
 				);
 			}
-			$attributes = $this->Attribute->find('all', array(
-				'recursive' => -1,
-				'contain' => array('Event'),
-				'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.value1', 'Attribute.value2', 'Event.info'),
-				'conditions' => array(
-					'AND' => array(
-						$searchConditions, 
-						$distributionConditions, 
-						array('Attribute.type' => 'malware-sample')
-			))));
+			$attributes = $this->Attribute->fetchAttributes(
+					$this->Auth->user(),
+					array(
+						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.value1', 'Attribute.value2', 'Event.info'),
+						'conditions' => array(
+							'AND' => array(
+								$searchConditions,
+								array('Attribute.type' => 'malware-sample')
+							)
+						),
+						'contain' => array('Event')
+					)
+			);
 			if (empty($attributes)) $error = 'No hits with the given parameters.';
 			
 			$results = array();

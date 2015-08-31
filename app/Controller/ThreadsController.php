@@ -87,38 +87,52 @@ class ThreadsController extends AppController {
 	
 	public function index() {
 		$this->loadModel('Posts');
+		$this->loadModel('SharingGroup');
+		$sgids = $this->SharingGroup->fetchAllAuthorised($this->Auth->user);
 		$conditions = null;
+		if (!$this->_isSiteAdmin()) {
 			$conditions['AND']['OR'] = array(
-					'Thread.distribution >' => 0, 
-					'Thread.org_id' => $this->Auth->user('org_id'),
+					'Thread.distribution' => array(1, 2, 3),
+					'AND' => array( 
+							'Thread.distribution' => 0,
+							'Thread.org_id' => $this->Auth->user('org_id'),
+					),
+					'AND' => array(
+							'Thread.distribution' => 4,
+							'Thread.sharing_group_id' => $sgids,
+					),
 			);
-			$conditions['AND'][] = array('Thread.post_count >' => 0);
-			$this->paginate = array(
-					'conditions' => array($conditions),
-					'fields' => array('date_modified', 'date_created', 'org_id', 'distribution', 'title', 'post_count'),
-					'contain' => array(
-						'Post' =>array(
-							'fields' => array(),
-							'limit' => 1,
-							'order' => 'Post.date_modified DESC',
-							'User' => array(
-								'fields' => array('id','email', 'org_id'),
-								'Organisation' => array(
-									'fields' => array('id', 'name')
-								),
+		}
+		$conditions['AND'][] = array('Thread.post_count >' => 0);
+		$this->paginate = array(
+				'conditions' => array($conditions),
+				'fields' => array('date_modified', 'date_created', 'org_id', 'distribution', 'title', 'post_count', 'sharing_group_id'),
+				'contain' => array(
+					'Post' =>array(
+						'fields' => array(),
+						'limit' => 1,
+						'order' => 'Post.date_modified DESC',
+						'User' => array(
+							'fields' => array('id','email', 'org_id'),
+							'Organisation' => array(
+								'fields' => array('id', 'name')
 							),
 						),
-						'Organisation' => array(
-							'fields' => array('id', 'name')		
-						),
 					),
-					'order' => array('Thread.date_modified' => 'desc'),
-					'recursive' => 1
-			);
+					'Organisation' => array(
+						'fields' => array('id', 'name')		
+					),
+					'SharingGroup' => array(
+						'fields' => array('id', 'name')
+					),
+				),
+				'order' => array('Thread.date_modified' => 'desc'),
+				'recursive' => -1
+		);
 		$threadsBeforeEmailRemoval = $this->paginate();
 		if (!$this->_isSiteAdmin()) {
 			foreach ($threadsBeforeEmailRemoval as &$thread) {
-				if ($thread['Post'][0]['User']['org_id'] != $this->Auth->user('org_id')) $thread['Post'][0]['User']['email'] = 'User ' . $thread['Post'][0]['User']['id'] . " (" . $thread['Post'][0]['User']['org_id'] . ")";
+				if ($thread['Post'][0]['User']['org_id'] != $this->Auth->user('org_id')) $thread['Post'][0]['User']['email'] = 'User ' . $thread['Post'][0]['User']['id'] . " (" . $thread['Post'][0]['User']['Organisation']['name'] . ")";
 			}
 		}
 		$this->set('threads', $threadsBeforeEmailRemoval);

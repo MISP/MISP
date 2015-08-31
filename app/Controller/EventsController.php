@@ -775,7 +775,7 @@ class EventsController extends AppController {
 			$this->Thread->Behaviors->unload('SysLogLogable.SysLogLogable');
 			$params = array('conditions' => array('event_id' => $id),
 					'recursive' => -1,
-					'fields' => array('id', 'event_id', 'distribution', 'title')
+					'fields' => array('id', 'event_id', 'distribution', 'title', 'sharing_group_id')
 			);
 			$thread = $this->Thread->find('first', $params);
 			if (empty($thread)) {
@@ -786,6 +786,7 @@ class EventsController extends AppController {
 						'event_id' => $id,
 						'title' => 'Discussion about Event #' . $result['Event']['id'] . ' (' . $result['Event']['info'] . ')',
 						'distribution' => $result['Event']['distribution'],
+						'sharing_group_id' => $result['Event']['sharing_group_id'],
 						'post_count' => 0,
 						'org_id' => $result['Event']['orgc_id']
 				);
@@ -793,7 +794,12 @@ class EventsController extends AppController {
 				$thread = ($this->Thread->read());
 			} else {
 				if ($thread['Thread']['distribution'] != $result['Event']['distribution']) {
-					$this->Thread->saveField('distribution', $result['Event']['distribution']);
+					$thread['Thread']['distribution'] = $result['Event']['distribution'];
+					$this->Thread->save($thread);
+				}
+				if ($thread['Thread']['sharing_group_id'] != $result['Event']['sharing_group_id']) {
+					$thread['Thread']['sharing_group_id'] = $result['Event']['sharing_group_id'];
+					$this->Thread->save($thread);
 				}
 			}
 			$this->loadModel('Post');
@@ -2870,12 +2876,11 @@ class EventsController extends AppController {
 		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $id);
 		
 		// Anyone with the right to tag that can see the event should be able to tag it.
-		if (!$this->_isSiteAdmin() || !$this->userRole['perm_tagger'] || !$this->userRole['perm_sync']) throw new MethodNotAllowedException('You don\'t have permission to do that.');
-		
-		if ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0 || ($event['Event']['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $event['Event']['sharing_group_id']))) {
-			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {		
+			if (!$this->userRole['perm_tagger'] || $this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0 || ($event['Event']['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $event['Event']['sharing_group_id']))) {
+				throw new MethodNotAllowedException('You don\'t have permission to do that.');
+			}
 		}
-
 		$this->Event->EventTag->Tag->id = $tag_id;
 		if(!$this->Event->EventTag->Tag->exists()) {
 			throw NotFoundException('Invalid tag.');

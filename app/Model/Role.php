@@ -81,6 +81,8 @@ class Role extends AppModel {
 		'perm_template' => array('id' => 'RolePermTemplate', 'text' => 'Template Editor'),
 		'perm_sharing_group' => array('id' => 'RolePermSharingGroup', 'text' => 'Sharing Group Editor'),
 	);
+	
+	public $premissionLevelName = array('Read Only', 'Manage Own Events', 'Manage Organisation Events', 'Manage and Publish Organisation Events');
 
 	public function beforeSave($options = array()) {
 		switch ($this->data['Role']['permission']) {

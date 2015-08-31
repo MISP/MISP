@@ -1107,8 +1107,8 @@ class Attribute extends AppModel {
 			            		'Attribute.type !=' => $this->nonCorrelatingTypes,
 						)),
 			            'recursive' => -1,
-			    		'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution'),
-			    		'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org', 'Event.distribution'))),
+			    		'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id'),
+			    		'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
 			            //'fields' => '', // we want to have the Attribute AND Event, so do not filter here
 			    );
 			    // search for the related attributes for that "value(1|2)"
@@ -1440,19 +1440,12 @@ class Attribute extends AppModel {
 	 	return $attributes;
 	 }
 	 
-	 public function rpz($org, $isSiteAdmin, $tags = false, $eventId = false, $from = false, $to = false) {
+	 public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false) {
 	 	// we can group hostname and domain as well as ip-src and ip-dst in this case
 	 	$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
 	 	$typesToFetch = array('ip' => array('ip-src', 'ip-dst'), 'domain' => array('domain'), 'hostname' => array('hostname'));
 	 	if ($from) $conditions['AND']['Event.date >='] = $from;
 	 	if ($to) $conditions['AND']['Event.date <='] = $to;
-	 	if (!$isSiteAdmin) {
-	 		$temp = array();
-	 		$distribution = array();
-	 		array_push($temp, array('Attribute.distribution >' => 0));
-	 		array_push($temp, array('(SELECT events.org FROM events WHERE events.id = Attribute.event_id) LIKE' => $org));
-	 		$conditions['OR'] = $temp;
-	 	}
 	 	if ($eventId !== false) {
 	 		$conditions['AND'][] = array('Event.id' => $eventId);
 	 	} elseif ($tags !== false) {
@@ -1473,16 +1466,18 @@ class Attribute extends AppModel {
 	 	}
 	 	$values = array();
 	 	foreach ($typesToFetch as $k => $v) {
-	 		$params = array(
- 				'conditions' => array('AND' => 
- 					$conditions,
- 					array('type' => $v),
- 				),
- 				'fields' => array('Attribute.value'), //array of field names
- 				'order' => array('Attribute.value'), //string or array defining order
- 				'group' => array('Attribute.value'), //fields to GROUP BY
- 				);
-	 		$temp = $this->find('all', $params);
+	 		$temp = $this->fetchAttributes(
+	 				$user, 
+	 				array(
+	 					'conditions' => array(
+ 							$conditions,
+ 							array('type' => $v),
+	 					),
+ 						'fields' => array('Attribute.value'), //array of field names
+ 						'order' => array('Attribute.value'), //string or array defining order
+ 						'group' => array('Attribute.value'), //fields to GROUP BY
+	 				)
+	 		);
 	 		if ($k == 'hostname') {
 	 			foreach ($temp as $value) {
 	 				$found = false;
@@ -1729,7 +1724,7 @@ class Attribute extends AppModel {
 	 public function buildConditions($user) {
 	 	$params = array();
 	 	if (!$user['Role']['perm_site_admin']) {
-	 		$event_ids = $this->Event->fetchEventIds($user, false, false, true);
+	 		$event_ids = $this->Event->fetchEventIds($user, false, false, false, true);
 	 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
 	 		$conditions = array(
 				'AND' => array(
@@ -1758,13 +1753,14 @@ class Attribute extends AppModel {
 	 	return $conditions;
 	 }
 	 
-	 // Method that fetches all attributes for the various exports
-	 // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
-	 // options: 
-	 //     fields
-	 //     to_ids
-	 //     type
-	 //     category 
+	// Method that fetches all attributes for the various exports
+	// very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
+	// options: 
+	//     fields
+	//     contain
+	//     conditions
+	//     order
+	//     group
 	 public function fetchAttributes($user, $options = array()) {
 	 	$params = array();
 	 	if (!$user['Role']['perm_site_admin']) {
@@ -1781,6 +1777,8 @@ class Attribute extends AppModel {
 	 	if (isset($options['contain'])) $params['contain'] = $options['contain'];
 	 	if (isset($options['fields'])) $params['fields'] = $options['fields'];
 	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
+	 	if (isset($options['order'])) $params['conditions']['AND'][] = $options['order'];
+	 	if (isset($options['group'])) $params['conditions']['AND'][] = $options['group'];
 	 	if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('Event.published' => 1);
 	 	return $this->find('all', $params);
 	 }
