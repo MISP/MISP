@@ -823,8 +823,8 @@ class ShadowAttributesController extends AppController {
 	
 	// takes a uuid and finds all proposals that belong to an event with the given uuid. These are then returned. 
 	public function getProposalsByUuid($uuid) {
-		if (!$this->_isRest()) {
-			throw new MethodNotAllowedException(__('This feature is only available for REST users'));
+		if (!$this->_isRest() || !$this->userRole['perm_sync']) {
+			throw new MethodNotAllowedException(__('This feature is only available using the API to Sync users'));
 		}
 		if (strlen($uuid) != 36) {
 			throw new NotFoundException(__('Invalid UUID'));

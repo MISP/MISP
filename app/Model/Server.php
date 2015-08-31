@@ -415,6 +415,14 @@ class Server extends AppModel {
 							'test' => 'testPasswordResetText',
 							'type' => 'string'
 					),
+					'enableEventBlacklisting' => array(
+							'level' => 1,
+							'description' => 'Since version 1.3.107 you can start blacklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.',
+							'value' => false,
+							'type' => 'boolean',
+							'test' => 'testBool',
+							'beforeHook' => 'eventBlacklistingBeforeHook'
+					)
 			),
 			'GnuPG' => array(
 					'branch' => 1,
@@ -770,89 +778,100 @@ class Server extends AppModel {
 							$eventId,
 							$server);
 					if (null != $event) {
-						// we have an Event array
-						// The event came from a pull, so it should be locked.
-						$event['Event']['locked'] = true;
-						if (!isset($event['Event']['distribution'])) { // version 1
-							$event['Event']['distribution'] = '1';
+						$blocked = false;
+						if (Configure::read('MISP.enableEventBlacklisting')) {
+							$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+							$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
+							if (!empty($r))	{
+								$blocked = true;
+								$fails[$eventId] = 'Event blocked by local blocklist.';
+							}
 						}
-						// Distribution
-						switch($event['Event']['distribution']) {
-							case 1:
-							case 'This community only': // backwards compatibility
-								// if community only, downgrade to org only after pull
-								$event['Event']['distribution'] = '0';
-								break;
-							case 2:
-							case 'Connected communities': // backwards compatibility
-								// if connected communities downgrade to community only
+						if (!$blocked) {
+							// we have an Event array
+							// The event came from a pull, so it should be locked.
+							$event['Event']['locked'] = true;
+							if (!isset($event['Event']['distribution'])) { // version 1
 								$event['Event']['distribution'] = '1';
-								break;
-							case 'All communities': // backwards compatibility
-								$event['Event']['distribution'] = '3';
-								break;
-							case 'Your organisation only': // backwards compatibility
-								$event['Event']['distribution'] = '0';
-								break;
-						}
-		
-						// correct $event if just one Attribute
-						if (is_array($event['Event']['Attribute']) && isset($event['Event']['Attribute']['id'])) {
-							$tmp = $event['Event']['Attribute'];
-							unset($event['Event']['Attribute']);
-							$event['Event']['Attribute'][0] = $tmp;
-						}
-						if (is_array($event['Event']['Attribute'])) {
-							$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
-							if ($size == 0) {
+							}
+							// Distribution
+							switch($event['Event']['distribution']) {
+								case 1:
+								case 'This community only': // backwards compatibility
+									// if community only, downgrade to org only after pull
+									$event['Event']['distribution'] = '0';
+									break;
+								case 2:
+								case 'Connected communities': // backwards compatibility
+									// if connected communities downgrade to community only
+									$event['Event']['distribution'] = '1';
+									break;
+								case 'All communities': // backwards compatibility
+									$event['Event']['distribution'] = '3';
+									break;
+								case 'Your organisation only': // backwards compatibility
+									$event['Event']['distribution'] = '0';
+									break;
+							}
+			
+							// correct $event if just one Attribute
+							if (is_array($event['Event']['Attribute']) && isset($event['Event']['Attribute']['id'])) {
+								$tmp = $event['Event']['Attribute'];
+								unset($event['Event']['Attribute']);
+								$event['Event']['Attribute'][0] = $tmp;
+							}
+							if (is_array($event['Event']['Attribute'])) {
+								$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
+								if ($size == 0) {
+									$fails[$eventId] = 'Empty event received.';
+									continue;
+								}
+								for ($i = 0; $i < $size; $i++) {
+									if (!isset($event['Event']['Attribute'][$i]['distribution'])) { // version 1
+										$event['Event']['Attribute'][$i]['distribution'] = 1;
+									}
+									switch($event['Event']['Attribute'][$i]['distribution']) {
+										case 1:
+										case 'This community only': // backwards compatibility
+											// if community falseonly, downgrade to org only after pull
+											$event['Event']['Attribute'][$i]['distribution'] = '0';
+											break;
+										case 2:
+										case 'Connected communities': // backwards compatibility
+											// if connected communities downgrade to community only
+											$event['Event']['Attribute'][$i]['distribution'] = '1';
+											break;
+										case 'All communities': // backwards compatibility
+											$event['Event']['Attribute'][$i]['distribution'] = '3';
+											break;
+										case 'Your organisation only': // backwards compatibility
+											$event['Event']['Attribute'][$i]['distribution'] = '0';
+											break;
+									}
+								}
+								$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
+							} else {
 								$fails[$eventId] = 'Empty event received.';
 								continue;
 							}
-							for ($i = 0; $i < $size; $i++) {
-								if (!isset($event['Event']['Attribute'][$i]['distribution'])) { // version 1
-									$event['Event']['Attribute'][$i]['distribution'] = 1;
+							// Distribution, set reporter of the event, being the admin that initiated the pull
+							$event['Event']['user_id'] = $user['id'];
+							// check if the event already exist (using the uuid)
+							$existingEvent = null;
+							$existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
+							if (!$existingEvent) {
+								// add data for newly imported events
+								$passAlong = $server['Server']['url'];
+								$result = $eventModel->_add($event, $fromXml = true, $user, $server['Server']['org'], $passAlong, true, $jobId);
+								if ($result) $successes[] = $eventId;
+								else {
+									$fails[$eventId] = 'Failed (partially?) because of validation errors: '. print_r($eventModel->validationErrors, true);
 								}
-								switch($event['Event']['Attribute'][$i]['distribution']) {
-									case 1:
-									case 'This community only': // backwards compatibility
-										// if community falseonly, downgrade to org only after pull
-										$event['Event']['Attribute'][$i]['distribution'] = '0';
-										break;
-									case 2:
-									case 'Connected communities': // backwards compatibility
-										// if connected communities downgrade to community only
-										$event['Event']['Attribute'][$i]['distribution'] = '1';
-										break;
-									case 'All communities': // backwards compatibility
-										$event['Event']['Attribute'][$i]['distribution'] = '3';
-										break;
-									case 'Your organisation only': // backwards compatibility
-										$event['Event']['Attribute'][$i]['distribution'] = '0';
-										break;
-								}
+							} else {
+								$result = $eventModel->_edit($event, $existingEvent['Event']['id'], $jobId);
+								if ($result === 'success') $successes[] = $eventId;
+								else $fails[$eventId] = $result;
 							}
-							$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
-						} else {
-							$fails[$eventId] = 'Empty event received.';
-							continue;
-						}
-						// Distribution, set reporter of the event, being the admin that initiated the pull
-						$event['Event']['user_id'] = $user['id'];
-						// check if the event already exist (using the uuid)
-						$existingEvent = null;
-						$existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
-						if (!$existingEvent) {
-							// add data for newly imported events
-							$passAlong = $server['Server']['url'];
-							$result = $eventModel->_add($event, $fromXml = true, $user, $server['Server']['org'], $passAlong, true, $jobId);
-							if ($result) $successes[] = $eventId;
-							else {
-								$fails[$eventId] = 'Failed (partially?) because of validation errors: '. print_r($eventModel->validationErrors, true);
-							}
-						} else {
-							$result = $eventModel->_edit($event, $existingEvent['Event']['id'], $jobId);
-							if ($result === 'success') $successes[] = $eventId;
-							else $fails[$eventId] = $result;
 						}
 					} else {
 						// error
@@ -1311,6 +1330,19 @@ class Server extends AppModel {
 		return true;
 	}
 	
+	public function eventBlacklistingBeforeHook($setting, $value) {
+		$this->__cleanCacheFiles();
+		if ($value) {
+			try {
+				$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+				$this->EventBlacklist->schema();
+			} catch (Exception $e) {
+				$this->updateDatabase('addEventBlacklists');
+			}
+		}
+		return true;
+	}
+	
 	
 	// never come here directly, always go through a secondary check like testForTermsFile in order to also pass along the expected file path
 	private function __testForFile($value, $path) {
@@ -1628,6 +1660,104 @@ class Server extends AppModel {
 						'title' => 'Removing a dead worker.',
 						'change' => 'Removind dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
 				));
+			}
+		}
+	}
+	
+	private function __dropIndex($table, $field) {
+		$this->Log = ClassRegistry::init('Log');
+		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%'";
+		$indexCheckResult = $this->query($indexCheck);
+		foreach ($indexCheckResult as $icr) {
+			$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'];
+			$result = true;
+			try {
+				$this->query($dropIndex);
+			} catch (Exception $e) {
+				$result = false;
+			}
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => 0,
+					'email' => 'SYSTEM',
+					'action' => 'update_database',
+					'user_id' => 0,
+					'title' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
+					'change' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
+			));
+		}
+	}
+	
+	public function updateDatabase($command) {
+		$sql = '';
+		$model = 'Event';
+		$this->Log = ClassRegistry::init('Log');
+		switch ($command) {
+			case 'extendServerOrganizationLength':
+				$sql = 'ALTER TABLE `servers` MODIFY COLUMN `organization` varchar(255) NOT NULL;';
+				$model = 'Server';
+				break;
+			case 'convertLogFieldsToText':
+				$sql = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
+				$model= 'Log';
+				break;
+			case 'addEventBlacklists':
+				$sql = 'CREATE TABLE IF NOT EXISTS `event_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;';
+				break;
+			case 'makeAttributeUUIDsUnique':
+				$this->__dropIndex('attributes', 'uuid');
+				$sql = 'ALTER TABLE `attributes` ADD UNIQUE (uuid);';
+				break;
+			case 'makeEventUUIDsUnique':
+				$this->__dropIndex('events', 'uuid');
+				$sql = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
+				break;
+			default:
+				$this->Session->setFlash('Invalid command.');
+				$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+				break;
+		}
+		$m = ClassRegistry::init($model);
+		try {
+			$m->query($sql);
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => 0,
+					'email' => 'SYSTEM',
+					'action' => 'update_database',
+					'user_id' => 0,
+					'title' => 'Successfuly executed the SQL query for ' . $command,
+					'change' => 'The executed SQL query was: ' . $sql
+			));
+		} catch (Exception $e) {
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => 0,
+					'email' => 'SYSTEM',
+					'action' => 'update_database',
+					'user_id' => 0,
+					'title' => 'Issues executing the SQL query for ' . $command,
+					'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
+			));
+		}
+		$this->__cleanCacheFiles();
+	}
+	
+	private function __cleanCacheFiles() {
+		$directories = array(APP . '/tmp/cache/models', APP . '/tmp/cache/persistent');
+		foreach ($directories as $directory) {
+			$dir = new Folder($directory);
+			$files = $dir->find('myapp.*');
+			foreach ($files as $file) {
+				$file = new File($dir->path . DS . $file);
+				$file->delete();
+				$file->close();
 			}
 		}
 	}

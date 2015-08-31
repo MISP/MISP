@@ -169,8 +169,8 @@ class Event extends AppModel {
 		),
 		'threat_level_id' => array(
 			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Please specify threat level',
+				'rule' => array('inList', array('1', '2', '3', '4')),
+				'message' => 'Options : 1, 2, 3, 4 (for High, Medium, Low, Undefined)',
 				'required' => true
 			),
 		),
@@ -186,7 +186,7 @@ class Event extends AppModel {
 		),
 		'analysis' => array(
 			'rule' => array('inList', array('0', '1', '2')),
-				'message' => 'Options : 0, 1, 2',
+				'message' => 'Options : 0, 1, 2 (for Initial, Ongoing, Completed)',
 				//'allowEmpty' => false,
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -323,19 +323,29 @@ class Event extends AppModel {
 		),
 		'EventTag' => array(
 				'className' => 'EventTag',
+				'dependent' => true,
 		)
 	);
 
 	public function beforeDelete($cascade = true) {
-		// delete event from the disk
-		$this->read();	// first read the event from the db
+		// blacklist the event UUID if the feature is enabled
+		if (Configure::read('MISP.enableEventBlacklisting')) {
+			$event = $this->find('first', array(
+					'recursive' => -1,
+					'fields' => array('uuid'),
+					'conditions' => array('id' => $this->id),
+			));
+			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+			$this->EventBlacklist->create();
+			$this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid']));
+		}
 		
 		// delete all of the event->tag combinations that involve the deleted event
 		$this->EventTag->deleteAll(array('event_id' => $this->id));
 		
 		// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 		// only delete the file if it exists
-		$filepath = APP . "files" . DS . $this->data['Event']['id'];
+		$filepath = APP . "files" . DS . $this->id;
 		App::uses('Folder', 'Utility');
 		$file = new Folder ($filepath);
 		if (is_dir($filepath)) {
@@ -955,7 +965,7 @@ class Event extends AppModel {
 		$conditions = array();
 	 	$econditions = array();
 	 	$this->recursive = -1;
-	 	
+
 	 	// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
 	 	if ($eventid !== 'search') {
 	 		if ($from) $econditions['AND'][] = array('Event.date >=' => $from);
@@ -975,7 +985,7 @@ class Event extends AppModel {
 	 		if (!$eventid) {
 	 			$this->recursive = -1;
 	 			// If we sent any tags along, load the associated tag names for each attribute
-	 			if (!$tags) {
+	 			if ($tags) {
 	 				$tag = ClassRegistry::init('Tag');
 	 				$args = $this->Attribute->dissectArgs($tags);
 	 				$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
@@ -983,7 +993,7 @@ class Event extends AppModel {
 	 				foreach ($tagArray[0] as $accepted) {
 	 					$temp['OR'][] = array('Event.id' => $accepted);
 	 				}
-	 				$conditions['AND'][] = $temp;
+	 				$econditions['AND'][] = $temp;
 	 				$temp = array();
 	 				foreach ($tagArray[1] as $rejected) {
 	 					$temp['AND'][] = array('Event.id !=' => $rejected);
@@ -1307,6 +1317,16 @@ class Event extends AppModel {
 	public function _add(&$data, $fromXml, $user, $org='', $passAlong = null, $fromPull = false, $jobId = null) {
 		if ($jobId) {
 			App::import('Component','Auth');
+		}
+		if (Configure::read('MISP.enableEventBlacklisting') && isset($data['Event']['uuid'])) {
+			$event = $this->find('first', array(
+					'recursive' => -1,
+					'fields' => array('uuid'),
+					'conditions' => array('id' => $this->id),
+			));
+			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+			$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $data['Event']['uuid'])));
+			if (!empty($r))	return 'blocked';
 		}
 		$this->create();
 		// force check userid and orgname to be from yourself

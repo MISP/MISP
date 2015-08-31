@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `comment` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
-  KEY `uuid` (`uuid`)
+  UNIQUE KEY `uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   `threat_level_id` int(11) NOT NULL,
   `publish_timestamp` int(11) NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `uuid` (`uuid`),
+  UNIQUE KEY `uuid` (`uuid`),
   FULLTEXT KEY `info` (`info`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 

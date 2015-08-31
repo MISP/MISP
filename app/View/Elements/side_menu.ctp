@@ -163,6 +163,10 @@
 							<li class="divider"></li>
 							<li <?php if ($menuItem === 'tasks') echo 'class="active"';?>><a href="/tasks">Scheduled Tasks</a></li>
 						<?php endif; 
+						if (Configure::read('MISP.enableEventBlacklisting')): ?>
+							<li <?php if ($menuItem === 'eventBlacklistsAdd') echo 'class="active"';?>><a href="/eventBlacklists/add">Blacklists Event</a></li>		
+							<li <?php if ($menuItem === 'eventBlacklists') echo 'class="active"';?>><a href="/eventBlacklists">Manage Event Blacklists</a></li>
+						<?php endif;
 					endif;
 				break;	
 				
