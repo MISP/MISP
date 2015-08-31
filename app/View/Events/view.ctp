@@ -122,7 +122,7 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 					?>
 				</dd>
 				<dt>Description</dt>
-				<dd>
+				<dd style="word-wrap: break-word;">
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
 				</dd>

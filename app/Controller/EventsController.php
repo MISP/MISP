@@ -2866,24 +2866,30 @@ class EventsController extends AppController {
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 	
-	public function addTag($id = null) {
+	public function addTag($id = false, $tag_id = false) {
 		if (!$this->request->is('post')) {
-			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200));
 		}
-		$tag_id = $this->request->data['Event']['tag'];
-		$id = $this->request->data['Event']['id'];
+		if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
+		if ($tag_id === false) $tag_id = $this->request->data['Event']['tag'];
+		if (!is_numeric($tag_id)) {
+			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.name' => trim($tag_id))));
+			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
+			$tag_id = $tag['Tag']['id'];
+		}
+		if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
 		$this->Event->recurisve = -1;
 		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $id);
 		
 		// Anyone with the right to tag that can see the event should be able to tag it.
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {		
 			if (!$this->userRole['perm_tagger'] || $this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0 || ($event['Event']['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $event['Event']['sharing_group_id']))) {
-				throw new MethodNotAllowedException('You don\'t have permission to do that.');
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200));
 			}
 		}
 		$this->Event->EventTag->Tag->id = $tag_id;
 		if(!$this->Event->EventTag->Tag->exists()) {
-			throw NotFoundException('Invalid tag.');
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
 		}
 		$found = $this->Event->EventTag->find('first', array(
 			'conditions' => array(
@@ -2893,11 +2899,7 @@ class EventsController extends AppController {
 			'recursive' => -1,
 		));
 		$this->autoRender = false;
-		if (!empty($found)) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this event.')), 'status'=>200));
-			//$this->Session->setFlash('Tag already assigned to this event.');
-			//$this->redirect(array('action' => 'view', $id));
-		}
+		if (!empty($found)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this event.')), 'status'=>200));
 		$this->Event->EventTag->create();
 		if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
 			$log = ClassRegistry::init('Log');
@@ -2908,14 +2910,20 @@ class EventsController extends AppController {
 		}
 	}
 	
-	public function removeTag($id, $tag_id) {
-		if (!$this->request->is('post') || !$this->request->is('ajax')) {
-			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+	public function removeTag($id = false, $tag_id = false) {
+		if (!$this->request->is('post')) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200));
 		}
+		if ($tag_id === false) $tag_id = $this->request->data['Event']['tag'];
+		if (!is_numeric($tag_id)) {
+			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.name' => trim($tag_id))));
+			$tag_id = $tag['Tag']['id'];
+		}
+		if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
 		$this->Event->recurisve = -1;
 		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution'), $id);
 		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-		if (($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger']) && !$this->_isSiteAdmin()) {
+		if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
 		}
 		$eventTag = $this->Event->EventTag->find('first', array(
