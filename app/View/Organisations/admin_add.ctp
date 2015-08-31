@@ -32,7 +32,7 @@
 		echo $this->Form->input('nationality', array('options' => $countries));
 		echo $this->Form->input('sector', array('placeholder' => 'For example "financial".', 'style' => 'width:300px;'));
 		echo $this->Form->input('type', array('class' => 'input-xxlarge', 'label' => 'Type of organisation', 'div' => 'clear', 'placeholder' => 'Freetext description of the org.'));
-		echo $this->Form->input('contact_details', array('class' => 'input-xxlarge', 'type' => 'textarea', 'div' => 'clear', 'placeholder' => 'You can add some contact details for the organisation here, if applicable.'));
+		echo $this->Form->input('contacts', array('class' => 'input-xxlarge', 'type' => 'textarea', 'div' => 'clear', 'placeholder' => 'You can add some contact details for the organisation here, if applicable.'));
 	?>
 	</fieldset>
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
