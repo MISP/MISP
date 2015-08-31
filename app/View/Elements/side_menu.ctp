@@ -14,23 +14,23 @@
 						if ($isAclPublish) $mayPublish = true;
 					}
 					?>
-					<li id='liviewEvent'><a href="/events/view/<?php echo $event['Event']['id'];?>">View Event</a></li>
-					<li id='lieventLog'><a href="/logs/event_index/<?php echo $event['Event']['id'];?>">View Event History</a></li>
+					<li id='liviewEvent'><a href="/events/view/<?php echo h($event['Event']['id']);?>">View Event</a></li>
+					<li id='lieventLog'><a href="/logs/event_index/<?php echo h($event['Event']['id']);?>">View Event History</a></li>
 					<li class="divider"></li>
 					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
-					<li id='lieditEvent'><a href="/events/edit/<?php echo $event['Event']['id'];?>">Edit Event</a></li>
-					<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
-					<li id='liaddAttribute'><a href="/attributes/add/<?php echo $event['Event']['id'];?>">Add Attribute</a></li>
-					<li id='liaddAttachment'><a href="/attributes/add_attachment/<?php echo $event['Event']['id'];?>">Add Attachment</a></li>
-					<li id='liaddIOC'><a href="/events/addIOC/<?php echo $event['Event']['id'];?>">Populate from OpenIOC</a></li>
-					<li id='liaddThreatConnect'><a href="/attributes/add_threatconnect/<?php echo $event['Event']['id']; ?>">Populate from ThreatConnect</a></li>
+					<li id='lieditEvent'><a href="/events/edit/<?php echo h($event['Event']['id']);?>">Edit Event</a></li>
+					<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))); ?></li>
+					<li id='liaddAttribute'><a href="/attributes/add/<?php echo h($event['Event']['id']);?>">Add Attribute</a></li>
+					<li id='liaddAttachment'><a href="/attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Add Attachment</a></li>
+					<li id='liaddIOC'><a href="/events/addIOC/<?php echo h($event['Event']['id']);?>">Populate from OpenIOC</a></li>
+					<li id='liaddThreatConnect'><a href="/attributes/add_threatconnect/<?php echo h($event['Event']['id']); ?>">Populate from ThreatConnect</a></li>
 					<?php if ($menuItem === 'populateFromtemplate'): ?>
-							<li class="active"><a href="/templates/populateEventFromTemplate/<?php echo $template_id . '/' . $event['Event']['id']; ?>">Populate From Template</a></li>
+							<li class="active"><a href="/templates/populateEventFromTemplate/<?php echo $template_id . '/' . h($event['Event']['id']); ?>">Populate From Template</a></li>
 						<?php endif; ?>
 					<?php endif; ?>
 					<?php if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)): ?>
-					<li id='liproposeAttribute'><a href="/shadow_attributes/add/<?php echo $event['Event']['id'];?>">Propose Attribute</a></li>
-					<li id='liproposeAttachment'><a href="/shadow_attributes/add_attachment/<?php echo $event['Event']['id'];?>">Propose Attachment</a></li>
+					<li id='liproposeAttribute'><a href="/shadow_attributes/add/<?php echo h($event['Event']['id']);?>">Propose Attribute</a></li>
+					<li id='liproposeAttachment'><a href="/shadow_attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Propose Attachment</a></li>
 					<?php endif; ?>
 					<li class="divider"></li>
 					<?php 
@@ -39,11 +39,11 @@
 						if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
 						if (isset($event['Event']['published']) && $event['Event']['published']) $exportButtons = "";
 					?>
-					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo $event['Event']['id']; ?>', 'alert')">Publish Event</a></li>
-					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo $event['Event']['id']; ?>', 'publish')">Publish (no email)</a></li>
+					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
+					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
 
-					<li id='licontact'><a href="/events/contact/<?php echo $event['Event']['id'];?>">Contact Reporter</a></li>
-					<li><a onClick="getPopup('<?php echo $event['Event']['id']; ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
+					<li id='licontact'><a href="/events/contact/<?php echo h($event['Event']['id']);?>">Contact Reporter</a></li>
+					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
 					<li class="divider"></li>
 					<li><a href="/events/index">List Events</a></li>
 					<?php if ($isAclAdd): ?>
