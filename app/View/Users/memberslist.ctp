@@ -9,13 +9,13 @@
 	<?php
 foreach ($orgs as $org):?>
 	<tr>
-		<td><?php echo h($org['User']['org']); ?>&nbsp;</td>
+		<td><?php echo h($org['Organisation']['name']); ?>&nbsp;</td>
 		<td><?php echo h($org[0]['num_members']); ?>&nbsp;</td>
 		<?php
-			$imgRelativePath = 'orgs' . DS . h($org['User']['org']) . '.png';
+			$imgRelativePath = 'orgs' . DS . h($org['Organisation']['name']) . '.png';
 			$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 		?>
-		<td><?php if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org['User']['org']) . '.png', array('alt' => h($org['User']['org']),'width' => '48','hight' => '48'));?>&nbsp;</td>
+		<td><?php if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org['Organisation']['name']) . '.png', array('alt' => h($org['Organisation']['name']),'width' => '48','hight' => '48'));?>&nbsp;</td>
 	</tr>
 	<?php
 endforeach; ?>

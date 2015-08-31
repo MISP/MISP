@@ -660,11 +660,13 @@ class UsersController extends AppController {
 
 	public function memberslist() {
 		// Orglist
-		$fields = array('User.org', 'count(User.id) as `num_members`');
+		$fields = array('Organisation.name', 'count(User.id) as `num_members`');
 		$params = array('recursive' => 0,
 							'fields' => $fields,
-							'group' => array('User.org'),
-							'order' => array('UPPER(User.org)'),
+							'recursive' => -1,
+							'contain' => array('Organisation'),
+							'group' => array('Organisation.name'),
+							'order' => array('UPPER(Organisation.name)'),
 		);
 		$orgs = $this->User->find('all', $params);
 		$this->set('orgs', $orgs);

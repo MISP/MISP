@@ -33,14 +33,17 @@ class Organisation extends AppModel{
 		)
 	);
 	public $hasMany = array(
-		'User',
+		'User' => array(
+			'className' => 'User',
+			'foreignKey' => 'org_id'
+		),
 		'SharingGroupOrg' => array(
 			'className' => 'SharingGroupOrg',
 			'foreignKey' => 'org_id',
 			'dependent'=> true,
 		),
 		'SharingGroup' => array(
-			'className' => 'Organisation',
+			'className' => 'SharingGroup',
 			'foreignKey' => 'org_id',
 		),
 	);
