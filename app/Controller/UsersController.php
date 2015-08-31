@@ -679,21 +679,22 @@ class UsersController extends AppController {
 		if ($selected) $selectedTypes = json_decode($selected);
 		$temp = $this->User->Event->find('all', array(
 			'recursive' => -1,
-			'fields' => array('distinct(orgc)'),
+			'fields' => array('distinct(orgc_id)'),
+			'contain' => array('Orgc' => array('fields' => array('Orgc.name'))),
 		));
 		$orgs = array();
 		foreach ($temp as $t) {
-			$orgs[] = $t['Event']['orgc'];
+			$orgs[$t['Event']['orgc_id']] = $t['Orgc']['name'];
 		}
 		// What org posted what type of attribute
 		$this->loadModel('Attribute');
 		$conditions = array();
 		if ($selected) $conditions[] = array('Attribute.type' => $selectedTypes);
-		$fields = array('Event.orgc', 'Attribute.type', 'count(Attribute.type) as `num_types`');
+		$fields = array('Event.orgc_id', 'Attribute.type', 'count(Attribute.type) as `num_types`');
 		$params = array('recursive' => 0,
 				'fields' => $fields,
-				'group' => array('Attribute.type', 'Event.orgc'),
-				'order' => array('Event.orgc', 'num_types DESC'),
+				'group' => array('Attribute.type', 'Event.orgc_id'),
+				'order' => array('Event.orgc_id', 'num_types DESC'),
 				'conditions' => $conditions,
 		);
 		$temp = $this->Attribute->find('all', $params);
@@ -702,7 +703,7 @@ class UsersController extends AppController {
 			$data[$org]['total'] = 0;
 			$data[$org]['data'] = array();
 			foreach ($temp as $t) {
-				if ($t['Event']['orgc'] == $org) {
+				if ($t['Event']['orgc_id'] == $k) {
 					$data[$org]['data'][$t['Attribute']['type']] = $t[0]['num_types'];
 				}
 			}
@@ -719,7 +720,6 @@ class UsersController extends AppController {
 		$this->set('selectedTypes', $selectedTypes);
 		
 		// Nice graphical histogram
-		$this->loadModel('Attribute');
 		$sigTypes = array_keys($this->Attribute->typeDefinitions);
 
 		App::uses('ColourPaletteTool', 'Tools');
