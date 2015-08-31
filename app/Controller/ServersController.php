@@ -854,7 +854,7 @@ class ServersController extends AppController {
 		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not kill the previous instance of the ZeroMQ script.')),'status'=>200));
 	}
 	
-	private function statusZeroMQServer() {
+	public function statusZeroMQServer() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		App::uses('PubSubTool', 'Tools');
 		$pubSubTool = new PubSubTool();
