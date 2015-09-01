@@ -1920,4 +1920,128 @@ class Server extends AppModel {
 			}
 		}
 	}
+	public function upgrade2324($user_id, $jobId = false) {
+		$this->__cleanCacheFiles();
+		if (Configure::read('MISP.background_jobs') && $jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+		}
+		$this->Log = ClassRegistry::init('Log');
+		$this->Organisation = ClassRegistry::init('Organisation');
+		$this->Attribute = ClassRegistry::init('Attribute');
+		$this->Log->create();
+		$this->Log->save(array(
+				'org' => 'SYSTEM',
+				'model' => 'Server',
+				'model_id' => 0,
+				'email' => 'SYSTEM',
+				'action' => 'upgrade_24',
+				'user_id' => 0,
+				'title' => 'Upgrade initiated',
+				'change' => 'Starting the migration of the database to 2.4',
+		));
+		if (Configure::read('MISP.background_jobs') && $jobId) {
+			$this->Job->saveField('progress', 10);
+			$this->Job->saveField('message', 'Starting the migration of the database to 2.4');
+		}
+		$localOrgs = array();
+		$externalOrgs = array();
+		$orgs = array('local' => array(), 'external' => array());
+		$captureRules = array(
+				'events_org' => array('table' => 'events', 'old' => 'org', 'new' => 'org_id'),
+				'events_orgc' => array('table' => 'events', 'old' => 'orgc', 'new' => 'orgc_id'),
+				'jobs_org' => array('table' => 'jobs', 'old' => 'org', 'new' => 'org_id'),
+				'servers_org' => array('table' => 'servers', 'old' => 'org', 'new' => 'org_id'),
+				'servers_organization' => array('table' => 'servers', 'old' => 'organization', 'new' => 'remote_org_id'),
+				'shadow_attributes_org' => array('table' => 'shadow_attributes', 'old' => 'org', 'new' => 'org_id'),
+				'shadow_attributes_event_org' => array('table' => 'shadow_attributes', 'old' => 'event_org', 'new' => 'event_org_id'),
+				'threads_org' => array('table' => 'threads', 'old' => 'org', 'new' => 'org_id'),
+				'users_org' => array('table' => 'users', 'old' => 'org', 'new' => 'org_id'),
+		);
+		$rules = array(
+				'local' => array(
+						$captureRules['users_org'],
+				),
+				'external' => array(
+						$captureRules['events_org'],
+						$captureRules['events_orgc'],
+						$captureRules['shadow_attributes_event_org'],
+						$captureRules['shadow_attributes_org'],
+						$captureRules['servers_organization'],
+						$captureRules['threads_org'],
+						$captureRules['jobs_org'],
+						$captureRules['servers_org'],
+				)
+		);
+		foreach ($rules as $k => $type) {
+			foreach ($type as $rule) {
+				$temp = ($this->query('SELECT DISTINCT(`' . $rule['old'] . '`) from `' . $rule['table'] . '` WHERE ' . $rule['new'] . '= "";'));
+				foreach ($temp as $t) {
+					// in case we have something in the db with a missing org, let's hop over that
+					if ($t[$rule['table']][$rule['old']] !== '') {
+						if ($k == 'local' && !in_array($t[$rule['table']][$rule['old']], $orgs[$k])) $orgs[$k][] = $t[$rule['table']][$rule['old']];
+						elseif ($k == 'external' && !in_array($t[$rule['table']][$rule['old']], $orgs['local']) && !in_array($t[$rule['table']][$rule['old']], $orgs[$k])) $orgs[$k][] = $t[$rule['table']][$rule['old']];
+					} else {
+						$this->Log->create();
+						$this->Log->save(array(
+								'org' => 'SYSTEM',
+								'model' => 'Server',
+								'model_id' => 0,
+								'email' => 'SYSTEM',
+								'action' => 'upgrade_24',
+								'user_id' => 0,
+								'title' => '[ERROR] - Detected empty string organisation identifier during the upgrade',
+								'change' => 'Detected entries in table `' . $rule['table'] . '` where `' . $rule['old'] . '` was blank. This has to be resolved manually!',
+						));
+					}
+				}
+			} 
+		}
+		$this->Log->create();
+		$this->Log->save(array(
+				'org' => 'SYSTEM',
+				'model' => 'Server',
+				'model_id' => 0,
+				'email' => 'SYSTEM',
+				'action' => 'upgrade_24',
+				'user_id' => 0,
+				'title' => 'Organisation creation',
+				'change' => 'Detected ' . count($orgs['local']) . ' local organisations and ' . count($orgs['external']) . ' external organisations. Starting organisation creation.',
+		));
+		if (Configure::read('MISP.background_jobs') && $jobId) {
+			$this->Job->saveField('progress', 20);
+			$this->Job->saveField('message', 'Starting organisation creation');
+		}
+		$orgMapping = array();
+		foreach ($orgs as $k => &$orgArray) {
+			foreach ($orgArray as &$org) {
+				$orgMapping[$org] = $this->Organisation->createOrgFromName($org, $user_id, $k == 'local' ? true : false);
+			}
+		}
+		$this->Log->create();
+		$this->Log->save(array(
+				'org' => 'SYSTEM',
+				'model' => 'Server',
+				'model_id' => 0,
+				'email' => 'SYSTEM',
+				'action' => 'upgrade_24',
+				'user_id' => 0,
+				'title' => 'Organisations created and / or mapped',
+				'change' => 'Captured all missing organisations and created a mapping between the old organisation tag and the organisation IDs. ',
+		));
+		if (Configure::read('MISP.background_jobs') && $jobId) {
+			$this->Job->saveField('progress', 30);
+			$this->Job->saveField('message', 'Updating all current entries');
+		}
+		foreach ($orgMapping as $old => $new) {
+			foreach ($captureRules as $rule) {
+				$this->query('UPDATE `' . $rule['table'] . '` SET `' . $rule['new'] . '`="' . $new . '" WHERE (`' . $rule['old'] . '`="' . $old . '" AND `' . $rule['new'] . '`="");');
+			}
+		}
+		if (Configure::read('MISP.background_jobs') && $jobId) {
+			$this->Job->saveField('progress', 40);
+			$this->Job->saveField('message', 'Rebuilding all correlations (this will take a while...)');
+		}
+		$this->Attribute->generateCorrelation();
+	}
 }

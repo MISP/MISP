@@ -102,4 +102,23 @@ class Organisation extends AppModel{
 		}
 		return $existingOrg[$this->alias]['id'];
 	}
+	
+	public function createOrgFromName($name, $user_id, $local) {
+		$existingOrg = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('name' => $name)
+		));
+		if (empty($existingOrg)) {
+			$this->create();
+			$organisation = array(
+					'uuid' => String::uuid(),
+					'name' => $name,
+					'local' => $local,
+					'created_by' => $user_id
+			);
+			$this->save($organisation);
+			return $this->id;
+		}
+		return $existingOrg[$this->alias]['id'];
+	}
 }

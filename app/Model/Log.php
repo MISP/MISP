@@ -32,7 +32,8 @@ class Log extends AppModel {
 							'serverSettingsEdit',
 							'remove_dead_workers',
 							'upload_sample',
-							'update_database'
+							'update_database',
+							'upgrade_24'
 						)),
 			'message' => 'Options : ...'
 		)

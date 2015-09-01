@@ -406,4 +406,36 @@ class AppController extends Controller {
 		$this->Session->setFlash('Done.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
+	
+	public function upgrade2324() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		$this->loadModel('Server');
+		if (!Configure::read('MISP.background_jobs')) {
+			$this->Server->upgrade2324($this->Auth->user('id'));
+		$this->Session->setFlash('Done. For more details check the audit logs.');
+			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+		} else {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'upgrade_24',
+					'job_input' => 'Old database',
+					'status' => 0,
+					'retries' => 0,
+					'org' => 'ADMIN',
+					'message' => 'Job created.',
+			);
+			$job->save($data);
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'default',
+					'AdminShell',
+					array('jobUpgrade24', $jobId, $this->Auth->user('id'))
+			);
+			$job->saveField('process_id', $process_id);
+			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
+			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+		}
+	}
 }

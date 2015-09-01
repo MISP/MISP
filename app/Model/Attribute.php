@@ -1496,8 +1496,8 @@ class Attribute extends AppModel {
 	 
 	 public function generateCorrelation() {
 	 	$this->Correlation = ClassRegistry::init('Correlation');
-	 	$this->Correlation->deleteAll(array('id !=' => ''), false);
-	 	$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.type', 'Attribute.category', 'Attribute.value1', 'Attribute.value2');
+	 	$this->Correlation->deleteAll(array(), false);
+	 	$fields = array('Attribute.id', 'Attribute.type', 'Attribute.value1', 'Attribute.value2');
 	 	// get all attributes..
 	 	$attributes = $this->find('all', array('recursive' => -1, 'fields' => $fields));
 	 	// for all attributes..
