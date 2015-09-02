@@ -9,8 +9,8 @@
 					<?php if ($export['checkbox']): 
 						echo h($export['checkbox_text']);
 					?>
-						<input id = "<?php echo $k . '_toggle';?>" type="checkbox" style="align;vertical-align:top;margin-top:8px;">
-						<span id ="<?php echo $k?>_set" style="display:none;"><?php echo h($export['checkbox_set']); ?></span>
+						<input id = "<?php echo h($k) . '_toggle';?>" type="checkbox" style="align;vertical-align:top;margin-top:8px;">
+						<span id ="<?php echo h($k);?>_set" style="display:none;"><?php echo h($export['checkbox_set']); ?></span>
 					<?php else: ?>
 						&nbsp;
 					<?php endif; ?>
