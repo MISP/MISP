@@ -359,10 +359,10 @@ The event ID is optional. MISP will accept either a JSON or an XML object posted
 <h3>Add or remove tags from events</h3>
 <p>You can add or remove an existing tag from an event in the following way:</p>
 <pre>
-<?php echo Configure::read('MISP.baseurl').'/attributes/addTag'; ?>
+<?php echo Configure::read('MISP.baseurl').'/events/addTag'; ?>
 </pre>
 <pre>
-<?php  echo Configure::read('MISP.baseurl').'/attributes/removeTag'; ?>
+<?php  echo Configure::read('MISP.baseurl').'/events/removeTag'; ?>
 </pre>
 <p>Just POST a json object in the following format (to the appropriate API depending on whether you want to add or delete a tag from an event):</p>
 <code>{"request": {"Event": {"id": "228", "tag": "8"}}}</code><br /><br />

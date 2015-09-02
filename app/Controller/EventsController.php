@@ -3233,6 +3233,7 @@ class EventsController extends AppController {
 	}
 	
 	public function exportChoice($id) {
+		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
 		$event = $this->Event->find('first' ,array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
