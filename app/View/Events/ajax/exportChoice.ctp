@@ -4,13 +4,13 @@
 		<table style="width:100%;">
 		<?php foreach ($exports as $k => $export): ?>
 			<tr style="border-bottom:1px solid black;" class="templateChoiceButton">
-				<td style="padding-left:10px; text-align:left;width:50%;" onClick="exportChoiceSelect('<?php echo $export['url']; ?>', '<?php echo $k; ?>', '<?php echo $export['checkbox']; ?>')"><?php echo $export['text']; ?></td>
+				<td style="padding-left:10px; text-align:left;width:50%;" onClick="exportChoiceSelect('<?php echo h($export['url']); ?>', '<?php echo h($k); ?>', '<?php echo h($export['checkbox']); ?>')"><?php echo h($export['text']); ?></td>
 				<td style="padding-right:10px; width:50%;text-align:right;">
 					<?php if ($export['checkbox']): 
-						echo $export['checkbox_text'];
+						echo h($export['checkbox_text']);
 					?>
-						<input id = "<?php echo $k . '_toggle';?>" type="checkbox" style="align;vertical-align:top;margin-top:8px;">
-						<span id ="<?php echo $k?>_set" style="display:none;"><?php echo h($export['checkbox_set']); ?></span>
+						<input id = "<?php echo h($k) . '_toggle';?>" type="checkbox" style="align;vertical-align:top;margin-top:8px;">
+						<span id ="<?php echo h($k);?>_set" style="display:none;"><?php echo h($export['checkbox_set']); ?></span>
 					<?php else: ?>
 						&nbsp;
 					<?php endif; ?>
