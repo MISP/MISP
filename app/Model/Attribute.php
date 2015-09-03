@@ -1412,12 +1412,14 @@ class Attribute extends AppModel {
 	 	return $k;
 	 }
 	 
-	 public function reportValidationIssuesAttributes() {
+	 public function reportValidationIssuesAttributes($eventId) {
+	 	$conditions = array();
+	 	if ($eventId && is_numeric($eventId)) $conditions = array('event_id' => $eventId);
 	 	// for efficiency reasons remove the unique requirement
 	 	$this->validator()->remove('value', 'unique');
 	 
 	 	// get all attributes..
-	 	$attributes = $this->find('all', array('recursive' => -1, 'fields' => array('id')));
+	 	$attributes = $this->find('all', array('recursive' => -1, 'fields' => array('id'), 'conditions' => $conditions));
 
 	 	// for all attributes..
 	 	$result = array();
@@ -1431,7 +1433,10 @@ class Attribute extends AppModel {
 	 			$errors = $this->validationErrors;
 	 			$result[$i]['id'] = $attribute['Attribute']['id'];
 	 			// print_r
-	 			$result[$i]['error'] = $errors['value'][0];
+	 			$result[$i]['error'] = array();
+	 			foreach ($errors as $field => $error) {
+	 				$result[$i]['error'][$field] = array('value' => $attribute['Attribute'][$field], 'error' => $error[0]); 
+	 			}
 	 			$result[$i]['details'] = 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']';
 	 			$i++;
 	 		}
