@@ -1830,11 +1830,11 @@ class AttributesController extends AppController {
 		$this->set('rpzSettings', $rpzSettings);
 	}
 
-	public function reportValidationIssuesAttributes() {
+	public function reportValidationIssuesAttributes($eventId = false) {
 		// TODO improve performance of this function by eliminating the additional SQL query per attribute
 		// search for validation problems in the attributes
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		$this->set('result', $this->Attribute->reportValidationIssuesAttributes());
+		$this->set('result', $this->Attribute->reportValidationIssuesAttributes($eventId));
 	}
 	
 	public function generateCorrelation() {
