@@ -124,7 +124,7 @@ class AttributesController extends AppController {
 			$this->Event->set('timestamp', $date->getTimestamp());
 			$this->Event->set('published', 0);
 			$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
-
+			if (isset($this->request->data['Attribute']['id'])) unset($this->request->data['Attribute']['id']);
 			//
 			// multiple attributes in batch import
 			//

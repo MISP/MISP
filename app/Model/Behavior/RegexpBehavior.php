@@ -7,6 +7,13 @@ App::uses('Regexp', 'Model');
  *
  */
 class RegexpBehavior extends ModelBehavior {
+	
+	private $__allRegexp = array();
+	
+	public function setup(Model $model, $config = null) {
+		$regexp = new Regexp();
+		$this->__allRegexp = $regexp->find('all');
+	}
 
 /**
  * replace the current value according to the regexp rules, or block blacklisted regular expressions
@@ -15,10 +22,7 @@ class RegexpBehavior extends ModelBehavior {
  * @param unknown_type $array
  */
 	public function runRegexp(Model $Model, $type, $value) {
-		$regexp = new Regexp();
-		$allRegexp = $regexp->find('all');
-
-		foreach ($allRegexp as $regexp) {
+		foreach ($this->__allRegexp as $regexp) {
 			if (!empty($regexp['Regexp']['replacement']) && !empty($regexp['Regexp']['regexp']) && ($regexp['Regexp']['type'] === 'ALL' || $regexp['Regexp']['type'] === $type)) {
 				$value = preg_replace($regexp['Regexp']['regexp'], $regexp['Regexp']['replacement'], $value);
 			}
