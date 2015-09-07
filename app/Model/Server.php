@@ -957,27 +957,25 @@ class Server extends AppModel {
 			$eventid_conditions_key = 'Event.id >';
 			$eventid_conditions_value = $this->data['Server']['lastpushedid'];
 		} elseif (true == $technique) {
-			$eventIds[] = array('Event' => array ('id' => intval($technique)));
+			$eventid_conditions_key = 'Event.id';
+			$eventid_conditions_value = intval($technique);
 		} else {
 			$this->redirect(array('action' => 'index'));
 		}
-		if (!isset($eventIds)) {
-			$findParams = array(
-					'conditions' => array(
-							$eventid_conditions_key => $eventid_conditions_value,
-							'Event.distribution >' => 0,
-							'Event.published' => 1,
-							'Event.attribute_count >' => 0
-					), //array of conditions
-					'recursive' => -1, //int
-					'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid'), //array of field names
-			);
-			$eventIds = $eventModel->find('all', $findParams);
-		}
+		$findParams = array(
+				'conditions' => array(
+						$eventid_conditions_key => $eventid_conditions_value,
+						'Event.distribution >' => 0,
+						'Event.published' => 1,
+						'Event.attribute_count >' => 0
+				), //array of conditions
+				'recursive' => -1, //int
+				'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid'), //array of field names
+		);
+		$eventIds = $eventModel->find('all', $findParams);
 		$eventUUIDsFiltered = $this->filterEventIdsForPush($id, $HttpSocket, $eventIds);
 		if ($eventUUIDsFiltered === false) $pushFailed = true;
 		if (!empty($eventUUIDsFiltered)) {
-			
 			$eventCount = count($eventUUIDsFiltered);
 			//debug($eventIds);
 			// now process the $eventIds to pull each of the events sequentially
