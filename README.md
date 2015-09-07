@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/MISP/MISP.svg?branch=travis)](https://travis-ci.org/MISP/MISP)
+
 MISP - Malware Information Sharing Platform
 -------------------------------------------
 
@@ -27,7 +29,7 @@ The Red October malware for example gives a similar view:
 Some people might think about CIF (Collective Intelligence Framework) and CRITs (Collaborative Research Into Threats), however those tools are different. Each one has its strenghts and weaknesses, but in the end MISP will rule the world of course.
 
 
-Website / Support 
+Website / Support
 ------------------
 Checkout the [website](http://www.misp-project.org) for more information about MISP like [features](http://www.misp-project.org/#features), [roadmap](http://www.misp-project.org/#roadmap), <small>(commercial)</small> [support](http://www.misp-project.org/#support), ... : http://misp-project.org
 

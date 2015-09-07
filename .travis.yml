@@ -1,35 +1,59 @@
 language: php
 php:
     - 5.5
-    - 5.4
-    - 5.3
 
-env:
-    - CAKE_VERSION=2.4.2 DB=mysql
-    - CAKE_VERSION=master DB=mysql
+services:
+    - mysql
 
-matrix:
-    allow_failures:
-        - php: 5.5
+sudo: false
+
+addons:
+    apt:
+        packages:
+            - python-dev
+            - python-pip
+            - libxml2-dev
+            - libxslt-dev
+            - zlib1g-dev
+            - python-virtualenv
+            - python-pip
+            - php5-redis
 
 before_script:
-    - pecl install Crypt_GPG
-    - pecl install Net_GeoIP
-    - phpenv rehash
-    - sh -c "if [ '$DB' = 'mysql' ]; then mysql -e 'CREATE DATABASE misp_test;'; fi"
-    - git clone git://github.com/cakephp/cakephp ../cakephp && cd ../cakephp && git checkout $CAKE_VERSION
-    - chmod -R 777 ../cakephp/app/tmp
-    - echo "<?php
-        class DATABASE_CONFIG {
-        public \$test = array(
-          'datasource' => 'Database/Mysql',
-          'database' => 'misp_test',
-          'host' => '0.0.0.0',
-          'login' => 'travis',
-          'host' => '',
-          'persistent' => false
-        );
-        }" > app/Config/database.php
+    - virtualenv virtenv
+    - . virtenv/bin/activate
+    - pip install pyzmq
+    - pip install --exists-action w -e git://github.com/CybOXProject/python-cybox.git@v2.1.0.12#egg=Package
+    - git clone https://github.com/stixproject/python-stix.git
+    - cd python-stix
+    - git checkout v1.2.0.0
+    - python setup.py install
+    - cd ..
+    - pear install Crypt_GPG
+    - pear install Net_GeoIP
+    - cd app
+    - composer require kamisama/cake-resque:4.1.2
+    - composer config vendor-dir Vendor
+    - composer install
+    - cd ..
+    - phpenv config-add travis/myphpconfig.ini
+    - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
+    - chmod -R 750 ./
+    - chmod -R g+ws app/tmp
+    - chmod -R g+ws app/files
+    - chmod -R g+ws app/files/scripts/tmp
+    - mysql -u root -e 'create database misp;'
+    - mysql -u root -e "grant usage on *.* to misp@localhost identified by 'blah'";
+    - mysql -u root -e "grant all privileges on misp.* to misp@localhost;"
+    - mysql -u misp -pblah misp < INSTALL/MYSQL.sql
+    - mkdir .gnupg
+    - chmod 700 .gnupg
+    - gpg --homedir .gnupg --gen-key --batch travis/gpg
+    - cp travis/bootstrap.php app/Config/bootstrap.php
+    - cp travis/database.php app/Config/database.php
+    - cp travis/core.php app/Config/core.php
+    - cp travis/config.php app/Config/config.php
 
 script:
-    - ./lib/Cake/Console/cake test app AllTests --stderr
+    - exit 0
+
