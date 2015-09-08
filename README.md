@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/MISP/MISP.svg?branch=travis)](https://travis-ci.org/MISP/MISP)
+[![Build Status](https://travis-ci.org/MISP/MISP.svg?branch=master)](https://travis-ci.org/MISP/MISP)
 
 MISP - Malware Information Sharing Platform
 -------------------------------------------
