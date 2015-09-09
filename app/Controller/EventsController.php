@@ -557,7 +557,7 @@ class EventsController extends AppController {
 		$tagJSON = array();
 		foreach ($tags as $k => $v) {
 			$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
-			$tagJSON[] = array('id' => $v['Tag']['id'], 'value' => $v['Tag']['name']);
+			$tagJSON[] = array('id' => $v['Tag']['id'], 'value' => h($v['Tag']['name']));
 		}
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {

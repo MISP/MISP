@@ -44,7 +44,7 @@
 	<li id="org-all"  class="btn btn btn.active qet" style="margin-right:5px;" onClick="updateCalendar('all')">All organisations</li>
 	<?php 
 		foreach($orgs as $org): ?>
-			<li id="org-<?php echo $org['User']['org'];?>"  class="btn btn btn.active qet" style="margin-right:5px;" onClick="updateCalendar('<?php echo $org['User']['org'];?>')">
+			<li id="org-<?php echo h($org['User']['org']);?>"  class="btn btn btn.active qet" style="margin-right:5px;" onClick="updateCalendar('<?php echo h($org['User']['org']);?>')">
 				<?php echo h($org['User']['org']);?>
 			</li>
 	<?php 

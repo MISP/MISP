@@ -22,7 +22,7 @@
 	</div>
 </div>
 <script type="text/javascript">
-	var i_<?php echo $element_id; ?> = 0;
-	var element_id_<?php echo $element_id; ?> = <?php echo $element_id; ?>;
-	var batch_<?php echo $element_id; ?> = "<?php echo ($element['batch'] ? 'yes' : 'no'); ?>";
+	var i_<?php echo h($element_id); ?> = 0;
+	var element_id_<?php echo h($element_id); ?> = <?php echo h($element_id); ?>;
+	var batch_<?php echo h($element_id); ?> = "<?php echo ($element['batch'] ? 'yes' : 'no'); ?>";
 </script>
