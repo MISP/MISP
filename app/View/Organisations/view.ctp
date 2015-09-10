@@ -1,5 +1,5 @@
 <div class="organisations view">
-<h2><?php  echo 'Organisation ' . $org['Organisation']['name'];?></h2>
+<h2><?php  echo 'Organisation ' . h($org['Organisation']['name']);?></h2>
 	<dl style="width:600px;">
 		<dt><?php echo 'Id'; ?></dt>
 		<dd>

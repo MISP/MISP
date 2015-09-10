@@ -1,5 +1,5 @@
 <div>
-<h3>Members of <?php echo $org;?></h3>
+<h3>Members of <?php echo h($org);?></h3>
 	<div class="pagination">
         <ul>
         <?php
