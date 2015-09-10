@@ -574,7 +574,7 @@ class EventsController extends AppController {
 		$tagJSON = array();
 		foreach ($tags as $k => $v) {
 			$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
-			$tagJSON[] = array('id' => $v['Tag']['id'], 'value' => $v['Tag']['name']);
+			$tagJSON[] = array('id' => $v['Tag']['id'], 'value' => h($v['Tag']['name']));
 		}
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
@@ -1209,46 +1209,6 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function _edit(&$data, $id) {
-		$this->Event->read(null, $id);
-		if (!isset ($data['Event']['orgc_id'])) $data['Event']['orgc_id'] = $data['Event']['org_id'];
-		if ($this->Event->data['Event']['timestamp'] < $data['Event']['timestamp']) {
-
-		} else {
-			return 'Event exists and is the same or newer.';
-		}
-		if (!$this->Event->data['Event']['locked']) {
-			return 'Event originated on this instance, any changes to it have to be done locally.';
-		}
-		$fieldList = array(
-				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp')
-		);
-		$data['Event']['id'] = $this->Event->data['Event']['id'];
-		if (isset($data['Event']['Attribute'])) {
-			foreach ($data['Event']['Attribute'] as $k => &$attribute) {
-				$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $this->Event->data);
-				if (count($existingAttribute)) {
-					$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
-					// Check if the attribute's timestamp is bigger than the one that already exists.
-					// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-					// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-					if ($data['Event']['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-
-					} else {
-						unset($data['Event']['Attribute'][$k]);
-					}
-				} else {
-					unset($data['Event']['Attribute'][$k]['id']);
-				}
-			}
-		}
-		$this->Event->cleanupEventArrayFromXML($data);
-		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
-		if ($saveResult) return 'success';
-		else return 'Saving the event has failed.';
-	}
-
 	private function __searchUuidInAttributeArray($uuid, &$attr_array) {
 		foreach ($attr_array['Attribute'] as &$attr) {
 			if ($attr['uuid'] == $uuid)	return array('Attribute' => $attr);
@@ -1299,12 +1259,15 @@ class EventsController extends AppController {
 				// reposition to get the event.id with given uuid
 				$existingEvent = $this->Event->findByUuid($this->request->data['Event']['uuid']);
 				// If the event exists...
+				$dateObj = new DateTime();
+				$date = $dateObj->getTimestamp();
 				if (count($existingEvent)) {
 					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
 					// Conditions affecting all:
 					// user.org == event.org
 					// edit timestamp newer than existing event timestamp
-					if (isset($this->request->data['Event']['timestamp']) && $this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+					if (!isset($this->request->data['Event']['timestamp'])) $this->request->data['Event']['timestamp'] = $date;
+					if ($this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
 						// If the above is true, we have two more options:
 						// For users that are of the creating org of the event, always allow the edit
 						// For users that are sync users, only allow the edit if the event is locked
@@ -1313,14 +1276,16 @@ class EventsController extends AppController {
 							// Only allow an edit if this is true!
 							$saveEvent = true;
 						} else throw new MethodNotAllowedException('Event could not be saved: The user used to edit the event is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the event whilst also not being a site administrator.');
-					} else throw new MethodNotAllowedException('Event could not be saved: No timestamp on the pushed edit or event in the request not newer than the local copy.');
+					} else throw new MethodNotAllowedException('Event could not be saved: Event in the request not newer than the local copy.');
+					// If a field is not set in the request, just reuse the old value
+					$recoverFields = array('analysis', 'threat_level_id', 'info', 'distribution', 'date');
+					foreach ($recoverFields as $rF) if (!isset($this->request->data['Event'][$rF])) $this->request->data['Event'][$rF] = $existingEvent['Event'][$rF]; 
 				} else throw new MethodNotAllowedException('Event could not be saved: Could not find the local event.');
 				$fieldList = array(
-						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'from', 'distribution', 'timestamp'),
+						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'distribution', 'timestamp'),
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment'),
 						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org_id', 'event_org_id', 'comment', 'event_uuid', 'deleted', 'to_ids', 'uuid')
 				);
-
 				$c = 0;
 				if (isset($this->request->data['Attribute'])) {
 					foreach ($this->request->data['Attribute'] as $attribute) {
@@ -1340,17 +1305,18 @@ class EventsController extends AppController {
 											'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
 									));
 									unset($this->request->data['Attribute'][$c]);
-								}
-								else {
+								} else {
+									// If a field is not set in the request, just reuse the old value
+									$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
+									foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $this->request->data['Attribute'][$c][$rF] = $existingAttribute['Attribute'][$rF];
 									$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
 									// Check if the attribute's timestamp is bigger than the one that already exists.
 									// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
 									// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-									if ($this->request->data['Attribute'][$c]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-		
+									if (isset($this->request->data['Attribute'][$c]['timestamp'])) {
+										if ($this->request->data['Attribute'][$c]['timestamp'] <= $existingAttribute['Attribute']['timestamp']) unset($this->request->data['Attribute'][$c]);
 									} else {
-										unset($this->request->data['Attribute'][$c]);
-										//$this->request->data['Attribute'][$c] = $existingAttribute['Attribute'];
+										$this->request->data['Event']['timestamp'] = $date;
 									}
 								}
 							}
@@ -2881,9 +2847,8 @@ class EventsController extends AppController {
 		$this->Event->recurisve = -1;
 		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $id);
 		
-		// Anyone with the right to tag that can see the event should be able to tag it.
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {		
-			if (!$this->userRole['perm_tagger'] || $this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0 || ($event['Event']['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $event['Event']['sharing_group_id']))) {
+			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200));
 			}
 		}

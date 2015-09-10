@@ -12,7 +12,7 @@
 							Name
 						</div>
 						<div class="">
-							<?php echo $element['TemplateElementText'][0]['name']; ?>&nbsp;
+							<?php echo h($element['TemplateElementText'][0]['name']); ?>&nbsp;
 						</div>
 					</div>
 					<div class="templateTableTDText templateTableArea">
@@ -20,7 +20,7 @@
 							Text
 						</div>
 						<div class="">
-							<?php echo $element['TemplateElementText'][0]['text']; ?>&nbsp;
+							<?php echo h($element['TemplateElementText'][0]['text']); ?>&nbsp;
 						</div>
 					</div>
 					<div class="templateTableTDActions templateTableArea">
@@ -30,13 +30,13 @@
 						<div class="">
 							<?php 
 								if ($mayModify) {
-									echo $this->Form->create('TemplateElement', array('class' => 'inline-delete', 'style' => 'display:inline-block;', 'id' => 'TemplateElement_' . $element_id . '_delete', 'action' => 'delete'));
+									echo $this->Form->create('TemplateElement', array('class' => 'inline-delete', 'style' => 'display:inline-block;', 'id' => 'TemplateElement_' . h($element_id) . '_delete', 'action' => 'delete'));
 							?>
-									<span class="icon-trash useCursorPointer" onClick="deleteObject('template_elements', 'delete' ,'<?php echo $element_id; ?>', '<?php echo $element['TemplateElement']['template_id']; ?>');"></span>
+									<span class="icon-trash useCursorPointer" onClick="deleteObject('template_elements', 'delete' ,'<?php echo h($element_id); ?>', '<?php echo h($element['TemplateElement']['template_id']); ?>');"></span>
 							<?php 
 									echo $this->Form->end();
 							?>
-									<span class="icon-edit useCursorPointer" onClick="editTemplateElement('text' ,'<?php echo $element_id; ?>');"></span>
+									<span class="icon-edit useCursorPointer" onClick="editTemplateElement('text' ,'<?php echo h($element_id); ?>');"></span>
 							<?php 
 								} else {
 									echo '&nbsp;';

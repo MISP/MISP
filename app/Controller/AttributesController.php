@@ -109,7 +109,7 @@ class AttributesController extends AppController {
 			$this->Event->set('timestamp', $date->getTimestamp());
 			$this->Event->set('published', 0);
 			$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
-
+			if (isset($this->request->data['Attribute']['id'])) unset($this->request->data['Attribute']['id']);
 			//
 			// multiple attributes in batch import
 			//
@@ -659,22 +659,27 @@ class AttributesController extends AppController {
 			} else {
 				$existingAttribute = $this->Attribute->findByUuid($uuid);
 			}
+			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
+			// check which attribute is newer
 			if (count($existingAttribute)) {
 				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
-			}
-			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
-			if (isset($this->request->data['Attribute']['timestamp'])) {
-				// check which attribute is newer
-				if (count($existingAttribute)) {
-					if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-						// carry on with adding this attribute - Don't forget! if orgc!=user org, create shadow attribute, not attribute!
-					} else {
-						// the old one is newer or the same, replace the request's attribute with the old one
-						$this->request->data['Attribute'] = $existingAttribute['Attribute'];
-					}
+				$dateObj = new DateTime();
+				if (!isset($this->request->data['Attribute']['timestamp'])) $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp(); 	
+				if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+					$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
+					foreach ($recoverFields as $rF) if (!isset($this->request->data['Attribute'][$rF])) $this->request->data['Attribute'][$rF] = $existingAttribute['Attribute'][$rF];
+					// carry on with adding this attribute - Don't forget! if orgc!=user org, create shadow attribute, not attribute!
+				} else {
+					// the old one is newer or the same, replace the request's attribute with the old one
+					throw new MethodNotAllowedException('Attribute could not be saved: Attribute in the request not newer than the local copy.');
 				}
 			} else {
-				$this->request->data['Attribute']['timestamp'] = $date->getTimestamp();
+				if ($this->_isRest() || $this->response->type() === 'application/json') {
+					throw new NotFoundException('Invalid attribute.');
+				} else {
+					$this->Session->setFlash(__('Invalid attribute.'));
+					$this->redirect(array('controller' => 'events', 'action' => 'index'));
+				}
 			}
 			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'distribution', 'value', 'timestamp', 'comment');
 			$this->loadModel('Event');
@@ -1884,11 +1889,11 @@ class AttributesController extends AppController {
 		$this->set('rpzSettings', $rpzSettings);
 	}
 
-	public function reportValidationIssuesAttributes() {
+	public function reportValidationIssuesAttributes($eventId = false) {
 		// TODO improve performance of this function by eliminating the additional SQL query per attribute
 		// search for validation problems in the attributes
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		$this->set('result', $this->Attribute->reportValidationIssuesAttributes());
+		$this->set('result', $this->Attribute->reportValidationIssuesAttributes($eventId));
 	}
 	
 	public function generateCorrelation() {

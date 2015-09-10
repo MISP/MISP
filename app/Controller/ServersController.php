@@ -424,7 +424,7 @@ class ServersController extends AppController {
 		$file = new File($server['Server']['submitted_cert']['name']);
 		$ext = $file->ext();
 		if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
-			$this->Session->setFlash('Incorrect extension of empty file.');
+			$this->Session->setFlash('Incorrect extension or empty file.');
 			$this->redirect(array('action' => 'index'));
 		}
 		$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),

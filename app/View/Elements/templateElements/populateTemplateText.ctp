@@ -4,6 +4,6 @@
 		<div class ="templateElementHeaderText"><?php echo h($element['name']); ?></div>
 	</div>
 	<div id="populate_template_info_body" class="populate_template_div_body">
-		<div class="solo" style="float:left;"><?php echo $element['text']; ?></div><br />
+		<div class="solo" style="float:left;"><?php echo h($element['text']); ?></div><br />
 	</div>
 </div>
