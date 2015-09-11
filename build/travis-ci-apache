@@ -1,9 +1,9 @@
 <VirtualHost *:80>
-  ServerAdmin me@me.local
+  ServerAdmin admin@misp.local
   ServerName misp.local
   DocumentRoot %TRAVIS_BUILD_DIR%/app/webroot
 
-  <Directory "%TRAVIS_BUILD_DIR%"/app/webroot>
+  <Directory %TRAVIS_BUILD_DIR%/app/webroot>
     Options FollowSymLinks MultiViews ExecCGI -Indexes
     AllowOverride All
     Order allow,deny

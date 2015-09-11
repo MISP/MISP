@@ -150,6 +150,6 @@ CakeLog::config('error', array(
 	'file' => 'error',
 ));
 
-CakePlugin::loadAll(array(
-	'CakeResque' => array('bootstrap' => true)
-));
+//CakePlugin::loadAll(array(
+//	'CakeResque' => array('bootstrap' => true)
+//));
