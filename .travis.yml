@@ -10,9 +10,13 @@ sudo: true
 
 cache: pip
 
+env:
+    - DB=mysql
+
 addons:
     hosts:
         - misp.local
+        - localhost
     apt:
         packages:
             - python-dev
@@ -26,6 +30,7 @@ addons:
             - curl
             - python-virtualenv
             - python-pip
+            - php5-mysql
 
 install:
     - pip install --user pyzmq
@@ -84,3 +89,5 @@ script:
     - cat keys.py
     - ./test.py
     - popd
+      #- cat app/tmp/logs/error.log
+      #- cat app/tmp/logs/debug.log
