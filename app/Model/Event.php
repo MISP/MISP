@@ -797,19 +797,21 @@ class Event extends AppModel {
 				}
 				$eventIds = array();
 				if ($all) {
-					foreach ($eventArray['response']['Event'] as $event) {
+					if (isset($eventArray['response']['Event']) && !empty($eventArray['response']['Event'])) foreach ($eventArray['response']['Event'] as $event) {
 						$eventIds[] = $event['uuid'];
 					}
 				} else {
 					// multiple events, iterate over the array
-					foreach ($eventArray['response']['Event'] as &$event) {
-						if (1 != $event['published']) {
-							continue; // do not keep non-published events
-						}
-						// get rid of events that are the same timestamp as ours or older, we don't want to transfer the attributes for those
-						// The event's timestamp also matches the newest attribute timestamp by default
-						if ($this->checkIfNewer($event)) {
-							$eventIds[] = $event['id'];
+					if (isset($eventArray['response']['Event']) && !empty($eventArray['response']['Event'])) {
+						foreach ($eventArray['response']['Event'] as &$event) {
+							if (1 != $event['published']) {
+								continue; // do not keep non-published events
+							}
+							// get rid of events that are the same timestamp as ours or older, we don't want to transfer the attributes for those
+							// The event's timestamp also matches the newest attribute timestamp by default
+							if ($this->checkIfNewer($event)) {
+								$eventIds[] = $event['id'];
+							}
 						}
 					}
 				}

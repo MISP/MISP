@@ -57,7 +57,7 @@ class EventBlacklistsController extends AppController {
 				$uuid = trim($uuid);
 				if (strlen($uuid) == 36) {
 					$this->EventBlacklist->create();
-					if ($this->EventBlacklist->save(array('event_uuid' => $uuid))) {
+					if ($this->EventBlacklist->save(array('event_uuid' => $uuid, 'comment' => $data['EventBlacklist']['comment']))) {
 						$successes[] = $uuid;
 					} else {
 						$fails[] = $uuid;

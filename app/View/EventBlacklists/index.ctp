@@ -19,15 +19,21 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
+			<th><?php echo $this->Paginator->sort('org');?></th>
 			<th><?php echo $this->Paginator->sort('event_uuid');?></th>
 			<th><?php echo $this->Paginator->sort('created');?></th>
+			<th><?php echo $this->Paginator->sort('event_info');?></th>
+			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
 foreach ($response as $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['EventBlacklist']['id']); ?>&nbsp;</td>
+		<td class="short"><?php echo (isset($item['EventBlacklist']['org']) ? h($item['EventBlacklist']['id']) : '&nbsp;'); ?></td>
 		<td class="short"><?php echo h($item['EventBlacklist']['event_uuid']); ?>&nbsp;</td>
 		<td><?php echo h($item['EventBlacklist']['created']); ?>&nbsp;</td>
+		<td class="short"><?php echo (isset($item['EventBlacklist']['event_info']) ? h($item['EventBlacklist']['event_info']) : '&nbsp;'); ?></td>
+		<td class="short"><?php echo (isset($item['EventBlacklist']['comment']) ? h($item['EventBlacklist']['comment']) : '&nbsp;'); ?></td>
 		<td class="short action-links">
 			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['EventBlacklist']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete the blacklist entry for the event UUID %s?', $item['EventBlacklist']['event_uuid'])); ?>
 		</td>

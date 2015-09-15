@@ -236,7 +236,11 @@ class AttributesController extends AppController {
 				} else {
 					if ($this->_isRest()) { // TODO return error if REST
 						// REST users want to see the failed attribute
-						throw new NotFoundException('Could not save the attribute. ' . $this->Attribute->validationErrors);
+						$message = '';
+						foreach ($this->Attribute->validationErrors as $k => $v) {
+							$message .= '[' . $k . ']: ' . $v[0] . PHP_EOL;
+						}
+						throw new NotFoundException('Could not save the attribute. ' . $message);
 					}  elseif ($this->request->is('ajax')) {
 						$this->autoRender = false;
 						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)),'status'=>200));
@@ -1492,7 +1496,7 @@ class AttributesController extends AppController {
 		}
 		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid');
 		foreach ($simpleFalse as $sF) {
-			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF})) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
 
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
@@ -1738,7 +1742,7 @@ class AttributesController extends AppController {
 	public function text($key='download', $type='all', $tags=false, $eventId=false, $allowNonIDS=false, $from=false, $to=false, $last=false) {
 		$simpleFalse = array('eventId', 'allowNonIDS', 'tags', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
 		if ($type === 'null' || $type === '0' || $type === 'false') $type = 'all';
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
@@ -1788,7 +1792,7 @@ class AttributesController extends AppController {
 		
 		$simpleFalse = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
 		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || ${$sF} === null || strtolower(${$sF}) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
 		if (!in_array($policy, array('NXDOMAIN', 'NODATA', 'DROP', 'walled-garden'))) $policy = false;
 		App::uses('RPZExport', 'Export');
@@ -2109,7 +2113,7 @@ class AttributesController extends AppController {
 		
 		$simpleFalse = array('hash', 'allSamples', 'eventID');
 		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
 		
 		// valid combinations of settings are:
@@ -2217,7 +2221,14 @@ class AttributesController extends AppController {
 				$this->set('message', $error);
 				$this->set('_serialize', array('message'));
 		}
-		
 	}
 	
+	public function pruneOrphanedAttributes() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
+		$events = array_keys($this->Attribute->Event->find('list'));
+		$orphans = $this->Attribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
+		if (count($orphans) > 0) $this->Attribute->deleteAll(array('Attribute.event_id !=' => $events), false, true);
+		$this->Session->setFlash('Removed ' . count($orphans) . ' attribute(s).');
+		$this->redirect('/pages/display/administration');
+	}
 }

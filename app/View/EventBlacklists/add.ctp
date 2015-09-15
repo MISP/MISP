@@ -9,6 +9,11 @@
 				'div' => 'input clear',
 				'class' => 'input-xxlarge'
 		));
+		echo $this->Form->input('comment', array(
+				'type' => 'textarea',
+				'div' => 'input clear',
+				'class' => 'input-xxlarge'
+		));
 	?>
 	</fieldset>
 <?php

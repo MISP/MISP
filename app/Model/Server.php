@@ -1333,7 +1333,8 @@ class Server extends AppModel {
 		if ($value) {
 			try {
 				$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-				$this->EventBlacklist->schema();
+				$schema = $this->EventBlacklist->schema();
+				if (!isset($schema['event_info'])) $this->updateDatabase('addEventBlacklistsContext');
 			} catch (Exception $e) {
 				$this->updateDatabase('addEventBlacklists');
 			}
@@ -1642,7 +1643,7 @@ class Server extends AppModel {
 		$workers = $this->ResqueStatus->getWorkers();
 		$this->Log = ClassRegistry::init('Log');
 		$currentUser = get_current_user();
-		foreach ($workers as $pid => $worker) {
+		foreach ($workers as $pid => $worker) { 
 			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found!');
 			$pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false; 
 			if ($worker['user'] == $currentUser && !$pidTest) {
@@ -1658,104 +1659,6 @@ class Server extends AppModel {
 						'title' => 'Removing a dead worker.',
 						'change' => 'Removind dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
 				));
-			}
-		}
-	}
-	
-	private function __dropIndex($table, $field) {
-		$this->Log = ClassRegistry::init('Log');
-		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%'";
-		$indexCheckResult = $this->query($indexCheck);
-		foreach ($indexCheckResult as $icr) {
-			$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'];
-			$result = true;
-			try {
-				$this->query($dropIndex);
-			} catch (Exception $e) {
-				$result = false;
-			}
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
-					'change' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
-			));
-		}
-	}
-	
-	public function updateDatabase($command) {
-		$sql = '';
-		$model = 'Event';
-		$this->Log = ClassRegistry::init('Log');
-		switch ($command) {
-			case 'extendServerOrganizationLength':
-				$sql = 'ALTER TABLE `servers` MODIFY COLUMN `organization` varchar(255) NOT NULL;';
-				$model = 'Server';
-				break;
-			case 'convertLogFieldsToText':
-				$sql = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
-				$model= 'Log';
-				break;
-			case 'addEventBlacklists':
-				$sql = 'CREATE TABLE IF NOT EXISTS `event_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;';
-				break;
-			case 'makeAttributeUUIDsUnique':
-				$this->__dropIndex('attributes', 'uuid');
-				$sql = 'ALTER TABLE `attributes` ADD UNIQUE (uuid);';
-				break;
-			case 'makeEventUUIDsUnique':
-				$this->__dropIndex('events', 'uuid');
-				$sql = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
-				break;
-			default:
-				$this->Session->setFlash('Invalid command.');
-				$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-				break;
-		}
-		$m = ClassRegistry::init($model);
-		try {
-			$m->query($sql);
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => 'Successfuly executed the SQL query for ' . $command,
-					'change' => 'The executed SQL query was: ' . $sql
-			));
-		} catch (Exception $e) {
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => 'Issues executing the SQL query for ' . $command,
-					'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
-			));
-		}
-		$this->__cleanCacheFiles();
-	}
-	
-	private function __cleanCacheFiles() {
-		$directories = array(APP . '/tmp/cache/models', APP . '/tmp/cache/persistent');
-		foreach ($directories as $directory) {
-			$dir = new Folder($directory);
-			$files = $dir->find('myapp.*');
-			foreach ($files as $file) {
-				$file = new File($dir->path . DS . $file);
-				$file->delete();
-				$file->close();
 			}
 		}
 	}
