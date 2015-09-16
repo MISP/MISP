@@ -49,16 +49,14 @@ class AppModel extends Model {
 
 	public function updateDatabase($command) {
 		$sql = '';
-		$model = 'Event';
 		$this->Log = ClassRegistry::init('Log');
+		$clean = true;
 		switch ($command) {
 			case 'extendServerOrganizationLength':
 				$sql = 'ALTER TABLE `servers` MODIFY COLUMN `organization` varchar(255) NOT NULL;';
-				$model = 'Server';
 				break;
 			case 'convertLogFieldsToText':
 				$sql = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
-				$model= 'Log';
 				break;
 			case 'addEventBlacklists':
 				$sql = 'CREATE TABLE IF NOT EXISTS `event_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;';
@@ -74,13 +72,16 @@ class AppModel extends Model {
 				$this->__dropIndex('events', 'uuid');
 				$sql = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
 				break;
+			case 'cleanSessionTable':
+				$sql = 'DELETE FROM `cake_sessions` WHERE `expires` < ' . time() . ';';
+				$clean = false;
+				break;
 			default:
 				return false;
 				break;
 		}
-		$m = ClassRegistry::init($model);
 		try {
-			$m->query($sql);
+			$this->query($sql);
 			$this->Log->create();
 			$this->Log->save(array(
 					'org' => 'SYSTEM',
@@ -105,7 +106,7 @@ class AppModel extends Model {
 					'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
 			));
 		}
-		$this->cleanCacheFiles();
+		if ($clean) $this->cleanCacheFiles();
 		return true;
 	}
 	
