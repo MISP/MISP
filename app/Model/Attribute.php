@@ -553,21 +553,24 @@ class Attribute extends AppModel {
 		switch($type) {
 			case 'md5':
 				if (preg_match("#^[0-9a-f]{32}$#", $value)) {
-					$returnValue = true;
+					if ($value === 'd41d8cd98f00b204e9800998ecf8427e') $returnValue = 'The supplied hash indicates an empty file.';
+					else $returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
 				break;
 			case 'sha1':
 				if (preg_match("#^[0-9a-f]{40}$#", $value)) {
-					$returnValue = true;
+					if ($value === 'da39a3ee5e6b4b0d3255bfef95601890afd80709') $returnValue = 'The supplied hash indicates an empty file.';
+					else $returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
 				break;
 			case 'sha256':
 				if (preg_match("#^[0-9a-f]{64}$#", $value)) {
-					$returnValue = true;
+					if ($value === 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') $returnValue = 'The supplied hash indicates an empty file.';
+					else $returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
@@ -588,7 +591,9 @@ class Attribute extends AppModel {
 			case 'filename|md5':
 				// no newline
 				if (preg_match("#^.+\|[0-9a-f]{32}$#", $value)) {
-					$returnValue = true;
+					$parts = explode('|', $value);
+					if ($parts[1] === 'd41d8cd98f00b204e9800998ecf8427e') $returnValue = 'The supplied hash indicates an empty file.';
+					else $returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
@@ -596,7 +601,9 @@ class Attribute extends AppModel {
 			case 'filename|sha1':
 				// no newline
 				if (preg_match("#^.+\|[0-9a-f]{40}$#", $value)) {
-					$returnValue = true;
+					$parts = explode('|', $value);
+					if ($parts[1] === 'da39a3ee5e6b4b0d3255bfef95601890afd80709') $returnValue = 'The supplied hash indicates an empty file.';
+					else $returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
@@ -604,7 +611,9 @@ class Attribute extends AppModel {
 			case 'filename|sha256':
 				// no newline
 				if (preg_match("#^.+\|[0-9a-f]{64}$#", $value)) {
-					$returnValue = true;
+					$parts = explode('|', $value);
+					if ($parts[1] === 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') $returnValue = 'The supplied hash indicates an empty file.';
+					else $returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}

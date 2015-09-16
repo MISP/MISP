@@ -330,14 +330,9 @@ class Event extends AppModel {
 	public function beforeDelete($cascade = true) {
 		// blacklist the event UUID if the feature is enabled
 		if (Configure::read('MISP.enableEventBlacklisting')) {
-			$event = $this->find('first', array(
-					'recursive' => -1,
-					'fields' => array('uuid'),
-					'conditions' => array('id' => $this->id),
-			));
 			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 			$this->EventBlacklist->create();
-			$this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid']));
+			$this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid'], 'event_info' => $this->data['Event']['info'], 'event_orgc' => $this->data['Event']['orgc']));
 		}
 		
 		// delete all of the event->tag combinations that involve the deleted event

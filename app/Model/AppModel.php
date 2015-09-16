@@ -105,7 +105,7 @@ class AppModel extends Model {
 					'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
 			));
 		}
-		$this->__cleanCacheFiles();
+		$this->cleanCacheFiles();
 		return true;
 	}
 	
@@ -135,7 +135,7 @@ class AppModel extends Model {
 		}
 	}
 	
-	private function __cleanCacheFiles() {
+	public function cleanCacheFiles() {
 		$directories = array(APP . '/tmp/cache/models', APP . '/tmp/cache/persistent');
 		foreach ($directories as $directory) {
 			$dir = new Folder($directory);
@@ -146,5 +146,13 @@ class AppModel extends Model {
 				$file->close();
 			}
 		}
+	}
+	
+	public function checkMISPVersion() {
+		App::uses('Folder', 'Utility');
+		$file = new File (ROOT . DS . 'VERSION.json', true);
+		$version_array = json_decode($file->read(), true);
+		$file->close();
+		return $version_array;
 	}
 }

@@ -2457,7 +2457,8 @@ class EventsController extends AppController {
 									$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
 								}
 							} else {
-								if (!empty(substr($v, 1))) {
+								$temp = substr($v, 1);
+								if (!empty($temp)) {
 									if ($parameters[$k] === 'org') {
 										$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
 									} elseif ($parameters[$k] === 'eventid') {
@@ -2525,8 +2526,6 @@ class EventsController extends AppController {
 			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 			if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
-			debug($conditions);
-			throw new Exception();
 			$params = array(
 					'conditions' => $conditions,
 					'fields' => array('DISTINCT(Attribute.event_id)'),

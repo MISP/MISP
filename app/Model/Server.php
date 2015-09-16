@@ -1329,7 +1329,7 @@ class Server extends AppModel {
 	}
 	
 	public function eventBlacklistingBeforeHook($setting, $value) {
-		$this->__cleanCacheFiles();
+		$this->cleanCacheFiles();
 		if ($value) {
 			try {
 				$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
@@ -1358,13 +1358,10 @@ class Server extends AppModel {
 	}
 	
 	public function checkVersion($newest) {
-		App::uses('Folder', 'Utility');
-		$file = new File (ROOT . DS . 'VERSION.json', true);
-		$version_array = json_decode($file->read());
-		$file->close();
-		$current = 'v' . $version_array->major . '.' . $version_array->minor . '.' . $version_array->hotfix;
+		$version_array = $this->checkMISPVersion();
+		$current = 'v' . $version_array['major'] . '.' . $version_array['minor'] . '.' . $version_array['hotfix'];
 		$newest_array = $this->__dissectVersion($newest);
-		$upToDate = $this->__compareVersions(array($version_array->major, $version_array->minor, $version_array->hotfix), $newest_array, 0); 
+		$upToDate = $this->__compareVersions(array($version_array['major'], $version_array['minor'], $version_array['hotfix']), $newest_array, 0); 
 		return array ('current' => $current, 'newest' => $newest, 'upToDate' => $upToDate);
 	}
 	

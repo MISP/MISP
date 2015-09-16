@@ -79,6 +79,8 @@ class AppController extends Controller {
 	public $mispVersion = '2.3.0';
 	
 	public function beforeFilter() {
+		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
+		$this->mispVersion = implode('.', array_values($versionArray));
 		$this->Security->blackHoleCallback = 'blackHole';
 		// send users away that are using ancient versions of IE
 		// Make sure to update this if IE 20 comes out :)

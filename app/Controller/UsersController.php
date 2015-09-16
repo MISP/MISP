@@ -737,12 +737,6 @@ class UsersController extends AppController {
 		return $this->response;
 	}
 
-	public function news() {
-		$this->User->id = $this->Auth->user('id');
-		$this->User->saveField('newsread', date("Y-m-d"));
-		$this->_refreshAuth(); // refresh auth info
-	}
-
 	public function extraLog($action = null, $description = null, $fieldsResult = null) {	// TODO move audit to AuditsController?
 		// new data
 		$userId = $this->Auth->user('id');

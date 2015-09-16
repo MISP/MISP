@@ -29,7 +29,7 @@
 foreach ($response as $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['EventBlacklist']['id']); ?>&nbsp;</td>
-		<td class="short"><?php echo (isset($item['EventBlacklist']['org']) ? h($item['EventBlacklist']['id']) : '&nbsp;'); ?></td>
+		<td class="short"><?php echo (isset($item['EventBlacklist']['event_orgc']) ? h($item['EventBlacklist']['event_orgc']) : '&nbsp;'); ?></td>
 		<td class="short"><?php echo h($item['EventBlacklist']['event_uuid']); ?>&nbsp;</td>
 		<td><?php echo h($item['EventBlacklist']['created']); ?>&nbsp;</td>
 		<td class="short"><?php echo (isset($item['EventBlacklist']['event_info']) ? h($item['EventBlacklist']['event_info']) : '&nbsp;'); ?></td>
