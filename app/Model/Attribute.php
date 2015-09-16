@@ -408,7 +408,9 @@ class Attribute extends AppModel {
 			}
 		}
 		// update correlation... (only needed here if there's an update)
- 		$this->__beforeSaveCorrelation($this->data['Attribute']);
+		if ($this->id || !empty($this->data['Attribute']['id'])) {
+ 			$this->__beforeSaveCorrelation($this->data['Attribute']);
+		}
 		// always return true after a beforeSave()
 		return true;
 	}
@@ -551,21 +553,24 @@ class Attribute extends AppModel {
 		switch($type) {
 			case 'md5':
 				if (preg_match("#^[0-9a-f]{32}$#", $value)) {
-					$returnValue = true;
+					if ($value === 'd41d8cd98f00b204e9800998ecf8427e') $returnValue = 'The supplied hash indicates an empty file.';
+					else $returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
 				break;
 			case 'sha1':
 				if (preg_match("#^[0-9a-f]{40}$#", $value)) {
-					$returnValue = true;
+					if ($value === 'da39a3ee5e6b4b0d3255bfef95601890afd80709') $returnValue = 'The supplied hash indicates an empty file.';
+					else $returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
 				break;
 			case 'sha256':
 				if (preg_match("#^[0-9a-f]{64}$#", $value)) {
-					$returnValue = true;
+					if ($value === 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') $returnValue = 'The supplied hash indicates an empty file.';
+					else $returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
@@ -586,7 +591,9 @@ class Attribute extends AppModel {
 			case 'filename|md5':
 				// no newline
 				if (preg_match("#^.+\|[0-9a-f]{32}$#", $value)) {
-					$returnValue = true;
+					$parts = explode('|', $value);
+					if ($parts[1] === 'd41d8cd98f00b204e9800998ecf8427e') $returnValue = 'The supplied hash indicates an empty file.';
+					else $returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
@@ -594,7 +601,9 @@ class Attribute extends AppModel {
 			case 'filename|sha1':
 				// no newline
 				if (preg_match("#^.+\|[0-9a-f]{40}$#", $value)) {
-					$returnValue = true;
+					$parts = explode('|', $value);
+					if ($parts[1] === 'da39a3ee5e6b4b0d3255bfef95601890afd80709') $returnValue = 'The supplied hash indicates an empty file.';
+					else $returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
@@ -602,7 +611,9 @@ class Attribute extends AppModel {
 			case 'filename|sha256':
 				// no newline
 				if (preg_match("#^.+\|[0-9a-f]{64}$#", $value)) {
-					$returnValue = true;
+					$parts = explode('|', $value);
+					if ($parts[1] === 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') $returnValue = 'The supplied hash indicates an empty file.';
+					else $returnValue = true;
 				} else {
 					$returnValue = 'Checksum has invalid length or format. Please double check the value or select "other" for a type.';
 				}
@@ -978,65 +989,60 @@ class Attribute extends AppModel {
 	public function __afterSaveCorrelation($a) {
 		// Don't do any correlation if the type is a non correlating type
 		if (!in_array($a['type'], $this->nonCorrelatingTypes)) {
+			$event = $this->Event->find('first', array(
+					'recursive' => -1,
+					'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org', 'Event.date'),
+					'conditions' => array('id' => $a['event_id'])
+			));
 			$this->Correlation = ClassRegistry::init('Correlation');
-			// When we add/update an attribute we need to
-			// - (beforeSave) (update-only) clean up the relation of the old value: remove the existing relations related to that attribute, we DO have a reference, the id
-
-			// - remove the existing relations for that value1 or value2, we do NOT have an id reference, but we have a value1/value2 field to search for
-			// ==> DELETE FROM correlations WHERE value = $value1 OR value = $value2 */
-			$dummy = $this->Correlation->deleteAll(array('Correlation.value' => array($a['value1'], $a['value2'])));
-
-			// now build a correlation array of things that will need to be added in the db
-			// we do this twice, once for value1 and once for value2
-			$correlations = array();   // init variable
-			$value_names = array ('value1', 'value2');
-			// do the correlation for value1 and value2, this needs to be done separately
-			foreach ($value_names as $value_name) {
-			    if (empty($a[$value_name])) continue;  // do not correlate if attribute is empty
-			    $params = array(
-			            'conditions' => array(
-			            	'OR' => array(
-			                    'Attribute.value1' => $a[$value_name],
-			                    'Attribute.value2' => $a[$value_name]
-			            	),
-			            	'AND' => array(
-			            		'Attribute.type !=' => $this->nonCorrelatingTypes,
-						)),
-			            'recursive' => -1,
-			    		'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution'),
-			    		'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org', 'Event.distribution'))),
-			            //'fields' => '', // we want to have the Attribute AND Event, so do not filter here
-			    );
-			    // search for the related attributes for that "value(1|2)"
-			    $attributes = $this->find('all', $params);
-			    // build the correlations, each attribute should have a relation in both directions
-			    // this is why we have a double loop.
-			    // The result is that for each Attribute pair we want: A1-A2, A2-A1 and so on,
-			    // In total that's N * (N-1) rows (minus the ones from the same event) (with N the number of related attributes)
-			    $attributes_right = $attributes;
-			    foreach ($attributes as $attribute) {
-			        foreach ($attributes_right as $attribute_right) {
-			            if ($attribute['Attribute']['event_id'] == $attribute_right['Attribute']['event_id']) {
-			                // do not build a relation between the same attributes
-			                // or attributes from the same event
-			                continue;
-			            }
-			            $is_private = ($attribute_right['Event']['distribution'] == 0) || ($attribute_right['Attribute']['distribution'] == 0);
-			            $correlations[] = array(
-			                    'value' => $a[$value_name],
-			                    '1_event_id' => $attribute['Attribute']['event_id'],
-			                    '1_attribute_id' => $attribute['Attribute']['id'],
-			                    'event_id' => $attribute_right['Attribute']['event_id'],
-			                    'attribute_id' => $attribute_right['Attribute']['id'],
-			                    'org' => $attribute_right['Event']['org'],
-			                    'private' => $is_private,
-			                    'date' => $attribute_right['Event']['date'],
-			            		'info' => $attribute_right['Event']['info'],
-			            );
-			        }
-			    }
+			$correlations = array();
+			$fields = array('value1', 'value2');
+			$correlatingValues = array($a['value1']);
+			if (!empty($a['value2'])) $correlatingValues[] = $a['value2'];
+			foreach ($correlatingValues as $k => $cV) {
+				$correlatingAttributes[$k] = $this->find('all', array(
+						'conditions' => array(
+							'OR' => array(
+								'Attribute.value1' => $cV,
+								'Attribute.value2' => $cV
+							),
+							'AND' => array(
+								'Attribute.type !=' => $this->nonCorrelatingTypes,
+								'Attribute.id !=' => $a['id'],
+							),
+						),
+						'recursive => -1',
+						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution'),
+						'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org', 'Event.distribution'))),
+				));
 			}
-			// save the new correlations to the database in a single shot
+			$correlations = array();
+			foreach ($correlatingAttributes as $k => $cA) {
+				foreach ($cA as $corr) {
+					$correlations[] = array(
+							'value' => $correlatingValues[$k],
+							'1_event_id' => $event['Event']['id'],
+							'1_attribute_id' => $a['id'],
+							'event_id' => $corr['Attribute']['event_id'],
+							'attribute_id' => $corr['Attribute']['id'],
+							'org' => $corr['Event']['org'],
+							'private' => ($corr['Attribute']['distribution'] == 0 || $corr['Event']['distribution'] == 0) ? true : false,
+							'date' => $corr['Event']['date'],
+							'info' => $corr['Event']['info'],
+					);
+					$correlations[] = array(
+							'value' => $correlatingValues[$k],
+							'1_event_id' => $corr['Event']['id'],
+							'1_attribute_id' => $corr['Attribute']['id'],
+							'event_id' => $a['event_id'],
+							'attribute_id' => $a['id'],
+							'org' => $event['Event']['org'],
+							'private' => ($a['distribution'] == 0 || $event['Event']['distribution'] == 0) ? true : false,
+							'date' => $event['Event']['date'],
+							'info' => $event['Event']['info'],
+					);
+				}
+			}
 			$this->Correlation->saveMany($correlations);
 		}
 	}
@@ -1415,12 +1421,9 @@ class Attribute extends AppModel {
 	 public function reportValidationIssuesAttributes($eventId) {
 	 	$conditions = array();
 	 	if ($eventId && is_numeric($eventId)) $conditions = array('event_id' => $eventId);
-	 	// for efficiency reasons remove the unique requirement
-	 	$this->validator()->remove('value', 'unique');
 	 
 	 	// get all attributes..
 	 	$attributes = $this->find('all', array('recursive' => -1, 'fields' => array('id'), 'conditions' => $conditions));
-
 	 	// for all attributes..
 	 	$result = array();
 	 	$i = 0;

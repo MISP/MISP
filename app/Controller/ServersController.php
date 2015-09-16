@@ -66,7 +66,7 @@ class ServersController extends AppController {
 			// force check userid and orgname to be from yourself
 			$this->request->data['Server']['org'] = $this->Auth->user('org');
 			if ($this->Server->save($this->request->data)) {
-				if (isset($this->request->data['Server']['submitted_cert'])) {
+				if ($this->request->data['Server']['submitted_cert']['error'] == 0) {
 					$this->__saveCert($this->request->data, $this->Server->id);
 				}
 				$this->Session->setFlash(__('The server has been saved'));
@@ -267,7 +267,7 @@ class ServersController extends AppController {
 		$file = new File($server['Server']['submitted_cert']['name']);
 		$ext = $file->ext();
 		if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
-			$this->Session->setFlash('Incorrect extension of empty file.');
+			$this->Session->setFlash('Incorrect extension or empty file.');
 			$this->redirect(array('action' => 'index'));
 		}
 		$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),

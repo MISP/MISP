@@ -563,14 +563,6 @@ class UsersController extends AppController {
 		if (!$this->Auth->user('termsaccepted')) {
 			$this->redirect(array('action' => 'terms'));
 		}
-
-		// News page
-		$newNewsdate = new DateTime("2012-03-27");	// TODO general, fixed odd date??
-		$newsdate = new DateTime($this->Auth->user('newsread'));
-		if ($newNewsdate > $newsdate) {
-			$this->redirect(array('action' => 'news'));
-		}
-
 		// Events list
 		$this->redirect(array('controller' => 'events', 'action' => 'index'));
 	}
@@ -735,12 +727,6 @@ class UsersController extends AppController {
 		}
 		$this->response->file($termsFile, array('download' => true, 'name' => Configure::read('MISP.terms_file')));
 		return $this->response;
-	}
-
-	public function news() {
-		$this->User->id = $this->Auth->user('id');
-		$this->User->saveField('newsread', date("Y-m-d"));
-		$this->_refreshAuth(); // refresh auth info
 	}
 
 	public function extraLog($action = null, $description = null, $fieldsResult = null) {	// TODO move audit to AuditsController?

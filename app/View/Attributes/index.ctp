@@ -83,9 +83,9 @@ foreach ($attributes as $attribute):
 		</td>
 		<?php endif;?>
 		<td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" ondblclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
-		<?php echo $attribute['Attribute']['category']; ?>&nbsp;</td>
-		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" ondblclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
-		<?php echo $attribute['Attribute']['type']; ?>&nbsp;</td>
+		<?php echo h($attribute['Attribute']['category']); ?>&nbsp;</td>
+		<td title="<?php if (isset($typeDefinitions[$attribute['Attribute']['type']])) echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" ondblclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
+		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
 		<td class="showspaces" ondblclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';"><?php
 			$sigDisplay = nl2br(h($attribute['Attribute']['value']));
 			if ($isSearch == 1 && !empty($replacePairs)) {
