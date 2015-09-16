@@ -35,7 +35,8 @@ foreach ($response as $item): ?>
 		<td class="short"><?php echo (isset($item['EventBlacklist']['event_info']) ? h($item['EventBlacklist']['event_info']) : '&nbsp;'); ?></td>
 		<td class="short"><?php echo (isset($item['EventBlacklist']['comment']) ? h($item['EventBlacklist']['comment']) : '&nbsp;'); ?></td>
 		<td class="short action-links">
-			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['EventBlacklist']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete the blacklist entry for the event UUID %s?', $item['EventBlacklist']['event_uuid'])); ?>
+			<a href="/eventBlacklists/edit/<?php echo h($item['EventBlacklist']['id']); ?>"><span class="icon-edit" title="edit">&nbsp;</span></a>
+			<?php echo $this->Form->postLink('', array('action' => 'delete', h($item['EventBlacklist']['id'])), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete the blacklist entry for the event UUID %s?', h($item['EventBlacklist']['event_uuid']))); ?>
 		</td>
 	</tr><?php
 endforeach; ?>
