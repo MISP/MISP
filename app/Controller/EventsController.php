@@ -3391,6 +3391,7 @@ class EventsController extends AppController {
 				$this->set('name', 'Partial success');
 				$this->set('message', 'Successfuly saved ' . $successCount . ' sample(s), but some samples could not be saved.');
 				$this->set('url', '/events/view/' . $data['event_id']);
+				$this->set('id', $data['event_id']);
 				$this->set('_serialize', array('name', 'message', 'url', 'errors'));
 			} else {
 				$this->set('name', 'Failed');
@@ -3401,6 +3402,7 @@ class EventsController extends AppController {
 			$this->set('name', 'Success');
 			$this->set('message', 'Success, saved all attributes.');
 			$this->set('url', '/events/view/' . $data['event_id']);
+			$this->set('id', $data['event_id']);
 			$this->set('_serialize', array('name', 'message', 'url'));
 		}
 		$this->view($data['event_id']);
