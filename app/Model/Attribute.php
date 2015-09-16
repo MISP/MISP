@@ -1009,6 +1009,7 @@ class Attribute extends AppModel {
 							'AND' => array(
 								'Attribute.type !=' => $this->nonCorrelatingTypes,
 								'Attribute.id !=' => $a['id'],
+								'Attribute.event_id !=' => $a['event_id']
 							),
 						),
 						'recursive => -1',
