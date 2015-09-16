@@ -125,4 +125,19 @@
 			echo 'Proxy settings....<span style="color:' . $colour . ';">' . $message . '</span>';
 		?>
 	</div>
+	<h3>
+	Session table
+	</h3>
+	<p>This tool checks how large your database's session table is. <br />Sessions in CakePHP rely on PHP's garbage collection for cleanup and in certain distributions this can be disabled by default resulting in an ever growing cake session table. <br />If you are affected by this, just click the clean session table button below.</p>
+	<div style="background-color:#f7f7f9;width:300px;">
+		<?php
+			$colour = 'green';
+			$message = $sessionErrors[$sessionStatus];
+			if ($sessionStatus > 0) {
+				$colour = 'red';
+			}
+			echo 'Expired sessions....<span style="color:' . $colour . ';">' . $sessionCount . ' (' . $message . ')' . '</span>';
+		?>
+	</div>
+	<a href ="/servers/purgeSessions"><span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">Purge sessions</span></a>
 </div>

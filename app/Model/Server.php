@@ -1551,6 +1551,17 @@ class Server extends AppModel {
 		return $proxyStatus;
 	}
 	
+	public function sessionDiagnostics(&$diagnostic_errors, &$sessionCount) {
+		$sql = 'SELECT COUNT(id) FROM `cake_sessions` WHERE `expires` < ' . time() . ';';
+		$sessionCount = $this->query($sql)[0][0]['COUNT(id)'];
+		$sessionStatus = 0;
+		if ($sessionCount > 100) {
+			$sessionStatus = 1;
+			$diagnostic_errors++;
+		}
+		return $sessionStatus;
+	}
+	
 	public function workerDiagnostics(&$workerIssueCount) {
 		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
 		$workers = $this->ResqueStatus->getWorkers();
