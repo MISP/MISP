@@ -107,7 +107,6 @@
 					<li <?php if ($menuItem === 'edit') echo 'class="active"';?>><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
 					<li class="divider"></li>
 					<?php endif; ?>
-					<li <?php if ($menuItem === 'news') echo 'class="active"';?>><a href="/users/news">News</a></li>
 					<li <?php if ($menuItem === 'view') echo 'class="active"';?>><a href="/users/view/me">My Profile</a></li>
 					<li <?php if ($menuItem === 'members') echo 'class="active"';?>><a href="/users/memberslist">Members List</a></li>
 					<li <?php if ($menuItem === 'roles') echo 'class="active"';?>><a href="/roles/index">Role Permissions</a></li>

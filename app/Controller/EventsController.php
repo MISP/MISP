@@ -1739,7 +1739,7 @@ class EventsController extends AppController {
 		
 		$simpleFalse = array('tags', 'eventid', 'withAttachment', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
@@ -1819,7 +1819,7 @@ class EventsController extends AppController {
 	public function nids($format = 'suricata', $key = 'download', $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false) {
 		$simpleFalse = array('id', 'continue', 'tags', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
 		
 		if ($from) $from = $this->Event->dateFieldCheck($from);
@@ -1860,7 +1860,7 @@ class EventsController extends AppController {
 	public function hids($type, $key='download', $tags = false, $from = false, $to = false, $last = false) {
 		$simpleFalse = array('tags', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
@@ -1895,7 +1895,7 @@ class EventsController extends AppController {
 	public function csv($key, $eventid=false, $ignore=false, $tags = false, $category=false, $type=false, $includeContext=false, $from=false, $to=false, $last = false) {
 		$simpleFalse = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
 		
 		if ($from) $from = $this->Event->dateFieldCheck($from);
@@ -2428,7 +2428,7 @@ class EventsController extends AppController {
 		
 		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid');
 		foreach ($simpleFalse as $sF) {
-			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF})) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
 		
 		if ($from) $from = $this->Event->dateFieldCheck($from);
@@ -2436,7 +2436,6 @@ class EventsController extends AppController {
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		if ($last) $last = $this->Event->resolveTimeDelta($last);
 		if ($searchall === 'true') $searchall = "1";
-
 		$conditions['AND'] = array();
 		$subcondition = array();
 		$this->loadModel('Attribute');
@@ -2458,12 +2457,15 @@ class EventsController extends AppController {
 									$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
 								}
 							} else {
-								if ($parameters[$k] === 'org') {
-									$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
-								} elseif ($parameters[$k] === 'eventid') {
-									$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
-								} else {
-									$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+								$temp = substr($v, 1);
+								if (!empty($temp)) {
+									if ($parameters[$k] === 'org') {
+										$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+									} elseif ($parameters[$k] === 'eventid') {
+										$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+									} else {
+										$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+									}
 								}
 							}
 						} else {
@@ -2473,12 +2475,14 @@ class EventsController extends AppController {
 									$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
 								}
 							} else {
-								if ($parameters[$k] === 'org') {
-									$subcondition['OR'][] = array('Event.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
-								} elseif ($parameters[$k] === 'eventid') {
-									$subcondition['OR'][] = array('Attribute.event_id' => $v);
-								} else {
-									$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+								if (!empty($v)) {
+									if ($parameters[$k] === 'org') {
+										$subcondition['OR'][] = array('Event.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+									} elseif ($parameters[$k] === 'eventid') {
+										$subcondition['OR'][] = array('Attribute.event_id' => $v);
+									} else {
+										$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+									}
 								}
 							}
 						}
@@ -2522,7 +2526,6 @@ class EventsController extends AppController {
 			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 			if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
-			
 			$params = array(
 					'conditions' => $conditions,
 					'fields' => array('DISTINCT(Attribute.event_id)'),
@@ -3029,7 +3032,7 @@ class EventsController extends AppController {
 		
 		$simpleFalse = array('id', 'withAttachments', 'tags', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
@@ -3300,7 +3303,7 @@ class EventsController extends AppController {
 		// check if the user has permission to create attributes for an event, if the event ID has been passed
 		// If not, create an event
 		if (isset($data['event_id']) && !empty($data['event_id']) && is_numeric($data['event_id'])) {
-			$conditons = array();
+			$conditions = array();
 			if (!$this->_isSiteAdmin()) {
 				$conditions = array('Event.orgc' => $this->Auth->user('org'));
 				if (!$this->userRole['perm_modify_org']) $conditions[] = array('Event.user_id' => $this->Auth->user('id'));
@@ -3387,15 +3390,18 @@ class EventsController extends AppController {
 			if ($successCount > 0) {
 				$this->set('name', 'Partial success');
 				$this->set('message', 'Successfuly saved ' . $successCount . ' sample(s), but some samples could not be saved.');
+				$this->set('url', '/events/view/' . $data['event_id']);
+				$this->set('_serialize', array('name', 'message', 'url', 'errors'));
 			} else {
 				$this->set('name', 'Failed');
 				$this->set('message', 'Failed to save any of the supplied samples.');
+				$this->set('_serialize', array('name', 'message', 'errors'));
 			}
-			$this->set('_serialize', array('name', 'message', 'errors'));
 		} else {
 			$this->set('name', 'Success');
 			$this->set('message', 'Success, saved all attributes.');
-			$this->set('_serialize', array('name', 'message'));
+			$this->set('url', '/events/view/' . $data['event_id']);
+			$this->set('_serialize', array('name', 'message', 'url'));
 		}
 		$this->view($data['event_id']);
 		$this->render('view');
