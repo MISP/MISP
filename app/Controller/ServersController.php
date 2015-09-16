@@ -668,4 +668,11 @@ class ServersController extends AppController {
 		}
 		$this->redirect('/servers/serverSettings/diagnostics');
 	}
+	
+	public function getVersion() {
+		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This action requires API access.');
+		$versionArray = $this->Server->checkMISPVersion();
+		$this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix']));
+		$this->set('_serialize', 'response');
+	}
 }
