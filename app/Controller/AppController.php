@@ -80,7 +80,7 @@ class AppController extends Controller {
 	
 	public function beforeFilter() {
 		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
-		$this->mispVersion = implode('.', array_values($versionArray));
+		$this->mispVersionFull = implode('.', array_values($versionArray));
 		$this->Security->blackHoleCallback = 'blackHole';
 		// send users away that are using ancient versions of IE
 		// Make sure to update this if IE 20 comes out :)
@@ -153,6 +153,7 @@ class AppController extends Controller {
 		if ($this->Auth->user()) {
 			//$this->_refreshAuth();
 			$this->set('mispVersion', $this->mispVersion);
+			$this->set('mispVersionFull', $this->mispVersionFull);
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
 			$this->set('isAdmin', $role['perm_admin']);
