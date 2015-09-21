@@ -172,7 +172,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>The same search could be accomplished using the following POSTed XML object (note that ampersands need to be escaped, or alternatively separate id and tag elements can be used): </p>
 <code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;2015-02-15&lt;/from&gt;&lt;/request&gt;</code>
 <h3>Text export</h3>
-<p>An export of all attributes of a specific type to a plain text file. By default non IDS flagged attributes are also exported.</p>
+<p>An export of all attributes of a specific type to a plain text file. By default only published and IDS flagged attributes are exported.</p>
 <p>You can configure your tools to automatically download the following files:</p>
 <pre>
 <?php
