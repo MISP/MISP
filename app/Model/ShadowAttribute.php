@@ -38,7 +38,15 @@ class ShadowAttribute extends AppModel {
 			'fields' => '',
 			'order' => '',
 			'counterCache' => true
-		)
+		),
+		'Org' => array(
+				'className' => 'Organisation',
+				'foreignKey' => 'org_id'
+		),
+		'EventOrg' => array(
+				'className' => 'Organisation',
+				'foreignKey' => 'event_org_id'
+		),
 	);
 
 /**

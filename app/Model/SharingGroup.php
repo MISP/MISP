@@ -173,7 +173,7 @@ class SharingGroup extends AppModel {
 				'SharingGroupServer' => array('fields' => array('id', 'server_id', 'all_orgs')),
 			)
 		));
-		
+		if (empty($sg)) return array();
 		// if the current server is marked as "all orgs" in the sharing group, just return true
 		foreach ($sg['SharingGroupServer'] as $sgs) {
 			if ($sgs['server_id'] == 0) {

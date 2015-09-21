@@ -85,15 +85,26 @@ class Organisation extends AppModel{
 	}
 	
 	public function captureOrg($org, $user) {
+		if (is_array($org)) {
+			$conditions = array('uuid' => $org['uuid']);
+			$uuid = $org['uuid'];
+			$name = $org['name'];
+		} else {
+			$conditions = array('name' => $org);
+			$uuid = String::uuid();
+			$name = $org;
+		}
+		
 		$existingOrg = $this->find('first', array(
-			'recursive' => -1,
-			'conditions' => array('uuid' => $org['uuid'])
+				'recursive' => -1,
+				'conditions' => $conditions,
 		));
+		
 		if (empty($existingOrg)) {
 			$this->create();
 			$organisation = array(
-					'uuid' => $org['uuid'], 
-					'name' => $org['name'], 
+					'uuid' => $uuid, 
+					'name' => $name, 
 					'local' => 0, 
 					'created_by' => $user['id']
 			);

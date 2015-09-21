@@ -114,6 +114,7 @@ class ServersController extends AppController {
 					}
 				}
 				if (!$fail) {
+					$this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
 					if ($this->Server->save($this->request->data)) {
 						if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
 							$this->__saveCert($this->request->data, $this->Server->id);

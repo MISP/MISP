@@ -1,9 +1,8 @@
 <?php
 class XMLConverterTool {
 	public function recursiveEcho($array) {
-		//debug($array);
 		$text = "";
-		foreach ($array as $k => $v) {
+		if (is_array($array)) foreach ($array as $k => $v) {
 			if (is_array($v)) {
 				if (empty($v)) $text .= '<' . $k . '/>';
 				else {
@@ -43,7 +42,10 @@ class XMLConverterTool {
 			$event['Event']['SharingGroup'][0] = $event['SharingGroup'];
 		}
 		if (isset($event['Attribute'])) $event['Event']['Attribute'] = $event['Attribute'];
-		if (isset($event['ShadowAttribute'])) $event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
+		if (isset($event['ShadowAttribute'])) {
+			$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
+			unset($event['ShadowAttribute']);
+		}
 		if (isset($event['RelatedEvent'])) if (isset($event['RelatedEvent'])) $event['Event']['RelatedEvent'] = $event['RelatedEvent'];
 		
 		// legacy
@@ -81,6 +83,8 @@ class XMLConverterTool {
 						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = str_replace($toEscape, $escapeWith, $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
 						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
 						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = str_replace($toEscape, $escapeWith, $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
+						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['Org'] = array(0 => $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['Org']);
+						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['EventOrg'] = array(0 => $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['EventOrg']);
 					}
 				}
 				if (isset($event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupOrg'])) {
@@ -107,6 +111,8 @@ class XMLConverterTool {
 				$event['Event']['ShadowAttribute'][$key]['value'] = str_replace($toEscape, $escapeWith, $event['Event']['ShadowAttribute'][$key]['value']);
 				$event['Event']['ShadowAttribute'][$key]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['ShadowAttribute'][$key]['comment']);
 				$event['Event']['ShadowAttribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $event['Event']['ShadowAttribute'][$key]['comment']);
+				$event['Event']['ShadowAttribute'][$key]['Org'] = array(0 => $event['Event']['ShadowAttribute'][$key]['Org']);
+				$event['Event']['ShadowAttribute'][$key]['EventOrg'] = array(0 => $event['Event']['ShadowAttribute'][$key]['EventOrg']);
 			}
 		}
 

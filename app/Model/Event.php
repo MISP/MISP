@@ -302,7 +302,7 @@ class Event extends AppModel {
 		),
 		'Orgc' => array(
 				'className' => 'Organisation',
-				'foreignKey' => 'org_id'
+				'foreignKey' => 'orgc_id'
 		),
 		'SharingGroup' => array(
 				'className' => 'SharingGroup',
@@ -1270,6 +1270,8 @@ class Event extends AppModel {
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,
 					'conditions' => array('deleted' => 0),
+					'Org' => array('fields' => $fieldsOrg),
+					'EventOrg' => array('fields' => $fieldsOrg)
 				),
 				'SharingGroup' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)],
 				'EventTag' => array(
@@ -1688,9 +1690,14 @@ class Event extends AppModel {
 	// When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
 	// or which we need to update. All of that is controller in this method.
 	private function __captureObjects($data, $user) {
+		// first we want to see how the creator organisation is encoded
+		// The options here are either by passing an organisation object along or simply passing a string along
 		if (isset($data['Event']['Orgc'])) {
 			$data['Event']['orgc_id'] = $this->Orgc->captureOrg($data['Event']['Orgc'], $user);
 			unset ($data['Event']['Orgc']);
+		} else if (isset($data['Event']['orgc'])) {
+			$data['Event']['orgc_id'] = $this->Orgc->captureOrg($data['Event']['orgc'], $user);
+			unset($data['Event']['orgc']);
 		}
 		if (isset($data['Event']['EventTag'])) {
 			if (isset($data['Event']['EventTag']['id'])) {
@@ -1743,7 +1750,9 @@ class Event extends AppModel {
 		}
 		// set these fields if the event is freshly created and not pushed from another instance.
 		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
-		if (!isset ($data['Event']['orgc_id'])) $data['Event']['orgc_id'] = $data['Event']['org_id'];
+		if (!isset($data['Event']['orgc_id']) && !isset($data['Event']['orgc'])) {
+			$data['Event']['orgc_id'] = $data['Event']['org_id'];
+		}
 		if ($fromXml) {
 			// Workaround for different structure in XML/array than what CakePHP expects
 			$data = $this->cleanupEventArrayFromXML($data);
@@ -1800,7 +1809,7 @@ class Event extends AppModel {
 			App::import('Component','Auth');
 		}
 		$localEvent = $this->find('first', array('conditions' => array('Event.id' => $id), 'recursive' => -1, 'contain' => array('Attribute', 'ThreatLevel', 'ShadowAttribute')));
-		if (!isset ($data['Event']['orgc_id'])) $data['Event']['orgc_id'] = $data['Event']['org_id'];
+		if (!isset($data['Event']['orgc_id']) && !isset($data['Event']['orgc'])) $data['Event']['orgc_id'] = $data['Event']['org_id'];
 		if ($localEvent['Event']['timestamp'] < $data['Event']['timestamp']) {
 	
 		} else {

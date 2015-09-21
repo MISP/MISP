@@ -950,6 +950,15 @@ class Server extends AppModel {
 							if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
 							else $proposal['old_id'] = 0;
 						}
+						// check if this is a proposal from an old MISP instance
+						if (!isset($proposal['org_id']) && isset($proposal['org'])) {
+							$proposal['Org'] = $proposal['org'];
+							$proposal['EventOrg'] = $proposal['event_org'];
+						}
+						$proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
+						$proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
+						unset($proposal['Org']);
+						unset($proposal['EventOrg']);
 						$shadowAttribute->create();
 						$shadowAttribute->save($proposal);
 					}
