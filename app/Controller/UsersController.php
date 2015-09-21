@@ -156,6 +156,7 @@ class UsersController extends AppController {
  * @return void
  */
 	public function admin_index() {
+		$this->User->virtualFields['org_ci'] = 'UPPER(User.org)';
 		$urlparams = "";
 		$passedArgsArray = array();
 		$booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
@@ -191,8 +192,8 @@ class UsersController extends AppController {
 						if (!empty($test)) $this->paginate['conditions']['AND'][] = $test;
 					}
 				}
+				$passedArgsArray[$searchTerm] = $v;
 			}
-			$passedArgsArray[$searchTerm] = $v;
 		}
 		$this->set('urlparams', $urlparams);
 		$this->set('passedArgsArray', $passedArgsArray);
