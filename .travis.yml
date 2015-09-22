@@ -34,6 +34,7 @@ addons:
 
 install:
     - pip install --user pyzmq
+    - pip install --user coveralls
     - pip install --user git+https://github.com/CybOXProject/python-cybox.git@v2.1.0.12#egg=Package
     - pip install --user git+https://github.com/stixproject/python-stix.git@v1.2.0.0#egg=Package
     - pip install --user git+https://github.com/MISP/PyMISP.git#egg=Package
@@ -90,7 +91,7 @@ before_script:
 
 script:
     - pushd PyMISP
-    - python setup.py test
-    - popd
-      #- cat app/tmp/logs/error.log
-      #- cat app/tmp/logs/debug.log
+    - coverage run setup.py test
+
+after_success:
+    - coveralls
