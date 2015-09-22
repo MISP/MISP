@@ -72,7 +72,6 @@ before_script:
     - mysql -u root -e "grant usage on *.* to misp@localhost identified by 'blah'";
     - mysql -u root -e "grant all privileges on misp.* to misp@localhost;"
     - mysql -u misp -pblah misp < INSTALL/MYSQL.sql
-    - git clone https://github.com/MISP/PyMISP.git
     - AUTH=`app/Console/cake userInit -q`
     - sudo chown -R www-data:www-data app/
     - curl http://misp.local >> /dev/null
