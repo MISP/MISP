@@ -1418,22 +1418,31 @@ class EventsController extends AppController {
 			}
 		}
 		if ($this->Event->delete()) {
-
-			// delete the event from remote servers
-			//if ('true' == Configure::read('MISP.sync')) {	// TODO test..(!$this->_isRest()) &&
-			//	$this->__deleteEventFromServers($uuid);
-			//}
-			$this->Session->setFlash(__('Event deleted'));
-
-			// if coming from index, redirect to referer (to have the filter working)
-			// else redirect to index
-			if (strpos($this->referer(), '/view') !== FALSE)
+			if ($this->_isRest() || $this->response->type() === 'application/json') {
+				$this->set('message', 'Event deleted.');
+				$this->set('_serialize', array('message'));
+			} else {
+				// delete the event from remote servers
+				//if ('true' == Configure::read('MISP.sync')) {	// TODO test..(!$this->_isRest()) &&
+				//	$this->__deleteEventFromServers($uuid);
+				//}
+				$this->Session->setFlash(__('Event deleted'));
+	
+				// if coming from index, redirect to referer (to have the filter working)
+				// else redirect to index
+				if (strpos($this->referer(), '/view') !== FALSE)
+					$this->redirect(array('action' => 'index'));
+				else
+					$this->redirect($this->referer(array('action' => 'index')));
+			}
+		} else {
+			if ($this->_isRest() || $this->response->type() === 'application/json') {
+				throw new Exception('Event was not deleted');
+			} else {
+				$this->Session->setFlash(__('Event was not deleted'));
 				$this->redirect(array('action' => 'index'));
-			else
-				$this->redirect($this->referer(array('action' => 'index')));
+			}
 		}
-		$this->Session->setFlash(__('Event was not deleted'));
-		$this->redirect(array('action' => 'index'));
 	}
 
 	/**
