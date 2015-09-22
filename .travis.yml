@@ -36,7 +36,7 @@ install:
     - pip install --user pyzmq
     - pip install --user git+https://github.com/CybOXProject/python-cybox.git@v2.1.0.12#egg=Package
     - pip install --user git+https://github.com/stixproject/python-stix.git@v1.2.0.0#egg=Package
-    - pip install --user git+https://github.com/MISP/PyMISP.git@v1.8#egg=Package
+    - pip install --user git+https://github.com/MISP/PyMISP.git#egg=Package
     - pear install Crypt_GPG
     - pear install Net_GeoIP
     - phpenv rehash
@@ -67,27 +67,30 @@ before_script:
     - cp travis/database.php app/Config/database.php
     - cp travis/core.php app/Config/core.php
     - cp travis/config.php app/Config/config.php
-    - sudo chown -R www-data:www-data ./
-    - sudo chmod -R 755 ./
-    - sudo chmod 700 .gnupg
-    - sudo chmod -R 777 tests
-    - sudo chmod -R 777 app/tmp
-    - sudo chmod -R 777 app/files
-    - sudo chmod -R 777 app/files/scripts/tmp
     - mysql -u root -e 'create database misp;'
     - mysql -u root -e "grant usage on *.* to misp@localhost identified by 'blah'";
     - mysql -u root -e "grant all privileges on misp.* to misp@localhost;"
     - mysql -u misp -pblah misp < INSTALL/MYSQL.sql
-
-script:
+    - git clone https://github.com/MISP/PyMISP.git
     - AUTH=`app/Console/cake userInit -q`
     - sudo chown -R www-data:www-data app/
     - curl http://misp.local >> /dev/null
-    - pushd tests
-    - echo 'url = "http://misp.local"' >> keys.py
-    - echo 'key = "'${AUTH}'"' >> keys.py
-    - cat keys.py
-    - ./test.py
+    - pushd PyMISP
+    - echo 'url = "http://misp.local"' >> tests/keys.py
+    - echo 'key = "'${AUTH}'"' >> tests/keys.py
+    - cat tests/keys.py
+    - popd
+    - sudo chown -R www-data:www-data ./
+    - sudo chmod -R 755 ./
+    - sudo chmod 700 .gnupg
+    - sudo chmod -R 777 app/tmp
+    - sudo chmod -R 777 app/files
+    - sudo chmod -R 777 app/files/scripts/tmp
+    - sudo chmod -R 777 PyMISP
+
+script:
+    - pushd PyMISP
+    - python setup.py test
     - popd
       #- cat app/tmp/logs/error.log
       #- cat app/tmp/logs/debug.log
