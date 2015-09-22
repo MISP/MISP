@@ -35,6 +35,7 @@ addons:
 install:
     - pip install --user pyzmq
     - pip install --user coveralls
+    - pip install --user codecov
     - pip install --user git+https://github.com/CybOXProject/python-cybox.git@v2.1.0.12#egg=Package
     - pip install --user git+https://github.com/stixproject/python-stix.git@v1.2.0.0#egg=Package
     - pip install --user git+https://github.com/MISP/PyMISP.git#egg=Package
@@ -94,3 +95,4 @@ script:
 
 after_success:
     - coveralls
+    - codecov
