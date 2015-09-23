@@ -133,7 +133,7 @@
 		<?php
 			$colour = 'green';
 			$message = $sessionErrors[$sessionStatus];
-			$sessionColours = array(0 => 'green', 1 => 'red', 2 => 'orange');
+			$sessionColours = array(0 => 'green', 1 => 'red', 2 => 'orange', 3 => 'red');
 			$colour = $sessionColours[$sessionStatus];
 			echo 'Expired sessions....<span style="color:' . $colour . ';">' . $sessionCount . ' (' . $message . ')' . '</span>';
 		?>
