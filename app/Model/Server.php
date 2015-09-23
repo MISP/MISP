@@ -1552,6 +1552,10 @@ class Server extends AppModel {
 	}
 	
 	public function sessionDiagnostics(&$diagnostic_errors, &$sessionCount) {
+		if (Configure::read('Session.defaults') !== 'database') {
+			$sessionCount = 'N/A';
+			return 2;
+		}
 		$sql = 'SELECT COUNT(id) FROM `cake_sessions` WHERE `expires` < ' . time() . ';';
 		$sessionCount = $this->query($sql)[0][0]['COUNT(id)'];
 		$sessionStatus = 0;

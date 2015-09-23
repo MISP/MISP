@@ -319,7 +319,7 @@ class ServersController extends AppController {
 			$stixOperational = array(0 => 'STIX or CyBox library not installed correctly', 1 => 'OK');
 			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
 			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
-			$sessionErrors = array(0 => 'OK', 1 => 'High');
+			$sessionErrors = array(0 => 'OK', 1 => 'High', 2 => 'Alternative setting used');
 			
 			$finalSettings = $this->Server->serverSettingsRead();
 			$issues = array(	
