@@ -133,11 +133,16 @@
 		<?php
 			$colour = 'green';
 			$message = $sessionErrors[$sessionStatus];
-			if ($sessionStatus > 0) {
-				$colour = 'red';
-			}
+			$sessionColours = array(0 => 'green', 1 => 'red', 2 => 'orange', 3 => 'red');
+			$colour = $sessionColours[$sessionStatus];
 			echo 'Expired sessions....<span style="color:' . $colour . ';">' . $sessionCount . ' (' . $message . ')' . '</span>';
 		?>
 	</div>
+	<?php 
+		if ($sessionStatus < 2):
+	?>
 	<a href ="/servers/purgeSessions"><span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">Purge sessions</span></a>
+	<?php 
+		endif;
+	?>
 </div>
