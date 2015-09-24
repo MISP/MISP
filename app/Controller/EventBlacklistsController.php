@@ -59,9 +59,9 @@ class EventBlacklistsController extends AppController {
 					if ($this->EventBlacklist->save(
 							array(
 								'event_uuid' => $uuid, 
-								'comment' => $data['EventBlacklist']['comment'], 
-								'event_info' => $data['EventBlacklist']['info'],
-								'event_orgc' => $data['EventBlacklist']['orgc'],
+								'comment' => !empty($data['EventBlacklist']['comment']) ? $data['EventBlacklist']['comment'] : '', 
+								'event_info' => !empty($data['EventBlacklist']['info']) ? $data['EventBlacklist']['info'] : '',
+								'event_orgc' => !empty($data['EventBlacklist']['orgc']) ? $data['EventBlacklist']['orgc'] : '',
 							)
 						)
 					) {
