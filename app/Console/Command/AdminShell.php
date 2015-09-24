@@ -11,16 +11,19 @@ class AdminShell extends AppShell
 		$this->loadModel('Correlation');
 		$this->Correlation->deleteAll(array('id !=' => ''), false);
 		$this->loadModel('Attribute');
-		$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.cluster', 'Event.date', 'Event.org');
-		// get all attributes..
-		$attributes = $this->Attribute->find('all', array('recursive' => -1));
-		// for all attributes..
-		$total = count($attributes);
-		foreach ($attributes as $k => $attribute) {
-			if ($k > 0 && $k % 1000 == 0) {
-				$this->Job->saveField('progress', $k/$total*100);
+		$attributeIDs = array_keys($this->Attribute->find('list'));
+		$total = count($attributeIDs);
+		$start = 0;
+		$continue = true;
+		while ($continue) {
+			
+			$attributes = $this->Attribute->find('all', array('recursive' => -1, 'conditions' => array('AND' => array('Event.id' > $start, 'Event.id' <= ($start + 1000)))));
+			foreach ($attributes as $k => $attribute) {
+				$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
 			}
-			$this->Attribute->__afterSaveCorrelation($attribute['Attribute']);
+			$this->Job->saveField('progress', $k/$total*100);
+			$start += 1000;
+			if ($start > $total) $continue = false;
 		}
 		$this->Job->saveField('progress', 100);
 		$this->Job->saveField('message', 'Job done.');
