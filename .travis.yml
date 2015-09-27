@@ -93,7 +93,4 @@ script:
     - coverage run setup.py test
 
 after_success:
-    - python -c "import pickle;print(pickle.loads(open('.coverage').read())"
-    - coverage xml
-    - cat coverage.xml
     - codecov
