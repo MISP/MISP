@@ -94,5 +94,7 @@ script:
     - coverage run setup.py test
 
 after_success:
-    - coveralls
+    - ls -al
+    - find / -name 'clover.xml' -or -name 'coverage.xml' -or -name '.coverage'
+    - codecov --dump
     - codecov
