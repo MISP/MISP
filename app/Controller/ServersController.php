@@ -54,13 +54,73 @@ class ServersController extends AppController {
  * @return void
  */
 	public function index() {
-		if ($this->_isSiteAdmin()) {
-
-		} else {
+		if (!$this->_isSiteAdmin()) {
 			if (!$this->userRole['perm_sync'] && !$this->userRole['perm_admin']) $this->redirect(array('controller' => 'events', 'action' => 'index'));
 			$this->paginate['conditions'] = array('Server.org_id LIKE' => $this->Auth->user('org_id'));
 		}
 		$this->set('servers', $this->paginate());
+	}
+	
+	public function previewIndex($id) {
+		if (isset($this->passedArgs['pages'])) $currentPage = $this->passedArgs['pages'];
+		else $currentPage = 1; 
+		$urlparams = '';
+		$passedArgs = array();
+		if (!$this->_isSiteAdmin()) {
+			throw new MethodNotAllowedException('You are not authorised to do that.');
+		}
+		$server = $this->Server->find('first', array('conditions' => array('Server.id' => $id), 'recursive' => -1, 'fields' => array('Server.id', 'Server.url')));
+		if (empty($server)) throw new NotFoundException('Invalid server ID.');
+		$validFilters = $this->Server->validEventIndexFilters;
+		foreach($validFilters as $k => $filter) {
+			if (isset($this->passedArgs[$filter])) {
+				$passedArgs[$filter] = $this->passedArgs[$filter];
+				if ($k != 0) $urlparams .= '/'; 
+				$urlparams .= $filter . ':' . $this->passedArgs[$filter]; 
+			}
+		}
+		$events = $this->Server->previewIndex($id, $this->Auth->user(), array_merge($this->passedArgs, $passedArgs));
+		if (!empty($events)) foreach ($events as &$event) {
+			$event = array('Event' => $event);
+			if (!isset($event['Orgc'])) $event['Orgc']['name'] = $event['Event']['orgc'];
+			if (!isset($event['Org'])) $event['Org']['name'] = $event['Event']['org'];
+			if (!isset($event['EventTag'])) $event['EventTag'] = array();
+		}
+		$this->loadModel('Event');
+		$threat_levels = $this->Event->ThreatLevel->find('all');
+		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+		$pageCount = count($events);
+		App::uses('CustomPaginationTool', 'Tools');
+		$customPagination = new CustomPaginationTool();
+		$params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
+		$this->params->params['paging'] = array($this->modelClass => $params);
+		$customPagination->truncateByPagination($events, $params);
+		$this->set('events', $events);
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		$this->set('analysisLevels', $this->Event->analysisLevels);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
+		
+		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
+		$this->set('shortDist', $shortDist);
+		$this->set('ajax', $this->request->is('ajax'));
+		$this->set('id', $id);
+		$this->set('urlparams', $urlparams);		
+		$this->set('passedArgs', json_encode($passedArgs));
+		$this->set('passedArgsArray', $passedArgs);
+	}
+	
+	public function filterEventIndex($id) {
+		$validFilters = $this->Server->validEventIndexFilters;
+		$validatedFilterString = '';
+		foreach ($this->passedArgs as $k => $v) {
+			if (in_array('' . $k, $validFilters)) {
+				if ($validatedFilterString != '') $validatedFilterString .= '/';
+				$validatedFilterString .= $k . ':' . $v;
+			}
+		}
+		$this->set('id', $id);
+		$this->set('validFilters', $validFilters);
+		$this->set('filter', $validatedFilterString);
 	}
 
 /**

@@ -5,48 +5,37 @@
 	if ($objectCount%50 != 0) $pageCount++;
 	$possibleAction = 'Proposal';
 	if ($mayModify) $possibleAction = 'Attribute';
-	if ($pageCount > 1):
-		$startRecord = 1;
-		$endRecord = $objectCount;
-		if ($page != 'all') {
-			$startRecord = (($page-1) * 50) + 1;
-			$endRecord = (($page-1) * 50) + count($eventArray);
-		}
+	$all = false;
+	if (isset($this->params->params['paging']['Event']['page']) && $this->params->params['paging']['Event']['page'] == 0) $all = true;
 ?>
-<div class="pagination">
-	<ul>
-		<?php if ($page == 1) : ?>
-			<li class="prev"><span>« previous</span></li>
-		<?php else: ?>
-			<li class="prev"><a href="" id = "aprev" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', <?php echo $page-1; ?>);return false;">« previous</a></li>
-		<?php endif; 
-		for ($i = 1; $i < (1+$pageCount); $i++): 
-			if ($page != $i):
-		?>
-				<li><a href="" id = "apage<?php echo $i; ?>" data-page-value="<?php echo $i; ?>" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', <?php echo $i; ?>);return false;"><?php echo $i; ?></a></li>
-		<?php
-			else:
-		?>
-				<li><span id = "apageCurrent" class = "red bold"><?php echo $i; ?></span></li>
-		<?php 
-			endif;
-		endfor;
-		if ($page >= $pageCount): ?>
-			<li class="next"><span>next »</span></li>
-		<?php else: ?>
-			<li class="next"><a href="" id = "anext" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', <?php echo $page+1; ?>);return false;">next »</a></li>
-		<?php endif; 
-		if ($page == 'all'): ?>
-			<li class="all red bold"><span>View All</span></li>
-		<?php else: ?>
-			<li class="all"><a href="" id = "aall" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', 'all');return false;">View All</a></li>
-		<?php endif; ?>
-	</ul>
-</div>
+	<div class="pagination">
+        <ul>
+        <?php
+	        $this->Paginator->options(array(
+	        	'url' => $event['Event']['id'],
+	            'update' => '#attributes_div',
+	            'evalScripts' => true,
+	            'before' => '$(".progress").show()',
+	            'complete' => '$(".progress").hide()',
+	        ));
+            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+            echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
+            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+        ?>
+		<li class="all <?php if ($all) echo 'disabled'; ?>">
+			<?php
+				if ($all):
+			?>
+				<span class="red">view all</span>
+			<?php 
+				else:
+					echo $this->Paginator->link(__('view all'), 'all'); 
+				endif;
+			?>
+		</li>
+        </ul>
+    </div>
 <br />
-<?php 
-	endif;
-?>
 <div id="edit_object_div">
 	<?php 
 		echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'url' => '/attributes/deleteSelected/' . $event['Event']['id']));
@@ -99,14 +88,14 @@
 			<?php if ($mayModify && !empty($eventArray)): ?>
 				<th><input class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
 			<?php endif;?>
-			<th>Date</th>
-			<th>Category</th>
-			<th>Type</th>
-			<th>Value</th>
-			<th>Comment</th>
+			<th><?php echo $this->Paginator->sort('date');?></th>
+			<th><?php echo $this->Paginator->sort('category');?></th>
+			<th><?php echo $this->Paginator->sort('type');?></th>
+			<th><?php echo $this->Paginator->sort('value');?></th>
+			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<th>Related Events</th>
-			<th title="<?php echo $attrDescriptions['signature']['desc'];?>">IDS</th>
-			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>">Distribution</th>
+			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
+			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
 			<th class="actions">Actions</th>
 		</tr>
 		<?php 
@@ -295,46 +284,39 @@
 		?>
 	</table>
 </div>
-<?php if ($pageCount > 1): ?>
-<span id = "current_page" style="visibility:hidden;"><?php echo $page;?></span>
-<p>Page <?php echo $page; ?> of <?php echo $pageCount;?>, showing <?php echo count($eventArray); ?> records out of <?php echo $objectCount; ?> total, starting on <?php echo $startRecord;?>, ending on <?php echo $endRecord; ?></p>
-<div class="pagination">
-	<ul style="margin-right:20px;">
-		<?php if ($page == 1) : ?>
-			<li class="prev"><span>« previous</span></li>
-		<?php else: ?>
-			<li class="prev"><a href="" id = "bprev" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', <?php echo $page-1; ?>);return false;">« previous</a></li>
-		<?php endif; 
-		for ($i = 1; $i < (1+$pageCount); $i++): 
-			if ($page != $i):
-		?>
-				<li><a href="" id = "bpage<?php echo $i; ?>" data-page-value="<?php echo $i; ?>" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', <?php echo $i; ?>);return false;"><?php echo $i; ?></a></li>
-		<?php
-			else:
-		?>
-				<li><span id = "bpageCurrent" class = "red bold"><?php echo $i; ?></span></li>
+	<div class="pagination">
+        <ul>
+        <?php
+	        $this->Paginator->options(array(
+	        	'url' => $event['Event']['id'],
+	            'update' => '#attributes_div',
+	            'evalScripts' => true,
+	            'before' => '$(".progress").show()',
+	            'complete' => '$(".progress").hide()',
+	        ));
+            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+            echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
+            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+        ?>
+		<li class="all <?php if ($all) echo 'disabled'; ?>">
+			<?php
+				if ($all):
+			?>
+				<span class="red">view all</span>
+			<?php 
+				else:
+					echo $this->Paginator->link(__('view all'), 'all'); 
+				endif;
+			?>
+		</li>
+        </ul>
+    </div>
+	<div id="attribute_creation_div" style="display:none;">
 		<?php 
-			endif;
-		endfor;
-		if ($page >= $pageCount): ?>
-			<li class="next"><span>next »</span></li>
-		<?php else: ?>
-			<li class="next"><a href="" id = "bnext" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', <?php echo $page+1; ?>);return false;">next »</a></li>
-		<?php endif; 
-		if ($page == 'all'): ?>
-			<li class="all red bold"><span>View All</span></li>
-		<?php else: ?>
-			<li class="all"><a href="" id = "ball" onClick="updateIndex(<?php echo $event['Event']['id']; ?>, 'event', 'all');return false;">View All</a></li>
-		<?php endif; ?>
-	</ul>
-</div>
-<?php 
-	endif; 
-?>
+			//echo $this->element('eventattributecreation');
+		?>
+	</div>
 <script type="text/javascript">
-	var all = 1;
-	var page = "<?php echo $page; ?>";
-	var count = <?php echo $pageCount; ?>;
 	$(document).ready(function(){
 		$('input:checkbox').removeAttr('checked');
 		$('.mass-select').hide();
@@ -345,7 +327,6 @@
 		$('.select_proposal, .select_all').click(function(){
 			attributeListAnyProposalCheckBoxesChecked();
 		});
-		if (<?php echo $pageCount; ?> > 10) restrictEventViewPagination();
 	});
 </script>
 <?php 

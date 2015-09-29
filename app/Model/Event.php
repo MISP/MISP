@@ -1148,8 +1148,10 @@ class Event extends AppModel {
 	// tags: string with the usual tag syntax
 	// from: date string (YYYY-MM-DD)
 	// to: date string (YYYY-MM-DD)
+	// includeAllTags: true will include the tags
+	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array()) {
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments');
 		foreach ($possibleOptions as &$opt) if (!isset($options[$opt])) $options[$opt] = false;
 		if ($options['eventid']) {
 			$this->id = $options['eventid'];
@@ -1300,6 +1302,12 @@ class Event extends AppModel {
 			// Let's also find all the relations for the attributes - this won't be in the xml export though
 			$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgsids);
 			foreach ($event['Attribute'] as $key => &$attribute) {
+				if (isset($options['includeAttachments']) && $options['includeAttachments']) {
+					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+						$attribute['data'] = $encodedFile;
+					}
+				}
 				$attribute['ShadowAttribute'] = array();
 				// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
 				// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes

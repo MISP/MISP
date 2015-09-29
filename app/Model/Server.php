@@ -750,6 +750,8 @@ class Server extends AppModel {
 			),
 	);
 
+	public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
+	
 	public function isOwnedByOrg($serverid, $org) {
 		return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
 	}
@@ -979,10 +981,6 @@ class Server extends AppModel {
 		));
 		if (!isset($lastpulledid)) $lastpulledid = 0;
 		return array($successes, $fails, $pulledProposals, $lastpulledid);
-	}
-	
-	public function requestOrgUuids($id, $HttpSocket) {
-		
 	}
 	
 	public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $email = "Scheduled job") {
@@ -2050,5 +2048,37 @@ class Server extends AppModel {
 			$this->Job->saveField('message', 'Rebuilding all correlations (this will take a while...)');
 		}
 		$this->Attribute->generateCorrelation();
+	}
+	
+	public function previewIndex($id, $user, $passedArgs) {
+		$server = $this->find('first', array(
+			'conditions' => array('Server.id' => $id),	
+		));
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		$HttpSocket = $syncTool->setupHttpSocket($server);
+		$request = array(
+				'header' => array(
+						'Authorization' => $server['Server']['authkey'],
+						'Accept' => 'application/json',
+						'Content-Type' => 'application/json',
+						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+				)
+		);
+		$validArgs = array_merge(array('sort', 'direction'), $this->validEventIndexFilters);
+		$urlParams = '';
+		foreach ($validArgs as $v) {
+			if (isset($passedArgs[$v])) $urlParams .= '/' . $v . ':' . $passedArgs[$v];
+		}
+		$uri = $server['Server']['url'] . '/events/index' . $urlParams;
+		$response = $HttpSocket->get($uri, $data = '', $request);
+		if ($response->code == 200) {
+			try {
+				return json_decode($response->body, true);
+			} catch (Exception $e) {
+				return 1;
+			}
+		}
+		return 2;
 	}
 }

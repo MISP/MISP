@@ -197,20 +197,12 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 	<div id="pivots_div">
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
-	<div id="attribute_creation_div" style="display:none;">
-		<?php 
-			echo $this->element('eventattributecreation');
-		?>
-	</div>
 	<div id="attributes_div">
 		<?php 
-			echo $this->element('eventattribute');
+			//echo $this->element('eventattribute');
 		?>
 	</div>
 	<div id="discussions_div">
-		<?php
-			echo $this->element('eventdiscussion');
-		?>
 	</div>
 </div>
 <script type="text/javascript">
@@ -256,6 +248,12 @@ $(document).ready(function () {
 	$('#addTagButton').click(function() {
 		$('#addTagTD').show();
 		$('#addTagButton').hide();
+	});
+	$.get("/events/viewEventAttributes/<?php echo $event['Event']['id']; ?>", function(data) {
+		$("#attributes_div").html(data);
+	});
+	$.get("/threads/view/<?php echo $event['Event']['id']; ?>/true", function(data) {
+		$("#discussions_div").html(data);
 	});
 });
 </script>

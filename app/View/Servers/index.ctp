@@ -52,6 +52,7 @@ foreach ($servers as $server): ?>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="short action-links">
 			<?php
+			echo $this->Html->link('', array('action' => 'previewIndex', $server['Server']['id']), array('class' => 'icon-search', 'title' => 'Explore'));
 			if ($server['Server']['pull'])
 				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'full'), array('class' => 'icon-download', 'title' => 'Pull all'));
 			if ($server['Server']['push'])

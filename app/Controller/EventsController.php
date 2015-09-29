@@ -608,23 +608,121 @@ class EventsController extends AppController {
 		$this->layout = 'ajax';
 	}
 	
-	/**
-	 * view method
-	 *
-	 * @param int $id
-	 * @return void
-	 * @throws NotFoundException
-	 */
-
-	public function view($id = null, $continue=false, $fromEvent=null) {
-		if (isset($this->params['named']['attributesPage'])) $page = $this->params['named']['attributesPage'];
-		else {
-			if ($this->_isRest()) {
-				$page = 'all';
+	private function __viewRest($id, $continue, $fromEvent) {
+		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
+		if (strlen($id) == 36) {
+			$this->Event->recursive = -1;
+			$temp = $this->Event->findByUuid($id);
+			if ($temp == null) throw new NotFoundException('Invalid event');
+			$id = $temp['Event']['id'];
+		}
+		$this->Event->id = $id;
+		if(!$this->Event->exists()) {
+			throw new NotFoundException(__('Invalid event.'));
+		}
+		$results = $this->Event->fetchEvent($this->Auth->user(), array('includeAttachments' => true, 'eventid' => $id));
+		if (empty($results)) throw new NotFoundException('Invalid event');
+		$result = $results[0];
+		$this->set('event', $result);
+	}
+	
+	public function viewEventAttributes($id, $all = false) {
+		$results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+		if (empty($results)) throw new NotFoundException('Invalid event');
+		$result = $results[0];
+		// modify event for attribute pagination
+		$eventArray = array();
+		$shadowAttributeTemp = array();
+		foreach ($result['Attribute'] as $attribute) {
+			if ($attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
+			$attribute['objectType'] = 0;
+			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
+			else $attribute['hasChildren'] = 0;
+			$eventArray[] = $attribute;
+			$current = count($eventArray)-1;
+		}
+		unset($result['Attribute']);
+		foreach ($result['ShadowAttribute'] as $shadowAttribute) {
+			$shadowAttribute['objectType'] = 2;
+			$eventArray[] = $shadowAttribute;
+		}
+		unset($result['ShadowAttribute']);
+		App::uses('CustomPaginationTool', 'Tools');
+		$customPagination = new CustomPaginationTool();
+		if ($all) $this->passedArgs['page'] = 0;
+		$params = $customPagination->applyRulesOnArray($eventArray, $this->passedArgs, 'events', 'category');
+		$this->params->params['paging'] = array($this->modelClass => $params);
+		$eventArrayWithProposals = array();
+		
+		foreach ($eventArray as &$object) {
+			if ($object['objectType'] == 0) {
+				if (isset($object['ShadowAttribute'])) {
+					$shadowAttributeTemp = $object['ShadowAttribute'];
+					unset($object['ShadowAttribute']);
+					$eventArrayWithProposals[] = $object;
+					foreach ($shadowAttributeTemp as $k => $shadowAttribute) {
+						$shadowAttribute['objectType'] = 1;
+						if ($k == 0) $shadowAttribute['firstChild'] = true;
+						if (($k + 1) == count($shadowAttributeTemp)) $shadowAttribute['lastChild'] = true;
+						$eventArrayWithProposals[] = $shadowAttribute;
+					}
+				} else {
+					$eventArrayWithProposals[] = $object;
+				}
 			} else {
-				$page = 1;
+				$eventArrayWithProposals[] = $object;
 			}
 		}
+		$this->set('objectCount', count($eventArrayWithProposals));
+		$this->set('eventArray', $eventArrayWithProposals);
+		$this->set('event', $result);
+		$this->set('relatedAttributes', $result['RelatedAttribute']);
+		// passing decriptions for model fields
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		$this->set('attrDescriptions', $this->Event->Attribute->fieldDescriptions);
+
+		// passing type and category definitions (explanations)
+		$this->set('typeDefinitions', $this->Event->Attribute->typeDefinitions);
+		$this->set('categoryDefinitions', $this->Event->Attribute->categoryDefinitions);
+
+		// combobox for analysis
+		$this->set('distributionDescriptions', $this->Event->Attribute->distributionDescriptions);
+		$this->set('distributionLevels', $this->Event->Attribute->distributionLevels);
+
+
+		// combobox for analysis
+		$this->set('distributionDescriptions', $this->Event->Attribute->distributionDescriptions);
+		$this->set('distributionLevels', $this->Event->Attribute->distributionLevels);
+
+		// set the types + categories for the attribute add/edit ajax overlays
+		$categories = $this->Event->Attribute->validate['category']['rule'][1];
+		array_pop($categories);
+		$categories = $this->_arrayToValuesIndexArray($categories);
+		$this->set('categories', compact('categories'));
+			
+		$types = array_keys($this->Event->Attribute->typeDefinitions);
+		$types = $this->_arrayToValuesIndexArray($types);
+		$this->set('types', $types);
+		$this->set('categoryDefinitions', $this->Event->Attribute->categoryDefinitions);
+		$typeCategory = array();
+		foreach ($this->Event->Attribute->categoryDefinitions as $k => $category) {
+			foreach ($category['types'] as $type) {
+				$typeCategory[$type][] = $k;
+			}
+		}
+		$this->set('typeCategory', $typeCategory);
+		$this->request->data['Attribute']['event_id'] = $id;
+
+		//if ($this->request->is('ajax')) {
+		$this->disableCache();
+		$this->layout = 'ajax';
+		$this->render('/Elements/eventattribute');
+	}
+	
+	private function __viewUI($id, $continue, $fromEvent) {
+		if (isset($this->params['named']['attributesPage'])) $page = $this->params['named']['attributesPage'];
+		else $page = 1;
+		
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		$perm_publish = $this->userRole['perm_publish'];
 		if (strlen($id) == 36) {
@@ -633,28 +731,18 @@ class EventsController extends AppController {
 			if ($temp == null) throw new NotFoundException('Invalid event');
 			$id = $temp['Event']['id'];
 		}
-		$isSiteAdmin = $this->_isSiteAdmin();
-
+		
 		$this->Event->id = $id;
 		if(!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event.'));
 		}
-		$results = $this->__fetchEvent($id);
+		$results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
 		if (empty($results)) throw new NotFoundException('Invalid event');
-		if ($this->_isRest()) {
-			$this->loadModel('Attribute');
-			foreach ($results[0]['Attribute'] as &$attribute) {
-				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-					$attribute['data'] = $encodedFile;
-				}
-			}
-		}
 		$this->loadModel('Log');
 		$logEntries = $this->Log->find('all', array(
-			'conditions' => array('model' => 'ShadowAttribute', 'org !=' => $results[0]['Orgc']['name'], 'title LIKE' => '%Event (' . $id . ')%'),
-			'fields' => array('org'),
-			'group' => 'org'
+				'conditions' => array('model' => 'ShadowAttribute', 'org !=' => $results[0]['Orgc']['name'], 'title LIKE' => '%Event (' . $id . ')%'),
+				'fields' => array('org'),
+				'group' => 'org'
 		));
 		foreach ($logEntries as $k => $entry) {
 			if (!isset($entry['Log']['org'])) unset ($logEntries[$k]);
@@ -668,66 +756,35 @@ class EventsController extends AppController {
 		}
 		// We'll only have one event in the array since we specified an id. The array returned only has several elements in the xml exports
 		$result = $results[0];
-
+		
 		$this->loadModel('Attribute');
-
+		
 		$this->set('authkey', $this->Auth->user('authkey'));
 		$this->set('baseurl', Configure::read('MISP.baseurl'));
-
-		$this->set('relatedAttributes', $result['RelatedAttribute']);
+		
 		// passing decriptions for model fields
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
-		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+		$this->set('attrDescriptions', $this->Event->Attribute->fieldDescriptions);
 		$this->set('event', $result);
-
-		if (!$this->_isRest()) {
-			// modify event for attribute pagination
-			$eventArray = array();
-			$shadowAttributeTemp = array();
-			foreach ($this->Attribute->validate['category']['rule'][1] as $category) {
-				foreach ($result['Attribute'] as $attribute) {
-					if ($attribute['category'] == $category) {
-						if ($attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
-						$shadowAttributeTemp = $attribute['ShadowAttribute'];
-						$attribute['ShadowAttribute'] = null;
-						$attribute['objectType'] = 0;
-						$attribute['hasChildren'] = 0;
-						$eventArray[] = $attribute; 
-						$current = count($eventArray)-1;
-						foreach ($shadowAttributeTemp as $k => $shadowAttribute) {
-							$shadowAttribute['objectType'] = 1;
-							if ($k == 0) $shadowAttribute['firstChild'] = true;
-							if (($k + 1) == count($shadowAttributeTemp)) $shadowAttribute['lastChild'] = true;
-							$eventArray[] = $shadowAttribute;
-							$eventArray[$current]['hasChildren'] = 1;
-						}
-					}
-				}
-			}
-			foreach ($result['ShadowAttribute'] as $shadowAttribute) {
-				$shadowAttribute['objectType'] = 2;
-				$eventArray[] = $shadowAttribute;
-			}
-			$this->set('objectCount', count($eventArray));
-			if ($page == 'all') $this->set('eventArray', $eventArray);
-			else {
-				$this->set('eventArray', array_splice($eventArray, (($page-1)*50), 50));
-			}
-		}
-		
-		if(isset($result['ShadowAttribute'])) {
-			$this->set('remaining', $result['ShadowAttribute']);
-		}
+	
 		$this->set('relatedEvents', $result['RelatedEvent']);
 
-		// passing type and category definitions (explanations)
-		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
-		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-
+		$this->helpers[] = 'Pivot';
+		if ($continue) {
+			$data = $this->__continuePivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date'], $fromEvent);
+		} else {
+			$data = $this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
+		}
+		$this->set('allPivots', $this->Session->read('pivot_thread'));
+		$pivot = $this->Session->read('pivot_thread');
+		$this->__arrangePivotVertical($pivot);
+		$this->__setDeletable($pivot, $id, true);
+		$this->set('pivot', $pivot);
+		$this->set('currentEvent', $id);
 		// combobox for analysis
 		$this->set('distributionDescriptions', $this->Event->Attribute->distributionDescriptions);
 		$this->set('distributionLevels', $this->Event->Attribute->distributionLevels);
-
+		
 		// combobox for analysis
 		$analysiss = $this->Event->validate['analysis']['rule'][1];
 		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
@@ -735,129 +792,46 @@ class EventsController extends AppController {
 		// tooltip for analysis
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
-		if (!$this->_isRest()) {
-			$this->helpers[] = 'Pivot';
-			if ($continue) {
-				$data = $this->__continuePivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date'], $fromEvent);
-			} else {
-				$data = $this->__startPivoting($result['Event']['id'], $result['Event']['info'], $result['Event']['date']);
-			}
-			$this->set('allPivots', $this->Session->read('pivot_thread'));
-			$pivot = $this->Session->read('pivot_thread');
-			$this->__arrangePivotVertical($pivot);
-			$this->__setDeletable($pivot, $id, true);
-			$this->set('pivot', $pivot);
-			$this->set('currentEvent', $id);
 
-			$this->set('allPivots', $this->Session->read('pivot_thread'));
-			
-			// set the types + categories for the attribute add/edit ajax overlays
-			$categories = $this->Attribute->validate['category']['rule'][1];
-			array_pop($categories);
-			$categories = $this->_arrayToValuesIndexArray($categories);
-			$this->set('categories', compact('categories'));
-			
-			$types = array_keys($this->Attribute->typeDefinitions);
-			$types = $this->_arrayToValuesIndexArray($types);
-			$this->set('types', $types);
-			$this->set('categoryDefinitions', $this->Event->Attribute->categoryDefinitions);
-			$typeCategory = array();
-			foreach ($this->Attribute->categoryDefinitions as $k => $category) {
-				foreach ($category['types'] as $type) {
-					$typeCategory[$type][] = $k;
-				}
+		$this->set('allPivots', $this->Session->read('pivot_thread'));
+
+		$pivot = $this->Session->read('pivot_thread');
+		$this->__arrangePivotVertical($pivot);
+		$this->__setDeletable($pivot, $id, true);
+		$this->set('pivot', $pivot);
+		if (Configure::read('MISP.tagging')) {
+			$this->helpers[] = 'TextColour';
+			$this->loadModel('EventTag');
+			$tags = $this->EventTag->find('all', array(
+					'conditions' => array(
+							'event_id' => $id
+					),
+					'contain' => 'Tag',
+					'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+			));
+			$this->set('tags', $tags);
+			$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1, 'order' => array('Tag.name ASC')));
+			$tagNames = array('None');
+			foreach ($tags as $k => $v) {
+				$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
 			}
-			$this->set('typeCategory', $typeCategory);
-			$this->request->data['Attribute']['event_id'] = $id;
-			
-			// Show the discussion
-			$this->loadModel('Thread');
-			$this->Thread->Behaviors->unload('SysLogLogable.SysLogLogable');
-			$params = array('conditions' => array('event_id' => $id),
-					'recursive' => -1,
-					'fields' => array('id', 'event_id', 'distribution', 'title', 'sharing_group_id')
-			);
-			$thread = $this->Thread->find('first', $params);
-			if (empty($thread)) {
-				$newThread = array(
-						'date_created' => date('Y/m/d H:i:s'),
-						'date_modified' => date('Y/m/d H:i:s'),
-						'user_id' => $this->Auth->user('id'),
-						'event_id' => $id,
-						'title' => 'Discussion about Event #' . $result['Event']['id'] . ' (' . $result['Event']['info'] . ')',
-						'distribution' => $result['Event']['distribution'],
-						'sharing_group_id' => $result['Event']['sharing_group_id'],
-						'post_count' => 0,
-						'org_id' => $result['Event']['orgc_id']
-				);
-				$this->Thread->save($newThread);
-				$thread = ($this->Thread->read());
-			} else {
-				if ($thread['Thread']['distribution'] != $result['Event']['distribution']) {
-					$thread['Thread']['distribution'] = $result['Event']['distribution'];
-					$this->Thread->save($thread);
-				}
-				if ($thread['Thread']['sharing_group_id'] != $result['Event']['sharing_group_id']) {
-					$thread['Thread']['sharing_group_id'] = $result['Event']['sharing_group_id'];
-					$this->Thread->save($thread);
-				}
-			}
-			$this->loadModel('Post');
-			$this->paginate['Post'] = array(
-					'limit' => 5,
-					'conditions' => array('Post.thread_id' => $thread['Thread']['id']),
-					'contain' => array('User' => array('Organisation' => array('fields' => array('id', 'name')))),
-			);
-			$posts = $this->paginate('Post');
-			if (!$this->_isSiteAdmin()) {
-				foreach ($posts as &$post) {
-					if ($post['User']['org_id'] != $this->Auth->user('org_id')) {
-						$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org_id'] . ')';
-					}
-				}
-			}
-			// Show the discussion
-			$this->set('posts', $posts);
-			$this->set('thread_id', $thread['Thread']['id']);
-			$this->set('myuserid', $this->Auth->user('id'));
-			$this->set('thread_title', $thread['Thread']['title']);
-			if ($this->request->is('ajax')) {
-				$this->disableCache();
-				$this->layout = 'ajax';
-				if (!isset($this->params['named']['attributesPage'])) {
-					$this->render('/Elements/eventdiscussion');
-				} else {
-					$this->set('page', $this->params['named']['attributesPage']);
-					$this->render('/Elements/eventattribute');
-				}
-			} else {
-				$this->set('page', $page);
-			}
-			$pivot = $this->Session->read('pivot_thread');
-			$this->__arrangePivotVertical($pivot);
-			$this->__setDeletable($pivot, $id, true);
-			$this->set('pivot', $pivot);
-			if (Configure::read('MISP.tagging')) {
-				$this->helpers[] = 'TextColour';
-				$this->loadModel('EventTag');
-				$tags = $this->EventTag->find('all', array(
-						'conditions' => array(
-								'event_id' => $id
-						),
-						'contain' => 'Tag',
-						'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
-						));
-				$this->set('tags', $tags);
-				$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1, 'order' => array('Tag.name ASC')));
-				$tagNames = array('None');
-				foreach ($tags as $k => $v) {
-					$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
-				}
-				$this->set('allTags', $tagNames);
-				
-			}
+			$this->set('allTags', $tagNames);
+
 		}
 		$this->set('currentEvent', $id);
+	}
+	
+	/**
+	 * view method
+	 *
+	 * @param int $id
+	 * @return void
+	 * @throws NotFoundException
+	 */
+
+	public function view($id = null, $continue=false, $fromEvent=null) {
+		if ($this->_isRest()) $this->__viewRest($id, $continue, $fromEvent);
+		else $this->__viewUI($id, $continue, $fromEvent);
 	}
 	
 	private function __startPivoting($id, $info, $date){
@@ -3005,7 +2979,7 @@ class EventsController extends AppController {
 				foreach ($types as $type) {
 					$this->Event->Attribute->create();
 					$attribute['type'] = $type;
-					$attribute['distribution'] = $event['Event']['distribution'];
+					$attribute['distribution'] = 5;
 					if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
 					$attribute['event_id'] = $id;
 					if ($this->Event->Attribute->save($attribute)) {

@@ -24,40 +24,146 @@ class ThreadsController extends AppController {
 		parent::beforeFilter();
 	}
 	
+	public function viewEvent($id) {
+		$this->loadModel('Event');
+		$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+		if (empty($result)) throw new MethodNotAllowedException('You are not authorised to see that.');
+		$result = $result[0];
+		// Show the discussion
+
+		$this->Thread->Behaviors->unload('SysLogLogable.SysLogLogable');
+		$params = array('conditions' => array('event_id' => $id),
+				'recursive' => -1,
+				'fields' => array('id', 'event_id', 'distribution', 'title', 'sharing_group_id')
+		);
+		$thread = $this->Thread->find('first', $params);
+		if (empty($thread)) {
+			$newThread = array(
+					'date_created' => date('Y/m/d H:i:s'),
+					'date_modified' => date('Y/m/d H:i:s'),
+					'user_id' => $this->Auth->user('id'),
+					'event_id' => $id,
+					'title' => 'Discussion about Event #' . $result['Event']['id'] . ' (' . $result['Event']['info'] . ')',
+					'distribution' => $result['Event']['distribution'],
+					'sharing_group_id' => $result['Event']['sharing_group_id'],
+					'post_count' => 0,
+					'org_id' => $result['Event']['orgc_id']
+			);
+			$this->Thread->save($newThread);
+			$thread = ($this->Thread->read());
+		} else {
+			if ($thread['Thread']['distribution'] != $result['Event']['distribution']) {
+				$thread['Thread']['distribution'] = $result['Event']['distribution'];
+				$this->Thread->save($thread);
+			}
+			if ($thread['Thread']['sharing_group_id'] != $result['Event']['sharing_group_id']) {
+				$thread['Thread']['sharing_group_id'] = $result['Event']['sharing_group_id'];
+				$this->Thread->save($thread);
+			}
+		}
+		$this->loadModel('Post');
+		$this->paginate['Post'] = array(
+				'limit' => 5,
+				'conditions' => array('Post.thread_id' => $thread['Thread']['id']),
+				'contain' => array('User' => array('Organisation' => array('fields' => array('id', 'name')))),
+		);
+		$posts = $this->paginate('Post');
+		if (!$this->_isSiteAdmin()) {
+			foreach ($posts as &$post) {
+				if ($post['User']['org_id'] != $this->Auth->user('org_id')) {
+					$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org_id'] . ')';
+				}
+			}
+		}
+		// Show the discussion
+		$this->set('posts', $posts);
+		$this->set('thread_id', $thread['Thread']['id']);
+		$this->set('myuserid', $this->Auth->user('id'));
+		$this->set('thread_title', $thread['Thread']['title']);
+		$this->disableCache();
+		$this->layout = 'ajax';
+		$this->render('/Elements/eventdiscussion');
+	}
 	
-	public function view($thread_id) {		
-		$this->Thread->recursive = -1;
-		$this->Thread->id = $thread_id;
-		
-		//If the thread doesn't exist, throw exception
-		if (!$this->Thread->exists()) {
-			throw new NotFoundException('Invalid thread.');
-		}
-		$this->Thread->read();
-		
-		// If the thread belongs to an event, we have to make sure that the event's distribution level hasn't changed.
-		// This is also a good time to update the thread's distribution level if that did happen.
-		if (!empty($this->Thread->data['Thread']['event_id'])) {
+	
+	public function view($thread_id, $eventView = false) {
+		if ($eventView) {
+			$id = $thread_id;
 			$this->loadModel('Event');
-			$this->Event->id = $this->Thread->data['Thread']['event_id'];
-			$this->Event->recursive = -1;
-			$this->Event->read(array('id', 'distribution', 'org_id', 'sharing_group_id'));
-			if ($this->Event->data['Event']['distribution'] != $this->Thread->data['Thread']['distribution']) {
-				$this->Thread->saveField('distribution', $this->Event->data['Event']['distribution']);
-			}
-			if ($this->Event->data['Event']['sharing_group_id'] != $this->Thread->data['Thread']['sharing_group_id']) {
-				$this->Thread->saveField('sharing_group_id', $this->Event->data['Event']['sharing_group_id']);
-			}
-			$this->set('event_id', $this->Thread->data['Thread']['event_id']);
-		}
-											
-		// If the user shouldn't be allowed to see the event send him away.
-		if (!$this->_isSiteAdmin() && $this->Thread->data['Thread']['distribution'] == 0 && $this->Thread->data['Thread']['org_id'] != $this->Auth->user('org_id')) {
-			throw new MethodNotAllowedException('You are not authorised to view this.');
-		}
+			$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+			if (empty($result)) throw new MethodNotAllowedException('You are not authorised to see that.');
+			$result = $result[0];
+			// Show the discussion
 			
+			$this->Thread->Behaviors->unload('SysLogLogable.SysLogLogable');
+			$params = array('conditions' => array('event_id' => $id),
+					'recursive' => -1,
+					'fields' => array('id', 'event_id', 'distribution', 'title', 'sharing_group_id')
+			);
+			$thread = $this->Thread->find('first', $params);
+			if (empty($thread)) {
+				$newThread = array(
+						'date_created' => date('Y/m/d H:i:s'),
+						'date_modified' => date('Y/m/d H:i:s'),
+						'user_id' => $this->Auth->user('id'),
+						'event_id' => $id,
+						'title' => 'Discussion about Event #' . $result['Event']['id'] . ' (' . $result['Event']['info'] . ')',
+						'distribution' => $result['Event']['distribution'],
+						'sharing_group_id' => $result['Event']['sharing_group_id'],
+						'post_count' => 0,
+						'org_id' => $result['Event']['orgc_id']
+				);
+				$this->Thread->save($newThread);
+				$thread = ($this->Thread->read());
+			} else {
+				if ($thread['Thread']['distribution'] != $result['Event']['distribution']) {
+					$thread['Thread']['distribution'] = $result['Event']['distribution'];
+					$this->Thread->save($thread);
+				}
+				if ($thread['Thread']['sharing_group_id'] != $result['Event']['sharing_group_id']) {
+					$thread['Thread']['sharing_group_id'] = $result['Event']['sharing_group_id'];
+					$this->Thread->save($thread);
+				}
+			}
+			$thread_id = $thread['Thread']['id'];
+		} else {
+			$this->Thread->recursive = -1;
+			$this->Thread->id = $thread_id;
+			
+			//If the thread doesn't exist, throw exception
+			if (!$this->Thread->exists()) {
+				throw new NotFoundException('Invalid thread.');
+			}
+			$thread = $this->Thread->read();
+			
+			// If the thread belongs to an event, we have to make sure that the event's distribution level hasn't changed.
+			// This is also a good time to update the thread's distribution level if that did happen.
+			if (!empty($thread['Thread']['event_id'])) {
+				$this->loadModel('Event');
+				$this->Event->id = $thread['Thread']['event_id'];
+				$this->Event->recursive = -1;
+				$this->Event->read(array('id', 'distribution', 'org_id', 'sharing_group_id'));
+				if ($this->Event->data['Event']['distribution'] != $thread['Thread']['distribution']) {
+					$this->Thread->saveField('distribution', $this->Event->data['Event']['distribution']);
+				}
+				if ($this->Event->data['Event']['sharing_group_id'] != $thread['Thread']['sharing_group_id']) {
+					$this->Thread->saveField('sharing_group_id', $this->Event->data['Event']['sharing_group_id']);
+				}
+				$this->set('event_id', $thread['Thread']['event_id']);
+			}
+		
+			// If the user shouldn't be allowed to see the event send him away.
+			if (!$this->_isSiteAdmin()) {
+				if ($thread['Thread']['distribution'] == 0 && $thread['Thread']['org_id'] != $this->Auth->user('org_id')) {
+					throw new MethodNotAllowedException('You are not authorised to view this.');
+				}
+				if ($thread['Thread']['distribution'] == 4) {
+					if (!$this->Thread->SharingGroup->checkIfAuthorised($this->Auth->user(), $thread['Thread']['sharing_group_id'])) throw new MethodNotAllowedException('You are not authorised to view this');
+				}
+			}
+		}
 		$this->paginate = array(
-				'limit' => 10,
+				'limit' => 5,
 				'conditions' => array('Post.thread_id' => $thread_id),
 				'contain' => array(
 						'User' => array(
@@ -78,7 +184,7 @@ class ThreadsController extends AppController {
 		$this->set('posts', $posts);
 		$this->set('thread_id', $thread_id);
 		$this->set('myuserid', $this->Auth->user('id'));
-		$this->set('thread_title', $this->Thread->data['Thread']['title']);
+		$this->set('thread_title', $thread['Thread']['title']);
 		if ($this->request->is('ajax')) {
 			$this->layout = 'ajax';
 			$this->render('/Elements/eventdiscussion');

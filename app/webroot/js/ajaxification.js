@@ -124,7 +124,7 @@ function updateIndex(id, context, newPage) {
 	if (typeof newPage !== 'undefined') page = newPage;
 	var url, div;
 	if (context == 'event') {
-		url = "/events/view/" + id + "/attributesPage:" + page;
+		url = "/events/viewEventAttributes/" + id;
 		div = "#attributes_div";
 	}
 	if (context == 'template') {
@@ -1024,6 +1024,15 @@ function quickFilterEvents(passedArgs) {
 	window.location.href=url;
 }
 
+function quickFilterRemoteEvents(passedArgs, id) {
+	passedArgs["searchall"] = $('#quickFilterField').val();
+	var url = "/servers/previewIndex/" + id;
+	for (var key in passedArgs) {
+		url += "/" + key + ":" + passedArgs[key];
+	}
+	window.location.href=url;
+}
+
 $('#quickFilterField').bind("enterKey",function(e){
 	$('#quickFilterButton').trigger("click");
 });
@@ -1033,6 +1042,11 @@ $('#quickFilterField').keyup(function(e){
     	$('#quickFilterButton').trigger("click");
 	}
 });
+
+function remoteIndexApplyFilters() {
+	var url = actionUrl + '/' + $("#EventFilter").val();
+	window.location.href = url;
+}
 	
 function indexApplyFilters() {
 	var url = indexCreateFilters();

@@ -130,7 +130,10 @@
 				break;
 				
 				case 'sync':
-					if ($menuItem === 'edit' && $isSiteAdmin): ?>
+					if ($menuItem === 'previewIndex' && $isSiteAdmin) : ?>
+					<li class="active"><?php echo $this->Html->link('Preview Instance', array('controller' => 'servers', 'action' => 'previewIndex', $id)); ?></li>
+					<?php endif; ?>
+					<?php if ($menuItem === 'edit' && $isSiteAdmin): ?>
 					<li class="active"><?php echo $this->Html->link('Edit Server', array('controller' => 'servers', 'action' => 'edit')); ?></li>
 					<li><?php echo $this->Form->postLink('Delete', array('action' => 'delete', $this->Form->value('Server.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Server.id'))); ?></li>
 					<li class="divider"></li>

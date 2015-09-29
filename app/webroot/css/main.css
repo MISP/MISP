@@ -1351,11 +1351,11 @@ a.proposal_link_red:hover {
 }
 
 .red {
-	color: red;
+	color: red !important;
 }
 
 .green {
-	color: green;
+	color: green !important;
 }
 
 .bold {
