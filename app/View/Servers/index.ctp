@@ -40,7 +40,7 @@ foreach ($servers as $server): ?>
 				else echo h($server['Server']['url']); 
 			?>
 		</td>
-		<td class="shortish" id="connection_test_<?php echo $server['Server']['id'];?>"><span class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');">Run</span></td>
+		<td id="connection_test_<?php echo $server['Server']['id'];?>"><span class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');">Run</span></td>
 		<td class="short"><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td class="short"><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
@@ -54,6 +54,7 @@ foreach ($servers as $server): ?>
 			<?php
 			echo $this->Html->link('', array('action' => 'previewIndex', $server['Server']['id']), array('class' => 'icon-search', 'title' => 'Explore'));
 			if ($server['Server']['pull'])
+				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'update'), array('class' => 'icon-refresh', 'title' => 'Pull updates only'));
 				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'full'), array('class' => 'icon-download', 'title' => 'Pull all'));
 			if ($server['Server']['push'])
 				echo $this->Html->link('', array('action' => 'push', $server['Server']['id'], 'full'), array('class' => 'icon-upload', 'title' => 'Push all'));

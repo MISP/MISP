@@ -767,7 +767,8 @@ class Server extends AppModel {
 		$eventModel = ClassRegistry::init('Event');
 		App::uses('HttpSocket', 'Network/Http');
 		$eventIds = array();
-		if ("full" == $technique) {
+		$conditions = array();
+		if ("full" === $technique) {
 			// get a list of the event_ids on the server
 			$eventIds = $eventModel->getEventIdsFromServer($server);
 			// FIXME this is not clean at all ! needs to be refactored with try catch error handling/communication
@@ -781,13 +782,25 @@ class Server extends AppModel {
 			if (!empty($eventIds)) {
 				$eventIds = array_reverse($eventIds);
 			}
-			$eventCount = count($eventIds);
-		} elseif ("incremental" == $technique) {
+		} elseif ("update" === $technique) {
+			$eventIds = $eventModel->getEventIdsFromServer($server, false, null, true);
+			if ($eventIds === 403) {
+				return array (1, null);
+			} else if (is_string($eventIds)) {
+				return array(2, $eventIds);
+			}
+			$local_event_ids = $eventModel->find('list', array(
+					'fields' => array('uuid'),
+					'recursive' => -1,
+			));
+			$eventIds = array_intersect($eventIds, $local_event_ids);
+		} elseif ("incremental" === $technique) {
 			// TODO incremental pull
 			return array (3, null);
-		
-		} elseif (true == $technique) {
+		} elseif (is_numeric($technique)) {
 			$eventIds[] = intval($technique);
+			// if we are downloading a single event, don't fetch all proposals
+			$conditions = array('Event.id' => $technique);
 		} else {
 			return array (4, null);
 		}
@@ -911,7 +924,7 @@ class Server extends AppModel {
 					}
 					if ($jobId) {
 						$job->id = $jobId;
-						$job->saveField('progress', 100 * (($k + 1) / $eventCount));
+						$job->saveField('progress', 100 * (($k + 1) / count($eventIds)));
 					}
 				}
 				if (count($fails) > 0) {
@@ -929,6 +942,7 @@ class Server extends AppModel {
 		$events = $eventModel->find('all', array(
 				'fields' => array('id', 'uuid'),
 				'recursive' => -1,
+				'conditions' => $conditions
 		));
 		$shadowAttribute = ClassRegistry::init('ShadowAttribute');
 		$shadowAttribute->recursive = -1;
@@ -1494,18 +1508,17 @@ class Server extends AppModel {
 				'Content-Type' => 'application/json',
 			)
 		);
-		$uri = $server['Server']['url'] . '/servers/testConnection';
-		$data = json_encode(array('message' => 'En Taro Adun'));
+		$uri = $server['Server']['url'] . '/servers/getVersion';
 		$responseArray = array();
 		try {
-			$response = $HttpSocket->post($uri, $data, $request);
+			$response = $HttpSocket->get($uri, false, $request);
 		} catch (Exception $e) {
 			return array('status' => 2);
 		}
-		
 		if ($response->isOk()) {
 			return array('status' => 1, 'message' => $response->body());
 		} else {
+			if ($response->code == '403') return array('status' => 4);
 			return array('status' => 3);
 		}
 	}
@@ -2050,6 +2063,13 @@ class Server extends AppModel {
 		$this->Attribute->generateCorrelation();
 	}
 	
+	
+	/* returns an array with the events
+	 * error codes:
+	 * 1: received non json response
+	 * 2: no route to host
+	 * 3: empty result set
+	 */
 	public function previewIndex($id, $user, $passedArgs) {
 		$server = $this->find('first', array(
 			'conditions' => array('Server.id' => $id),	
@@ -2074,10 +2094,53 @@ class Server extends AppModel {
 		$response = $HttpSocket->get($uri, $data = '', $request);
 		if ($response->code == 200) {
 			try {
-				return json_decode($response->body, true);
+				$events = json_decode($response->body, true);
 			} catch (Exception $e) {
 				return 1;
 			}
+			if (!empty($events)) foreach ($events as &$event) {
+				$event = array('Event' => $event);
+				if (!isset($event['Orgc'])) $event['Orgc']['name'] = $event['Event']['orgc'];
+				if (!isset($event['Org'])) $event['Org']['name'] = $event['Event']['org'];
+				if (!isset($event['EventTag'])) $event['EventTag'] = array();
+			} else return 3;
+			return $events;
+		}
+		return 2;
+	}
+	
+	/* returns an array with the events
+	 * error codes:
+	 * 1: received non-json response
+	 * 2: no route to host
+	 */
+	public function previewEvent($serverId, $eventId) {
+		$server = $this->find('first', array(
+				'conditions' => array('Server.id' => $serverId),
+		));
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		$HttpSocket = $syncTool->setupHttpSocket($server);
+		$request = array(
+				'header' => array(
+						'Authorization' => $server['Server']['authkey'],
+						'Accept' => 'application/json',
+						'Content-Type' => 'application/json',
+						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+				)
+		);
+		$uri = $server['Server']['url'] . '/events/' . $eventId;
+		$response = $HttpSocket->get($uri, $data = '', $request);
+		if ($response->code == 200) {
+			try {
+				$event = json_decode($response->body, true);
+			} catch (Exception $e) {
+				return 1;
+			}
+			if (!isset($event['Orgc'])) $event['Orgc']['name'] = $event['Event']['orgc'];
+			if (!isset($event['Org'])) $event['Org']['name'] = $event['Event']['org'];
+			if (!isset($event['EventTag'])) $event['EventTag'] = array();
+			return $event;
 		}
 		return 2;
 	}

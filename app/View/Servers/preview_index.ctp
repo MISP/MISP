@@ -1,5 +1,5 @@
 <div class="events <?php if (!$ajax) echo 'index'; ?>">
-	<h2>Events</h2>
+	<h4 class="visibleDL notPublished" >You are currently viewing the event index of the remote instance "<?php echo h($server['Server']['name']); ?>" (@ <?php echo h($server['Server']['url']); ?>)</h4>
 	<div class="pagination">
         <ul>
         <?php
@@ -144,6 +144,7 @@
 				?>
 			</td>
 			<td class="short action-links">
+				<?php if ($event['Event']['published']) echo $this->Form->postLink('', '/servers/pull/' . $server['Server']['id'] . '/' . $event['Event']['id'], array('class' => 'icon-download'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Server.id'))); ?>
 				<a href='<?php echo $eventViewURL . h($event['Event']['id']);?>' class = "icon-list-alt" title = "View"></a>
 			</td>
 		</tr>

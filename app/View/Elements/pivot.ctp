@@ -5,7 +5,7 @@
 	<div class="tree">
 		<span style="white-space:nowrap;">
 			<?php 
-				echo $this->Pivot->convertPivotToHTML($pivot, $currentEvent);
+				echo $this->Pivot->convertPivotToHTML($pivot, $event['Event']['id']);
 			?>
 		</span>
 	</div>

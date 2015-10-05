@@ -69,7 +69,7 @@ class ServersController extends AppController {
 		if (!$this->_isSiteAdmin()) {
 			throw new MethodNotAllowedException('You are not authorised to do that.');
 		}
-		$server = $this->Server->find('first', array('conditions' => array('Server.id' => $id), 'recursive' => -1, 'fields' => array('Server.id', 'Server.url')));
+		$server = $this->Server->find('first', array('conditions' => array('Server.id' => $id), 'recursive' => -1, 'fields' => array('Server.id', 'Server.url', 'Server.name')));
 		if (empty($server)) throw new NotFoundException('Invalid server ID.');
 		$validFilters = $this->Server->validEventIndexFilters;
 		foreach($validFilters as $k => $filter) {
@@ -80,12 +80,6 @@ class ServersController extends AppController {
 			}
 		}
 		$events = $this->Server->previewIndex($id, $this->Auth->user(), array_merge($this->passedArgs, $passedArgs));
-		if (!empty($events)) foreach ($events as &$event) {
-			$event = array('Event' => $event);
-			if (!isset($event['Orgc'])) $event['Orgc']['name'] = $event['Event']['orgc'];
-			if (!isset($event['Org'])) $event['Org']['name'] = $event['Event']['org'];
-			if (!isset($event['EventTag'])) $event['EventTag'] = array();
-		}
 		$this->loadModel('Event');
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
@@ -107,6 +101,38 @@ class ServersController extends AppController {
 		$this->set('urlparams', $urlparams);		
 		$this->set('passedArgs', json_encode($passedArgs));
 		$this->set('passedArgsArray', $passedArgs);
+		$this->set('server', $server);
+	}
+	
+	public function previewEvent($serverId, $eventId, $all = false) {
+		if (!$this->_isSiteAdmin()) {
+			throw new MethodNotAllowedException('You are not authorised to do that.');
+		}
+		$server = $this->Server->find('first', array('conditions' => array('Server.id' => $serverId), 'recursive' => -1, 'fields' => array('Server.id', 'Server.url', 'Server.name')));
+		if (empty($server)) throw new NotFoundException('Invalid server ID.');
+		$event = $this->Server->previewEvent($serverId, $eventId);
+		// work on this in the future to improve the feedback
+		// 2 = wrong error code
+		if (is_numeric($event))throw new NotFoundException('Invalid event.');
+		$this->loadModel('Event');
+		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
+		$this->params->params['paging'] = array('Server' => $params);
+		$this->set('event', $event);
+		$this->set('server', $server);
+		$this->loadModel('Event');
+		$dataForView = array(
+				'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
+				'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels')
+		);
+		foreach ($dataForView as $m => $variables) {
+			if ($m === 'Event') $currentModel = $this->Event;
+			else if ($m === 'Attribute') $currentModel = $this->Event->Attribute;
+			foreach ($variables as $alias => $variable) {
+				$this->set($alias, $currentModel->{$variable});
+			}
+		}
+		$threat_levels = $this->Event->ThreatLevel->find('all');
+		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
 	}
 	
 	public function filterEventIndex($id) {
@@ -393,20 +419,18 @@ class ServersController extends AppController {
 				switch ($result[0]) {
 					case '1' :
 						$this->Session->setFlash(__('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'));
-						$this->redirect(array('action' => 'index'));
 						break;
 					case '2' :
 						$this->Session->setFlash($result[1]);
-						$this->redirect(array('action' => 'index'));
 						break;
 					case '3' :
 						throw new NotFoundException('Sorry, this is not yet implemented');
 						break;
 					case '4' :
 						$this->redirect(array('action' => 'index'));
-						break;
-						
+						break;		
 				}
+				$this->redirect($this->referer());
 			} else {
 				$this->set('successes', $result[0]);
 				$this->set('fails', $result[1]);
@@ -434,7 +458,7 @@ class ServersController extends AppController {
 			);
 			$this->Job->saveField('process_id', $process_id);
 			$this->Session->setFlash('Pull queued for background execution.');
-			$this->redirect(array('action' => 'index'));
+			$this->redirect($this->referer());
 		}
 	}
 
@@ -862,11 +886,6 @@ class ServersController extends AppController {
 	}
 	
 	public function testConnection($id = false) {
-		if ($this->request->is('post')) {
-			if ($this->request->data['message'] === 'En Taro Adun') {
-				return new CakeResponse(array('body'=> json_encode(array('message' => 'En Taro Tassadar'))));
-			} else throw new MethodNotAllowedException('Invalid message');
-		} else {
 			if (!$this->Auth->user('Role')['perm_sync'] && !$this->Auth->user('Role')['perm_site_admin']) throw new MethodNotAllowedException('You don\'t have permission to do that.');
 			$this->Server->id = $id;
 			if (!$this->Server->exists()) {
@@ -874,13 +893,33 @@ class ServersController extends AppController {
 			}
 			$result = $this->Server->runConnectionTest($id);
 			if ($result['status'] == 1) {
-				$message = json_decode($result['message'], true);
-				if (isset($message['message']) && $message['message'] === 'En Taro Tassadar') return new CakeResponse(array('body'=> json_encode(array('status' => $result['status']))));
-				else return new CakeResponse(array('body'=> json_encode(array('status' => 4))));
-			} else {
-				return new CakeResponse(array('body'=> json_encode(array('status' => $result['status']))));
+				$version = json_decode($result['message'], true);
+				if (isset($version['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $version['version'])) {
+					App::uses('Folder', 'Utility');
+					$file = new File (ROOT . DS . 'VERSION.json', true);
+					$local_version = json_decode($file->read(), true);
+					$file->close();
+					$version = explode('.', $version['version']);
+					$mismatch = false;
+					$newer = false;
+					$parts = array('major', 'minor', 'hotfix');
+					foreach ($parts as $k => $v) {
+						if (!$mismatch) {
+							if ($version[$k] > $local_version[$v]) {
+								$mismatch = $v;
+								$newer = 'remote';
+							} elseif ($version[$k] < $local_version[$v]) {
+								$mismatch = $v;
+								$newer = 'local';
+							}
+						}
+					}
+					return new CakeResponse(array('body'=> json_encode(array('status' => 1, 'local_version' => implode('.', $local_version), 'version' => implode('.', $version), 'mismatch' => $mismatch, 'newer' => $newer))));
+				} else {
+					$result['status'] = 3;
+				}
 			}
-		}
+			return new CakeResponse(array('body'=> json_encode(array('status' => $result['status']))));
 	}
 	
 	// The server responds with its current version 

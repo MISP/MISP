@@ -1837,16 +1837,48 @@ function testConnection(id) {
 	    	var result = JSON.parse(response);
 	    	switch (result.status) {
 			case 1:
-				$("#connection_test_" + id).html('<span class="green bold" title="Connection established, correct response received.">OK</span>');
+				status_message = "OK";
+				compatibility = "Compatible";
+				compatibility_colour = "green";
+				colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
+				issue_colour = "red";
+				if (result.mismatch == "hotfix") issue_colour = "orange";
+				if (result.newer == "local") {
+					colours.remote = 'class="' + issue_colour + '"';
+					if (result.mismatch == "minor") {
+						compatibility = "Pull only";
+						compatibility_colour = "orange";
+					} else if (result.mismatch == "major") {
+						compatibility = "Incompatible";
+						compatibility_colour = "red";
+					}
+				} else if (result.newer == "remote") {
+					colours.local = 'class="' + issue_colour + '"';
+					if (result.mismatch != "hotfix") {
+						compatibility = "Incompatible";
+						compatibility_colour = "red";
+					}
+				}
+				if (result.mismatch != false) {
+					if (result.newer == "remote") status_message = "Local instance outdated, update!";
+					else status_message = "Remote outdated, notify admin!"
+					colours.status = 'class="' + issue_colour + '"';
+				}
+				resultDiv = '<div>Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
+				resultDiv += '<div>Remote version: <span ' + colours.remote + '>' + result.version + '</span><br />';
+				resultDiv += '<div>Status: <span ' + colours.status + '>' + status_message + '</span><br />';
+				resultDiv += '<div>Compatiblity: <span class="' + compatibility_colour + '">' + compatibility + '</span><br />';
+				$("#connection_test_" + id).html(resultDiv);
+				//$("#connection_test_" + id).html('<span class="green bold" title="Connection established, correct response received.">OK</span>');
 				break;
 			case 2:
 				$("#connection_test_" + id).html('<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable</span>');
 				break;
 			case 3:
-				$("#connection_test_" + id).html('<span class="red bold" title="The server returned an unexpected result instead of a code 200. ">Server returned an error</span>');
+				$("#connection_test_" + id).html('<span class="red bold" title="The server returned an unexpected result. Make sure that the provided URL (or certificate if it applies) are correct.">Unexpected error</span>');
 				break;
 			case 4:
-				$("#connection_test_" + id).html('<span class="red bold" title="Connection established correctly, but received an unexpected response. This could be because the authentication key is invalid or because the other instance is running the wrong version of MISP.">Unexpected reponse</span>');
+				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>');
 				break;
 	    	}
 	    }

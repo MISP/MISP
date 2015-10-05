@@ -1028,7 +1028,7 @@ class Event extends AppModel {
  * TODO move this to a component
  * @return array of event_ids
  */
-	public function getEventIdsFromServer($server, $all = false, $HttpSocket=null) {
+	public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 
@@ -1043,8 +1043,8 @@ class Event extends AppModel {
 		$request = array(
 				'header' => array(
 						'Authorization' => $authkey,
-						'Accept' => 'application/xml',
-						'Content-Type' => 'application/xml',
+						'Accept' => 'application/json',
+						'Content-Type' => 'application/json',
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
@@ -1052,30 +1052,30 @@ class Event extends AppModel {
 		try {
 			$response = $HttpSocket->get($uri, $data = '', $request);
 			if ($response->isOk()) {
-				//debug($response->body);
-				$xml = Xml::build($response->body);
-				$eventArray = Xml::toArray($xml);
+				$eventArray = json_decode($response->body, true);
 				// correct $eventArray if just one event
-				if (is_array($eventArray['response']['Event']) && isset($eventArray['response']['Event']['id'])) {
-					$tmp = $eventArray['response']['Event'];
-					unset($eventArray['response']['Event']);
-					$eventArray['response']['Event'][0] = $tmp;
+				if (is_array($eventArray) && isset($eventArray['id'])) {
+					$tmp = $eventArray;
+					unset($eventArray);
+					$eventArray[0] = $tmp;
+					unset($tmp);
 				}
 				$eventIds = array();
 				if ($all) {
-					foreach ($eventArray['response']['Event'] as $event) {
+					foreach ($eventArray as $event) {
 						$eventIds[] = $event['uuid'];
 					}
 				} else {
 					// multiple events, iterate over the array
-					foreach ($eventArray['response']['Event'] as &$event) {
+					foreach ($eventArray as &$event) {
 						if (1 != $event['published']) {
 							continue; // do not keep non-published events
 						}
 						// get rid of events that are the same timestamp as ours or older, we don't want to transfer the attributes for those
 						// The event's timestamp also matches the newest attribute timestamp by default
 						if ($this->checkIfNewer($event)) {
-							$eventIds[] = $event['id'];
+							if ($force_uuid) $eventIds[] = $event['uuid'];
+							else $eventIds[] = $event['id'];
 						}
 					}
 				}
@@ -1482,6 +1482,7 @@ class Event extends AppModel {
 	 
 	 public function sendAlertEmail($id, $senderUser, $processId = null) {
 	 	$event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
+	 	if (empty($event)) throw new MethodNotFoundException('Invalid Event.');
 	 	$userConditions = array('autoalert' => 1);
 	 	$this->User = ClassRegistry::init('User');
 	 	$users = $this->User->getUsersWithAccess(
@@ -1494,7 +1495,7 @@ class Event extends AppModel {
 			$userConditions
 	 	);
 	 	if (Configure::read('MISP.extended_alert_subject')) {
-	 		$subject = preg_replace( "/\r|\n/", "", $event['Event']['info']);
+	 		$subject = preg_replace( "/\r|\n/", "", $event[0]['Event']['info']);
 	 		if (strlen($subject) > 58) {
 	 			$subject = substr($subject, 0, 55) . '... - ';
 	 		} else {
@@ -2373,5 +2374,57 @@ class Event extends AppModel {
 		}
 		if (!is_numeric($delta)) return false;
 		return time() - ($delta * $multiplier); 
+	}
+	
+	public function rearrangeEventForView(&$event, $passedArgs, $all) {
+		foreach ($event['Event'] as $k => $v) {
+			if (is_array($v)) {
+				$event[$k] = $v;
+				unset ($event['Event'][$k]);
+			}
+		}
+		$eventArray = array();
+		$shadowAttributeTemp = array();
+		foreach ($event['Attribute'] as $attribute) {
+			if ($attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
+			$attribute['objectType'] = 0;
+			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
+			else $attribute['hasChildren'] = 0;
+			$eventArray[] = $attribute;
+			$current = count($eventArray)-1;
+		}
+		unset($event['Attribute']);
+		foreach ($event['ShadowAttribute'] as $shadowAttribute) {
+			$shadowAttribute['objectType'] = 2;
+			$eventArray[] = $shadowAttribute;
+		}
+		unset($event['ShadowAttribute']);
+		App::uses('CustomPaginationTool', 'Tools');
+		$customPagination = new CustomPaginationTool();
+		if ($all) $this->passedArgs['page'] = 0;
+		$params = $customPagination->applyRulesOnArray($eventArray, $passedArgs, 'events', 'category');
+		$eventArrayWithProposals = array();
+		
+		foreach ($eventArray as &$object) {
+			if ($object['objectType'] == 0) {
+				if (isset($object['ShadowAttribute'])) {
+					$shadowAttributeTemp = $object['ShadowAttribute'];
+					unset($object['ShadowAttribute']);
+					$eventArrayWithProposals[] = $object;
+					foreach ($shadowAttributeTemp as $k => $shadowAttribute) {
+						$shadowAttribute['objectType'] = 1;
+						if ($k == 0) $shadowAttribute['firstChild'] = true;
+						if (($k + 1) == count($shadowAttributeTemp)) $shadowAttribute['lastChild'] = true;
+						$eventArrayWithProposals[] = $shadowAttribute;
+					}
+				} else {
+					$eventArrayWithProposals[] = $object;
+				}
+			} else {
+				$eventArrayWithProposals[] = $object;
+			}
+		}
+		$event['objects'] = $eventArrayWithProposals;
+		return $params;
 	}
 }

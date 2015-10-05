@@ -1,8 +1,6 @@
 <?php
 	$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-	$pageCount = intval($objectCount / 50);
-	if ($objectCount%50 != 0) $pageCount++;
 	$possibleAction = 'Proposal';
 	if ($mayModify) $possibleAction = 'Attribute';
 	$all = false;
@@ -85,7 +83,7 @@
 	<?php endif; ?>
 	<table class="table table-striped table-condensed">
 		<tr>
-			<?php if ($mayModify && !empty($eventArray)): ?>
+			<?php if ($mayModify && !empty($event['objects'])): ?>
 				<th><input class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
 			<?php endif;?>
 			<th><?php echo $this->Paginator->sort('date');?></th>
@@ -99,7 +97,7 @@
 			<th class="actions">Actions</th>
 		</tr>
 		<?php 
-			foreach($eventArray as $k => $object):
+			foreach($event['objects'] as $k => $object):
 				$extra = '';
 				$extra2 = '';
 				$extra3 = '';
@@ -203,15 +201,14 @@
 					<td class="shortish <?php echo $extra; ?>">
 						<ul class="inline" style="margin:0px;">
 							<?php 
-								if ($object['objectType'] == 0 && isset($relatedAttributes[$object['id']]) && (null != $relatedAttributes[$object['id']])) {
-									foreach ($relatedAttributes[$object['id']] as $relatedAttribute) {
+								if ($object['objectType'] == 0 && isset($event['RelatedAttribute'][$object['id']]) && (null != $event['RelatedAttribute'][$object['id']])) {
+									foreach ($event['RelatedAttribute'][$object['id']] as $relatedAttribute) {
 										echo '<li style="padding-right: 0px; padding-left:0px;" title ="' . h($relatedAttribute['info']) . '"><span>';
 										if ($relatedAttribute['org_id'] == $me['org_id']) {
 											echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('style' => 'color:red;'));
 										} else {
 											echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']));
 										}
-					
 										echo "</span></li>";
 										echo ' ';
 									}

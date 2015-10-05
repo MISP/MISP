@@ -88,7 +88,7 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 					if (Configure::read('MISP.tagging')): ?>
 						<dt>Tags</dt>
 						<dd class="eventTagContainer">
-							<?php echo $this->element('ajaxTags', array('event' => $event, 'tags' => $tags)); ?>
+							<?php echo $this->element('ajaxTags', array('event' => $event, 'tags' => $event['EventTag'])); ?>
 						</dd>
 				<?php endif; ?>
 				<dt>Date</dt>
@@ -149,12 +149,11 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 				<?php endif; ?>
 			</dl>
 		</div>
-
-	<?php if (!empty($relatedEvents)):?>
+	<?php if (!empty($event['RelatedEvent'])):?>
 	<div class="related span4">
 		<h3>Related Events</h3>
 		<ul class="inline">
-			<?php foreach ($relatedEvents as $relatedEvent): ?>
+			<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
 			<li>
 			<div title="<?php echo h($relatedEvent['Event']['info']); ?>">
 			<?php

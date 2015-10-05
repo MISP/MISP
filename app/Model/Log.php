@@ -79,4 +79,14 @@ class Log extends AppModel {
 				'model_id' => $model_id,
 		));
 	}
+	
+	public function getEventContributors(&$event) {
+		$logEntries = $this->find('all', array(
+				'conditions' => array('model' => 'ShadowAttribute', 'org !=' => $event['Orgc']['name'], 'title LIKE' => '%Event (' . $event['Event']['id'] . ')%'),
+				'fields' => array('org'),
+				'group' => 'org'
+		));
+		foreach ($logEntries as $k => $entry) if (!isset($entry['Log']['org'])) unset ($logEntries[$k]);
+		return $logEntries;
+	}
 }

@@ -1,13 +1,10 @@
 <?php
 
 App::import('Lib', 'SysLog.SysLog');	// Audit, syslogd, extra
-App::import('Controller', 'EventsController');
-App::import('Controller', 'ServersController');
 
 class SysLogLogableBehavior extends LogableBehavior {
 
 	function afterSave(Model $Model, $created, $options = array()) {
-
 		if (!$this->settings[$Model->alias]['enabled']) {
 			return true;
 		}
@@ -123,7 +120,6 @@ class SysLogLogableBehavior extends LogableBehavior {
 				$logData['Log'][$this->settings[$Model->alias]['foreignKey']] = $Model->insertId;
 			}
 		}
-
 		if (!isset($this->schema['action'])) {
 			unset($logData['Log']['action']);
 		} elseif (isset($Model->logableAction) && !empty($Model->logableAction)) {
@@ -150,7 +146,6 @@ class SysLogLogableBehavior extends LogableBehavior {
 				if ($this->settings[$Model->alias]['description_ids']) {
 					$logData['Log']['description'] .= ' (' . $this->user[$this->UserModel->alias][$this->UserModel->primaryKey] . ')';
 				}
-
 			} else {
 				// UserModel is active, but the data hasnt been set. Assume system action.
 				$logData['Log']['description'] .= ' by System';
@@ -251,7 +246,6 @@ class SysLogLogableBehavior extends LogableBehavior {
 		$this->Log->save(null, array(
 				'validate' => false,
 				'callbacks' => false));
-
 		// write to syslogd as well
 		$syslog = new SysLog();
 		if (isset($logData['Log']['change'])) {
@@ -259,5 +253,25 @@ class SysLogLogableBehavior extends LogableBehavior {
 		} else {
 			$syslog->write('notice', $logData['Log']['description']);
 		}
+	}
+	
+	function setup(Model $Model, $config = array()) {
+	
+		if (!is_array($config)) {
+			$config = array();
+		}
+		$this->settings[$Model->alias] = array_merge($this->defaults, $config);
+		$this->settings[$Model->alias]['ignore'][] = $Model->primaryKey;
+	
+		$this->Log = ClassRegistry::init('Log');
+		if ($this->settings[$Model->alias]['userModel'] != $Model->alias) {
+			$this->UserModel = ClassRegistry::init($this->settings[$Model->alias]['userModel']);
+		} else {
+			$this->UserModel = $Model;
+		}
+		$this->schema = $this->Log->schema();
+		App::import('Component', 'Auth');
+		if (!empty(AuthComponent::user())) $this->user[$this->settings[$Model->alias]['userModel']] = AuthComponent::user();
+		else $this->user['User'] = array('email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'), 'id' => 0);
 	}
 }
