@@ -460,9 +460,8 @@ class ServersController extends AppController {
 		} else {
 			return false;
 		}
-
 	}
-	
+
 	public function serverSettingsEdit($setting, $id, $forceSave = false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();

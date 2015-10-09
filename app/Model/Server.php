@@ -43,24 +43,14 @@ class Server extends AppModel {
 				'message' => 'A authkey of a minimum length of 40 is required.',
 				'required' => true,
 			),
-			'notempty' => array(
-				'rule' => array('notempty'),
-				'message' => 'Please enter a valid authentication key.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'org' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
+			)
 		),
 		'push' => array(
 			'boolean' => array(
