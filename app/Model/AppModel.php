@@ -168,7 +168,8 @@ class AppModel extends Model {
 	public function valueNotEmpty($value) {
 		$field = array_keys($value);
 		$field = $field[0];
-		if (!empty(trim($value[$field]))) return true;
+		$value[$field] = trim($value[$field]);
+		if (!empty($value[$field])) return true;
 		return ucfirst($field) . ' cannot be empty.';
 	}
 }
