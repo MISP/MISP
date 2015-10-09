@@ -249,13 +249,8 @@ class Attribute extends AppModel {
 			'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
 		),
 		'value' => array(
-			'notempty' => array(
-			'rule' => array('notempty'),
-			'message' => 'Please fill in this field',
-			//'allowEmpty' => false,
-			//'required' => false,
-			//'last' => false, // Stop validation after this rule
-			//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),
@@ -489,7 +484,7 @@ class Attribute extends AppModel {
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Attribute']['uuid'])) {
-			$this->data['Attribute']['uuid'] = String::uuid();
+			$this->data['Attribute']['uuid'] = $this->generateUuid();
 		}
 
 		// generate timestamp if it doesn't exist

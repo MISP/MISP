@@ -32,9 +32,8 @@ class Tag extends AppModel {
 	
 	public $validate = array(
 			'name' => array(
-					'notempty' => array(
-							'rule' => array('notempty'),
-							'message' => 'Please fill in this field',
+					'valueNotEmpty' => array(
+						'rule' => array('valueNotEmpty'),
 					),
 					'unique' => array(
 							'rule' => 'isUnique',
@@ -42,9 +41,8 @@ class Tag extends AppModel {
 					),
 			),
 			'colour' => array(
-					'notempty' => array(
-							'rule' => 'notempty',
-							'message' => 'Please fill in this field',
+					'valueNotEmpty' => array(
+						'rule' => array('valueNotEmpty'),
 					),
 					'userdefined' => array(
 							'rule' => 'validateColour',

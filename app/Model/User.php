@@ -63,23 +63,13 @@ class User extends AppModel {
 			),
 		),
 		'org' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				'message' => 'Please specify the organisation where you are working.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'org_id' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				'message' => 'Please specify the organisation ID where you are working.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'email' => array(
@@ -122,13 +112,8 @@ class User extends AppModel {
 				'message' => 'A authkey of a minimum length of 40 is required.',
 				'required' => true,
 			),
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'invited_by' => array(
@@ -152,13 +137,8 @@ class User extends AppModel {
 			),
 		),
 		'gpgkey' => array(
-			'notempty' => array(
-				'rule' => array('validateGpgkey'),
-				'message' => 'GPG key not valid, please enter a valid key.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'nids_sid' => array(
