@@ -166,7 +166,9 @@ class AppModel extends Model {
 	
 	// alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
 	public function valueNotEmpty($value) {
-		if (!empty(trim(array_values($value)[0]))) return true;
-		return ucfirst(array_keys($value)[0]) . ' cannot be empty.';
+		$field = array_keys($value);
+		$field = $field[0];
+		if (!empty(trim($value[$field]))) return true;
+		return ucfirst($field) . ' cannot be empty.';
 	}
 }
