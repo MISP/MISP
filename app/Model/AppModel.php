@@ -159,8 +159,10 @@ class AppModel extends Model {
 	
 	// wrapper for UUID generation, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7 
 	public function generateUuid() {
-		if (isset($CakeText)) $uuid = CakeText::uuid();
-		else $uuid = String::uuid();
+		$version = Configure::version();
+		$version = explode('.', $version);
+		if (intval($version[0]) <= 2 && intval($version[1]) < 7) $uuid = String::uuid();
+		else $uuid = CakeText::uuid();
 		return $uuid;
 	}
 	
