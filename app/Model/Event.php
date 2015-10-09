@@ -138,23 +138,13 @@ class Event extends AppModel {
  */
 	public $validate = array(
 		'org' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'orgc' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'date' => array(
@@ -168,11 +158,9 @@ class Event extends AppModel {
 			),
 		),
 		'threat_level_id' => array(
-			'notempty' => array(
-				'rule' => array('inList', array('1', '2', '3', '4')),
-				'message' => 'Options : 1, 2, 3, 4 (for High, Medium, Low, Undefined)',
-				'required' => true
-			),
+			'rule' => array('inList', array('1', '2', '3', '4')),
+			'message' => 'Options : 1, 2, 3, 4 (for High, Medium, Low, Undefined)',
+			'required' => true
 		),
 
 		'distribution' => array(
@@ -193,13 +181,8 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 		),
 		'info' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'user_id' => array(
@@ -382,7 +365,7 @@ class Event extends AppModel {
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Event']['uuid'])) {
-			$this->data['Event']['uuid'] = String::uuid();
+			$this->data['Event']['uuid'] = $this->generateUuid();
 		}
 		// generate timestamp if it doesn't exist
 		if (empty($this->data['Event']['timestamp'])) {

@@ -2131,7 +2131,7 @@ class EventsController extends AppController {
 			// add the original openIOC file as an attachment
 			$saveEvent['Attribute'][] = array(
 				'category' => 'External analysis',
-				'uuid' =>  String::uuid(),
+				'uuid' =>  $this->{$Model->alias}->generateUuid(),
 				'type' => 'attachment',
 				'value' => $this->data['Event']['submittedioc']['name'],
 				'to_ids' => false,
@@ -2704,7 +2704,7 @@ class EventsController extends AppController {
 			'org' => $this->Auth->user('org'),
 			'orgc' => $this->Auth->user('org'),
 			'timestamp' => $ts,	
-			'uuid' => String::uuid(),
+			'uuid' => $this->{$Model->alias}->generateUuid(),
 			'user_id' => $this->Auth->user('id'),
 		));
 		$default['Event']['info'] = 'A junk event for load testing';
@@ -2725,7 +2725,7 @@ class EventsController extends AppController {
 						'value1' => $value,
 						'value2' => '',
 						'comment' => '',
-						'uuid' => String::uuid(),
+						'uuid' => $this->{$Model->alias}->generateUuid(),
 						'timestamp' => $ts,
 				);
 			}

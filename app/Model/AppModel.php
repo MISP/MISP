@@ -156,4 +156,17 @@ class AppModel extends Model {
 		$file->close();
 		return $version_array;
 	}
+	
+	// wrapper for UUID generation, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7 
+	public function generateUuid() {
+		if (isset($CakeText)) $uuid = CakeText::uuid();
+		else $uuid = String::uuid();
+		return $uuid;
+	}
+	
+	// alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
+	public function valueNotEmpty($value) {
+		if (!empty(trim(array_values($value)[0]))) return true;
+		return ucfirst(array_keys($value)[0]) . ' cannot be empty.';
+	}
 }
