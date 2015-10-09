@@ -1575,7 +1575,7 @@ class Server extends AppModel {
 			$entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
 			$correct_user = ($currentUser === $worker['user']);
 			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found.');
-			$alive = $correct_user ? (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0) : false;
+			$alive = $correct_user ? (file_exists('/proc/' . addslashes($pid))) : false;
 			$ok = true;
 			if (!$alive || !$correct_user) {
 				$ok = false;
