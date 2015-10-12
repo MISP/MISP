@@ -1571,11 +1571,13 @@ class Server extends AppModel {
 				'email' => array('ok' => true),
 				'scheduler' => array('ok' => true)
 		);
+		$procAccessible = file_exists('/proc');
 		foreach ($workers as $pid => $worker) {
 			$entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
 			$correct_user = ($currentUser === $worker['user']);
 			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found.');
-			$alive = $correct_user ? (file_exists('/proc/' . addslashes($pid))) : false;
+			if ($procAccessible) $alive = $correct_user ? (file_exists('/proc/' . addslashes($pid))) : false;
+			else $alive = 'N/A';
 			$ok = true;
 			if (!$alive || !$correct_user) {
 				$ok = false;
@@ -1591,6 +1593,7 @@ class Server extends AppModel {
 				$queue['ok'] = false;
 			}
 		}
+		$worker_array['proc_accessible'] = $procAccessible;
 		return $worker_array;
 		
 	}
