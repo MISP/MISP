@@ -129,9 +129,9 @@
 			<td style = "max-width: 200px;width:10px;">
 				<?php foreach ($event['EventTag'] as $tag):
 					$tagText = "&nbsp;";
-					if (Configure::read('MISP.full_tags_on_event_index')) $tagText = $tag['Tag']['name'];
+					if (Configure::read('MISP.full_tags_on_event_index')) $tagText = h($tag['Tag']['name']);
 				?>
-					<span class=tag style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>"><?php echo h($tagText); ?></span>
+					<span class=tag style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>"><?php echo $tagText; ?></span>
 				<?php endforeach; ?>
 			</td>
 			<?php endif; ?>

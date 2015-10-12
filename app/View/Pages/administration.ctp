@@ -20,6 +20,7 @@ if (!$isSiteAdmin) exit();
 <li><a href="/servers/updateDatabase/convertLogFieldsToText">Convert log fields to text</a> (Hotfix 2.3.78: Some of the log fields that were varchar(255) ended up truncating the data. This function will change them to "text")</li>
 <li><a href="/servers/pruneDuplicateUUIDs">Fix duplicate UUIDs</a> (Hotfix 2.3.107: it was previously possible to get duplicate attribute UUIDs in the database, this script will remove all duplicates and ensure that duplicates will not be entered into the database in the future.)</li>
 <li><a href="/servers/removeDuplicateEvents">Remove dupicate events (with the same UUID)</a> (Hotfix 2.3.115: In some rare situations it could occur that a duplicate of an event was created on an instance, with the exact same uuid. This action will remove any such duplicates and make sure that this cannot happen again.)</li>
+<li><a href="/attributes/pruneOrphanedAttributes">Prune orphaned attributes</a> (In some rare occasions it can happen that you end up with some attributes in your database that do not belong to an event - for example during a race condition between an event insert and a delete. This tool will collect and delete any such orphaned attributes. If you ever run into an issue where you cannot add an attribute with a specific valid value, this is probably the reason.)</li>
 <li><a href="/servers/upgrade2324">Upgrade to 2.4</a> (This script will make the final changes to the database to bring it up to speed with 2.4)</li>
 </ul>
 </div>

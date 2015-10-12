@@ -561,6 +561,7 @@ class ServersController extends AppController {
 			$stixOperational = array(0 => 'STIX or CyBox library not installed correctly', 1 => 'OK');
 			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
 			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
+			$sessionErrors = array(0 => 'OK', 1 => 'High', 2 => 'Alternative setting used', 3 => 'Test failed');
 			
 			$finalSettings = $this->Server->serverSettingsRead();
 			$issues = array(	
@@ -622,7 +623,12 @@ class ServersController extends AppController {
 				// if Proxy is set up in the settings, try to connect to a test URL
 				$proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
 				
-				$additionalViewVars = array('gpgStatus', 'proxyStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion','gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix');
+				// check the size of the session table
+				$sessionCount = 0;
+				$sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
+				$this->set('sessionCount', $sessionCount);
+				
+				$additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion','gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix');
 			}
 			// check whether the files are writeable
 			$writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
@@ -696,9 +702,8 @@ class ServersController extends AppController {
 		} else {
 			return false;
 		}
-
 	}
-	
+
 	public function serverSettingsEdit($setting, $id, $forceSave = false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
@@ -922,16 +927,6 @@ class ServersController extends AppController {
 			return new CakeResponse(array('body'=> json_encode(array('status' => $result['status']))));
 	}
 	
-	// The server responds with its current version 
-	public function getVersion() {
-		if (!$this->Auth->user('Role')['perm_sync']) throw new MethodNotAllowedException('Only accessible by sync users');
-		App::uses('Folder', 'Utility');
-		$file = new File (ROOT . DS . 'VERSION.json', true);
-		$version_json = $file->read();
-		$file->close();
-		return new CakeResponse(array('body'=> $version_json));
-	}
-	
 	public function checkVersionCompatibility($id) {
 		debug($this->Server->checkVersionCompatibility($id, $this->Auth->user()));
 	}
@@ -965,5 +960,20 @@ class ServersController extends AppController {
 			$this->set('time2', date('Y/m/d H:i:s', $result['timestampSettings']));
 		}		
 		$this->render('ajax/zeromqstatus');
+	}
+	
+	public function purgeSessions() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if ($this->Server->updateDatabase('cleanSessionTable') == false) {
+			$this->Session->setFlash('Could not purge the session table.');
+		}
+		$this->redirect('/servers/serverSettings/diagnostics');
+	}
+	
+	public function getVersion() {
+		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This action requires API access.');
+		$versionArray = $this->Server->checkMISPVersion();
+		$this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix']));
+		$this->set('_serialize', 'response');
 	}
 }

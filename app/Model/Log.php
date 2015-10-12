@@ -33,7 +33,8 @@ class Log extends AppModel {
 							'remove_dead_workers',
 							'upload_sample',
 							'update_database',
-							'upgrade_24'
+							'upgrade_24',
+							'version_warning',
 						)),
 			'message' => 'Options : ...'
 		)

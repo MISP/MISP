@@ -22,6 +22,8 @@ class EventBlacklist extends AppModel{
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
+		$schema = $this->schema();
+		if (!isset($schema['event_info'])) $this->updateDatabase('addEventBlacklistsContext');
 		$date = date('Y-m-d H:i:s');
 		if (empty($this->data['EventBlacklist']['id'])) {
 			$this->data['EventBlacklist']['date_created'] = $date;

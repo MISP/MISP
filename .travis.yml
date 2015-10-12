@@ -1,59 +1,98 @@
 language: php
 php:
-    - 5.5
+    - 5.6
 
 services:
     - mysql
+    - redis
 
-sudo: false
+sudo: true
+
+cache: pip
+
+env:
+    - DB=mysql
 
 addons:
+    hosts:
+        - misp.local
+        - localhost
     apt:
         packages:
             - python-dev
             - python-pip
             - libxml2-dev
-            - libxslt-dev
             - zlib1g-dev
+            - php5-dev
+            - apache2
+            - libapache2-mod-php5
+            - libapache2-mod-fastcgi
+            - curl
             - python-virtualenv
             - python-pip
-            - php5-redis
+            - php5-mysql
 
-before_script:
-    - virtualenv virtenv
-    - . virtenv/bin/activate
-    - pip install pyzmq
-    - pip install --exists-action w -e git://github.com/CybOXProject/python-cybox.git@v2.1.0.12#egg=Package
-    - git clone https://github.com/stixproject/python-stix.git
-    - cd python-stix
-    - git checkout v1.2.0.0
-    - python setup.py install
-    - cd ..
+install:
+    - pip install --user pyzmq
+    - pip install --user coveralls
+    - pip install --user codecov
+    - pip install --user git+https://github.com/CybOXProject/python-cybox.git@v2.1.0.12#egg=Package
+    - pip install --user git+https://github.com/stixproject/python-stix.git@v1.2.0.0#egg=Package
+    - pip install --user git+https://github.com/MISP/PyMISP.git#egg=Package
     - pear install Crypt_GPG
     - pear install Net_GeoIP
-    - cd app
+    - phpenv rehash
+    - pushd app
     - composer require kamisama/cake-resque:4.1.2
     - composer config vendor-dir Vendor
     - composer install
-    - cd ..
+    - popd
+
+before_script:
+    # enable php-fpm
+    - sudo cp ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf.default ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf
+    - sudo a2enmod rewrite actions fastcgi alias
+    - echo "cgi.fix_pathinfo = 1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+    - ~/.phpenv/versions/$(phpenv version-name)/sbin/php-fpm
+    # configure apache virtual hosts
+    - sudo cp -f build/travis-ci-apache /etc/apache2/sites-available/misp
+    - sudo sed -e "s?%TRAVIS_BUILD_DIR%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp
+    - cat /etc/apache2/sites-available/misp
+    - sudo a2dissite default
+    - sudo a2ensite misp
+    - sudo service apache2 restart
     - phpenv config-add travis/myphpconfig.ini
-    - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
-    - chmod -R 750 ./
-    - chmod -R g+ws app/tmp
-    - chmod -R g+ws app/files
-    - chmod -R g+ws app/files/scripts/tmp
-    - mysql -u root -e 'create database misp;'
-    - mysql -u root -e "grant usage on *.* to misp@localhost identified by 'blah'";
-    - mysql -u root -e "grant all privileges on misp.* to misp@localhost;"
-    - mysql -u misp -pblah misp < INSTALL/MYSQL.sql
     - mkdir .gnupg
-    - chmod 700 .gnupg
     - gpg --homedir .gnupg --gen-key --batch travis/gpg
+    - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
     - cp travis/bootstrap.php app/Config/bootstrap.php
     - cp travis/database.php app/Config/database.php
     - cp travis/core.php app/Config/core.php
     - cp travis/config.php app/Config/config.php
+    - mysql -u root -e 'create database misp;'
+    - mysql -u root -e "grant usage on *.* to misp@localhost identified by 'blah'";
+    - mysql -u root -e "grant all privileges on misp.* to misp@localhost;"
+    - mysql -u misp -pblah misp < INSTALL/MYSQL.sql
+    - AUTH=`app/Console/cake userInit -q`
+    - sudo chown -R www-data:www-data app/
+    - curl http://misp.local >> /dev/null
+    - pushd PyMISP
+    - echo 'url = "http://misp.local"' >> tests/keys.py
+    - echo 'key = "'${AUTH}'"' >> tests/keys.py
+    - cat tests/keys.py
+    - popd
+    - sudo chown -R www-data:www-data ./
+    - sudo chmod -R 755 ./
+    - sudo chmod 700 .gnupg
+    - sudo chmod -R 777 app/tmp
+    - sudo chmod -R 777 app/files
+    - sudo chmod -R 777 app/files/scripts/tmp
+    - sudo chmod -R 777 PyMISP
 
 script:
-    - exit 0
+    - pushd PyMISP
+    - coverage run setup.py test
 
+after_success:
+    - coveralls
+    - codecov

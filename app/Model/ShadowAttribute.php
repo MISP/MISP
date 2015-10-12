@@ -139,13 +139,8 @@ class ShadowAttribute extends AppModel {
 			'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
 		),
 		'value' => array(
-			'notempty' => array(
-			'rule' => array('notempty'),
-			'message' => 'Please fill in this field',
-			//'allowEmpty' => false,
-			//'required' => false,
-			//'last' => false, // Stop validation after this rule
-			//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),
@@ -270,7 +265,7 @@ class ShadowAttribute extends AppModel {
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['ShadowAttribute']['uuid'])) {
-			$this->data['ShadowAttribute']['uuid'] = String::uuid();
+			$this->data['ShadowAttribute']['uuid'] = $this->generateUuid();
 		}
 
 		// always return true, otherwise the object cannot be saved

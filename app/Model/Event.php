@@ -140,23 +140,19 @@ class Event extends AppModel {
  */
 	public $validate = array(
 		'org_id' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
+			),
+			'numeric' => array(
+				'rule' => array('numeric'),
 			),
 		),
 		'orgc_id' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
+			),
+			'numeric' => array(
+					'rule' => array('numeric'),
 			),
 		),
 		'date' => array(
@@ -170,11 +166,9 @@ class Event extends AppModel {
 			),
 		),
 		'threat_level_id' => array(
-			'notempty' => array(
-				'rule' => array('inList', array('1', '2', '3', '4')),
-				'message' => 'Options : 1, 2, 3, 4 (for High, Medium, Low, Undefined)',
-				'required' => true
-			),
+			'rule' => array('inList', array('1', '2', '3', '4')),
+			'message' => 'Options : 1, 2, 3, 4 (for High, Medium, Low, Undefined)',
+			'required' => true
 		),
 
 		'distribution' => array(
@@ -204,13 +198,8 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 		),
 		'info' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'user_id' => array(
@@ -353,14 +342,9 @@ class Event extends AppModel {
 	public function beforeDelete($cascade = true) {
 		// blacklist the event UUID if the feature is enabled
 		if (Configure::read('MISP.enableEventBlacklisting')) {
-			$event = $this->find('first', array(
-					'recursive' => -1,
-					'fields' => array('uuid'),
-					'conditions' => array('id' => $this->id),
-			));
 			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 			$this->EventBlacklist->create();
-			$this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid']));
+			$this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid'], 'event_info' => $this->data['Event']['info'], 'event_orgc' => $this->data['Event']['orgc']));
 		}
 		
 		// delete all of the event->tag combinations that involve the deleted event
@@ -410,7 +394,7 @@ class Event extends AppModel {
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Event']['uuid'])) {
-			$this->data['Event']['uuid'] = String::uuid();
+			$this->data['Event']['uuid'] = $this->generateUuid();
 		}
 		// generate timestamp if it doesn't exist
 		if (empty($this->data['Event']['timestamp'])) {
@@ -1062,7 +1046,7 @@ class Event extends AppModel {
 				}
 				$eventIds = array();
 				if ($all) {
-					foreach ($eventArray as $event) {
+					if (!empty($eventArray)) foreach ($eventArray as $event) {
 						$eventIds[] = $event['uuid'];
 					}
 				} else {

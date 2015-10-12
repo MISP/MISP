@@ -287,13 +287,8 @@ class Attribute extends AppModel {
 			'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
 		),
 		'value' => array(
-			'notempty' => array(
-			'rule' => array('notempty'),
-			'message' => 'Please fill in this field',
-			//'allowEmpty' => false,
-			//'required' => false,
-			//'last' => false, // Stop validation after this rule
-			//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),
@@ -518,7 +513,7 @@ class Attribute extends AppModel {
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Attribute']['uuid'])) {
-			$this->data['Attribute']['uuid'] = String::uuid();
+			$this->data['Attribute']['uuid'] = $this->generateUuid();
 		}
 
 		// generate timestamp if it doesn't exist
@@ -1104,6 +1099,7 @@ class Attribute extends AppModel {
 							'AND' => array(
 								'Attribute.type !=' => $this->nonCorrelatingTypes,
 								'Attribute.id !=' => $a['id'],
+								'Attribute.event_id !=' => $a['event_id']
 							),
 						),
 						'recursive => -1',
@@ -1405,7 +1401,7 @@ class Attribute extends AppModel {
 	 public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false) {
 	 	//restricting to non-private or same org if the user is not a site-admin.
 	 	$conditions['AND'] = array();
-	 	if (defined($allowNonIDS) && $allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+	 	if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
 	 	if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type; 
 	 	if ($from) $conditions['AND']['Event.date >='] = $from;
 	 	if ($to) $conditions['AND']['Event.date <='] = $to;
