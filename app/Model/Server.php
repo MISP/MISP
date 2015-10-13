@@ -1564,7 +1564,10 @@ class Server extends AppModel {
 	public function workerDiagnostics(&$workerIssueCount) {
 		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
 		$workers = $this->ResqueStatus->getWorkers();
-		$currentUser = get_current_user();
+		if (function_exists('posix_getpwuid')) {
+			$currentUser = posix_getpwuid(posix_geteuid());
+			$currentUser = $currentUser['name'];
+		} else $currentUser = trim(shell_exec('whoami'));
 		$worker_array = array(
 				'cache' => array('ok' => true),
 				'default' => array('ok' => true),
@@ -1595,7 +1598,6 @@ class Server extends AppModel {
 		}
 		$worker_array['proc_accessible'] = $procAccessible;
 		return $worker_array;
-		
 	}
 	
 	public function retrieveCurrentSettings($branch, $subString) {
