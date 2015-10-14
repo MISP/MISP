@@ -3322,5 +3322,144 @@ class EventsController extends AppController {
 		$this->view($data['event_id']);
 		$this->render('view');
 	}
-
+	
+	public function viewGraph($id) {
+		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+		if (empty($event)) throw new MethodNotAllowedException('Invalid Event.');
+		$this->set('event', $event[0]);
+		//$this->layout = 'graph';
+		$this->set('id', $id);
+	}
+	
+	public function updateGraph($id) {
+		if ($this->request->is('post')) {
+			$oldArray = $this->request->data;
+			$json = $this->__buildGraphJson($id, $this->request->data);
+		} else {
+			$json = $this->__buildGraphJson($id);
+		}
+		$this->set('json', $json);
+		$this->set('_serialize', 'json');
+	}
+	
+	private function __buildGraphJson($id, $json = array()) {
+		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+		if (empty($event)) return $json;
+		$json = $this->__cleanLinks($json);
+		$old_event = $this->__graphJsonContains('event', $event[0]['Event'], $json);
+		if ($old_event !== false) {
+			$json['nodes'][$old_event]['expanded'] = 1;
+			$current_event_id = $old_event;
+		} else {
+			if (!$this->__orgImgExists($event[0]['Orgc']['name'])) $image = '/img/orgs/' . 'MISP.png';
+			else $image = '/img/orgs/' . $event[0]['Orgc']['name'] . '.png';
+			$json['nodes'][] = array(
+					'name' => 'Event ' . $id,
+					'type' => 'event',
+					'id' => $id, 'expanded' => 1,
+					'image' => $image,
+					'info' => $event[0]['Event']['info'],
+					'org' => $event[0]['Orgc']['name'],
+					'analysis' => $this->Event->analysisLevels[$event[0]['Event']['analysis']],
+					'distribution' => $this->Event->distributionLevels[$event[0]['Event']['distribution']],
+					'date' => $event[0]['Event']['date']
+			);
+			$current_event_id = count($json['nodes'])-1;
+		}
+		$relatedEvents = array();
+		if (!empty($event[0]['RelatedEvent'])) foreach ($event[0]['RelatedEvent'] as &$re) {
+			$relatedEvents[$re['Event']['id']] = $re;
+		}
+		foreach ($event[0]['Attribute'] as $k => $att) {
+			if (isset($event[0]['RelatedAttribute'][$att['id']])) {
+				$current_attribute_id = $this->__graphJsonContains('attribute', $att, $json);
+				if ($current_attribute_id === false) {
+					$json['nodes'][] = array(
+							'name' => $att['value'],
+							'type' => 'attribute',
+							'id' => $att['id'],
+							'att_category' => $att['category'],
+							'att_type' => $att['type'],
+							'image' => '/img/indicator.png',
+							'att_ids' => $att['to_ids'],
+							'comment' => $att['comment']
+					);
+					$current_attribute_id = count($json['nodes'])-1;
+				}
+				$l1 = $this->__graphJsonContainsLink($current_event_id, $current_attribute_id, $json);
+				if ($l1 === false) $json['links'][] = array('source' => $current_event_id, 'target' => $current_attribute_id);
+				foreach($event[0]['RelatedAttribute'][$att['id']] as $relation) {
+					$found = $this->__graphJsonContains('event', $relation, $json);
+					if ($found !== false) {
+						$l3 = $this->__graphJsonContainsLink($found, $current_attribute_id, $json);
+						if ($l3 === false) $json['links'][] = array('source' => $found, 'target' => $current_attribute_id);
+					} else {
+						$current_relation_id = $this->__graphJsonContains('event', $relation, $json);
+						if ($current_relation_id === false) {
+							if (!$this->__orgImgExists($relatedEvents[$relation['id']]['Orgc']['name'])) $image = '/img/orgs/MISP.png';
+							else $image = '/img/orgs/' . $relatedEvents[$relation['id']]['Orgc']['name'] . '.png';
+							$json['nodes'][] = array(
+									'name' => 'Event ' . $relation['id'],
+									'type' => 'event', 'id' => $relation['id'],
+									'expanded' => 0, 'image' => $image,
+									'info' => $relatedEvents[$relation['id']]['Event']['info'],
+									'org' => $relatedEvents[$relation['id']]['Orgc']['name'],
+									'analysis' => $this->Event->analysisLevels[$relatedEvents[$relation['id']]['Event']['analysis']],
+									'date' => $relatedEvents[$relation['id']]['Event']['date']
+							);
+							$current_relation_id = count($json['nodes'])-1;
+						}
+						$l2 = $this->__graphJsonContainsLink($current_attribute_id, $current_relation_id, $json);
+						if ($l2 === false) $json['links'][] = array('source' => $current_attribute_id, 'target' => $current_relation_id);
+					}
+				}
+			}
+		}
+		return $json;
+	}
+	
+	private function __cleanLinks($json) {
+		if (isset($json['nodes']) && isset($json['links'])) {
+			$links = array();
+			foreach ($json['links'] as $link) {
+				$temp = array();
+				foreach ($json['nodes'] as $k => $node) {
+					if ($link['source'] == $node) $temp['source'] = $k;
+					if ($link['target'] == $node) $temp['target'] = $k;
+				}
+				$links[] = $temp;
+			}
+			$json['links'] = $links;
+		}
+		return $json;
+	}
+	
+	private function __orgImgExists($org) {
+		App::uses('File', 'Utility');
+		$file = new File(APP . DS . 'webroot' . DS . 'img' . DS . 'orgs' . DS . $org . 'png');
+		if (!$file->exists()) return true;
+		return false;
+	}
+	
+	private function __graphJsonContains($type, $att, $json) {
+		if (!isset($json['nodes'])) return false;
+		foreach ($json['nodes'] as $k => $node) {
+			if ($type == 'event' && $node['type'] == 'event' && $node['id'] == $att['id']) return $k;
+			if ($type == 'attribute' &&
+			$node['type'] == 'attribute' &&
+			$node['name'] == $att['value']) {
+				return $k;
+			}
+		}
+		return false;
+	}
+	private function __graphJsonContainsLink($id1, $id2, $json) {
+		if (!isset($json['links'])) return false;
+		foreach ($json['links'] as $k => $link) {
+			if (($link['source'] == $id1 && $link['target'] == $id2) || ($link['source'] == $id2 && $link['target'] == $id1)) {
+				return $k;
+			}
+		}
+		return false;
+	}
 }

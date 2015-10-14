@@ -15,6 +15,7 @@
 					}
 					?>
 					<li id='liviewEvent'><a href="/events/view/<?php echo h($event['Event']['id']);?>">View Event</a></li>
+					<li id='liviewEventGraph'><a href="/events/viewGraph/<?php echo h($event['Event']['id']);?>">View Correlation Graph</a></li>
 					<li id='lieventLog'><a href="/logs/event_index/<?php echo h($event['Event']['id']);?>">View Event History</a></li>
 					<li class="divider"></li>
 					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>

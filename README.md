@@ -36,15 +36,16 @@ Checkout the [website](http://www.misp-project.org) for more information about M
 
 Documentation
 -------------
-Feel free to have a look at the (pdf) documentation in the INSTALL directory.
+[MISP user-guide](https://github.com/MISP/misp-book) is available [online](https://www.circl.lu/doc/misp/) or as [PDF](https://www.circl.lu/doc/misp/book.pdf) or as [EPUB](https://www.circl.lu/doc/misp/book.epub) or as [MOBI/Kindle](https://www.circl.lu/doc/misp/book.mobi).
 
-We are actively developing this tool and many (code, documentation, export formats,...) improvements are coming.
-
+Contributing
+------------
 Feel free to fork the code, play with it, make some patches and send us the pull requests.
 
-Feel free to contact us, create issues, if you have questions, remarks or bug reports.
+Feel free to contact us, create [issues](https://github.com/MISP/MISP/issues), if you have questions, remarks or bug reports.
 
 There are 2 branches:
+
 - develop: (very active development) new features and improvements
 - main: what we consider as stable
 
