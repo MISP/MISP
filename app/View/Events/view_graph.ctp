@@ -199,7 +199,6 @@ function update() {
 	.attr("y", 20);
 
 	node.on('mouseover', function(d) {
-		console.log(this);
 		link.style('stroke', function(l) {
 			if (d === l.source || d === l.target)
 				return "#ff0000";
