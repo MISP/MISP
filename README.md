@@ -54,10 +54,10 @@ License
 
 This software is licensed under [GNU Affero General Public License version 3](http://www.gnu.org/licenses/agpl-3.0.html)
 
-Copyright (C) 2012 Christophe Vandeplas
-Copyright (C) 2012 Belgian Defence
-Copyright (C) 2012 NATO / NCIRC
-Copyright (C) 2013-2015 Andras Iklody
-Copyright (C) 2015 CIRCL - Computer Incident Response Center Luxembourg
+* Copyright (C) 2012 Christophe Vandeplas
+* Copyright (C) 2012 Belgian Defence
+* Copyright (C) 2012 NATO / NCIRC
+* Copyright (C) 2013-2015 Andras Iklody
+* Copyright (C) 2015 CIRCL - Computer Incident Response Center Luxembourg
 
 For more information, [the list of authors and contributors](AUTHORS) is available.
