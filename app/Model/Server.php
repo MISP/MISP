@@ -1654,7 +1654,10 @@ class Server extends AppModel {
 		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
 		$workers = $this->ResqueStatus->getWorkers();
 		$this->Log = ClassRegistry::init('Log');
-		$currentUser = get_current_user();
+		if (function_exists('posix_getpwuid')) {
+			$currentUser = posix_getpwuid(posix_geteuid());
+			$currentUser = $currentUser['name'];
+		} else $currentUser = trim(shell_exec('whoami'));
 		foreach ($workers as $pid => $worker) { 
 			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found!');
 			$pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false; 
