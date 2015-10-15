@@ -4,7 +4,8 @@ class JSONConverterTool {
 		$event['Event']['Attribute'] = $event['Attribute'];
 		$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
 		$event['Event']['RelatedEvent'] = $event['RelatedEvent'];
-		
+		if (isset($event['RelatedAttribute'])) $event['Event']['RelatedAttribute'] = $event['RelatedAttribute'];
+		else $event['Event']['RelatedAttribute'] = array();
 		//
 		// cleanup the array from things we do not want to expose
 		//
@@ -22,9 +23,11 @@ class JSONConverterTool {
 				unset($event['Event']['Attribute'][$key]['value1']);
 				unset($event['Event']['Attribute'][$key]['value2']);
 				unset($event['Event']['Attribute'][$key]['category_order']);
+				if (isset($event['Event']['RelatedAttribute'][$value['id']])) $event['Event']['Attribute'][$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
 			}
 		}
-
+		unset($event['Event']['RelatedAttribute']);
+		
 		if (isset($event['Event']['RelatedEvent'])) {
 			foreach ($event['Event']['RelatedEvent'] as $key => $value) {
 				$temp = $value['Event'];
