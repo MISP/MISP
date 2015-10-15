@@ -601,6 +601,7 @@ class UsersController extends AppController {
 					'type' => 'ADMIN',
 					'local' => 1
 				));
+				$this->User->Organisation->save($org);
 			}
 			// populate the DB with the first user if it's empty
 			if ($this->User->find('count') == 0 ) {

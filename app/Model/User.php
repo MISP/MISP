@@ -137,8 +137,9 @@ class User extends AppModel {
 			),
 		),
 		'gpgkey' => array(
-			'valueNotEmpty' => array(
-				'rule' => array('valueNotEmpty'),
+			'gpgvalidation' => array(
+				'rule' => array('validateGpgkey'),
+				'message' => 'GPG key not valid, please enter a valid key.',
 			),
 		),
 		'nids_sid' => array(
