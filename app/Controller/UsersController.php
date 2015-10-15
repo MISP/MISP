@@ -18,7 +18,7 @@ class UsersController extends AppController {
 	public $paginate = array(
 			'limit' => 60,
 			'order' => array(
-					'User.org' => 'ASC'
+					'Organisation.name' => 'ASC'
 			)
 	);
 
@@ -156,7 +156,7 @@ class UsersController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		$this->User->virtualFields['org_ci'] = 'UPPER(User.org)';
+		$this->User->virtualFields['org_ci'] = 'UPPER(Organisation.name)';
 		$urlparams = "";
 		$passedArgsArray = array();
 		$booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
@@ -593,12 +593,21 @@ class UsersController extends AppController {
 				));
 				$this->Role->save($siteAdmin);
 			}	
+			if ($this->User->Organisation->find('count') == 0) {
+				$org = array('Organisation' => array(
+					'id' => 1,
+					'name' => 'ADMIN',
+					'description' => 'Automatically generated admin organisation',
+					'type' => 'ADMIN',
+					'local' => 1
+				));
+			}
 			// populate the DB with the first user if it's empty
 			if ($this->User->find('count') == 0 ) {
 				$admin = array('User' => array(
 					'id' => 1,
 					'email' => 'admin@admin.test',
-					'org' => 'ADMIN',
+					'org_id' => 1,
 					'password' => 'admin',
 					'confirm_password' => 'admin',
 					'authkey' => $this->User->generateAuthKey(),
@@ -877,7 +886,7 @@ class UsersController extends AppController {
 			else $this->Session->setFlash(__('E-mails sent.'));
 		}
 		$conditions = array();
-		if (!$this->_isSiteAdmin()) $conditions = array('org' => $this->Auth->user('org'));
+		if (!$this->_isSiteAdmin()) $conditions = array('org' => $this->Auth->user('org_id'));
 		$temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email'), 'order' => array('email ASC'), 'conditions' => $conditions));
 		$emails = array();
 		$gpgKeys = array();

@@ -64,7 +64,7 @@ class Organisation extends AppModel{
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		if (empty($this->data['Organisation']['uuid'])) {
-			$this->data['Organisation']['uuid'] = String::uuid();
+			$this->data['Organisation']['uuid'] = $this->generateUuid();
 		}
 		$date = date('Y-m-d H:i:s');
 		if (empty($this->data['Organisation']['id'])) {

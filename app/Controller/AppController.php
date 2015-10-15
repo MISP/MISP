@@ -236,7 +236,7 @@ class AppController extends Controller {
 				'recursive' => -1,
 				'fields' => array('event_id', 'event_org_id'),
 				'conditions' => array( 
-					'ShadowAttribute.event_org_id' => $this->Auth->user('org'),
+					'ShadowAttribute.event_org_id' => $this->Auth->user('org_id'),
 					'ShadowAttribute.deleted' => 0,
 		)));
 		$results = array();
@@ -263,7 +263,6 @@ class AppController extends Controller {
  * checks if the currently logged user is an administrator (an admin that can manage the users and events of his own organisation)
  */
 	protected function _isAdmin() {
-		$org = $this->Auth->user('org');
 		if ($this->userRole['perm_site_admin'] || $this->userRole['perm_admin']) {
 			return true;
 		}
@@ -426,7 +425,7 @@ class AppController extends Controller {
 					'job_input' => 'Old database',
 					'status' => 0,
 					'retries' => 0,
-					'org' => 'ADMIN',
+					'org_id' => $this->Auth->user('org_id'),
 					'message' => 'Job created.',
 			);
 			$job->save($data);

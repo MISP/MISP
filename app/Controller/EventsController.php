@@ -154,7 +154,7 @@ class EventsController extends AppController {
 		// if we are not site admin, fetch all of the events so that we can remove everything that the user is not allowed to see
 			if (!$this->_isSiteAdmin()) {
 				$eventQuery = array(
-					'fields' => array('id', 'distribution', 'org'),
+					'fields' => array('id', 'distribution', 'org_id'),
 					'recursive' => -1,
 					'conditions' => array(),
 				);
@@ -166,7 +166,7 @@ class EventsController extends AppController {
 				}
 				$events = $this->Event->find('all', $eventQuery);
 				foreach ($events as $e) {
-					if ($e['Event']['org'] != $this->Auth->user('org')) {
+					if ($e['Event']['org_id'] != $this->Auth->user('org_id')) {
 						if ($e['Event']['distribution'] == 0) {
 							// unset all attribute hits that include this event
 							if (isset($includeIDs[$e['Event']['id']])) unset($includeIDs[$e['Event']['id']]);
@@ -221,7 +221,7 @@ class EventsController extends AppController {
 		// Using the keys from the previously obtained ordered array, let's fetch all of the events involved
 		$events = $this->Event->find('all', array(
 				'recursive' => -1,
-				'fields' => array('id', 'distribution', 'org'),
+				'fields' => array('id', 'distribution', 'org_id'),
 				'conditions' => array('id' => array_keys($eventsWithAttributeHits)),
 		));
 		
@@ -230,10 +230,10 @@ class EventsController extends AppController {
 		if (!$this->_isSiteAdmin()) {
 			foreach ($events as $k => $event) {
 				// if the event is not the user's org's event and is org only, unset it
-				if ($event['Event']['distribution'] == 0 && $event['Event']['org'] != $this->Auth->user('org')) unset($events[$k]);
+				if ($event['Event']['distribution'] == 0 && $event['Event']['org_id'] != $this->Auth->user('org_id')) unset($events[$k]);
 				else {
 					// If the event doesn't belong to the user's org but the distribution is higher than 0, then the attributes still need to be checked
-					if ($event['Event']['org'] != $this->Auth->user('org')) {
+					if ($event['Event']['org_id'] != $this->Auth->user('org_id')) {
 						$canKeep = false;
 						foreach($eventsWithAttributeHits[$event['Event']['id']] as $att) {
 							if ($att['distribution'] > 0) {
@@ -3219,7 +3219,7 @@ class EventsController extends AppController {
 		if (isset($data['event_id']) && !empty($data['event_id']) && is_numeric($data['event_id'])) {
 			$conditions = array();
 			if (!$this->_isSiteAdmin()) {
-				$conditions = array('Event.orgc' => $this->Auth->user('org'));
+				$conditions = array('Event.orgc_id' => $this->Auth->user('org_id'));
 				if (!$this->userRole['perm_modify_org']) $conditions[] = array('Event.user_id' => $this->Auth->user('id'));
 			}		
 			$event = $this->Event->find('first', array(
@@ -3239,14 +3239,14 @@ class EventsController extends AppController {
 					'threat_level_id' => $data['threat_level_id'],
 					'distribution' => $data['distribution'],
 					'date' => date('Y-m-d'),
-					'orgc' => $this->Auth->user('org'),
-					'org' => $this->Auth->user('org'),
+					'orgc_id' => $this->Auth->user('org_id'),
+					'org_id' => $this->Auth->user('org_id'),
 					'user_id' => $this->Auth->user('id'),
 				)
 			);
 			if (!$result) {
 				$this->Log->save(array(
-						'org' => $this->Auth->user('org'),
+						'org' => $this->Auth->user('Organisation')['name'],
 						'model' => 'Event',
 						'model_id' => 0,
 						'email' => $this->Auth->user('email'),
@@ -3283,7 +3283,7 @@ class EventsController extends AppController {
 					$result = $this->Event->Attribute->save($attribute);
 					if (!$result) {
 						$this->Log->save(array(
-								'org' => $this->Auth->user('org'),
+								'org' => $this->Auth->user('Organisation')['name'],
 								'model' => 'Event',
 								'model_id' => $data['event_id'],
 								'email' => $this->Auth->user('email'),
