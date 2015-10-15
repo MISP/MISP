@@ -354,7 +354,7 @@ class AppController extends Controller {
 			));
 			foreach ($attributes as $k => $attribute) {
 				if ($k > 0) {
-					$attribute['Attribute']['uuid'] = String::uuid();
+					$attribute['Attribute']['uuid'] = $this->{$this->alias}->generateUuid();
 					$this->Attribute->save($attribute);
 					$counter++;
 				}

@@ -91,7 +91,7 @@ class Organisation extends AppModel{
 			$name = $org['name'];
 		} else {
 			$conditions = array('name' => $org);
-			$uuid = String::uuid();
+			$uuid = $this->generateUuid();
 			$name = $org;
 		}
 		
@@ -122,7 +122,7 @@ class Organisation extends AppModel{
 		if (empty($existingOrg)) {
 			$this->create();
 			$organisation = array(
-					'uuid' => String::uuid(),
+					'uuid' => $this->generateUuid(),
 					'name' => $name,
 					'local' => $local,
 					'created_by' => $user_id

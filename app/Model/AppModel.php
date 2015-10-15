@@ -161,7 +161,7 @@ class AppModel extends Model {
 	public function generateUuid() {
 		$version = Configure::version();
 		$version = explode('.', $version);
-		if (intval($version[0]) <= 2 && intval($version[1]) < 7) $uuid = String::uuid();
+		if (intval($version[0]) <= 2 && intval($version[1]) < 7) $uuid = $this->generateUuid();
 		else $uuid = CakeText::uuid();
 		return $uuid;
 	}
