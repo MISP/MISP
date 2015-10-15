@@ -592,7 +592,8 @@ class UsersController extends AppController {
 					'perm_site_admin' => 1
 				));
 				$this->Role->save($siteAdmin);
-			}	
+			}
+				
 			if ($this->User->Organisation->find('count') == 0) {
 				$org = array('Organisation' => array(
 					'id' => 1,
@@ -603,6 +604,7 @@ class UsersController extends AppController {
 				));
 				$this->User->Organisation->save($org);
 			}
+			
 			// populate the DB with the first user if it's empty
 			if ($this->User->find('count') == 0 ) {
 				$admin = array('User' => array(

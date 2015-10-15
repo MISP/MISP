@@ -29,13 +29,13 @@ class TemplatesController extends AppController {
 	public function index() {
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
-			$conditions['OR'] = array('org' => $this->Auth->user('org'), 'share' => true);
+			$conditions['OR'] = array('org' => $this->Auth->user('Organisation')['name'], 'share' => true);
 		}
 		if (!$this->_isSiteAdmin()) {
 			$this->paginate = Set::merge($this->paginate,array(
 					'conditions' =>
 					array("OR" => array(
-							array('org' => $this->Auth->user('org')),
+							array('org' => $this->Auth->user('Organisation')['name']),
 							array('share' => true),
 			))));
 		}
@@ -53,7 +53,7 @@ class TemplatesController extends AppController {
 			unset($this->request->data['Template']['tagsPusher']);
 			$tags = $this->request->data['Template']['tags'];
 			unset($this->request->data['Template']['tags']);
-			$this->request->data['Template']['org'] = $this->Auth->user('org');
+			$this->request->data['Template']['org'] = $this->Auth->user('Organisation')['name'];
 			$this->Template->create();
 			if ($this->Template->save($this->request->data)) {
 				$id = $this->Template->id;
@@ -138,7 +138,7 @@ class TemplatesController extends AppController {
 			unset($this->request->data['Template']['tagsPusher']);
 			$tags = $this->request->data['Template']['tags'];
 			unset($this->request->data['Template']['tags']);
-			$this->request->data['Template']['org'] = $this->Auth->user('org');
+			$this->request->data['Template']['org'] = $this->Auth->user('Organisation')['name'];
 			$this->Template->create();
 			if ($this->Template->save($this->request->data)) {
 				$id = $this->Template->id;
@@ -228,11 +228,11 @@ class TemplatesController extends AppController {
 				'recursive' => -1,
 				'fields' => array('orgc', 'id'),
 		));
-		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc'] != $this->Auth->user('org'))) throw new NotFoundException('Event not found or you are not authorised to edit it.');
+		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) throw new NotFoundException('Event not found or you are not authorised to edit it.');
 	
 		$conditions = array();
 		if (!$this->_isSiteAdmin) {
-			$conditions['OR'] = array('Template.org' => $this->Auth->user('org'), 'Template.share' => true);
+			$conditions['OR'] = array('Template.org' => $this->Auth->user('Organisation')['name'], 'Template.share' => true);
 		}
 		$templates = $this->Template->find('all', array(
 				'recursive' => -1,
@@ -267,8 +267,8 @@ class TemplatesController extends AppController {
 		if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 		if (empty($template)) throw new MethodNotAllowedException('Template not found or you are not authorised to edit it.');
 		if (!$this->_isSiteAdmin()) {
-			if ($event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
-			if ($template['Template']['org'] != $this->Auth->user('org') && !$template['Template']['share']) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');	
+			if ($event['Event']['orgc'] != $this->Auth->user('Organisation')['name']) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
+			if ($template['Template']['org'] != $this->Auth->user('Organisation')['name'] && !$template['Template']['share']) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');	
 		}
 		
 		$this->set('template_id', $template_id);
@@ -310,7 +310,7 @@ class TemplatesController extends AppController {
 			));
 			if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 			if (!$this->_isSiteAdmin()) {
-				if ($event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
+				if ($event['Event']['orgc_id'] != $this->Auth->user('org_id')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 			}
 
 			$template = $this->Template->find('first', array(
