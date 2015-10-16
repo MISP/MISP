@@ -629,8 +629,7 @@ class EventsController extends AppController {
 		}
 
 		// set the types + categories for the attribute add/edit ajax overlays
-		$categories = $this->Event->Attribute->validate['category']['rule'][1];
-		array_pop($categories);
+		$categories = array_keys($this->Event->Attribute->categoryDefinitions);
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', compact('categories'));
 			

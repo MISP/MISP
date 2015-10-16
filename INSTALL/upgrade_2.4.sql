@@ -46,6 +46,7 @@ call AddColumnUnlessExists(Database(), 'servers', 'remote_org_id', 'INT( 11 ) NO
 
 call AddColumnUnlessExists(Database(), 'shadow_attributes', 'org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
 call AddColumnUnlessExists(Database(), 'shadow_attributes', 'event_org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
+call AddColumnUnlessExists(Database(), 'shadow_attributes', 'proposal_to_delete', 'BOOLEAN NOT NULL');
 
 call AddColumnUnlessExists(Database(), 'tags', 'exportable', 'TINYINT( 1 ) NOT NULL DEFAULT 0');
 

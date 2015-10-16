@@ -246,8 +246,7 @@ class AttributesController extends AppController {
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobos for categories
-		$categories = $this->Attribute->validate['category']['rule'][1];
-		array_pop($categories);
+		$categories = array_keys($this->Attribute->categoryDefinitions);
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', compact('categories'));
 		$this->loadModel('Event');
@@ -406,20 +405,18 @@ class AttributesController extends AppController {
 		}
 	
 		// combobos for categories
-		$categories = $this->Attribute->validate['category']['rule'][1];
+		$categories = array_keys($this->Attribute->categoryDefinitions);
 		// just get them with attachments..
 		$selectedCategories = array();
 		foreach ($categories as $category) {
-			if (isset($this->Attribute->categoryDefinitions[$category])) {
-				$types = $this->Attribute->categoryDefinitions[$category]['types'];
-				$alreadySet = false;
-				foreach ($types as $type) {
-					if ($this->Attribute->typeIsAttachment($type) && !$alreadySet) {
-						// add to the whole..
-						$selectedCategories[] = $category;
-						$alreadySet = true;
-						continue;
-					}
+			$types = $this->Attribute->categoryDefinitions[$category]['types'];
+			$alreadySet = false;
+			foreach ($types as $type) {
+				if ($this->Attribute->typeIsAttachment($type) && !$alreadySet) {
+					// add to the whole..
+					$selectedCategories[] = $category;
+					$alreadySet = true;
+					continue;
 				}
 			}
 		};
@@ -734,8 +731,7 @@ class AttributesController extends AppController {
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobox for categories
-		$categories = $this->Attribute->validate['category']['rule'][1];
-		array_pop($categories); // remove that last empty/space option
+		$categories = array_keys($this->Attribute->categoryDefinitions);
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', $categories);
 		$this->set('currentDist', $this->Event->data['Event']['distribution']);
@@ -1360,9 +1356,7 @@ class AttributesController extends AppController {
 				$this->set('types', $types);
 
 				// combobox for categories
-				$categories = array('' => array('ALL' => 'ALL', '' => ''), 'categories' => array());
-				array_pop($this->Attribute->validate['category']['rule'][1]); // remove that last 'empty' item
-				$categories['categories'] = array_merge($categories['categories'], $this->_arrayToValuesIndexArray($this->Attribute->validate['category']['rule'][1]));
+				$categories['categories'] = array_merge(array('ALL' => 'ALL'), $this->_arrayToValuesIndexArray(array_keys($this->Attribute->categoryDefinitions)));
 				$this->set('categories', $categories);
 			}
 		} else {
@@ -2044,8 +2038,7 @@ class AttributesController extends AppController {
 			$types = $this->_arrayToValuesIndexArray($types);
 			$this->set('types', $types);
 			// combobos for categories
-			$categories = $this->Attribute->validate['category']['rule'][1];
-			array_pop($categories);
+			$categories = array_keys($this->Attribute->categoryDefinitions);
 			$categories = $this->_arrayToValuesIndexArray($categories);
 			$this->set('categories', compact('categories'));
 			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);

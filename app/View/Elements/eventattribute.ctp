@@ -109,7 +109,13 @@
 						$extra3 = 'highlightBlueSides highlightBlueTop';
 					}
 					if (!$mayModify) $currentType = 'ShadowAttribute';
-				} else $extra = 'highlight2';
+				} else {
+					if (isset($object['proposal_to_delete']) && $object['proposal_to_delete']) {
+						$extra = 'highlight3';
+						unset($object['type']);
+					} else $extra = 'highlight2';
+					
+				}
 				if ($object['objectType'] == 1) {
 					$extra2 = '1';
 					$extra3 = 'highlightBlueSides';
@@ -130,129 +136,145 @@
 								<input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal" type="checkbox" data-id="<?php echo $object['id'];?>" />
 							<?php endif; ?>
 						</td>
-					<?php endif; ?>
-					<td class="short <?php echo $extra; ?>">
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_timestamp_solid'; ?>">
-							<?php 
-								if (isset($object['timestamp'])) echo date('Y-m-d', $object['timestamp']);
-								else echo '&nbsp';				
-							?>
-						</div>
-					</td>
-					<td class="shortish <?php echo $extra; ?>">
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_category_placeholder'; ?>" class = "inline-field-placeholder"></div>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_category_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'category', <?php echo $event['Event']['id'];?>);">
-							<?php echo h($object['category']); ?>
-						</div>
-					</td>
-					<td class="shortish <?php echo $extra; ?>">
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_type_placeholder'; ?>" class = "inline-field-placeholder"></div>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_type_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'type', <?php echo $event['Event']['id'];?>);">
-							<?php echo h($object['type']); ?>
-						</div>
-					</td>
-					<td class="showspaces <?php echo $extra; ?> limitedWidth">
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
-						<?php if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ): ?>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">
-						<?php else: ?>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'value', <?php echo $event['Event']['id'];?>);">
-							<?php 
-							endif;
-								$sigDisplay = $object['value'];
-								if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
-									$t = ($object['type'] == 0 ? 'attributes' : 'shadow_attributes');
-									$filenameHash = explode('|', nl2br(h($object['value'])));
-									if (strrpos($filenameHash[0], '\\')) {
-										$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
-										$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
-										echo h($filepath);
-										echo $this->Html->link($filename, array('controller' => $t, 'action' => 'download', $object['id']));
-									} else {
-										echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
-									}
-									if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-								} elseif (strpos($object['type'], '|') !== false) {
-									$filenameHash = explode('|', $object['value']);
-									echo h($filenameHash[0]);
-									if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-								} elseif ('vulnerability' == $object['type']) {
-									if (! is_null(Configure::read('MISP.cveurl'))) {
-										$cveUrl = Configure::read('MISP.cveurl');
-									} else {
-										$cveUrl = "http://www.google.com/search?q=";
-									}
-									echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
-								} elseif ('link' == $object['type']) {
-									echo $this->Html->link($sigDisplay, $sigDisplay);
-								} else {
-									$sigDisplay = str_replace("\r", '', $sigDisplay);
-									echo nl2br(h($sigDisplay));
-								}
-							?>
-						</div>
-					</td>
-					<td class="showspaces bitwider <?php echo $extra; ?>">
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class = "inline-field-placeholder"></div>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
-							<?php echo nl2br(h($object['comment'])); ?>&nbsp;
-						</div>
-					</td>
-					<td class="shortish <?php echo $extra; ?>">
-						<ul class="inline" style="margin:0px;">
-							<?php 
-								if ($object['objectType'] == 0 && isset($event['RelatedAttribute'][$object['id']]) && (null != $event['RelatedAttribute'][$object['id']])) {
-									foreach ($event['RelatedAttribute'][$object['id']] as $relatedAttribute) {
-										echo '<li style="padding-right: 0px; padding-left:0px;" title ="' . h($relatedAttribute['info']) . '"><span>';
-										if ($relatedAttribute['org_id'] == $me['org_id']) {
-											echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('style' => 'color:red;'));
-										} else {
-											echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']));
-										}
-										echo "</span></li>";
-										echo ' ';
-									}
-								}
-							?>
-						</ul>
-					</td>
-					<td class="short <?php echo $extra; ?>">
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_placeholder'; ?>" class = "inline-field-placeholder"></div>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'to_ids', <?php echo $event['Event']['id'];?>);">
-							<?php 
-								if ($object['to_ids']) echo 'Yes';
-								else echo 'No';
-							?>
-						</div>
-					</td>
-					<td class="<?php echo $extra; ?>">
-						<?php 
-							$turnRed = '';
-							if ($object['objectType'] == 0 && $object['distribution'] == 0) $turnRed = 'style="color:red"';
-						?>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class = "inline-field-placeholder"></div>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
-							<?php 
-								if ($object['objectType'] == 0) {
-									if ($object['distribution'] == 4):
-							?>
-									<a href="/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
-							<?php 
-									else: 
-										echo h($distributionLevels[$object['distribution']]); 
+					<?php endif; 
+						if (isset($object['proposal_to_delete']) && $object['proposal_to_delete']): 
+							for ($i = 0; $i < 8; $i++): 	
+					?>
+								<td class="<?php echo $extra; ?>" style="font-weight:bold;"><?php echo ($i == 0 ? 'DELETE' : '&nbsp;'); ?></td>
+					<?php 
+							endfor;
+						else:
+					?>
+							<td class="short <?php echo $extra; ?>">
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_timestamp_solid'; ?>">
+									<?php 
+										if (isset($object['timestamp'])) echo date('Y-m-d', $object['timestamp']);
+										else echo '&nbsp';				
+									?>
+								</div>
+							</td>
+							<td class="shortish <?php echo $extra; ?>">
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_category_placeholder'; ?>" class = "inline-field-placeholder"></div>
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_category_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'category', <?php echo $event['Event']['id'];?>);">
+									<?php echo h($object['category']); ?>
+								</div>
+							</td>
+							<td class="shortish <?php echo $extra; ?>">
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_type_placeholder'; ?>" class = "inline-field-placeholder"></div>
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_type_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'type', <?php echo $event['Event']['id'];?>);">
+									<?php echo h($object['type']); ?>
+								</div>
+							</td>
+							<td class="showspaces <?php echo $extra; ?> limitedWidth">
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
+								<?php if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ): ?>
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">
+								<?php else: ?>
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'value', <?php echo $event['Event']['id'];?>);">
+									<?php 
 									endif;
-								}
-							?>&nbsp;
-						</div>
-					</td>
+										$sigDisplay = $object['value'];
+										if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
+											$t = ($object['type'] == 0 ? 'attributes' : 'shadow_attributes');
+											$filenameHash = explode('|', nl2br(h($object['value'])));
+											if (strrpos($filenameHash[0], '\\')) {
+												$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
+												$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
+												echo h($filepath);
+												echo $this->Html->link($filename, array('controller' => $t, 'action' => 'download', $object['id']));
+											} else {
+												echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
+											}
+											if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
+										} elseif (strpos($object['type'], '|') !== false) {
+											$filenameHash = explode('|', $object['value']);
+											echo h($filenameHash[0]);
+											if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
+										} elseif ('vulnerability' == $object['type']) {
+											if (! is_null(Configure::read('MISP.cveurl'))) {
+												$cveUrl = Configure::read('MISP.cveurl');
+											} else {
+												$cveUrl = "http://www.google.com/search?q=";
+											}
+											echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
+										} elseif ('link' == $object['type']) {
+											echo $this->Html->link($sigDisplay, $sigDisplay);
+										} else {
+											$sigDisplay = str_replace("\r", '', $sigDisplay);
+											echo nl2br(h($sigDisplay));
+										}
+									?>
+								</div>
+							</td>
+							<td class="showspaces bitwider <?php echo $extra; ?>">
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class = "inline-field-placeholder"></div>
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+									<?php echo nl2br(h($object['comment'])); ?>&nbsp;
+								</div>
+							</td>
+							<td class="shortish <?php echo $extra; ?>">
+								<ul class="inline" style="margin:0px;">
+									<?php 
+										if ($object['objectType'] == 0 && isset($event['RelatedAttribute'][$object['id']]) && (null != $event['RelatedAttribute'][$object['id']])) {
+											foreach ($event['RelatedAttribute'][$object['id']] as $relatedAttribute) {
+												echo '<li style="padding-right: 0px; padding-left:0px;" title ="' . h($relatedAttribute['info']) . '"><span>';
+												if ($relatedAttribute['org_id'] == $me['org_id']) {
+													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('style' => 'color:red;'));
+												} else {
+													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']));
+												}
+												echo "</span></li>";
+												echo ' ';
+											}
+										}
+									?>
+								</ul>
+							</td>
+							<td class="short <?php echo $extra; ?>">
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_placeholder'; ?>" class = "inline-field-placeholder"></div>
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'to_ids', <?php echo $event['Event']['id'];?>);">
+									<?php 
+										if ($object['to_ids']) echo 'Yes';
+										else echo 'No';
+									?>
+								</div>
+							</td>
+							<td class="<?php echo $extra; ?>">
+								<?php 
+									$turnRed = '';
+									if ($object['objectType'] == 0 && $object['distribution'] == 0) $turnRed = 'style="color:red"';
+								?>
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class = "inline-field-placeholder"></div>
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
+									<?php 
+										if ($object['objectType'] == 0) {
+											if ($object['distribution'] == 4):
+									?>
+											<a href="/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
+									<?php 
+											else: 
+												echo h($distributionLevels[$object['distribution']]); 
+											endif;
+										}
+									?>&nbsp;
+								</div>
+							</td>
+					<?php 
+						endif;
+					?>
 					<td class="short action-links <?php echo $extra;?>">
 						<?php
 							if ($object['objectType'] == 0) {
-								if ($isSiteAdmin || !$mayModify)  {
+								if ($isSiteAdmin || !$mayModify):
 						?>
 									<a href="/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-share useCursorPointer"></a>
+									<span class="icon-trash useCursorPointer" title="Propose Deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 						<?php 
-								}
+									if ($isSiteAdmin): 
+						?>
+										<span class="verticalSeparator">&nbsp;</span>
+						<?php 		endif;
+								endif;
 								if ($isSiteAdmin || $mayModify) {
 						?>
 							<a href="/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>

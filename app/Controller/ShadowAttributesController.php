@@ -77,12 +77,16 @@ class ShadowAttributesController extends AppController {
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->ShadowAttribute->data['ShadowAttribute']['event_id']));
 				}
 			}
-			// Update the live attribute with the shadow data
-			$fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids');
-			foreach ($fieldsToUpdate as $f) $activeAttribute['Attribute'][$f] = $shadow[$f];
 			$date = new DateTime();
-			$activeAttribute['Attribute']['timestamp'] = $date->getTimestamp();
-			$this->Attribute->save($activeAttribute['Attribute']);
+			if (isset($shadow['proposal_to_delete']) && $shadow['proposal_to_delete']) {
+				$this->Attribute->delete($activeAttribute['Attribute']['id']);	
+			} else {
+				// Update the live attribute with the shadow data
+				$fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids');
+				foreach ($fieldsToUpdate as $f) $activeAttribute['Attribute'][$f] = $shadow[$f];
+				$activeAttribute['Attribute']['timestamp'] = $date->getTimestamp();
+				$this->Attribute->save($activeAttribute['Attribute']);
+			}
 			$this->ShadowAttribute->setDeleted($id);
 			$this->loadModel('Event');
 			$this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
@@ -406,8 +410,7 @@ class ShadowAttributesController extends AppController {
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobos for categories
-		$categories = $this->ShadowAttribute->validate['category']['rule'][1];
-		array_pop($categories);
+		$categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', compact('categories'));
 		// combobox for distribution
@@ -653,7 +656,7 @@ class ShadowAttributesController extends AppController {
 			if ($attachment) $this->request->data['ShadowAttribute']['type'] = $existingAttribute['Attribute']['type'];
 			$this->request->data['ShadowAttribute']['org_id'] =  $this->Auth->user('org_id');
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'value', 'org_id');
+			$this->request->data['ShadowAttribute']['proposal_to_delete'] = false;
 			if ($this->ShadowAttribute->save($this->request->data)) {
 				$emailResult = "";
 				if (!$this->__sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id'])) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
@@ -677,14 +680,63 @@ class ShadowAttributesController extends AppController {
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobox for categories
-		$categories = $this->ShadowAttribute->validate['category']['rule'][1];
-		array_pop($categories); // remove that last empty/space option
+		$categories = $this->_arrayToValuesIndexArray(array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions));
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', $categories);
 
 		$this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
-		$this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
+		$this->set('categoryDefinitions', $this->ShadowAttribute->Event->Attribute->categoryDefinitions);
+	}
+	
+	public function delete($id) {
+		if (strlen($id) == 36) {
+			$this->ShadowAttribute->Event->recursive = -1;
+			$temp = $this->ShadowAttribute->Event->Attribute->find('first', array('recursive' => -1, 'conditions' => array('Attribute.uuid' => $id), 'fields' => array('id')));
+			if ($temp == null) throw new NotFoundException('Invalid attribute');
+			$id = $temp['Attribute']['id'];
+		}
+
+		$existingAttribute = $this->ShadowAttribute->Event->Attribute->find(
+			'first', 
+			array(
+				'recursive' => -1, 
+				'conditions' => array(
+					'Attribute.id' => $id
+				),
+				'contain' => array('Event' => array('fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id')))
+		));
+		
+		if ($this->request->is('post')) {
+			if (empty($existingAttribute)) return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid Attribute.')),'status'=>200));
+			$this->ShadowAttribute->create();
+			$sa = array(
+					'old_id' => $existingAttribute['Attribute']['id'],
+					'uuid' => $existingAttribute['Attribute']['uuid'],
+					'event_id' => $existingAttribute['Event']['id'],
+					'event_uuid' => $existingAttribute['Event']['uuid'],
+					'event_org_id' => $existingAttribute['Event']['orgc_id'],
+					'category' => $existingAttribute['Attribute']['category'],
+					'type' => $existingAttribute['Attribute']['type'],
+					'to_ids' => $existingAttribute['Attribute']['to_ids'],
+					'value' => $existingAttribute['Attribute']['value'],
+					'email' => $this->Auth->user('email'),
+					'org_id' => $this->Auth->user('org_id'),
+					'proposal_to_delete' => true,
+			);
+			if ($this->ShadowAttribute->save($sa)) {
+				$emailResult = "";
+				if (!$this->__sendProposalAlertEmail($existingAttribute['Event']['id'])) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'The proposal to delete the attribute has been saved' . $emailResult)),'status'=>200));
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not create proposal.')),'status'=>200));
+			}
+		} else {
+			if (empty($existingAttribute)) throw new NotFoundException(__('Invalid Attribute'));
+			$this->set('id', $id);
+			$this->set('event_id', $existingAttribute['Attribute']['event_id']);
+			$this->render('ajax/deletionProposalConfirmationForm');
+		}
 	}
 	
 	private function _setProposalLock($id, $lock = true) {
@@ -811,6 +863,9 @@ class ShadowAttributesController extends AppController {
 						'Event' => array(
 								'fields' => array('id', 'org_id', 'info', 'orgc_id'),
 						),
+						'Org' => array(
+								'fields' => array('name'),
+						)
 				),
 				'recursive' => 1	
 		);
@@ -1007,9 +1062,9 @@ class ShadowAttributesController extends AppController {
 		$fails = array_diff($ids, $successes);
 		$this->autoRender = false;
 		if (count($fails) == 0 && count($successes) > 0) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' deleted.')),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted.')),'status'=>200));
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' proposal' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.')),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted, but ' . count($fails) . ' proposal' . (count($fails) != 1 ? 's' : '') . ' could not be accepted.')),'status'=>200));
 		}
 	}
 }

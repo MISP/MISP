@@ -262,6 +262,12 @@ td.highlight2 {
 	
 }
 
+td.highlight3 {
+	background-color: red !important;
+	color: #ffffff !important;
+	
+}
+
 tr.highlightBlueSides {
 	border-left:2px solid #0088cc;
 	border-right:2px solid #0088cc;
@@ -1383,6 +1389,10 @@ a.discrete {
 .multi-page-form-div {
 	border:1px solid #dddddd; 
 	padding:10px;
+}
+
+.verticalSeparator {
+	border-left: 1px solid grey;
 }
 
 @-webkit-keyframes rotation {

@@ -268,22 +268,7 @@ class Attribute extends AppModel {
 		),
 		// this could be initialized from categoryDefinitions but dunno how at the moment
 		'category' => array(
-			'rule' => array('inList', array(
-							'Internal reference',
-							'Targeting data',
-							'Antivirus detection',
-							'Payload delivery',
-							'Payload installation',
-							'Artifacts dropped',
-							'Persistence mechanism',
-							'Network activity',
-							'Payload type',
-							'Attribution',
-							'External analysis',
-							'Financial fraud',
-							'Other',
-							'' // FIXME remove this once all attributes have a category. Otherwise sigs without category are not shown in the list
-						)),
+			'rule' => array('validCategory'),
 			'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
 		),
 		'value' => array(
@@ -510,12 +495,10 @@ class Attribute extends AppModel {
 		if (empty($this->data['Attribute']['to_ids'])) {
 		    $this->data['Attribute']['to_ids'] = 0;
 		}
-
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Attribute']['uuid'])) {
 			$this->data['Attribute']['uuid'] = $this->generateUuid();
 		}
-
 		// generate timestamp if it doesn't exist
 		if (empty($this->data['Attribute']['timestamp'])) {
 			$date = new DateTime();
@@ -531,6 +514,12 @@ class Attribute extends AppModel {
 		return true;
 	}
 
+	public function validCategory($fields) {
+		$validCategories = array_keys($this->categoryDefinitions);
+		if (in_array($fields['category'], $validCategories)) return true;
+		return false;
+	}
+	
 	public function valueIsUnique ($fields) {
 		$value = $fields['value'];
 		$eventId = $this->data['Attribute']['event_id'];

@@ -121,22 +121,10 @@ class ShadowAttribute extends AppModel {
 		),
 		// this could be initialized from categoryDefinitions but dunno how at the moment
 		'category' => array(
-			'rule' => array('inList', array(
-							'Internal reference',
-							'Targeting data',
-							'Antivirus detection',
-							'Payload delivery',
-							'Payload installation',
-							'Artifacts dropped',
-							'Persistence mechanism',
-							'Network activity',
-							'Payload type',
-							'Attribution',
-							'External analysis',
-							'Other',
-							'' // FIXME remove this once all attributes have a category. Otherwise sigs without category are not shown in the list
-						)),
-			'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
+			'validCategory' => array(
+				'rule' => array('validCategory'),
+				'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
+			),
 		),
 		'value' => array(
 			'valueNotEmpty' => array(
@@ -145,31 +133,23 @@ class ShadowAttribute extends AppModel {
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),
 				'message' => 'Value not in the right type/format. Please double check the value or select "other" for a type.',
-				//'allowEmpty' => false,
-				//'required' => true,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
 		'to_ids' => array(
 			'boolean' => array(
 				'rule' => array('boolean'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
 				'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
 		'uuid' => array(
 			'uuid' => array(
 				'rule' => array('uuid'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
+		),
+		'proposal_to_delete' => array(
+				'boolean' => array(
+						'rule' => array('boolean'),
+				),
 		),
 	);
 
@@ -278,6 +258,10 @@ class ShadowAttribute extends AppModel {
 			return in_array($fields['type'], $this->categoryDefinitions[$category]['types']);
 		}
 		return false;
+	}
+	
+	public function validCategory($fields) {
+		return $this->Event->Attribute->validCategory($fields);
 	}
 
 	public function validateAttributeValue($fields) {
@@ -438,6 +422,10 @@ class ShadowAttribute extends AppModel {
 		));
 		if (empty($oldsa)) return false;
 		else return $oldsa['ShadowAttribute'];
+	}
+	
+	public function proposeDeletion($existingAttribute) {
+		
 	}
 }
 

@@ -290,6 +290,7 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `deleted` tinyint(1) NOT NULL DEFAULT '0',
   `timestamp` int(11) NOT NULL DEFAULT '0',
+  `shadow_attributes` ADD  `proposal_to_delete` BOOLEAN NOT NULL,
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
   KEY `uuid` (`uuid`),
