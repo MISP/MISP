@@ -537,7 +537,6 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			type:"post", 
 			url:url
 		});
-		$("#popover_form").empty();
 	}
 };
 

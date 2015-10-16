@@ -330,11 +330,6 @@
 		</li>
         </ul>
     </div>
-	<div id="attribute_creation_div" style="display:none;">
-		<?php 
-			//echo $this->element('eventattributecreation');
-		?>
-	</div>
 <script type="text/javascript">
 	$(document).ready(function(){
 		$('input:checkbox').removeAttr('checked');

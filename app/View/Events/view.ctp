@@ -197,11 +197,10 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
 	<div id="attributes_div">
-		<?php 
-			//echo $this->element('eventattribute');
-		?>
 	</div>
 	<div id="discussions_div">
+	</div>
+	<div id="attribute_creation_div" style="display:none;">
 	</div>
 </div>
 <script type="text/javascript">
