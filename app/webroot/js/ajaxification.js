@@ -1942,35 +1942,30 @@ function zeroMQServerAction(action) {
 function convertServerFilterRules(rules) {
 	validOptions.forEach(function (type) {
 		container = "#Server" + type.ucfirst() + "Rules";
-		var tempJson = JSON.parse($(container).val());
-		validFields.forEach(function(field){
-			var allowed = [];
-			var blocked = [];
-			if (typeof tempJson[field] != 'undefined') {
-				tempJson[field].forEach(function(item) {
-					if (item.charAt(0) == '!') blocked.push(item.substr(1));
-					else allowed.push(item);
-				});
-			}
-			rules[type][field]["allowed"] = allowed;
-			rules[type][field]["blocked"] = blocked; 
-		});
+		if($(container).val() != '') rules[type] = JSON.parse($(container).val());
 	});
 	serverRuleUpdate();
 	return rules;
 }
 
 function serverRuleUpdate() {
-	var statusOptions = ["allowed", "blocked"];
+	var statusOptions = ["OR", "NOT"];
 	validOptions.forEach(function(type) {
 		validFields.forEach(function(field) {
+			if (type === 'push') {
+				var indexedList = {};
+				window[field].forEach(function(item) {
+					indexedList[item.id] = item.name;
+				});
+			}
 			statusOptions.forEach(function(status) {
 				if (rules[type][field][status].length > 0) {
 					$('#' + type + '_' + field + '_' + status).show();
 					var t = '';
 					rules[type][field][status].forEach(function(item) {
 						if (t.length > 0) t += ', ';
-						t += item;
+						if (type === 'pull') t += item;
+						else t += indexedList[item];
 					});
 					$('#' + type + '_' + field + '_' + status + '_text').text(t);
 				} else {
@@ -1995,21 +1990,8 @@ function serverRuleCancel() {
 }
 
 function serverRuleGenerateJSON() {
-	jsonObject = {"push":{"tags":[], "orgs":[]}, "pull":{"tags":[], "orgs":[]}};
 	validOptions.forEach(function(type) {
-		validFields.forEach(function(field) {
-			if (rules[type][field]["allowed"].length > 0) {
-				rules[type][field]["allowed"].forEach(function(value) {
-					jsonObject[type][field].push(value);	
-				});
-			}
-			if (rules[type][field]["blocked"].length > 0) {
-				rules[type][field]["blocked"].forEach(function(value) {
-					jsonObject[type][field].push("!" + value);	
-				});
-			}
-		});
-		$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(jsonObject[type]));
+		$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
 	});
 }
 
@@ -2019,23 +2001,23 @@ function serverRulePopulateTagPicklist() {
 	fields.forEach(function(field) {
 		target = "";
 		window[field].forEach(function(element) {
-			if ($.inArray(element.name, rules["push"][field]["allowed"]) != -1) target = "#" + field + "pushLeftValues";
-			else if ($.inArray(element.name, rules["push"][field]["blocked"]) != -1) target = "#" + field + "pushRightValues";
+			if ($.inArray(element.id, rules["push"][field]["OR"]) != -1) target = "#" + field + "pushLeftValues";
+			else if ($.inArray(element.id, rules["push"][field]["NOT"]) != -1) target = "#" + field + "pushRightValues";
 			else target = "#" + field + "pushMiddleValues";
 			$(target).append($('<option/>', { 
-				value: element.name,
+				value: element.id,
 				text : element.name 
 			}));
 		});
 		target = "#" + field + "pullLeftValues";
-		rules["pull"][field]["allowed"].forEach(function(t) {
+		rules["pull"][field]["OR"].forEach(function(t) {
 			$(target).append($('<option/>', { 
 				value: t,
 				text : t 
 			}));
 		});
 		target = "#" + field + "pullRightValues";
-		rules["pull"][field]["blocked"].forEach(function(t) {
+		rules["pull"][field]["NOT"].forEach(function(t) {
 			$(target).append($('<option/>', { 
 				value: t,
 				text : t 
@@ -2046,13 +2028,13 @@ function serverRulePopulateTagPicklist() {
 
 function submitServerRulePopulateTagPicklistValues(context) {
 	validFields.forEach(function(field) {
-		rules[context][field]["allowed"] = [];
+		rules[context][field]["OR"] = [];
 		$("#" + field + context + "LeftValues option").each(function() {
-			rules[context][field]["allowed"].push($(this).val());
+			rules[context][field]["OR"].push($(this).val());
 		});
-		rules[context][field]["blocked"] = [];
+		rules[context][field]["NOT"] = [];
 		$("#" + field + context + "RightValues option").each(function() {
-			rules[context][field]["blocked"].push($(this).val());
+			rules[context][field]["NOT"].push($(this).val());
 		});
 	});
 
@@ -2079,7 +2061,7 @@ function serverRuleMoveFilter(type, field, from, to) {
 			if (doInsert) {
 				$("#" + field + type + to + "Values").append($('<option/>', { 
 					value: value,
-					text : value 
+					text : value
 				}));
 			}
 		}
@@ -2088,9 +2070,10 @@ function serverRuleMoveFilter(type, field, from, to) {
 		$("#" + field + type + from + "Values option:selected").each(function () {
 			if (type != "pull" || to != "Middle") {
 				value = $(this).val();
+				text = $(this).text();
 				$("#" + field + type + to + "Values").append($('<option/>', { 
 					value: value,
-					text : value 
+					text : text
 				}));
 			}
 			$(this).remove();

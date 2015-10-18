@@ -82,6 +82,18 @@ class SharingGroup extends AppModel {
 		return false;
 	}
 	
+	public function fetchAllAuthorisedForServer($server) {
+		$conditions = array();
+		$ids = array();
+		//fetchAllSGsForServer($server_id)
+		$sgs = $this->find('list', array(
+				'recursive' => -1,
+				'fields' => array('id', 'name'),
+				'order' => 'name ASC',
+				'conditions' => $conditions,
+		));
+	}
+	
 	// returns a list of all sharing groups that the user is allowed to see
 	// scope can be:
 	// full: Entire SG object with all organisations and servers attached
@@ -203,7 +215,7 @@ class SharingGroup extends AppModel {
 			}
 			if ($results['rule'] === false) return false;
 		}
-		foreach ($sg['SharingGroupOrg'] as $org) if ($org['Organisation']['uuid'] == $server['RemoteOrg']['uuid']) return true;
+		foreach ($sg['SharingGroupOrg'] as $org) if ($org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) return true;
 		return false;
 	}
 	

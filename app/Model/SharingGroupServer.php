@@ -98,4 +98,16 @@ class SharingGroupServer extends AppModel {
 		if (!empty($sg)) return true;
 		return false;
 	}
+	
+	public function fetchAllSGsForServer($server_id) {
+		$sgs = $this->find('all', array(
+			'recursive' => -1,
+			'conditions' => array('server_id' => $server_id)
+		));
+		$sgids = array();
+		foreach ($sgs as &$temp) {
+			$sgids[] = $temp[$this->alias][$id];
+		}
+		return $sgids;
+	}
 }

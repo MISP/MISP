@@ -669,29 +669,19 @@ class Event extends AppModel {
 	// "{"tag":["1", "!2"], "org":["1"]}"
 	// this would only sync events having been tagged as 1 but not 2 and created by organisation 1
 	private function __checkFilterSbeforePush($event, $server) {
-		$temp = json_decode($server['Server']['push_rules'], true);
-		$rules = array();
-		$types = array('tag', 'org');
-		foreach ($types as $type) {
-			if (isset($temp[$type])) {
-				foreach ($temp[$type] as $rule) {
-					if (substr($rule, 0, 1) === '!') $rules[$type]['NOT'][] = substr($rule, 1);
-					else $rules[$type]['OR'][] = $rule;
-				}
-			}
-		}
+		$rules = json_decode($server['Server']['push_rules'], true);
 		$eventTags = array();
 		if (isset($event['EventTag'])) foreach ($event['EventTag'] as $tag) $eventTags[] = $tag['tag_id'];
-		if (isset ($rules['org']['OR'])) if (!in_array($event['Orgc']['id'], $rules['org']['OR'])) return false;
-		if (isset ($rules['org']['NOT'])) if (in_array($event['Orgc']['id'], $rules['org']['NOT'])) return false;
-		if (isset ($rules['tag']['OR'])) {
+		if (isset($rules['orgs']['OR'])) if (!in_array($event['Orgc']['id'], $rules['orgs']['OR'])) return false;
+		if (isset($rules['orgs']['NOT'])) if (in_array($event['Orgc']['id'], $rules['orgs']['NOT'])) return false;
+		if (isset($rules['tags']['OR'])) {
 			if (!isset($event['EventTag'])) return false;
 			$found = false;
-			foreach ($rules['tag']['OR'] as $tag) if (in_array($tag, $eventTags)) $found = true;
+			foreach ($rules['tags']['OR'] as $tag) if (in_array($tag, $eventTags)) $found = true;
 			if (!$found) return false;
 		}
-		if (isset ($rules['tag']['NOT'])) {
-			if (isset($event['EventTag'])) foreach ($rules['tag']['NOT'] as $tag) if (in_array($tag, $eventTags)) return false;
+		if (isset ($rules['tags']['NOT'])) {
+			if (isset($event['EventTag'])) foreach ($rules['tags']['NOT'] as $tag) if (in_array($tag, $eventTags)) return false;
 		}
 		return true;
 	}
@@ -704,12 +694,25 @@ class Event extends AppModel {
  * @return bool true if success, false or error message if failed
  */
 	public function restfullEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
-		$result = $this->checkDistributionForPush($event, $server);
-		$result2 = $this->__checkFiltersBeforePush($event, $server);
-		if ($result === false || $result2 === false) { // block the event if it failed either of the checks
-			return 403; //"Event cannot be exported to this instance";
+		
+		if ($event['Event']['distribution'] == 4) {
+			if (!empty($event['SharingGroup']['SharingGroupServer'])) {
+				$found = false;
+				foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
+					if ($sgs['server_id'] == $server['Server']['id']) $found = true;
+				}
+				if (!$found) return 403;
+			}
 		}
-
+		
+		$serverModel = ClassRegistry::init('Server');
+		$servers = $serverModel->find('all', array('conditions' => array('push' => 1)));
+		$server = $serverModel->eventFilterPushableServers($event, array($server));
+		if (empty($server)) return 403;
+		$server = $server[0];
+		if ($this->checkDistributionForPush($event, $server, $context = 'Event')) {
+			$event = $this->__updateEventForSync($event, $server);
+		} else return 403;
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
@@ -717,93 +720,16 @@ class Event extends AppModel {
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 		}
-		/*
-		if (is_array($rules) && $rules['rule'] === 'conditional') {
-			$request = array(
-				'header' => array(
-						'Authorization' => $authkey,
-						'Accept' => 'application/xml',
-						'Content-Type' => 'application/xml',
-				)
-			);
-			// First check if the organisation of the sync user can actually see the event
-			if (!in_array($server['RemoteOrg']['uuid'], $rules['orgs'])) return 403;
-			$uri = $server['Server']['url'] . '/organisations/getUUIDs';
-			$response = json_decode($HttpSocket->get($uri, '', $request));
-			$found = false;
-			foreach ($response as $orgUuid) if (in_array($orgUuid, $rules['orgs'])) $found = true; 
-			if (!$found) return 403;
-		}
-		*/
 		$request = array(
 				'header' => array(
 						'Authorization' => $authkey,
-						'Accept' => 'application/xml',
-						'Content-Type' => 'application/xml',
+						'Accept' => 'application/json',
+						'Content-Type' => 'application/json',
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
 		$uri = isset($urlPath) ? $urlPath : $url . '/events';
-		// LATER try to do this using a separate EventsController and renderAs() function
-		$xmlArray = array();
-/* TODO remove this once the merge is completely done and it becomes obvious that none of this is needed
-		// rearrange things to be compatible with the Xml::fromArray()
-		if (isset($event['Attribute'])) {
-			$event['Event']['Attribute'] = $event['Attribute'];
-			unset($event['Attribute']);
-		}
-
-		// cleanup the array from things we do not want to expose
-		//unset($event['Event']['org']);
-		// remove value1 and value2 from the output
-		if (isset($event['Event']['Attribute'])) {
-			foreach ($event['Event']['Attribute'] as $key => &$attribute) {
-				// do not keep attributes that are private, nor cluster
-				if ($attribute['distribution'] < 2) {
-					unset($event['Event']['Attribute'][$key]);
-					continue; // stop processing this
-				}
-				// Distribution, correct Connected Community to Community in Attribute
-				if ($attribute['distribution'] == 2) {
-					$attribute['distribution'] = 1;
-				}
-				// remove value1 and value2 from the output
-				unset($attribute['value1']);
-				unset($attribute['value2']);
-				// also add the encoded attachment
-				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-					$attribute['data'] = $encodedFile;
-				}
-				// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
-				// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
-				// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
-				// solves the issue and a new attribute is always created.
-				unset($attribute['id']);
-			}
-		} else return 403;
-		
-		// If we ran out of attributes, or we never had any to begin with, we want to prevent the event from being pushed.
-		// It should show up the same way as if the event was not exportable
-		if (count($event['Event']['Attribute']) == 0) return 403;
-*/
-		
-		// update the event to ready it for the sync
-		// This involves checking which attribute can be synced to the server
-		// Rearranging things to be compatible with the XML conversion
-		// Removing unwanted properties
-		$event = $this->__updateEventForSync($event, $server);
-		$xmlArray['Event'][] = $event['Event'];
-		App::uses('XMLConverterTool', 'Tools');
-		$converter = new XMLConverterTool();
-		$data = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . $converter->event2XML($event) . PHP_EOL;
-
-		// do a REST POST request with the server
-
-		debug($data);
-		throw new Exception();
-		
-		
+		$data = json_encode($event);
 		
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
@@ -817,18 +743,16 @@ class Event extends AppModel {
 						$newTextBody = $response->body();
 						$newLocation = null;
 						return true;
-						//return isset($urlPath) ? $response->body() : true;
 					} else {
 						try {
-							// parse the XML response and keep the reason why it failed
-							$xmlArray = Xml::toArray(Xml::build($response->body));
-						} catch (XmlException $e) {
+							$jsonArray = json_decode($response->body, true);
+						} catch (Exception $e) {
 							return true; // TODO should be false
 						}
-						if (strpos($xmlArray['response']['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
+						if (strpos($jsonArray['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
 							return true;
 						} else {
-							return $xmlArray['response']['name'];
+							return $jsonArray['name'];
 						}
 					}
 					break;
@@ -849,14 +773,13 @@ class Event extends AppModel {
 				case '403': // Not authorised
 					return 403;
 					break;
-
 			}
 		}
 	}
 	
 	private function __updateEventForSync($event, $server) {
 		// rearrange things to be compatible with the Xml::fromArray()
-		$objectsToRearrange = array('Attribute', 'Orgc', 'SharingGroup', 'EventTag');
+		$objectsToRearrange = array('Attribute', 'Orgc', 'SharingGroup', 'EventTag', 'Org');
 		foreach ($objectsToRearrange as $o) {
 			$event['Event'][$o] = $event[$o];
 			unset($event[$o]);
@@ -1124,7 +1047,7 @@ class Event extends AppModel {
 		}
 		return $results;
 	}
-	
+
 	//Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller or background process.
 	// Possible options: 
 	// eventid: single event ID
@@ -1698,14 +1621,23 @@ class Event extends AppModel {
 				unset ($data['Event']['EventTag']);
 				$data['Event']['EventTag'][0] = $temp;
 			}
+			$eventTags = array();
 			foreach ($data['Event']['EventTag'] as $k => $tag) {
-				$data['Event']['EventTag']['tag_id'] = $this->EventTag->Tag->captureTag($data['Event']['EventTag'][$k]['Tag'], $user);
+				$eventTags[] = array('tag_id' => $this->EventTag->Tag->captureTag($data['Event']['EventTag'][$k]['Tag'], $user));
 				unset ($data['Event']['EventTag'][$k]);
 			}
+			$data['Event']['EventTag'] = $eventTags;
 		}
 		if ($data['Event']['distribution'] == 4) {
 			$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
-			unset ($data['Event']['EventTag'][$k]);
+			unset ($data['Event']['SharingGroup']);
+		}
+		if(isset($data['Attribute'])) foreach ($data['Attribute'] as $k => &$a) {
+			unset($data['Attribute']['id']);
+			if($a['distribution'] == 4) {
+				$data['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Attribute'][$k]['SharingGroup'], $user);
+			}
+			unset($data['Attribute'][$k]['SharingGroup']);
 		}
 		return $data;
 	}
@@ -1762,27 +1694,24 @@ class Event extends AppModel {
 				// RESTfull, set responce location header..so client can find right URL to edit
 				if ($fromPull) return false;
 				$existingEvent = $this->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
-				//return $existingEvent['Event']['id'];
+				return $existingEvent['Event']['id'];
 			} else {
 				$data = $this->__captureObjects($data, $user);
-			}
-		}
-		if (isset($data['Attribute'])) {
-			foreach ($data['Attribute'] as &$attribute) {
-				unset ($attribute['id']);
-				if ($attribute['distribution'] == 4) {
-					$attribute = $attribute['sharing_group_id'] = $this->SharingGroup->captureSG($attribute['SharingGroup'], $user);
-				}
 			}
 		}
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
 				'Event' => array('org_id', 'orgc_id', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'locked'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'timestamp', 'distribution', 'comment')
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'timestamp', 'distribution', 'comment', 'sharing_group_id'),
 		);
 		$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,'atomic' => true));
 		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
 		if ($saveResult) {
+			foreach ($data['Event']['EventTag'] as $et) {
+					$this->EventTag->create();
+					$et['event_id'] = $this->id;
+					$this->EventTag->save($et);
+			}
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
 				if ('true' != Configure::read('MISP.disablerestalert')) {
@@ -1858,13 +1787,14 @@ class Event extends AppModel {
 	// If the distribution is org only / comm only, return false
 	// If the distribution is sharing group only, check if the sync user is in the sharing group or not, return true if yes, false if no
 	public function checkDistributionForPush($object, $server, $context = 'Event') {
-		$rules = array();
 		if ($object[$context]['distribution'] < 2) return false;
-		
-		
 		if ($object[$context]['distribution'] == 4) {
-			if ($context === 'Event') return $this->SharingGroup->checkIfServerInSG($object['SharingGroup'], $server);
-			else return $this->SharingGroup->checkIfServerInSG($object[$context]['SharingGroup'], $server);
+			if ($context === 'Event') {
+				return $this->SharingGroup->checkIfServerInSG($object['SharingGroup'], $server);
+			}
+			else {
+				return $this->SharingGroup->checkIfServerInSG($object[$context]['SharingGroup'], $server);
+			}
 		}
 		return true;
 	}
@@ -1901,36 +1831,36 @@ class Event extends AppModel {
 						'Org' => array('fields' => array('id', 'uuid', 'name', 'local')),
 						'Orgc' => array('fields' => array('id', 'uuid', 'name', 'local')),
 						'SharingGroup' => array(
+							'Organisation' => array(
+								'fields' => array('id', 'uuid', 'name', 'local'),
+							),
+							'SharingGroupOrg' => array(
+								'fields' => array('id', 'org_id'),
 								'Organisation' => array(
-									'fields' => array('id', 'uuid', 'name', 'local'),
-								),
-								'SharingGroupOrg' => array(
-									'fields' => array('id', 'org_id'),
-									'Organisation' => array(
-										'fields' => array('id', 'uuid')
-									)
-								),
-								'SharingGroupServer' => array(
-									'fields' => array('id', 'server_id', 'all_orgs'),
-									'Server' => array(
-										'fields' => array('id', 'url')
-									)
-								),
+									'fields' => array('id', 'uuid', 'name')
+								)
+							),
+							'SharingGroupServer' => array(
+								'fields' => array('id', 'server_id', 'all_orgs'),
+								'Server' => array(
+									'fields' => array('id', 'url', 'name')
+								)
+							),
 						),
 				),
 		));
 		if (empty($event)) return true;
-
+		//
+		if ($event['Event']['distribution'] < 2) return true;
 		$event['Event']['locked'] = 1;
 		// get a list of the servers
 		$serverModel = ClassRegistry::init('Server');
-		$servers = $serverModel->find('all', array(
-				'conditions' => array('Server.push' => true)
-		));
+		$servers = $serverModel->find('all', array('conditions' => array('push' => 1)));
+
 		// iterate over the servers and upload the event
 		if(empty($servers))
 			return true;
-	
+		
 		$uploaded = true;
 		$failedServers = array();
 		App::uses('SyncTool', 'Tools');

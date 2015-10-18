@@ -1012,6 +1012,8 @@ class Server extends AppModel {
 		} else {
 			$this->redirect(array('action' => 'index'));
 		}
+		
+		// Update distribution checks - move to fetchEvent()?
 		$findParams = array(
 				'conditions' => array(
 						$eventid_conditions_key => $eventid_conditions_value,
@@ -2090,5 +2092,32 @@ class Server extends AppModel {
 			return $event;
 		}
 		return 2;
+	}
+	
+	// Loops through all servers and checks which servers' push rules don't conflict with the given event.
+	// returns the server objects that would allow the event to be pushed
+	public function eventFilterPushableServers($event, $servers) {
+		$eventTags = array();
+		$validServers = array();
+		foreach ($event['EventTag'] as $tag) $eventTags[] = $tag['tag_id'];
+		foreach ($servers as $server) {
+			$push_rules = json_decode($server['Server']['push_rules'], true);
+			if (!empty($push_rules['tags']['OR'])) {
+				$intersection = array_intersect($push_rules['tags']['OR'], $eventTags);
+				if (empty($intersection)) continue;
+			}
+			if (!empty($push_rules['tags']['NOT'])) {
+				$intersection = array_intersect($push_rules['tags']['NOT'], $eventTags);
+				if (!empty($intersection)) continue;
+			}
+			if (!empty($push_rules['orgs']['OR'])) {
+				if (!in_array($event['Event']['orgc_id'], $push_rules['orgs']['OR'])) continue;
+			}
+			if (!empty($push_rules['orgs']['NOT'])) {
+				if (in_array($event['Event']['orgc_id'], $push_rules['orgs']['OR'])) continue;
+			}
+			$validServers[] = $server;
+		}
+		return $validServers;
 	}
 }
