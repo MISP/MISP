@@ -121,7 +121,6 @@ class FinancialTool {
 			foreach ($numberArray as $k => &$number) {
 				$number = intval($number);
 				if ($k%2 == 0) $number *= 2;
-				debug($number);
 				if ($number > 9) $number -=9;
 				$sum += $number;
 			}
