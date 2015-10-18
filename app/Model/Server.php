@@ -2048,10 +2048,10 @@ class Server extends AppModel {
 				return 1;
 			}
 			if (!empty($events)) foreach ($events as &$event) {
-				$event = array('Event' => $event);
-				if (!isset($event['Orgc'])) $event['Orgc']['name'] = $event['Event']['orgc'];
-				if (!isset($event['Org'])) $event['Org']['name'] = $event['Event']['org'];
+				if (!isset($event['Orgc'])) $event['Orgc']['name'] = $event['orgc'];
+				if (!isset($event['Org'])) $event['Org']['name'] = $event['org'];
 				if (!isset($event['EventTag'])) $event['EventTag'] = array();
+				$event = array('Event' => $event);
 			} else return 3;
 			return $events;
 		}
@@ -2086,9 +2086,11 @@ class Server extends AppModel {
 			} catch (Exception $e) {
 				return 1;
 			}
-			if (!isset($event['Orgc'])) $event['Orgc']['name'] = $event['Event']['orgc'];
-			if (!isset($event['Org'])) $event['Org']['name'] = $event['Event']['org'];
-			if (!isset($event['EventTag'])) $event['EventTag'] = array();
+			if (!isset($event['Event']['Orgc'])) $event['Event']['Orgc']['name'] = $event['Event']['orgc'];
+			if (isset($event['Event']['Orgc'][0])) $event['Event']['Orgc'] = $event['Event']['Orgc'][0];
+			if (!isset($event['Event']['Org'])) $event['Event']['Org']['name'] = $event['Event']['org'];
+			if (isset($event['Event']['Org'][0])) $event['Event']['Org'] = $event['Event']['Org'][0];
+			if (!isset($event['Event']['EventTag'])) $event['Event']['EventTag'] = array();
 			return $event;
 		}
 		return 2;

@@ -95,13 +95,13 @@
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($event['Event']['id']);?>'">
 				<?php
-					echo h($event['Orgc']['name']);
+					echo h($event['Event']['Orgc']['name']);
 				?>
 				&nbsp;
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($event['Event']['id']);?>'">
 				<?php
-					echo h($event['Org']['name']);
+					echo h($event['Event']['Org']['name']);
 				?>
 				&nbsp;
 			</td>
@@ -110,7 +110,7 @@
 			</td>
 			<?php if (Configure::read('MISP.tagging')): ?>
 			<td style = "max-width: 200px;width:10px;">
-				<?php foreach ($event['EventTag'] as $tag):
+				<?php foreach ($event['Event']['EventTag'] as $tag):
 					$tagText = "&nbsp;";
 					if (Configure::read('MISP.full_tags_on_event_index')) $tagText = $tag['Tag']['name'];
 				?>
