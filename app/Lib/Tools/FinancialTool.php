@@ -124,7 +124,8 @@ class FinancialTool {
 				if ($number > 9) $number -=9;
 				$sum += $number;
 			}
-			if ($sum%10 == $lastDigit) return true;
+			$sum += $lastDigit;
+			if ($sum%10 == 0) return true;
 			return false;
 		}
 		return false;
