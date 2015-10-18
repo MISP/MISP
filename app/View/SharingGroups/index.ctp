@@ -42,14 +42,14 @@ foreach ($sharingGroups as $k => $sharingGroup):
 			$combined .= "Organisations:";
 			if (count($sharingGroup['SharingGroupOrg']) == 0) $combined .= "<br />N/A";
 			foreach ($sharingGroup['SharingGroupOrg'] as $k2 => $sge) {
-				$combined .= "<br /><a href='/Organisation/view/" . $sge['Organisation']['id'] . "'>" . h($sge['Organisation']['name']) . "</a>";
+				$combined .= "<br /><a href='/Organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
 				if ($sge['extend']) $combined .= (' (can extend)');
 			}
 			$combined .= "<hr style='margin:5px 0;'><br />Instances:";
 			if (count($sharingGroup['SharingGroupServer']) == 0) $combined .= "<br />N/A";
 			foreach ($sharingGroup['SharingGroupServer'] as $k3 => $sgs) {
 				if ($sgs['server_id'] != 0) {
-					$combined .= "<br /><a href='/Server/view/" . $sgs['Server']['id'] . "'>" . h($sgs['Server']['name']) . "</a>";
+					$combined .= "<br /><a href='/Server/view/" . h($sgs['Server']['id']) . "'>" . h($sgs['Server']['name']) . "</a>";
 				} else {
 					$combined .= "<br />This instance";
 				}

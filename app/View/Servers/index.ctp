@@ -32,7 +32,30 @@
 			<th class="actions">Actions</th>
 	</tr>
 	<?php 
-foreach ($servers as $server): ?>
+foreach ($servers as $server): 
+	$rules = array();
+	$rules['push'] = json_decode($server['Server']['push_rules'], true);
+	$rules['pull'] = json_decode($server['Server']['pull_rules'], true);
+	$syncOptions = array('pull', 'push');
+	$fieldOptions = array('tags', 'orgs');
+	$typeOptions = array('OR' => array('colour' => 'green', 'text' => 'allowed'), 'NOT' => array('colour' => 'red', 'text' => 'blocked'));
+	$ruleDescription = array('pull' => '', 'push' => '');
+	foreach ($syncOptions as $syncOption) {
+		foreach ($fieldOptions as $fieldOption) {
+			foreach ($typeOptions as $typeOption => $typeData) {
+				if (isset($rules[$syncOption][$fieldOption][$typeOption]) && !empty($rules[$syncOption][$fieldOption][$typeOption])) {
+					$ruleDescription[$syncOption] .= '<span class=\'bold\'>' . ucfirst($fieldOption) . ' ' . $typeData['text'] . '</span>: <span class=\'' . $typeData['colour'] . '\'>';
+					foreach ($rules[$syncOption][$fieldOption][$typeOption] as $k => $temp) {
+						if ($k != 0) $ruleDescription[$syncOption] .= ', ';
+						if ($syncOption === 'push') $temp = $collection[$fieldOption][$temp];
+						$ruleDescription[$syncOption] .= h($temp);
+					}
+					$ruleDescription[$syncOption] .= '</span><br />';
+				}
+			}
+		}
+	}
+?>
 	<tr>
 		<td>
 			<?php 
@@ -41,8 +64,9 @@ foreach ($servers as $server): ?>
 			?>
 		</td>
 		<td id="connection_test_<?php echo $server['Server']['id'];?>"><span class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');">Run</span></td>
-		<td class="short"><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span></td>
-		<td class="short"><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span></td>
+		
+		<td><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['push']; ?>"> (Rules)</span></td>
+		<td><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (Rules)</span>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
 		<td><a href="/organisations/view/<?php echo h($server['RemoteOrg']['id']); ?>"><?php echo h($server['RemoteOrg']['name']); ?></a></td>
 		<td class="short"><?php echo h($server['Server']['cert_file']); ?>&nbsp;</td>
@@ -89,6 +113,11 @@ endforeach; ?>
     </div>
 
 </div>
+<script type="text/javascript"> 
+	$(document).ready(function(){
+		popoverStartup();
+	});
+</script>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'index'));
 ?>

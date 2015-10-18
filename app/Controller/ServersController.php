@@ -59,6 +59,16 @@ class ServersController extends AppController {
 			$this->paginate['conditions'] = array('Server.org_id LIKE' => $this->Auth->user('org_id'));
 		}
 		$this->set('servers', $this->paginate());
+		$collection = array();
+		$collection['orgs'] = $this->Server->Organisation->find('list', array(
+				'fields' => array('id', 'name'),
+		));
+		$this->loadModel('Tag');
+		$collection['tags'] = $this->Tag->find('list', array(
+				'fields' => array('id', 'name'),
+		));
+		$this->set('collection', $collection);
+
 	}
 	
 	public function previewIndex($id) {
@@ -215,25 +225,28 @@ class ServersController extends AppController {
 		}
 		$organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
 		$temp = $this->Server->Organisation->find('all', array(
-			'conditions' => array('local' => true),
-			'fields' => array('id', 'name'),
+				'conditions' => array('local' => true),
+				'fields' => array('id', 'name'),
 		));
 		$localOrganisations = array();
-		foreach ($temp as $o) $localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+		$allOrgs = array();
+		foreach ($temp as $o) {
+			$localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+			$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+		}
 		$temp = $this->Server->Organisation->find('all', array(
 				'conditions' => array('local' => false),
 				'fields' => array('id', 'name'),
 		));
 		$externalOrganisations = array();
-		foreach ($temp as $o) $externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+		foreach ($temp as $o) {
+			$externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+			$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+		}
+		
 		$this->set('organisationOptions', $organisationOptions);
 		$this->set('localOrganisations', $localOrganisations);
 		$this->set('externalOrganisations', $externalOrganisations);
-		
-		// list all orgs for the rule picker
-		$temp = $localOrganisations + $externalOrganisations;
-		$allOrgs = array();
-		foreach ($temp as $k => $v) $allOrgs[] = array('id' => $k, 'name' => $v);
 		$this->set('allOrganisations', $allOrgs);
 		
 		// list all tags for the rule picker
@@ -326,14 +339,21 @@ class ServersController extends AppController {
 				'fields' => array('id', 'name'),
 		));
 		$localOrganisations = array();
-		foreach ($temp as $o) $localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+		$allOrgs = array();
+		foreach ($temp as $o) {
+			$localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+			$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+		}
 		$temp = $this->Server->Organisation->find('all', array(
 				'conditions' => array('local' => false),
 				'fields' => array('id', 'name'),
 		));
 		$externalOrganisations = array();
-		foreach ($temp as $o) $externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
-		
+		foreach ($temp as $o) {
+			$externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+			$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+		}
+
 		$oldRemoteSetting = 0;
 		if (!$this->Server->data['RemoteOrg']['local']) $oldRemoteSetting = 1;
 		
@@ -343,11 +363,6 @@ class ServersController extends AppController {
 		$this->set('organisationOptions', $organisationOptions);
 		$this->set('localOrganisations', $localOrganisations);
 		$this->set('externalOrganisations', $externalOrganisations);
-
-		// list all orgs for the rule picker
-		$temp = $localOrganisations + $externalOrganisations;
-		$allOrgs = array();
-		foreach ($temp as $k => $v) $allOrgs[] = array('id' => $k, 'name' => $v);
 		$this->set('allOrganisations', $allOrgs);
 		
 		// list all tags for the rule picker
