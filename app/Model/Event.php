@@ -1707,7 +1707,7 @@ class Event extends AppModel {
 		$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,'atomic' => true));
 		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
 		if ($saveResult) {
-			foreach ($data['Event']['EventTag'] as $et) {
+			if (isset($data['Event']['EventTag'])) foreach ($data['Event']['EventTag'] as $et) {
 					$this->EventTag->create();
 					$et['event_id'] = $this->id;
 					$this->EventTag->save($et);
