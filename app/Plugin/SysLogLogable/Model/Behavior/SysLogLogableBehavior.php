@@ -271,7 +271,8 @@ class SysLogLogableBehavior extends LogableBehavior {
 		}
 		$this->schema = $this->Log->schema();
 		App::import('Component', 'Auth');
-		if (!empty(AuthComponent::user())) $this->user[$this->settings[$Model->alias]['userModel']] = AuthComponent::user();
+		$user = AuthComponent::user();
+		if (!empty($user)) $this->user[$this->settings[$Model->alias]['userModel']] = AuthComponent::user();
 		else $this->user['User'] = array('email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'), 'id' => 0);
 	}
 }

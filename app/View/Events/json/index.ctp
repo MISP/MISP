@@ -1,12 +1,12 @@
 <?php
-foreach ($events as $key => &$event) {
+foreach ($events as $key => $event) {
     // rearrange things to be compatible with the Xml::fromArray()
-    $events[$key]['Event']['Org'] = $events[$key]['Org'];
-    $events[$key]['Event']['Orgc'] = $events[$key]['Orgc'];
-    $events[$key]['Event']['EventTag'] = $events[$key]['EventTag'];
-    $events[$key]['Event']['SharingGroup'] = $events[$key]['SharingGroup'];
     $events[$key] = $events[$key]['Event'];
     unset($events[$key]['Event']);
+    $events[$key]['Org'] = $event['Org'];
+    $events[$key]['Orgc'] = $event['Orgc'];
+    if (isset($event['EventTag'])) $events[$key]['EventTag'] = $event['EventTag'];
+    $events[$key]['SharingGroup'] = $event['SharingGroup'];
 
     // cleanup the array from things we do not want to expose
     unset($events[$key]['user_id']);
@@ -15,6 +15,5 @@ foreach ($events as $key => &$event) {
         unset($events[$key]['Org']);
         unset($events[$key]['Orgc']);
     }
-
 }
 echo json_encode($events);
