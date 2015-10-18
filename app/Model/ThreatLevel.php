@@ -5,19 +5,19 @@ class ThreatLevel extends AppModel {
 
 	public $validate = array(
 		'name' => array(
-			'notEmpty' => array(
-				'rule' => array('notEmpty'),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 				'required' => true
 			),
 		),
 		'description' => array(
-			'notEmpty' => array(
-				'rule' => array('notEmpty'),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'form_description' => array(
-			'notEmpty' => array(
-				'rule' => array('notEmpty'),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 				'required' => true
 			),
 		),

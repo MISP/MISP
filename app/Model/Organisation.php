@@ -17,8 +17,8 @@ class Organisation extends AppModel{
 				'rule' => 'isUnique',
 				'message' => 'An organisation with this name already exists.'
 			),
-			'notempty' => array(
-				'rule' => array('notempty'),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'uuid' => array(
