@@ -143,6 +143,8 @@ function zoomhandler() {
 	
 function update() {
 	var nodes = root['nodes'], links = root['links'];
+
+	 
 	// Restart the force layout.
 	force.nodes(nodes).links(links).start();
 
@@ -150,13 +152,11 @@ function update() {
 	link = link.data(links);
 	link.exit().remove();
 	link.enter().insert("line", ".node").attr("class", "link");
-
 	// Update nodes.
-	node = node.data(nodes, function(d) { return d.id; });
+	node = node.data(nodes);
 	node.exit().remove();
 
 	var nodeEnter = node.enter().append("g").attr("class", "node").call(drag1);
-
 
 	nodeEnter.append("svg:image")
 	.attr("class", "circle")
