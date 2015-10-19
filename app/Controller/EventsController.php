@@ -3355,7 +3355,7 @@ class EventsController extends AppController {
 			$json['nodes'][$old_event]['expanded'] = 1;
 			$current_event_id = $old_event;
 		} else {
-			if (!$this->__orgImgExists($event[0]['Orgc']['name'])) $image = '/img/orgs/' . 'MISP.png';
+			if ($this->__orgImgExists($event[0]['Orgc']['name'])) $image = '/img/orgs/' . h($event[0]['Orgc']['name']) . '.png';
 			else $image = '/img/orgs/MISP.png';
 			$json['nodes'][] = array(
 					'name' => 'Event ' . $id,
@@ -3400,7 +3400,7 @@ class EventsController extends AppController {
 					} else {
 						$current_relation_id = $this->__graphJsonContains('event', $relation, $json);
 						if ($current_relation_id === false) {
-							if (!$this->__orgImgExists($relatedEvents[$relation['id']]['Orgc']['name'])) $image = '/img/orgs/MISP.png';
+							if ($this->__orgImgExists($relatedEvents[$relation['id']]['Orgc']['name'])) $image = '/img/orgs/' . $relatedEvents[$relation['id']]['Orgc']['name'] . '.png';
 							else $image = '/img/orgs/MISP.png';
 							$json['nodes'][] = array(
 									'name' => 'Event ' . $relation['id'],
@@ -3439,9 +3439,7 @@ class EventsController extends AppController {
 	}
 	
 	private function __orgImgExists($org) {
-		App::uses('File', 'Utility');
-		$file = new File(APP . DS . 'webroot' . DS . 'img' . DS . 'orgs' . DS . $org . 'png');
-		if (!$file->exists()) return true;
+		if (file_exists(APP . 'webroot' . DS . 'img' . DS . 'orgs' . DS . $org . '.png')) return true;
 		return false;
 	}
 	
