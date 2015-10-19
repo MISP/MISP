@@ -32,9 +32,8 @@ class Tag extends AppModel {
 	
 	public $validate = array(
 			'name' => array(
-					'notempty' => array(
-							'rule' => array('notempty'),
-							'message' => 'Please fill in this field',
+					'valueNotEmpty' => array(
+						'rule' => array('valueNotEmpty'),
 					),
 					'unique' => array(
 							'rule' => 'isUnique',
@@ -42,9 +41,8 @@ class Tag extends AppModel {
 					),
 			),
 			'colour' => array(
-					'notempty' => array(
-							'rule' => 'notempty',
-							'message' => 'Please fill in this field',
+					'valueNotEmpty' => array(
+						'rule' => array('valueNotEmpty'),
 					),
 					'userdefined' => array(
 							'rule' => 'validateColour',
@@ -84,6 +82,7 @@ class Tag extends AppModel {
 		return array($acceptIds, $rejectIds);
 	}
 	
+	// find all of the event Ids that belong to tags with certain names
 	public function findTags($array) {
 		$ids = array();
 		foreach ($array as $a) {
@@ -102,5 +101,23 @@ class Tag extends AppModel {
 			}
 		}
 		return $ids;
+	}
+
+	// find all tags that belong to a given eventId
+	public function findEventTags($eventId) {
+		$tags = array();
+		$params = array(
+				'recursive' => 1,
+				'contain' => 'EventTag',
+		);
+		$result = $this->find('all', $params);
+		foreach ($result as $tag) {
+			foreach ($tag['EventTag'] as $eventTag) {
+				if ($eventTag['event_id'] == $eventId) {
+					$tags[] = $tag['Tag'];
+				}
+			}
+		}
+		return $tags;
 	}
 }

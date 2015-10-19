@@ -66,7 +66,7 @@ class ServersController extends AppController {
 			// force check userid and orgname to be from yourself
 			$this->request->data['Server']['org'] = $this->Auth->user('org');
 			if ($this->Server->save($this->request->data)) {
-				if (isset($this->request->data['Server']['submitted_cert'])) {
+				if ($this->request->data['Server']['submitted_cert']['error'] == 0) {
 					$this->__saveCert($this->request->data, $this->Server->id);
 				}
 				$this->Session->setFlash(__('The server has been saved'));
@@ -267,7 +267,7 @@ class ServersController extends AppController {
 		$file = new File($server['Server']['submitted_cert']['name']);
 		$ext = $file->ext();
 		if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
-			$this->Session->setFlash('Incorrect extension of empty file.');
+			$this->Session->setFlash('Incorrect extension or empty file.');
 			$this->redirect(array('action' => 'index'));
 		}
 		$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),
@@ -319,6 +319,7 @@ class ServersController extends AppController {
 			$stixOperational = array(0 => 'STIX or CyBox library not installed correctly', 1 => 'OK');
 			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
 			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
+			$sessionErrors = array(0 => 'OK', 1 => 'High', 2 => 'Alternative setting used', 3 => 'Test failed');
 			
 			$finalSettings = $this->Server->serverSettingsRead();
 			$issues = array(	
@@ -380,7 +381,12 @@ class ServersController extends AppController {
 				// if Proxy is set up in the settings, try to connect to a test URL
 				$proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
 				
-				$additionalViewVars = array('gpgStatus', 'proxyStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion','gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix');
+				// check the size of the session table
+				$sessionCount = 0;
+				$sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
+				$this->set('sessionCount', $sessionCount);
+				
+				$additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion','gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix');
 			}
 			// check whether the files are writeable
 			$writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
@@ -454,9 +460,8 @@ class ServersController extends AppController {
 		} else {
 			return false;
 		}
-
 	}
-	
+
 	public function serverSettingsEdit($setting, $id, $forceSave = false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
@@ -653,5 +658,20 @@ class ServersController extends AppController {
 			$this->set('time2', date('Y/m/d H:i:s', $result['timestampSettings']));
 		}		
 		$this->render('ajax/zeromqstatus');
+	}
+	
+	public function purgeSessions() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if ($this->Server->updateDatabase('cleanSessionTable') == false) {
+			$this->Session->setFlash('Could not purge the session table.');
+		}
+		$this->redirect('/servers/serverSettings/diagnostics');
+	}
+	
+	public function getVersion() {
+		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This action requires API access.');
+		$versionArray = $this->Server->checkMISPVersion();
+		$this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix']));
+		$this->set('_serialize', 'response');
 	}
 }

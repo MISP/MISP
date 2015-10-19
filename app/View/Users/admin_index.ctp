@@ -41,7 +41,7 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
-			<th><?php echo $this->Paginator->sort('org');?></th>
+			<th><?php echo $this->Paginator->sort('org_ci', 'Org');?></th>
 			<th><?php echo $this->Paginator->sort('role_id', 'Role');?></th>
 			<th><?php echo $this->Paginator->sort('email');?></th>
 			<th><?php echo $this->Paginator->sort('autoalert');?></th>

@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/MISP/MISP.svg?branch=master)](https://travis-ci.org/MISP/MISP)
+
 MISP - Malware Information Sharing Platform
 -------------------------------------------
 
@@ -27,22 +29,23 @@ The Red October malware for example gives a similar view:
 Some people might think about CIF (Collective Intelligence Framework) and CRITs (Collaborative Research Into Threats), however those tools are different. Each one has its strenghts and weaknesses, but in the end MISP will rule the world of course.
 
 
-Website / Support 
+Website / Support
 ------------------
 Checkout the [website](http://www.misp-project.org) for more information about MISP like [features](http://www.misp-project.org/#features), [roadmap](http://www.misp-project.org/#roadmap), <small>(commercial)</small> [support](http://www.misp-project.org/#support), ... : http://misp-project.org
 
 
 Documentation
 -------------
-Feel free to have a look at the (pdf) documentation in the INSTALL directory.
+[MISP user-guide](https://github.com/MISP/misp-book) is available [online](https://www.circl.lu/doc/misp/) or as [PDF](https://www.circl.lu/doc/misp/book.pdf) or as [EPUB](https://www.circl.lu/doc/misp/book.epub) or as [MOBI/Kindle](https://www.circl.lu/doc/misp/book.mobi).
 
-We are actively developing this tool and many (code, documentation, export formats,...) improvements are coming.
-
+Contributing
+------------
 Feel free to fork the code, play with it, make some patches and send us the pull requests.
 
-Feel free to contact us, create issues, if you have questions, remarks or bug reports.
+Feel free to contact us, create [issues](https://github.com/MISP/MISP/issues), if you have questions, remarks or bug reports.
 
 There are 2 branches:
+
 - develop: (very active development) new features and improvements
 - main: what we consider as stable
 
@@ -51,4 +54,10 @@ License
 
 This software is licensed under [GNU Affero General Public License version 3](http://www.gnu.org/licenses/agpl-3.0.html)
 
-Copyright (c) 2012, 2013 Christophe Vandeplas, Belgian Defence, NATO / NCIRC.
+* Copyright (C) 2012 Christophe Vandeplas
+* Copyright (C) 2012 Belgian Defence
+* Copyright (C) 2012 NATO / NCIRC
+* Copyright (C) 2013-2015 Andras Iklody
+* Copyright (C) 2015 CIRCL - Computer Incident Response Center Luxembourg
+
+For more information, [the list of authors and contributors](AUTHORS) is available.

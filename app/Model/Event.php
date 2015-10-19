@@ -138,23 +138,13 @@ class Event extends AppModel {
  */
 	public $validate = array(
 		'org' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'orgc' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'date' => array(
@@ -168,11 +158,9 @@ class Event extends AppModel {
 			),
 		),
 		'threat_level_id' => array(
-			'notempty' => array(
-				'rule' => array('inList', array('1', '2', '3', '4')),
-				'message' => 'Options : 1, 2, 3, 4 (for High, Medium, Low, Undefined)',
-				'required' => true
-			),
+			'rule' => array('inList', array('1', '2', '3', '4')),
+			'message' => 'Options : 1, 2, 3, 4 (for High, Medium, Low, Undefined)',
+			'required' => true
 		),
 
 		'distribution' => array(
@@ -193,13 +181,8 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 		),
 		'info' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'user_id' => array(
@@ -330,14 +313,9 @@ class Event extends AppModel {
 	public function beforeDelete($cascade = true) {
 		// blacklist the event UUID if the feature is enabled
 		if (Configure::read('MISP.enableEventBlacklisting')) {
-			$event = $this->find('first', array(
-					'recursive' => -1,
-					'fields' => array('uuid'),
-					'conditions' => array('id' => $this->id),
-			));
 			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 			$this->EventBlacklist->create();
-			$this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid']));
+			$this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid'], 'event_info' => $this->data['Event']['info'], 'event_orgc' => $this->data['Event']['orgc']));
 		}
 		
 		// delete all of the event->tag combinations that involve the deleted event
@@ -387,7 +365,7 @@ class Event extends AppModel {
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Event']['uuid'])) {
-			$this->data['Event']['uuid'] = String::uuid();
+			$this->data['Event']['uuid'] = $this->generateUuid();
 		}
 		// generate timestamp if it doesn't exist
 		if (empty($this->data['Event']['timestamp'])) {
@@ -797,19 +775,21 @@ class Event extends AppModel {
 				}
 				$eventIds = array();
 				if ($all) {
-					foreach ($eventArray['response']['Event'] as $event) {
+					if (isset($eventArray['response']['Event']) && !empty($eventArray['response']['Event'])) foreach ($eventArray['response']['Event'] as $event) {
 						$eventIds[] = $event['uuid'];
 					}
 				} else {
 					// multiple events, iterate over the array
-					foreach ($eventArray['response']['Event'] as &$event) {
-						if (1 != $event['published']) {
-							continue; // do not keep non-published events
-						}
-						// get rid of events that are the same timestamp as ours or older, we don't want to transfer the attributes for those
-						// The event's timestamp also matches the newest attribute timestamp by default
-						if ($this->checkIfNewer($event)) {
-							$eventIds[] = $event['id'];
+					if (isset($eventArray['response']['Event']) && !empty($eventArray['response']['Event'])) {
+						foreach ($eventArray['response']['Event'] as &$event) {
+							if (1 != $event['published']) {
+								continue; // do not keep non-published events
+							}
+							// get rid of events that are the same timestamp as ours or older, we don't want to transfer the attributes for those
+							// The event's timestamp also matches the newest attribute timestamp by default
+							if ($this->checkIfNewer($event)) {
+								$eventIds[] = $event['id'];
+							}
 						}
 					}
 				}
@@ -1776,6 +1756,11 @@ class Event extends AppModel {
 				}
 			}
 		}
+                if (Configure::read('MISP.tagging')) {
+			foreach ($events as &$event) {
+				$event['Tag'] = $this->EventTag->Tag->findEventTags($event['Event']['id']);
+                        }
+                }
 		// generate a randomised filename for the temporary file that will be passed to the python script
 		$randomFileName = $this->generateRandomFileName();
 		$tempFile = new File (APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);

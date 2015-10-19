@@ -31,6 +31,14 @@ class XMLConverterTool {
 		if (isset($event['RelatedEvent'])) $event['Event']['RelatedEvent'] = $event['RelatedEvent'];
 		$event['Event']['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['info']);
 		$event['Event']['info'] = str_replace($toEscape, $escapeWith, $event['Event']['info']);
+		if (isset($event['RelatedAttribute'])) $event['Event']['RelatedAttribute'] = $event['RelatedAttribute'];
+		else $event['Event']['RelatedAttribute'] = array();
+		foreach ($event['Event']['RelatedAttribute'] as &$attribute_w_relation) {
+			foreach ($attribute_w_relation as $relation) {
+				$relation['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $relation['info']);
+				$relation['info'] =  str_replace($toEscape, $escapeWith, $relation['info']);
+			}
+		}
 		
 		//
 		// cleanup the array from things we do not want to expose
@@ -53,6 +61,7 @@ class XMLConverterTool {
 				unset($event['Event']['Attribute'][$key]['value1']);
 				unset($event['Event']['Attribute'][$key]['value2']);
 				unset($event['Event']['Attribute'][$key]['category_order']);
+				if (isset($event['Event']['RelatedAttribute'][$value['id']])) $event['Event']['Attribute'][$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
 				if (isset($event['Event']['Attribute'][$key]['ShadowAttribute'])) {
 					foreach($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
 						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
@@ -63,6 +72,7 @@ class XMLConverterTool {
 				}
 			}
 		}
+		unset($event['Event']['RelatedAttribute']);
 		
 		if (isset($event['Event']['ShadowAttribute'])) {
 			// remove invalid utf8 characters for the xml parser

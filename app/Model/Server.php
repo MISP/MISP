@@ -43,24 +43,14 @@ class Server extends AppModel {
 				'message' => 'A authkey of a minimum length of 40 is required.',
 				'required' => true,
 			),
-			'notempty' => array(
-				'rule' => array('notempty'),
-				'message' => 'Please enter a valid authentication key.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'org' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
+			)
 		),
 		'push' => array(
 			'boolean' => array(
@@ -957,27 +947,25 @@ class Server extends AppModel {
 			$eventid_conditions_key = 'Event.id >';
 			$eventid_conditions_value = $this->data['Server']['lastpushedid'];
 		} elseif (true == $technique) {
-			$eventIds[] = array('Event' => array ('id' => intval($technique)));
+			$eventid_conditions_key = 'Event.id';
+			$eventid_conditions_value = intval($technique);
 		} else {
 			$this->redirect(array('action' => 'index'));
 		}
-		if (!isset($eventIds)) {
-			$findParams = array(
-					'conditions' => array(
-							$eventid_conditions_key => $eventid_conditions_value,
-							'Event.distribution >' => 0,
-							'Event.published' => 1,
-							'Event.attribute_count >' => 0
-					), //array of conditions
-					'recursive' => -1, //int
-					'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid'), //array of field names
-			);
-			$eventIds = $eventModel->find('all', $findParams);
-		}
+		$findParams = array(
+				'conditions' => array(
+						$eventid_conditions_key => $eventid_conditions_value,
+						'Event.distribution >' => 0,
+						'Event.published' => 1,
+						'Event.attribute_count >' => 0
+				), //array of conditions
+				'recursive' => -1, //int
+				'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid'), //array of field names
+		);
+		$eventIds = $eventModel->find('all', $findParams);
 		$eventUUIDsFiltered = $this->filterEventIdsForPush($id, $HttpSocket, $eventIds);
 		if ($eventUUIDsFiltered === false) $pushFailed = true;
 		if (!empty($eventUUIDsFiltered)) {
-			
 			$eventCount = count($eventUUIDsFiltered);
 			//debug($eventIds);
 			// now process the $eventIds to pull each of the events sequentially
@@ -1331,11 +1319,12 @@ class Server extends AppModel {
 	}
 	
 	public function eventBlacklistingBeforeHook($setting, $value) {
-		$this->__cleanCacheFiles();
+		$this->cleanCacheFiles();
 		if ($value) {
 			try {
 				$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-				$this->EventBlacklist->schema();
+				$schema = $this->EventBlacklist->schema();
+				if (!isset($schema['event_info'])) $this->updateDatabase('addEventBlacklistsContext');
 			} catch (Exception $e) {
 				$this->updateDatabase('addEventBlacklists');
 			}
@@ -1359,13 +1348,10 @@ class Server extends AppModel {
 	}
 	
 	public function checkVersion($newest) {
-		App::uses('Folder', 'Utility');
-		$file = new File (ROOT . DS . 'VERSION.json', true);
-		$version_array = json_decode($file->read());
-		$file->close();
-		$current = 'v' . $version_array->major . '.' . $version_array->minor . '.' . $version_array->hotfix;
+		$version_array = $this->checkMISPVersion();
+		$current = 'v' . $version_array['major'] . '.' . $version_array['minor'] . '.' . $version_array['hotfix'];
 		$newest_array = $this->__dissectVersion($newest);
-		$upToDate = $this->__compareVersions(array($version_array->major, $version_array->minor, $version_array->hotfix), $newest_array, 0); 
+		$upToDate = $this->__compareVersions(array($version_array['major'], $version_array['minor'], $version_array['hotfix']), $newest_array, 0); 
 		return array ('current' => $current, 'newest' => $newest, 'upToDate' => $upToDate);
 	}
 	
@@ -1555,21 +1541,46 @@ class Server extends AppModel {
 		return $proxyStatus;
 	}
 	
+	public function sessionDiagnostics(&$diagnostic_errors, &$sessionCount) {
+		if (Configure::read('Session.defaults') !== 'database') {
+			$sessionCount = 'N/A';
+			return 2;
+		}
+		$sql = 'SELECT COUNT(id) FROM `cake_sessions` WHERE `expires` < ' . time() . ';';
+		$sqlResult = $this->query($sql);
+		if (isset($sqlResult[0][0])) $sessionCount = $sqlResult[0][0]['COUNT(id)'];
+		else {
+			$sessionCount = 'Error';
+			return 3;
+		}
+		$sessionStatus = 0;
+		if ($sessionCount > 100) {
+			$sessionStatus = 1;
+			$diagnostic_errors++;
+		}
+		return $sessionStatus;
+	}
+	
 	public function workerDiagnostics(&$workerIssueCount) {
 		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
 		$workers = $this->ResqueStatus->getWorkers();
-		$currentUser = get_current_user();
+		if (function_exists('posix_getpwuid')) {
+			$currentUser = posix_getpwuid(posix_geteuid());
+			$currentUser = $currentUser['name'];
+		} else $currentUser = trim(shell_exec('whoami'));
 		$worker_array = array(
 				'cache' => array('ok' => true),
 				'default' => array('ok' => true),
 				'email' => array('ok' => true),
 				'scheduler' => array('ok' => true)
 		);
+		$procAccessible = file_exists('/proc');
 		foreach ($workers as $pid => $worker) {
 			$entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
 			$correct_user = ($currentUser === $worker['user']);
 			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found.');
-			$alive = $correct_user ? (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0) : false;
+			if ($procAccessible) $alive = $correct_user ? (file_exists('/proc/' . addslashes($pid))) : false;
+			else $alive = 'N/A';
 			$ok = true;
 			if (!$alive || !$correct_user) {
 				$ok = false;
@@ -1585,8 +1596,8 @@ class Server extends AppModel {
 				$queue['ok'] = false;
 			}
 		}
+		$worker_array['proc_accessible'] = $procAccessible;
 		return $worker_array;
-		
 	}
 	
 	public function retrieveCurrentSettings($branch, $subString) {
@@ -1643,8 +1654,11 @@ class Server extends AppModel {
 		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
 		$workers = $this->ResqueStatus->getWorkers();
 		$this->Log = ClassRegistry::init('Log');
-		$currentUser = get_current_user();
-		foreach ($workers as $pid => $worker) {
+		if (function_exists('posix_getpwuid')) {
+			$currentUser = posix_getpwuid(posix_geteuid());
+			$currentUser = $currentUser['name'];
+		} else $currentUser = trim(shell_exec('whoami'));
+		foreach ($workers as $pid => $worker) { 
 			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found!');
 			$pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false; 
 			if ($worker['user'] == $currentUser && !$pidTest) {
@@ -1660,104 +1674,6 @@ class Server extends AppModel {
 						'title' => 'Removing a dead worker.',
 						'change' => 'Removind dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
 				));
-			}
-		}
-	}
-	
-	private function __dropIndex($table, $field) {
-		$this->Log = ClassRegistry::init('Log');
-		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%'";
-		$indexCheckResult = $this->query($indexCheck);
-		foreach ($indexCheckResult as $icr) {
-			$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'];
-			$result = true;
-			try {
-				$this->query($dropIndex);
-			} catch (Exception $e) {
-				$result = false;
-			}
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
-					'change' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
-			));
-		}
-	}
-	
-	public function updateDatabase($command) {
-		$sql = '';
-		$model = 'Event';
-		$this->Log = ClassRegistry::init('Log');
-		switch ($command) {
-			case 'extendServerOrganizationLength':
-				$sql = 'ALTER TABLE `servers` MODIFY COLUMN `organization` varchar(255) NOT NULL;';
-				$model = 'Server';
-				break;
-			case 'convertLogFieldsToText':
-				$sql = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
-				$model= 'Log';
-				break;
-			case 'addEventBlacklists':
-				$sql = 'CREATE TABLE IF NOT EXISTS `event_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;';
-				break;
-			case 'makeAttributeUUIDsUnique':
-				$this->__dropIndex('attributes', 'uuid');
-				$sql = 'ALTER TABLE `attributes` ADD UNIQUE (uuid);';
-				break;
-			case 'makeEventUUIDsUnique':
-				$this->__dropIndex('events', 'uuid');
-				$sql = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
-				break;
-			default:
-				$this->Session->setFlash('Invalid command.');
-				$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-				break;
-		}
-		$m = ClassRegistry::init($model);
-		try {
-			$m->query($sql);
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => 'Successfuly executed the SQL query for ' . $command,
-					'change' => 'The executed SQL query was: ' . $sql
-			));
-		} catch (Exception $e) {
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => 'Issues executing the SQL query for ' . $command,
-					'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
-			));
-		}
-		$this->__cleanCacheFiles();
-	}
-	
-	private function __cleanCacheFiles() {
-		$directories = array(APP . '/tmp/cache/models', APP . '/tmp/cache/persistent');
-		foreach ($directories as $directory) {
-			$dir = new Folder($directory);
-			$files = $dir->find('myapp.*');
-			foreach ($files as $file) {
-				$file = new File($dir->path . DS . $file);
-				$file->delete();
-				$file->close();
 			}
 		}
 	}

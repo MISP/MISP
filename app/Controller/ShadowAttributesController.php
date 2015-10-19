@@ -494,7 +494,7 @@ class ShadowAttributesController extends AppController {
 				$this->request->data['ShadowAttribute']['value'] = $filename;
 				$this->request->data['ShadowAttribute']['to_ids'] = 0;
 			}
-			$this->request->data['ShadowAttribute']['uuid'] = String::uuid();
+			$this->request->data['ShadowAttribute']['uuid'] = $this->{$Model->alias}->generateUuid();
 			$this->request->data['ShadowAttribute']['batch_import'] = 0;
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 			$this->request->data['ShadowAttribute']['org'] = $this->Auth->user('org');

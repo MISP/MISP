@@ -1,35 +1,98 @@
 language: php
 php:
-    - 5.5
-    - 5.4
-    - 5.3
+    - 5.6
+
+services:
+    - mysql
+    - redis
+
+sudo: true
+
+cache: pip
 
 env:
-    - CAKE_VERSION=2.4.2 DB=mysql
-    - CAKE_VERSION=master DB=mysql
+    - DB=mysql
 
-matrix:
-    allow_failures:
-        - php: 5.5
+addons:
+    hosts:
+        - misp.local
+        - localhost
+    apt:
+        packages:
+            - python-dev
+            - python-pip
+            - libxml2-dev
+            - zlib1g-dev
+            - php5-dev
+            - apache2
+            - libapache2-mod-php5
+            - libapache2-mod-fastcgi
+            - curl
+            - python-virtualenv
+            - python-pip
+            - php5-mysql
+
+install:
+    - pip install --user pyzmq
+    - pip install --user coveralls
+    - pip install --user codecov
+    - pip install --user git+https://github.com/CybOXProject/python-cybox.git@v2.1.0.12#egg=Package
+    - pip install --user git+https://github.com/stixproject/python-stix.git@v1.2.0.0#egg=Package
+    - pip install --user git+https://github.com/MISP/PyMISP.git#egg=Package
+    - pear install Crypt_GPG
+    - pear install Net_GeoIP
+    - phpenv rehash
+    - pushd app
+    - composer require kamisama/cake-resque:4.1.2
+    - composer config vendor-dir Vendor
+    - composer install
+    - popd
 
 before_script:
-    - pecl install Crypt_GPG
-    - pecl install Net_GeoIP
-    - phpenv rehash
-    - sh -c "if [ '$DB' = 'mysql' ]; then mysql -e 'CREATE DATABASE misp_test;'; fi"
-    - git clone git://github.com/cakephp/cakephp ../cakephp && cd ../cakephp && git checkout $CAKE_VERSION
-    - chmod -R 777 ../cakephp/app/tmp
-    - echo "<?php
-        class DATABASE_CONFIG {
-        public \$test = array(
-          'datasource' => 'Database/Mysql',
-          'database' => 'misp_test',
-          'host' => '0.0.0.0',
-          'login' => 'travis',
-          'host' => '',
-          'persistent' => false
-        );
-        }" > app/Config/database.php
+    # enable php-fpm
+    - sudo cp ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf.default ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf
+    - sudo a2enmod rewrite actions fastcgi alias
+    - echo "cgi.fix_pathinfo = 1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+    - ~/.phpenv/versions/$(phpenv version-name)/sbin/php-fpm
+    # configure apache virtual hosts
+    - sudo cp -f build/travis-ci-apache /etc/apache2/sites-available/misp
+    - sudo sed -e "s?%TRAVIS_BUILD_DIR%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp
+    - cat /etc/apache2/sites-available/misp
+    - sudo a2dissite default
+    - sudo a2ensite misp
+    - sudo service apache2 restart
+    - phpenv config-add travis/myphpconfig.ini
+    - mkdir .gnupg
+    - gpg --homedir .gnupg --gen-key --batch travis/gpg
+    - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
+    - cp travis/bootstrap.php app/Config/bootstrap.php
+    - cp travis/database.php app/Config/database.php
+    - cp travis/core.php app/Config/core.php
+    - cp travis/config.php app/Config/config.php
+    - mysql -u root -e 'create database misp;'
+    - mysql -u root -e "grant usage on *.* to misp@localhost identified by 'blah'";
+    - mysql -u root -e "grant all privileges on misp.* to misp@localhost;"
+    - mysql -u misp -pblah misp < INSTALL/MYSQL.sql
+    - AUTH=`app/Console/cake userInit -q`
+    - sudo chown -R www-data:www-data app/
+    - curl http://misp.local >> /dev/null
+    - pushd PyMISP
+    - echo 'url = "http://misp.local"' >> tests/keys.py
+    - echo 'key = "'${AUTH}'"' >> tests/keys.py
+    - cat tests/keys.py
+    - popd
+    - sudo chown -R www-data:www-data ./
+    - sudo chmod -R 755 ./
+    - sudo chmod 700 .gnupg
+    - sudo chmod -R 777 app/tmp
+    - sudo chmod -R 777 app/files
+    - sudo chmod -R 777 app/files/scripts/tmp
+    - sudo chmod -R 777 PyMISP
 
 script:
-    - ./lib/Cake/Console/cake test app AllTests --stderr
+    - pushd PyMISP
+    - coverage run setup.py test
+
+after_success:
+    - coveralls
+    - codecov

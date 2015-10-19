@@ -1353,6 +1353,10 @@ a.proposal_link_red:hover {
 	color: green;
 }
 
+.orange {
+	color: orange;
+}
+
 .bold {
 	font-weight: bold;
 }
