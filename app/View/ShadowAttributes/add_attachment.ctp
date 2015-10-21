@@ -96,6 +96,22 @@ $('#ShadowAttributeTypeDiv').hide();
 $('#ShadowAttributeCategoryDiv').hide();
 $('#ShadowAttributeType').prop('disabled', true);
 
+function malwareCheckboxSetter(id) {
+	// do checkbox un/ticked when the document is changed
+	if (formZipTypeValues[value] == "true") {
+		document.getElementById("AttributeMalware").setAttribute("checked", "checked");
+		if (formAttTypeValues[value] == "false") document.getElementById("AttributeMalware").setAttribute("disabled", "disabled");
+		else document.getElementById("AttributeMalware").removeAttribute("disabled");
+	} else {
+		document.getElementById("AttributeMalware").removeAttribute("checked");
+		if (formAttTypeValues[value] == "true") document.getElementById("AttributeMalware").setAttribute("disabled", "disabled");
+		else document.getElementById("AttributeMalware").removeAttribute("disabled");
+	}
+}
+$(function(){
+	// do checkbox un/ticked when the document is ready
+	malwareCheckboxSetter("#ShadowAttributeCategory");
+	}
 
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts
