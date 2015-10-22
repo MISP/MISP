@@ -1774,9 +1774,13 @@ class Attribute extends AppModel {
 	// The zip archive is then passed back as a base64 encoded string along with the md5 hash and a flag whether the transaction was successful
 	// The archive is password protected using the "infected" password
 	// The contents of the archive will be the actual sample, named <md5> and the original filename in a text file named <md5>.filename.txt
-	public function handleMaliciousBase64($event_id, $original_filename, $base64, $hash_types) {
+	public function handleMaliciousBase64($event_id, $original_filename, $base64, $hash_types, $proposal = false) {
 		if (!is_numeric($event_id)) throw new Exception('Something went wrong. Received a non numeric event ID while trying to create a zip archive of an uploaded malware sample.');
-		$dir = new Folder(APP . "files" . DS . $event_id, true);
+		if ($proposal) {
+			$dir = new Folder(APP . "files" . DS . $event_id . DS . 'shadow', true);
+		} else {
+			$dir = new Folder(APP . "files" . DS . $event_id, true);
+		}
 		$tmpFile = new File($dir->path . DS . $this->generateRandomFileName(), true, 0600);
 		$tmpFile->write(base64_decode($base64));
 		$hashes = array();
