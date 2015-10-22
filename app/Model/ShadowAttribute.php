@@ -200,7 +200,6 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function afterSave($created, $options = array()) {
-
 		$result = true;
 		// if the 'data' field is set on the $this->data then save the data to the correct file
 		if (isset($this->data['ShadowAttribute']['type']) && $this->typeIsAttachment($this->data['ShadowAttribute']['type']) && !empty($this->data['ShadowAttribute']['data'])) {
@@ -310,7 +309,7 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function saveBase64EncodedAttachment($attribute) {
-		$rootDir = APP . DS . "files" . DS . 'shadow' . DS . $attribute['event_id'];
+		$rootDir = APP . DS . "files" . DS . $attribute['event_id'] . DS . 'shadow';
 		$dir = new Folder($rootDir, true);						// create directory structure
 		$destpath = $rootDir . DS . $attribute['id'];
 		$file = new File ($destpath, true);						// create the file

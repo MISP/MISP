@@ -416,7 +416,6 @@ class ShadowAttributesController extends AppController {
 		// combobox for distribution
 		$count = 0;
 
-		$this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
 	}
@@ -424,24 +423,37 @@ class ShadowAttributesController extends AppController {
 	public function download($id = null) {
 		$this->ShadowAttribute->id = $id;
 		if (!$this->ShadowAttribute->exists()) {
-			throw new NotFoundException(__('Invalid ShadowAttribute'));
+			throw new NotFoundException(__('Invalid Proposal'));
 		}
-
-		$this->ShadowAttribute->read();
-		$path = APP . "files" . DS . $this->ShadowAttribute->data['ShadowAttribute']['event_id'] . DS . 'shadow' . DS;
-		$file = $this->ShadowAttribute->data['ShadowAttribute']['id'];
+		$sa = $this->ShadowAttribute->find('first', array(
+			'recursive' => -1,
+			'contain' => array('Event' => array('fields' => array('Event.org', 'Event.distribution', 'Event.id'))),
+			'conditions' => array('ShadowAttribute.id' => $id)
+		));
+		if (!$this->_isSiteAdmin() &&
+			$this->Auth->user('org') !=
+			$sa['Event']['org'] &&
+			$sa['Event']['distribution'] == 0) {
+			throw new UnauthorizedException('You do not have the permission to view this event.');
+		}
+		$this->__downloadAttachment($sa['ShadowAttribute']);
+	}
+	
+	private function __downloadAttachment($shadowAttribute) {
+		$path = "files" . DS . $shadowAttribute['event_id'] . DS . 'shadow' . DS;
+		$file = $shadowAttribute['id'];
 		$filename = '';
-		if ('attachment' == $this->ShadowAttribute->data['ShadowAttribute']['type']) {
-			$filename = $this->ShadowAttribute->data['ShadowAttribute']['value'];
+		if ('attachment' == $shadowAttribute['type']) {
+			$filename = $shadowAttribute['value'];
 			$fileExt = pathinfo($filename, PATHINFO_EXTENSION);
 			$filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
-		} elseif ('malware-sample' == $this->ShadowAttribute->data['ShadowAttribute']['type']) {
-			$filenameHash = explode('|', $this->ShadowAttribute->data['ShadowAttribute']['value']);
+		} elseif ('malware-sample' == $shadowAttribute['type']) {
+			$filenameHash = explode('|', $shadowAttribute['value']);
 			$filename = $filenameHash[0];
 			$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 			$fileExt = "zip";
 		} else {
-			throw new NotFoundException(__('ShadowAttribute not an attachment or malware-sample'));
+			throw new NotFoundException(__('Proposal not an attachment or malware-sample'));
 		}
 		$this->autoRender = false;
 		$this->response->type($fileExt);
@@ -465,12 +477,13 @@ class ShadowAttributesController extends AppController {
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
 		if ($this->request->is('post')) {
+			$temp = $this->_getEventData($this->request->data['ShadowAttribute']['event_id']);
 			// Check if there were problems with the file upload
 			// only keep the last part of the filename, this should prevent directory attacks
 			$filename = basename($this->request->data['ShadowAttribute']['value']['name']);
 			$tmpfile = new File($this->request->data['ShadowAttribute']['value']['tmp_name']);
 			if ((isset($this->request->data['ShadowAttribute']['value']['error']) && $this->request->data['ShadowAttribute']['value']['error'] == 0) ||
-					(!empty( $this->request->data['ShadowAttribute']['value']['tmp_name']) && $this->request->data['ShadowAttribute']['value']['tmp_name'] != 'none')
+			(!empty( $this->request->data['ShadowAttribute']['value']['tmp_name']) && $this->request->data['ShadowAttribute']['value']['tmp_name'] != 'none')
 			) {
 				if (!is_uploaded_file($tmpfile->path))
 					throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
@@ -478,90 +491,73 @@ class ShadowAttributesController extends AppController {
 				$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
 			}
-			$temp = $this->_getEventData($this->request->data['ShadowAttribute']['event_id']);
+			
+			$fails = array();
+			$completeFail = false;
+			
+			$filename = basename($this->request->data['ShadowAttribute']['value']['name']);
+			$tmpfile = new File($this->request->data['ShadowAttribute']['value']['tmp_name']);
+			$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
 			$event_uuid = $temp['uuid'];
 			$event_org = $temp['orgc_id'];
 			// save the file-info in the database
 			$this->ShadowAttribute->create();
 			if ($this->request->data['ShadowAttribute']['malware']) {
-				$this->request->data['ShadowAttribute']['type'] = "malware-sample";
-				// Validate filename
-				if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
-				$this->request->data['ShadowAttribute']['value'] = $filename . '|' . $tmpfile->md5(); // TODO gives problems with bigger files
-				$this->request->data['ShadowAttribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
-			} else {
-				$this->request->data['ShadowAttribute']['type'] = "attachment";
-				// Validate filename
-				if (!preg_match('@^[\w-,\s]+\.[A-Za-z0-9_]{2,4}$@', $filename)) throw new Exception ('Filename not allowed');
-				$this->request->data['ShadowAttribute']['value'] = $filename;
-				$this->request->data['ShadowAttribute']['to_ids'] = 0;
-			}
-			$this->request->data['ShadowAttribute']['uuid'] = $this->{$Model->alias}->generateUuid();
-			$this->request->data['ShadowAttribute']['batch_import'] = 0;
-			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
-			$this->request->data['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
-			$this->request->data['ShadowAttribute']['event_uuid'] = $event_uuid;
-			$this->request->data['ShadowAttribute']['event_org_id'] = $event_org;
-			$this->ShadowAttribute->save($this->request->data);
-
-			// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
-			// no sanitization is required on the filename, path or type as we save
-			// create directory structure
-			if (PHP_OS == 'WINNT') {
-				$rootDir = APP . "files" . DS . $this->request->data['ShadowAttribute']['event_id'] . DS . "shadow";
-			} else {
-				$rootDir = APP . DS . "files" . DS . $this->request->data['ShadowAttribute']['event_id'] . DS . "shadow";
-			}
-			$dir = new Folder($rootDir, true);
-			// move the file to the correct location
-			$destpath = $rootDir . DS . $this->ShadowAttribute->id; // id of the new ShadowAttribute in the database
-			$file = new File ($destpath);
-			$zipfile = new File ($destpath . '.zip');
-			$fileInZip = new File($rootDir . DS . $filename); // FIXME do sanitization of the filename
-
-			if ($file->exists() || $zipfile->exists() || $fileInZip->exists()) {
-				// this should never happen as the ShadowAttribute id should be unique
-				$this->Session->setFlash(__('Attachment with this name already exist in this event.', true), 'default', array(), 'error');
-				// remove the entry from the database
-				$this->ShadowAttribute->delete();
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
-			}
-			if (!move_uploaded_file($tmpfile->path, $file->path)) {
-				$this->Session->setFlash(__('Problem with uploading attachment. Cannot move it to its final location.', true), 'default', array(), 'error');
-				// remove the entry from the database
-				$this->ShadowAttribute->delete();
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
-			}
-
-			// zip and password protect the malware files
-			if ($this->request->data['ShadowAttribute']['malware']) {
-				// TODO check if CakePHP has no easy/safe wrapper to execute commands
-				$execRetval = '';
-				$execOutput = array();
-				rename($file->path, $fileInZip->path); // TODO check if no workaround exists for the current filtering mechanisms
-				if (PHP_OS == 'WINNT') {
-					exec("zip -j -P infected " . $zipfile->path . ' "' . $fileInZip->path . '"', $execOutput, $execRetval);
-				} else {
-					exec("zip -j -P infected " . $zipfile->path . ' "' . addslashes($fileInZip->path) . '"', $execOutput, $execRetval);
-				}
-				if ($execRetval != 0) {	// not EXIT_SUCCESS
-					$this->Session->setFlash(__('Problem with zipping the attachment. Please report to administrator. ' . $execOutput, true), 'default', array(), 'error');
-					// remove the entry from the database
-					$this->ShadowAttribute->delete();
-					$fileInZip->delete();
-					$file->delete();
+				$result = $this->Event->Attribute->handleMaliciousBase64($this->request->data['ShadowAttribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
+				if (!$result['success']) {
+					$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
-				};
-				$fileInZip->delete();	// delete the original not-zipped-file
-				rename($zipfile->path, $file->path); // rename the .zip to .nothing
+				}
+				foreach ($hashes as $hash => $typeName) {
+					if (!$result[$hash]) continue;
+					$shadowAttribute = array(
+							'ShadowAttribute' => array(
+									'value' => $filename . '|' . $result[$hash],
+									'category' => $this->request->data['ShadowAttribute']['category'],
+									'type' => $typeName,
+									'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+									'to_ids' => 1,
+									'email' => $this->Auth->user('email'),
+									'org_id' => $this->Auth->user('org_id'),
+									'event_uuid' => $event_uuid,
+									'event_org_id' => $event_org,
+							)
+					);
+					if ($hash == 'md5') $shadowAttribute['ShadowAttribute']['data'] = $result['data'];
+					$this->ShadowAttribute->create();
+					$r = $this->ShadowAttribute->save($shadowAttribute);
+					if ($r == false) $fails[] = array($typeName);
+					if (count($fails) == count($hashes)) $completeFail = true;
+				}
+			} else {
+				$shadowAttribute = array(
+						'ShadowAttribute' => array(
+								'value' => $filename,
+								'category' => $this->request->data['ShadowAttribute']['category'],
+								'type' => 'attachment',
+								'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+								'data' => base64_encode($tmpfile->read()),
+								'to_ids' => 0,
+								'email' => $this->Auth->user('email'),
+								'org_id' => $this->Auth->user('org_id'),
+								'event_uuid' => $event_uuid,
+								'event_org_id' => $event_org,
+						)
+				);
+				$this->ShadowAttribute->create();
+				$r = $this->ShadowAttribute->save($shadowAttribute);
+				if ($r == false) {
+					$fails[] = array('attachment');
+					$completeFail = true;
+				}
 			}
-
-			// everything is done, now redirect to event view
-
-			$emailResult = "";
-			if (!$this->__sendProposalAlertEmail($eventId)) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
-
-			$this->Session->setFlash(__('The attachment has been uploaded' . $emailResult));
+			if (!$completeFail) {
+				if (!$this->__sendProposalAlertEmail($eventId)) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+				if (empty($fails)) $this->Session->setFlash(__('The attachment has been uploaded'));
+				else $this->Session->setFlash(__('The attachment has been uploaded, but some of the proposals could not be created. The failed proposals are: ' . implode(', ', $fails)));
+			} else {
+				$this->Session->setFlash(__('The attachment could not be saved, please contact your administrator.'));
+			}
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
 
 		} else {
@@ -570,7 +566,8 @@ class ShadowAttributesController extends AppController {
 		}
 
 		// combobox for categories
-		$categories = $this->ShadowAttribute->validate['category']['rule'][1];
+		$categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
+		$categories = $this->_arrayToValuesIndexArray($categories);
 		// just get them with attachments..
 		$selectedCategories = array();
 		foreach ($categories as $category) {
