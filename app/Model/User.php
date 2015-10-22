@@ -68,7 +68,7 @@ class User extends AppModel {
 				'rule' => array('valueNotEmpty'),
 			),
 			'numeric' => array(
-					'rule' => array('notempty'),
+					'rule' => array('numeric'),
 					'message' => 'The organisation ID has to be a numeric value.',
 			),
 		),

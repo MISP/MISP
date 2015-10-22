@@ -17,8 +17,8 @@ class SharingGroup extends AppModel {
 				'rule' => 'isUnique',
 				'message' => 'A sharing group with this name already exists.'
 			),
-			'notempty' => array(
-				'rule' => array('notempty'),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'uuid' => array(

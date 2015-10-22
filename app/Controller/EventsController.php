@@ -3356,7 +3356,7 @@ class EventsController extends AppController {
 			$current_event_id = $old_event;
 		} else {
 			if (!$this->__orgImgExists($event[0]['Orgc']['name'])) $image = '/img/orgs/' . 'MISP.png';
-			else $image = '/img/orgs/' . $event[0]['Orgc']['name'] . '.png';
+			else $image = '/img/orgs/MISP.png';
 			$json['nodes'][] = array(
 					'name' => 'Event ' . $id,
 					'type' => 'event',
@@ -3401,7 +3401,7 @@ class EventsController extends AppController {
 						$current_relation_id = $this->__graphJsonContains('event', $relation, $json);
 						if ($current_relation_id === false) {
 							if (!$this->__orgImgExists($relatedEvents[$relation['id']]['Orgc']['name'])) $image = '/img/orgs/MISP.png';
-							else $image = '/img/orgs/' . $relatedEvents[$relation['id']]['Orgc']['name'] . '.png';
+							else $image = '/img/orgs/MISP.png';
 							$json['nodes'][] = array(
 									'name' => 'Event ' . $relation['id'],
 									'type' => 'event', 'id' => $relation['id'],

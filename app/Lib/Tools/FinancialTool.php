@@ -92,7 +92,6 @@ class FinancialTool {
 		if (strlen($iban) < 15 || strlen($iban) > 32) return false;
 		$temp = substr($iban, 4) . substr($iban, 0, 4);
 		$temp2 = '';
-		debug($temp);
 		for ($i = 0; $i < strlen($temp); $i++) {
 			if (is_numeric($temp[$i])) $temp2 .= $temp[$i];
 			else $temp2 .= ord(strtolower($temp[$i])) - 87;
@@ -113,9 +112,7 @@ class FinancialTool {
 	
 	// based on the explanation at www.freeformatter.com/credit-card-number-generator-validator.html#validate
 	public function validateCC($cc) {
-		debug($cc);
 		if (is_numeric($cc) && strlen($cc) > 12 && strlen($cc) < 20) {
-			$lastDigit = substr($cc, strlen($cc) - 1);
 			$numberArray = str_split($cc);
 			$lastDigit = $numberArray[count($numberArray) - 1];
 			unset($numberArray[count($numberArray) - 1]);
@@ -127,7 +124,8 @@ class FinancialTool {
 				if ($number > 9) $number -=9;
 				$sum += $number;
 			}
-			if ($sum%10 == $lastDigit) return true;
+			$sum += $lastDigit;
+			if ($sum%10 == 0) return true;
 			return false;
 		}
 		return false;

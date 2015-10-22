@@ -17,8 +17,8 @@ class Organisation extends AppModel{
 				'rule' => 'isUnique',
 				'message' => 'An organisation with this name already exists.'
 			),
-			'notempty' => array(
-				'rule' => array('notempty'),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'uuid' => array(
@@ -78,7 +78,7 @@ class Organisation extends AppModel{
 	
 	public function beforeDelete($cascade = false){
 		$count = $this->User->find('count', array(
-			'conditions' => array('org_id' => $this->id)
+			'conditions' => array('User.org_id' => $this->id)
 		));
 		if($count == 0) return true;
 		return false;

@@ -624,14 +624,14 @@ class Event extends AppModel {
 				}
 			}
 			try { // TODO Xml::build() does not throw the XmlException
-				$xml = Xml::build($newTextBody);
-			} catch (XmlException $e) {
+				$json = json_decode($newTextBody);
+			} catch (Exception $e) {
 				//throw new InternalErrorException();
 				return false;
 			}
 			// get the remote event_id
-			foreach ($xml as $xmlEvent) {
-				foreach ($xmlEvent as $key => $value) {
+			foreach ($json as $jsonEvent) {
+				foreach ($jsonEvent as $key => $value) {
 					if ($key == 'id') {
 						$remoteId = (int)$value;
 						break;
@@ -645,7 +645,7 @@ class Event extends AppModel {
 				$attribute['event_id'] = $remoteId;
 			}
 			// get the already existing attributes and delete the ones that are not there
-			foreach ($xml->Event->Attribute as $attribute) {
+			foreach ($json->Event->Attribute as $attribute) {
 				foreach ($attribute as $key => $value) {
 					if ($key == 'uuid') {
 						if (!in_array((string)$value, $newerUuids)) {
@@ -1707,7 +1707,7 @@ class Event extends AppModel {
 		$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,'atomic' => true));
 		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
 		if ($saveResult) {
-			foreach ($data['Event']['EventTag'] as $et) {
+			if (isset($data['Event']['EventTag'])) foreach ($data['Event']['EventTag'] as $et) {
 					$this->EventTag->create();
 					$et['event_id'] = $this->id;
 					$this->EventTag->save($et);
