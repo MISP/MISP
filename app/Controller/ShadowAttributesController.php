@@ -438,7 +438,7 @@ class ShadowAttributesController extends AppController {
 	}
 	
 	private function __downloadAttachment($shadowAttribute) {
-		$path = "files" . DS . $shadowAttribute['event_id'] . DS . 'shadow' . DS;
+		$path = "files" . DS . 'shadow' . DS . $shadowAttribute['event_id'] . DS;
 		$file = $shadowAttribute['id'];
 		$filename = '';
 		if ('attachment' == $shadowAttribute['type']) {
