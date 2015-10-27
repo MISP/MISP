@@ -388,6 +388,7 @@ class User extends AppModel {
 				$gpg->addEncryptKey($key['fingerprint']); // use the key that was given in the import
 				$enc = $gpg->encrypt('test', true);
 			} catch (Exception $e){
+				$results[$user['User']['id']][2] = $e->getMessage();
 				$results[$user['User']['id']][0] = true;
 			}
 			$results[$user['User']['id']][1] = $user['User']['email'];
