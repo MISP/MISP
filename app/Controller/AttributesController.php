@@ -797,42 +797,34 @@ class AttributesController extends AppController {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)),'status'=>200));
 		}
 	}
-	
-	public function view($id, $hasChildren = 0, $response = 'ajax') {
+
+	public function view($id) {
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException('Invalid attribute');
 		}
-		$this->Attribute->recursive = -1;
-		$this->Attribute->contain('Event');
-		$attribute = $this->Attribute->read();
-		if (!$this->_isSiteAdmin()) {
-			//
-			if ($this->Attribute->data['Event']['org'] == $this->Auth->user('org') || (($this->Attribute->data['Event']['distribution'] > 0) &&  $this->Attribute->data['Attribute']['distribution'] > 0)) {
-				throw new MethodNotAllowed('Invalid attribute');
+		if ($this->_isRest()) {
+			$distConditions = array();
+			if (!$this->_isSiteAdmin()) {
+				$distConditions = array('OR' => array('Event.org' => $this->Auth->user('org'), array('AND' => array('Event.distribution >' => 0, 'Attribute.distribution >' => 0)))); 
 			}
-		}
-		if ($this->request->is('ajax')) {
-			$eventRelations = $this->Attribute->Event->getRelatedAttributes($this->Auth->user(), $this->_isSiteAdmin(), $attribute['Attribute']['event_id']);
-			$attribute['Attribute']['relations'] = array();
-			if (isset($eventRelations[$id])) {
-				foreach ($eventRelations[$id] as $relations) {
-					$attribute['Attribute']['relations'][] = array($relations['id'], $relations['info'], $relations['org']);
-				}
+			$attribute = $this->Attribute->find('first', array(
+					'recursive' => -1,
+					'contain' => 'Event',
+					'fields' => array('Event.distribution', 'Event.id', 'Event.org', 
+							'Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.distribution'),
+					'conditions' => array('AND' => array('Attribute.id' => $id, $distConditions)),
+			));
+			if (empty($attribute)) throw new MethodNotAllowedException('Invalid attribute');
+			if ($this->Attribute->typeIsAttachment($attribute['Attribute']['type'])) {
+				$encodedFile = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
+				$attribute['Attribute']['data'] = $encodedFile;
 			}
-			$object = $attribute['Attribute'];
-			$object['objectType'] = 0;
-			$object['hasChildren'] = $hasChildren;
-			$this->set('object', $object);
-			$this->set('distributionLevels', $this->Attribute->Event->distributionLevels);
+			$this->set('Attribute', $attribute['Attribute']);
+			$this->set('_serialize', array('Attribute'));
 		} else {
 			$this->redirect('/events/view/' . $this->Attribute->data['Attribute']['event_id']);
 		}
-		/*
-		$this->autoRender = false;
-		$responseObject = array();
-		return new CakeResponse(array('body'=> json_encode($attribute['Attribute']),'status'=>200));
-		*/
 	}
 
 /**
