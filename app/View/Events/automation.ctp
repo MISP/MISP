@@ -368,6 +368,59 @@ The event ID is optional. MISP will accept either a JSON or an XML object posted
 <code>{"request": {"Event": {"id": "228", "tag": "8"}}}</code><br /><br />
 <p>Where "tag" is the ID of the tag. You can also use the name of the tag the following way (has to be an exact match):</p>
 <code>{"request": {"Event": {"id": "228", "tag": "OSINT"}}}</code>
+<h3>Proposals and the API</h3>
+<p>You can interact with the proposals via the API directly since version 2.3.148</p>
+
+<table style="width:900px;">
+<tr>
+	<th style="text-align:left;">HTTP</th>
+	<th style="text-align:left;">URL</th>
+	<th style="text-align:left;">Explanation</th>
+	<th style="text-align:left;">Expected Payload</th>
+	<th style="text-align:left;">Response</th>
+</tr>
+<tr>
+	<td style="width:45px;">GET</td>
+	<td style="width:250px;">/shadow_attributes/view/[proposal_id]</td>
+	<td>View a proposal</td>
+	<td>N/A</td>
+	<td>ShadowAttribute object</td>
+</tr>
+<tr>
+	<td style="width:45px;">POST</td>
+	<td style="width:250px;">/shadow_attributes/add/[event_id]</td>
+	<td style="width:250px;">Propose a new attribute to an event</td>
+	<td>ShadowAttribute object</td>
+	<td>ShadowAttribute object</td>
+</tr>
+<tr>
+	<td style="width:45px;">POST</td>
+	<td style="width:250px;">/shadow_attributes/edit/[attribute_id]</td>
+	<td style="width:250px;">Propose an edit to an attribute</td>
+	<td>ShadowAttribute object</td>
+	<td>ShadowAttribute object</td>
+</tr>
+<tr>
+	<td style="width:45px;">POST</td>
+	<td style="width:250px;">/shadow_attributes/accept/[proposal_id]</td>
+	<td style="width:250px;">Accept a proposal</td>
+	<td>N/A</td>
+	<td>Message</td>
+</tr>
+<tr>
+	<td style="width:45px;">POST</td>
+	<td style="width:250px;">/shadow_attributes/discard/[proposal_id]</td>
+	<td style="width:250px;">Discard a proposal</td>
+	<td>N/A</td>
+	<td>Message</td>
+</tr>
+</table><br />
+<p>When posting a shadow attribute object, use the following formats</p>
+<p><b>JSON</b></p>
+<code><?php echo h('{"request": {"ShadowAttribute": {"value": "5.5.5.5", "to_ids": false, "type": "ip-dst", "category": "Network activity"}}}');?></code><br /><br />
+<p><b>XML</b></p>
+<code><?php echo h('<request><ShadowAttribute><value>5.5.5.5</value><to_ids>0</to_ids><type>ip-src</type><category>Network activity</category></ShadowAttribute></request>');?></code><br /><br />
+<p>None of the above fields are mandatory, but at least one of them has to be provided.</p>
 </div>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'automation'));
