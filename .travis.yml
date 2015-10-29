@@ -93,4 +93,6 @@ script:
     - coverage run setup.py test
 
 after_success:
-    - codecov
+    - coverage report
+    - coverage xml
+    - codecov -d
