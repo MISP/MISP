@@ -52,21 +52,39 @@ class TagsController extends AppController {
 				));
 				$tag['Tag']['count'] = count($events);
 			}
+			unset($tag['EventTag']);
 		}
-		$this->set('list', $paginated);
+		if ($this->_isRest()) {
+			foreach ($paginated as &$tag) {
+				$tag = $tag['Tag'];
+			}
+			$this->set('Tag', $paginated);
+			$this->set('_serialize', array('Tag'));
+		} else {
+			$this->set('list', $paginated);
+		}
+
 		// send perm_tagger to view for action buttons
 	}
 	
 	public function add() {
-		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
-			throw new NotFoundException('You don\'t have permission to do that.');
-		}
+		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
 		if ($this->request->is('post')) {
+			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request']; 
+			if (!isset($this->request->data['Tag']['colour'])) $this->request->data['Tag']['colour'] = $this->Tag->random_color();
+			if (isset($this->request->data['Tag']['id'])) unset($this->request->data['Tag']['id']);
 			if ($this->Tag->save($this->request->data)) {
+				if ($this->_isRest()) $this->redirect(array('action' => 'view', $this->Tag->id));
 				$this->Session->setFlash('The tag has been saved.');
 				$this->redirect(array('action' => 'index'));
 			} else {
-				$this->Session->setFlash('The tag could not be saved. Please, try again.');
+				if ($this->_isRest()) {
+					$error_message = '';
+					foreach ($this->Tag->validationErrors as $k => $v) $error_message .= '[' . $k . ']: ' . $v[0]; 
+					throw new MethodNotAllowedException('Could not add the Tag. ' . $error_message);
+				} else {
+					$this->Session->setFlash('The tag could not be saved. Please, try again.');
+				}
 			}
 		}
 	}
@@ -80,10 +98,18 @@ class TagsController extends AppController {
 			throw new NotFoundException('Invalid tag');
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
+			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
+			if (isset($this->request->data['Tag']['id'])) unset($this->request->data['Tag']['id']);
 			if ($this->Tag->save($this->request->data)) {
+				if ($this->_isRest()) $this->redirect(array('action' => 'view', $id));
 				$this->Session->setFlash('The Tag has been edited');
 				$this->redirect(array('action' => 'index'));
 			} else {
+				if ($this->_isRest()) {
+					$error_message = '';
+					foreach ($this->Tag->validationErrors as $k => $v) $error_message .= '[' . $k . ']: ' . $v[0];
+					throw new MethodNotAllowedException('Could not add the Tag. ' . $error_message);
+				}
 				$this->Session->setFlash('The Tag could not be saved. Please, try again.');
 			}
 		}
@@ -102,11 +128,55 @@ class TagsController extends AppController {
 			throw new NotFoundException('Invalid tag');
 		}
 		if ($this->Tag->delete()) {
-			$this->Session->setFlash(__('Attribute deleted'));
+			if ($this->_isRest()) {
+				$this->set('name', 'Tag deleted.');
+				$this->set('message', 'Tag deleted.');
+				$this->set('url', '/tags/delete/' . $id);
+				$this->set('_serialize', array('name', 'message', 'url'));
+			}
+			$this->Session->setFlash(__('Tag deleted'));
 		} else {
-			$this->Session->setFlash(__('Attribute was not deleted'));
+			if ($this->_isRest()) throw new MethodNotAllowedException('Could not delete the tag, or tag doesn\'t exist.');
+			$this->Session->setFlash(__('Tag was not deleted'));
 		}
-		$this->redirect(array('action' => 'index'));
+		if (!$this->_isRest()) $this->redirect(array('action' => 'index'));
+	}
+	
+	public function view($id) {
+		if ($this->_isRest()) {
+			$tag = $this->Tag->find('first', array(
+					'conditions' => array('id' => $id),
+					'recursive' => -1,
+					'contain' => array('EventTag' => array('fields' => 'event_id'))
+			));
+			if (empty($tag)) throw MethodNotAllowedException('Invalid Tag'); 
+			$eventIDs = array();
+			if (empty($tag['EventTag'])) $tag['Tag']['count'] = 0;
+			else {
+				foreach ($tag['EventTag'] as $eventTag) {
+					$eventIDs[] = $eventTag['event_id'];
+				}
+				$conditions = array('Event.id' => $eventIDs);
+				if (!$this->_isSiteAdmin()) $conditions = array_merge(
+						$conditions,
+						array('OR' => array(
+								array('AND' => array(
+										array('Event.distribution >' => 0),
+										array('Event.published =' => 1)
+								)),
+								array('Event.orgc' => $this->Auth->user('org'))
+						)));
+				$events = $this->Tag->EventTag->Event->find('all', array(
+						'fields' => array('Event.id', 'Event.distribution', 'Event.orgc'),
+						'conditions' => $conditions
+				));
+				$tag['Tag']['count'] = count($events);
+			}
+			unset($tag['EventTag']);
+			$this->set('Tag', $tag['Tag']);
+			$this->set('_serialize', 'Tag');
+		} else throw new MethodNotAllowedException('This action is only for REST users.');
+		
 	}
 	
 	public function showEventTag($id) {
