@@ -387,6 +387,20 @@ The event ID is optional. MISP will accept either a JSON or an XML object posted
 	<td>ShadowAttribute object</td>
 </tr>
 <tr>
+	<td style="width:45px;">GET</td>
+	<td style="width:250px;">/shadow_attributes/index</td>
+	<td>View all proposal of my org's events</td>
+	<td>N/A</td>
+	<td>ShadowAttribute objects</td>
+</tr>
+<tr>
+	<td style="width:45px;">GET</td>
+	<td style="width:250px;">/shadow_attributes/index/[event_id]</td>
+	<td>View all proposals of an event</td>
+	<td>N/A</td>
+	<td>ShadowAttribute objects</td>
+</tr>
+<tr>
 	<td style="width:45px;">POST</td>
 	<td style="width:250px;">/shadow_attributes/add/[event_id]</td>
 	<td style="width:250px;">Propose a new attribute to an event</td>
