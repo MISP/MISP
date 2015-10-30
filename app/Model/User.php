@@ -389,11 +389,12 @@ class User extends AppModel {
 		));
 		foreach ($users as $k => $user) {
 			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
-			$key = $gpg->importKey($user['User']['gpgkey']);
-			$gpg->addEncryptKey($key['fingerprint']); // use the key that was given in the import
 			try {
+				$key = $gpg->importKey($user['User']['gpgkey']);
+				$gpg->addEncryptKey($key['fingerprint']); // use the key that was given in the import
 				$enc = $gpg->encrypt('test', true);
 			} catch (Exception $e){
+				$results[$user['User']['id']][2] = $e->getMessage();
 				$results[$user['User']['id']][0] = true;
 			}
 			$results[$user['User']['id']][1] = $user['User']['email'];

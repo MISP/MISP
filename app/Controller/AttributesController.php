@@ -799,42 +799,21 @@ class AttributesController extends AppController {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)),'status'=>200));
 		}
 	}
-	
-	public function view($id, $hasChildren = 0, $response = 'ajax') {
+
+	public function view($id) {
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException('Invalid attribute');
 		}
-		$this->Attribute->recursive = -1;
-		$this->Attribute->contain('Event');
-		$attribute = $this->Attribute->read();
-		if (!$this->_isSiteAdmin()) {
-			//
-			if ($this->Attribute->data['Event']['org_id'] == $this->Auth->user('org_id') || (($this->Attribute->data['Event']['distribution'] > 0) &&  $this->Attribute->data['Attribute']['distribution'] > 0)) {
-				throw new MethodNotAllowed('Invalid attribute');
-			}
-		}
-		if ($this->request->is('ajax')) {
-			$eventRelations = $this->Attribute->Event->getRelatedAttributes($this->Auth->user(), $this->_isSiteAdmin(), $attribute['Attribute']['event_id']);
-			$attribute['Attribute']['relations'] = array();
-			if (isset($eventRelations[$id])) {
-				foreach ($eventRelations[$id] as $relations) {
-					$attribute['Attribute']['relations'][] = array($relations['id'], $relations['info'], $relations['org_id']);
-				}
-			}
-			$object = $attribute['Attribute'];
-			$object['objectType'] = 0;
-			$object['hasChildren'] = $hasChildren;
-			$this->set('object', $object);
-			$this->set('distributionLevels', $this->Attribute->Event->distributionLevels);
+		if ($this->_isRest()) {
+			$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true));
+			if (empty($attribute)) throw new MethodNotAllowedException('Invalid attribute');
+			$attribute = $attribute[0];
+			$this->set('Attribute', $attribute['Attribute']);
+			$this->set('_serialize', array('Attribute'));
 		} else {
 			$this->redirect('/events/view/' . $this->Attribute->data['Attribute']['event_id']);
 		}
-		/*
-		$this->autoRender = false;
-		$responseObject = array();
-		return new CakeResponse(array('body'=> json_encode($attribute['Attribute']),'status'=>200));
-		*/
 	}
 
 /**
@@ -907,11 +886,11 @@ class AttributesController extends AppController {
 		// check for permissions
 		if (!$this->_isSiteAdmin()) {
 			if ($result['Event']['locked']) {
-				if ($this->_checkOrg() != $result['Event']['org_id'] || !$this->userRole['perm_sync']) {
+				if ($this->Auth->user('org_id') != $result['Event']['org_id'] || !$this->userRole['perm_sync']) {
 					throw new MethodNotAllowedException();
 				}
 			} else {
-				if ($this->_checkOrg() != $result['Event']['orgc_id']) {
+				if ($this->Auth->user('org_id') != $result['Event']['orgc_id']) {
 					throw new MethodNotAllowedException();
 				}
 			}
@@ -1392,22 +1371,19 @@ class AttributesController extends AppController {
 	// This alternate view will show a list of events with matching search results and the percentage of those matched attributes being marked as to_ids
 	// events are sorted based on relevance (as in the percentage of matches being flagged as indicators for IDS)
 	public function searchAlternate($data) {
-		$data['AND'][] = array(
-				"OR" => array(
-						array('Event.org_id =' => $this->Auth->user('org_id')),
-						array("AND" => array('Event.org_id !=' => $this->Auth->user('org_id')),
-							array('Event.distribution !=' => 0),
-							array('Attribute.distribution !=' => 0),
-							Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-						)
-					)
-				);
-		$attributes = $this->Attribute->find('all', array(
-			'conditions' => $data,
-			'fields' => array(
-				'Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids', 'Attribute.value', 'Attribute.distribution',
-				'Event.id', 'Event.org_id', 'Event.orgc_id', 'Event.info', 'Event.distribution', 'Event.attribute_count' 	
-		)));
+		$attributes = $this->Attribute->fetchAttributes(
+			$this->Auth->user(), 
+			array(
+				'conditions' => array(
+					'AND' => $data
+				),
+				'contain' => array('Event' => array('Orgc' => array('fields' => array('Orgc.name')))),
+				'fields' => array(
+					'Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids', 'Attribute.value', 'Attribute.distribution',
+					'Event.id', 'Event.org_id', 'Event.orgc_id', 'Event.info', 'Event.distribution', 'Event.attribute_count',
+				)
+			)
+		);
 		$events = array();
 		foreach ($attributes as $attribute) {
 			if (isset($events[$attribute['Event']['id']])) {
@@ -1444,40 +1420,6 @@ class AttributesController extends AppController {
 			$c[] = $a[$key];
 		}
 		return $c;
-	}
-
-	public function downloadAttributes() {
-		$idList = $this->Session->read('search_find_idlist');
-		$this->response->type('xml');	// set the content type
-		$this->header('Content-Disposition: download; filename="misp.attribute.search.xml"');
-		$this->layout = 'xml/default';
-		$this->loadModel('Attribute');
-		if (!isset($idList)) {
-			print "No results found to export\n";
-		} else {
-			foreach ($idList as $listElement) {
-				$put['OR'][] = array('Attribute.id' => $listElement);
-			}
-			$conditions['AND'][] = $put;
-			//	restricting to non-private or same org if the user is not a site-admin.
-			if (!$this->_isSiteAdmin()) {
-				$temp = array();
-				array_push($temp, array('Attribute.distribution >' => 0));
-				array_push($temp, array('OR' => $distribution));
-				array_push($temp, array('(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id) LIKE' => $this->_checkOrg()));
-				$put2['OR'][] = $temp;
-				$conditions['AND'][] = $put2;
-			}
-			$params = array(
-					'conditions' => $conditions, //array of conditions
-					'recursive' => 0, //int
-					'fields' => array('Attribute.id', 'Attribute.value'), //array of field names
-					'order' => array('Attribute.id'), //string or array defining order
-			);
-			$attributes = $this->Attribute->find('all', $params);
-			$this->set('results', $attributes);
-		}
-		$this->render('xml');
 	}
 
 	public function checkComposites() {
@@ -1609,16 +1551,6 @@ class AttributesController extends AppController {
 				$subcondition = array();
 			}
 		}
-		// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
-
-		if (!$user['Role']['perm_site_admin']) {
-			$temp = array();
-			$temp['AND'] = $this->Attribute->buildConditions($user);
-			if (Configure::read('MISP.unpublishedprivate')) $temp['AND'][] = array('Event.published' => 1);
-			$subcondition['OR'][] = $temp;
-			$subcondition['OR'][] = array('Event.org_id' => $user['org_id']);
-			array_push($conditions['AND'], $subcondition);
-		}
 		
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($tags) {
@@ -1646,9 +1578,8 @@ class AttributesController extends AppController {
 		$params = array(
 				'conditions' => $conditions,
 				'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
-				'contain' => array('Event' => array())
 		);
-		$results = $this->Attribute->find('all', $params);
+		$results = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
 		$this->loadModel('Whitelist');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
 		if (empty($results)) throw new NotFoundException('No matches.');
@@ -1933,8 +1864,7 @@ class AttributesController extends AppController {
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
-		$attribute = $this->Attribute->find('first', array(
-				'recursive' => -1,
+		$params = array(
 				'conditions' => array('Attribute.id' => $id),
 				'fields' => array('id', 'distribution', 'event_id', $field),
 				'contain' => array(
@@ -1942,13 +1872,10 @@ class AttributesController extends AppController {
 								'fields' => array('distribution', 'id', 'org_id'),
 						)
 				)
-		));
-		if (!$this->_isSiteAdmin()) {
-			//
-			if (!($attribute['Event']['org_id'] == $this->Auth->user('org_id') || ($attribute['Event']['distribution'] > 0 && $attribute['Attribute']['distribution'] > 0))) {
-				throw new NotFoundException(__('Invalid attribute'));
-			}
-		}
+		);
+		$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
+		if (empty($attribute)) throw new NotFoundException(__('Invalid attribute'));
+		$attribute = $attribute[0];
 		$result = $attribute['Attribute'][$field];
 		if ($field == 'distribution') $result=$this->Attribute->distributionLevels[$result];
 		if ($field == 'to_ids') $result = ($result == 0 ? 'No' : 'Yes');
@@ -1978,8 +1905,7 @@ class AttributesController extends AppController {
 		} else {
 			$fields[] = $field;
 		}
-		$attribute = $this->Attribute->find('first', array(
-			'recursive' => -1,
+		$params = array(
 			'conditions' => array('Attribute.id' => $id),
 			'fields' => $fields,
 			'contain' => array(
@@ -1987,7 +1913,10 @@ class AttributesController extends AppController {
 					'fields' => array('distribution', 'id', 'user_id', 'orgc_id'),	
 				)
 			)
-		));
+		);
+		$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
+		if (empty($attribute)) throw new NotFoundException(__('Invalid attribute'));
+		$attribute = $attribute[0];
 		if (!$this->_isSiteAdmin()) {
 			//
 			if ($attribute['Event']['orgc_id'] == $this->Auth->user('org_id')

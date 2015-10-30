@@ -150,45 +150,6 @@ class EventsController extends AppController {
 				$excludeIDs[$eH['Attribute']['event_id']][] = array('attribute_id' => $eH['Attribute']['id'], 'distribution' => $eH['Attribute']['distribution']);
 			}
 		}
-		if (!empty($exclude) || !empty($include)) {
-		// if we are not site admin, fetch all of the events so that we can remove everything that the user is not allowed to see
-			if (!$this->_isSiteAdmin()) {
-				$eventQuery = array(
-					'fields' => array('id', 'distribution', 'org_id'),
-					'recursive' => -1,
-					'conditions' => array(),
-				);
-				foreach ($excludeIDs as $eIK => $eIV) {
-					$eventQuery['conditions']['OR'][] = array('Event.id' => $eIK);
-				}
-				foreach ($includeIDs as $iIK => $iIV) {
-					$eventQuery['conditions']['OR'][] = array('Event.id' => $iIK);
-				}
-				$events = $this->Event->find('all', $eventQuery);
-				foreach ($events as $e) {
-					if ($e['Event']['org_id'] != $this->Auth->user('org_id')) {
-						if ($e['Event']['distribution'] == 0) {
-							// unset all attribute hits that include this event
-							if (isset($includeIDs[$e['Event']['id']])) unset($includeIDs[$e['Event']['id']]);
-							if (isset($excludeIDs[$e['Event']['id']])) unset($excludeIDs[$e['Event']['id']]);
-						} else {
-							// if the event has distribution > 0 but it doesn't belong to the current user then 
-							// we still have to remove the attributes that have the distribution set lower.
-							if (isset($includeIDs[$e['Event']['id']])) {
-								foreach ($includeIDs[$e['Event']['id']] as $i => $iI) {
-									if ($iI['distribution'] == 0) unset($includeIDs[$e['Event']['id']][$i]);
-								}
-							}
-							if (isset($excludeIDs[$e['Event']['id']])) {
-								foreach ($excludeIDs[$e['Event']['id']] as $i => $iI) {
-									if ($iI['distribution'] == 0) unset($excludeIDs[$e['Event']['id']][$i]);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
 		$includeIDs = array_keys($includeIDs);
 		$excludeIDs = array_keys($excludeIDs);
 		// return -1 as the only value in includedIDs if both arrays are empty. This will mean that no events will be shown if there was no hit
@@ -225,28 +186,6 @@ class EventsController extends AppController {
 				'conditions' => array('id' => array_keys($eventsWithAttributeHits)),
 		));
 		
-		// The problem with the above list is, that the user may still not be allowed to know about some of those attributes, 
-		// or the events that contain them. Let's prune the list of events if the user is not a site admin.
-		if (!$this->_isSiteAdmin()) {
-			foreach ($events as $k => $event) {
-				// if the event is not the user's org's event and is org only, unset it
-				if ($event['Event']['distribution'] == 0 && $event['Event']['org_id'] != $this->Auth->user('org_id')) unset($events[$k]);
-				else {
-					// If the event doesn't belong to the user's org but the distribution is higher than 0, then the attributes still need to be checked
-					if ($event['Event']['org_id'] != $this->Auth->user('org_id')) {
-						$canKeep = false;
-						foreach($eventsWithAttributeHits[$event['Event']['id']] as $att) {
-							if ($att['distribution'] > 0) {
-								$canKeep = true;
-								break;
-							}
-						} 
-						// if $canKeep is still false then we didn't find any matching attributes that the current user could see - unset the event :(
-						if (!$canKeep) unset($events[$k]);
-					}
-				}
-			}
-		}
 		foreach ($events as $event) {
 			$result[] = $event['Event']['id'];
 		}
@@ -1556,7 +1495,7 @@ class EventsController extends AppController {
 			} else {
 				$useOrg = $this->Auth->User('Organisation')['name'];
 				$useOrg_id = $this->Auth->User('org_id');
-				$conditions['OR'][] = array('id' => $this->Event->fetchEventIds($this->Auth->user, false, false, true));
+				$conditions['OR'][] = array('id' => $this->Event->fetchEventIds($this->Auth->user, false, false, true, true));
 			}
 			$this->Event->recursive = -1;
 			$newestEvent = $this->Event->find('first', array(
@@ -2276,7 +2215,7 @@ class EventsController extends AppController {
 	public function downloadSearchResult() {
 		$ioc = $this->Session->read('paginate_conditions_ioc');
 		$paginateConditions = $this->Session->read('paginate_conditions');
-		$attributes = $this->Event->Attribute->find('all', array(
+		$attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
 			'conditions' => $paginateConditions['conditions'],
 			'contain' => $paginateConditions['contain'],
 		));
@@ -2406,17 +2345,6 @@ class EventsController extends AppController {
 					$subcondition = array();
 				}
 			}
-		
-			// If we are looking for an attribute, we want to retrieve some extra data about the event to be able to check for the permissions.
-	
-			if (!$user['Role']['perm_site_admin']) {
-				$temp = array();
-				$temp['AND'] = $this->Event->Attribute->buildConditions($user);
-				if (Configure::read('MISP.unpublishedprivate')) $temp['AND'][] = array('Event.published' => 1);
-				$subcondition['OR'][] = $temp;
-				$subcondition['OR'][] = array('Event.org_id' => $user['org_id']);
-				array_push($conditions['AND'], $subcondition);
-			}
 			
 			// If we sent any tags along, load the associated tag names for each attribute
 			if ($tags) {
@@ -2442,7 +2370,7 @@ class EventsController extends AppController {
 					'conditions' => $conditions,
 					'fields' => array('DISTINCT(Attribute.event_id)'),
 			);
-			$attributes = $this->Attribute->find('all', $params);
+			$attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $params);
 			$eventIds = array();
 			foreach ($attributes as $attribute) {
 				if (!in_array($attribute['Attribute']['event_id'], $eventIds)) $eventIds[] = $attribute['Attribute']['event_id'];
@@ -3078,12 +3006,12 @@ class EventsController extends AppController {
 	
 	public function exportChoice($id) {
 		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
-		$event = $this->Event->find('first' ,array(
-				'conditions' => array('id' => $id),
-				'recursive' => -1,
-				'fields' => array('distribution', 'orgc_id','id', 'published'),
+		$event = $this->Event->fetchEvent($this->Auth->user(), array(
+				'conditions' => array('Event.id' => $id),
+				'fields' => array('Event.distribution', 'Event.orgc_id','Event.id', 'Event.published'),
 		));
-		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id') && $event['Event']['distribution'] < 1)) throw new NotFoundException('Event not found or you are not authorised to view it.');
+		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
+		$event = $event[0];
 		$exports = array(
 			'xml' => array(
 					'url' => '/events/xml/download/' . $id,

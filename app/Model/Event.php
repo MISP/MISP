@@ -2315,7 +2315,7 @@ class Event extends AppModel {
 		unset($event['ShadowAttribute']);
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();
-		if ($all) $this->passedArgs['page'] = 0;
+		if ($all) $passedArgs['page'] = 0;
 		$params = $customPagination->applyRulesOnArray($eventArray, $passedArgs, 'events', 'category');
 		$eventArrayWithProposals = array();
 		

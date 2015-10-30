@@ -1709,7 +1709,7 @@ class Attribute extends AppModel {
 	 }
 	 
 	 public function buildConditions($user) {
-	 	$params = array();
+	 	$conditions = array();
 	 	if (!$user['Role']['perm_site_admin']) {
 	 		$event_ids = $this->Event->fetchEventIds($user, false, false, false, true);
 	 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
@@ -1749,25 +1749,31 @@ class Attribute extends AppModel {
 	//     order
 	//     group
 	 public function fetchAttributes($user, $options = array()) {
-	 	$params = array();
-	 	if (!$user['Role']['perm_site_admin']) {
-	 		$params = array(
-	 			'conditions' => $this->buildConditions($user),
-	 			'recursive' => -1,
-	 			'contain' => array(
-	 				'Event' => array(
-	 					'fields' => array('id', 'info', 'org_id'),
-	 				), 
-	 			),	
-	 		);
-	 	}
+ 		$params = array(
+ 			'conditions' => $this->buildConditions($user),
+ 			'recursive' => -1,
+ 			'contain' => array(
+ 				'Event' => array(
+ 					'fields' => array('id', 'info', 'org_id'),
+ 				), 
+ 			),	
+ 		);
 	 	if (isset($options['contain'])) $params['contain'] = $options['contain'];
 	 	if (isset($options['fields'])) $params['fields'] = $options['fields'];
 	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 	 	if (isset($options['order'])) $params['conditions']['AND'][] = $options['order'];
 	 	if (isset($options['group'])) $params['conditions']['AND'][] = $options['group'];
 	 	if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('Event.published' => 1);
-	 	return $this->find('all', $params);
+	 	$results = $this->find('all', $params);
+	 	if (isset($options['withAttachments']) && $options['withAttachments']) {
+	 		foreach ($results as &$attribute) { 
+		 		if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
+		 			$encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
+		 			$attribute['Attribute']['data'] = $encodedFile;
+		 		}
+	 		}
+	 	}
+	 	return $results;
 	 }
 	
 	// get and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive

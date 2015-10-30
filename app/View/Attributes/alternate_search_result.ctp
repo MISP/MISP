@@ -19,10 +19,10 @@
 				<td class="short"><a href="/events/view/<?php echo (h($event['Event']['id'])); ?>"><?php echo (h($event['Event']['id'])); ?></a></td>
 				<td class="short">
 					<?php 
-						$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
+						$imgRelativePath = 'orgs' . DS . h($event['Event']['Orgc']['name']) . '.png';
 						$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-						if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['orgc']) . '.png', array('alt' => h($event['Event']['orgc']), 'title' => h($event['Event']['orgc']), 'style' => 'width:24px; height:24px'));
-						else echo $this->Html->tag('span', h($event['Event']['orgc']), array('class' => 'welcome', 'style' => 'float:left;'));
+						if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['Orgc']['name']) . '.png', array('alt' => h($event['Event']['Orgc']['name']), 'title' => h($event['Event']['Orgc']['name']), 'style' => 'width:24px; height:24px'));
+						else echo $this->Html->tag('span', h($event['Event']['Orgc']['name']), array('class' => 'welcome', 'style' => 'float:left;'));
 					?>
 				</td>
 				<td>
