@@ -938,23 +938,41 @@ class ShadowAttributesController extends AppController {
 		return true;
 	}
 	
-	public function index() {
-		$conditions = null;
+	public function index($eventId = false) {
+		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
 			$conditions = array('Event.org =' => $this->Auth->user('org'));
 		}
+		if ($eventId && is_numeric($eventId)) $conditions['ShadowAttribute.event_id'] = $eventId;
 		$conditions[] = array('deleted' => 0);
-		$this->paginate = array(
-				'conditions' => $conditions,
-				'fields' => array('id', 'org', 'old_id', 'deleted', 'value', 'category', 'type'),
-				'contain' => array(
-						'Event' => array(
-								'fields' => array('id', 'org', 'info', 'orgc'),
-						),
-				),
-				'recursive' => 1	
-		);
-		$this->set('shadowAttributes', $this->paginate());
+		if ($this->_isRest()) {
+			$temp = $this->ShadowAttribute->find('all', array(
+					'conditions' => $conditions,
+					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org'),
+					'contain' => array(
+							'Event' => array(
+									'fields' => array('id', 'org'),
+							),
+					),
+			));
+			if (empty($temp)) throw new MethodNotAllowedException('No proposals found or invalid event.');
+			$proposals = array();
+			foreach ($temp as $proposal) $proposals[] = $proposal['ShadowAttribute'];
+			$this->set('ShadowAttribute', $proposals);
+			$this->set('_serialize', array('ShadowAttribute'));
+		} else {
+			$this->paginate = array(
+					'conditions' => $conditions,
+					'fields' => array('id', 'org', 'old_id', 'deleted', 'value', 'category', 'type'),
+					'contain' => array(
+							'Event' => array(
+									'fields' => array('id', 'org', 'info', 'orgc'),
+							),
+					),
+					'recursive' => 1
+			);
+			$this->set('shadowAttributes', $this->paginate());
+		}
 	}
 	
 	private function _getEventData($event_id) {
