@@ -23,6 +23,10 @@
 			echo " including the change \"<b>" . h($changeSearch) . "</b>\"";
 			$changeSearchReplacePairs = $this->Highlight->build_replace_pairs(h($changeSearch));
 		}
+		if (Configure::read('MISP.log_client_ip') && $ipSearch != null) {
+			echo " including the change \"<b>" . h($ipSearch) . "</b>\"";
+			$ipSearchReplacePairs = $this->Highlight->build_replace_pairs(h($ipSearch));
+		}
 		echo ":</h4>";
 	}
 	?>
@@ -45,6 +49,7 @@
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
+			<?php if (Configure::read('MISP.log_client_ip')) echo '<th>' . $this->Paginator->sort('ip', 'IP') . '</th>';?>
 			<th><?php echo $this->Paginator->sort('email');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<th><?php echo $this->Paginator->sort('created');?></th>
@@ -55,6 +60,14 @@
 		<?php foreach ($list as $item): ?>
 		<tr>
 			<td class="short"><?php echo h($item['Log']['id']); ?>&nbsp;</td>
+			<?php 
+				if (Configure::read('MISP.log_client_ip')) {
+					echo '<td>';
+					if (isset($ipSearch) && $ipSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['ip']), $ipSearchReplacePairs));
+					else echo h($item['Log']['ip']);
+					echo '</td>&nbsp;';
+				}
+			?>
 			<td class="short"><?php
 				if (isset($emailSearch) && $emailSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['email']), $emailSearchReplacePairs));
 				else echo (h($item['Log']['email'])); ?>&nbsp;</td>
