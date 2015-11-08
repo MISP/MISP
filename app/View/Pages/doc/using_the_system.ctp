@@ -230,8 +230,8 @@ The currently selected event is coloured blue in the graph. If you would like to
 A list of all attributes and proposals attached to the event. The fields for each of them only differ in the available actions and the fact that for proposals to attributes all fields are blank that would stay unchanged if the proposal was accepted (for example, proposing a change to an attribute to turn the IDS flag on will have all fields apart from the IDS flag blank in the proposal. Here is a list of what each of the fields represents: <br />
 <ul>
 	<li><b>Date</b>: The date of the last modification to the attribute. Proposals don't have a date of last edit.</li>
-	<li><b>Category</b>: The category of the attribute or proposal. For a list of possible categories visit the section on <a href="/pages/display/doc/categories_and_types">categories and types</a>.</li>
-	<li><b>Type</b>: The type of the attribute or proposal. For a list of possible categories visit the section on <a href="/pages/display/doc/categories_and_types">categories and types</a>.</li>
+	<li><b>Category</b>: The category of the attribute or proposal. For a list of possible categories visit the section on <a href="<?php echo $baseurl;?>/pages/display/doc/categories_and_types">categories and types</a>.</li>
+	<li><b>Type</b>: The type of the attribute or proposal. For a list of possible categories visit the section on <a href="<?php echo $baseurl;?>/pages/display/doc/categories_and_types">categories and types</a>.</li>
 	<li><b>Value</b>: The value or value-pair of the attribute. This is the main payload of the attribute, which is described by the category and type columns. For certain types of attributes that are made up of value-pairs the two parts will be split by a pipe (|), such as for filename|md5. The value field(s) are used by the correlation engine to find relations between events. In value-pair attributes both values are correlated individually. </li>
 	<li><b>Comment</b>: Attributes can have a contextual comment to further describe the attribute. These comments are not used for correlation and are purely informative. </li>
 	<li><b>Related Events</b>: A list of the event IDs that also contain an attribute with the same value. </li>
@@ -363,7 +363,7 @@ By default, the message will be sent to every member of the organisation that po
 <hr />
 <a id="automation"></a><h2>Automation:</h2>
 It is possible to quickly and conveniently export the data contained within the system using the automation features located in the main menu on the left (available to users with authentication key access only). There are various sets of data that can be exported, by using the authentication key provided by the system (also shown on the export page). If for whatever reason you would need to invalidate your current key and get a new one instead (for example due to the old one becoming compromised) just hit the reset link next to the authentication key in the export view or in your "my profile" view.<br /><br />
-To find out about the various export formats and the usage within the automation functions, please read the page on <a href="/events/automation">automation</a>.
+To find out about the various export formats and the usage within the automation functions, please read the page on <a href="<?php echo $baseurl;?>/events/automation">automation</a>.
 <hr />
 <a id="export"></a><h2>Exporting data:</h2>
 For users that do not have authentication key access, an alternate export feature is available that relies on your interactive login to the site. To access these, just use the export menu button to the left and you'll be presented with a list of export options.<br /><br/> 

@@ -41,13 +41,13 @@
 		</tr>
 		<?php foreach ($shadowAttributes as $event):?>
 		<tr>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['Event']['id']);?>
 			</td>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['ShadowAttribute']['org'])?>
 			</td>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php 
 					if ($event['ShadowAttribute']['old_id'] != 0) {
 						echo 'Attribute edit';
@@ -56,16 +56,16 @@
 					}
 				?>
 			</td>
-			<td onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['Event']['info']); ?>
 			</td>
-			<td onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['ShadowAttribute']['value']);?>
 			</td>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['ShadowAttribute']['category']);?>
 			</td>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['ShadowAttribute']['type']);?>
 			</td>
 		</tr>
