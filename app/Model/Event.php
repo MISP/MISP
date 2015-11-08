@@ -1028,7 +1028,7 @@ class Event extends AppModel {
 	 }
 	 
 	 private function attachEventInfoToAttributes($attributes, $isSiteAdmin) {
-	 	$TLs = $this->ThreatLevel->find('all', array(
+	 	$TLs = $this->ThreatLevel->find('list', array(
 	 		'recursive' => -1,
 	 	));
 	 	$event_ids = array();
@@ -1059,7 +1059,7 @@ class Event extends AppModel {
 	 	foreach ($attributes as &$attribute) {
 	 		foreach ($context_fields as $field => $header_name) {
 	 			if ($header_name == 'event_threat_level_id') {
-	 				$attribute['Attribute'][$header_name] = $TLs[$event_id_data[$attribute['Attribute']['event_id']][$header_name]]['ThreatLevel']['name'];
+	 				$attribute['Attribute'][$header_name] = $TLs[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
 	 			} else if ($header_name == 'event_distribution') {
 	 				$attribute['Attribute'][$header_name] = $this->distributionLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
 	 			} else if ($header_name == 'event_analysis') {
