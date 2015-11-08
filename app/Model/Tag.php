@@ -138,4 +138,10 @@ class Tag extends AppModel {
 		}
 		return $tags;
 	}
+	
+	public function random_color() {
+		$colour = '#';
+		for ($i = 0; $i < 3; $i++) $colour .= str_pad(dechex(mt_rand(0,255)), 2, '0', STR_PAD_LEFT);
+		return $colour;
+	}
 }

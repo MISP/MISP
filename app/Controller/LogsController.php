@@ -153,6 +153,7 @@ class LogsController extends AppController {
 				$action = $this->request->data['Log']['action'];
 				$title = $this->request->data['Log']['title'];
 				$change = $this->request->data['Log']['change'];
+				if (Configure::read('MISP.log_client_ip')) $ip = $this->request->data['Log']['ip'];
 
 				// for info on what was searched for
 				$this->set('emailSearch', $email);
@@ -160,6 +161,7 @@ class LogsController extends AppController {
 				$this->set('actionSearch', $action);
 				$this->set('titleSearch', $title);
 				$this->set('changeSearch', $change);
+				if (Configure::read('MISP.log_client_ip')) $this->set('ipSearch', $ip);
 				$this->set('isSearch', 1);
 
 				// search the db
@@ -179,6 +181,9 @@ class LogsController extends AppController {
 				if (isset($change) && !empty($change)) {
 					$conditions['LOWER(Log.change) LIKE'] = '%' . strtolower($change) . '%';
 				}
+				if (Configure::read('MISP.log_client_ip') && isset($ip) && !empty($ip)) {
+					$conditions['Log.ip LIKE'] = '%' . $ip . '%';
+				} 
 				$this->{$this->defaultModel}->recursive = 0;
 				$this->paginate = array(
 					'limit' => 60,
@@ -194,6 +199,7 @@ class LogsController extends AppController {
 				$this->Session->write('paginate_conditions_log_action', $action);
 				$this->Session->write('paginate_conditions_log_title', $title);
 				$this->Session->write('paginate_conditions_log_change', $change);
+				if (Configure::read('MISP.log_client_ip')) $this->Session->write('paginate_conditions_log_ip', $ip);
 
 				// set the same view as the index page
 				$this->render('admin_index');
@@ -214,6 +220,7 @@ class LogsController extends AppController {
 			$action = $this->Session->read('paginate_conditions_log_action');
 			$title = $this->Session->read('paginate_conditions_log_title');
 			$change = $this->Session->read('paginate_conditions_log_change');
+			if (Configure::read('MISP.log_client_ip')) $ip = $this->Session->read('paginate_conditions_log_ip');
 
 			// for info on what was searched for
 			$this->set('emailSearch', $email);
@@ -221,6 +228,7 @@ class LogsController extends AppController {
 			$this->set('actionSearch', $action);
 			$this->set('titleSearch', $title);
 			$this->set('changeSearch', $change);
+			if (Configure::read('MISP.log_client_ip')) $this->set('ipSearch', $ip);
 			$this->set('isSearch', 1);
 
 			// re-get pagination

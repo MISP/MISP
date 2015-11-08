@@ -93,7 +93,6 @@ class SysLogLogableBehavior extends LogableBehavior {
 	}
 
 	function _saveLog(&$Model, $logData, $title = null) {
-
 		if ($title !== NULL) {
 			$logData['Log']['title'] = $title;
 		} elseif ($Model->displayField == $Model->primaryKey) {
@@ -131,11 +130,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 			$logData['Log']['version_id'] = $Model->version_id;
 			unset($Model->version_id);
 		}
-
-		if (isset($this->schema['ip']) && $this->userIP) {
-			$logData['Log']['ip'] = $this->userIP;
-		}
-
+		
 		if (isset($this->schema[$this->settings[$Model->alias]['userKey']]) && $this->user) {
 			$logData['Log'][$this->settings[$Model->alias]['userKey']] = $this->user[$this->UserModel->alias][$this->UserModel->primaryKey];
 		}
@@ -162,7 +157,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 		}
 		if (isset($this->schema['org'])) {	// TODO Audit, LogableBehevior org CHECK!!!
 		if ($this->user && $this->UserModel) {
-			$logData['Log']['org'] = $this->user[$this->UserModel->alias][$this->UserModel->orgField[0]][$this->UserModel->orgField[1]];
+			$logData['Log']['org'] = $this->user[$this->UserModel->alias]['Organisation']['name'];
 		} else {
 			// UserModel is active, but the data hasnt been set. Assume system action.
 			$logData['Log']['org'] = 'SYS';
@@ -244,8 +239,8 @@ class SysLogLogableBehavior extends LogableBehavior {
 		}
 		$this->Log->create($logData);
 		$this->Log->save(null, array(
-				'validate' => false,
-				'callbacks' => false));
+				'validate' => false));
+		
 		// write to syslogd as well
 		$syslog = new SysLog();
 		if (isset($logData['Log']['change'])) {

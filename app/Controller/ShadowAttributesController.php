@@ -939,26 +939,52 @@ class ShadowAttributesController extends AppController {
 		return true;
 	}
 	
-	public function index() {
-		$conditions = null;
+	public function index($eventId = false) {
+		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
 			$conditions = array('Event.org =' => $this->Auth->user('org_id'));
 		}
+		if ($eventId && is_numeric($eventId)) $conditions['ShadowAttribute.event_id'] = $eventId;
 		$conditions[] = array('deleted' => 0);
-		$this->paginate = array(
-				'conditions' => $conditions,
-				'fields' => array('id', 'org_id', 'old_id', 'deleted', 'value', 'category', 'type'),
-				'contain' => array(
-						'Event' => array(
-								'fields' => array('id', 'org_id', 'info', 'orgc_id'),
-						),
-						'Org' => array(
+		if ($this->_isRest()) {
+			$temp = $this->ShadowAttribute->find('all', array(
+					'conditions' => $conditions,
+					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id'),
+					'contain' => array(
+							'Event' => array(
+									'fields' => array('id', 'org_id', 'info', 'orgc_id'),
+							),
+							'Org' => array(
 								'fields' => array('name'),
-						)
-				),
-				'recursive' => 1	
-		);
-		$this->set('shadowAttributes', $this->paginate());
+							)
+					),
+					'recursive' => 1
+			));
+			if (empty($temp)) throw new MethodNotAllowedException('No proposals found or invalid event.');
+			$proposals = array();
+			foreach ($temp as $proposal) {
+				$proposal['ShadowAttribute']['org'] = $proposal['Org']['name'];
+				$proposals[] = $proposal['ShadowAttribute'];
+				
+			}
+			$this->set('ShadowAttribute', $proposals);
+			$this->set('_serialize', array('ShadowAttribute'));
+		} else {
+			$this->paginate = array(
+					'conditions' => $conditions,
+					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id'),
+					'contain' => array(
+							'Event' => array(
+									'fields' => array('id', 'org_id', 'info', 'orgc_id'),
+							),
+							'Org' => array(
+								'fields' => array('name'),
+							)
+					),
+					'recursive' => 1
+			);
+			$this->set('shadowAttributes', $this->paginate());
+		}
 	}
 	
 	// takes a uuid and finds all proposals that belong to an event with the given uuid. These are then returned. 

@@ -76,6 +76,9 @@ class AppModel extends Model {
 				$sql = 'DELETE FROM `cake_sessions` WHERE `expires` < ' . time() . ';';
 				$clean = false;
 				break;
+			case 'addIPLogging':
+				$sql = 'ALTER TABLE `logs` ADD  `ip` varchar(45) COLLATE utf8_bin DEFAULT NULL;';
+				break;
 			case '24betaupdates':
 				$sql = 'ALTER TABLE `shadow_attributes` ADD  `proposal_to_delete` BOOLEAN NOT NULL';
 				break;

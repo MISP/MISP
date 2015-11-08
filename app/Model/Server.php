@@ -443,7 +443,24 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'test' => 'testBool',
 							'beforeHook' => 'eventBlacklistingBeforeHook'
-					)
+					),
+					'log_client_ip' => array(
+							'level' => 1,
+							'description' => 'If enabled, all log entries will include the IP address of the user.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'beforeHook' => 'ipLogBeforeHook'
+					),
+					'log_auth' => array(
+							'level' => 1,
+							'description' => 'If enabled, MISP will log all successful authentications using API keys. The requested URLs are also logged.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
@@ -494,7 +511,7 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
-					),
+					)
 			),
 			'Proxy' => array(
 					'branch' => 1,
@@ -1376,6 +1393,15 @@ class Server extends AppModel {
 			return true;
 		}
 		$pubSubTool->reloadServer();
+		return true;
+	}
+	
+	public function ipLogBeforeHook($setting, $value) {
+		if ($setting == 'MISP.log_client_ip') {
+			if ($value == true) {
+				$this->updateDatabase('addIPLogging');
+			}
+		}
 		return true;
 	}
 	

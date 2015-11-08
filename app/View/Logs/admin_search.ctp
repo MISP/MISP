@@ -7,6 +7,7 @@
 		if ($orgRestriction == false) {
 			echo $this->Form->input('org', array( 'label' => 'Organisation'));
 		}
+		if (Configure::read('MISP.log_client_ip')) echo $this->Form->input('ip', array( 'label' => 'IP'));
 		echo $this->Form->input('action', array(
 				'between' => $this->Html->div('forminfo', '', array('id' => 'LogActionDiv')),
 				'div' => 'input clear'));
