@@ -107,13 +107,39 @@ class AppController extends Controller {
 					if ($user) {
 						unset($user['User']['gpgkey']);
 					    // User found in the db, add the user info to the session
+					    if (Configure::read('MISP.log_auth')) {
+							$this->Log = ClassRegistry::init('Log');
+							$this->Log->create();
+							$log = array(
+									'org' => $user['User']['org'],
+									'model' => 'User',
+									'model_id' => $user['User']['id'],
+									'email' => $user['User']['email'],
+									'action' => 'auth',
+									'title' => 'Successful authentication using API key',
+									'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+							);
+							$this->Log->save($log);
+					    }
 					    $this->Session->renew();
-					    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+					    $this->Session->write(AuthComponent::$sessionKey, $user['User']);   
 					} else {
 						// User not authenticated correctly
 						// reset the session information
 						$this->Session->destroy();
-						throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
+						$this->Log = ClassRegistry::init('Log');
+						$this->Log->create();
+						$log = array(
+								'org' => 'SYSTEM',
+								'model' => 'User',
+								'model_id' => 0,
+								'email' => 'SYSTEM',
+								'action' => 'auth_fail',
+								'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
+								'change' => null,
+						);
+						$this->Log->save($log);
+						throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
 					}
 					unset($user);
 				}
