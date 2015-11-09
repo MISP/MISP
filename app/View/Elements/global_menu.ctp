@@ -155,7 +155,7 @@
 			<div class="nav-collapse collapse pull-right">
 				<ul class="nav">
 					<li>
-						<a href ="/events/proposalEventIndex" <?php if ($proposalCount > 0) echo 'style="font-weight:bold;"'; ?>>
+						<a href="<?php echo $baseurl;?>/events/proposalEventIndex" <?php if ($proposalCount > 0) echo 'style="font-weight:bold;"'; ?>>
 							<?php 
 								$proposalPluralOrZero = 's';
 								if ($proposalCount == 1) $proposalPluralOrZero = '';
