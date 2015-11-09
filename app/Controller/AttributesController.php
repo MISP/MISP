@@ -1515,34 +1515,36 @@ class AttributesController extends AppController {
 				if (is_array(${$parameters[$k]})) $elements = ${$parameters[$k]};
 				else $elements = explode('&&', ${$parameters[$k]});
 				foreach($elements as $v) {
-					if (substr($v, 0, 1) == '!') {
-						if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
-							$cidrresults = $this->Cidr->CIDR(substr($v, 1));
-							foreach ($cidrresults as $result) {
-								$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
+					if (!empty($v) && $v !== '!') {
+						if (substr($v, 0, 1) == '!') {
+							if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
+								$cidrresults = $this->Cidr->CIDR(substr($v, 1));
+								foreach ($cidrresults as $result) {
+									$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
+								}
+							} else {
+								if ($parameters[$k] === 'org') {
+									$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+								} elseif ($parameters[$k] === 'eventid') {
+									$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+								} else {
+									$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
+								}
 							}
 						} else {
-							if ($parameters[$k] === 'org') {
-								$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
-							} elseif ($parameters[$k] === 'eventid') {
-								$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+							if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
+								$cidrresults = $this->Cidr->CIDR($v);
+								foreach ($cidrresults as $result) {
+									$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
+								}
 							} else {
-								$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
-							}
-						}
-					} else {
-						if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
-							$cidrresults = $this->Cidr->CIDR($v);
-							foreach ($cidrresults as $result) {
-								$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
-							}
-						} else {
-							if ($parameters[$k] === 'org') {
-								$subcondition['OR'][] = array('Event.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
-							} elseif ($parameters[$k] === 'eventid') {
-								$subcondition['OR'][] = array('Attribute.event_id' => $v);
-							} else {
-								$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+								if ($parameters[$k] === 'org') {
+									$subcondition['OR'][] = array('Event.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+								} elseif ($parameters[$k] === 'eventid') {
+									$subcondition['OR'][] = array('Attribute.event_id' => $v);
+								} else {
+									$subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
+								}
 							}
 						}
 					}
@@ -1586,7 +1588,6 @@ class AttributesController extends AppController {
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		
 		// change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
-		
 		$params = array(
 				'conditions' => $conditions,
 				'fields' => array('Attribute.*', 'Event.org', 'Event.distribution'),
