@@ -87,6 +87,19 @@ class FinancialTool {
 			'VG' => '24',
 			'XK' => '20'
 	);
+	
+	public function validateRouter($type, $value) {
+		$validationRoutes = array(
+			'cc-number' => 'CC',
+			'bin' => 'BIN',
+			'bic' => 'BIC',
+			'iban' => 'IBAN',
+			'btc' => 'BTC',
+		);
+		if (in_array($type, array_keys($validationRoutes))) return $this->{'validate' . strtoupper($type)}($value);
+		return true;
+	}
+	
 	// validating using method described on wikipedia @ https://en.wikipedia.org/wiki/International_Bank_Account_Number#Algorithms
 	public function validateIBAN($iban) {
 		if (strlen($iban) < 15 || strlen($iban) > 32) return false;
