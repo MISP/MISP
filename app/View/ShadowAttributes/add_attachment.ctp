@@ -8,6 +8,16 @@
 		?>
 			<div class="input clear">
 		<?php
+		echo $this->Form->input('comment', array(
+				'type' => 'text',
+				'label' => 'Contextual Comment',
+				'error' => array('escape' => false),
+				'div' => 'input clear',
+				'class' => 'input-xxlarge'
+		));
+		?>
+			<div class="input clear">
+		<?php
 		echo $this->Form->file('value', array(
 			'error' => array('escape' => false),
 		));

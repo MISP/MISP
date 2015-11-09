@@ -521,10 +521,12 @@ class ShadowAttributesController extends AppController {
 		
 		if ($this->request->is('post')) {
 			// Check if there were problems with the file upload
-			// only keep the last part of the filename, this should prevent directory attacks
+			$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
 			if ((isset($this->request->data['ShadowAttribute']['value']['error']) && $this->request->data['ShadowAttribute']['value']['error'] == 0) ||
 			(!empty( $this->request->data['ShadowAttribute']['value']['tmp_name']) && $this->request->data['ShadowAttribute']['value']['tmp_name'] != 'none')
 			) {
+				$filename = basename($this->request->data['ShadowAttribute']['value']['name']);
+				$tmpfile = new File($this->request->data['ShadowAttribute']['value']['tmp_name']);
 				if (!is_uploaded_file($tmpfile->path))
 					throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
 			} else {
@@ -534,13 +536,9 @@ class ShadowAttributesController extends AppController {
 			
 			$fails = array();
 			$completeFail = false;
-			
-			$filename = basename($this->request->data['ShadowAttribute']['value']['name']);
-			$tmpfile = new File($this->request->data['ShadowAttribute']['value']['tmp_name']);
-			$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
 
 			if ($this->request->data['ShadowAttribute']['malware']) {
-				$result = $this->Event->Attribute->handleMaliciousBase64($this->request->data['ShadowAttribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
+				$result = $this->ShadowAttribute->Event->Attribute->handleMaliciousBase64($this->request->data['ShadowAttribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
 				if (!$result['success']) {
 					$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
@@ -553,6 +551,7 @@ class ShadowAttributesController extends AppController {
 									'category' => $this->request->data['ShadowAttribute']['category'],
 									'type' => $typeName,
 									'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+									'comment' => $this->request->data['ShadowAttribute']['comment'],
 									'to_ids' => 1,
 									'email' => $this->Auth->user('email'),
 									'org_id' => $this->Auth->user('org_id'),
@@ -573,6 +572,7 @@ class ShadowAttributesController extends AppController {
 								'category' => $this->request->data['ShadowAttribute']['category'],
 								'type' => 'attachment',
 								'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+								'comment' => $this->request->data['ShadowAttribute']['comment'],
 								'data' => base64_encode($tmpfile->read()),
 								'to_ids' => 0,
 								'email' => $this->Auth->user('email'),
