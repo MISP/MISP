@@ -99,7 +99,8 @@ class AppController extends Controller {
 				foreach ($authentication as $auth_key) {
 					if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
 						$found_misp_auth_key = true;
-						$user['User'] = $this->checkAuthUser(trim($auth_key));
+						$temp = $this->checkAuthUser(trim($auth_key));
+						if ($temp) $user['User'] = $this->checkAuthUser(trim($auth_key));
 						continue;
 					}
 				}
@@ -337,11 +338,10 @@ class AppController extends Controller {
 	public function checkAuthUser($authkey) {
 		$this->loadModel('User');
 		$this->User->recursive = -1;
-		$user = $this->User->findByAuthkey($authkey);
-		$user = $this->User->getAuthUser($user['User']['id']);
+		$user = $this->User->getAuthUser($authkey);
+		if (empty($user)) return false;
 		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
-		if (!empty($user)) return $user;
-		return false;
+		return $user;
 	}
 
 	public function generateCount() {
