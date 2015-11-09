@@ -167,7 +167,7 @@
 							</td>
 							<td class="showspaces <?php echo $extra; ?> limitedWidth">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
-								<?php if ('attachment' == $object['objectType'] || 'malware-sample' == $object['objectType'] ): ?>
+								<?php if ('attachment' === $object['type'] || 'malware-sample' === $object['type'] ): ?>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">
 								<?php else: ?>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'value', <?php echo $event['Event']['id'];?>);">
