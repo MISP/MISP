@@ -2291,6 +2291,7 @@ class Event extends AppModel {
 	}
 	
 	public function rearrangeEventForView(&$event, $passedArgs, $all) {
+		$fTool = new FinancialTool();
 		foreach ($event['Event'] as $k => $v) {
 			if (is_array($v)) {
 				$event[$k] = $v;
@@ -2320,6 +2321,11 @@ class Event extends AppModel {
 		$eventArrayWithProposals = array();
 		
 		foreach ($eventArray as &$object) {
+			if ($object['category'] === 'Financial fraud') {
+				if (!$fTool->validateRouter($object['type'], $object['value'])) {
+					$object['validationIssue'] = true;
+				}
+			}
 			if ($object['objectType'] == 0) {
 				if (isset($object['ShadowAttribute'])) {
 					$shadowAttributeTemp = $object['ShadowAttribute'];

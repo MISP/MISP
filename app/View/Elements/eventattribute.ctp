@@ -1,5 +1,4 @@
 <?php
-	$fTool = new FinancialTool();
 	$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 	$possibleAction = 'Proposal';
@@ -204,11 +203,7 @@
 											$sigDisplay = str_replace("\r", '', $sigDisplay);
 											echo nl2br(h($sigDisplay));
 										}
-										if ($object['category'] === 'Financial fraud') {
-											if (!$fTool->validateRouter($object['type'], $object['value'])) {
-												echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
-											}
-										}
+										if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
 									?>
 								</div>
 							</td>
