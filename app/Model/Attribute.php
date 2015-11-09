@@ -87,7 +87,8 @@ class Attribute extends AppModel {
 	public $nonCorrelatingTypes = array(
 			'vulnerability',
 			'comment',
-			'http-method'
+			'http-method',
+			'aba-rtn'
 	);
 
 	public $typeDefinitions = array(
@@ -134,7 +135,9 @@ class Attribute extends AppModel {
  			'target-external' => array('desc' => 'External Target Orginizations Affected by this Attack'),
 			'btc' => array('desc' => 'Bitcoin Address'),//
 			'iban' => array('desc' => 'International Bank Account Number'),//
-			'bic' => array('desc' => 'Bank Identifier Code Number'),//
+			'bic' => array('desc' => 'Bank Identifier Code Number'),
+			'bank-account-nr' => array('desc' => 'Bank account number without any routing number'), 
+			'aba-rtn' => array('desc' => 'ABA routing transit number'),
 			'bin' => array('desc' => 'Bank Identification Number'),//
 			'cc-number' => array('desc' => 'Credit-Card Number'),//
 			'prtn' => array('desc' => 'Premium-Rate Telephone Number'),//
@@ -230,7 +233,7 @@ class Attribute extends AppModel {
 			'Financial fraud' => array(
 					'desc' => 'Financial Fraud indicators',
 					'formdesc' => 'Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.',
-					'types' => array('btc', 'iban', 'bic', 'bin', 'cc-number', 'prtn', 'comment', 'text', 'other'),
+					'types' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'comment', 'text', 'other'),
 					),
 			'Other' => array(
 					'desc' => 'Attributes that are not part of any other category',
@@ -473,7 +476,6 @@ class Attribute extends AppModel {
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-
 		// remove leading and trailing blanks
 		$this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
 
@@ -483,7 +485,7 @@ class Attribute extends AppModel {
 		
 		// make some last changes to the inserted value
 		$this->data['Attribute']['value'] = $this->modifyBeforeValidation($this->data['Attribute']['type'], $this->data['Attribute']['value']);
-		
+
 		// uppercase the following types
 		switch($this->data['Attribute']['type']) {
 			case 'http-method':
@@ -771,6 +773,25 @@ class Attribute extends AppModel {
  				if (!is_numeric($value) || $value < 0 || $value > 10) $returnValue = 'The value has to be a number between 0 and 10.';
  				else $returnValue = true;
  				break;
+
+			case 'iban':
+			case 'bic':
+			case 'btc':
+				if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'cc-number':
+			case 'bank-account-nr':
+			case 'aba-rtn':
+			case 'prtn':
+			case 'whois-registrant-phone':
+				if (is_numeric($value)) {
+					$returnValue = true;
+				}
+				break;
+
+			/*
 			case 'btc':
 				$fTool = new FinancialTool();
 				if ($fTool->validateBTC($value)) {
@@ -807,6 +828,7 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				}
 				break;	
+			*/
 		}
 		return $returnValue;
 	}
@@ -854,11 +876,11 @@ class Attribute extends AppModel {
 				$value = strtoupper($value);
 				break;
 			case 'cc-number':
-			case 'bic':
 			case 'bin':
 				$value = preg_replace('/[^0-9]+/', '', $value);
 				break;
 			case 'iban':
+			case 'bic':
 				$value = strtoupper($value);
 				$value = preg_replace('/[^0-9A-Z]+/', '', $value);
 				break;
