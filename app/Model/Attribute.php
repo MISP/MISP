@@ -781,6 +781,7 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				}
 				break;
+			case 'bin':
 			case 'cc-number':
 			case 'bank-account-nr':
 			case 'aba-rtn':
