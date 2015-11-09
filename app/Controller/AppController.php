@@ -111,9 +111,9 @@ class AppController extends Controller {
 				if ($found_misp_auth_key) {
 					if ($user) {
 						unset($user['User']['gpgkey']);
-					    // User found in the db, add the user info to the session
-					    $this->Session->renew();
-					    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+						// User found in the db, add the user info to the session
+						$this->Session->renew();
+						$this->Session->write(AuthComponent::$sessionKey, $user['User']);
 					} else {
 						// User not authenticated correctly
 						// reset the session information
@@ -145,12 +145,21 @@ class AppController extends Controller {
 
 		// user must accept terms
 		//
-		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
-		    $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
+		//grab the base path from our base url for use in the following checks
+		$base_dir = parse_url($baseurl, PHP_URL_PATH);
+
+		// if MISP is running out of the web root already, just set this variable to blank so we don't wind up with '//' in the following if statements
+		if ($base_dir == '/') {
+			$base_dir = '';
 		}
-		if ($this->Session->check(AuthComponent::$sessionKey) && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
-		    $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
+
+		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 		}
+		if ($this->Session->check(AuthComponent::$sessionKey) && $this->Auth->user('change_pw') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			$this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
+		}
+		unset($base_dir);
 
 		// We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
 		// instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
