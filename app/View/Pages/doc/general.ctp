@@ -13,7 +13,7 @@
 <div class="index">
 <h2>General Layout</h2>
 <h3>The top bar</h3>
-	<p><img src="/img/doc/menu_image.png" alt = "" title = "This is the main menu that will be accessible from all of the views. In some instances, some additional buttons that will appear on top of these when a view provides it."/></p>
+	<p><img src="<?php echo $baseurl;?>/img/doc/menu_image.png" alt = "" title = "This is the main menu that will be accessible from all of the views. In some instances, some additional buttons that will appear on top of these when a view provides it."/></p>
 	<p>This menu contains all of the main functions of the site as a series of dropdown menues. These contains all (from the current user's perspective) accessible functions sorted into several groups.</p>
 	<ul>
 		<li><b>Home button:</b> This button will return you to the start screen of the application, which is the event index page (more about this later).</li>
