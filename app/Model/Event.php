@@ -129,7 +129,7 @@ class Event extends AppModel {
 	 			'threat_level_id' => 'event_threat_level_id', 
 	 			'analysis' => 'event_analysis', 
 	 			'date' => 'event_date', 
-	 	);
+	 );
 	
 /**
  * Validation rules
@@ -1014,13 +1014,14 @@ class Event extends AppModel {
 	 	}
 	 	$params = array(
 	 			'conditions' => $conditions, //array of conditions
-	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp'),
+	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp'),
 	 	);
 	 	$attributes = $this->Attribute->find('all', $params);
 	 	foreach ($attributes as &$attribute) {
-	 		$attribute['Attribute']['value'] = str_replace(array("\r\n", "\n", "\r"), "", $attribute['Attribute']['value']);
 	 		$attribute['Attribute']['value'] = str_replace(array('"'), '""', $attribute['Attribute']['value']);
 	 		$attribute['Attribute']['value'] = '"' . $attribute['Attribute']['value'] . '"';
+	 		$attribute['Attribute']['comment'] = str_replace(array('"'), '""', $attribute['Attribute']['comment']);
+	 		$attribute['Attribute']['comment'] = '"' . $attribute['Attribute']['comment'] . '"';
 	 		$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
 	 	}
 	 	if ($includeContext) $attributes = $this->attachEventInfoToAttributes($attributes, $isSiteAdmin);
@@ -1064,6 +1065,9 @@ class Event extends AppModel {
 	 				$attribute['Attribute'][$header_name] = $this->distributionLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
 	 			} else if ($header_name == 'event_analysis') {
 	 				$attribute['Attribute'][$header_name] = $this->analysisLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
+	 			} else if ($header_name == 'event_info') {
+	 				$attribute['Attribute'][$header_name] = str_replace(array('"'), '""', $event_id_data[$attribute['Attribute']['event_id']][$header_name]);
+	 				$attribute['Attribute'][$header_name] = '"' . $attribute['Attribute'][$header_name] . '"';
 	 			} else {
 	 				$attribute['Attribute'][$header_name] = $event_id_data[$attribute['Attribute']['event_id']][$header_name];
 	 			}
