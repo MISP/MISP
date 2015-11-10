@@ -644,8 +644,7 @@ class EventsController extends AppController {
 		// This happens if the user doesn't have permission to view the event.
 		// TODO change this to NotFoundException to keep it in line with the other invalid event messages, but will have to check if it impacts the sync before doing that
 		if (!isset($results[0])) {
-			$this->Session->setFlash(__('Invalid event.'));
-			$this->redirect(array('controller' => 'events', 'action' => 'index'));
+			throw new NotFoundException(__('Invalid event.'));
 		}
 		// We'll only have one event in the array since we specified an id. The array returned only has several elements in the xml exports
 		$result = $results[0];
