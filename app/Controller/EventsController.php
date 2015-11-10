@@ -644,8 +644,7 @@ class EventsController extends AppController {
 		// This happens if the user doesn't have permission to view the event.
 		// TODO change this to NotFoundException to keep it in line with the other invalid event messages, but will have to check if it impacts the sync before doing that
 		if (!isset($results[0])) {
-			$this->Session->setFlash(__('Invalid event.'));
-			$this->redirect(array('controller' => 'events', 'action' => 'index'));
+			throw new NotFoundException(__('Invalid event.'));
 		}
 		// We'll only have one event in the array since we specified an id. The array returned only has several elements in the xml exports
 		$result = $results[0];
@@ -1952,7 +1951,7 @@ class EventsController extends AppController {
 		$final = array();
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		foreach ($attributes as $attribute) {
-			$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
+			$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . $attribute['Attribute']['comment'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
 			if ($includeContext) {
 				foreach($this->Event->csv_event_context_fields_to_fetch as $field => $header) {
 					$line .= ',' . $attribute['Attribute'][$header];
@@ -1970,7 +1969,7 @@ class EventsController extends AppController {
 			$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
 		}
 		$this->layout = 'text/default';
-		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'to_ids', 'date');
+		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'comment', 'to_ids', 'date');
 		if ($includeContext) $headers = array_merge($headers, array_values($this->Event->csv_event_context_fields_to_fetch));
 		$this->set('headers', $headers);
 		$this->set('final', $final);
