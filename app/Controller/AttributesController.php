@@ -1509,17 +1509,12 @@ class AttributesController extends AppController {
 							}
 						} else {
 							if ($parameters[$k] === 'org') {
-// from here
+								// from here
 								$found_orgs = $this->Attribute->Event->Org->find('all', array(
-									'recursive' => -1,
-									'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
+										'recursive' => -1,
+										'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
 								));
 								foreach ($found_orgs as $o) $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
-/*
-								$subcondition['AND'][] = array('Event.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
-							} elseif ($parameters[$k] === 'eventid') {
-								$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
-*/
 							} else {
 								$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
 							}
@@ -1532,23 +1527,18 @@ class AttributesController extends AppController {
 							}
 						} else {
 							if ($parameters[$k] === 'org') {
-// from here
+								// from here
 								$found_orgs = $this->Attribute->Event->Org->find('all', array(
 										'recursive' => -1,
 										'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
 								));
 								foreach ($found_orgs as $o) $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
-/*
-								$subcondition['OR'][] = array('Event.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
-							} elseif ($parameters[$k] === 'eventid') {
-								$subcondition['OR'][] = array('Attribute.event_id' => $v);
-*/
 							} else {
 								if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
 							}
 						}
 					}
-				}
+				}	
 				array_push ($conditions['AND'], $subcondition);
 				$subcondition = array();
 			}
@@ -1576,7 +1566,6 @@ class AttributesController extends AppController {
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		
 		// change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
-		
 		$params = array(
 				'conditions' => $conditions,
 				'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),

@@ -124,14 +124,14 @@ class Event extends AppModel {
 	);
 	
 	public $csv_event_context_fields_to_fetch = array(
-	 			'event_info' => array('object' => false, 'var' => 'info'), 
-	 			'event_member_org' => array('object' => 'Org', 'var' => 'name'),  
-	 			'event_source_org' => array('object' => 'Orgc', 'var' => 'name'), 
-	 			'event_distribution' => array('object' => false, 'var' => 'distribution'), 
-	 			'event_threat_level_id' => array('object' => 'ThreatLevel', 'var' => 'name'), 
-	 			'event_analysis' => array('object' => false, 'var' => 'analysis'), 
-	 			'event_date' => array('object' => false, 'var' => 'date'), 
-	 	);
+		'event_info' => array('object' => false, 'var' => 'info'), 
+		'event_member_org' => array('object' => 'Org', 'var' => 'name'),  
+		'event_source_org' => array('object' => 'Orgc', 'var' => 'name'), 
+		'event_distribution' => array('object' => false, 'var' => 'distribution'), 
+		'event_threat_level_id' => array('object' => 'ThreatLevel', 'var' => 'name'), 
+		'event_analysis' => array('object' => false, 'var' => 'analysis'), 
+		'event_date' => array('object' => false, 'var' => 'date'), 
+	 );
 	
 /**
  * Validation rules
@@ -1280,7 +1280,7 @@ class Event extends AppModel {
 	 	}
 	 	$params = array(
 	 			'conditions' => $conditions, //array of conditions
-	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp'),
+	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp'),
 	 	);
 	 	
 	 	if ($includeContext) {
@@ -1299,9 +1299,10 @@ class Event extends AppModel {
 	 	
 	 	$attributes = $this->Attribute->fetchAttributes($user, $params);
 	 	foreach ($attributes as &$attribute) {
-	 		$attribute['Attribute']['value'] = str_replace(array("\r\n", "\n", "\r"), "", $attribute['Attribute']['value']);
 	 		$attribute['Attribute']['value'] = str_replace(array('"'), '""', $attribute['Attribute']['value']);
 	 		$attribute['Attribute']['value'] = '"' . $attribute['Attribute']['value'] . '"';
+	 		$attribute['Attribute']['comment'] = str_replace(array('"'), '""', $attribute['Attribute']['comment']);
+	 		$attribute['Attribute']['comment'] = '"' . $attribute['Attribute']['comment'] . '"';
 	 		$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
 	 	}
 	 	if ($includeContext) {
@@ -1351,6 +1352,9 @@ class Event extends AppModel {
 	 				$attribute['Attribute'][$header_name] = $this->distributionLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
 	 			} else if ($header_name == 'event_analysis') {
 	 				$attribute['Attribute'][$header_name] = $this->analysisLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
+	 			} else if ($header_name == 'event_info') {
+	 				$attribute['Attribute'][$header_name] = str_replace(array('"'), '""', $event_id_data[$attribute['Attribute']['event_id']][$header_name]);
+	 				$attribute['Attribute'][$header_name] = '"' . $attribute['Attribute'][$header_name] . '"';
 	 			} else {
 	 				$attribute['Attribute'][$header_name] = $event_id_data[$attribute['Attribute']['event_id']][$header_name];
 	 			}
