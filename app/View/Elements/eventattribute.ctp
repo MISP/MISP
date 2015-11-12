@@ -10,7 +10,7 @@
         <ul>
         <?php
 	        $this->Paginator->options(array(
-	        	'url' => $event['Event']['id'],
+	        	'url' => array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']),
 	            'update' => '#attributes_div',
 	            'evalScripts' => true,
 	            'before' => '$(".progress").show()',
@@ -240,7 +240,7 @@
 									?>
 								</div>
 							</td>
-							<td class="<?php echo $extra; ?>">
+							<td class="shortish <?php echo $extra; ?>">
 								<?php 
 									$turnRed = '';
 									if ($object['objectType'] == 0 && $object['distribution'] == 0) $turnRed = 'style="color:red"';
@@ -254,7 +254,7 @@
 											<a href="/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
 									<?php 
 											else: 
-												echo h($distributionLevels[$object['distribution']]); 
+												echo h($shortDist[$object['distribution']]); 
 											endif;
 										}
 									?>&nbsp;
@@ -308,7 +308,7 @@
         <ul>
         <?php
 	        $this->Paginator->options(array(
-	        	'url' => $event['Event']['id'],
+				'url' => array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']),
 	            'update' => '#attributes_div',
 	            'evalScripts' => true,
 	            'before' => '$(".progress").show()',

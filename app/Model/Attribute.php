@@ -67,6 +67,8 @@ class Attribute extends AppModel {
 	public $distributionLevels = array(
 			0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities', 4 => 'Sharing group', 5 => 'Inherit event'
 	);
+	
+	public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group', 5 => 'Inherit');
 
 	// these are definition of possible types + their descriptions and maybe later other behaviors
 	// e.g. if the attribute should be correlated with others or not

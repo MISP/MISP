@@ -449,9 +449,7 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
-		
-		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
-		$this->set('shortDist', $shortDist);
+		$this->set('shortDist', $this->Event->shortDist);
 		$this->set('ajax', $this->request->is('ajax'));
 	}
 	
@@ -554,37 +552,17 @@ class EventsController extends AppController {
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$this->set('event', $event);
-		
 		$dataForView = array(
-				'Attribute' => array('attrDescriptions' => 'attrDescriptions', 'typeDefinitions' => 'typeDefinitions', 'categoryDefinitions' => 'categoryDefinitions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
-				'Event' => array('fieldDescriptions' => 'fieldDescriptions')
+				'Attribute' => array('attrDescriptions', 'typeDefinitions', 'categoryDefinitions', 'distributionDescriptions', 'distributionLevels', 'shortDist'),
+				'Event' => array('fieldDescriptions')
 		);
 		foreach ($dataForView as $m => $variables) {
 			if ($m === 'Event') $currentModel = $this->Event;
 			else if ($m === 'Attribute') $currentModel = $this->Event->Attribute;
-			foreach ($variables as $alias => $variable) {
-				$this->set($alias, $currentModel->{$variable});
+			foreach ($variables as $variable) {
+				$this->set($variable, $currentModel->{$variable});
 			}
 		}
-
-		// set the types + categories for the attribute add/edit ajax overlays
-		$categories = array_keys($this->Event->Attribute->categoryDefinitions);
-		$categories = $this->_arrayToValuesIndexArray($categories);
-		$this->set('categories', compact('categories'));
-			
-		$types = array_keys($this->Event->Attribute->typeDefinitions);
-		$types = $this->_arrayToValuesIndexArray($types);
-		$this->set('types', $types);
-		$typeCategory = array();
-		foreach ($this->Event->Attribute->categoryDefinitions as $k => $category) {
-			foreach ($category['types'] as $type) {
-				$typeCategory[$type][] = $k;
-			}
-		}
-		$this->set('typeCategory', $typeCategory);
-		$this->request->data['Attribute']['event_id'] = $id;
-
-		//if ($this->request->is('ajax')) {
 		$this->disableCache();
 		$this->layout = 'ajax';
 		$this->render('/Elements/eventattribute');
@@ -622,7 +600,7 @@ class EventsController extends AppController {
 		
 		// set data for the view, the event is already set in view()
 		$dataForView = array(
-				'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
+				'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels', 'shortDist' => 'shortDist'),
 				'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisDescriptions' => 'analysisDescriptions', 'analysisLevels' => 'analysisLevels')
 		);
 		foreach ($dataForView as $m => $variables) {
@@ -630,6 +608,20 @@ class EventsController extends AppController {
 			else if ($m === 'Attribute') $currentModel = $this->Event->Attribute;
 			foreach ($variables as $alias => $variable) {
 				$this->set($alias, $currentModel->{$variable});
+			}
+		}
+		$params = $this->Event->rearrangeEventForView($event);
+		$this->params->params['paging'] = array($this->modelClass => $params);
+		$this->set('event', $event);
+		$dataForView = array(
+				'Attribute' => array('attrDescriptions', 'typeDefinitions', 'categoryDefinitions', 'distributionDescriptions', 'distributionLevels'),
+				'Event' => array('fieldDescriptions')
+		);
+		foreach ($dataForView as $m => $variables) {
+			if ($m === 'Event') $currentModel = $this->Event;
+			else if ($m === 'Attribute') $currentModel = $this->Event->Attribute;
+			foreach ($variables as $variable) {
+				$this->set($variable, $currentModel->{$variable});
 			}
 		}
 		$this->set('logEntries', $logEntries);
@@ -666,7 +658,7 @@ class EventsController extends AppController {
 		$event = &$results[0];
 		
 		if (empty($results)) throw new NotFoundException('Invalid event');
-		$this->set('event', $event);
+		if ($this->_isRest()) $this->set('event', $event);
 		if (!$this->_isRest()) $this->__viewUI($event, $continue, $fromEvent);
 	}
 	

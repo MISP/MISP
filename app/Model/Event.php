@@ -74,6 +74,8 @@ class Event extends AppModel {
 	public $distributionLevels = array(
 		0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities', 4 => 'Sharing group'
 	);
+	
+	public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 
 	public $export_types = array(
 			'xml' => array(
@@ -2294,7 +2296,7 @@ class Event extends AppModel {
 		return time() - ($delta * $multiplier); 
 	}
 	
-	public function rearrangeEventForView(&$event, $passedArgs, $all) {
+	public function rearrangeEventForView(&$event, $passedArgs = array(), $all = false) {
 		$fTool = new FinancialTool();
 		foreach ($event['Event'] as $k => $v) {
 			if (is_array($v)) {
