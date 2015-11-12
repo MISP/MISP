@@ -399,7 +399,8 @@ class User extends AppModel {
 				$sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
 				foreach ($subKeys as $subKey) {
 					$issue = false;
-					if ($currentTimestamp > $subKey->getExpirationDate()) {
+					$expiration = $subKey->getExpirationDate();
+					if ($expiration != 0 && $currentTimestamp > $expiration) {
 						$sortedKeys['expired']++;
 						continue;
 					}
