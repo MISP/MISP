@@ -194,7 +194,7 @@ class RegexpController extends AppController {
  *
  */
 	public function admin_clean() {
-		if(!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if(!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('This action is only accessible via a POST request.');
 		$allRegexp = $this->Regexp->find('all');
 		$deletable = array();
 		$modifications = 0;

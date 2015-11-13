@@ -116,7 +116,7 @@ class UsersController extends AppController {
 			$this->request->data = $this->User->data;
 		}
 		// XXX ACL roles
-		$this->extraLog("change_pw");
+		$this->__extralog("change_pw");
 		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
@@ -406,13 +406,13 @@ class UsersController extends AppController {
 			foreach (array_keys($this->request->data['User']) as $field) {
 				if($field != 'password') array_push($fields, $field);
 			}
-			// TODO Audit, extraLog, fields get orig
+			// TODO Audit, __extralog, fields get orig
 			$fieldsOldValues = array();
 			foreach ($fields as $field) {
 				if($field != 'confirm_password') array_push($fieldsOldValues, $this->User->field($field));
 				else array_push($fieldsOldValues, $this->User->field('password'));
 			}
-			// TODO Audit, extraLog, fields get orig END
+			// TODO Audit, __extralog, fields get orig END
 			if ("" != $this->request->data['User']['password'])
 				$fields[] = 'password';
 			$fields[] = 'role_id';
@@ -425,7 +425,7 @@ class UsersController extends AppController {
 				}
 			}
 			if ($this->User->save($this->request->data, true, $fields)) {
-				// TODO Audit, extraLog, fields compare
+				// TODO Audit, __extralog, fields compare
 				// newValues to array
 				$fieldsNewValues = array();
 				foreach ($fields as $field) {
@@ -455,8 +455,8 @@ class UsersController extends AppController {
 					$c++;
 				}
 				$fieldsResultStr = substr($fieldsResultStr, 2);
-				$this->extraLog("edit", "user", $fieldsResultStr);	// TODO Audit, check: modify User
-				// TODO Audit, extraLog, fields compare END
+				$this->__extralog("edit", "user", $fieldsResultStr);	// TODO Audit, check: modify User
+				// TODO Audit, __extralog, fields compare END
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->_refreshAuth(); // in case we modify ourselves
 				$this->redirect(array('action' => 'index'));
@@ -495,7 +495,7 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		if ($this->User->delete()) {
-			$this->extraLog("delete", $fieldsDescrStr, '');	// TODO Audit, check: modify User
+			$this->__extralog("delete", $fieldsDescrStr, '');	// TODO Audit, check: modify User
 			$this->Session->setFlash(__('User deleted'));
 			$this->redirect(array('action' => 'index'));
 		}
@@ -505,7 +505,7 @@ class UsersController extends AppController {
 
 	public function login() {
 		if ($this->Auth->login()) {
-			$this->extraLog("login");	// TODO Audit, extraLog, check: customLog i.s.o. extraLog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
+			$this->__extralog("login");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
 			// TODO removed the auto redirect for now, due to security concerns - will look more into this
 			// $this->redirect($this->Auth->redirectUrl());
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -570,7 +570,7 @@ class UsersController extends AppController {
 
 	public function logout() {
 		if ($this->Session->check('Auth.User')) { // TODO session, user is logged in, so ..
-			$this->extraLog("logout");	// TODO Audit, extraLog, check: customLog i.s.o. extraLog, $this->User->customLog('logout', $this->Auth->user('id'), array());
+			$this->__extralog("logout");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, $this->User->customLog('logout', $this->Auth->user('id'), array());
 		}
 		$this->Session->setFlash(__('Good-Bye'));
 		$this->redirect($this->Auth->logout());
@@ -730,7 +730,7 @@ class UsersController extends AppController {
 		return $this->response;
 	}
 
-	public function extraLog($action = null, $description = null, $fieldsResult = null) {	// TODO move audit to AuditsController?
+	private function __extralog($action = null, $description = null, $fieldsResult = null) {	// TODO move audit to AuditsController?
 		// new data
 		$userId = $this->Auth->user('id');
 		$model = 'User';
