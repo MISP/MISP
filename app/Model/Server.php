@@ -1408,11 +1408,11 @@ class Server extends AppModel {
 						'expected' => array(),
 						'valid_format' => '48x48 pixel .png files',
 						'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
-						'regex' => '.*\.(png|PNG)',
+						'regex' => '.*\.(png|PNG)$',
 						'regex_error' => 'Filename must be in the following format: *.png',
 						'files' => array(),
 				),
-				'terms' => array(
+				/*'terms' => array(
 						'name' => 'Terms of Use file',
 						'description' => 'Terms of use file viewable / downloadable by users. Make sure that it is either in text / html format if served inline.',
 						'expected' => array('MISP.terms_file' => Configure::read('MISP.terms_file')),
@@ -1421,7 +1421,7 @@ class Server extends AppModel {
 						'regex' => '^(?!empty).*$',
 						'regex_error' => 'Filename can be any string consisting of characters between a-z, A-Z, 0-9 or one of the following: "_" or "-". The filename can also have an extension.',
 						'files' => array(),
-				),
+				),*/
 				'img' => array(
 						'name' => 'Additional image files',
 						'description' => 'Image files uploaded into this directory can be used for various purposes, such as for the login page logos',
@@ -1432,7 +1432,7 @@ class Server extends AppModel {
 						),
 						'valid_format' => 'text/html if served inline, anything that conveys the terms of use if served as download',
 						'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
-						'regex' => '.*\.(png|PNG)',
+						'regex' => '.*\.(png|PNG)$',
 						'regex_error' => 'Filename must be in the following format: *.png',
 						'files' => array(),
 				),
