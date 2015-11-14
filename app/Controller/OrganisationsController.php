@@ -92,7 +92,7 @@ class OrganisationsController extends AppController {
 			$this->Session->setFlash(__('Organisation deleted'));
 			$this->redirect($url);
 		} else {
-			$this->Session->setFlash(__('Organisation could not be deleted. Make sure that there are no users still tied to this organisation before deleting it.'));
+			$this->Session->setFlash(__('Organisation could not be deleted. Generally organisations should never be deleted, instead consider moving them to the known remote organisations list. Alternatively, if you are certain that you would like to remove an organisation and are aware of the impact, make sure that there are no users or events still tied to this organisation before deleting it.'));
 			$this->redirect($url);
 		}
 	}
