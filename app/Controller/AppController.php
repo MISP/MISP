@@ -436,7 +436,7 @@ class AppController extends Controller {
 	}
 	
 	public function upgrade2324() {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Server');
 		if (!Configure::read('MISP.background_jobs')) {
 			$this->Server->upgrade2324($this->Auth->user('id'));

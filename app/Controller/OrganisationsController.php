@@ -78,6 +78,7 @@ class OrganisationsController extends AppController {
 	}
 	
 	public function admin_delete($id) {
+		if (!$this->request->is('post')) throw new MethodNotAllowedException('Action not allowed, post request expected.');
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
 		

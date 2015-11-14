@@ -2203,7 +2203,7 @@ class AttributesController extends AppController {
 		$this->redirect('/pages/display/administration');
 	}
 	
-	public function arcsight() {
+	/*public function arcsight() {
 		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to');
@@ -2219,5 +2219,5 @@ class AttributesController extends AppController {
 		if ($this->request->is('post')) {
 			
 		}
-	}
+	}*/
 }

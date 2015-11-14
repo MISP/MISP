@@ -21,7 +21,7 @@ class SharingGroupsController extends AppController {
 	);
 	
 	public function add() {
-		// add check for perm_sharing_group
+		if (!$this->userRole['perm_sharing_group']) throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
 		if($this->request->is('post')) {
 			$json = json_decode($this->request->data['SharingGroup']['json'], true);
 			$this->SharingGroup->create();
@@ -73,6 +73,7 @@ class SharingGroupsController extends AppController {
 	}
 	
 	public function edit($id) {
+		if (!$this->userRole['perm_sharing_group']) throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
 		// add check for perm_sharing_group
 		$this->SharingGroup->id = $id;
 		if (!$this->SharingGroup->exists()) throw new NotFoundException('Invalid sharing group.');
@@ -129,6 +130,7 @@ class SharingGroupsController extends AppController {
 	}
 	
 	public function delete($id) {
+		if (!$this->userRole['perm_sharing_group']) throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('Action not allowed, post request expected.');
 		if (!$this->SharingGroup->checkIfOwner($this->Auth->user(), $id)) throw new MethodNotAllowedException('Action not allowed.');
 		$deletedSg = $this->SharingGroup->find('first', array(
