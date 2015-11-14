@@ -1104,7 +1104,7 @@ class ShadowAttributesController extends AppController {
 	}
 	
 	public function discardSelected($id) {
-		if (!$this->request->is('post') && !$this->request->is('ajax')) throw new MethodNotAllowedException();
+		if (!$this->request->is('post') || !$this->request->is('ajax')) throw new MethodNotAllowedException();
 
 		// get a json object with a list of proposal IDs to be discarded
 		// check each of them and return a json object with the successful discards and the failed ones.
@@ -1140,7 +1140,7 @@ class ShadowAttributesController extends AppController {
 	}
 	
 	public function acceptSelected($id) {
-		if (!$this->request->is('post') && !$this->request->is('ajax')) throw new MethodNotAllowedException();
+		if (!$this->request->is('post') || !$this->request->is('ajax')) throw new MethodNotAllowedException();
 	
 		// get a json object with a list of proposal IDs to be accepted
 		// check each of them and return a json object with the successful accepts and the failed ones.

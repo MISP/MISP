@@ -2440,7 +2440,7 @@ class EventsController extends AppController {
 	}
 	
 	public function create_dummy_event() {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
 		$date = new DateTime();
 		$data['Event']['info'] = 'Test event showing every category-type combination';
 		$data['Event']['date'] = '2013-10-09';
@@ -2508,7 +2508,7 @@ class EventsController extends AppController {
 	
 	// for load testing, it's slow, execution time is set at 1 hour maximum
 	public function create_massive_dummy_events() {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
 		ini_set('max_execution_time', 3600);
 		$this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
 		$date = new DateTime();
@@ -2614,21 +2614,6 @@ class EventsController extends AppController {
 		$count = $results[1];
 		$this->set('result', $result);
 		$this->set('count', $count);
-	}
-	
-
-	public function generateLocked() {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		$toBeUpdated = $this->Event->generateLocked();
-		$this->Session->setFlash('Events updated, '. $toBeUpdated . ' record(s) altered.');
-		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-	}
-	
-	public function generateThreatLevelFromRisk() {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
-		$updated = $this->Event->generateThreatLevelFromRisk();
-		$this->Session->setFlash('Events updated, '. $updated . ' record(s) altered.');
-		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 	
 	public function addTag($id = false, $tag_id = false) {

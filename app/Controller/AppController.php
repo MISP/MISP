@@ -345,7 +345,7 @@ class AppController extends Controller {
 	}
 
 	public function generateCount() {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin() || !$this->request->is('post')) throw new NotFoundException();
 		// do one SQL query with the counts
 		// loop over events, update in db
 		$this->loadModel('Attribute');
@@ -365,7 +365,7 @@ class AppController extends Controller {
 	}
 	
 	public function pruneDuplicateUUIDs() {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->LoadModel('Attribute');
 		$duplicates = $this->Attribute->find('all', array(
 			'fields' => array('Attribute.uuid', 'count(*) as occurance'),
@@ -392,7 +392,7 @@ class AppController extends Controller {
 	}
 	
 	public function removeDuplicateEvents() {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->LoadModel('Event');
 		$duplicates = $this->Event->find('all', array(
 				'fields' => array('Event.uuid', 'count(*) as occurance'),
@@ -428,7 +428,7 @@ class AppController extends Controller {
 	}
 	
 	public function updateDatabase($command) {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Server');
 		$this->Server->updateDatabase($command);
 		$this->Session->setFlash('Done.');

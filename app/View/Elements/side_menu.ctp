@@ -80,7 +80,7 @@
 					<li id='liindex'><?php echo $this->Html->link('List Regexp', array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
 					<?php if ($isSiteAdmin): ?>
 					<li id='liadd'><?php echo $this->Html->link('New Regexp', array('admin' => true, 'action' => 'add'));?></li>
-					<li><?php echo $this->Html->link('Perform on existing', array('admin' => true, 'action' => 'clean'));?></li>
+					<li><?php echo $this->Form->postLink('Perform on existing', array('admin' => true, 'action' => 'clean'));?></li>
 					<?php endif;
 					if ($menuItem == 'edit'):?> 
 					<li class="divider"></li>

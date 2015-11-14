@@ -517,7 +517,7 @@ class ServersController extends AppController {
 		}
 	}
 	
-	public function __saveCert($server, $id) {
+	private function __saveCert($server, $id) {
 		$ext = '';
 		App::uses('File', 'Utility');
 		App::uses('Folder', 'Utility');
@@ -681,7 +681,7 @@ class ServersController extends AppController {
 	}
 
 	public function startWorker($type) {
-		if (!$this->_isSiteAdmin() || !$this->request->is('Post')) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$validTypes = array('default', 'email', 'scheduler', 'cache');
 		if (!in_array($type, $validTypes)) throw new MethodNotAllowedException('Invalid worker type.');
 		if ($type != 'scheduler') shell_exec(APP . 'Console' . DS . 'cake ' . DS . 'CakeResque.CakeResque start --interval 5 --queue ' . $type .' > /dev/null 2>&1 &');
@@ -690,7 +690,7 @@ class ServersController extends AppController {
 	}
 	
 	public function stopWorker($pid) {
-		if (!$this->_isSiteAdmin() || !$this->request->is('Post')) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->Server->killWorker($pid, $this->Auth->user());
 		$this->redirect('/servers/serverSettings/workers');
 	}
@@ -854,7 +854,7 @@ class ServersController extends AppController {
 	}
 	
 	public function uploadFile($type) {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$validItems = $this->Server->getFileRules();
 		
 		// Check if there were problems with the file upload

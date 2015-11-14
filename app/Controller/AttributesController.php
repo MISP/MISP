@@ -914,7 +914,7 @@ class AttributesController extends AppController {
 	}
 	
 	public function deleteSelected($id) {
-		if (!$this->request->is('post') && !$this->request->is('ajax')) {
+		if (!$this->request->is('post') || !$this->request->is('ajax')) {
 		//if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
 		}
@@ -1817,7 +1817,7 @@ class AttributesController extends AppController {
 	}
 	
 	public function generateCorrelation() {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin() || !$this->request->is('post')) throw new NotFoundException();
 		if (!Configure::read('MISP.background_jobs')) {
 			$k = $this->Attribute->generateCorrelation();
 			$this->Session->setFlash(__('All done. ' . $k . ' attributes processed.'));
@@ -2195,7 +2195,7 @@ class AttributesController extends AppController {
 	}
 	
 	public function pruneOrphanedAttributes() {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('You are not authorised to do that.');
 		$events = array_keys($this->Attribute->Event->find('list'));
 		$orphans = $this->Attribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
 		if (count($orphans) > 0) $this->Attribute->deleteAll(array('Attribute.event_id !=' => $events), false, true);
