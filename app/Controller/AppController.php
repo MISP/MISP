@@ -231,9 +231,9 @@ class AppController extends Controller {
 	
 	public $userRole = null;
 
-	protected function _isJson($data=false){
+	protected function _isJson($data=false) {
 		if ($data) return (json_decode($data) != NULL) ? true : false;
-		return $this->request->header('Accept') === 'application/json';
+		return $this->request->header('Accept') === 'application/json' || $this->RequestHandler->prefers() === 'json';
 	}
 
 	//public function blackhole($type) {
