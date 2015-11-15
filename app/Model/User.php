@@ -218,7 +218,8 @@ class User extends AppModel {
 		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
 			'userModel' => 'User',
 			'userKey' => 'user_id',
-			'change' => 'full'
+			'change' => 'full',
+			'ignore' => array('password')
 		),
 		'Trim',
 		'Containable'
