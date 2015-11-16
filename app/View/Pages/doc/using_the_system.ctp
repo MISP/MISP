@@ -28,7 +28,7 @@
 The process of entering an event can be split into 3 phases, the creation of the event itself, populating it with attributes
 and attachments and finally publishing it.<br /><br />
 	During this first step, you will be create a basic event without any actual attributes, but storing general information such as a description, time and risk level of the incident. To start creating the event, click on the New Event button on the left and fill out the form you are presented with. The following fields need to be filled out:<br /><br />
-	<p><img src="/img/doc/add_event.png" alt = "" style="float:right;" title = "Fill this form out to create a skeleton event, before proceeding to populate it with attributes and attachments."/></p>
+	<p><img src="<?php echo h($baseurl);?>/img/doc/add_event.png" alt = "" style="float:right;" title = "Fill this form out to create a skeleton event, before proceeding to populate it with attributes and attachments."/></p>
 	<ul>
 		<li><b>Date:</b> The date when the incident has happened. Just click this field and a date-picker will pop up where you can select the desired date.</li>
 		<li><b>Distribution:</b>
@@ -81,11 +81,11 @@ and attachments and finally publishing it.<br /><br />
 <a id="create_attribute"></a><h3>Add attributes to the event:</h3>
 The second step of creating an event is to populate it with attributes and attachments. This can be done by adding them manually or importing the attributes from an external format (OpenIOC, ThreatConnect). To import from an external format or to upload an attachment use the options in the menu on the left.<br />
 <br />
-<img src="/img/doc/attribute_tools.png" alt="Attribute tools" title = "Use these tools to populate the event."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/attribute_tools.png" alt="Attribute tools" title = "Use these tools to populate the event."/><br /><br />
 <p>Using the above shown buttons, you can populate an event using various tools that will be explained in the following section. Let's start with the Add Attribute button.</p>
 <h4>Add Attribute</h4>
 <p>Keep in mind that the system searches for regular expressions in the value field of all attributes when entered, replacing detected strings within it as set up by the server's administrator (for example to enforce standardised capitalisation in paths for event correlation or to bring exact paths to a standardised format). The following fields need to be filled out:</p>
-<p><img src="/img/doc/add_attribute.png" alt = "Add attribute" title = "This form allows you to add attributes."/></p>
+<p><img src="<?php echo h($baseurl);?>/img/doc/add_attribute.png" alt = "Add attribute" title = "This form allows you to add attributes."/></p>
 <ul>
 	<li><b>Category:</b> This drop-down menu explains the category of the attribute, meaning what aspect of the malware this attribute is describing. This could mean the persistence mechanisms of the malware or network activity, etc. For a list of valid categories, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?></li>
 		<li><b>Type:</b> Whilst categories determine what aspect of an event they are describing, the Type explains by what means that aspect is being described. As an example, the source IP address of an attack, a source e-mail address or a file sent through an attachment can all describe the payload delivery of a malware. These would be the types of attributes with the category of payload deliver. For an explanation of what each of the types looks like together with the valid combinations of categories and types, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?>.</li>
@@ -101,10 +101,10 @@ The second step of creating an event is to populate it with attributes and attac
 <h3>Populate from Template</h3>
 <p>Templates allow users to rapidly populate events of a specific type by filling out a series of pre-defined fields. Users with template creation privileges can create new templates for their organisations or for all organisations on their instance. If you are interested in template creation, please refer to the templating section.<br />
 For users trying to populate an event, after clicking on the populate from template button, you'll be presented with a list of all currently accessible templates. Pick the one that best describes the event that you are creating. </p>
-<img src="/img/doc/template_choice.png" alt="Template Choice" title = "Choose the most appropriate template for your event."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/template_choice.png" alt="Template Choice" title = "Choose the most appropriate template for your event."/><br /><br />
 <p>Once you have chosen a template, you'll be presented with the actual form contained within. Make sure you fill out as many fields as possible with the mandatory fields - marked by a star in a bracket such as this: (*) - are filled out.<br />
 Templates are devided into sections, with each section having a title and a description in addition to a series of fields. Each field can be an attribute or a file attachment field. An attribute field has the following components:</p>
-<img src="/img/doc/template_field.png" alt="Template Field" title = "MISP will generate attributes based on the field's settings and the data that you provide."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/template_field.png" alt="Template Field" title = "MISP will generate attributes based on the field's settings and the data that you provide."/><br /><br />
 <ul>
 <li><b>Field</b>: The name of the field along with an indication if the field is mandatory.</li>
 <li><b>Description</b>: A short description of the field.</li>
@@ -112,17 +112,17 @@ Templates are devided into sections, with each section having a title and a desc
 <li><b>Text field</b>: This field can either be a single line textfield or a multi-line text area. For the former, enter a single value of the above indicated type, whilst for the latter you cna paste a list of values separated by line-breaks.</li>
 </ul>
 <h3>Freetext Import Tool</h3>
-<img src="/img/doc/freetext1.png" alt="Freetext" title = "Just paste a line-break separated list of indicators into the freetext import tool."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/freetext1.png" alt="Freetext" title = "Just paste a line-break separated list of indicators into the freetext import tool."/><br /><br />
 <p>If you have a list of indicators that you would like to quickly generate attributes out of then the Free-text import tool is just what you need. Simply paste a list of indicators (separated by line-breaks into this tool).</p>
-<img src="/img/doc/freetext2.png" alt="Freetext" title = "MISP will often find several valid category/type combinations for the values. Do last minute adjustments on the result page."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/freetext2.png" alt="Freetext" title = "MISP will often find several valid category/type combinations for the values. Do last minute adjustments on the result page."/><br /><br />
 <p>Since there are several category / type combinations that can be valid for a lot of values, MISP will suggest the most common settings. You can alter the category / type / IDS fields manually if you disagree with the results. The options will be restricted to valid category/type combinations for the value that you have entered.</p>
 <h3>Attribute Replace Tool</h3>
 <p>If you would like to create and maintain an event with a set of indicators that receives removals and additions over time, then the attribute replace tool might make this task easier for you.</p>
-<img src="/img/doc/attribute_replace_tool.png" alt="Attribute Replace Tool" title = "Select a category/type combination and paste the updated list of indicators into the textarea."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/attribute_replace_tool.png" alt="Attribute Replace Tool" title = "Select a category/type combination and paste the updated list of indicators into the textarea."/><br /><br />
 <p>Simply select the desired category / type combination, choose whether the attributes should be marked for IDS exports and paste the new list of indicators into the textarea. Attributes of the same category/type that are present in the event but not the new list will be removed, values in the pasted list that do not yet exist as attributes will be created as attributes and values that already have matching attributes will be left untouched.</p>
 <h3>Add attachments to the event:</h3>
 You can also upload attachments, such as the malware itself, report files from external analysis or simply artifacts dropped by the malware. Clicking on the add attachment button brings up a form that allows you to quickly attach a file to the event. The following fields need to be filled out:<br /><br />
-<p><img src="/img/doc/add_attachment.png" alt = "Add attachment" title = "Point the uploader to the file you want to upload. Make sure to mark it as malware if the uploaded file is harmful, that way it will be neutralised."/></p><br />
+<p><img src="<?php echo h($baseurl);?>/img/doc/add_attachment.png" alt = "Add attachment" title = "Point the uploader to the file you want to upload. Make sure to mark it as malware if the uploaded file is harmful, that way it will be neutralised."/></p><br />
 <ul>
 	<li><b>Category:</b> The category is the same as with the attributes, it answers the question of what the uploaded file is meant to describe.</li>
 	<li><b>Distribution:</b> This drop-down list allows you to control who will be able to see this attachment.
@@ -135,19 +135,19 @@ You can also upload attachments, such as the malware itself, report files from e
 <hr />
 <h3>Propose a change to an event that belongs to another organisation</h3>
 If you would like to propose a modification to an attribute, or to propose some additional attributes to the creating organisation, you can do this with the buttons that replace the add attribute field on the left and the edit icon on the right end of each listed attribute in the event view. The creating organisation of the event will be able to see any proposals and discard or accept the changes.
-<p><img src="/img/doc/proposal.png" alt = "Propose attribute" title = "An attribute with a proposal attached will turn blue and the proposal itself will be grey. If there is a grey proposal without a blue attribute infront of it, it means that someone has proposed a new attribute"/></p><br />
+<p><img src="<?php echo h($baseurl);?>/img/doc/proposal.png" alt = "Propose attribute" title = "An attribute with a proposal attached will turn blue and the proposal itself will be grey. If there is a grey proposal without a blue attribute infront of it, it means that someone has proposed a new attribute"/></p><br />
 If the organisation that has created the event is on another connected server, they will be able to accept the proposal once they initiate a pull and receive your proposal. After this they can republish the event, sending the altered attribute back to your instance. 
 <hr />
 <h3>Populate from OpenIOC</h3>
 It is also possible to attempt to import the data contained in a .ioc file, The import tool will attempt to gather as many IndicatorItems within nested logical operators as possible without breaking their validity. After the procedure is done, you'll be presented with a list of successfully created attributes and a list of failed IndicatorItems as well as a graph of the .ioc file.
-<p><img src="/img/doc/ioc1.png" alt = "OpenIOC1" title = "The import tool will list the successful and failed entries after the process is done."/></p><br />
-<p><img src="/img/doc/ioc2.png" alt = "OpenIOC2" title = "You'll also be able to see a graph of the imported .ioc file and how successful the import was."/></p><br />
+<p><img src="<?php echo h($baseurl);?>/img/doc/ioc1.png" alt = "OpenIOC1" title = "The import tool will list the successful and failed entries after the process is done."/></p><br />
+<p><img src="<?php echo h($baseurl);?>/img/doc/ioc2.png" alt = "OpenIOC2" title = "You'll also be able to see a graph of the imported .ioc file and how successful the import was."/></p><br />
 <hr />
 <h3>Populate from ThreatConnect</h3>
 You can also import the data from a ThreatConnect export csv file. The following columns are used by the import tool (and are thus mandatory fields to select during the export): <br /><ul><li>Type</li><li>Value</li><li>Confidence</li><li>Description</li><li>Source</li></ul>The result will be a list of attributes that get added to the currently selected event, each of which will be marked with a comment that indicates that its origin being from a ThreatConnect import.
 <hr />
 <h3>Publish an event:</h3>
-<p><img src="/img/doc/publish.png" alt = "Publish" style="float:right;" title = "Only use publish (no email) for minor changes such as the correction of typos."/></p><br />
+<p><img src="<?php echo h($baseurl);?>/img/doc/publish.png" alt = "Publish" style="float:right;" title = "Only use publish (no email) for minor changes such as the correction of typos."/></p><br />
 Once all the attributes and attachments that you want to include with the event are uploaded / set, it is time to finalise its creation by publishing the event (click on publish event in the event view). This will alert the eligible users of it (based on the private-controls of the event and its attributes/attachments and whether they have auto-alert turned on), push the event to instances that your instance connects to and propagate it further based on the distribution rules. It also readies the network related attributes for NIDS signature creation (through the NIDS signature export feature, for more information, go to the export section.).<br /><br />
 There is an alternate way of publishing an event without alerting any other users, by using the "publish (no email)" button. This should only be used for minor edits (such as correcting a typo). <br />
 <br />
@@ -157,7 +157,7 @@ If your instance has background jobs enabled then the event might not get publis
 The MISP interface allows the user to have an overview over or to search for events and attributes of events that are already stored in the system in various ways.<br /><br />
 <h3>To list all events:</h3>
 On the left menu bar, the option "List events" will generate a list of the last 60 events. While the attributes themselves aren't shown in this view, the following pieces of information can be seen:<br /><br />
-<img src="/img/doc/list_events2.png" alt = "List events" title = "This is the list of events in the system. Use the buttons to the right to alter or view any of the events."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/list_events2.png" alt = "List events" title = "This is the list of events in the system. Use the buttons to the right to alter or view any of the events."/><br /><br />
 <ul>
 	<li><b>Published:</b> Already published events are marked by a checkmark. Unpublished events are marked by a cross.</li>
 	<li><b>Org:</b> The organisation that created the event.</li>
@@ -199,7 +199,7 @@ On the left menu bar, the option "List events" will generate a list of the last 
 <h3>Filters</h3>
 <p>It is also possible to filter the events shown by clicking on the small magnifying glass icons next to the field names and entering a filter term.</p>
 <h3>Event view</h3>
-<img src="/img/doc/event_detail.png" alt = "Event" title = "This view includes the basic information about an event, a link to related events, all attributes and attachments with tools to modify or delete them and extra functions for publishing the event or getting in touch with the event's reporter."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/event_detail.png" alt = "Event" title = "This view includes the basic information about an event, a link to related events, all attributes and attachments with tools to modify or delete them and extra functions for publishing the event or getting in touch with the event's reporter."/><br /><br />
 <b>General Event Information</b>
 <ul>
 	<li><b>ID:</b> The ID of the event.</li>
@@ -230,8 +230,8 @@ The currently selected event is coloured blue in the graph. If you would like to
 A list of all attributes and proposals attached to the event. The fields for each of them only differ in the available actions and the fact that for proposals to attributes all fields are blank that would stay unchanged if the proposal was accepted (for example, proposing a change to an attribute to turn the IDS flag on will have all fields apart from the IDS flag blank in the proposal. Here is a list of what each of the fields represents: <br />
 <ul>
 	<li><b>Date</b>: The date of the last modification to the attribute. Proposals don't have a date of last edit.</li>
-	<li><b>Category</b>: The category of the attribute or proposal. For a list of possible categories visit the section on <a href="/pages/display/doc/categories_and_types">categories and types</a>.</li>
-	<li><b>Type</b>: The type of the attribute or proposal. For a list of possible categories visit the section on <a href="/pages/display/doc/categories_and_types">categories and types</a>.</li>
+	<li><b>Category</b>: The category of the attribute or proposal. For a list of possible categories visit the section on <a href="<?php echo h($baseurl);?>/pages/display/doc/categories_and_types">categories and types</a>.</li>
+	<li><b>Type</b>: The type of the attribute or proposal. For a list of possible categories visit the section on <a href="<?php echo h($baseurl);?>/pages/display/doc/categories_and_types">categories and types</a>.</li>
 	<li><b>Value</b>: The value or value-pair of the attribute. This is the main payload of the attribute, which is described by the category and type columns. For certain types of attributes that are made up of value-pairs the two parts will be split by a pipe (|), such as for filename|md5. The value field(s) are used by the correlation engine to find relations between events. In value-pair attributes both values are correlated individually. </li>
 	<li><b>Comment</b>: Attributes can have a contextual comment to further describe the attribute. These comments are not used for correlation and are purely informative. </li>
 	<li><b>Related Events</b>: A list of the event IDs that also contain an attribute with the same value. </li>
@@ -276,7 +276,7 @@ Here is a list of the various tools you can use while using this feature:<br /><
 <hr />
 <h3>Listing all attributes:</h3>
 	Apart from having a list of all the events, it is also possible to get a list of all the stored attributes in the system by clicking on the list attributes button. The produced list of attributes will include the followings fields:<br /><br />
-	<img src="/img/doc/list_attributes2.png" alt = "" title = "Use the buttons to the right to view the event that this attribute belongs to or to modify/delete the attribute."/><br /><br />
+	<img src="<?php echo h($baseurl);?>/img/doc/list_attributes2.png" alt = "" title = "Use the buttons to the right to view the event that this attribute belongs to or to modify/delete the attribute."/><br /><br />
 	<ul>
 		<li><b>Event:</b> This is the ID number of the event that the attribute is tied to. If an event belongs to your organisation, then this field will be coloured red.</li>
 		<li><b>Org:</b> The organisation that has created the event.</li>
@@ -290,11 +290,11 @@ Here is a list of the various tools you can use while using this feature:<br /><
 <hr />
 <h3>Searching for attributes:</h3>
 Apart from being able to list all events, it is also possible to search for data contained in the value field of an attribute, by clicking on the "Search Attributes" button.<br /><br />
-<img src="/img/doc/search_attribute.png" alt = "Search attribute" title = "You can search for attributes by searching for a phrase contained in its value. Narrow your search down by selecting a type and/or a category which the event has to belong to."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/search_attribute.png" alt = "Search attribute" title = "You can search for attributes by searching for a phrase contained in its value. Narrow your search down by selecting a type and/or a category which the event has to belong to."/><br /><br />
 This will bring up a form that lets you enter one or several search strings (separate search strings with line breaks) that will be compared to the values of all attributes, along with options to narrow down the search based on category and type. The entered search string has to be an exact match with (the sub-string of) a value. A second text field makes it possible to enter event IDs for events that should be excluded from the search (again, each line represents an event ID to be excluded). The third text field allows the user to restrict the results to attributes from certain organisations or to attributes not created by certain other organisations, using the above described syntax.<br /><br />
 The list generated by the search will look exactly the same as listing all attributes, except that only the attributes that matched the search criteria will be listed (to find out more about the list attributes view, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?>.). The search parameters will be shown above the produced list and the search terms will be highlighted.<br /><br />
 The last option is a checkbox that restricts all of the results to attributes that are marked as IDS signatures.<br />
-<br /><img src="/img/doc/search_attribute_result.png" alt = "" title = "You can view the event that an attribute belongs to with the view button, or you can edit/delete the attribute via the buttons on the right."/><br />
+<br /><img src="<?php echo h($baseurl);?>/img/doc/search_attribute_result.png" alt = "" title = "You can view the event that an attribute belongs to with the view button, or you can edit/delete the attribute via the buttons on the right."/><br />
 <hr />
 <a id="update_events"></a><h2>Updating and modifying events and attributes:</h2>
 Every event and attribute can easily be edited. First of all it is important to find the event or attribute that is to be edited, using any of the methods mentioned in the section on <a href="#browsing_events">browsing past events</a>.<br /><br />
@@ -303,7 +303,7 @@ Keep in mind that editing any event (either directly or indirectly through an at
 <hr />
 <a id="tagging"></a><h2>Tagging:</h2>
 <p>As described earlier, users with tagging rights can arbitrarily tag events using tags chosen from a pool of available options. If you have tagging privileges and would like to create a new tag, navigate to Event Actions - Add Tag. You'll be presented with the following form:</p> 
-<img src="/img/doc/tag.png" alt = "Add tag" title = "Enter a name for the tag and click on the color field to be able to pick a colour for it."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/tag.png" alt = "Add tag" title = "Enter a name for the tag and click on the color field to be able to pick a colour for it."/><br /><br />
 <p>Fill out the following fields:</p>
 <ul>
 <li><b>Name</b>: Pick a name for the tag. Try to use consistent naming conventions across your instance, to avoid confusion.</li>
@@ -314,7 +314,7 @@ Keep in mind that editing any event (either directly or indirectly through an at
 <p>Newer users can easily be overwhelmed by having to manually populate events with attributes without any guidance. What sort of information should go into the event? What should be the category and type of a C2 IP? Templates allow users to use simple forms to populate events.<br /><br />
 Even though MISP ships with a few default templates, it is possible for users (with the appropriate templating privilege) to create new templates for their users or for all users of the instance. Let's look at how you can create a template.<br />
 First go to Event Actions - Add Template to go to the event creation view.</p>
-<img src="/img/doc/create_template.png" alt = "Create Template" title = "Fill in the generic information about the template."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/create_template.png" alt = "Create Template" title = "Fill in the generic information about the template."/><br /><br />
 <p>The following fields have to be filled out:</p>
 <ul>
 	<li><b>Name</b>: The name of the template should describe what type of an event it should be used to generate attributes.</li>
@@ -324,7 +324,7 @@ First go to Event Actions - Add Template to go to the event creation view.</p>
 </ul>
 <p>Once the skeleton template is created, you can start populating the template with data. There are 3 types of elements that can be used during the creation of a template: attribute, file and text elements. Text elements divide the template into sections with an information field, followed by all of the attribute/file fields until a new text field is read. Don't worry about the order of the elements during creation, they can be re-arranged using drag &amp; drop. Let's look at the 3 element types:</p>
 <p><b>Attribute Element</b></p>
-<img src="/img/doc/template_attribute.png" alt = "Template Attribute Element" title = "This element will generate regular attributes based on user entry."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/template_attribute.png" alt = "Template Attribute Element" title = "This element will generate regular attributes based on user entry."/><br /><br />
 <p>The following fields have to be filled out:</p>
 <ul>
 	<li><b>Name</b>: The field name that will be presented to the user.</li>
@@ -337,7 +337,7 @@ First go to Event Actions - Add Template to go to the event creation view.</p>
 	<li><b>Batch import element</b>: Allow for multiple values to be entered (separated by line breaks).</li>
 </ul>
 <p><b>File Element</b></p>
-<img src="/img/doc/template_file.png" alt = "Template File Element" title = "This element will generate attachments based on user entry."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/template_file.png" alt = "Template File Element" title = "This element will generate attachments based on user entry."/><br /><br />
 <p>The following fields have to be filled out:</p>
 <ul>
 	<li><b>Name</b>: The field name that will be presented to the user.</li>
@@ -348,7 +348,7 @@ First go to Event Actions - Add Template to go to the event creation view.</p>
 	<li><b>Batch import element</b>: Ticking this checkbox allows users to upload several files using this element.</li>
 </ul>
 <p><b>Text Element</b></p>
-<img src="/img/doc/template_text.png" alt = "Template Text Element" title = "This element will start a section in the template, which continues until the next text element or the end of the template."/><br /><br />
+<img src="<?php echo h($baseurl);?>/img/doc/template_text.png" alt = "Template Text Element" title = "This element will start a section in the template, which continues until the next text element or the end of the template."/><br /><br />
 <p>The following fields have to be filled out:</p>
 <ul>
 	<li><b>Name</b>: The name of the section that will be presented to the user.</li>
@@ -358,19 +358,19 @@ First go to Event Actions - Add Template to go to the event creation view.</p>
 <a id="contact"></a><h2>Contacting the reporter:</h2>
 To get in touch with the reporter of a previously registered event, just find the event for which you would like to contact the reporter by either finding it on the list of events, by finding it through one of its attributes or by finding it through a related event.<br /><br />
 Once the event is found and the event view opened, click the button titled "Contact Reporter". This will bring up a view where you can enter your message that is to be e-mailed to all members of the reporting organisation that subscribe to receiving such reports or the reporting user himself. Along with your message, the detailed information about the event in question will be included in the e-mail.<br /><br />
-<br /><img src="/img/doc/contact_reporter.png" alt = "" title = "Enter your message to the reporter and choose whether his/her entire organisation should get the message or not by ticking the check-box."/><br /><br />
+<br /><img src="<?php echo h($baseurl);?>/img/doc/contact_reporter.png" alt = "" title = "Enter your message to the reporter and choose whether his/her entire organisation should get the message or not by ticking the check-box."/><br /><br />
 By default, the message will be sent to every member of the organisation that posted the event in the first place, but if you tick the check-box below the message field before sending the mail, only the person that reported the event will get e-mailed. <br />
 <hr />
 <a id="automation"></a><h2>Automation:</h2>
 It is possible to quickly and conveniently export the data contained within the system using the automation features located in the main menu on the left (available to users with authentication key access only). There are various sets of data that can be exported, by using the authentication key provided by the system (also shown on the export page). If for whatever reason you would need to invalidate your current key and get a new one instead (for example due to the old one becoming compromised) just hit the reset link next to the authentication key in the export view or in your "my profile" view.<br /><br />
-To find out about the various export formats and the usage within the automation functions, please read the page on <a href="/events/automation">automation</a>.
+To find out about the various export formats and the usage within the automation functions, please read the page on <a href="<?php echo h($baseurl);?>/events/automation">automation</a>.
 <hr />
 <a id="export"></a><h2>Exporting data:</h2>
 For users that do not have authentication key access, an alternate export feature is available that relies on your interactive login to the site. To access these, just use the export menu button to the left and you'll be presented with a list of export options.<br /><br/> 
 Depending on your server's configuration, you will be presented with one of two possible pages, depending on whether you have background processing enabled or not. (The setting on this instance is currently set to: <code><?php echo (Configure::read('MISP.background_jobs') == true ? 'On' : 'Off'); ?></code>)<br /><br />
 <br /><h4>Export page with background jobs <code>disabled</code></h4>
 The page will list a set of export formats that you can immediately download as a file. Just click on the desired export format and MISP will start collecting all the data that you will receive in a file. Keep in mind that this can be a lengthy process. To avoid having to wait, consult with your instance's site administrator about enabling the background processing.<br />
-<br /><img src="/img/doc/export.png" alt = "" title = "Use the export features here to quickly download data in various formats"/><br />
+<br /><img src="<?php echo h($baseurl);?>/img/doc/export.png" alt = "" title = "Use the export features here to quickly download data in various formats"/><br />
 <br /><h4>Export page with background jobs <code>enabled</code></h4>
 If the background jobs are enabled, you'll be redirected to a different version of the export page. Here you will see a table with all of the major export formats and the current status of the cached export files. Keep in mind that these are generated on an organisation by organisation basis, so even though others have generated newer export caches your organisation may have an outdated cache. You can simply issue a generate command (by clicking the "Generate" button) on the desired export type and the background workers will start fetching and assembling your cache. A progress bar will show the progress of the export process.<br />
 Once done, you can click "Download" to download the freshly generated cache file. If the cache is already up to date from before, then you don't have to regenerate the cache, just click on the "download" button. <br /> <br />
@@ -384,18 +384,18 @@ A quick description of each of the fields in the table:<br /><br />
 <li><b>Progress</b>: Shows the progress of the last initiated generation process.</li>
 <li><b>Actions</b>: Download or Generate the given cache with these buttons. </li>
 </ul>
-<br /><img src="/img/doc/export_bg.png" alt = "" title = "Use the export features here to quickly download data in various formats"/><br />
+<br /><img src="<?php echo h($baseurl);?>/img/doc/export_bg.png" alt = "" title = "Use the export features here to quickly download data in various formats"/><br />
 <br /><h4>Exporting search results and individual events</h4>
 Apart from the options offered by the export pages, it's also possible to export all events involved in a search attribute result table, by using the "Download results as XML" button on the left menu bar. <br /><br />
-<br /><img src="/img/doc/export_search.png" alt = "" title = "Download a .xml from all the events that are shown through an attribute in the search results."/><br /><br />
+<br /><img src="<?php echo h($baseurl);?>/img/doc/export_search.png" alt = "" title = "Download a .xml from all the events that are shown through an attribute in the search results."/><br /><br />
 Each event's view has its own export feature, both as an XML export and as a .ioc file. To reach these features, just navigate to an event and use the appropriate buttons on the right side.<br /><br />
-<br /><img src="/img/doc/export_event.png" alt = "" title = "Download a .xml or a .ioc of the event."/><br /><br />
+<br /><img src="<?php echo h($baseurl);?>/img/doc/export_event.png" alt = "" title = "Download a .xml or a .ioc of the event."/><br /><br />
 <hr />
 <h2><a id="connect"></a>Connecting to other instances:</h2>
 Apart from being a self contained repository of attacks/malware, one of the main features of MISP is its ability to connect to other instances and share (parts of) its information. The following options allow you to set up and maintain such connections.<br /><br />
 <h3><a id="new_server"></a>Setting up a connection to another server:</h3>
 In order to share data with a remote server via pushes and pulls, you need to request a valid authentication key from the hosting organisation of the remote instance. When clicking on List Servers and then on New Server, a form comes up that needs to be filled out in order for your instance to connect to it. The following fields need to be filled out:<br /><br />
-<p><img src="/img/doc/add_server.png" alt ="Add server" title = "Make sure that you enter the authentication key that you have been given by the hosting organisation of the remote instance, instead of the one you have gotten from this one."/></p>
+<p><img src="<?php echo h($baseurl);?>/img/doc/add_server.png" alt ="Add server" title = "Make sure that you enter the authentication key that you have been given by the hosting organisation of the remote instance, instead of the one you have gotten from this one."/></p>
 <ul>
 	<li><b>Base URL:</b> The URL of the remote server.</li>
 	<li><b>Organization:</b> The organisation that runs the remote server. It is very impoportant that this setting is filled out exactly as the organisation name set up in the bootstrap file of the remote instance.</li>
@@ -412,7 +412,7 @@ In order to share data with a remote server via pushes and pulls, you need to re
 </ul>
 <h3>Browsing the currently set up server connections and interacting with them:</h3>
 If you ever need to change the data about the linked servers or remove any connections, you have the following options to view and manipulate the server connections, when clicking on List Servers: (you will be able to see a list of all servers that your server connects to, including the base address, the organisation running the server the last pushed and pulled event IDs and the control buttons.).<br /><br />
-<p><img src="/img/doc/list_servers.png" alt = "" title = "Apart from editing / deleting the link to the remote server, you can issue a push all or pull all command from here."/></p><br />
+<p><img src="<?php echo h($baseurl);?>/img/doc/list_servers.png" alt = "" title = "Apart from editing / deleting the link to the remote server, you can issue a push all or pull all command from here."/></p><br />
 <ul>
 	<li><b>Editing the connection to the:</b> By clicking edit a view, <a href=#new_server>that is identical to the new instance view</a>, is loaded, with all the current information of the instance pre-entered.</li>
 	<li><b>Deleting the connection to the instance:</b> Clicking the delete button will delete the link to the instance.</li>

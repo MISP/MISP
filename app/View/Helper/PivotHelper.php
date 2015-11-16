@@ -25,9 +25,9 @@ App::uses('AppHelper', 'View/Helper');
 			
 			$data[] = '<span class ="'.$pivotSpanType.'">';
 			if ($pivot['deletable']) {
-				$data[] = '<a class="pivotDelete icon-remove" href="/events/removePivot/' . $pivot['id'] . '/' . $currentEvent . '"></a>';
+				$data[] = '<a class="pivotDelete icon-remove" href="' . h(Configure::read('MISP.baseurl')) . '/events/removePivot/' . $pivot['id'] . '/' . $currentEvent . '"></a>';
 			}
-			$data[] = '<a class="' . $pivotType . '" href="/events/view/' . $pivot['id'] . '/1/' . $currentEvent . '" title="' . h($pivot['info']) . ' (' . $pivot['date'] . ')">' . h($text) . '</a>';
+			$data[] = '<a class="' . $pivotType . '" href="' . h(Configure::read('MISP.baseurl')) . '/events/view/' . $pivot['id'] . '/1/' . $currentEvent . '" title="' . h($pivot['info']) . ' (' . $pivot['date'] . ')">' . h($text) . '</a>';
 			$data[] = '</span>';
 			if (!empty($pivot['children'])) {
 				foreach ($pivot['children'] as $k => $v) {

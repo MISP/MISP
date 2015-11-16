@@ -131,7 +131,7 @@
 				</tr>
 			</table>
 		</div>
-		<?php echo $this->Form->create('Event', array('id' => 'test', 'url' => $baseurl . '/events/index'));?>
+		<?php echo $this->Form->create('Event', array('id' => 'test', 'url' => h($baseurl) . '/events/index'));?>
 		<fieldset>
 		<?php 
 			echo $this->Form->input('generatedURL', array(
@@ -196,7 +196,7 @@ if (showorg == 1) {
 	simpleFilters.push("org");
 }
 
-var baseurl = "<?php echo $baseurl; ?>";
+var baseurl = "<?php echo h($baseurl); ?>";
 		
 $(document).ready(function() {
 	$('.datepicker').datepicker().on('changeDate', function(ev) {

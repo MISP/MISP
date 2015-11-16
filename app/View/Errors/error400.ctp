@@ -36,7 +36,7 @@ else:
 		This happens usually when you try to resubmit the same form with invalidated CSRF tokens or you had a form open too long and the CSRF tokens simply expired. Just go back to the previous page and refresh the form (by reloading the same url) so that the tokens get refreshed.
 	</p>
 	<p>
-		Alternatively, click <a href="/">here</a> to continue to the start page.
+		Alternatively, click <a href="<?php echo h($baseurl);?>">here</a> to continue to the start page.
 	</p>
 	<?php
 	if (Configure::read('debug') > 0):

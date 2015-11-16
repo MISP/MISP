@@ -254,12 +254,12 @@
 							if ($object['objectType'] == 0) {
 								if ($isSiteAdmin || !$mayModify)  {
 						?>
-									<a href="/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-share useCursorPointer"></a>
+									<a href="<?php echo h($baseurl);?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-share useCursorPointer"></a>
 						<?php 
 								}
 								if ($isSiteAdmin || $mayModify) {
 						?>
-							<a href="/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
+							<a href="<?php echo h($baseurl);?>/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
 							<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 						<?php 			
 								}
