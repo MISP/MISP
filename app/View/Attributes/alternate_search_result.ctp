@@ -16,7 +16,7 @@
 		foreach ($events as $event) {
 			?>
 			<tr>
-				<td class="short"><a href="/events/view/<?php echo (h($event['Event']['id'])); ?>"><?php echo (h($event['Event']['id'])); ?></a></td>
+				<td class="short"><a href="<?php echo h($baseurl);?>/events/view/<?php echo (h($event['Event']['id'])); ?>"><?php echo (h($event['Event']['id'])); ?></a></td>
 				<td class="short">
 					<?php 
 						$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
