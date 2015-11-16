@@ -1260,9 +1260,9 @@ class EventsController extends AppController {
 		// find the uuid
 		$result = $this->Event->findById($id);
 		$uuid = $result['Event']['uuid'];
+		$this->Event->read();
 		
 		if (!$this->_isSiteAdmin()) {
-			$this->Event->read();
 			if ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg()) {
 				throw new MethodNotAllowedException();
 			}

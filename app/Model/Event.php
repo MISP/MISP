@@ -346,7 +346,8 @@ class Event extends AppModel {
 		if (Configure::read('MISP.enableEventBlacklisting')) {
 			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 			$this->EventBlacklist->create();
-			$this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid'], 'event_info' => $this->data['Event']['info'], 'event_orgc' => $this->data['Event']['orgc']));
+			$orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $this->data['Event']['orgc_id']), 'recursive' => -1, 'fields' => array('Orgc.name')));
+			$this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid'], 'event_info' => $this->data['Event']['info'], 'event_orgc' => $orgc['Orgc']['name']));
 		}
 		
 		// delete all of the event->tag combinations that involve the deleted event

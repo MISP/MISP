@@ -322,16 +322,6 @@ class Attribute extends AppModel {
 				'required' => 'create'
 			)
 		),
-		'revision' => array(
-			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
-		),
 		'distribution' => array(
 				'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
 				'message' => 'Options : Your organisation only, This community only, Connected communities, All communities', 'Sharing group', 'Inherit event',
