@@ -587,11 +587,6 @@ class Event extends AppModel {
 					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
 					$attribute['data'] = $encodedFile;
 				}
-				// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
-				// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
-				// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
-				// solves the issue and a new attribute is always created.
-				unset($attribute['id']);
 			}
 		} else return 403;
 		
