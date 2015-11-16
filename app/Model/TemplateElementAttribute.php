@@ -12,11 +12,11 @@ class TemplateElementAttribute extends AppModel {
 	
 	public $validate = array(
 			'name' => array(
-				'rule' => 'notEmpty',
+				'rule' => 'valueNotEmpty',
 				'message' => 'Please enter a Name',
 			),
 			'description' => array(
-				'rule' => 'notEmpty',
+				'rule' => 'valueNotEmpty',
 				'message' => 'Please enter a Description',
 			),
 			'category' => array(

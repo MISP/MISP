@@ -12,11 +12,11 @@ class TemplateElementFile extends AppModel {
 	
 	public $validate = array(
 			'name' => array(
-				'rule' => 'notEmpty',
+				'rule' => 'valueNotEmpty',
 				'message' => 'Please enter a Name',
 			),
 			'description' => array(
-				'rule' => 'notEmpty',
+				'rule' => 'valueNotEmpty',
 				'message' => 'Please enter a Description',
 			),
 			'category' => array(
@@ -24,8 +24,8 @@ class TemplateElementFile extends AppModel {
 					'rule'    => array('comparison', '!=', 'Select Category'),
 					'message' => 'Please choose a category.'
 				),
-				'notEmpty' => array(
-					'rule' => 'notEmpty',
+				'valueNotEmpty' => array(
+					'rule' => 'valueNotEmpty',
 					'message' => 'Please choose a category.'
 				)
 			),
