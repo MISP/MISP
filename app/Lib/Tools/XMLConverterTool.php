@@ -64,7 +64,7 @@ class XMLConverterTool {
 				unset($event['Event']['Attribute'][$key]['value1']);
 				unset($event['Event']['Attribute'][$key]['value2']);
 				unset($event['Event']['Attribute'][$key]['category_order']);
-				if (isset($event['Event']['RelatedAttribute'][$value['id']])) $event['Event']['Attribute'][$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
+				if (isset($event['Event']['RelatedAttribute']) && isset($event['Event']['RelatedAttribute'][$value['id']])) $event['Event']['Attribute'][$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
 				if (isset($event['Event']['Attribute'][$key]['ShadowAttribute'])) {
 					foreach($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
 						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);

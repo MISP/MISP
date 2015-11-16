@@ -11,37 +11,37 @@
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
 				<ul class="nav">
-					<li><a href="/" style="color:white">Home</a></li>
+					<li><a href="<?php echo h($baseurl);?>" style="color:white">Home</a></li>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Event Actions
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<li><a href="/events/index">List Events</a></li>
+							<li><a href="<?php echo h($baseurl);?>/events/index">List Events</a></li>
 							<?php if ($isAclAdd): ?>
-							<li><a href="/events/add">Add Event</a></li>
+							<li><a href="<?php echo h($baseurl);?>/events/add">Add Event</a></li>
 							<?php endif; ?>
 							<li class="divider"></li>
-							<li><a href="/attributes/index">List Attributes</a></li>
-							<li><a href="/attributes/search">Search Attributes</a></li>
+							<li><a href="<?php echo h($baseurl);?>/attributes/index">List Attributes</a></li>
+							<li><a href="<?php echo h($baseurl);?>/attributes/search">Search Attributes</a></li>
 							<li class="divider"></li>
-							<li><a href="/shadow_attributes/index">View Proposals</a></li>
-							<li><a href="/events/proposalEventIndex">Events with proposals</a></li>
+							<li><a href="<?php echo h($baseurl);?>/shadow_attributes/index">View Proposals</a></li>
+							<li><a href="<?php echo h($baseurl);?>/events/proposalEventIndex">Events with proposals</a></li>
 							<li class="divider"></li>
-							<li><a href="/tags/index">List Tags</a></li>
+							<li><a href="<?php echo h($baseurl);?>/tags/index">List Tags</a></li>
 							<?php if ($isAclTagger): ?>
-							<li><a href="/tags/add">Add Tag</a></li>
+							<li><a href="<?php echo h($baseurl);?>/tags/add">Add Tag</a></li>
 							<?php endif; ?>
 							<li class="divider"></li>
-							<li><a href="/templates/index">List Templates</a></li>
+							<li><a href="<?php echo h($baseurl);?>/templates/index">List Templates</a></li>
 							<?php if ($isAclTemplate): ?>
-							<li><a href="/templates/add">Add Template</a></li>
+							<li><a href="<?php echo h($baseurl);?>/templates/add">Add Template</a></li>
 							<?php endif; ?>
 							<li class="divider"></li>
-							<li><a href="/events/export">Export</a></li>
+							<li><a href="<?php echo h($baseurl);?>/events/export">Export</a></li>
 							<?php if ($isAclAuth): ?>
-							<li><a href="/events/automation">Automation</a></li>
+							<li><a href="<?php echo h($baseurl);?>/events/automation">Automation</a></li>
 							<?php endif;?>
 
 						</ul>
@@ -54,12 +54,12 @@
 						</a>
 						<ul class="dropdown-menu">
 							<?php if ($isAclRegexp): ?>
-							<li><a href="/admin/regexp/index">Import Regexp</a></li>
-							<li><a href="/admin/whitelists/index">Signature Whitelist</a></li>
+							<li><a href="<?php echo h($baseurl);?>/admin/regexp/index">Import Regexp</a></li>
+							<li><a href="<?php echo h($baseurl);?>/admin/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
 							<?php if (!$isAclRegexp): ?>
-							<li><a href="/regexp/index">Import Regexp</a></li>
-							<li><a href="/whitelists/index">Signature Whitelist</a></li>
+							<li><a href="<?php echo h($baseurl);?>/regexp/index">Import Regexp</a></li>
+							<li><a href="<?php echo h($baseurl);?>/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
 						</ul>
 					</li>
@@ -70,14 +70,14 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<li><a href="/users/view/me">My Profile</a></li>
-							<li><a href="/users/memberslist">Members List</a></li>
-							<li><a href="/roles/index">Role Permissions</a></li>
-							<li><a href="/pages/display/doc/quickstart">User Guide</a></li>
-							<li><a href="/users/terms">Terms &amp; Conditions</a></li>
-							<li><a href="/users/statistics">Statistics</a></li>
+							<li><a href="<?php echo h($baseurl);?>/users/view/me">My Profile</a></li>
+							<li><a href="<?php echo h($baseurl);?>/users/memberslist">Members List</a></li>
+							<li><a href="<?php echo h($baseurl);?>/roles/index">Role Permissions</a></li>
+							<li><a href="<?php echo h($baseurl);?>/pages/display/doc/quickstart">User Guide</a></li>
+							<li><a href="<?php echo h($baseurl);?>/users/terms">Terms &amp; Conditions</a></li>
+							<li><a href="<?php echo h($baseurl);?>/users/statistics">Statistics</a></li>
 							<li class="divider"></li>
-							<li><a href="/users/logout">Log out</a></li>
+							<li><a href="<?php echo h($baseurl);?>/users/logout">Log out</a></li>
 						</ul>
 					</li>
 
@@ -88,7 +88,7 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<li><a href="/servers/index">List Servers</a></li>
+							<li><a href="<?php echo h($baseurl);?>/servers/index">List Servers</a></li>
 						</ul>
 					</li>
 					<?php endif;?>
@@ -100,28 +100,28 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<li><a href="/admin/users/add">New User</a></li>
-							<li><a href="/admin/users/index">List Users</a></li>
-							<li><a href="/admin/users/email">Contact Users</a></li>
+							<li><a href="<?php echo h($baseurl);?>/admin/users/add">New User</a></li>
+							<li><a href="<?php echo h($baseurl);?>/admin/users/index">List Users</a></li>
+							<li><a href="<?php echo h($baseurl);?>/admin/users/email">Contact Users</a></li>
 							<li class="divider"></li>
 							<?php if($isSiteAdmin): ?>
-							<li><a href="/admin/roles/add">New Role</a></li>
+							<li><a href="<?php echo h($baseurl);?>/admin/roles/add">New Role</a></li>
 							<?php endif; ?>
-							<li><a href="/admin/roles/index">List Roles</a></li>
+							<li><a href="<?php echo h($baseurl);?>/admin/roles/index">List Roles</a></li>
 							<?php if($isSiteAdmin): ?>
 								<li class="divider"></li>
-								<li><a href="/pages/display/administration">Administrative tools</a></li>
-								<li><a href="/servers/serverSettings">Server settings</a></li>
+								<li><a href="<?php echo h($baseurl);?>/pages/display/administration">Administrative tools</a></li>
+								<li><a href="<?php echo h($baseurl);?>/servers/serverSettings">Server settings</a></li>
 								<?php if (Configure::read('MISP.background_jobs')): ?>
 									<li class="divider"></li>
-									<li><a href="/jobs/index">Jobs</a></li>
+									<li><a href="<?php echo h($baseurl);?>/jobs/index">Jobs</a></li>
 									<li class="divider"></li>
-									<li><a href="/tasks">Scheduled Tasks</a></li>
+									<li><a href="<?php echo h($baseurl);?>/tasks">Scheduled Tasks</a></li>
 								<?php endif; ?>
 								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>	
 									<li class="divider"></li>
-									<li><a href="/eventBlacklists/add">Blacklist Event</a></li>
-									<li><a href="/eventBlacklists">Manage Event Blacklists</a></li>
+									<li><a href="<?php echo h($baseurl);?>/eventBlacklists/add">Blacklist Event</a></li>
+									<li><a href="<?php echo h($baseurl);?>/eventBlacklists">Manage Event Blacklists</a></li>
 								<?php endif; ?>			
 							<?php endif; ?>
 						</ul>
@@ -135,8 +135,8 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<li><a href="/admin/logs/index">List Logs</a></li>
-							<li><a href="/admin/logs/search">Search Logs</a></li>
+							<li><a href="<?php echo h($baseurl);?>/admin/logs/index">List Logs</a></li>
+							<li><a href="<?php echo h($baseurl);?>/admin/logs/search">Search Logs</a></li>
 						</ul>
 					</li>
 					<?php endif;?>
@@ -146,8 +146,8 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
-							<li><a href="/threads/index">List Discussions</a></li>
-							<li><a href="/posts/add">Start Discussion</a></li>
+							<li><a href="<?php echo h($baseurl);?>/threads/index">List Discussions</a></li>
+							<li><a href="<?php echo h($baseurl);?>/posts/add">Start Discussion</a></li>
 						</ul>
 					</li>
 				</ul>
@@ -155,7 +155,7 @@
 			<div class="nav-collapse collapse pull-right">
 				<ul class="nav">
 					<li>
-						<a href ="/events/proposalEventIndex" <?php if ($proposalCount > 0) echo 'style="font-weight:bold;"'; ?>>
+						<a href="<?php echo h($baseurl);?>/events/proposalEventIndex" <?php if ($proposalCount > 0) echo 'style="font-weight:bold;"'; ?>>
 							<?php 
 								$proposalPluralOrZero = 's';
 								if ($proposalCount == 1) $proposalPluralOrZero = '';
@@ -166,17 +166,17 @@
 						</a>
 					</li>
 					<li>
-						<a href="/" id="fullLogo" style="font-weight:bold;">
+						<a href="<?php echo h($baseurl);?>/" id="fullLogo" style="font-weight:bold;">
 							<span class="logoBlueStatic">M</span><span class="logoGray">alware</span>
 							<span class="logoBlueStatic">I</span><span class="logoGray">nformation </span>
 							<span class="logoBlueStatic">S</span><span class="logoGray">haring</span>
 							<span class="logoBlueStatic">P</span><span class="logoGray">latform</span>
 						</a>
-						<a href="/" id="smallLogo" style="display:none;font-weight:bold;">
+						<a href="<?php echo h($baseurl);?>/" id="smallLogo" style="display:none;font-weight:bold;">
 							<span class="logoBlueStatic">MISP</span>
 						</a>
 					</li>
-					<li><a href="/users/logout">Log out</a></li>
+					<li><a href="<?php echo h($baseurl);?>/users/logout">Log out</a></li>
 				</ul>
 			</div>
 		<?php endif;?>
