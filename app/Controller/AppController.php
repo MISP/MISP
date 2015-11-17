@@ -82,6 +82,11 @@ class AppController extends Controller {
 		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
 		$this->mispVersionFull = implode('.', array_values($versionArray));
 		$this->Security->blackHoleCallback = 'blackHole';
+
+		// Let us access $baseurl from all views
+		$baseurl = Configure::read('MISP.baseurl');
+		$this->set('baseurl', h($baseurl)); 
+
 		// send users away that are using ancient versions of IE
 		// Make sure to update this if IE 20 comes out :)
 		if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
@@ -167,12 +172,21 @@ class AppController extends Controller {
 
 		// user must accept terms
 		//
-		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
-		    $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
+		//grab the base path from our base url for use in the following checks
+		$base_dir = parse_url($baseurl, PHP_URL_PATH);
+
+		// if MISP is running out of the web root already, just set this variable to blank so we don't wind up with '//' in the following if statements
+		if ($base_dir == '/') {
+			$base_dir = '';
 		}
-		if ($this->Session->check(AuthComponent::$sessionKey) && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
-		    $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
+
+		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 		}
+		if ($this->Session->check(AuthComponent::$sessionKey) && $this->Auth->user('change_pw') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			$this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
+		}
+		unset($base_dir);
 
 		// We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
 		// instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
@@ -234,7 +248,7 @@ class AppController extends Controller {
 	
 	public $userRole = null;
 
-	protected function _isJson($data=false){
+	protected function _isJson($data=false) {
 		if ($data) return (json_decode($data) != NULL) ? true : false;
 		return $this->request->header('Accept') === 'application/json' || $this->RequestHandler->prefers() === 'json';
 	}

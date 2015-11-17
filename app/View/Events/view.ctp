@@ -66,7 +66,7 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 						foreach($logEntries as $k => $entry) {
 							if (Configure::read('MISP.showorg') || $isAdmin) {
 								?>
-									<a href="/logs/event_index/<?php echo $event['Event']['id'] . '/' . h($entry['Log']['org']);?>" style="margin-right:2px;text-decoration: none;">
+									<a href="<?php echo $baseurl."/logs/event_index/".$event['Event']['id'].'/'.h($entry['Log']['org']);?>" style="margin-right:2px;text-decoration: none;">
 								<?php 
 									echo $this->element('img', array('id' => $entry['Log']['org'], 'imgSize' => 24, 'imgStyle' => true));
 								?>

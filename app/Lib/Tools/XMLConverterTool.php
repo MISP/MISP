@@ -87,8 +87,15 @@ class XMLConverterTool {
 				$event['Event']['Attribute'][$key]['value'] = str_replace($toEscape, $escapeWith, $event['Event']['Attribute'][$key]['value']);
 				$event['Event']['Attribute'][$key]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['Attribute'][$key]['comment']);
 				$event['Event']['Attribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $event['Event']['Attribute'][$key]['comment']);
+<<<<<<< HEAD
 				unset($event['Event']['Attribute'][$key]['value1'], $event['Event']['Attribute'][$key]['value2'], $event['Event']['Attribute'][$key]['category_order']);
 				if (isset($event['Event']['RelatedAttribute'][$value['id']])) $event['Event']['Attribute'][$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
+=======
+				unset($event['Event']['Attribute'][$key]['value1']);
+				unset($event['Event']['Attribute'][$key]['value2']);
+				unset($event['Event']['Attribute'][$key]['category_order']);
+				if (isset($event['Event']['RelatedAttribute']) && isset($event['Event']['RelatedAttribute'][$value['id']])) $event['Event']['Attribute'][$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
+>>>>>>> master
 				if (isset($event['Event']['Attribute'][$key]['ShadowAttribute'])) {
 					foreach($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
 						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);

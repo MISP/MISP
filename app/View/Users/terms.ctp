@@ -16,7 +16,7 @@
 			$terms->close();
 		} else {
 			?>
-				<a href="/users/downloadTerms" class="btn btn-inverse">Download Terms and Conditions</a>
+				<a href="<?php echo $baseurl;?>/users/downloadTerms" class="btn btn-inverse">Download Terms and Conditions</a>
 			<?php 
 		}
 	}

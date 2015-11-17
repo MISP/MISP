@@ -13,25 +13,25 @@
 						$mayModify = true;
 						if ($isAclPublish) $mayPublish = true;
 					}
-					?>
-					<li id='liviewEvent'><a href="/events/view/<?php echo h($event['Event']['id']);?>">View Event</a></li>
-					<li id='liviewEventGraph'><a href="/events/viewGraph/<?php echo h($event['Event']['id']);?>">View Correlation Graph</a></li>
-					<li id='lieventLog'><a href="/logs/event_index/<?php echo h($event['Event']['id']);?>">View Event History</a></li>
+		?>
+					<li id='liviewEvent'><a href="<?php echo $baseurl;?>/events/view/<?php echo h($event['Event']['id']);?>">View Event</a></li>
+					<li id='liviewEventGraph'><a href="<?php echo $baseurl;?>/events/viewGraph/<?php echo h($event['Event']['id']);?>">View Correlation Graph</a></li>
+					<li id='lieventLog'><a href="<?php echo $baseurl;?>/logs/event_index/<?php echo h($event['Event']['id']);?>">View Event History</a></li>
 					<li class="divider"></li>
 					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
-					<li id='lieditEvent'><a href="/events/edit/<?php echo h($event['Event']['id']);?>">Edit Event</a></li>
+					<li id='lieditEvent'><a href="<?php echo $baseurl;?>/events/edit/<?php echo h($event['Event']['id']);?>">Edit Event</a></li>
 					<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))); ?></li>
-					<li id='liaddAttribute'><a href="/attributes/add/<?php echo h($event['Event']['id']);?>">Add Attribute</a></li>
-					<li id='liaddAttachment'><a href="/attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Add Attachment</a></li>
-					<li id='liaddIOC'><a href="/events/addIOC/<?php echo h($event['Event']['id']);?>">Populate from OpenIOC</a></li>
-					<li id='liaddThreatConnect'><a href="/attributes/add_threatconnect/<?php echo h($event['Event']['id']); ?>">Populate from ThreatConnect</a></li>
+					<li id='liaddAttribute'><a href="<?php echo $baseurl;?>/attributes/add/<?php echo h($event['Event']['id']);?>">Add Attribute</a></li>
+					<li id='liaddAttachment'><a href="<?php echo $baseurl;?>/attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Add Attachment</a></li>
+					<li id='liaddIOC'><a href="<?php echo $baseurl;?>/events/addIOC/<?php echo h($event['Event']['id']);?>">Populate from OpenIOC</a></li>
+					<li id='liaddThreatConnect'><a href="<?php echo $baseurl;?>/attributes/add_threatconnect/<?php echo h($event['Event']['id']); ?>">Populate from ThreatConnect</a></li>
 					<?php if ($menuItem === 'populateFromtemplate'): ?>
-							<li class="active"><a href="/templates/populateEventFromTemplate/<?php echo $template_id . '/' . h($event['Event']['id']); ?>">Populate From Template</a></li>
+							<li class="active"><a href="<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo $template_id . '/' . h($event['Event']['id']); ?>">Populate From Template</a></li>
 						<?php endif; ?>
 					<?php endif; ?>
 					<?php if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)): ?>
-					<li id='liproposeAttribute'><a href="/shadow_attributes/add/<?php echo h($event['Event']['id']);?>">Propose Attribute</a></li>
-					<li id='liproposeAttachment'><a href="/shadow_attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Propose Attachment</a></li>
+					<li id='liproposeAttribute'><a href="<?php echo $baseurl;?>/shadow_attributes/add/<?php echo h($event['Event']['id']);?>">Propose Attribute</a></li>
+					<li id='liproposeAttachment'><a href="<?php echo $baseurl;?>/shadow_attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Propose Attachment</a></li>
 					<?php endif; ?>
 					<li class="divider"></li>
 					<?php 
@@ -43,36 +43,36 @@
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
 
-					<li id='licontact'><a href="/events/contact/<?php echo h($event['Event']['id']);?>">Contact Reporter</a></li>
+					<li id='licontact'><a href="<?php echo $baseurl;?>/events/contact/<?php echo h($event['Event']['id']);?>">Contact Reporter</a></li>
 					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
 					<li class="divider"></li>
-					<li><a href="/events/index">List Events</a></li>
+					<li><a href="<?php echo $baseurl;?>/events/index">List Events</a></li>
 					<?php if ($isAclAdd): ?>
-					<li><a href="/events/add">Add Event</a></li>
+					<li><a href="<?php echo $baseurl;?>/events/add">Add Event</a></li>
 					<?php endif;
 				break;
 
 				case 'event-collection': ?>
-					<li id='liindex'><a href="/events/index">List Events</a></li>
+					<li id='liindex'><a href="<?php echo $baseurl;?>/events/index">List Events</a></li>
 					<?php if ($isAclAdd): ?>
-					<li id='liadd'><a href="/events/add">Add Event</a></li>
-					<li id='liaddXML'><a href="/events/add_xml">Add MISP XML</a></li>
+					<li id='liadd'><a href="<?php echo $baseurl;?>/events/add">Add Event</a></li>
+					<li id='liaddXML'><a href="<?php echo $baseurl;?>/events/add_xml">Add MISP XML</a></li>
 					<?php endif; ?>
 					<li class="divider"></li>
-					<li id='lilistAttributes'><a href="/attributes/index">List Attributes</a></li>
-					<li id='lisearchAttributes'><a href="/attributes/search">Search Attributes</a></li>
+					<li id='lilistAttributes'><a href="<?php echo $baseurl;?>/attributes/index">List Attributes</a></li>
+					<li id='lisearchAttributes'><a href="<?php echo $baseurl;?>/attributes/search">Search Attributes</a></li>
 					<?php if ($menuItem == 'searchAttributes2'): ?>
 					<li class="divider"></li>
-					<li><a href="/events/downloadSearchResult">Download results as XML</a></li>
-					<li><a href="/events/csv/download/search">Download results as CSV</a></li>
+					<li><a href="<?php echo $baseurl;?>/events/downloadSearchResult">Download results as XML</a></li>
+					<li><a href="<?php echo $baseurl;?>/events/csv/download/search">Download results as CSV</a></li>
 					<?php endif; ?>
 					<li class="divider"></li>
-					<li id='liviewProposals'><a href="/shadow_attributes/index">View Proposals</a></li>
-					<li id='liviewProposalIndex'><a href="/events/proposalEventIndex">Events with proposals</a></li>
+					<li id='liviewProposals'><a href="<?php echo $baseurl;?>/shadow_attributes/index">View Proposals</a></li>
+					<li id='liviewProposalIndex'><a href="<?php echo $baseurl;?>/events/proposalEventIndex">Events with proposals</a></li>
 					<li class="divider"></li>
-					<li id='liexport'><a href="/events/export">Export</a></li>
+					<li id='liexport'><a href="<?php echo $baseurl;?>/events/export">Export</a></li>
 					<?php if ($isAclAuth): ?>
-					<li id='liautomation'><a href="/events/automation">Automation</a></li>
+					<li id='liautomation'><a href="<?php echo $baseurl;?>/events/automation">Automation</a></li>
 					<?php endif;
 				break;
 					
@@ -108,25 +108,25 @@
 					<li id='liedit'><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
 					<li class="divider"></li>
 					<?php endif; ?>
-					<li id='linews'><a href="/users/news">News</a></li>
-					<li id='liview'><a href="/users/view/me">My Profile</a></li>
-					<li id='limembers'><a href="/users/memberslist">Members List</a></li>
-					<li id='liindexOrg'><a href="/organisations/index">List Organisations</a></li>
+					<li id='linews'><a href="<?php echo $baseurl;?>/users/news">News</a></li>
+					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
+					<li id='limembers'><a href="<?php echo $baseurl;?>/users/memberslist">Members List</a></li>
+					<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
 					<?php if ($menuItem === 'viewOrg'): ?>
-						<li class="active"><a href="/organisations/view/<?php echo h($id);?>">View Organisation</a></li>
+						<li class="active"><a href="<?php echo $baseurl;?>/organisations/view/<?php echo h($id);?>">View Organisation</a></li>
 					<?php endif;?>
-					<li id='liroles'><a href="/roles/index">Role Permissions</a></li>
+					<li id='liroles'><a href="<?php echo $baseurl;?>/roles/index">Role Permissions</a></li>
 					<li class="divider"></li>
 					<?php if ($menuItem === 'editSG' || ($menuItem == 'viewSG' && $mayModify)): ?>
-						<li id='lieditSG'><a href="/sharing_groups/edit/<?php echo h($id); ?>">Edit Sharing Group</a></li>
-						<li id='liviewSG'><a href="/sharing_groups/view/<?php echo h($id);?>">View Sharing Group</a></li>
+						<li id='lieditSG'><a href="<?php echo $baseurl;?>/sharing_groups/edit/<?php echo h($id); ?>">Edit Sharing Group</a></li>
+						<li id='liviewSG'><a href="<?php echo $baseurl;?>/sharing_groups/view/<?php echo h($id);?>">View Sharing Group</a></li>
 					<?php endif; ?>
-					<li id='liindexSG'><a href="/sharing_groups/index">List Sharing Groups</a></li>
-					<li id='liaddSG'><a href="/sharing_groups/add">Add Sharing Group</a></li>
+					<li id='liindexSG'><a href="<?php echo $baseurl;?>/sharing_groups/index">List Sharing Groups</a></li>
+					<li id='liaddSG'><a href="<?php echo $baseurl;?>/sharing_groups/add">Add Sharing Group</a></li>
 					<li class="divider"></li>
-					<li id='liuserGuide'><a href="/pages/display/doc/general">User Guide</a></li>
-					<li id='literms'><a href="/users/terms">Terms &amp; Conditions</a></li>
-					<li id='listatistics'><a href="/users/statistics">Statistics</a></li>
+					<li id='liuserGuide'><a href="<?php echo $baseurl;?>/pages/display/doc/general">User Guide</a></li>
+					<li id='literms'><a href="<?php echo $baseurl;?>/users/terms">Terms &amp; Conditions</a></li>
+					<li id='listatistics'><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
 					<?php 
 				break;
 				
@@ -173,31 +173,31 @@
 					<?php endif; ?>
 					<li class="divider"></li>
 					<?php if ($isSiteAdmin): ?>
-					<li id='liaddOrg'><a href="/admin/organisations/add">Add Organisation</a></li>
+					<li id='liaddOrg'><a href="<?php echo $baseurl;?>/admin/organisations/add">Add Organisation</a></li>
 					<?php if ($menuItem === 'editOrg' || $menuItem === 'viewOrg'): ?>
-						<li id='lieditOrg'><a href="/admin/organisations/edit/<?php echo h($id);?>">Edit Organisation</a></li>
+						<li id='lieditOrg'><a href="<?php echo $baseurl;?>/admin/organisations/edit/<?php echo h($id);?>">Edit Organisation</a></li>
 					<?php endif;?>
 					<?php if ($menuItem === 'editOrg' || $menuItem === 'viewOrg'): ?>
-						<li id='liviewOrg'><a href="/organisations/view/<?php echo h($id);?>">View Organisation</a></li>
+						<li id='liviewOrg'><a href="<?php echo $baseurl;?>/organisations/view/<?php echo h($id);?>">View Organisation</a></li>
 					<?php endif;?>
-					<li id='liindexOrg'><a href="/organisations/index">List Organisations</a></li>
+					<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
 					<li class="divider"></li>
 					<li id='liaddRole'><?php echo $this->Html->link('Add Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
 					<?php endif; ?>
 					<li id='liindexRole'><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 					<?php if ($isSiteAdmin): ?>
 						<li class="divider"></li>
-						<li id='liadminTools'><a href="/pages/display/administration">Administrative Tools</a></li>
-						<li id='liserverSettings'><a href="/servers/serverSettings">Server Settings</a></li>
+						<li id='liadminTools'><a href="<?php echo $baseurl;?>/pages/display/administration">Administrative Tools</a></li>
+						<li id='liserverSettings'><a href="<?php echo $baseurl;?>/servers/serverSettings">Server Settings</a></li>
 						<li class="divider"></li>
 						<?php if (Configure::read('MISP.background_jobs')): ?>
-							<li id='lijobs'><a href="/jobs/index">Jobs</a></li>
+							<li id='lijobs'><a href="<?php echo $baseurl;?>/jobs/index">Jobs</a></li>
 							<li class="divider"></li>
-							<li id='litasks'><a href="/tasks">Scheduled Tasks</a></li>
+							<li id='litasks'><a href="<?php echo $baseurl;?>/tasks">Scheduled Tasks</a></li>
 						<?php endif; 
 						if (Configure::read('MISP.enableEventBlacklisting')): ?>
-							<li <?php if ($menuItem === 'eventBlacklistsAdd') echo 'class="active"';?>><a href="/eventBlacklists/add">Blacklists Event</a></li>		
-							<li <?php if ($menuItem === 'eventBlacklists') echo 'class="active"';?>><a href="/eventBlacklists">Manage Event Blacklists</a></li>
+							<li <?php if ($menuItem === 'eventBlacklistsAdd') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklists Event</a></li>		
+							<li <?php if ($menuItem === 'eventBlacklists') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
 						<?php endif;
 					endif;
 				break;	
@@ -244,16 +244,16 @@
 				break;	
 				
 				case 'templates': ?>
-					<li id='liindex'><a href="/templates/index">List Templates</a></li>
+					<li id='liindex'><a href="<?php echo $baseurl;?>/templates/index">List Templates</a></li>
 					<?php if ($isSiteAdmin || $isAclTemplate): ?>
-					<li id='liadd'><a href="/templates/add">Add Template</a></li>
+					<li id='liadd'><a href="<?php echo $baseurl;?>/templates/add">Add Template</a></li>
 					<?php 
 					endif;
 					if (($menuItem === 'view' || $menuItem === 'edit')): 
 					?>
-					<li id='liview'><a href="/templates/view/<?php echo h($id); ?>">View Template</a></li>
+					<li id='liview'><a href="<?php echo $baseurl;?>/templates/view/<?php echo h($id); ?>">View Template</a></li>
 					<?php if ($mayModify): ?>
-					<li id='liedit'><a href="/templates/edit/<?php echo h($id); ?>">Edit Template</a></li>
+					<li id='liedit'><a href="<?php echo $baseurl;?>/templates/edit/<?php echo h($id); ?>">Edit Template</a></li>
 					<?php
 					endif; 
 					endif;

@@ -653,11 +653,17 @@ class UsersController extends AppController {
 			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
 			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
 		}
-		$this->User->read();
+		$user = $this->User->read();
+		$oldKey = $this->User->data['User']['authkey'];
 		if ('me' == $id ) $id = $this->Auth->user('id');
 		else if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data('org_id')) && ($this->Auth->user('id') != $id)) throw new MethodNotAllowedException();
 		$newkey = $this->User->generateAuthKey();
 		$this->User->saveField('authkey', $newkey);
+		$this->__extralog(
+				'reset_auth_key', 
+				'Authentication key for user ' . $user['User']['id'] . ' (' . $user['User']['email'] . ')', 
+				$fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')'
+		);
 		$this->Session->setFlash(__('New authkey generated.', true));
 		$this->_refreshAuth();
 		$this->redirect($this->referer());
