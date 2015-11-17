@@ -275,11 +275,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 </pre>
 <p>value, type, category and org are optional. It is possible to search for several terms in each category by joining them with the '&amp;&amp;' operator. It is also possible to negate a term with the '!' operator. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead).
 For example, in order to search for all attributes created by your organisation that contain 192.168 or 127.0 but not 0.1 and are of the type ip-src, excluding the events that were tagged tag1 use the following syntax:</p>
-<pre>
-<?php
-	echo $baseurl.'/attributes/restSearch/download/192.168&&127.0&&!0.1/ip-src/false/' . $me['Organisation']['name'] . '/!tag1';
-?>
-</pre>
+<pre><?php echo $baseurl.'/attributes/restSearch/download/192.168&&127.0&&!0.1/ip-src/false/' . $me['Organisation']['name'] . '/!tag1';?></pre>
 <p>You can also use search for IP addresses using CIDR. Make sure that you use '|' (pipe) instead of '/' (slashes). Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). See below for an example: </p>
 <pre>
 <?php
