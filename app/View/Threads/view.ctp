@@ -1,7 +1,7 @@
 <div class="threads view">
 	<h3><?php 
 		if (isset($event_id)) {
-			echo '<a href="' . h($baseurl) . '/events/view/' . $event_id . '">' . h($thread_title) . '</a>';
+			echo '<a href="' . $baseurl . '/events/view/' . $event_id . '">' . h($thread_title) . '</a>';
 		} else {
 			echo h($thread_title); 
 		}
