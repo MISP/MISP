@@ -114,13 +114,13 @@ class EventShell extends AppShell
 	}
 	
 	public function cacherpz() {
-		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$id = $this->args[2];
+		$user_id = $this->args[0];
+		$user = $this->User->getAuthUser($user_id);
+		$id = $this->args[1];
 		$this->Job->id = $id;
-		$extra = $this->args[3];
+		$extra = $this->args[2];
 		$this->Job->saveField('progress', 1);
-		$values = $this->Attribute->rpz($org, $isSiteAdmin);
+		$values = $this->Attribute->rpz($user);
 		$this->Job->saveField('progress', 80);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
 		if ($isSiteAdmin) {

@@ -1431,8 +1431,8 @@ class Attribute extends AppModel {
 	 	}
 	 	$attributes = $this->fetchAttributes($user, array(
 	 			'conditions' => $conditions, 
-	 			'order' => 'Attribute.value', 
-	 			'group' => 'Attribute.value',
+	 			'order' => 'Attribute.value1', 
+	 			'group' => 'Attribute.value1',
 	 			'fields' => array('value'),
 				'contain' => array('Event' => array(
 					'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
