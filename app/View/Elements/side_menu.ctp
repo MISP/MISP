@@ -14,23 +14,23 @@
 						if ($isAclPublish) $mayPublish = true;
 					}
 					?>
-					<li <?php if ($menuItem === 'viewEvent') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/view/<?php echo $event['Event']['id'];?>">View Event</a></li>
-					<li <?php if ($menuItem === 'eventLog') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/logs/event_index/<?php echo $event['Event']['id'];?>">View Event History</a></li>
+					<li <?php if ($menuItem === 'viewEvent') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/view/<?php echo h($event['Event']['id']);?>">View Event</a></li>
+					<li <?php if ($menuItem === 'eventLog') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/logs/event_index/<?php echo h($event['Event']['id']);?>">View Event History</a></li>
 					<li class="divider"></li>
 					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
-					<li <?php if ($menuItem === 'editEvent') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/edit/<?php echo $event['Event']['id'];?>">Edit Event</a></li>
+					<li <?php if ($menuItem === 'editEvent') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/edit/<?php echo h($event['Event']['id']);?>">Edit Event</a></li>
 					<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', $event['Event']['id']), null, __('Are you sure you want to delete # %s?', $event['Event']['id'])); ?></li>
-					<li <?php if ($menuItem === 'addAttribute') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/attributes/add/<?php echo $event['Event']['id'];?>">Add Attribute</a></li>
-					<li <?php if ($menuItem === 'addAttachment') echo 'class="active"';;?>><a href="<?php echo $baseurl;?>/attributes/add_attachment/<?php echo $event['Event']['id'];?>">Add Attachment</a></li>
-					<li <?php if ($menuItem === 'addIOC') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/addIOC/<?php echo $event['Event']['id'];?>">Populate from OpenIOC</a></li>
-					<li <?php if ($menuItem === 'addThreatConnect') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/attributes/add_threatconnect/<?php echo $event['Event']['id']; ?>">Populate from ThreatConnect</a></li>
+					<li <?php if ($menuItem === 'addAttribute') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/attributes/add/<?php echo h($event['Event']['id']);?>">Add Attribute</a></li>
+					<li <?php if ($menuItem === 'addAttachment') echo 'class="active"';;?>><a href="<?php echo $baseurl;?>/attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Add Attachment</a></li>
+					<li <?php if ($menuItem === 'addIOC') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/addIOC/<?php echo h($event['Event']['id']);?>">Populate from OpenIOC</a></li>
+					<li <?php if ($menuItem === 'addThreatConnect') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/attributes/add_threatconnect/<?php echo h($event['Event']['id']); ?>">Populate from ThreatConnect</a></li>
 						<?php if ($menuItem === 'populateFromtemplate'): ?>
-							<li class="active"><a href="<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo $template_id . '/' . $event['Event']['id']; ?>">Populate From Template</a></li>
+							<li class="active"><a href="<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo h($template_id) . '/' . h($event['Event']['id']); ?>">Populate From Template</a></li>
 						<?php endif; ?>
 					<?php endif; ?>
 					<?php if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)): ?>
-					<li <?php if ($menuItem === 'proposeAttribute') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/shadow_attributes/add/<?php echo $event['Event']['id'];?>">Propose Attribute</a></li>
-					<li <?php if ($menuItem === 'proposeAttachment') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/shadow_attributes/add_attachment/<?php echo $event['Event']['id'];?>">Propose Attachment</a></li>
+					<li <?php if ($menuItem === 'proposeAttribute') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/shadow_attributes/add/<?php echo h($event['Event']['id']);?>">Propose Attribute</a></li>
+					<li <?php if ($menuItem === 'proposeAttachment') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/shadow_attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Propose Attachment</a></li>
 					<?php endif; ?>
 					<li class="divider"></li>
 					<?php 
@@ -39,11 +39,11 @@
 						if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
 						if (isset($event['Event']['published']) && $event['Event']['published']) $exportButtons = "";
 					?>
-					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo $event['Event']['id']; ?>', 'alert')">Publish Event</a></li>
-					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo $event['Event']['id']; ?>', 'publish')">Publish (no email)</a></li>
+					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
+					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
 
-					<li <?php if ($menuItem === 'contact') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/contact/<?php echo $event['Event']['id'];?>">Contact Reporter</a></li>
-					<li><a onClick="getPopup('<?php echo $event['Event']['id']; ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
+					<li <?php if ($menuItem === 'contact') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/contact/<?php echo h($event['Event']['id']);?>">Contact Reporter</a></li>
+					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
 					<li class="divider"></li>
 					<li><a href="<?php echo $baseurl;?>/events/index">List Events</a></li>
 					<?php if ($isAclAdd): ?>
@@ -218,9 +218,9 @@
 					endif;
 					if (($menuItem === 'view' || $menuItem === 'edit')): 
 					?>
-					<li <?php if ($menuItem === 'view') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/templates/view/<?php echo $id; ?>">View Template</a></li>
+					<li <?php if ($menuItem === 'view') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/templates/view/<?php echo h($id); ?>">View Template</a></li>
 					<?php if ($mayModify): ?>
-					<li <?php if ($menuItem === 'edit') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/templates/edit/<?php echo $id; ?>">Edit Template</a></li>
+					<li <?php if ($menuItem === 'edit') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/templates/edit/<?php echo h($id); ?>">Edit Template</a></li>
 					<?php
 					endif; 
 					endif;
