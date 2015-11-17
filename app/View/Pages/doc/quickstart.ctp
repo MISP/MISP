@@ -17,10 +17,10 @@ targeted malware and attacks within your community of trusted members. It is a c
 non-technical information. Exchanging this information should result in faster detection of targeted attacks and improve the detection ratio,
 while also reducing the number of false positives.</p>
 <h3>Create an Event</h3>
-	<p><img src="<?php echo h($baseurl);?>/img/doc/quick_create.jpg" alt = "" title = ""/></p>
+	<p><img src="<?php echo $baseurl;?>/img/doc/quick_create.jpg" alt = "" title = ""/></p>
 <h3>Browsing past Events</h3>
-	<p><img src="<?php echo h($baseurl);?>/img/doc/quick_browse.jpg" alt = "" title = ""/></p>
+	<p><img src="<?php echo $baseurl;?>/img/doc/quick_browse.jpg" alt = "" title = ""/></p>
 <h3>Export Events for logsearches</h3>
-	<p><img src="<?php echo h($baseurl);?>/img/doc/quick_export.jpg" alt = "" title = ""/></p>
+	<p><img src="<?php echo $baseurl;?>/img/doc/quick_export.jpg" alt = "" title = ""/></p>
 
 </div>

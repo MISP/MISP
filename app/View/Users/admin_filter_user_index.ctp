@@ -82,7 +82,7 @@
 				</tr>
 			</table>
 		</div>
-		<?php echo $this->Form->create('User', array('id' => 'test', 'url' => h($baseurl) . '/admin/users/index'));?>
+		<?php echo $this->Form->create('User', array('id' => 'test', 'url' => $baseurl . '/admin/users/index'));?>
 		<fieldset>
 		<?php 
 			echo $this->Form->input('generatedURL', array(
@@ -122,7 +122,7 @@ var typedFields = ["role"];
 
 var allFields = simpleFilters.concat(differentFilters);
 
-var baseurl = "<?php echo h($baseurl); ?>";
+var baseurl = "<?php echo $baseurl; ?>";
 		
 $(document).ready(function() {
 	indexRuleChange();
