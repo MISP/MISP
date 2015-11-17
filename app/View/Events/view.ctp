@@ -9,7 +9,6 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 	<?php
 		if (Configure::read('MISP.showorg') || $isAdmin) {
 			echo $this->element('img', array('id' => $event['Orgc']['name']));
-			$left = true;
 		}
 		$title = $event['Event']['info'];
 		if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';

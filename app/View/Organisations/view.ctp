@@ -1,5 +1,8 @@
 <div class="organisations view">
-<h2><?php  echo 'Organisation ' . h($org['Organisation']['name']);?></h2>
+<div class="row-fluid">
+	<div class="span10"><h2><?php  echo 'Organisation ' . h($org['Organisation']['name']);?></h2></div>
+	<div class="span2"><?php echo $this->element('img', array('id' => $org['Organisation']['name'])); ?></div>
+</div>
 	<dl style="width:600px;">
 		<dt><?php echo 'Id'; ?></dt>
 		<dd>
