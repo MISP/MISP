@@ -39,8 +39,8 @@
 						if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
 						if (isset($event['Event']['published']) && $event['Event']['published']) $exportButtons = "";
 					?>
-					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="<?php echo $baseurl;?>#" onClick="publishPopup('<?php echo $event['Event']['id']; ?>', 'alert')">Publish Event</a></li>
-					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="<?php echo $baseurl;?>#" onClick="publishPopup('<?php echo $event['Event']['id']; ?>', 'publish')">Publish (no email)</a></li>
+					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo $event['Event']['id']; ?>', 'alert')">Publish Event</a></li>
+					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo $event['Event']['id']; ?>', 'publish')">Publish (no email)</a></li>
 
 					<li <?php if ($menuItem === 'contact') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/contact/<?php echo $event['Event']['id'];?>">Contact Reporter</a></li>
 					<li><a onClick="getPopup('<?php echo $event['Event']['id']; ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
@@ -130,7 +130,7 @@
 				case 'admin': 
 					if ($menuItem === 'editUser' || $menuItem === 'viewUser'): ?>
 					<li <?php if ($menuItem === 'viewUser') echo 'class="active"';?>><?php echo $this->Html->link('View User', array('controller' => 'users', 'action' => 'view', 'admin' => true, $id)); ?> </li>
-					<li><a href="#/" onClick="initiatePasswordReset('<?php echo h($id); ?>');">Send Credentials</a></li>
+					<li><a href="#" onClick="initiatePasswordReset('<?php echo h($id); ?>');">Send Credentials</a></li>
 					<li <?php if ($menuItem === 'editUser') echo 'class="active"';?>><?php echo $this->Html->link('Edit User', array('controller' => 'users', 'action' => 'edit', 'admin' => true, $id)); ?> </li>
 					<li><?php echo $this->Form->postLink('Delete User', array('admin' => true, 'action' => 'delete', $id), null, __('Are you sure you want to delete # %s?', $id));?></li>
 					<li class="divider"></li>
