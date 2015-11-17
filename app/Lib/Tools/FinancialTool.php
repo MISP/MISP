@@ -96,7 +96,7 @@ class FinancialTool {
 			'iban' => 'IBAN',
 			'btc' => 'BTC',
 		);
-		if (in_array($type, array_keys($validationRoutes))) return $this->{'validate' . strtoupper($type)}($value);
+		if (in_array($type, array_keys($validationRoutes))) return $this->{'validate' . strtoupper($validationRoutes[$type])}($value);
 		return true;
 	}
 	
