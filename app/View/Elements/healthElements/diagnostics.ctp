@@ -141,7 +141,7 @@
 	<?php 
 		if ($sessionStatus < 2):
 	?>
-	<a href="<?php echo h($baseurl);?>/servers/purgeSessions"><span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">Purge sessions</span></a>
+	<a href="<?php echo $baseurl;?>/servers/purgeSessions"><span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">Purge sessions</span></a>
 	<?php 
 		endif;
 	?>

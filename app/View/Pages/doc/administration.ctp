@@ -26,7 +26,7 @@
 <div class="index">
 	<h2><a id="diagnostics"></a>Server settings and diagnostics</h2>
 	<p>Since version 2.3, MISP has a settings and diagnostics tool that allows site-admins to manage and diagnose their MISP installation. You can access this by navigating to Administration - Server settings
-	<p><img src="<?php echo h($baseurl);?>/img/doc/settings_1.png" alt = "" title = "Server settings overview with all of the tabs explained."/></p><br />
+	<p><img src="<?php echo $baseurl;?>/img/doc/settings_1.png" alt = "" title = "Server settings overview with all of the tabs explained."/></p><br />
 	<p>The settings and diagnostics tool is split up into several aspects, all accessible via the tabs ontop of the tool. For any unset or incorrectly set setting, or failed diagnostic a number next to the tab name will indicate the number and severity of the issues. If the number is written with a red font, it means that the issue is critical. First, let's look at the various tabs:</p>
 	<ul>
 		<li><b>Overview</b>: General overview of the current state of your MISP installation</li>
@@ -39,7 +39,7 @@
 		<li><b>Workers</b>: Shows the background workers (if enabled) and shows a warning if they are not running. Admins can also restart the workers here.</li>
 		<li><b>Download report</b>: Download a report in JSON format, compiled of all of the settings visible in the tool.</li>
 	</ul>
-	<p><img src="<?php echo h($baseurl);?>/img/doc/settings_2.png" alt = "" title = "The settings tabs explained."/></p><br />
+	<p><img src="<?php echo $baseurl;?>/img/doc/settings_2.png" alt = "" title = "The settings tabs explained."/></p><br />
 	<p>Each of the setting pages is a table with each row representing a setting. Coloured rows indicate that the setting is incorrect / not set and the colour determines the severity (red = critical, yellow = recommended, green = optional). The columns are as follows:
 	<ul>
 		<li><b>Priority</b>: The severity of the setting.</li>
@@ -48,7 +48,7 @@
 		<li><b>Description</b>: A description of what the setting does.</li>
 		<li><b>Error Message</b>: If the setting is incorrect / not set, then this field will let the user know what is wrong.</li>
 	</ul>
-	<p><img src="<?php echo h($baseurl);?>/img/doc/settings_3.png" alt = "" title = "The workers tab."/></p><br />
+	<p><img src="<?php echo $baseurl;?>/img/doc/settings_3.png" alt = "" title = "The workers tab."/></p><br />
 	<p>The workers tab shows a list of the workers that MISP can use. You can restart the workers using the restart all workers, If the button doesn't work, make sure that the workers were started using the apache user. This can however only be done using the command line, refer to the INSTALL.txt documentation on how to let the workers automatically start on each boot.</p>
 	<ul>
 		<li><b>Worker Type</b>: The worker type is determined by the queue it monitors. MISP currently has 4 queues (cache, default, email and a special _schdlr_ queue).</li>
@@ -68,7 +68,7 @@
 	The second use is blocking, if a regular expression is entered with a blank replacement, any event info or attribute value containing the expression will not be added. Please make sure the entered regexp expression follows the preg_replace pattern rules as described <a href="http://php.net/manual/en/function.preg-replace.php">here</a>.<br />
 	<h3>Adding and modifying entries</h3>
 	Administrators can add, edit or delete regular expression rules, which are made up of a regex pattern that the system searches for and a replacement for the detected pattern.<br />
-	<p><img src="<?php echo h($baseurl);?>/img/doc/regexp.png" alt = "" title = "Add, edit or remove Regexp entries that will affect all newly created attributes here."/></p><br />
+	<p><img src="<?php echo $baseurl;?>/img/doc/regexp.png" alt = "" title = "Add, edit or remove Regexp entries that will affect all newly created attributes here."/></p><br />
 	<hr />
 	<h2><a id="whitelist"></a>Managing the Signature whitelist</h2>
 	The signature whitelist view, accessible through the administration menu on the left, allows administrators to create and maintain a list of addresses that are whitelisted from ever being added to the NIDS signatures. Addresses listed here will be commented out when exporting the NIDS list.<br />
@@ -76,13 +76,13 @@
 		While in the whitelist view, click on New Whitelist on the left to bring up the add whitelist view to add a new address. <br />
 	<h3>Managing the list:</h3>
 		When viewing the list of whitelisted addresses, the following pieces of information are shown: The ID of the whitelist entry (assigned automatically when a new address is added), the address itself that is being whitelisted and a set of controls allowing you to delete the entry or edit the address.<br />
-	<img src="<?php echo h($baseurl);?>/img/doc/whitelist.png" alt = "Whitelist" title = "You can edit or delete currently white-listed addresses using the action buttons on this list."/><br />
+	<img src="<?php echo $baseurl;?>/img/doc/whitelist.png" alt = "Whitelist" title = "You can edit or delete currently white-listed addresses using the action buttons on this list."/><br />
 	<hr />
 	<h2><a id="user"></a>Managing the users:</h2>
 	As an admin, you can set up new accounts for users, edit the profiles of users, delete them, or just have a look at all the viewers' profiles. Organisation admins are restricted to executing the same actions on their organisation's users only.<br />
 	<h3>Adding a new user:</h3>
 	To add a new user, click on the New User button in the administration menu to the left and fill out the following fields in the view that is loaded:<br />
-	<img src="<?php echo h($baseurl);?>/img/doc/add_user.png" alt = "Add user" title = "Fill this form out to add a new user. Keep in mind that the drop-down menu titled Role controls the privileges the user will have."/>
+	<img src="<?php echo $baseurl;?>/img/doc/add_user.png" alt = "Add user" title = "Fill this form out to add a new user. Keep in mind that the drop-down menu titled Role controls the privileges the user will have."/>
 	<ul>
 		<li><b>Email:</b> The user's e-mail address, this will be used as his/her login name and as an address to send all the automatic e-mails and e-mails sent by contacting the user as the reporter of an event.<br /></li>
 		<li><b>Password:</b> A temporary password for the user that he/she should change after the first login. Make sure that it is at least 6 characters long, includes a digit or a special character and contains at least one upper-case and at least one lower-case character.<br /></li>
@@ -97,7 +97,7 @@
 	</ul>
 	<h3>Listing all users:</h3>
 	To list all current users of the system, just click on List Users under the administration menu to the left. A view will be loaded with a list of all users and the following columns of information:<br />
-	<img src="<?php echo h($baseurl);?>/img/doc/list_users.png" alt = "List users" title = "View, Edit or Delete a user using the action buttons to the right."/><br />
+	<img src="<?php echo $baseurl;?>/img/doc/list_users.png" alt = "List users" title = "View, Edit or Delete a user using the action buttons to the right."/><br />
 	<ul>
 		<li><b>Id:</b> The user's automatically assigned ID number.<br /></li>
 		<li><b>Org:</b> The organisation that the user belongs to.<br /></li>
@@ -128,7 +128,7 @@
 	</ul>
 	<h3>Contacting a user:</h3>
 	Site admins can use the "Contact users" feature to send all or an individual user an e-mail. Users that have a PGP key set will receive their e-mails encrypted. When clicking this button on the left, you'll be presented with a form that allows you to specify the type of the e-mail, who it should reach and what the content is using the following options:<br />
-	<img src="<?php echo h($baseurl);?>/img/doc/contact.png" alt = "Contact" title = "Contact your users here."/><br />
+	<img src="<?php echo $baseurl;?>/img/doc/contact.png" alt = "Contact" title = "Contact your users here."/><br />
 	<ul>
 		<li><b>Action:</b> This defines the type of the e-mail, which can be a custom message or a password reset. Password resets automatically include a new temporary password at the bottom of the message and will automatically change the user's password accordingly.<br /></li>
 		<li><b>Recipient:</b> The recipient toggle lets you contact all your users, a single user (which creates a second drop-down list with all the e-mail addresses of the users) and potential future users (which opens up a text field for the e-mail address and a text area field for a PGP public key).<br /></li>
@@ -157,7 +157,7 @@
 	When creating a new role, you will have to enter a name for the role to be created and set up the permissions (as described above) using the radio toggle and the four check-boxes.<br />
 	<h3>Listing roles:</h3>
 	By clicking on the List Roles button, you can view a list of all the currently registered roles and a list of the permission flags turned on for each. In addition, you can find buttons that allow you to edit and delete the roles. Keep in mind that you will need to first remove every member from a role before you can delete it.<br />
-	<img src="<?php echo h($baseurl);?>/img/doc/list_groups.png" alt = "List roles" title = "You can View, Edit or Delete roles using the action buttons to the right in each row. Keep in mind that a role has to be devoid of members before it can be deleted."/><br />
+	<img src="<?php echo $baseurl;?>/img/doc/list_groups.png" alt = "List roles" title = "You can View, Edit or Delete roles using the action buttons to the right in each row. Keep in mind that a role has to be devoid of members before it can be deleted."/><br />
 	<hr />
 	<h2><a id="logs"></a>Using the logs of MISP</h2>
 	Users with audit permissions are able to browse or search the logs that MISP automatically appends each time certain actions are taken (actions that modify data or if a user logs in and out).<br />
@@ -175,7 +175,7 @@
 	<br />
 	<h3>Browsing the logs:</h3>
 	Listing all the log entries will show the following columns generated by the users of your organisation (or all organisations in the case of site admins):<br />
-	<img src="<?php echo h($baseurl);?>/img/doc/list_logs.png" alt = "List logs" title = "Here you can view a list of all logged actions."/><br /><br />
+	<img src="<?php echo $baseurl;?>/img/doc/list_logs.png" alt = "List logs" title = "Here you can view a list of all logged actions."/><br /><br />
 	<ul>
 		<li><b>Id:</b> The automatically assigned ID number of the entry.<br /></li>
 		<li><b>Email:</b> The e-mail address of the user whose actions triggered the entry.<br /></li>
@@ -188,7 +188,7 @@
 				When the entry is about the creation of a new item (such as adding a new event) then the change will look like this for example:<br />
 				<i>org()</i> =&gt; <i>(ADMIN)</i>, <i>date()</i> =&gt; <i>(20012-10-19)</i>,... <br />
 	</ul>
-	<img src="<?php echo h($baseurl);?>/img/doc/search_log.png" alt = "Search log" style="float:right;" title = "You can search the logs using this form, narrow down your search by filling out several fields."/>
+	<img src="<?php echo $baseurl;?>/img/doc/search_log.png" alt = "Search log" style="float:right;" title = "You can search the logs using this form, narrow down your search by filling out several fields."/>
 	<h3>Searching the Logs:</h3>
 	Another way to browse the logs is to search it by filtering the results according to the following fields (the search is a sub-string search, the sub-string has to be an exact match for the entry in the field that is being searched for):<br /><br />
 	<ul>
@@ -229,7 +229,7 @@
 		<li><b>Retries</b>: Currently unused, it is planned to introduced automatic delayed retries for the background processing to add resilience.</li>
 		<li><b>Progress</b>: A progress bar showing how the job is coming along.</li>
 	</ul>
-	<br /><img src="<?php echo h($baseurl);?>/img/doc/jobs.png" alt = "" title = "Site administrators can monitor the process of all queued jobs here."/><br />
+	<br /><img src="<?php echo $baseurl;?>/img/doc/jobs.png" alt = "" title = "Site administrators can monitor the process of all queued jobs here."/><br />
 	<h3>Scheduling Jobs and Recurring Jobs</h3>
 	Apart from off-loading long-lasting jobs to the background workers, there is a second major benefit of enabling the background workers: Site-administrators can schedule recurring tasks for the jobs that generally take the longest to execute. At the moment this includes pushing / pulling other instances and generating a full export cache for every organisation and export type. MISP comes with these 3 tasks pre-defined, but further tasks are planned. The following fields make up the scheduled tasks table: <br /><br />
 	<ul>
@@ -241,7 +241,7 @@
 		<li><b>Description</b>: A brief description of the task.</li>
 		<li><b>Message</b>: This field shows when the job was queued by the scheduler for execution. </li>
 	</ul>
-	<br /><img src="<?php echo h($baseurl);?>/img/doc/schedule.png" alt = "" title = "Site administrators can schedule reccuring tasks on this page."/><br />
+	<br /><img src="<?php echo $baseurl;?>/img/doc/schedule.png" alt = "" title = "Site administrators can schedule reccuring tasks on this page."/><br />
 	<h2 ><a id="diagnostics"></a>Frequently asked questions</h2>
 	<b>Losing access to the platform and resetting the password</b><br /><br />
 	If you ever lock yourself out of MISP as a site admin, there is a command line tool to reset your password. This can also be handy if you have changed the salt key and invalidated all of the passwords.<br />

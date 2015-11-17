@@ -85,7 +85,7 @@ class AppController extends Controller {
 
 		// Let us access $baseurl from all views
 		$baseurl = Configure::read('MISP.baseurl');
-		$this->set('baseurl', $baseurl); 
+		$this->set('baseurl', h($baseurl)); 
 
 		// send users away that are using ancient versions of IE
 		// Make sure to update this if IE 20 comes out :)
