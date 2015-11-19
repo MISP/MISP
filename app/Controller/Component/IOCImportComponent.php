@@ -148,8 +148,9 @@ class IOCImportComponent extends Component {
 
 		// Add a special attribute that captures the basic data about the .ioc such as the ioc-s uuid, info, long info, author, etc.
 		// Define the fields used in the global iocinfo variable.
+		$this->Attribute = ClassRegistry::init('Attribute');
 		foreach ($this->iocinfo as $k => $v) {
-			if (isset($event[$v])) $event['Attribute'][] = array('uuid' => $this->{$Model->alias}->generateUuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => $this->typeToIdsSettings['comment'], 'distribution' => $this->distribution, 'comment' => 'OpenIOC import from file ' . $filename);
+			if (isset($event[$v])) $event['Attribute'][] = array('uuid' => $this->Attribute->generateUuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => $this->typeToIdsSettings['comment'], 'distribution' => $this->distribution, 'comment' => 'OpenIOC import from file ' . $filename);
 		}
 
 		// attach the graph to the event
@@ -202,7 +203,7 @@ class IOCImportComponent extends Component {
 			$attribute['type'] = 'other';
 			$attribute['value'] = 'containsnot: ' . $attribute['value'];
 		}
-		$attribute['to_ids'] = $this->typeToIdsSettings[$attribute['type']];
+		if (isset($this->typeToIdsSettings[$attribute['type']])) $attribute['to_ids'] = $this->typeToIdsSettings[$attribute['type']];
 		// If we couldn't figure out the category / type and got Other/other, append the search term in the value
 		if ($temp[0] == 'Other' && $temp[1] == 'other') {
 			$attribute['value'] = $attribute['search'] . ': ' . $attribute['value'];
@@ -519,6 +520,7 @@ class IOCImportComponent extends Component {
 				$att1 = $this->__analyseIndicator($array[0], $id);
 				$att2 = $this->__analyseIndicator($array[1], $id);
 				$attempt = $this->__convertToCompositeAttribute($att1, $att2, $id);
+				$attempt['to_ids'] = $this->typeToIdsSettings[$attempt['type']];
 				if ($attempt) {
 					$this->saved_uuids[] = $id;
 					return $attempt;
@@ -542,6 +544,7 @@ class IOCImportComponent extends Component {
 
 	// Attempt to convert the two attributes retrieved from an AND indicator into a single attribute, if they are eligible to be converted. If not, add it to the array of failures.
 	private function __convertToCompositeAttribute($att1, $att2, $uuid) {
+		$this->Attribute = ClassRegistry::init('Attribute');
 		// check if the current attribute is one of the known pairs saved in the array $attributePairs
 		foreach ($this->attributePairs as $pair) {
 			// if attribute 1's type = the first type of the pair and attribute 2's type is the type of the second attribute of the pair, return a new joint attribute with the new type-name (usually type1|type2) and its predefined category
@@ -561,7 +564,7 @@ class IOCImportComponent extends Component {
 					default:
 						$value = $att1['value'] . '|' . $att2['value'];
 				}
-				return array('type' => $pair[2], 'value' => $value, 'uuid' => $this->{$Model->alias}->generateUuid(), 'category' => $pair[3], 'to_ids' => $this->typeToIdsSettings[$pair[2]], 'distribution' => $this->distribution);
+				return array('type' => $pair[2], 'value' => $value, 'uuid' => $this->Attribute->generateUuid(), 'category' => $pair[3], 'to_ids' => $this->typeToIdsSettings[$pair[2]], 'distribution' => $this->distribution);
 			}
 			// Try the same thing above with the attributes reversed
 			if ($att2['type'] == $pair[0] && $att1['type'] == $pair[1]) {
@@ -579,7 +582,7 @@ class IOCImportComponent extends Component {
 					default:
 						$value = $att2['value'] . '|' . $att1['value'];
 				}
-				return array('type' => $pair[2], 'value' => $value, 'uuid' => $this->{$Model->alias}->generateUuid(), 'category' => $pair[3], 'to_ids' => $this->typeToIdsSettings[$pair[2]], 'distribution' => $this->distribution);
+				return array('type' => $pair[2], 'value' => $value, 'uuid' => $this->Attribute->generateUuid(), 'category' => $pair[3], 'to_ids' => $this->typeToIdsSettings[$pair[2]], 'distribution' => $this->distribution);
 			}
 		}
 		// If no match found, return false, it's not a valid composite attribute for MISP
