@@ -1247,7 +1247,7 @@ class Server extends AppModel {
 	
 	public function testSalt($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
-		if (strlen($value) != 32) return 'The salt has to be a 32 byte long string.';
+		if (strlen($value) < 32) return 'The salt has to be an at least 32 byte long string.';
 		if ($value == "Rooraenietu8Eeyo<Qu2eeNfterd-dd+") return 'This is the default salt shipped with the application and is therefore unsecure.';
 		return true;
 	}

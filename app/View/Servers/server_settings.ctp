@@ -14,6 +14,7 @@
 			echo $this->element('healthElements/overview');
 		}
 	?>
+	<div style="font-style: italic;">To edit a setting, simply double click it.</div>
 </div>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'serverSettings'));
