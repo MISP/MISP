@@ -20,7 +20,6 @@ class TemplateElementAttribute extends AppModel {
 				'valueNotEmpty' => array(
 					'rule' => array('valueNotEmpty'),
 				),
-				'message' => 'Please enter a Description',
 			),
 			'category' => array(
 				'rule'    => array('comparison', '!=', 'Select Category'),
