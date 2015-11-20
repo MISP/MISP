@@ -1917,7 +1917,7 @@ class Server extends AppModel {
 	}
 	
 	public function upgrade2324($user_id, $jobId = false) {
-		$this->__cleanCacheFiles();
+		$this->cleanCacheFiles();
 		if (Configure::read('MISP.background_jobs') && $jobId) {
 			$this->Job = ClassRegistry::init('Job');
 			$this->Job->id = $jobId;
