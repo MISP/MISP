@@ -1948,7 +1948,7 @@ class Event extends AppModel {
 			$hostOrg = Configure::read('MISP.org');
 			$hostOrg = $this->Org->find('first', array('conditions' => array('name' => $hostOrg), 'fields' => array('id')));
 			if (!empty($hostOrg)) {
-				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => false, 'perm_site_admin' => false));
+				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => false, 'perm_site_admin' => false), 'Organisation' => $hostOrg['Org']);
 				$fullEvent = $this->fetchEvent($user, array('eventid' => $id));
 				$pubSubTool->publishEvent($fullEvent[0]);
 			}
