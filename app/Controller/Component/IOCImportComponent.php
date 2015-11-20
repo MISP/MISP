@@ -520,8 +520,8 @@ class IOCImportComponent extends Component {
 				$att1 = $this->__analyseIndicator($array[0], $id);
 				$att2 = $this->__analyseIndicator($array[1], $id);
 				$attempt = $this->__convertToCompositeAttribute($att1, $att2, $id);
-				$attempt['to_ids'] = $this->typeToIdsSettings[$attempt['type']];
 				if ($attempt) {
+					$attempt['to_ids'] = $this->typeToIdsSettings[$attempt['type']];
 					$this->saved_uuids[] = $id;
 					return $attempt;
 				}
