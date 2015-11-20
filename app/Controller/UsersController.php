@@ -389,7 +389,7 @@ class UsersController extends AppController {
 		if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
 		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name')));
 		$servers = array(0 => 'Nothing');
-		foreach ($temp as $t) {
+		if (!empty($temp)) foreach ($temp as $t) {
 			$servers[$t['Server']['id']] = $t['Server']['name'];
 		}
 		$this->set('servers', $servers);
