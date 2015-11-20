@@ -137,7 +137,7 @@
 			</td>
 			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" ondblclick="document.location.href ='<?php echo $eventViewURL . h($event['Event']['id']);?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>">
 				<?php if ($event['Event']['distribution'] == 4):?>
-					<a href="/sharingGroups/view/<?php echo h($event['SharingGroup']['id']); ?>"><?php echo h($event['SharingGroup']['name']);?></a>
+					<a href="/sharingGroups/view/<?php echo h($event['Event']['SharingGroup']['id']); ?>"><?php echo h($event['Event']['SharingGroup']['name']);?></a>
 				<?php else: 
 					echo h($shortDist[$event['Event']['distribution']]);
 				endif;

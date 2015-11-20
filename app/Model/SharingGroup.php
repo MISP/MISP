@@ -261,7 +261,6 @@ class SharingGroup extends AppModel {
 			$newSG['local'] = 0;
 			$this->save($newSG);
 		}
-		
 		$sg['org_id'] = $this->Organisation->captureOrg($sg['Organisation'], $user);
 		unset ($sg['Organisation']);
 		
