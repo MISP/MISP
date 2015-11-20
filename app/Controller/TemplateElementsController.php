@@ -72,8 +72,7 @@ class TemplateElementsController extends AppController {
 				$types = $this->_arrayToValuesIndexArray($types);
 				$this->set('types', $types);
 				// combobox for categories
-				$categories = $this->Attribute->validate['category']['rule'][1];
-				array_pop($categories);
+				$categories = array_keys($this->Attribute->categoryDefinitions);
 				$categories = $this->_arrayToValuesIndexArray($categories);
 				$this->set('categories', compact('categories'));
 				$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
@@ -159,8 +158,7 @@ class TemplateElementsController extends AppController {
 				$types = $this->_arrayToValuesIndexArray($types);
 				$this->set('types', $types);
 				// combobox for categories
-				$categories = $this->Attribute->validate['category']['rule'][1];
-				array_pop($categories);
+				$categories = array_keys($this->Attribute->categoryDefinitions);
 				$categories = $this->_arrayToValuesIndexArray($categories);
 				$this->set('categories', compact('categories'));
 				$categoryDefinitions = $this->Attribute->categoryDefinitions;
