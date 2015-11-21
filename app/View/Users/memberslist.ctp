@@ -9,7 +9,7 @@
 	<?php
 foreach ($orgs as $org):?>
 	<tr>
-		<td><?php echo h($org['Organisation']['name']); ?>&nbsp;</td>
+		<td><a href="<?php echo $baseurl; ?>/organisations/view/<?php echo h($org['Organisation']['id']);?>"><?php echo h($org['Organisation']['name']); ?></a>&nbsp;</td>
 		<td><?php echo h($org[0]['num_members']); ?>&nbsp;</td>
 		<?php
 			$imgRelativePath = 'orgs' . DS . h($org['Organisation']['name']) . '.png';
