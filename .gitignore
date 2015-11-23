@@ -28,10 +28,10 @@
 !/app/files/scripts/mispzmq/mispzmqtest.py
 /app/files/scripts/tmp/*
 !/app/files/scripts/tmp/empty
-/app/tmp/files/*
 !/app/files/empty
 /app/files/terms/*
 !/app/files/terms/empty
+!/app/files/taxonomies
 /app/webroot/img/logo.png
 /app/webroot/img/custom/*
 !/app/webroot/img/custom/empty
@@ -48,4 +48,14 @@
 /app/Lib/cakephp
 /app/webroot/gpg.asc
 /app/tmp/logs
+/app/tmp/cached_exports/xml/*
+/app/tmp/cached_exports/json/*
+/app/tmp/cached_exports/text/*
+/app/tmp/cached_exports/rpz/*
+/app/tmp/cached_exports/snort/*
+/app/tmp/cached_exports/suricata/*
+/app/tmp/cached_exports/md5/*
+/app/tmp/cached_exports/sha1/*
+/app/tmp/cached_exports/csv_all/*
+/app/tmp/cached_exports/csv_sig/*
 *.swp
