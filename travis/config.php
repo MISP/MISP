@@ -10,7 +10,7 @@ $config = array (
   ),
   'MISP' =>
   array (
-    'baseurl' => 'http://localhost',
+    'baseurl' => 'http://misp.local',
     'footerpart1' => 'Powered by MISP',
     'footerpart2' => '&copy; Belgian Defense CERT & NCIRC',
     'org' => 'ORGNAME',
