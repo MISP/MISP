@@ -828,7 +828,7 @@ class UsersController extends AppController {
 			'email' => $this->Auth->user('email'),
 			'action' => $action,
 			'title' => $description,
-			'change' => $fieldsResult));
+			'change' => isset($fieldsResult) ? $fieldResult : ''));
 
 		// write to syslogd as well
 		App::import('Lib', 'SysLog.SysLog');

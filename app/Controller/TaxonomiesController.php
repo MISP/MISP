@@ -28,13 +28,18 @@ class TaxonomiesController extends AppController {
 		$urlparams = '';
 		$passedArgs = array();
 		App::uses('CustomPaginationTool', 'Tools');
-		$customPagination = new CustomPaginationTool();
-		$params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
-		$this->params->params['paging'] = array($this->modelClass => $params);
 		$taxonomy = $this->Taxonomy->getTaxonomy($id, array('full' => true));
+		$pageCount = count($taxonomy['entries']);
+		$customPagination = new CustomPaginationTool();
+		$params = $customPagination->createPaginationRules($taxonomy['entries'], $this->passedArgs, 'TaxonomyEntry');
+		$this->params->params['paging'] = array($this->modelClass => $params);
 		$customPagination->truncateByPagination($taxonomy['entries'], $params);
 		$this->set('entries', $taxonomy['entries']);
+		$this->set('urlparams', $urlparams);
+		$this->set('passedArgs', json_encode($passedArgs));
+		$this->set('passedArgsArray', $passedArgs);
 		$this->set('taxonomy', $taxonomy['Taxonomy']);
+		$this->set('id', $id);
 	}
 	
 	public function enable($id) {
@@ -147,9 +152,5 @@ class TaxonomiesController extends AppController {
 			$this->Session->setFlash($message);
 		}
 		$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
-		/*debug($this->Taxonomy->getTaxonomy('1'));
-		debug($this->Taxonomy->listTaxonomies());
-		debug($this->Taxonomy->getTaxonomy('1', array('full' => true)));
-		debug($this->Taxonomy->listTaxonomies(array('full' => true)));*/
 	}
 }

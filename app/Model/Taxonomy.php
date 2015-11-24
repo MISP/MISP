@@ -41,6 +41,7 @@ class Taxonomy extends AppModel{
 			$file = new File (APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json');
 			$vocab = json_decode($file->read(), true);
 			$file->close();
+			if (!isset($vocab['version'])) $vocab['version'] = 1;
 			$current = $this->find('first', array(
 				'conditions' => array('namespace' => $vocab['namespace']),
 				'recursive' => -1,
@@ -48,7 +49,6 @@ class Taxonomy extends AppModel{
 			));
 			if (empty($current) || $vocab['version'] > $current['Taxonomy']['version']) {
 				$result = $this->__updateVocab($vocab, $current);
-				debug($result);
 				if (is_numeric($result)) {
 					$updated['success'][$result] = array('namespace' => $vocab['namespace'], 'new' => $vocab['version']);
 					if (!empty($current)) $updated['success'][$result]['old'] = $current['Taxonomy']['version'];
@@ -73,7 +73,13 @@ class Taxonomy extends AppModel{
 			$taxonomy['Taxonomy']['TaxonomyPredicate'][$k] = $predicate;
 			$predicateLookup[$predicate['value']] = $k;
 		}
-		if (!empty($vocab['values'])) foreach ($vocab['values'] as &$value) $taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'] = $value['entry'];
+		if (!empty($vocab['values'])) foreach ($vocab['values'] as &$value) {
+			if (empty($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'])) {
+				$taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'] = $value['entry'];
+			} else {
+				$taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'] = array_merge($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'], $value['entry']);
+			}
+		}
 		$result = $this->saveAssociated($taxonomy, array('deep' => true));
 		if ($result) return $this->id;
 		return $this->validationErrors;
@@ -103,14 +109,14 @@ class Taxonomy extends AppModel{
 			if (isset($predicate['TaxonomyEntry']) && !empty($predicate['TaxonomyEntry'])) {
 				foreach ($predicate['TaxonomyEntry'] as &$entry) {
 					$temp = array('tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value'] . '="' . $entry['value'] . '"');
-					if (isset($predicate['expanded']) && isset($entry['expanded'])) $temp['expanded'] = $predicate['expanded'] . ': ' . $entry['expanded'];
+					$temp['expanded'] = (!empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value']) . ': ' . (!empty($entry['expanded']) ? $entry['expanded'] : $entry['value']);
 					$temp['existing_tag'] = isset($tags[$temp['tag']]) ? $tags[$temp['tag']] : false;
 					$entries[] = $temp;
 				}
 			} else {
 				$temp = array('tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value']);
 				$temp['existing_tag'] = isset($tags[$temp['tag']]) ? $tags[$temp['tag']] : false;
-				if (isset($predicate['expanded'])) $temp['expanded'] = $predicate['expanded'];
+				$temp['expanded'] = !empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value'];
 				$entries[] = $temp;
 			}
 		}

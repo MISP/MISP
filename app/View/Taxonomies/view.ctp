@@ -40,6 +40,7 @@
         <ul>
         <?php
         $this->Paginator->options(array(
+			'url' => array($id),
             'update' => '.span12',
             'evalScripts' => true,
             'before' => '$(".progress").show()',

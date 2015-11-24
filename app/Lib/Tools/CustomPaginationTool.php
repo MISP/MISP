@@ -30,8 +30,8 @@ class CustomPaginationTool {
 			$params['current'] = 1;
 		} else {
 			$params['current'] = 1 + ($params['page'] - 1) * $params['limit'];
-			if ($params['current'] > 1) $params['prevPage'] = true;
-			if ($params['current'] < $maxPage) $params['nextPage'] = true;
+			if ($params['page'] > 1) $params['prevPage'] = true;
+			if ($params['page'] < $maxPage) $params['nextPage'] = true;
 		}
 		$params['pageCount'] = $maxPage;
 		return $params;		
