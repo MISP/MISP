@@ -80,37 +80,71 @@ class AppModel extends Model {
 				$sql = 'ALTER TABLE `logs` ADD  `ip` varchar(45) COLLATE utf8_bin DEFAULT NULL;';
 				break;
 			case '24betaupdates':
-				$sql = 'ALTER TABLE `shadow_attributes` ADD  `proposal_to_delete` BOOLEAN NOT NULL';
+				$sqlArray = array();
+				$sqlArray[] = 'ALTER TABLE `shadow_attributes` ADD  `proposal_to_delete` BOOLEAN NOT NULL';
+				
+				$sqlArray[] = 'ALTER TABLE `logs` MODIFY  `change` text COLLATE utf8_bin NOT NULL';
+				
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomies` (
+				`id` int(11) NOT NULL AUTO_INCREMENT,
+				`namespace` varchar(255) COLLATE utf8_bin NOT NULL,
+				`description` text COLLATE utf8_bin NOT NULL,
+				`version` int(11) NOT NULL,
+				`enabled` tinyint(1) NOT NULL DEFAULT '0',
+				PRIMARY KEY (`id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;";
+				
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
+				`id` int(11) NOT NULL AUTO_INCREMENT,
+				`taxonomy_predicate_id` int(11) NOT NULL,
+				`value` text COLLATE utf8_bin NOT NULL,
+				`expanded` text COLLATE utf8_bin NOT NULL,
+				PRIMARY KEY (`id`),
+				KEY `taxonomy_predicate_id` (`taxonomy_predicate_id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+				
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
+				`id` int(11) NOT NULL AUTO_INCREMENT,
+				`taxonomy_id` int(11) NOT NULL,
+				`value` text COLLATE utf8_bin NOT NULL,
+				`expanded` text COLLATE utf8_bin NOT NULL,
+				PRIMARY KEY (`id`),
+				KEY `taxonomy_id` (`taxonomy_id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+				
 				break;
 			default:
 				return false;
 				break;
 		}
-		try {
-			$this->query($sql);
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => 'Successfuly executed the SQL query for ' . $command,
-					'change' => 'The executed SQL query was: ' . $sql
-			));
-		} catch (Exception $e) {
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => 'Issues executing the SQL query for ' . $command,
-					'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
-			));
+		if (!isset($sqlArray)) $sqlArray = array($sql);
+		foreach ($sqlArray as $sql) {
+			try {
+				$this->query($sql);
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => 'SYSTEM',
+						'model' => 'Server',
+						'model_id' => 0,
+						'email' => 'SYSTEM',
+						'action' => 'update_database',
+						'user_id' => 0,
+						'title' => 'Successfuly executed the SQL query for ' . $command,
+						'change' => 'The executed SQL query was: ' . $sql
+				));
+			} catch (Exception $e) {
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => 'SYSTEM',
+						'model' => 'Server',
+						'model_id' => 0,
+						'email' => 'SYSTEM',
+						'action' => 'update_database',
+						'user_id' => 0,
+						'title' => 'Issues executing the SQL query for ' . $command,
+						'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
+				));
+			}
 		}
 		if ($clean) $this->cleanCacheFiles();
 		return true;

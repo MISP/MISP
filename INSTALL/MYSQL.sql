@@ -560,6 +560,39 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
 
 -- --------------------------------------------------------
 
+CREATE TABLE IF NOT EXISTS `taxonomies` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `namespace` varchar(255) COLLATE utf8_bin NOT NULL,
+  `description` text COLLATE utf8_bin NOT NULL,
+  `version` int(11) NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;
+
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `taxonomy_predicate_id` int(11) NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
+  `expanded` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `taxonomy_predicate_id` (`taxonomy_predicate_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `taxonomy_id` int(11) NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
+  `expanded` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `taxonomy_id` (`taxonomy_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
 --
 -- Default values for initial installation
 --

@@ -144,4 +144,14 @@ class Tag extends AppModel {
 		for ($i = 0; $i < 3; $i++) $colour .= str_pad(dechex(mt_rand(0,255)), 2, '0', STR_PAD_LEFT);
 		return $colour;
 	}
+	
+	public function quickAdd($name) {
+		$this->create();
+		$data = array(
+			'name' => $name,
+			'colour' => $this->random_color(),
+			'exportable' => 1
+		);
+		return ($this->save($data));
+	}
 }

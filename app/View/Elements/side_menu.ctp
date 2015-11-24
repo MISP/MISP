@@ -243,6 +243,19 @@
 					endif;
 				break;	
 				
+				case 'taxonomies': ?>
+					<li id='liindex'><a href="<?php echo $baseurl;?>/taxonomies/index">List Taxonomies</a></li>
+					<?php if ($menuItem === 'view'): ?>
+					<li id='liview'><a href="">View Taxonomy</a></li>
+					<?php 
+					endif;
+					if ($isSiteAdmin): 
+					?>
+					<li id='liupdate'><?php echo $this->Form->postLink('Update Taxonomies', array('controller' => 'taxonomies', 'action' => 'update'));?></li>
+					<?php 
+					endif;
+				break;	
+				
 				case 'templates': ?>
 					<li id='liindex'><a href="<?php echo $baseurl;?>/templates/index">List Templates</a></li>
 					<?php if ($isSiteAdmin || $isAclTemplate): ?>

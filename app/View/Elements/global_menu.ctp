@@ -22,7 +22,6 @@
 							<?php if ($isAclAdd): ?>
 							<li><a href="<?php echo $baseurl;?>/events/add">Add Event</a></li>
 							<?php endif; ?>
-							<li class="divider"></li>
 							<li><a href="<?php echo $baseurl;?>/attributes/index">List Attributes</a></li>
 							<li><a href="<?php echo $baseurl;?>/attributes/search">Search Attributes</a></li>
 							<li class="divider"></li>
@@ -33,6 +32,7 @@
 							<?php if ($isAclTagger): ?>
 							<li><a href="<?php echo $baseurl;?>/tags/add">Add Tag</a></li>
 							<?php endif; ?>
+							<li><a href="<?php echo $baseurl;?>/taxonomies/index">List Taxonomies</a></li>
 							<li class="divider"></li>
 							<li><a href="<?php echo $baseurl;?>/templates/index">List Templates</a></li>
 							<?php if ($isAclTemplate): ?>

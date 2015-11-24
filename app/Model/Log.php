@@ -38,7 +38,10 @@ class Log extends AppModel {
 							'version_warning',
 							'auth',
 							'auth_fail',
-							'reset_auth_key'
+							'reset_auth_key',
+							'update',
+							'enable',
+							'disable'
 						)),
 			'message' => 'Options : ...'
 		)

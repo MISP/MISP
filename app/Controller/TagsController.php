@@ -89,6 +89,18 @@ class TagsController extends AppController {
 		}
 	}
 	
+	public function quickAdd() {
+		if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) throw new NotFoundException('You don\'t have permission to do that.');
+		debug($this->request->data);
+		if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
+		if ($this->Tag->quickAdd($this->request->data['Tag']['name'])) {
+			$this->Session->setFlash('The tag has been saved.');
+		} else {
+			$this->Session->setFlash('The tag could not be saved. Please, try again.');
+		}
+		$this->redirect($this->referer());
+	}
+	
 	public function edit($id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
 			throw new NotFoundException('You don\'t have permission to do that.');

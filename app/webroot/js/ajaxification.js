@@ -191,6 +191,10 @@ function activateField(type, id, field, event) {
 	});
 }
 
+function submitQuickTag(form) {
+	$('#' + form).submit();
+}
+
 //if someone clicks an inactive field, replace it with the hidden form field. Also, focus it and bind a focusout event, so that it gets saved if the user clicks away.
 //If a user presses enter, submit the form
 function postActivationScripts(name, type, id, field, event) {

@@ -31,7 +31,6 @@ foreach ($list as $item): ?>
 		<td class="short"><?php echo h($item['Tag']['id']); ?>&nbsp;</td>
 		<td class="short"><span class="<?php echo ($item['Tag']['exportable'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td><a href="<?php echo $baseurl."/events/index/searchtag:".$item['Tag']['id']; ?>" class="tag" style="background-color: <?php echo h($item['Tag']['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']); ?>"><?php echo h($item['Tag']['name']); ?></a></td>
-		<td><a href="<?php echo $baseurl."/events/index/searchtag:".$item['Tag']['id']; ?>" class="tag" style="background-color: <?php echo h($item['Tag']['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']); ?>"><?php echo h($item['Tag']['name']); ?></a></td>
 		<td class="short"><?php echo h($item['Tag']['count']); ?>&nbsp;</td>
 		<?php if ($isAclTagger): ?>
 		<td class="short action-links">

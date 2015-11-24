@@ -31,7 +31,6 @@
 !/app/files/empty
 /app/files/terms/*
 !/app/files/terms/empty
-!/app/files/taxonomies
 /app/webroot/img/logo.png
 /app/webroot/img/custom/*
 !/app/webroot/img/custom/empty
