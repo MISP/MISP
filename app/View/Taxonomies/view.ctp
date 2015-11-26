@@ -36,6 +36,7 @@
 			&nbsp;
 		</dd>
 	</dl>
+	<br />
 	<div class="pagination">
         <ul>
         <?php
@@ -53,70 +54,102 @@
         ?>
         </ul>
     </div>
-	<table class="table table-striped table-hover table-condensed">
-		<tr>
-				<th><?php echo $this->Paginator->sort('tag');?></th>
-				<th><?php echo $this->Paginator->sort('expanded');?></th>
-				<th><?php echo $this->Paginator->sort('events');?></th>
-				<th><?php echo $this->Paginator->sort('tag');?></th>
-		</tr><?php
-		foreach ($entries as $k => $item): ?>
-		<tr>
-			<td class="short"><?php echo h($item['tag']); ?>&nbsp;</td>
-			<td><?php echo h($item['expanded']); ?>&nbsp;</td>
-			<td class="short">
-			<?php 
-				if ($item['existing_tag']) {
-			?>
-				<a href='<?php echo $baseurl."/events/index/searchtag:". h($item['existing_tag']['Tag']['id']);?>'><?php echo count($item['existing_tag']['EventTag']);?></a>
-			<?php 
-				} else {
-					echo 'N/A';
-				} 
-			?>
-			</td>
-			<td class="short">
-			<?php 
-				if ($item['existing_tag']):
-					$url = $baseurl . '/events/index/searchtag:' .  h($item['existing_tag']['Tag']['id']);
-					if ($isAclTagger) $url = $baseurl . '/tags/edit/' .  h($item['existing_tag']['Tag']['id']);
-			?>
-					<a href="<?php echo $url;?>" class="<?php echo $isAclTagger ? 'tagFirstHalf' : 'tag' ?>" style="background-color:<?php echo h($item['existing_tag']['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($item['existing_tag']['Tag']['colour']);?>"><?php echo h($item['existing_tag']['Tag']['name']); ?></a>
-			<?php 
-				else:
+     <div id="attributeList" class="attributeListContainer">
+		<div class="tabMenuFixedContainer">
+	    	<div class="tabMenu tabMenuEditBlock noPrint mass-select" style="float:left;top:-1px;">
+				<span id="multi-edit-button" title="Create / update selected tags" class="icon-plus useCursorPointer" onClick="addSelectedTaxonomies(<?php echo $taxonomy['id']; ?>);"></span>
+			</div>
+			<div style="float:right !important;overflow:hidden;border:0px;padding:0px;padding-right:200px;">
+					<input type="text" id="quickFilterField" class="tabMenuFilterField taxFilter" value="<?php echo h($filter);?>"></input><span id="quickFilterButton" class="useCursorPointer taxFilterButton" onClick='quickFilterTaxonomy("<?php echo h($taxonomy['id']);?>");'>Filter</span>
+			</div>
+		</div>
+		<table class="table table-striped table-hover table-condensed">
+			<tr>
+				<?php if ($isAclTagger && !empty($entries)): ?>
+					<th><input class="select_all" type="checkbox" onClick="toggleAllTaxonomyCheckboxes();" /></th>
+				<?php endif;?>
+					<th><?php echo $this->Paginator->sort('tag');?></th>
+					<th><?php echo $this->Paginator->sort('expanded');?></th>
+					<th><?php echo $this->Paginator->sort('events');?></th>
+					<th><?php echo $this->Paginator->sort('tag');?></th>
+					<th>Action</th>
+			</tr><?php
+			foreach ($entries as $k => $item): ?>
+			<tr>
+			<?php if ($isAclTagger): ?>
+				<td style="width:10px;">
+					<input id = "select_<?php echo h($k); ?>" class="select_taxonomy" type="checkbox" data-id="<?php echo h($k);?>" />
+				</td>
+			<?php endif; ?>
+				<td id="tag_<?php echo h($k); ?>" class="short"><?php echo h($item['tag']); ?></td>
+				<td><?php echo h($item['expanded']); ?>&nbsp;</td>
+				<td class="short">
+				<?php 
+					if ($item['existing_tag']) {
+				?>
+					<a href='<?php echo $baseurl."/events/index/searchtag:". h($item['existing_tag']['Tag']['id']);?>'><?php echo count($item['existing_tag']['EventTag']);?></a>
+				<?php 
+					} else {
+						echo 'N/A';
+					} 
+				?>
+				</td>
+				<td class="short">
+				<?php 
+					if ($item['existing_tag']):
+						$url = $baseurl . '/events/index/searchtag:' .  h($item['existing_tag']['Tag']['id']);
+						if ($isAclTagger) $url = $baseurl . '/tags/edit/' .  h($item['existing_tag']['Tag']['id']);
+				?>
+						<a href="<?php echo $url;?>" class="<?php echo $isAclTagger ? 'tagFirstHalf' : 'tag' ?>" style="background-color:<?php echo h($item['existing_tag']['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($item['existing_tag']['Tag']['colour']);?>"><?php echo h($item['existing_tag']['Tag']['name']); ?></a>
+				<?php 
+					endif;
+				?>
+				</td>
+				<td class="action">
+				<?php 
 					if ($isAclTagger && $taxonomy['enabled']) {
-						echo $this->Form->create('Tag', array('id' => 'quick_' . h($k), 'url' => '/tags/quickAdd/', 'style' => 'margin:0px;'));
+						echo $this->Form->create('Tag', array('id' => 'quick_' . h($k), 'url' => '/taxonomies/addTag/', 'style' => 'margin:0px;'));
 						echo $this->Form->input('name', array('type' => 'hidden', 'value' => $item['tag']));
+						echo $this->Form->input('taxonomy_id', array('type' => 'hidden', 'value' => $taxonomy['id']));
 					?>
-						<span class="icon-plus useCursorPointer" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
+						<span class="<?php echo $item['existing_tag'] ? 'icon-refresh' : 'icon-plus'; ?> useCursorPointer" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
 					<?php 
 						echo $this->Form->end();
 					} else { 
 						echo 'N/A';
 					}
-				endif;
-			?>
-			</td>
-		</tr>
-		<?php endforeach; ?>
-	</table>
-	<p>
-    <?php
-    echo $this->Paginator->counter(array(
-    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-    ));
-    ?>
-    </p>
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
+				?>
+				</td>
+			</tr>
+			<?php endforeach; ?>
+		</table>
+		<p>
+	    <?php
+	    echo $this->Paginator->counter(array(
+	    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
+	    ));
+	    ?>
+	    </p>
+	    <div class="pagination">
+	        <ul>
+	        <?php
+	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+	            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+	        ?>
+	        </ul>
+		</div>
+	</div>
 </div>
+<script type="text/javascript">
+	$(document).ready(function(){
+		$('input:checkbox').removeAttr('checked');
+		$('.mass-select').hide();
+		$('.select_taxonomy, .select_all').click(function(){
+			taxonomyListAnyCheckBoxesChecked();
+		});
+	});
+</script>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'taxonomies', 'menuItem' => 'view'));
 ?>

@@ -23,12 +23,19 @@ class TaxonomiesController extends AppController {
 	}
 	
 	public function view($id) {
-		if (isset($this->passedArgs['pages'])) $currentPage = $this->passedArgs['pages'];
-		else $currentPage = 1;
+		if (isset($this->passedArgs['pages'])) {
+			$currentPage = $this->passedArgs['pages'];
+		} else {
+			$currentPage = 1;
+		}
+		$this->set('page', $currentPage);
 		$urlparams = '';
 		$passedArgs = array();
 		App::uses('CustomPaginationTool', 'Tools');
-		$taxonomy = $this->Taxonomy->getTaxonomy($id, array('full' => true));
+		$filter = isset($this->passedArgs['filter']) ? $this->passedArgs['filter'] : false;
+		$taxonomy = $this->Taxonomy->getTaxonomy($id, array('full' => true, 'filter' => $filter));
+		$this->set('filter', $filter);
+		if (empty($taxonomy)) throw new NotFoundException('Taxonomy not found.');
 		$pageCount = count($taxonomy['entries']);
 		$customPagination = new CustomPaginationTool();
 		$params = $customPagination->createPaginationRules($taxonomy['entries'], $this->passedArgs, 'TaxonomyEntry');
@@ -152,5 +159,28 @@ class TaxonomiesController extends AppController {
 			$this->Session->setFlash($message);
 		}
 		$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
+	}
+	
+	public function addTag() {
+		if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) throw new NotFoundException('You don\'t have permission to do that.');
+		if (isset($this->request->data['Taxonomy'])) {
+			$this->request->data['Tag'] = $this->request->data['Taxonomy'];
+			unset($this->request->data['Taxonomy']);
+		} 
+		if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
+		if (!isset($this->request->data['Tag']['nameList'])) $this->request->data['Tag']['nameList'] = array($this->request->data['Tag']['name']);
+		else $this->request->data['Tag']['nameList'] = json_decode($this->request->data['Tag']['nameList'], true);
+		if ($this->Taxonomy->addTags($this->request->data['Tag']['taxonomy_id'], $this->request->data['Tag']['nameList'])) {
+			$this->Session->setFlash('The tag has been saved.');
+		} else {
+			$this->Session->setFlash('The tag could not be saved. Please, try again.');
+		}
+		$this->redirect($this->referer());
+	}
+	
+	public function taxonomyMassConfirmation($id) {
+		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
+		$this->set('id', $id);
+		$this->render('ajax/taxonomy_mass_confirmation');
 	}
 }

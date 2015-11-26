@@ -349,6 +349,14 @@ function toggleAllAttributeCheckboxes() {
 	}
 }
 
+function toggleAllTaxonomyCheckboxes() {
+	if ($(".select_all").is(":checked")) {
+		$(".select_taxonomy").prop("checked", true);
+	} else {
+		$(".select_taxonomy").prop("checked", false);
+	}
+}
+
 function attributeListAnyAttributeCheckBoxesChecked() {
 	if ($('.select_attribute:checked').length > 0) $('.mass-select').show();
 	else $('.mass-select').hide();
@@ -357,6 +365,11 @@ function attributeListAnyAttributeCheckBoxesChecked() {
 function attributeListAnyProposalCheckBoxesChecked() {
 	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').show();
 	else $('.mass-proposal-select').hide();
+}
+
+function taxonomyListAnyCheckBoxesChecked() {
+	if ($('.select_taxonomy:checked').length > 0) $('.mass-select').show();
+	else $('.mass-select').hide();
 }
 
 function multiSelectAction(event, context) {
@@ -417,6 +430,19 @@ function editSelectedAttributes(event) {
 	});
 }
 
+function addSelectedTaxonomies(taxonomy) {
+	$.get("/taxonomies/taxonomyMassConfirmation/"+taxonomy, function(data) {
+		$("#confirmation_box").fadeIn();
+		$("#gray_out").fadeIn();
+		$("#confirmation_box").html(data);
+	});
+}
+
+function submitMassTaxonomyTag() {
+	$('#PromptForm').submit();
+	
+}
+
 function getSelected() {
 	var selected = [];
 	$(".select_attribute").each(function() {
@@ -426,6 +452,18 @@ function getSelected() {
 		}
 	});
 	return JSON.stringify(selected);
+}
+
+function getSelectedTaxonomyNames() {
+	var selected = [];
+	$(".select_taxonomy").each(function() {
+		if ($(this).is(":checked")) {
+			var row = $(this).data("id");
+			var temp = $('#tag_' + row).html();
+			selected.push(temp);
+		}
+	});
+	$('#TaxonomyNameList').val(JSON.stringify(selected));
 }
 
 function loadEventTags(id) {
@@ -1024,6 +1062,11 @@ function quickFilterEvents(passedArgs) {
 	for (var key in passedArgs) {
 		url += "/" + key + ":" + passedArgs[key];
 	}
+	window.location.href=url;
+}
+
+function quickFilterTaxonomy(taxonomy_id, passedArgs) {
+	var url = "/taxonomies/view/" + taxonomy_id + "/filter:" + $('#quickFilterField').val();
 	window.location.href=url;
 }
 

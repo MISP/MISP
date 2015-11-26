@@ -59,8 +59,4 @@ class CustomPaginationTool {
 		if ($this->direction == 'desc') $multiplier = -1;
 		return strcmp(strtolower($a[$this->filterField]), strtolower($b[$this->filterField])) * $multiplier;
 	}
-	
-	function truncateByRules($items, $rules, $passedArgs) {
-		
-	}
 }

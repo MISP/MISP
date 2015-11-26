@@ -145,13 +145,34 @@ class Tag extends AppModel {
 		return $colour;
 	}
 	
-	public function quickAdd($name) {
+	public function quickAdd($name, $colour = false) {
 		$this->create();
+		if ($colour === false) $colour = $this->random_color();
 		$data = array(
 			'name' => $name,
-			'colour' => $this->random_color(),
+			'colour' => $colour,
 			'exportable' => 1
 		);
 		return ($this->save($data));
+	}
+	
+	public function quickEdit($tag, $name, $colour) {
+		if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name) {
+			$tag['Tag']['name'] = $name;
+			$tag['Tag']['colour'] = $colour;
+			return ($this->save($tag['Tag']));
+		}
+		return true;
+	}
+	
+	public function getTagsForNamespace($namespace) {
+		$tags_temp = $this->find('all', array(
+				'recursive' => -1,
+				'contain' => 'EventTag',
+				'conditions' => array('UPPER(name) LIKE' => strtoupper($namespace) . '%'),
+		));
+		$tags = array();
+		foreach ($tags_temp as &$temp) $tags[strtoupper($temp['Tag']['name'])] = $temp;
+		return $tags;
 	}
 }
