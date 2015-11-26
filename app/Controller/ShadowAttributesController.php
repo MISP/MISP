@@ -554,6 +554,8 @@ class ShadowAttributesController extends AppController {
 		if ($this->request->is('post')) {
 			// Check if there were problems with the file upload
 			// only keep the last part of the filename, this should prevent directory attacks
+			$filename = basename($this->request->data['ShadowAttribute']['value']['name']);
+			$tmpfile = new File($this->request->data['ShadowAttribute']['value']['tmp_name']);
 			if ((isset($this->request->data['ShadowAttribute']['value']['error']) && $this->request->data['ShadowAttribute']['value']['error'] == 0) ||
 			(!empty( $this->request->data['ShadowAttribute']['value']['tmp_name']) && $this->request->data['ShadowAttribute']['value']['tmp_name'] != 'none')
 			) {
@@ -571,7 +573,7 @@ class ShadowAttributesController extends AppController {
 			$tmpfile = new File($this->request->data['ShadowAttribute']['value']['tmp_name']);
 			$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
 			if ($this->request->data['ShadowAttribute']['malware']) {
-				$result = $this->Event->Attribute->handleMaliciousBase64($this->request->data['ShadowAttribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
+				$result = $this->ShadowAttribute->Event->Attribute->handleMaliciousBase64($this->request->data['ShadowAttribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
 				if (!$result['success']) {
 					$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
