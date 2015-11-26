@@ -48,7 +48,7 @@ class Taxonomy extends AppModel{
 				'fields' => array('version', 'enabled')
 			));
 			if (empty($current) || $vocab['version'] > $current['Taxonomy']['version']) {
-				$result = $this->__updateVocab($vocab, $current);
+				$result = $this->__updateVocab($vocab, $current, array('colour'));
 				if (is_numeric($result)) {
 					$updated['success'][$result] = array('namespace' => $vocab['namespace'], 'new' => $vocab['version']);
 					if (!empty($current)) $updated['success'][$result]['old'] = $current['Taxonomy']['version'];
@@ -60,7 +60,7 @@ class Taxonomy extends AppModel{
 		return $updated;
 	}
 	
-	private function __updateVocab(&$vocab, &$current) {
+	private function __updateVocab(&$vocab, &$current, $skipUpdateFields = array()) {
 		$enabled = false;
 		$taxonomy = array();
 		if (!empty($current)) {
@@ -82,7 +82,7 @@ class Taxonomy extends AppModel{
 		}
 		$result = $this->saveAssociated($taxonomy, array('deep' => true));
 		if ($result) {
-			$this->__updateTags($this->id);
+			$this->__updateTags($this->id, $skipUpdateFields);
 			return $this->id;
 		}
 		return $this->validationErrors;
@@ -136,7 +136,7 @@ class Taxonomy extends AppModel{
 		return $taxonomy;
 	}
 	
-	private function __updateTags($id) {
+	private function __updateTags($id, $skipUpdateFields = array()) {
 		$this->Tag = ClassRegistry::init('Tag');
 		App::uses('ColourPaletteTool', 'Tools');
 		$paletteTool = new ColourPaletteTool();
@@ -147,9 +147,9 @@ class Taxonomy extends AppModel{
 		foreach ($taxonomy['entries'] as $k => &$entry) {
 			if (isset($tags[strtoupper($entry['tag'])])) {
 				$temp = $tags[strtoupper($entry['tag'])]; 
-				if ($temp['Tag']['colour'] != $colours[$k] || $temp['Tag']['name'] !== $entry['tag']) {
-					$temp['Tag']['colour'] = $colours[$k];
-					$temp['Tag']['name'] = $entry['tag'];
+				if ((in_array('colour', $skipUpdateFields) && $temp['Tag']['colour'] != $colours[$k]) || (in_array('name', $skipUpdateFields) && $temp['Tag']['name'] !== $entry['tag'])) {
+					if (!in_array('colour', $skipUpdateFields)) $temp['Tag']['colour'] = $colours[$k];
+					if (!in_array('name', $skipUpdateFields)) $temp['Tag']['name'] = $entry['tag'];
 					$this->Tag->save($temp['Tag']);
 				}
 			}
