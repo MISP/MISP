@@ -323,8 +323,23 @@ class ShadowAttribute extends AppModel {
 	public function afterSave($created, $options = array()) {
 		$result = true;
 		// if the 'data' field is set on the $this->data then save the data to the correct file
-		if (isset($this->data['ShadowAttribute']['type']) && $this->typeIsAttachment($this->data['ShadowAttribute']['type']) && !empty($this->data['ShadowAttribute']['data'])) {
-			$result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
+		if (isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) {
+			$sa = $this->find('first', array('conditions' => array('ShadowAttribute.id' => $this->data['ShadowAttribute']['id']), 'recursive' => -1, 'fields' => array('ShadowAttribute.id', 'ShadowAttribute.event_id', 'ShadowAttribute.type')));
+			if ($this->typeIsAttachment($sa['ShadowAttribute']['type'])) {
+				// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
+				// only delete the file if it exists
+				$filepath = APP . "files" . DS . 'shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id'];
+				$file = new File ($filepath);
+				if ($file->exists()) {
+					if (!$file->delete()) {
+						throw new InternalErrorException('Delete of file attachment failed. Please report to administrator.');
+					}
+				}
+			}
+		} else {
+			if (isset($this->data['ShadowAttribute']['type']) && $this->typeIsAttachment($this->data['ShadowAttribute']['type']) && !empty($this->data['ShadowAttribute']['data'])) {
+				$result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
+			}
 		}
 		return $result;
 	}
@@ -335,7 +350,7 @@ class ShadowAttribute extends AppModel {
 		if ($this->typeIsAttachment($this->data['ShadowAttribute']['type'])) {
 			// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 			// only delete the file if it exists
-			$filepath = APP . "files" . DS . $this->data['ShadowAttribute']['event_id'] . DS . 'shadow' . DS . $this->data['ShadowAttribute']['id'];
+			$filepath = APP . "files" . DS . 'shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id'];
 			$file = new File ($filepath);
 			if ($file->exists()) {
 				if (!$file->delete()) {
