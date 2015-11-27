@@ -428,7 +428,7 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function base64EncodeAttachment($attribute) {
-		$filepath = APP . "files" . DS . $attribute['event_id'] . DS . 'shadow' . DS. $attribute['id'];
+		$filepath = APP . "files" . DS . 'shadow' . DS . $attribute['event_id'] . DS. $attribute['id'];
 		$file = new File($filepath);
 		if (!$file->exists()) {
 			return '';
