@@ -825,6 +825,8 @@ class UsersController extends AppController {
 		$this->Log->create();
 		$this->Log->save(array(
 			'org' => $this->Auth->user('Organisation')['name'],
+			'model' => $model,
+			'model_id' => $modelId,
 			'email' => $this->Auth->user('email'),
 			'action' => $action,
 			'title' => $description,
