@@ -72,6 +72,10 @@ class ShadowAttributesController extends AppController {
 		);
 		if (empty($shadow)) return array('false' => true, 'errors' => 'Proposal not found.');
 		$shadow = $shadow['ShadowAttribute'];
+		if ($this->ShadowAttribute->typeIsAttachment($shadow['type'])) {
+			$encodedFile = $this->ShadowAttribute->base64EncodeAttachment($shadow);
+			$shadow['data'] = $encodedFile;
+		}
 		// If the old_id is set to anything but 0 then we're dealing with a proposed edit to an existing attribute
 		if ($shadow['old_id'] != 0) {
 			// Find the live attribute by the shadow attribute's uuid, so we can begin editing it
@@ -141,9 +145,6 @@ class ShadowAttributesController extends AppController {
 			$attribute['distribution'] = $event['Event']['distribution'];
 			$this->Attribute->create();
 			$this->Attribute->save($attribute);
-			if ($this->ShadowAttribute->typeIsAttachment($shadow['type'])) {
-				$this->_moveFile($toDeleteId, $this->Attribute->id, $shadow['event_id']);
-			}
 			$this->ShadowAttribute->setDeleted($toDeleteId);
 		
 			$fieldList = array('proposal_email_lock', 'id', 'info', 'published');
