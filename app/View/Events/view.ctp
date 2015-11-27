@@ -243,10 +243,6 @@ $(document).ready(function () {
 		  $('#pivots_inactive').hide();
 		});
 
-	$('#addTagButton').click(function() {
-		$('#addTagTD').show();
-		$('#addTagButton').hide();
-	});
 //	$.get("/events/viewEventAttributes/<?php echo $event['Event']['id']; ?>", function(data) {
 //		$("#attributes_div").html(data);
 //	});

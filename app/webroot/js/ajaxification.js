@@ -306,6 +306,32 @@ function submitTagForm(id) {
 	return false;
 }
 
+function quickSubmitTagForm(event_id, tag_id) {
+	$('#EventTag').val(tag_id);
+	$.ajax({
+		data: $('#EventSelectTagForm').closest("form").serialize(),
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		success:function (data, textStatus) {
+			loadEventTags(event_id);
+			handleGenericAjaxResponse(data);
+		}, 
+		error:function() {
+			showMessage('fail', 'Could not add tag.');
+			loadEventTags(event_id);
+		},
+		complete:function() {
+			$("#popover_form").fadeOut();
+			$("#gray_out").fadeOut();
+			$(".loading").hide();
+		},
+		type:"post", 
+		url:"/events/addTag/" + event_id
+	});
+	return false;
+}
+
 function handleAjaxEditResponse(data, name, type, id, field, event) {
 	responseArray = JSON.parse(data);
 	if (type == 'Attribute') {
@@ -693,22 +719,6 @@ function cancelPopoverForm() {
 	$('#popover_form').fadeOut();
 }
 
-function activateTagField() {
-	$("#addTagButton").hide();
-	$("#addTagField").show();
-}
-
-function tagFieldChange() {
-	if ($("#addTagField :selected").val() > 0) {
-		var selected = $("#addTagField :selected").text();
-		if ($.inArray(selected, selectedTags)==-1) {
-			selectedTags.push(selected);
-			appendTemplateTag(selected);
-		}
-	}
-	$("#addTagButton").show();
-	$("#addTagField").hide();
-}
 
 function appendTemplateTag(selected) {
 	var selectedTag;

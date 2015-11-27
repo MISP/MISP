@@ -23,22 +23,22 @@
 			<?php 
 		endforeach;
 		if ($isAclTagger): ?>
-			<td id ="addTagTD" style="display:none;">
-				<?php
-					echo $this->Form->create('Event', array('url' => '/events/addTag/' . $event['Event']['id'], 'style' => 'margin:0px;'));
-					echo $this->Form->hidden('id', array('value' => $event['Event']['id']));
-					echo $this->Form->input('tag', array(
-						'options' => array($allTags),
-						'value' => 0,
-						'label' => false,
-						'style' => array('height:22px;padding:0px;margin-bottom:0px;'),
-						'onChange' => 'submitTagForm(' . $event['Event']['id'] . ')',
-						'class' => 'input-large'));
-					echo $this->Form->end();
-				?>
-			</td>
 			<td>
-				<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;">+</button>
+				<div id ="hiddenForm" style="display:none;">
+					<?php
+						echo $this->Form->create('Event', array('url' => '/events/addTag/' . $event['Event']['id'], 'style' => 'margin:0px;'));
+						echo $this->Form->hidden('id', array('value' => $event['Event']['id']));
+						echo $this->Form->input('tag', array(
+							'options' => array($allTags),
+							'value' => 0,
+							'label' => false,
+							'style' => array('height:22px;padding:0px;margin-bottom:0px;'),
+							'onChange' => 'submitTagForm(' . $event['Event']['id'] . ')',
+							'class' => 'input-large'));
+						echo $this->Form->end();
+					?>
+				</div>
+				<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'tags', 'selectTaxonomy');">+</button>
 			</td>
 	<?php 
 		else:
@@ -47,9 +47,3 @@
 	?>
 	</tr>
 </table>
-<script type="text/javascript">
-	$('#addTagButton').click(function() {
-		$('#addTagTD').show();
-		$('#addTagButton').hide();
-	});
-</script>

@@ -26,6 +26,11 @@ class TagsController extends AppController {
 	
 	public function index() {
 		$this->loadModel('Event');
+		$this->loadModel('Taxonomy');
+		$taxonomies = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
+		$taxonomyNamespaces = array();
+		foreach ($taxonomies as &$taxonomy) $taxonomyNamespaces[$taxonomy['Taxonomy']['namespace']] = $taxonomy;
+		$taxonomyTags = array();
 		$this->Event->recursive = -1;
 		$this->paginate['contain'] = array('EventTag' => array('fields' => 'event_id'));
 		$paginated = $this->paginate();
@@ -53,6 +58,15 @@ class TagsController extends AppController {
 				$tag['Tag']['count'] = count($events);
 			}
 			unset($tag['EventTag']);
+			if (!empty($taxonomyNamespaces)) {
+				foreach (array_keys($taxonomyNamespaces) as &$tns) {
+					if (substr(strtoupper($tag['Tag']['name']), 0, strlen($tns)) === strtoupper($tns)) {
+						$tag['Tag']['Taxonomy'] = $taxonomyNamespaces[$tns]['Taxonomy'];
+						if (!isset($taxonomyTags[$tns])) $taxonomyTags[$tns] = $this->Taxonomy->getTaxonomyTags($taxonomyNamespaces[$tns]['Taxonomy']['id'], true);
+						$tag['Tag']['Taxonomy']['expanded'] = $taxonomyTags[$tns][strtoupper($tag['Tag']['name'])];
+					}
+				}
+			}
 		}
 		if ($this->_isRest()) {
 			foreach ($paginated as &$tag) {
@@ -63,7 +77,6 @@ class TagsController extends AppController {
 		} else {
 			$this->set('list', $paginated);
 		}
-
 		// send perm_tagger to view for action buttons
 	}
 	
@@ -225,5 +238,43 @@ class TagsController extends AppController {
 		$this->set('tag', $tag);
 		$this->set('id', $id);
 		$this->render('ajax/view_tag');
+	}
+	
+
+	public function selectTaxonomy($event_id) {
+		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
+		$this->loadModel('Taxonomy');
+		$options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace')));
+		foreach ($options as $k => &$option) {
+			$tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
+			if (empty($tags)) unset($options[$k]);
+		}
+		$this->set('event_id', $event_id);
+		$this->set('options', $options);
+		$this->render('ajax/taxonomy_choice');
+	}
+	
+	public function selectTag($event_id, $taxonomy_id) {
+		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
+		$this->loadModel('Taxonomy');
+		$expanded = array();
+		if ($taxonomy_id == 0) {
+			$options = $this->Taxonomy->getAllTaxonomyTags(true);
+			$expanded = $options;
+		} else {
+			$taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
+			$options = array();
+			foreach ($taxonomies['entries'] as &$entry) {
+				if (!empty($entry['existing_tag']['Tag'])) {
+					$options[$entry['existing_tag']['Tag']['id']] = $entry['existing_tag']['Tag']['name'];
+					$expanded[$entry['existing_tag']['Tag']['id']] = $entry['expanded'];
+				}
+			}
+		}
+		$this->set('event_id', $event_id);
+		$this->set('options', $options);
+		$this->set('expanded', $expanded);
+		$this->set('custom', $taxonomy_id == 0 ? true : false);
+		$this->render('ajax/select_tag');
 	}
 }

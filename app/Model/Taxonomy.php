@@ -123,14 +123,57 @@ class Taxonomy extends AppModel{
 		return $taxonomy;
 	}
 	
-	public function getTaxonomy($id, $options = array('full' => false)) {
+	// returns all tags associated to a taxonomy
+	// returns all tags not associated to a taxonomy if $inverse is true
+	public function getAllTaxonomyTags($inverse = false) {
+		$this->Tag = ClassRegistry::init('Tag');
+		$taxonomyIdList = $this->find('list', array('fields' => array('id')));
+		$taxonomyIdList = array_keys($taxonomyIdList);
+		$allTaxonomyTags = array();
+		foreach ($taxonomyIdList as &$taxonomy) {
+			$allTaxonomyTags = array_merge($allTaxonomyTags, array_keys($this->getTaxonomyTags($taxonomy, true)));
+		}
+		$allTags = $this->Tag->find('list', array('fields' => array('name')));
+		foreach ($allTags as $k => &$tag) {
+			if ($inverse && in_array(strtoupper($tag), $allTaxonomyTags)) unset($allTags[$k]);
+			if (!$inverse && !in_array(strtoupper($tag), $allTaxonomyTags)) unset($allTags[$k]);
+		}
+		return $allTags;
+	}
+	
+	public function getTaxonomyTags($id, $uc = false, $existingOnly = false) {
+		$taxonomy = $this->__getTaxonomy($id, array('full' => true, 'filter' => false));
+		if ($existingOnly) {
+			$this->Tag = ClassRegistry::init('Tag');
+			$tags = $this->Tag->find('list', array('fields' => array('name')));
+			foreach ($tags as &$tag) $tag = strtoupper($tag);
+		}
+		$entries = array();
+		if ($taxonomy) {
+			foreach ($taxonomy['entries'] as $k => &$entry) {
+				$searchTerm = $uc ? strtoupper($entry['tag']) : $entry['tag'];
+				if ($existingOnly) {
+					if (in_array(strtoupper($entry['tag']), $tags)) {
+						$entries[$searchTerm] = $entry['expanded'];
+					}
+					continue;
+				}
+				$entries[$searchTerm] = $entry['expanded'];
+			}
+		}
+		return $entries;
+	}
+	
+	public function getTaxonomy($id, $options = array('full' => true)) {
 		$this->Tag = ClassRegistry::init('Tag');
 		$taxonomy = $this->__getTaxonomy($id, $options);
-		if (empty($taxonomy)) return false;
-		$tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
-		if (isset($taxonomy['entries'])) {
-			foreach ($taxonomy['entries'] as &$temp) {
-				$temp['existing_tag'] = isset($tags[strtoupper($temp['tag'])]) ? $tags[strtoupper($temp['tag'])] : false;
+		if (isset($options['full']) && $options['full']) {
+			if (empty($taxonomy)) return false;
+			$tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
+			if (isset($taxonomy['entries'])) {
+				foreach ($taxonomy['entries'] as &$temp) {
+					$temp['existing_tag'] = isset($tags[strtoupper($temp['tag'])]) ? $tags[strtoupper($temp['tag'])] : false;
+				}
 			}
 		}
 		return $taxonomy;
@@ -182,8 +225,16 @@ class Taxonomy extends AppModel{
 	public function listTaxonomies($options = array('full' => false, 'enabled' => false)) {
 		$recursive = -1;
 		if ($options['full']) $recursive = 2;
-		return $this->find('all',  array(
+		$conditions = array();
+		if (isset($options['enabled']) && $options['enabled']) $conditions[] = array('Taxonomy.enabled' => true);
+		$temp =  $this->find('all',  array(
 			'recursive' => $recursive,
+			'conditions' => $conditions
 		));
+		$taxonomies = array();
+		foreach ($temp as &$t) {
+			$taxonomies[$t['Taxonomy']['namespace']] = $t['Taxonomy'];	
+		}
+		return $taxonomies;
 	}
 }

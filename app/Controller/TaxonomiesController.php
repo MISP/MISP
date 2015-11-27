@@ -17,7 +17,6 @@ class TaxonomiesController extends AppController {
 	);
 
 	public function index() {
-		$taxonomies = $this->Taxonomy->listTaxonomies();
 		$this->paginate['recursive'] = -1;
 		$this->set('taxonomies', $this->paginate());
 	}
