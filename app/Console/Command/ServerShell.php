@@ -136,8 +136,7 @@ class ServerShell extends AppShell
 	public function enqueuePush() {
 		$timestamp = $this->args[0];
 		$taskId = $this->args[1];
-		$org = $this->args[2];
-		$userId = $this->args[3];
+		$userId = $this->args[2];
 		$this->Task->id = $taskId;
 		$task = $this->Task->read(null, $taskId);
 		if ($timestamp != $task['Task']['next_execution_time']) {

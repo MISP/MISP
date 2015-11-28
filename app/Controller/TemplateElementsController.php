@@ -41,7 +41,7 @@ class TemplateElementsController extends AppController {
 		$this->layout = 'ajaxTemplate';
 		$this->set('elements', $templateElements);
 		$mayModify = false;
-		if ($this->_isSiteAdmin() || $template['Template']['org'] == $this->Auth->user('org')) $mayModify = true;
+		if ($this->_isSiteAdmin() || $template['Template']['org'] == $this->Auth->user('Organisation')['name']) $mayModify = true;
 		$this->set('mayModify', $mayModify);
 		$this->render('ajax/ajaxIndex');
 	}
@@ -219,7 +219,7 @@ class TemplateElementsController extends AppController {
 		$this->TemplateElement->read(null, $id);
 		if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($this->TemplateElement['Template']['id'], $this->Auth->user(), true)) throw new NotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('post')) {
-			if ($this->_isSiteAdmin() || $this->Auth->user('org') == $this->TemplateElement->data['TemplateElement']['org']) {
+			if ($this->_isSiteAdmin() || $this->Auth->user('Organisation')['name'] == $this->TemplateElement->data['TemplateElement']['org']) {
 				// check permissions
 				if (empty($this->TemplateElement->data)) throw new NotFoundException();
 				$type = 'TemplateElement' . ucfirst($this->TemplateElement->data['TemplateElement']['element_definition']);

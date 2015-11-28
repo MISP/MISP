@@ -33,7 +33,7 @@ class Post extends AppModel {
 					'job_input' => 'Post: ' . $post_id,
 					'status' => 0,
 					'retries' => 0,
-					'org' => $user['User']['org'],
+					'org_id' => $user['User']['org_id'],
 					'message' => 'Sending..',
 			);
 			$job->save($data);

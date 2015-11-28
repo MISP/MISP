@@ -417,7 +417,7 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 		$s = $this->Server->read(null, $id);
-		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
@@ -483,7 +483,7 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 		$s = $this->Server->read(null, $id);
-		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if (!Configure::read('MISP.background_jobs')) {
 			$server = $this->Server->read(null, $id);
 			App::uses('SyncTool', 'Tools');
@@ -501,7 +501,7 @@ class ServersController extends AppController {
 					'job_input' => 'Server: ' . $id,
 					'status' => 0,
 					'retries' => 0,
-					'org' => $this->Auth->user('org'),
+					'org' => $this->Auth->user('Organisation')['name'],
 					'message' => 'Pushing.',
 			);
 			$this->Job->save($data);

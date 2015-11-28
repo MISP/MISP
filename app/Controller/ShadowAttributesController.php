@@ -478,12 +478,7 @@ class ShadowAttributesController extends AppController {
 			'contain' => array('Event' => array('fields' => array('Event.org', 'Event.distribution', 'Event.id'))),
 			'conditions' => array('ShadowAttribute.id' => $id)
 		));
-		if (!$this->_isSiteAdmin() &&
-			$this->Auth->user('org') !=
-			$sa['Event']['org'] &&
-			$sa['Event']['distribution'] == 0) {
-			throw new UnauthorizedException('You do not have the permission to view this event.');
-		}
+		if (!$this->ShadowAttribute->Event->checkIfAuthorised($this->Auth->user(), $sa['Event']['id'])) throw new UnauthorizedException('You do not have the permission to view this event.');
 		$this->__downloadAttachment($sa['ShadowAttribute']);
 	}
 	
@@ -808,14 +803,14 @@ class ShadowAttributesController extends AppController {
 				'recursive' => -1,
 				'contain' => 'Event',
 				'fields' => array(
-					'ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org', 
-					'Event.id', 'Event.orgc', 'Event.org', 'Event.distribution', 'Event.uuid'
+					'ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 
+					'Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid'
 				),
 				'conditions' => array('AND' => array('ShadowAttribute.id' => $id, $distConditions, 'ShadowAttribute.deleted' => 0))
 		));
 		if (empty($sa)) throw new NotFoundException('Invalid proposal.');
 		if (!$this->_isSiteAdmin()) {
-			if ($sa['ShadowAttribute']['old_id'] != 0 && $sa['Event']['org'] != $this->Auth->user('org') && $sa['Event']['orgc'] != $this->Auth->user('org')) {
+			if ($sa['ShadowAttribute']['old_id'] != 0 && $sa['Event']['org_id'] != $this->Auth->user('org_id') && $sa['Event']['orgc_id'] != $this->Auth->user('org_id')) {
 				$a = $this->ShadowAttribute->Event->Attribute->find('first', array(
 					'recursive' => -1,
 					'fields' => array('Attribute.id', 'Attribute.distribution'),
@@ -1115,7 +1110,7 @@ class ShadowAttributesController extends AppController {
 					'recursive' => -1,
 					'fields' => array('id', 'orgc', 'user_id')
 			));
-			if ($event['Event']['orgc'] != $this->Auth->user('org') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
+			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
 				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
 			}
 		}
@@ -1151,7 +1146,7 @@ class ShadowAttributesController extends AppController {
 					'recursive' => -1,
 					'fields' => array('id', 'orgc', 'user_id')
 			));
-			if ($event['Event']['orgc'] != $this->Auth->user('org') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
+			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
 				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
 			}
 		}

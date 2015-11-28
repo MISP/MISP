@@ -49,10 +49,10 @@ class TagsController extends AppController {
 							array('Event.distribution >' => 0),
 							array('Event.published =' => 1)
 						)),
-						array('Event.orgc' => $this->Auth->user('org'))
+						array('Event.orgc_id' => $this->Auth->user('org_id'))
 					)));
 				$events = $this->Event->find('all', array(
-					'fields' => array('Event.id', 'Event.distribution', 'Event.orgc'),
+					'fields' => array('Event.id', 'Event.distribution', 'Event.orgc_id'),
 					'conditions' => $conditions
 				));
 				$tag['Tag']['count'] = count($events);
@@ -189,10 +189,10 @@ class TagsController extends AppController {
 										array('Event.distribution >' => 0),
 										array('Event.published =' => 1)
 								)),
-								array('Event.orgc' => $this->Auth->user('org'))
+								array('Event.orgc_id' => $this->Auth->user('org_id'))
 						)));
 				$events = $this->Tag->EventTag->Event->find('all', array(
-						'fields' => array('Event.id', 'Event.distribution', 'Event.orgc'),
+						'fields' => array('Event.id', 'Event.distribution', 'Event.orgc_id'),
 						'conditions' => $conditions
 				));
 				$tag['Tag']['count'] = count($events);
