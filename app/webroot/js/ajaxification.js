@@ -486,6 +486,7 @@ function getSelectedTaxonomyNames() {
 		if ($(this).is(":checked")) {
 			var row = $(this).data("id");
 			var temp = $('#tag_' + row).html();
+			temp = $("<div/>").html(temp).text();
 			selected.push(temp);
 		}
 	});

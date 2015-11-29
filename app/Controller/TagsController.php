@@ -29,7 +29,7 @@ class TagsController extends AppController {
 		$this->loadModel('Taxonomy');
 		$taxonomies = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
 		$taxonomyNamespaces = array();
-		foreach ($taxonomies as &$taxonomy) $taxonomyNamespaces[$taxonomy['Taxonomy']['namespace']] = $taxonomy;
+		if (!empty($taxonomies)) foreach ($taxonomies as &$taxonomy) $taxonomyNamespaces[$taxonomy['namespace']] = $taxonomy;
 		$taxonomyTags = array();
 		$this->Event->recursive = -1;
 		$this->paginate['contain'] = array('EventTag' => array('fields' => 'event_id'));
@@ -61,8 +61,8 @@ class TagsController extends AppController {
 			if (!empty($taxonomyNamespaces)) {
 				foreach (array_keys($taxonomyNamespaces) as &$tns) {
 					if (substr(strtoupper($tag['Tag']['name']), 0, strlen($tns)) === strtoupper($tns)) {
-						$tag['Tag']['Taxonomy'] = $taxonomyNamespaces[$tns]['Taxonomy'];
-						if (!isset($taxonomyTags[$tns])) $taxonomyTags[$tns] = $this->Taxonomy->getTaxonomyTags($taxonomyNamespaces[$tns]['Taxonomy']['id'], true);
+						$tag['Tag']['Taxonomy'] = $taxonomyNamespaces[$tns];
+						if (!isset($taxonomyTags[$tns])) $taxonomyTags[$tns] = $this->Taxonomy->getTaxonomyTags($taxonomyNamespaces[$tns]['id'], true);
 						$tag['Tag']['Taxonomy']['expanded'] = $taxonomyTags[$tns][strtoupper($tag['Tag']['name'])];
 					}
 				}
