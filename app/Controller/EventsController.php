@@ -1003,6 +1003,7 @@ class EventsController extends AppController {
 							$this->set('errors', $add);
 							$this->set('url', '/events/add');
 							$this->set('_serialize', array('name', 'message', 'url', 'errors'));
+							return false;
 						} else {
 							$this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
 							// TODO return error if REST
