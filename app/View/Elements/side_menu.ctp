@@ -56,7 +56,7 @@
 					<li id='liindex'><a href="<?php echo $baseurl;?>/events/index">List Events</a></li>
 					<?php if ($isAclAdd): ?>
 					<li id='liadd'><a href="<?php echo $baseurl;?>/events/add">Add Event</a></li>
-					<li id='liaddXML'><a href="<?php echo $baseurl;?>/events/add_xml">Add MISP XML</a></li>
+					<li id='liaddMISPExport'><a href="<?php echo $baseurl;?>/events/add_misp_export">Import From MISP Export</a></li>
 					<?php endif; ?>
 					<li class="divider"></li>
 					<li id='lilistAttributes'><a href="<?php echo $baseurl;?>/attributes/index">List Attributes</a></li>

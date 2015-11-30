@@ -64,4 +64,23 @@ class JSONConverterTool {
 		$result = array('Event' => $event['Event']);
 		return json_encode($result);
 	}
+	
+	public function jsonPrinter($array, $root = true) {
+		if (is_array($array)) {
+			$resultArray = array();
+			foreach ($array as $k => $element) {
+				$temp = $this->jsonPrinter($element, false);
+				if (!is_array($temp)) {
+					$resultArray[] = '[' . $k .']' . $temp;	
+				} else {
+					foreach ($temp as &$t) $resultArray[] = '[' . $k . ']' . $t;
+				}
+			}
+		} else $resultArray = ': ' . $array . PHP_EOL;
+		if ($root) {
+			$text = '';
+			foreach ($resultArray as &$r) $text .= $r;
+			return $text;
+		} else return $resultArray;
+	}
 }

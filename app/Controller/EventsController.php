@@ -806,7 +806,7 @@ class EventsController extends AppController {
 						if (isset($this->request->data['Event']['orgc_id']) && !$this->userRole['perm_sync']) $this->request->data['Event']['orgc_id'] = $this->Auth->user('org_id');
 					}
 					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
-					if ($add && !is_numeric($add)) {
+					if ($add === true && !is_numeric($add)) {
 						if ($this->_isRest()) {
 							if ($add === 'blocked') {
 								throw new ForbiddenException('Event blocked by local blacklist.');
@@ -834,9 +834,16 @@ class EventsController extends AppController {
 								$this->response->send();
 								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
 							}
-							// REST users want to see the failed event
-							$this->view($this->Event->getId());
-							$this->render('view');
+							$add = json_decode($add, true);
+							App::uses('JSONConverterTool', 'Tools');
+							$converter = new JSONConverterTool();
+							$add = $converter->jsonPrinter($add);
+							$this->set('name', 'Add event failed.');
+							$this->set('message', 'The event could not be saved.');
+							$this->set('errors', $add);
+							$this->set('url', '/events/add');
+							$this->set('_serialize', array('name', 'message', 'url', 'errors'));
+							return false;
 						} else {
 							$this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
 							// TODO return error if REST
@@ -906,28 +913,28 @@ class EventsController extends AppController {
 		$this->set('published', $this->Event->data['Event']['published']);
 	}
 
-	public function add_xml() {
+	public function add_misp_export() {
 		if (!$this->userRole['perm_modify']) {
 			throw new UnauthorizedException('You do not have permission to do that.');
 		}
 		if ($this->request->is('post')) {
 			if (!empty($this->data)) {
 				$ext = '';
-				if (isset($this->data['Event']['submittedxml'])) {
+				if (isset($this->data['Event']['submittedfile'])) {
 					App::uses('File', 'Utility');
-					$file = new File($this->data['Event']['submittedxml']['name']);
+					$file = new File($this->data['Event']['submittedfile']['name']);
 					$ext = $file->ext();
 				}
-				if (isset($this->data['Event']['submittedxml']) && ($ext != 'xml') && $this->data['Event']['submittedxml']['size'] > 0 &&
+				if (isset($this->data['Event']['submittedfile']) && ($ext != 'xml' && $ext != 'json') && $this->data['Event']['submittedfile']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedxml']['tmp_name'])) {
-					$this->Session->setFlash(__('You may only upload MISP XML files.'));
+					$this->Session->setFlash(__('You may only upload MISP XML or MISP JSON files.'));
 				}
-				if (isset($this->data['Event']['submittedxml'])) {
+				if (isset($this->data['Event']['submittedfile'])) {
 					if (Configure::read('MISP.take_ownership_xml_import') 
 						&& (isset($this->data['Event']['takeownership']) && $this->data['Event']['takeownership'] == 1)) {
-						$this->_addXMLFile(true);
+						$results = $this->_addMISPExportFile($ext, true);
 					} else {
-						$this->_addXMLFile();
+						$results = $this->_addMISPExportFile($ext);
 					}
 				}
 
@@ -939,75 +946,8 @@ class EventsController extends AppController {
 					$this->Session->setFlash(__('The event has been saved. ' . $existingFlash['message']));
 				}
 			}
-		}
-	}
-
-
-	/**
-	 * Low level function to add an Event based on an Event $data array
-	 *
-	 * @return bool true if success
-	 */
-	public function _add(&$data, $fromXml, $or='', $passAlong = null, $fromPull = false) {
-		$this->Event->create();
-		// force check userid and orgname to be from yourself
-		$auth = $this->Auth;
-		
-		$data['Event']['user_id'] = $auth->user('id');
-		$date = new DateTime();
-		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
-		//else $data['Event']['org'] = $auth->user('org');
-		$data['Event']['org_id'] = $auth->user('org_id');
-		// set these fields if the event is freshly created and not pushed from another instance.
-		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
-		if (!isset ($data['Event']['orgc_id'])) $data['Event']['orgc_id'] = $data['Event']['org_id'];
-		if ($fromXml) {
-			// Workaround for different structure in XML/array than what CakePHP expects
-			$this->Event->cleanupEventArrayFromXML($data);
-			// the event_id field is not set (normal) so make sure no validation errors are thrown
-			// LATER do this with	 $this->validator()->remove('event_id');
-			unset($this->Event->Attribute->validate['event_id']);
-			unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-		}
-		unset ($data['Event']['id']);
-		if (isset($data['Event']['uuid'])) {
-			// check if the uuid already exists
-			$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
-			if ($existingEventCount > 0) {
-				// RESTfull, set responce location header..so client can find right URL to edit
-				if ($fromPull) return false;
-				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
-				$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $existingEvent['Event']['id']);
-				$this->response->send();
-				return false;
-			}
-		}
-		if (isset($data['Attribute'])) {
-			foreach ($data['Attribute'] as &$attribute) {
-				unset ($attribute['id']);
-			}
-		}
-		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
-		$fieldList = array(
-				'Event' => array('org_id', 'orgc_id', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
-		);
-
-		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,
-			'atomic' => true));
-		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
-		if ($saveResult) {
-			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
-				// do the necessary actions to publish the event (email, upload,...)
-				if ('true' != Configure::read('MISP.disablerestalert')) {
-					$this->Event->sendAlertEmailRouter($this->Event->getId(), $this->Auth->user(), $this->_isSiteAdmin());
-				}
-				$this->Event->publish($this->Event->getId(), $passAlong);
-			}
-			return true;
-		} else {
-			//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
-			return false;
+			$this->set('results', $results);
+			$this->render('add_misp_export_result');
 		}
 	}
 
@@ -1173,8 +1113,19 @@ class EventsController extends AppController {
 					return true;
 				} else {
 					$message = 'Error';
-					$this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
-					$this->render('edit');
+					if ($this->_isRest()) {
+						App::uses('JSONConverterTool', 'Tools');
+						$converter = new JSONConverterTool();
+						$errors = $converter->jsonPrinter($this->Event->validationErrors);
+						$this->set('name', 'Add event failed.');
+						$this->set('message', $message);
+						$this->set('errors', $errors);
+						$this->set('url', '/events/add');
+						$this->set('_serialize', array('name', 'message', 'url', 'errors'));
+					} else {
+						$this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
+						$this->render('edit');
+					}
 					//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
 					return false;
 				}
@@ -1998,38 +1949,49 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function _addXMLFile($take_ownership = false) {
-		if (!empty($this->data) && $this->data['Event']['submittedxml']['size'] > 0 &&
-		is_uploaded_file($this->data['Event']['submittedxml']['tmp_name'])) {
-			$xmlData = fread(fopen($this->data['Event']['submittedxml']['tmp_name'], "r"),
-					$this->data['Event']['submittedxml']['size']);
+	public function _addMISPExportFile($ext, $take_ownership = false) {
+		$data = fread(fopen($this->data['Event']['submittedfile']['tmp_name'], "r"), $this->data['Event']['submittedfile']['size']);
+		if ($ext == 'xml') {
 			App::uses('Xml', 'Utility');
-			$xmlArray = Xml::toArray(Xml::build($xmlData));
-
-			// In case we receive an event that is not encapsulated in a response. This should never happen (unless it's a copy+paste fail),
-			// but just in case, let's clean it up anyway.
-			if (isset($xmlArray['Event'])) {
-				$xmlArray['response']['Event'] = $xmlArray['Event'];
-				unset($xmlArray['Event']);
-			}
-
-			if (!isset($xmlArray['response']) || !isset($xmlArray['response']['Event'])) {
-				throw new Exception('This is not a valid MISP XML file.');
-			}
-			$xmlArray = $this->Event->updateXMLArray($xmlArray);	
-			
-			if (isset($xmlArray['response']['Event'][0])) {
-				foreach ($xmlArray['response']['Event'] as $event) {
-					$temp['Event'] = $event;
-					if ($take_ownership) $temp['Event']['orgc_id'] = $this->Auth->user('org_id');
-					$this->Event->_add($temp, true, $this->Auth->user());
+			$dataArray = Xml::toArray(Xml::build($data));
+		} else {
+			$dataArray = json_decode($data, true);
+			if (isset($dataArray['response'][0])) {
+				foreach ($dataArray['response'] as $k => &$temp) {
+					$dataArray['Event'][] = $temp['Event'];
+					unset ($dataArray['response'][$k]);
 				}
-			} else {
-				$temp['Event'] = $xmlArray['response']['Event'];
-				if ($take_ownership) $temp['Event']['orgc_id'] = $this->Auth->user('org_id');
-				$this->Event->_add($temp, true, $this->Auth->user());
 			}
 		}
+		// In case we receive an event that is not encapsulated in a response. This should never happen (unless it's a copy+paste fail),
+		// but just in case, let's clean it up anyway.
+		if (isset($dataArray['Event'])) {
+			$dataArray['response']['Event'] = $dataArray['Event'];
+			unset($dataArray['Event']);
+		}
+		if (!isset($dataArray['response']) || !isset($dataArray['response']['Event'])) {
+			throw new Exception('This is not a valid MISP XML file.');
+		}
+		$dataArray = $this->Event->updateXMLArray($dataArray);
+		$results = array();
+		if (isset($dataArray['response']['Event'][0])) {
+			foreach ($dataArray['response']['Event'] as $k => $event) {
+				$result = array('info' => $event['info']);
+				if ($take_ownership) $event['orgc_id'] = $this->Auth->user('org_id');
+				$event = array('Event' => $event);
+				$created_id = 0;
+				$result['result'] = $this->Event->_add($event, true, $this->Auth->user(), '', null, false, null, $created_id);
+				$result['id'] = $created_id;
+				$results[] = $result;
+			}
+		} else {
+			$temp['Event'] = $dataArray['response']['Event'];
+			if ($take_ownership) $temp['Event']['orgc'] = $this->Auth->user('org');
+			$created_id = 0;
+			$result = $this->Event->_add($temp, true, $this->Auth->user(), '', null, false, null, $created_id);
+			$results = array(0 => array('info' => $temp['Event']['info'], 'result' => $result, 'id' => $created_id));
+		}
+		return $results;
 	}
 
 	public function _readGfiXML($data, $id) {

@@ -160,7 +160,7 @@ class Event extends AppModel {
 		'date' => array(
 			'date' => array(
 				'rule' => array('date'),
-				//'message' => 'Your custom message here',
+				'message' => 'Expected date format: YYYY-MM-DD',
 				//'allowEmpty' => false,
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -641,19 +641,21 @@ class Event extends AppModel {
 					}
 				}
 			}
-			// get the new attribute uuids in an array
-			$newerUuids = array();
-			foreach ($event['Attribute'] as $attribute) {
-				$newerUuids[$attribute['id']] = $attribute['uuid'];
-				$attribute['event_id'] = $remoteId;
-			}
-			// get the already existing attributes and delete the ones that are not there
-			foreach ($json->Event->Attribute as $attribute) {
-				foreach ($attribute as $key => $value) {
-					if ($key == 'uuid') {
-						if (!in_array((string)$value, $newerUuids)) {
-							$anAttr = ClassRegistry::init('Attribute');
-							$anAttr->deleteAttributeFromServer((string)$value, $server, $HttpSocket);
+			if ($remoteId) {
+				// get the new attribute uuids in an array
+				$newerUuids = array();
+				foreach ($event['Attribute'] as $attribute) {
+					$newerUuids[$attribute['id']] = $attribute['uuid'];
+					$attribute['event_id'] = $remoteId;
+				}
+				// get the already existing attributes and delete the ones that are not there
+				foreach ($json->Event->Attribute as $attribute) {
+					foreach ($attribute as $key => $value) {
+						if ($key == 'uuid') {
+							if (!in_array((string)$value, $newerUuids)) {
+								$anAttr = ClassRegistry::init('Attribute');
+								$anAttr->deleteAttributeFromServer((string)$value, $server, $HttpSocket);
+							}
 						}
 					}
 				}
@@ -1621,6 +1623,8 @@ class Event extends AppModel {
 		} else if (isset($data['Event']['orgc'])) {
 			$data['Event']['orgc_id'] = $this->Orgc->captureOrg($data['Event']['orgc'], $user);
 			unset($data['Event']['orgc']);
+		} else {
+			$data['Event']['orgc_id'] = $user['org_id'];
 		}
 		if (isset($data['Event']['EventTag'])) {
 			if (isset($data['Event']['EventTag']['id'])) {
@@ -1654,7 +1658,7 @@ class Event extends AppModel {
 	 *
 	 * @return bool true if success
 	 */
-	public function _add(&$data, $fromXml, $user, $org_id='', $passAlong = null, $fromPull = false, $jobId = null) {
+	public function _add(&$data, $fromXml, $user, $org_id='', $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0) {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
@@ -1690,8 +1694,7 @@ class Event extends AppModel {
 			$data = $this->cleanupEventArrayFromXML($data);
 			// the event_id field is not set (normal) so make sure no validation errors are thrown
 			// LATER do this with	 $this->validator()->remove('event_id');
-			unset($this->Attribute->validate['event_id']);
-			unset($this->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
+			unset($this->Attribute->validate['event_id']); // otherwise gives bugs because event_id is not set
 		}
 		unset ($data['Event']['id']);
 		if (isset($data['Event']['uuid'])) {
@@ -1701,10 +1704,13 @@ class Event extends AppModel {
 				// RESTfull, set responce location header..so client can find right URL to edit
 				if ($fromPull) return false;
 				$existingEvent = $this->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
+				if ($fromXml) $created_id = $existingEvent['Event']['id'];
 				return $existingEvent['Event']['id'];
 			} else {
 				$data = $this->__captureObjects($data, $user);
 			}
+		} else {
+			$data = $this->__captureObjects($data, $user);
 		}
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
@@ -1719,6 +1725,7 @@ class Event extends AppModel {
 					$et['event_id'] = $this->id;
 					$this->EventTag->save($et);
 			}
+			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
 				if ('true' != Configure::read('MISP.disablerestalert')) {
@@ -1729,7 +1736,7 @@ class Event extends AppModel {
 			return true;
 		} else {
 			//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
-			return false;
+			return json_encode($this->validationErrors);
 		}
 	}
 	
@@ -2110,34 +2117,27 @@ class Event extends AppModel {
 		}
 		
 		if (!$response) {
-			$temp = $xmlArray;
-			$xmlArray = array();
-			$xmlArray['response'] = $temp;
+			$xmlArray = array('response' => $xmlArray);
 		}
 		// if a version is set, it must be at least 2.2.0 - check the version and save the result of the comparison
 		if (isset($xmlArray['response']['xml_version'])) $version = $this->compareVersions($xmlArray['response']['xml_version'], $this->mispVersion);
 		// if no version is set, set the version to older (-1) manually
 		else $version = -1;
 		// same version, proceed normally
-		if ($version == 0) {
-			unset ($xmlArray['response']['xml_version']);
-			if ($response) return $xmlArray;
-			else return $xmlArray['response'];
-		}
-
-		// The xml is from an instance that is newer than the local instance, let the user know that the admin needs to upgrade before it could be imported
-		if ($version == 1) throw new Exception('This XML file is from a MISP instance that is newer than the current instance. Please contact your administrator about upgrading this instance.');
-
-		// if the xml contains an event or events from an older MISP instance, let's try to upgrade it!
-		// Let's manually set the version to something below 2.2.0 if there is no version set in the xml		
-		if (!isset($xmlArray['response']['xml_version'])) $xmlArray['response']['xml_version'] = '2.1.0'; 
-		
-		// Upgrade from versions below 2.2.0 will need to replace the risk field with threat level id
-		if ($this->compareVersions($xmlArray['response']['xml_version'], '2.2.0') < 0) {
-			if ($response) $xmlArray['response'] = $this->__updateXMLArray220($xmlArray['response']);
-			else $xmlArray = $this->__updateXMLArray220($xmlArray);
-		}
-		
+		if ($version != 0) {
+			// The xml is from an instance that is newer than the local instance, let the user know that the admin needs to upgrade before it could be imported
+			if ($version == 1) throw new Exception('This XML file is from a MISP instance that is newer than the current instance. Please contact your administrator about upgrading this instance.');
+	
+			// if the xml contains an event or events from an older MISP instance, let's try to upgrade it!
+			// Let's manually set the version to something below 2.2.0 if there is no version set in the xml		
+			if (!isset($xmlArray['response']['xml_version'])) $xmlArray['response']['xml_version'] = '2.1.0'; 
+			
+			// Upgrade from versions below 2.2.0 will need to replace the risk field with threat level id
+			if ($this->compareVersions($xmlArray['response']['xml_version'], '2.2.0') < 0) {
+				if ($response) $xmlArray['response'] = $this->__updateXMLArray220($xmlArray['response']);
+				else $xmlArray = $this->__updateXMLArray220($xmlArray);
+			}
+		}		
 		unset ($xmlArray['response']['xml_version']);
 		if ($response) return $xmlArray;
 		else return $xmlArray['response'];

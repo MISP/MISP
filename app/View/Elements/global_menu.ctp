@@ -11,7 +11,7 @@
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
 				<ul class="nav">
-					<li><a href="<?php echo $baseurl;?>" style="color:white">Home</a></li>
+					<li><a href="<?php echo !empty($baseurl) ? $baseurl : '/';?>" style="color:white">Home</a></li>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Event Actions
