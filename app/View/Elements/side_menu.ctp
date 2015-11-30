@@ -55,7 +55,7 @@
 					<li <?php if ($menuItem === 'index') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/index">List Events</a></li>
 					<?php if ($isAclAdd): ?>
 					<li <?php if ($menuItem === 'add') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/add">Add Event</a></li>
-					<li <?php if ($menuItem === 'addXML') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/add_xml">Add MISP XML</a></li>
+					<li <?php if ($menuItem === 'addMISPExport') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/events/add_misp_export">Import from MISP Export</a></li>
 					<?php endif; ?>
 					<li class="divider"></li>
 					<li <?php if ($menuItem === 'listAttributes') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/attributes/index">List Attributes</a></li>
