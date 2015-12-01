@@ -1411,7 +1411,7 @@ class Event extends AppModel {
 		$data = $this->cleanupEventArrayFromXML($data);
 		$saveResult = $this->save($data, array('fieldList' => $fieldList['Event']));
 		if ($saveResult) {
-			if (isset($data['Event']['Attribute'])) {
+			if (isset($data['Attribute'])) {
 				foreach ($data['Attribute'] as $k => &$attribute) {
 					$mode = 'add';
 					$data['Attribute'][$k]['event_id'] = $this->id;
