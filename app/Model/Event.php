@@ -1295,7 +1295,7 @@ class Event extends AppModel {
 	 *
 	 * @return bool true if success
 	 */
-	public function _add(&$data, $fromXml, $user, $org='', $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0) {
+	public function _add(&$data, $fromXml, $user, $org='', $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array()) {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
@@ -1330,6 +1330,7 @@ class Event extends AppModel {
 			// the event_id field is not set (normal) so make sure no validation errors are thrown
 			// LATER do this with	 $this->validator()->remove('event_id');
 			unset($this->Attribute->validate['event_id']); // otherwise gives bugs because event_id is not set
+			unset($this->Attribute->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
 		}
 		unset ($data['Event']['id']);
 		if (isset($data['Event']['uuid'])) {
@@ -1343,20 +1344,36 @@ class Event extends AppModel {
 				return $existingEvent['Event']['id'];
 			}
 		}
-		if (isset($data['Attribute'])) {
-			foreach ($data['Attribute'] as &$attribute) {
-				unset ($attribute['id']);
-			}
-		}
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
 				'Event' => array('org', 'orgc', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution', 'comment')
 		);
-		$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,
-				'atomic' => true));
-		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
+		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
+		$this->Log = ClassRegistry::init('Log');
 		if ($saveResult) {
+			if (isset($data['Attribute'])) {
+				foreach ($data['Attribute'] as $k => &$attribute) {
+					$attribute['event_id'] = $this->id;
+					unset ($attribute['id']);
+					$this->Attribute->create();
+					if (!$this->Attribute->save($attribute, array('fieldList' => $fieldList['Attribute']))) {
+						$validationErrors['Attribute'][$k] = $this->Attribute->validationErrors;
+						$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+						$this->Log->create();
+						$this->Log->save(array(
+								'org' => $user['org'],
+								'model' => 'Attribute',
+								'model_id' => 0,
+								'email' => $user['email'],
+								'action' => 'add',
+								'user_id' => $user['id'],
+								'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
+								'change' => json_encode($this->Attribute->validationErrors),
+						));
+					}
+				}
+			}
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
@@ -1367,12 +1384,12 @@ class Event extends AppModel {
 			}
 			return true;
 		} else {
-			//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
+			$validationErrors['Event'] = $this->validationErrors;
 			return json_encode($this->validationErrors);
 		}
 	}
 	
-	public function _edit(&$data, $id, $jobId = null) {
+	public function _edit(&$data, $user, $id, $jobId = null) {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
@@ -1391,34 +1408,47 @@ class Event extends AppModel {
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp', 'comment')
 		);
 		$data['Event']['id'] = $localEvent['Event']['id'];
-		if (isset($data['Event']['Attribute'])) {
-			foreach ($data['Event']['Attribute'] as $k => &$attribute) {
-				$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $localEvent);
-				if (count($existingAttribute)) {
-					$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
-					// Check if the attribute's timestamp is bigger than the one that already exists.
-					// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-					// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-					if ($data['Event']['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-						$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
-						$data['Attribute'][] = $data['Event']['Attribute'][$k];
-						unset($data['Event']['Attribute'][$k]);
-					} else {
-					unset($data['Event']['Attribute'][$k]);
+		$data = $this->cleanupEventArrayFromXML($data);
+		$saveResult = $this->save($data, array('fieldList' => $fieldList['Event']));
+		if ($saveResult) {
+			if (isset($data['Event']['Attribute'])) {
+				foreach ($data['Attribute'] as $k => &$attribute) {
+					$mode = 'add';
+					$data['Attribute'][$k]['event_id'] = $this->id;
+					$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $localEvent);
+					if (count($existingAttribute)) {
+						// Check if the attribute's timestamp is bigger than the one that already exists.
+						// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+						// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+						if ($data['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+							$data['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
+						} else {
+							unset($data['Attribute'][$k]);
+							continue;
 						}
-				} else {
-					unset($data['Event']['Attribute'][$k]['id']);
-					$data['Attribute'][] = $data['Event']['Attribute'][$k];
-					unset($data['Event']['Attribute'][$k]);
+					} else {
+						unset($data['Attribute'][$k]['id']);
+						$this->Attribute->create();
+					}
+					if (!$this->Attribute->save($data['Attribute'][$k], array('fieldList' => $fieldList['Attribute']))) {
+						$validationErrors[] = $this->Attribute->validationErrors;
+						$attribute_short = (isset($data['Attribute'][$k]['category']) ? $data['Attribute'][$k]['category'] : 'N/A') . '/' . (isset($data['Attribute'][$k]['type']) ? $data['Attribute'][$k]['type'] : 'N/A') . ' ' . (isset($data['Attribute'][$k]['value']) ? $data['Attribute'][$k]['value'] : 'N/A');
+						$this->Log->create();
+						$this->Log->save(array(
+								'org' => $user['org'],
+								'model' => 'Attribute',
+								'model_id' => 0,
+								'email' => $user['email'],
+								'action' => 'validation_error',
+								'user_id' => $user['id'],
+								'title' => 'Attribute validation for Event ' . $this->id . ' failed: ' . $attribute_short,
+								'change' => json_encode($this->Attribute->validationErrors),
+						));
+					}
 				}
 			}
-		}
-	$data = $this->cleanupEventArrayFromXML($data);
-	$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
-	if ($saveResult) {
-		return 'success';
-	}
-		else return 'Saving the event has failed.';
+			return 'success';
+		} else return 'Saving the event has failed.';
 	}
 	
 	private function __searchUuidInAttributeArray($uuid, &$attr_array) {

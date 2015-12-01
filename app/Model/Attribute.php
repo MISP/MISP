@@ -1695,4 +1695,16 @@ class Attribute extends AppModel {
 		}
 		return $validTypes;
 	}
+	
+	public function validateAttribute($attribute, $context = true) {
+		$this->set($attribute);
+		if (!$context) {
+			unset($this->validate['event_id']); 
+			unset($this->validate['value']['uniqueValue']);
+		}
+		if ($this->validates()) return true;
+		else {
+			return $this->validationErrors;
+		}
+	}
 }
