@@ -128,7 +128,7 @@
 	    </div>
     <?php endif; ?>
 	<div class="comment">
-	<?php echo $this->Form->create('Post', array('url' => '/posts/add/thread/' . $thread_id));?>
+	<?php echo $this->Form->create('Post', array('url' => '/posts/add/event/' . $currentEvent));?>
 		<fieldset>
 		<div class="input clear">
 			<button type="button" title="Insert a quote - just paste your quote between the [quote][/quote] tags." class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()">Quote</button>
@@ -150,7 +150,7 @@
 			'success'=>$this->Js->get('#loading')->effect('fadeOut'),
 			'update'=>'#top',
 			'class'=>'btn btn-primary',
-			'url' => '/posts/add/thread/' . $thread_id
+			'url' => '/posts/add/event/' . $currentEvent
 	));
 	echo $this->Form->end();
 	?>
