@@ -59,7 +59,9 @@ class ServerShell extends AppShell
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocket($server);
 		$user = $this->User->getAuthUser($userId);
-		$result = $this->Server->push($serverId, 'full', $jobId, $HttpSocket, $user['email']);
+		$result = $this->Server->push($serverId, 'full', $jobId, $HttpSocket, $user);
+		$message = 'Job done.';
+		if ($result === false) $message = 'Job failed. The remote instance is too far outdated to initiate a push.';
 		$this->Job->save(array(
 				'id' => $jobId,
 				'message' => 'Job done.',

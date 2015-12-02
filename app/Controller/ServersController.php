@@ -489,7 +489,11 @@ class ServersController extends AppController {
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
-			$result = $this->Server->push($id, $technique, false, $HttpSocket, $this->Auth->user('email'));
+			$result = $this->Server->push($id, $technique, false, $HttpSocket, $this->Auth->user());
+			if ($result === false) {
+				$this->Session->setFlash('The remote server is too outdated to initiate a push towards it. Please notify the hosting organisation of the remote instance.');
+				$this->redirect(array('action' => 'index'));
+			}
 			$this->set('successes', $result[0]);
 			$this->set('fails', $result[1]);
 		} else {

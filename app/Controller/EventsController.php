@@ -656,7 +656,7 @@ class EventsController extends AppController {
 		}
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		$event = &$results[0];
-		
+
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		if ($this->_isRest()) $this->set('event', $event);
 		if (!$this->_isRest()) $this->__viewUI($event, $continue, $fromEvent);
@@ -805,15 +805,24 @@ class EventsController extends AppController {
 						// $this->request->data = $this->Event->updateXMLArray($this->request->data, false);
 						if (isset($this->request->data['Event']['orgc_id']) && !$this->userRole['perm_sync']) $this->request->data['Event']['orgc_id'] = $this->Auth->user('org_id');
 					}
-					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
+					$validationErrors = array();
+					$created_id = 0;
+					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '', null, false, null, $created_id, $validationErrors);
 					if ($add === true && !is_numeric($add)) {
 						if ($this->_isRest()) {
 							if ($add === 'blocked') {
 								throw new ForbiddenException('Event blocked by local blacklist.');
 							}
 							// REST users want to see the newly created event
-							$this->view($this->Event->getId());
+							// REST users want to see the newly created event
+							$results = $this->Event->fetchEvent($created_id, false, $this->Auth->user('org'), $this->_isSiteAdmin());
+							$event = &$results[0];
+							if (!empty($validationErrors)) {
+								$event['errors'] = $validationErrors;
+							}
+							$this->set('event', $event);
 							$this->render('view');
+							return true;
 						} else {
 							// TODO now save uploaded attributes using $this->Event->getId() ..
 							if (isset($this->data['Event']['submittedgfi'])) $this->_addGfiZip($this->Event->getId());
@@ -834,13 +843,9 @@ class EventsController extends AppController {
 								$this->response->send();
 								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
 							}
-							$add = json_decode($add, true);
-							App::uses('JSONConverterTool', 'Tools');
-							$converter = new JSONConverterTool();
-							$add = $converter->jsonPrinter($add);
 							$this->set('name', 'Add event failed.');
 							$this->set('message', 'The event could not be saved.');
-							$this->set('errors', $add);
+							$this->set('errors', $validationErrors);
 							$this->set('url', '/events/add');
 							$this->set('_serialize', array('name', 'message', 'url', 'errors'));
 							return false;
@@ -937,14 +942,6 @@ class EventsController extends AppController {
 						$results = $this->_addMISPExportFile($ext);
 					}
 				}
-
-				// redirect to the view of the newly created event
-				if (!CakeSession::read('Message.flash')) {
-					$this->Session->setFlash(__('The event has been saved'));
-				} else {
-					$existingFlash = CakeSession::read('Message.flash');
-					$this->Session->setFlash(__('The event has been saved. ' . $existingFlash['message']));
-				}
 			}
 			$this->set('results', $results);
 			$this->render('add_misp_export_result');
@@ -1028,87 +1025,115 @@ class EventsController extends AppController {
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment'),
 						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org_id', 'event_org_id', 'comment', 'event_uuid', 'deleted', 'to_ids', 'uuid')
 				);
-				$c = 0;
-				if (isset($this->request->data['Attribute'])) {
-					foreach ($this->request->data['Attribute'] as $attribute) {
-						if (isset($attribute['uuid'])) {
-							$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
-							if (count($existingAttribute)) {
-								if ($existingAttribute['Attribute']['event_id'] != $id) {
-									$this->loadModel('Log');
-									$result = $this->Log->save(array(
-											'org' => $this->Auth->user('org'),
-											'model' => 'Event',
-											'model_id' => $id,
-											'email' => $this->Auth->user('email'),
-											'action' => 'edit',
-											'user_id' => $this->Auth->user('id'),
-											'title' => 'Duplicate UUID found in attribute',
-											'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
-									));
-									unset($this->request->data['Attribute'][$c]);
-								} else {
-									// If a field is not set in the request, just reuse the old value
-									$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
-									foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $this->request->data['Attribute'][$c][$rF] = $existingAttribute['Attribute'][$rF];
-									$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
-									// Check if the attribute's timestamp is bigger than the one that already exists.
-									// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-									// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-									if (isset($this->request->data['Attribute'][$c]['timestamp'])) {
-										if ($this->request->data['Attribute'][$c]['timestamp'] <= $existingAttribute['Attribute']['timestamp']) unset($this->request->data['Attribute'][$c]);
+				
+				$saveResult = $this->Event->save(array('Event' => $this->request->data['Event']), array('fieldList' => $fieldList['Event']));
+				$this->loadModel('Log');
+				if ($saveResult) {
+					$validationErrors = array();
+					if (isset($this->request->data['Attribute'])) {
+						foreach ($this->request->data['Attribute'] as $k => $attribute) {
+							if (isset($attribute['uuid'])) {
+								$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
+								if (count($existingAttribute)) {
+									if ($existingAttribute['Attribute']['event_id'] != $id) {
+										$result = $this->Log->save(array(
+												'org' => $this->Auth->user('org'),
+												'model' => 'Event',
+												'model_id' => $id,
+												'email' => $this->Auth->user('email'),
+												'action' => 'edit',
+												'user_id' => $this->Auth->user('id'),
+												'title' => 'Duplicate UUID found in attribute',
+												'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
+										));
+										unset($this->request->data['Attribute'][$k]);
 									} else {
-										$this->request->data['Event']['timestamp'] = $date;
+										// If a field is not set in the request, just reuse the old value
+										$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
+										foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $this->request->data['Attribute'][$c][$rF] = $existingAttribute['Attribute'][$rF];
+										$this->request->data['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
+										// Check if the attribute's timestamp is bigger than the one that already exists.
+										// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+										// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+										if (isset($this->request->data['Attribute'][$k]['timestamp'])) {
+											if ($this->request->data['Attribute'][$k]['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
+												unset($this->request->data['Attribute'][$k]);
+												continue;
+											} 
+										} else $this->request->data['Event']['timestamp'] = $date;
 									}
 								}
 							}
-						}
-						$c++;
-					}
-				}
-				
-				// check if the exact proposal exists, if yes check if the incoming one is deleted or not. If it is deleted, remove the old proposal and replace it with the one marked for being deleted
-				// otherwise throw the new one away.
-				if (isset($this->request->data['ShadowAttribute'])) {
-					foreach ($this->request->data['ShadowAttribute'] as $k => &$proposal) {
-						$existingProposal = $this->Event->ShadowAttribute->find('first', array(
-							'recursive' => -1,
-							'conditions' => array(
-								'value' => $proposal['value'],
-								'category' => $proposal['category'],
-								'to_ids' => $proposal['to_ids'],
-								'type' => $proposal['type'],
-								'event_uuid' => $proposal['event_uuid'],
-								'uuid' => $proposal['uuid']
-							)
-						));
-						if ($existingProposal['ShadowAttribute']['deleted'] == 1) {
-							$this->Event->ShadowAttribute->delete($existingProposal['ShadowAttribute']['id'], false);
-						} else {
-							unset($this->request->data['ShadowAttribute'][$k]);
+							$this->request->data['Attribute'][$k]['event_id'] = $this->Event->id;
+							if (!$this->Event->Attribute->save($this->request->data['Attribute'][$k], array('fieldList' => $fieldList))) {
+								$validationErrors['Attribute'][$k] = $this->Event->Attribute->validationErrors;
+								$attribute_short = (isset($this->request->data['Attribute'][$k]['category']) ? $this->request->data['Attribute'][$k]['category'] : 'N/A') . '/' . (isset($this->request->data['Attribute'][$k]['type']) ? $this->request->data['Attribute'][$k]['type'] : 'N/A') . ' ' . (isset($this->request->data['Attribute'][$k]['value']) ? $this->request->data['Attribute'][$k]['value'] : 'N/A');
+								$this->Log->create();
+								$this->Log->save(array(
+										'org' => $this->Auth->user('org'),
+										'model' => 'Attribute',
+										'model_id' => 0,
+										'email' => $this->Auth->user('email'),
+										'action' => 'edit',
+										'user_id' => $this->Auth->user('id'),
+										'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
+										'change' => json_encode($this->Event->Attribute->validationErrors),
+								));
+							}
 						}
 					}
-				}
-				// this saveAssociated() function will save not only the event, but also the attributes
-				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-				if ($saveEvent) {
-					$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
-				} else {
-					throw new MethodNotAllowedException();
-				}
-
-				if ($saveResult) {
-					// TODO RESTfull: we now need to compare attributes, to see if we need to do a RESTfull attribute delete
+					// check if the exact proposal exists, if yes check if the incoming one is deleted or not. If it is deleted, remove the old proposal and replace it with the one marked for being deleted
+					// otherwise throw the new one away.
+					if (isset($this->request->data['ShadowAttribute'])) {
+						foreach ($this->request->data['ShadowAttribute'] as $k => &$proposal) {
+							$existingProposal = $this->Event->ShadowAttribute->find('first', array(
+									'recursive' => -1,
+									'conditions' => array(
+											'value' => $proposal['value'],
+											'category' => $proposal['category'],
+											'to_ids' => $proposal['to_ids'],
+											'type' => $proposal['type'],
+											'event_uuid' => $proposal['event_uuid'],
+											'uuid' => $proposal['uuid']
+									)
+							));
+							if (!empty($existingProposal)) {
+								if ($existingProposal['ShadowAttribute']['deleted'] == 1) {
+									$this->Event->ShadowAttribute->delete($existingProposal['ShadowAttribute']['id'], false);
+								} else {
+									unset($this->request->data['ShadowAttribute'][$k]);
+									continue;
+								}
+								$this->Event->ShadowAttribute->create();
+							}
+							$this->Event->ShadowAttribute->save($this->request->data['ShadowAttribute'][$k], array('fieldList' => $fieldList));
+						}
+					}
+					// this saveAssociated() function will save not only the event, but also the attributes
+					// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
+					if ($saveEvent) {
+						$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
+					} else {
+						throw new MethodNotAllowedException();
+					}
 					$message = 'Saved';
 					$this->set('event', $this->Event->data);
 					//if published -> do the actual publishing
 					if ((!empty($this->request->data['Event']['published']) && 1 == $this->request->data['Event']['published'])) {
 						// do the necessary actions to publish the event (email, upload,...)
+						if ('true' != Configure::read('MISP.disablerestalert')) {
+							$this->sendAlertEmailRouter($id, $this->Auth->user());
+						}
 						$this->Event->publish($existingEvent['Event']['id']);
 					}
-
+					
 					// REST users want to see the newly created event
-					$this->view($this->Event->getId());
+					$results = $this->Event->fetchEvent($id, false, $this->Auth->user('org'), $this->_isSiteAdmin());
+					$event = &$results[0];
+					if (!empty($validationErrors)) {
+						$event['errors'] = $validationErrors;
+					}
+					$this->set('event', $event);
 					$this->render('view');
 					return true;
 				} else {
@@ -1116,17 +1141,16 @@ class EventsController extends AppController {
 					if ($this->_isRest()) {
 						App::uses('JSONConverterTool', 'Tools');
 						$converter = new JSONConverterTool();
-						$errors = $converter->jsonPrinter($this->Event->validationErrors);
+						$errors = $converter->arrayPrinter($this->Event->validationErrors);
 						$this->set('name', 'Add event failed.');
 						$this->set('message', $message);
 						$this->set('errors', $errors);
-						$this->set('url', '/events/add');
+						$this->set('url', '/events/edit/' . $id);
 						$this->set('_serialize', array('name', 'message', 'url', 'errors'));
 					} else {
 						$this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
 						$this->render('edit');
 					}
-					//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
 					return false;
 				}
 			}
@@ -1974,22 +1998,24 @@ class EventsController extends AppController {
 		}
 		$dataArray = $this->Event->updateXMLArray($dataArray);
 		$results = array();
+		$validationIssues = array();
 		if (isset($dataArray['response']['Event'][0])) {
 			foreach ($dataArray['response']['Event'] as $k => $event) {
 				$result = array('info' => $event['info']);
 				if ($take_ownership) $event['orgc_id'] = $this->Auth->user('org_id');
 				$event = array('Event' => $event);
 				$created_id = 0;
-				$result['result'] = $this->Event->_add($event, true, $this->Auth->user(), '', null, false, null, $created_id);
+				$result['result'] = $this->Event->_add($event, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
 				$result['id'] = $created_id;
+				$result['validationIssues'] = $validationIssues;
 				$results[] = $result;
 			}
 		} else {
 			$temp['Event'] = $dataArray['response']['Event'];
 			if ($take_ownership) $temp['Event']['orgc'] = $this->Auth->user('org');
 			$created_id = 0;
-			$result = $this->Event->_add($temp, true, $this->Auth->user(), '', null, false, null, $created_id);
-			$results = array(0 => array('info' => $temp['Event']['info'], 'result' => $result, 'id' => $created_id));
+			$result = $this->Event->_add($temp, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
+			$results = array(0 => array('info' => $temp['Event']['info'], 'result' => $result, 'id' => $created_id, 'validationIssues' => $validationIssues));
 		}
 		return $results;
 	}

@@ -935,75 +935,6 @@ class Event extends AppModel {
 		}
 	}
 
-/**
- * Get an array of event_ids that are present on the remote server
- * TODO move this to a component
- * @return array of event_ids
- */
-	public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false) {
-		$url = $server['Server']['url'];
-		$authkey = $server['Server']['authkey'];
-
-		if (null == $HttpSocket) {
-			//$HttpSocket = new HttpSocket(array(
-			//		'ssl_verify_peer' => false
-			//		));
-			App::uses('SyncTool', 'Tools');
-			$syncTool = new SyncTool();
-			$HttpSocket = $syncTool->setupHttpSocket($server);
-		}
-		$request = array(
-				'header' => array(
-						'Authorization' => $authkey,
-						'Accept' => 'application/json',
-						'Content-Type' => 'application/json',
-						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
-				)
-		);
-		$uri = $url . '/events/index';
-		try {
-			$response = $HttpSocket->get($uri, $data = '', $request);
-			if ($response->isOk()) {
-				$eventArray = json_decode($response->body, true);
-				// correct $eventArray if just one event
-				if (is_array($eventArray) && isset($eventArray['id'])) {
-					$tmp = $eventArray;
-					unset($eventArray);
-					$eventArray[0] = $tmp;
-					unset($tmp);
-				}
-				$eventIds = array();
-				if ($all) {
-					if (!empty($eventArray)) foreach ($eventArray as $event) {
-						$eventIds[] = $event['uuid'];
-					}
-				} else {
-					// multiple events, iterate over the array
-					foreach ($eventArray as &$event) {
-						if (1 != $event['published']) {
-							continue; // do not keep non-published events
-						}
-						// get rid of events that are the same timestamp as ours or older, we don't want to transfer the attributes for those
-						// The event's timestamp also matches the newest attribute timestamp by default
-						if ($this->checkIfNewer($event)) {
-							if ($force_uuid) $eventIds[] = $event['uuid'];
-							else $eventIds[] = $event['id'];
-						}
-					}
-				}
-				return $eventIds;
-			}
-			if ($response->code == '403') {
-				return 403;
-			}
-		} catch (SocketException $e){
-			// FIXME refactor this with clean try catch over all http functions
-			return $e->getMessage();
-		}
-		// error, so return null
-		return null;
-	}
-
 	public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false) {
 		$conditions = array();
 			$isSiteAdmin = $user['Role']['perm_site_admin'];
@@ -1658,7 +1589,7 @@ class Event extends AppModel {
 	 *
 	 * @return bool true if success
 	 */
-	public function _add(&$data, $fromXml, $user, $org_id='', $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0) {
+	public function _add(&$data, $fromXml, $user, $org_id='', $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array()) {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
@@ -1695,6 +1626,7 @@ class Event extends AppModel {
 			// the event_id field is not set (normal) so make sure no validation errors are thrown
 			// LATER do this with	 $this->validator()->remove('event_id');
 			unset($this->Attribute->validate['event_id']); // otherwise gives bugs because event_id is not set
+			unset($this->Attribute->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
 		}
 		unset ($data['Event']['id']);
 		if (isset($data['Event']['uuid'])) {
@@ -1717,14 +1649,37 @@ class Event extends AppModel {
 				'Event' => array('org_id', 'orgc_id', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'locked'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'timestamp', 'distribution', 'comment', 'sharing_group_id'),
 		);
-		$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,'atomic' => true));
-		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
+		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
+		$this->Log = ClassRegistry::init('Log');
 		if ($saveResult) {
 			if (isset($data['Event']['EventTag'])) foreach ($data['Event']['EventTag'] as $et) {
 					$this->EventTag->create();
 					$et['event_id'] = $this->id;
 					$this->EventTag->save($et);
 			}
+			if (isset($data['Attribute'])) {
+				foreach ($data['Attribute'] as $k => &$attribute) {
+					$attribute['event_id'] = $this->id;
+					unset ($attribute['id']);
+					$this->Attribute->create();
+					if (!$this->Attribute->save($attribute, array('fieldList' => $fieldList['Attribute']))) {
+						$validationErrors['Attribute'][$k] = $this->Attribute->validationErrors;
+						$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+						$this->Log->create();
+						$this->Log->save(array(
+								'org' => $user['Organisation']['name'],
+								'model' => 'Attribute',
+								'model_id' => 0,
+								'email' => $user['email'],
+								'action' => 'add',
+								'user_id' => $user['id'],
+								'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
+								'change' => json_encode($this->Attribute->validationErrors),
+						));
+					}
+				}
+			}
+
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
@@ -1735,12 +1690,12 @@ class Event extends AppModel {
 			}
 			return true;
 		} else {
-			//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
+			$validationErrors['Event'] = $this->validationErrors;
 			return json_encode($this->validationErrors);
 		}
 	}
 	
-	public function _edit(&$data, $id, $jobId = null) {
+	public function _edit(&$data, $user, $id, $jobId = null) {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
@@ -1759,34 +1714,47 @@ class Event extends AppModel {
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp', 'comment')
 		);
 		$data['Event']['id'] = $localEvent['Event']['id'];
-		if (isset($data['Event']['Attribute'])) {
-			foreach ($data['Event']['Attribute'] as $k => &$attribute) {
-				$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $localEvent);
-				if (count($existingAttribute)) {
-					$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
-					// Check if the attribute's timestamp is bigger than the one that already exists.
-					// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-					// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-					if ($data['Event']['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-						$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
-						$data['Attribute'][] = $data['Event']['Attribute'][$k];
-						unset($data['Event']['Attribute'][$k]);
-					} else {
-					unset($data['Event']['Attribute'][$k]);
+		$data = $this->cleanupEventArrayFromXML($data);
+		$saveResult = $this->save($data, array('fieldList' => $fieldList['Event']));
+		if ($saveResult) {
+			if (isset($data['Attribute'])) {
+				foreach ($data['Attribute'] as $k => &$attribute) {
+					$mode = 'add';
+					$data['Attribute'][$k]['event_id'] = $this->id;
+					$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $localEvent);
+					if (count($existingAttribute)) {
+						// Check if the attribute's timestamp is bigger than the one that already exists.
+						// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+						// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+						if ($data['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+							$data['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
+						} else {
+							unset($data['Attribute'][$k]);
+							continue;
 						}
-				} else {
-					unset($data['Event']['Attribute'][$k]['id']);
-					$data['Attribute'][] = $data['Event']['Attribute'][$k];
-					unset($data['Event']['Attribute'][$k]);
+					} else {
+						unset($data['Attribute'][$k]['id']);
+						$this->Attribute->create();
+					}
+					if (!$this->Attribute->save($data['Attribute'][$k], array('fieldList' => $fieldList['Attribute']))) {
+						$validationErrors[] = $this->Attribute->validationErrors;
+						$attribute_short = (isset($data['Attribute'][$k]['category']) ? $data['Attribute'][$k]['category'] : 'N/A') . '/' . (isset($data['Attribute'][$k]['type']) ? $data['Attribute'][$k]['type'] : 'N/A') . ' ' . (isset($data['Attribute'][$k]['value']) ? $data['Attribute'][$k]['value'] : 'N/A');
+						$this->Log->create();
+						$this->Log->save(array(
+								'org' => $user['Organisation']['name'],
+								'model' => 'Attribute',
+								'model_id' => 0,
+								'email' => $user['email'],
+								'action' => 'validation_error',
+								'user_id' => $user['id'],
+								'title' => 'Attribute validation for Event ' . $this->id . ' failed: ' . $attribute_short,
+								'change' => json_encode($this->Attribute->validationErrors),
+						));
+					}
 				}
 			}
-		}
-	$data = $this->cleanupEventArrayFromXML($data);
-	$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
-	if ($saveResult) {
-		return 'success';
-	}
-		else return 'Saving the event has failed.';
+			return 'success';
+		} else return 'Saving the event has failed.';
 	}
 	
 	private function __searchUuidInAttributeArray($uuid, &$attr_array) {
@@ -1869,8 +1837,9 @@ class Event extends AppModel {
 		$event['Event']['locked'] = 1;
 		// get a list of the servers
 		$serverModel = ClassRegistry::init('Server');
-		$servers = $serverModel->find('all', array('conditions' => array('push' => 1)));
-
+		$conditions = array('push' => 1);
+		if ($passAlong) $conditions[] = array('Server.id !=' => $passAlong); 
+		$servers = $serverModel->find('all', array('conditions' => $conditions));
 		// iterate over the servers and upload the event
 		if(empty($servers))
 			return true;

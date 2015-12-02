@@ -782,7 +782,7 @@ class Server extends AppModel {
 		$conditions = array();
 		if ("full" === $technique) {
 			// get a list of the event_ids on the server
-			$eventIds = $eventModel->getEventIdsFromServer($server);
+			$eventIds = $this->getEventIdsFromServer($server);
 			// FIXME this is not clean at all ! needs to be refactored with try catch error handling/communication
 			if ($eventIds === 403) {
 				return array (1, null);
@@ -795,7 +795,7 @@ class Server extends AppModel {
 				$eventIds = array_reverse($eventIds);
 			}
 		} elseif ("update" === $technique) {
-			$eventIds = $eventModel->getEventIdsFromServer($server, false, null, true);
+			$eventIds = $this->getEventIdsFromServer($server, false, null, true, true);
 			if ($eventIds === 403) {
 				return array (1, null);
 			} else if (is_string($eventIds)) {
@@ -866,7 +866,6 @@ class Server extends AppModel {
 									$event['Event']['distribution'] = '0';
 									break;
 							}
-			
 							// correct $event if just one Attribute
 							if (is_array($event['Event']['Attribute']) && isset($event['Event']['Attribute']['id'])) {
 								$tmp = $event['Event']['Attribute'];
@@ -874,7 +873,7 @@ class Server extends AppModel {
 								$event['Event']['Attribute'][0] = $tmp;
 							}
 							if (is_array($event['Event']['Attribute'])) {
-								$size = is_array($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0;
+								$size = count($event['Event']['Attribute']);
 								if ($size == 0) {
 									$fails[$eventId] = 'Empty event received.';
 									continue;
@@ -919,14 +918,15 @@ class Server extends AppModel {
 						$existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
 						if (!$existingEvent) {
 							// add data for newly imported events
-							$passAlong = $server['Server']['url'];
+							$passAlong = $server['Server']['id'];
 							$result = $eventModel->_add($event, $fromXml = true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
 							if ($result) $successes[] = $eventId;
 							else {
 								$fails[$eventId] = 'Failed (partially?) because of validation errors: '. print_r($eventModel->validationErrors, true);
+
 							}
 						} else {
-							$result = $eventModel->_edit($event, $existingEvent['Event']['id'], $jobId);
+							$result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId);
 							if ($result === 'success') $successes[] = $eventId;
 							else $fails[$eventId] = $result;
 						}
@@ -1009,7 +1009,99 @@ class Server extends AppModel {
 		return array($successes, $fails, $pulledProposals, $lastpulledid);
 	}
 	
-	public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $email = "Scheduled job") {
+	public function filterRuleToParameter($filter_rules) {
+		$final = array();
+		if (empty($filter_rules)) return $final;
+		$filter_rules = json_decode($filter_rules, true);
+		foreach ($filter_rules as $field => $rules) {
+			$temp = array();
+			foreach ($rules as $operator => $elements) {
+				foreach ($elements as $k => &$element) {
+					if ($operator === 'NOT') $element = '!' . $element;
+					if (!empty($element)) $temp[] = $element;
+				}
+			}
+			if (!empty($temp)) {
+				$temp = implode('|', $temp);
+				$final[substr($field, 0, strlen($field) -1)] = $temp;
+			}
+		}
+		return $final;
+	}
+	
+
+	/**
+	 * Get an array of event_ids that are present on the remote server
+	 * TODO move this to a component
+	 * @return array of event_ids
+	 */
+	public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false) {
+		$url = $server['Server']['url'];
+		$authkey = $server['Server']['authkey'];
+		if ($ignoreFilterRules) $filter_rules = array();
+		else $filter_rules = $this->filterRuleToParameter($server['Server']['pull_rules']);
+		if (null == $HttpSocket) {
+			//$HttpSocket = new HttpSocket(array(
+			//		'ssl_verify_peer' => false
+			//		));
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
+		}
+		$request = array(
+				'header' => array(
+						'Authorization' => $authkey,
+						'Accept' => 'application/json',
+						'Content-Type' => 'application/json',
+						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+				)
+		);
+		$uri = $url . '/events/index';
+		try {
+			$response = $HttpSocket->post($uri, json_encode($filter_rules), $request);
+			if ($response->isOk()) {
+				$eventArray = json_decode($response->body, true);
+				// correct $eventArray if just one event
+				if (is_array($eventArray) && isset($eventArray['id'])) {
+					$tmp = $eventArray;
+					unset($eventArray);
+					$eventArray[0] = $tmp;
+					unset($tmp);
+				}
+				$eventIds = array();
+				if ($all) {
+					if (!empty($eventArray)) foreach ($eventArray as $event) {
+						$eventIds[] = $event['uuid'];
+					}
+				} else {
+					// multiple events, iterate over the array
+					$this->Event = ClassRegistry::init('Event');
+					foreach ($eventArray as &$event) {
+						if (1 != $event['published']) {
+							continue; // do not keep non-published events
+						}
+						// get rid of events that are the same timestamp as ours or older, we don't want to transfer the attributes for those
+						// The event's timestamp also matches the newest attribute timestamp by default
+						if ($this->Event->checkIfNewer($event)) {
+						if ($force_uuid) $eventIds[] = $event['uuid'];
+						else $eventIds[] = $event['id'];
+						}
+						}
+					}
+					return $eventIds;
+			}
+			if ($response->code == '403') {
+					return 403;
+			}
+			} catch (SocketException $e){
+			// FIXME refactor this with clean try catch over all http functions
+				return $e->getMessage();
+			}
+			// error, so return null
+			return null;
+	}
+	
+	public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $user) {
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
 			$job->read(null, $jobId);
@@ -1017,6 +1109,15 @@ class Server extends AppModel {
 		$eventModel = ClassRegistry::init('Event');
 		$this->read(null, $id);
 		$url = $this->data['Server']['url'];
+		if (!$this->checkVersionCompatibility($id, $user)['canPush']) {
+			if ($jobId) {
+				$job->id = $jobId;
+				$job->saveField('progress', 100);
+				$job->saveField('message', 'Push to server ' . $id . ' failed. Remote instance is outdated.');
+				$job->saveField('status', 4);
+			}
+			return false;
+		}
 		if ("full" == $technique) {
 			$eventid_conditions_key = 'Event.id >';
 			$eventid_conditions_value = 0;
@@ -1091,10 +1192,12 @@ class Server extends AppModel {
 		$this->Log = ClassRegistry::init('Log');
 		$this->Log->create();
 		$this->Log->save(array(
+				'org' => $user['Organisation']['name'],
 				'model' => 'Server',
 				'model_id' => $id,
-				'email' => $email,
+				'email' => $user['email'],
 				'action' => 'push',
+				'user_id' => $user['id'],
 				'title' => 'Push to ' . $url . ' initiated by ' . $email,
 				'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
 		));
@@ -1147,7 +1250,7 @@ class Server extends AppModel {
 		if ($sa_id == null) {
 			if ($event_id == null) {
 				// event_id is null when we are doing a push
-				$ids = $eventModel->getEventIdsFromServer($server, true, $HttpSocket);
+				$ids = $this->getEventIdsFromServer($server, true, $HttpSocket);
 				$conditions = array('uuid' => $ids);
 			} else {
 				$conditions = array('id' => $event_id);
@@ -1580,8 +1683,9 @@ class Server extends AppModel {
 			));
 			return 1;
 		}
-		$remoteVersion = json_decode($response, true);
-		if (!isset($remoteVersion['major'])) {
+		$remoteVersion = json_decode($response->body, true);
+		$remoteVersion = explode('.', $remoteVersion['version']);
+		if (!isset($remoteVersion[0])) {
 			$this->Log = ClassRegistry::init('Log');
 			$this->Log->create();
 			$this->Log->save(array(
@@ -1597,17 +1701,27 @@ class Server extends AppModel {
 		}
 		$response = false;
 		$success = false;
+		$canPush = false;
 		$issueLevel = "warning";
-		if ($localVersion['major'] > $remoteVersion['major']) $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a major version.";
-		if ($response === false && $localVersion['major'] < $remoteVersion['major']) $response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full major version ahead - make sure you update your MISP instance!";
-		if ($response === false && $localVersion['minor'] > $remoteVersion['minor']) $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a minor version.";
-		if ($response === false && $localVersion['minor'] < $remoteVersion['minor']) $response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
+		if ($localVersion['major'] > $remoteVersion[0]) $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a major version.";
+		if ($response === false && $localVersion['major'] < $remoteVersion[0]) {
+			$response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full major version ahead - make sure you update your MISP instance!";
+			$canPush = true;
+		}
+		if ($response === false && $localVersion['minor'] > $remoteVersion[1]) $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a minor version.";
+		if ($response === false && $localVersion['minor'] < $remoteVersion[1]) {
+			$response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
+			$canPush = true;
+		}
 		
 		// if we haven't set a message yet, we're good to go. We are only behind by a hotfix version
-		if ($response === false) $success = true;
+		if ($response === false) {
+			$success = true;
+			$canPush = true;
+		}
 		else $issueLevel = "error";
-		if ($response === false && $localVersion['hotfix'] > $remoteVersion['hotfix']) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes behind.";
-		if ($response === false && $localVersion['hotfix'] < $remoteVersion['hotfix']) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
+		if ($response === false && $localVersion['hotfix'] > $remoteVersion[2]) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes behind.";
+		if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
 		
 		if ($response !== false) {
 			$this->Log = ClassRegistry::init('Log');
@@ -1622,7 +1736,7 @@ class Server extends AppModel {
 					'title' => ucfirst($issueLevel) . ': ' . $response,
 			));
 		}
-		return array('success' => $success, 'response' => $response);
+		return array('success' => $success, 'response' => $response, 'canPush' => $canPush);
 	}
 	
 	public function isJson($string) {
