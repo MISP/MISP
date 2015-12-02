@@ -1279,7 +1279,7 @@ class EventsController extends AppController {
 					if ((!empty($this->request->data['Event']['published']) && 1 == $this->request->data['Event']['published'])) {
 						// do the necessary actions to publish the event (email, upload,...)
 						if ('true' != Configure::read('MISP.disablerestalert')) {
-							$this->sendAlertEmailRouter($id, $this->Auth->user());
+							$this->Event->sendAlertEmailRouter($id, $this->Auth->user());
 						}
 						$this->Event->publish($existingEvent['Event']['id']);
 					}
