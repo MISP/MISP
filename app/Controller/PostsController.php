@@ -53,6 +53,20 @@ class PostsController extends AppController {
 					}
 				}
 				$thread = $this->Thread->find('first', array('conditions' => array('event_id' => $target_id)));
+				if (empty($thread)) {
+					$newThread = array(
+							'date_created' => date('Y/m/d H:i:s'),
+							'date_modified' => date('Y/m/d H:i:s'),
+							'user_id' => $this->Auth->user('id'),
+							'event_id' => $target_id,
+							'title' => 'Discussion about Event #' . $this->Event->data['Event']['id'] . ' (' . $this->Event->data['Event']['info'] . ')',
+							'distribution' => $this->Event->data['Event']['distribution'],
+							'post_count' => 0,
+							'org' => $this->Event->data['Event']['orgc']
+					);
+					$this->Thread->save($newThread);
+					$thread = ($this->Thread->read());
+				}
 				$title = $eventDiscussionTitle;
 				if (isset($thread['Thread']['id'])) {
 					$target_thread_id = $thread['Thread']['id'];
@@ -197,30 +211,6 @@ class PostsController extends AppController {
 		$this->set('contents', $this->Post->data['Post']['contents']);
 		$this->set('id', $post_id);
 		$this->set('thread_id', $this->Post->data['Post']['thread_id']);
-	}
-	
-	public function quick_add() {
-		if($this->RequestHandler->isAjax()) {
-			$this->layout = 'ajax'; //THIS LINE NEWLY ADDED
-			if(!empty($this->data)) {
-				if($this->Message->save($this->data)) {
-					$this->Session->setFlash('Your Message has been posted');
-				}
-			}
-		}
-	}
-	
-	
-	public function quick_edit() {
-		throw new Exception();
-		if($this->RequestHandler->isAjax()) {
-			$this->layout = 'ajax'; //THIS LINE NEWLY ADDED
-			if(!empty($this->data)) {
-				if($this->Message->save($this->data)) {
-					$this->Session->setFlash('Your Message has been posted');
-				}
-			}
-		}
 	}
 	
 	public function delete($post_id) {
