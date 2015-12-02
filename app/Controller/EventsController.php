@@ -791,7 +791,7 @@ class EventsController extends AppController {
 			$this->loadModel('Thread');
 			$params = array('conditions' => array('event_id' => $id),
 					'recursive' => -1,
-					'fields' => array('id', 'event_id', 'distribution', 'title', 'latest')
+					'fields' => array('id', 'event_id', 'distribution', 'title')
 			);
 			$thread = $this->Thread->find('first', $params);
 			$posts = array();
