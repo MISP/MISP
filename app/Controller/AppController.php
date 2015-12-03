@@ -229,11 +229,12 @@ class AppController extends Controller {
 			$this->set('isAclTemplate', false);
 			$this->set('isAclSharingGroup', false);
 		}
-		if (Configure::read('debug') > 0) {
-			$this->debugMode = 'debugOn';
-		} else {
-			$this->debugMode = 'debugOff';
+		if (Configure::read('site_admin_debug') && $this->_isSiteAdmin() && (Configure::read('debug') < 2)) {
+				Configure::write('debug', 1);
 		}
+		$this->debugMode = 'debugOff';
+		if (Configure::read('debug') > 1) $this->debugMode = 'debugOn';
+		
 		$this->set('debugMode', $this->debugMode);
 		$proposalCount = $this->_getProposalCount();
 		$this->set('proposalCount', $proposalCount[0]);

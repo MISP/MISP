@@ -760,6 +760,14 @@ class Server extends AppModel {
 					'type' => 'numeric',
 					'options' => array(0 => 'Debug off', 1 => 'Debug on', 2 => 'Debug + SQL dump'),
 			),
+			'site_admin_debug' => array(
+					'level' => 0,
+					'description' => 'The debug level of the instance for site admins. This feature allows site admins to run debug mode on a live instance without exposing it to other users. The most verbose option of debug and site_admin_debug is used for site admins.',
+					'value' => '',
+					'errorMessage' => '',
+					'test' => 'testDebugAdmin',
+					'type' => 'boolean',
+			),
 	);
 
 	public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
@@ -1396,6 +1404,14 @@ class Server extends AppModel {
 		if ($value === 0) return true;
 		return 'This setting has to be set to 0 on production systems. Ignore this warning if this is not the case.';
 	}
+	
+	public function testDebugAdmin($value) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if ($this->testBool($value) !== true) return 'This setting has to be either true or false.';
+		if (!$value) return true;
+		return 'Enabling debug is not recommended. Turn this on temporarily if you need to see a stack trace to debug an issue, but make sure this is not left on.';
+	}
+	
 	public function testBaseURL($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		$protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
@@ -1534,7 +1550,7 @@ class Server extends AppModel {
 	
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
-		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'Proxy', 'SecureAuth', 'Security', 'debug', 'Plugin'));
+		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'Proxy', 'SecureAuth', 'Security', 'debug', 'site_admin_debug', 'Plugin'));
 	}
 	
 	public function checkVersion($newest) {

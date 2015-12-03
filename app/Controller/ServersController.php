@@ -946,10 +946,6 @@ class ServersController extends AppController {
 			return new CakeResponse(array('body'=> json_encode(array('status' => $result['status']))));
 	}
 	
-	public function checkVersionCompatibility($id) {
-		debug($this->Server->checkVersionCompatibility($id, $this->Auth->user()));
-	}
-	
 	public function startZeroMQServer() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		App::uses('PubSubTool', 'Tools');

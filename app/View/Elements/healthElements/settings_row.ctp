@@ -6,7 +6,7 @@
 	}
 	if ($setting['level'] == 3) $bgColour = 'background-color:gray;color:white;';
 	if ($setting['type'] == 'boolean') $setting['value'] = ($setting['value'] === true ? 'true' : 'false');
-	if (isset($setting['options'])) $setting['value'] = ($setting['options'][$setting['value']]);
+	if (isset($setting['options'])) $setting['value'] = $setting['options'][$setting['value']];
 ?>
 <tr id ="<?php echo h($k); ?>_row">
 	<td class="short" style="<?php echo $bgColour; ?>"><?php echo h($priorities[$setting['level']]);?></td>
