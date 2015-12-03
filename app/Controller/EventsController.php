@@ -1037,7 +1037,7 @@ class EventsController extends AppController {
 								if (count($existingAttribute)) {
 									if ($existingAttribute['Attribute']['event_id'] != $id) {
 										$result = $this->Log->save(array(
-												'org' => $this->Auth->user('org'),
+												'org' => $this->Auth->user('Organisation')['name'],
 												'model' => 'Event',
 												'model_id' => $id,
 												'email' => $this->Auth->user('email'),
@@ -1070,7 +1070,7 @@ class EventsController extends AppController {
 								$attribute_short = (isset($this->request->data['Attribute'][$k]['category']) ? $this->request->data['Attribute'][$k]['category'] : 'N/A') . '/' . (isset($this->request->data['Attribute'][$k]['type']) ? $this->request->data['Attribute'][$k]['type'] : 'N/A') . ' ' . (isset($this->request->data['Attribute'][$k]['value']) ? $this->request->data['Attribute'][$k]['value'] : 'N/A');
 								$this->Log->create();
 								$this->Log->save(array(
-										'org' => $this->Auth->user('org'),
+										'org' => $this->Auth->user('Organisation')['name'],
 										'model' => 'Attribute',
 										'model_id' => 0,
 										'email' => $this->Auth->user('email'),

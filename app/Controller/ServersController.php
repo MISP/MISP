@@ -763,7 +763,7 @@ class ServersController extends AppController {
 				if ($beforeResult !== true) {
 					$this->Log->create();
 					$result = $this->Log->save(array(
-							'org_id' => $this->Auth->user('org_id'),
+							'org' => $this->Auth->user('Organisation')['name'],
 							'model' => 'Server',
 							'model_id' => 0,
 							'email' => $this->Auth->user('email'),
@@ -791,7 +791,7 @@ class ServersController extends AppController {
 				$this->Server->serverSettingsSaveValue($setting, $this->request->data['Server']['value']);
 				$this->Log->create();
 				$result = $this->Log->save(array(
-						'org_id' => $this->Auth->user('org_id'),
+						'org' => $this->Auth->user('Organisation')['name'],
 						'model' => 'Server',
 						'model_id' => 0,
 						'email' => $this->Auth->user('email'),
@@ -806,7 +806,7 @@ class ServersController extends AppController {
 					if ($afterResult !== true) {
 						$this->Log->create();
 						$result = $this->Log->save(array(
-								'org_id' => $this->Auth->user('org_id'),
+								'org' => $this->Auth->user('Organisation')['name'],
 								'model' => 'Server',
 								'model_id' => 0,
 								'email' => $this->Auth->user('email'),
