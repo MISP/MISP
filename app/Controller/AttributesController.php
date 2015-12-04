@@ -2249,7 +2249,7 @@ class AttributesController extends AppController {
 				$regex = '/';
 				if (!in_array($rC['condition'], array('endsWith', 'contains'))) $regex .= '^';
 				$regex .= $rC['from'];
-				if (!in_array($rC['condition'], array('endsWith', 'contains'))) $regex .= '$';
+				if (!in_array($rC['condition'], array('startsWith', 'contains'))) $regex .= '$';
 				$regex .= '/';
 				if ($rC['ci']) $regex .= 'i';
 				$attribute['Attribute']['value'] = preg_replace($regex, $rC['to'], $attribute['Attribute']['value']);
