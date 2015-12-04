@@ -2231,8 +2231,8 @@ class AttributesController extends AppController {
 		switch ($script) {
 			case 'urlSanitisation':
 				$replaceConditions = array(
-					array('search' => 'UPPER(Attribute.value1) LIKE', 'from' => 'hxxp', 'to' => 'http', 'ci' => true),
-					array('search' => 'Attribute.value1 LIKE', 'from' => '%[.]%', 'to' => '.', 'ci' => false),
+					array('search' => 'UPPER(Attribute.value1) LIKE', 'from' => 'HXXP', 'to' => 'http', 'ci' => true, 'condition' => 'startsWith'),
+					array('search' => 'Attribute.value1 LIKE', 'from' => '[.]', 'to' => '.', 'ci' => false, 'condition' => 'contains'),
 				);
 				break;
 			default:
@@ -2240,12 +2240,19 @@ class AttributesController extends AppController {
 		}
 		$counter = 0;
 		foreach ($replaceConditions as &$rC) {
-			$searchPattern = '%' . $rC['from'] . '%';
-			if ($rC['ci']) $seachPattern = '%' . strtoupper($rC['from']) . '%';
+			$searchPattern = '';
+			if (in_array($rC['condition'], array('endsWith', 'contains'))) $searchPattern .= '%';
+			$searchPattern .= $rC['from'];
+			if (in_array($rC['condition'], array('startsWith', 'contains'))) $searchPattern .= '%';
 			$attributes = $this->Attribute->find('all', array('conditions' => array($rC['search'] => $searchPattern), 'recursive' => -1));
 			foreach ($attributes as &$attribute) {
-				if ($rC['ci']) $attribute['Attribute']['value'] = str_ireplace($rC['from'], $rC['to'], $attribute['Attribute']['value']);
-				else $attribute['Attribute']['value'] = str_replace($rC['from'], $rC['to'], $attribute['Attribute']['value']);
+				$regex = '/';
+				if (!in_array($rC['condition'], array('endsWith', 'contains'))) $regex .= '^';
+				$regex .= $rC['from'];
+				if (!in_array($rC['condition'], array('endsWith', 'contains'))) $regex .= '$';
+				$regex .= '/';
+				if ($rC['ci']) $regex .= 'i';
+				$attribute['Attribute']['value'] = preg_replace($regex, $rC['to'], $attribute['Attribute']['value']);
 				$this->Attribute->save($attribute);
 				$counter++;
 			}
