@@ -2247,9 +2247,9 @@ class AttributesController extends AppController {
 			$attributes = $this->Attribute->find('all', array('conditions' => array($rC['search'] => $searchPattern), 'recursive' => -1));
 			foreach ($attributes as &$attribute) {
 				$regex = '/';
-				if (!in_array($rC['condition'], array('endsWith', 'contains'))) $regex .= '^';
+				if (!in_array($rC['condition'], array('startsWith', 'contains'))) $regex .= '^';
 				$regex .= $rC['from'];
-				if (!in_array($rC['condition'], array('startsWith', 'contains'))) $regex .= '$';
+				if (!in_array($rC['condition'], array('endsWith', 'contains'))) $regex .= '$';
 				$regex .= '/';
 				if ($rC['ci']) $regex .= 'i';
 				$attribute['Attribute']['value'] = preg_replace($regex, $rC['to'], $attribute['Attribute']['value']);
