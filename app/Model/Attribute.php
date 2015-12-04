@@ -468,6 +468,8 @@ class Attribute extends AppModel {
 				$pieces = explode('|', $this->data['Attribute']['value']);
 				$this->data['Attribute']['value'] = $pieces[0] . '|' . strtolower($pieces[1]);
 				break;
+			case 'url':
+				$this->data['Attribute']['value'] = str_ireplace(array('hxxp', '[.]'), array('http', '.'), $this->data['Attribute']['value']);
 		}
 
 		// uppercase the following types

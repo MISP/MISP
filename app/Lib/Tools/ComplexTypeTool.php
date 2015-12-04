@@ -128,7 +128,7 @@ class ComplexTypeTool {
 			} else {
 				// check if it is a URL
 				// Adding http:// infront of the input in case it was left off. github.com/MISP/MISP should still be counted as a valid link
-				if (filter_var($input2, FILTER_VALIDATE_URL) || filter_var('http://' . $input2, FILTER_VALIDATE_URL)) {
+				if (count($temp) < 2 && (filter_var($input2, FILTER_VALIDATE_URL) || filter_var('http://' . $input2, FILTER_VALIDATE_URL))) {
 					if (preg_match('/^https:\/\/www.virustotal.com\//i', $input2)) return array('types' => array('link'), 'to_ids' => true, 'default_type' => 'link', 'comment' => $comment, 'value' => $input2);
 					return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $input2);
 				}

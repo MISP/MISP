@@ -2225,4 +2225,32 @@ class AttributesController extends AppController {
 		$this->Session->setFlash('Removed ' . count($orphans) . ' attribute(s).');
 		$this->redirect('/pages/display/administration');
 	}
+	
+	public function updateAttributeValues($script) {
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('You are not authorised to do that.');
+		switch ($script) {
+			case 'urlSanitisation':
+				$replaceConditions = array(
+					array('search' => 'UPPER(Attribute.value1) LIKE', 'from' => 'hxxp', 'to' => 'http', 'ci' => true),
+					array('search' => 'Attribute.value1 LIKE', 'from' => '%[.]%', 'to' => '.', 'ci' => false),
+				);
+				break;
+			default:
+				throw new Exception('Invalid script.');
+		}
+		$counter = 0;
+		foreach ($replaceConditions as &$rC) {
+			$searchPattern = '%' . $rC['from'] . '%';
+			if ($rC['ci']) $seachPattern = '%' . strtoupper($rC['from']) . '%';
+			$attributes = $this->Attribute->find('all', array('conditions' => array($rC['search'] => $searchPattern), 'recursive' => -1));
+			foreach ($attributes as &$attribute) {
+				if ($rC['ci']) $attribute['Attribute']['value'] = str_ireplace($rC['from'], $rC['to'], $attribute['Attribute']['value']);
+				else $attribute['Attribute']['value'] = str_replace($rC['from'], $rC['to'], $attribute['Attribute']['value']);
+				$this->Attribute->save($attribute);
+				$counter++;
+			}
+		}
+		$this->Session->setFlash('Updated ' . $counter . ' attribute(s).');
+		$this->redirect('/pages/display/administration');
+	}
 }
