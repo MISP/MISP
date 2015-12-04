@@ -1393,6 +1393,7 @@ class Event extends AppModel {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
+		$this->Log = ClassRegistry::init('Log');
 		$localEvent = $this->find('first', array('conditions' => array('Event.id' => $id), 'recursive' => -1, 'contain' => array('Attribute', 'ThreatLevel', 'ShadowAttribute')));
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
 		if ($localEvent['Event']['timestamp'] < $data['Event']['timestamp']) {
