@@ -2225,4 +2225,39 @@ class AttributesController extends AppController {
 		$this->Session->setFlash('Removed ' . count($orphans) . ' attribute(s).');
 		$this->redirect('/pages/display/administration');
 	}
+	
+	public function updateAttributeValues($script) {
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('You are not authorised to do that.');
+		switch ($script) {
+			case 'urlSanitisation':
+				$replaceConditions = array(
+					array('search' => 'UPPER(Attribute.value1) LIKE', 'from' => 'HXXP', 'to' => 'http', 'ci' => true, 'condition' => 'startsWith'),
+					array('search' => 'Attribute.value1 LIKE', 'from' => '[.]', 'to' => '.', 'ci' => false, 'condition' => 'contains'),
+				);
+				break;
+			default:
+				throw new Exception('Invalid script.');
+		}
+		$counter = 0;
+		foreach ($replaceConditions as &$rC) {
+			$searchPattern = '';
+			if (in_array($rC['condition'], array('endsWith', 'contains'))) $searchPattern .= '%';
+			$searchPattern .= $rC['from'];
+			if (in_array($rC['condition'], array('startsWith', 'contains'))) $searchPattern .= '%';
+			$attributes = $this->Attribute->find('all', array('conditions' => array($rC['search'] => $searchPattern), 'recursive' => -1));
+			foreach ($attributes as &$attribute) {
+				$regex = '/';
+				if (!in_array($rC['condition'], array('endsWith', 'contains'))) $regex .= '^';
+				$regex .= $rC['from'];
+				if (!in_array($rC['condition'], array('endsWith', 'contains'))) $regex .= '$';
+				$regex .= '/';
+				if ($rC['ci']) $regex .= 'i';
+				$attribute['Attribute']['value'] = preg_replace($regex, $rC['to'], $attribute['Attribute']['value']);
+				$this->Attribute->save($attribute);
+				$counter++;
+			}
+		}
+		$this->Session->setFlash('Updated ' . $counter . ' attribute(s).');
+		$this->redirect('/pages/display/administration');
+	}
 }
