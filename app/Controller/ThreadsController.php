@@ -126,6 +126,7 @@ class ThreadsController extends AppController {
 				}
 			}
 			$thread_id = $thread['Thread']['id'];
+			$this->set('currentEvent', $id);
 		} else {
 			$this->Thread->recursive = -1;
 			$this->Thread->id = $thread_id;
@@ -163,7 +164,7 @@ class ThreadsController extends AppController {
 			}
 		}
 		$this->paginate = array(
-				'limit' => 5,
+				'limit' => 10,
 				'conditions' => array('Post.thread_id' => $thread_id),
 				'contain' => array(
 						'User' => array(
@@ -187,8 +188,8 @@ class ThreadsController extends AppController {
 		$this->set('thread_title', $thread['Thread']['title']);
 		if ($this->request->is('ajax')) {
 			$this->layout = 'ajax';
-			$this->render('/Elements/eventdiscussion');
 		}
+		if ($eventView) $this->render('/Elements/eventdiscussion');
 	}
 	
 	public function index() {

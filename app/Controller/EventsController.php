@@ -235,16 +235,25 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$this->set('passedArgs', json_encode($this->passedArgs));
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel');
+		$passedArgs = $this->passedArgs;
+		if (isset($this->request->data)) {
+			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
+			foreach ($overrideAbleParams as &$oap) {
+				if (isset($this->request->data['search' . $oap])) $this->request->data[$oap] = $this->request->data['search' . $oap];
+				if (isset($this->request->data[$oap])) $passedArgs['search' . $oap] = $this->request->data[$oap];
+			}
+		}
+		$this->set('passedArgs', json_encode($passedArgs));
 		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
-		foreach ($this->passedArgs as $k => $v) {
+		foreach ($passedArgs as $k => $v) {
 			if (substr($k, 0, 6) === 'search') {
 				if ($urlparams != "") $urlparams .= "/"; 
 				$urlparams .= $k . ":" . $v;
 				$searchTerm = substr($k, 6);
 				switch ($searchTerm) {
 					case 'all' :
-						$this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($this->passedArgs['searchall']));
+						$this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($passedArgs['searchall']));
 						break;
 					case 'attribute' :
 						$event_id_arrays = $this->__filterOnAttributeValue($v);
@@ -318,41 +327,71 @@ class EventsController extends AppController {
 						if (!$v || !Configure::read('MISP.tagging') || $v === 0) continue 2;
 						$pieces = explode('|', $v);
 						$filterString = "";
+						$expectOR = false;
+						$setOR = false;
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
+								if (is_numeric(substr($piece, 1))) $conditions = array('OR' => array('Tag.id' => substr($piece, 1)));
+								else $conditions = array('OR' => array('Tag.name' => substr($piece, 1)));
+
+								$tagName = $this->Event->EventTag->Tag->find('first', array(
+									'conditions' => $conditions,
+									'fields' => array('id', 'name'),
+									'recursive' => -1,
+								));
+								
+								if (empty($tagName)) {
+									if ($filterString != "") $filterString .= "|";
+									$filterString .= '!' . $piece;
+									continue;
+								}
+								
+								
 								$block = $this->Event->EventTag->find('all', array(
-										'conditions' => array('tag_id' => substr($piece, 1)),
+										'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
 										'fields' => 'event_id',
 										'recursive' => -1,
 								));
 								foreach ($block as $b) {
 									$this->paginate['conditions']['AND'][] = array('Event.id !=' => $b['EventTag']['event_id']);
 								}
+								if ($filterString != "") $filterString .= "|";
+								$filterString .= '!' . (isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece);
+							} else {
+								$expectOR = true;
+								if (is_numeric($piece)) $conditions = array('OR' => array('Tag.id' => $piece));
+								else $conditions = array('OR' => array('Tag.name' => $piece));
+								
 								$tagName = $this->Event->EventTag->Tag->find('first', array(
-										'conditions' => array('id' => substr($piece, 1)),
+										'conditions' => $conditions,
 										'fields' => array('id', 'name'),
 										'recursive' => -1,
 								));
-								if ($filterString != "") $filterString .= "|";
-								$filterString .= '!' . $tagName['Tag']['name'];
-							} else {
+								
+								if (empty($tagName)) {
+									if ($filterString != "") $filterString .= "|";
+									$filterString .= $piece;
+									continue;
+								}
+
 								$allow = $this->Event->EventTag->find('all', array(
-										'conditions' => array('tag_id' => $piece),
+										'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
 										'fields' => 'event_id',
 										'recursive' => -1,
 								));
-								foreach ($allow as $a) {
-									$this->paginate['conditions']['AND']['OR'][] = array('Event.id' => $a['EventTag']['event_id']);
+								if (!empty($allow)) {
+									foreach ($allow as $a) {
+										$setOR = true;
+										$this->paginate['conditions']['AND']['OR'][] = array('Event.id' => $a['EventTag']['event_id']);
+									}
 								}
-								$tagName = $this->Event->EventTag->Tag->find('first', array(
-										'conditions' => array('id' => $piece),
-										'fields' => array('id', 'name'),
-										'recursive' => -1,
-								));
 								if ($filterString != "") $filterString .= "|";
-								$filterString .= $tagName['Tag']['name'];
+								$filterString .= isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece;
 							}
 						}
+						// If we have a list of OR-d arguments, we expect to end up with a list of allowed event IDs
+						// If we don't however, it means that none of the tags was found. To prevent displaying the entire event index in this case:
+						if ($expectOR && !$setOR) $this->paginate['conditions']['AND'][] = array('Event.id' => -1);
 						$v = $filterString;
 						break;
 					case 'distribution' :
@@ -390,8 +429,7 @@ class EventsController extends AppController {
 						$v = $filterString;
 						break;
 					default:
-						if ($v == "") continue 2;
-						$this->paginate['conditions'][] = array('lower(Event.' . substr($k, 6) . ') LIKE' => '%' . $v . '%');
+						continue 2;
 						break;
 				}
 				$passedArgsArray[$searchTerm] = $v;
@@ -421,21 +459,22 @@ class EventsController extends AppController {
 			$rules = array();
 			$fieldNames = array_keys($this->Event->getColumnTypes());
 			$directions = array('ASC', 'DESC');
-			if (isset($this->passedArgs['sort']) && in_array($this->passedArgs['sort'], $fieldNames)) {
-				if (isset($this->passedArgs['direction']) && in_array(strtoupper($this->passedArgs['direction']), $directions)) {
-					$rules['order'] = array($this->passedArgs['sort'] => $this->passedArgs['direction']);
+			if (isset($passedArgs['sort']) && in_array($passedArgs['sort'], $fieldNames)) {
+				if (isset($passedArgs['direction']) && in_array(strtoupper($passedArgs['direction']), $directions)) {
+					$rules['order'] = array($passedArgs['sort'] => $passedArgs['direction']);
 				} else {
-					$rules['order'] = array($this->passedArgs['sort'] => 'ASC');
+					$rules['order'] = array($passedArgs['sort'] => 'ASC');
 				}
 			} else {
 				$rules['order'] = array('Event.id' => 'DESC');
 			}
-			if (isset($this->passedArgs['limit'])) {
-				$rules['limit'] = intval($this->passedArgs['limit']);
+			if (isset($passedArgs['limit'])) {
+				$rules['limit'] = intval($passedArgs['limit']);
 			}
 			$rules['contain'] = $this->paginate['contain'];
 			if (isset($this->paginate['conditions'])) $rules['conditions'] = $this->paginate['conditions'];
 			$events = $this->Event->find('all', $rules);
+
 			$this->set('events', $events);
 		} else {
 			$this->set('events', $this->paginate());
@@ -1122,7 +1161,7 @@ class EventsController extends AppController {
 					if ((!empty($this->request->data['Event']['published']) && 1 == $this->request->data['Event']['published'])) {
 						// do the necessary actions to publish the event (email, upload,...)
 						if ('true' != Configure::read('MISP.disablerestalert')) {
-							$this->sendAlertEmailRouter($id, $this->Auth->user());
+							$this->Event->sendAlertEmailRouter($id, $this->Auth->user());
 						}
 						$this->Event->publish($existingEvent['Event']['id']);
 					}

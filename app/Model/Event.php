@@ -1007,7 +1007,6 @@ class Event extends AppModel {
 		}
 		if (!isset($user['org_id'])) throw new Exception('There was an error with the user account.');
 		$isSiteAdmin = $user['Role']['perm_site_admin'];
-		
 		$conditionsAttributes = array();
 		//restricting to non-private or same org if the user is not a site-admin.
 		if (!$user['Role']['perm_site_admin']) {

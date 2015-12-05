@@ -36,6 +36,7 @@ class PostsController extends AppController {
 		$distribution = 1;
 		$event_id = 0;
 		$post_id = 0;
+		if ($this->request->is('ajax')) $this->layout = 'ajax';
 		// we have a target type and a target id. The target id defines what type of object we want to attach this event to (is it a reply to another post, 
 		// did someone add a post to a thread, does a thread for the event exist already, etc. 
 		switch ($target_type) {
@@ -53,6 +54,20 @@ class PostsController extends AppController {
 					}
 				}
 				$thread = $this->Thread->find('first', array('conditions' => array('event_id' => $target_id)));
+				if (empty($thread)) {
+					$newThread = array(
+							'date_created' => date('Y/m/d H:i:s'),
+							'date_modified' => date('Y/m/d H:i:s'),
+							'user_id' => $this->Auth->user('id'),
+							'event_id' => $target_id,
+							'title' => 'Discussion about Event #' . $this->Event->data['Event']['id'] . ' (' . $this->Event->data['Event']['info'] . ')',
+							'distribution' => $this->Event->data['Event']['distribution'],
+							'post_count' => 0,
+							'org' => $this->Event->data['Event']['orgc']
+					);
+					$this->Thread->save($newThread);
+					$thread = ($this->Thread->read());
+				}
 				$title = $eventDiscussionTitle;
 				if (isset($thread['Thread']['id'])) {
 					$target_thread_id = $thread['Thread']['id'];
@@ -99,7 +114,6 @@ class PostsController extends AppController {
 				$target_thread_id = null;
 			break;
 		}
-
 		if ($this->request->is('post')) {
 			// Set the default values that we'll alter before actually saving data. These are the default values unless specifically modified.
 			// By default, all discussions will be visibile to everyone on the platform
@@ -134,7 +148,6 @@ class PostsController extends AppController {
 				$this->Thread->data['Thread']['date_modified'] = date('Y/m/d H:i:s');
 				$this->Thread->save();
 			}
-			
 			// Time to create our post! 
 			$this->Post->create();
 			$newPost = array(
@@ -148,23 +161,27 @@ class PostsController extends AppController {
 			if ($this->Post->save($newPost)) {
 				$this->Thread->recursive = 0;
 				$this->Thread->contain('Post');
-				$this->Thread->read(null, $target_thread_id);
+				$thread = $this->Thread->read(null, $target_thread_id);
 				$this->Thread->updateAfterPostChange(true);
-				$this->Session->setFlash(__('Post added'));
+				if (!$this->request->is('ajax')) $this->Session->setFlash(__('Post added'));
 				$this->Post->sendPostsEmailRouter($this->Auth->user('id'), $this->Post->getId(), $event_id, $title, $this->request->data['Post']['message']);
-				$this->redirect(array('action' => 'view', $this->Post->getId()));
+				$pageNr = (count($thread['Post']) != 0 ? ceil((count($thread['Post']) / 10)) : 1);
+				if ($target_type == 'event') $this->view($target_id, 'event', $pageNr);
+				else $this->view($target_thread_id, 'thread', $pageNr);
+				return true;
 			} else {
 				$this->Session->setFlash('The post could not be added.');
 			}
-		}
-		if ($target_type === 'post') {
-			$this->set('previous', $previousPost['Post']['contents']);
-		}
-		$this->set('thread_id', $target_thread_id);
-		$this->set('target_type', $target_type);
-		$this->set('target_id', $target_id);
-		if (isset($title)) {
-			$this->set('title', $title);
+		} else {
+			if ($target_type === 'post') {
+				$this->set('previous', $previousPost['Post']['contents']);
+			}
+			$this->set('thread_id', $target_thread_id);
+			$this->set('target_type', $target_type);
+			$this->set('target_id', $target_id);
+			if (isset($title)) {
+				$this->set('title', $title);
+			}
 		}
 	}
 	
@@ -199,30 +216,6 @@ class PostsController extends AppController {
 		$this->set('thread_id', $this->Post->data['Post']['thread_id']);
 	}
 	
-	public function quick_add() {
-		if($this->RequestHandler->isAjax()) {
-			$this->layout = 'ajax'; //THIS LINE NEWLY ADDED
-			if(!empty($this->data)) {
-				if($this->Message->save($this->data)) {
-					$this->Session->setFlash('Your Message has been posted');
-				}
-			}
-		}
-	}
-	
-	
-	public function quick_edit() {
-		throw new Exception();
-		if($this->RequestHandler->isAjax()) {
-			$this->layout = 'ajax'; //THIS LINE NEWLY ADDED
-			if(!empty($this->data)) {
-				if($this->Message->save($this->data)) {
-					$this->Session->setFlash('Your Message has been posted');
-				}
-			}
-		}
-	}
-	
 	public function delete($post_id) {
 			if (!$this->request->is('post')) {
 				throw new MethodNotAllowedException();
@@ -255,20 +248,16 @@ class PostsController extends AppController {
 
 	
 	// Views the proper context for the post
-	public function view($post_id) {
-		$this->Post->id = $post_id;
-		if (!$this->Post->exists()) {
-			throw new NotFoundException(__('Invalid post'));
-		}
-		$this->Post->read();
+	public function view($id, $context = 'thread', $pageNr = 1) {
 		// We don't know what the context was, so let's try to guess what the user wants to see!
 		// If the post belongs to an event's discussion thread, redirect the user to the event's view
-		if ($this->Post->data['Thread']['event_id'] != 0) {
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->Post->data['Thread']['event_id']));
+		if ($context == 'event') {
+			$this->redirect(array('controller' => 'threads', 'action' => 'view', $id, true, 'page:' . $pageNr));
 		} else {
 		//Otherwise send the user to the thread's index.
-			$this->redirect(array('controller' => 'threads',  'action' => 'view', $this->Post->data['Thread']['id']));
+			$this->redirect(array('controller' => 'threads',  'action' => 'view', $id, 'page:' . $pageNr));
 		}
+		return true;
 	}
 	
 	private function _grabPreviousPost($post_id) {
