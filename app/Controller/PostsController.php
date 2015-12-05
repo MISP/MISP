@@ -164,10 +164,11 @@ class PostsController extends AppController {
 				$thread = $this->Thread->read(null, $target_thread_id);
 				$this->Thread->updateAfterPostChange(true);
 				if (!$this->request->is('ajax')) $this->Session->setFlash(__('Post added'));
-				$this->Post->sendPostsEmailRouter($this->Auth->user('id'), $this->Post->getId(), $event_id, $title, $this->request->data['Post']['message']);
+				$post_id = $this->Post->getId();
+				$this->Post->sendPostsEmailRouter($this->Auth->user('id'), $post_id, $event_id, $title, $this->request->data['Post']['message']);
 				$pageNr = (count($thread['Post']) != 0 ? ceil((count($thread['Post']) / 10)) : 1);
-				if ($target_type == 'event') $this->view($target_id, 'event', $pageNr);
-				else $this->view($target_thread_id, 'thread', $pageNr);
+				if ($target_type == 'event') $this->view($target_id, 'event', $pageNr, $this->Post->id);
+				else $this->view($target_thread_id, 'thread', $pageNr, $post_id);
 				return true;
 			} else {
 				$this->Session->setFlash('The post could not be added.');
@@ -248,14 +249,14 @@ class PostsController extends AppController {
 
 	
 	// Views the proper context for the post
-	public function view($id, $context = 'thread', $pageNr = 1) {
+	public function view($id, $context = 'thread', $pageNr = 1, $post_id) {
 		// We don't know what the context was, so let's try to guess what the user wants to see!
 		// If the post belongs to an event's discussion thread, redirect the user to the event's view
 		if ($context == 'event') {
-			$this->redirect(array('controller' => 'threads', 'action' => 'view', $id, true, 'page:' . $pageNr));
+			$this->redirect(array('controller' => 'threads', 'action' => 'view', $id, true, 'page:' . $pageNr, 'post_id:' . $post_id));
 		} else {
 		//Otherwise send the user to the thread's index.
-			$this->redirect(array('controller' => 'threads',  'action' => 'view', $id, 'page:' . $pageNr));
+			$this->redirect(array('controller' => 'threads',  'action' => 'view', $id, false, 'page:' . $pageNr, 'post_id:' . $post_id));
 		}
 		return true;
 	}
@@ -265,7 +266,6 @@ class PostsController extends AppController {
 		$this->Post->read();
 		return $this->Post->data;
 	}
-	
 }
 ?>
 		

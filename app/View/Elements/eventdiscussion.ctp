@@ -22,6 +22,7 @@
 			<?php 
 				foreach ($posts as $post) {
 			?>
+					<a name="message_<?php echo h($post['Post']['id']);?>"></a>
 					<table class="discussionBox" id=<?php echo '"' . h($post['Post']['id']) . '"';?> >
 						<tr>
 							<td class="discussionBoxTD discussionBoxTDtop" colspan="2">
@@ -128,7 +129,11 @@
 	    </div>
     <?php endif; ?>
 	<div class="comment">
-	<?php echo $this->Form->create('Post', array('url' => '/posts/add/event/' . $currentEvent));?>
+	<?php
+		if (isset($currentEvent)) $url = '/posts/add/event/' . $currentEvent; 
+		else $url = '/posts/add/thread/' . $thread_id;
+		echo $this->Form->create('Post', array('url' => $url));
+	?>
 		<fieldset>
 		<div class="input clear">
 			<button type="button" title="Insert a quote - just paste your quote between the [quote][/quote] tags." class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()">Quote</button>
@@ -150,7 +155,7 @@
 			'success'=>$this->Js->get('#loading')->effect('fadeOut'),
 			'update'=>'#top',
 			'class'=>'btn btn-primary',
-			'url' => '/posts/add/event/' . $currentEvent
+			'url' => $url
 	));
 	echo $this->Form->end();
 	?>
@@ -166,5 +171,10 @@
 	function insertThread() {
 		document.getElementById("PostMessage").value+="[Thread][/Thread]"; 
 	}
+	<?php if ($post_id): ?>
+		$(document).ready(function() {
+			location.hash = "#message_<?php echo h($post_id); ?>";
+		});
+	<?php endif; ?>
 </script>
 <?php echo $this->Js->writeBuffer();?>

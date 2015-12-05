@@ -87,6 +87,8 @@ class ThreadsController extends AppController {
 	
 	
 	public function view($thread_id, $eventView = false) {
+		$post_id = false;
+		if (isset($this->passedArgs['post_id'])) $post_id = $this->passedArgs['post_id'];
 		if ($eventView) {
 			$id = $thread_id;
 			$this->loadModel('Event');
@@ -183,13 +185,14 @@ class ThreadsController extends AppController {
 			}
 		}
 		$this->set('posts', $posts);
+		$this->set('post_id', $post_id);
 		$this->set('thread_id', $thread_id);
 		$this->set('myuserid', $this->Auth->user('id'));
 		$this->set('thread_title', $thread['Thread']['title']);
 		if ($this->request->is('ajax')) {
 			$this->layout = 'ajax';
+			$this->render('/Elements/eventdiscussion');
 		}
-		if ($eventView) $this->render('/Elements/eventdiscussion');
 	}
 	
 	public function index() {
