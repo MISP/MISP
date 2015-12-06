@@ -200,7 +200,7 @@ class User extends AppModel {
 			'className' => 'Server',
 			'foreignKey' => 'server_id',
 			'conditions' => '',
-			'fields' => '',
+			'fields' => array('Server.id', 'Server.url', 'Server.push_rules'),
 			'order' => ''
 		)
 	);
@@ -437,12 +437,13 @@ class User extends AppModel {
 	
 	// get the current user and rearrange it to be in the same format as in the auth component
 	public function getAuthUser($id) {
-		$user = $this->find('first', array('conditions' => array('OR' => array('User.id' => $id, 'User.authkey' => $id)), 'recursive' => -1,'contain' => array('Organisation', 'Role')));
+		$user = $this->find('first', array('conditions' => array('OR' => array('User.id' => $id, 'User.authkey' => $id)), 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
 		if (empty($user)) return $user;
 		// Rearrange it a bit to match the Auth object created during the login
 		$user['User']['Role'] = $user['Role'];
 		$user['User']['Organisation'] = $user['Organisation'];
-		unset($user['Organisation'], $user['Role']);
+		$user['User']['Server'] = $user['Server'];
+		unset($user['Organisation'], $user['Role'], $user['Server']);
 		return $user['User'];
 	}
 	

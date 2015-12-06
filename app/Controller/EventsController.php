@@ -73,27 +73,35 @@ class EventsController extends AppController {
 		// if not admin or own org, check private as well..
 		if (!$this->_isSiteAdmin()) {
 			$sgids = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
-			$this->paginate = Set::merge($this->paginate,array(
-					'conditions' =>
-					array("OR" => array(
-						array(
-							'Event.org_id' => $this->Auth->user('org_id')
-						),
-						array(
-							'AND' => array(
-								'Event.distribution >' => 0,
-								'Event.distribution <' => 4,
-								Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+			$conditions = array(
+				'AND' => array(
+					array(
+						"OR" => array(
+							array(
+								'Event.org_id' => $this->Auth->user('org_id')
 							),
-						),
-						array(
-							'AND' => array(
-								'Event.distribution' => 4,
-								'Event.sharing_group_id' => $sgids,
-								Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-							),	
-						)
-			))));
+							array(
+								'AND' => array(
+										'Event.distribution >' => 0,
+										'Event.distribution <' => 4,
+										Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+								),
+							),
+							array(
+								'AND' => array(
+										'Event.distribution' => 4,
+										'Event.sharing_group_id' => $sgids,
+										Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+								),
+							)
+						)		
+					)
+				)
+			);
+			if ($this->userRole['perm_sync'] && $this->Auth->user('Server')['push_rules']) {
+				$conditions['AND'][] = $this->Event->filterRulesToConditions($this->Auth->user('Server')['push_rules']);
+			}
+			$this->paginate = Set::merge($this->paginate,array('conditions' => $conditions));
 		}
 	}
 	
@@ -554,7 +562,7 @@ class EventsController extends AppController {
 		}
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
-			$eIds = $this->Event->fetchEventIds($this->Auth->user(), 0, 0, true);
+			$eIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
 			$conditions['AND'][] = array('Event.id' => $eIds);
 		}
 		$events = $this->Event->find('all', array(

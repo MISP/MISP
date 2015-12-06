@@ -699,7 +699,6 @@ class Event extends AppModel {
  * @return bool true if success, false or error message if failed
  */
 	public function restfullEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
-		
 		if ($event['Event']['distribution'] == 4) {
 			if (!empty($event['SharingGroup']['SharingGroupServer'])) {
 				$found = false;
@@ -1069,6 +1068,10 @@ class Event extends AppModel {
 			$conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
 		}
 		
+		if ($user['Server']['push_rules']) {
+			$conditions['AND'][] = $this->filterRulesToConditions($user['Server']['push_rules']);
+		}
+
 		// removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
 		// $conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 		// Same idea for the published. Just adjust the tools to check for this
@@ -1130,6 +1133,7 @@ class Event extends AppModel {
 			$params['contain']['User'] = array('fields' => 'email');
 		}
 		$results = $this->find('all', $params);
+		if (empty($results)) throw new NotFoundException(__('Invalid event'));
 		// Do some refactoring with the event
 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
 		foreach ($results as $eventKey => &$event) {
@@ -2321,5 +2325,31 @@ class Event extends AppModel {
 		}
 		$event['objects'] = $eventArrayWithProposals;
 		return $params;
+	}
+	
+	// pass along a json from the server filter rules
+	// returns a conditions set to be merged into pagination / event fetch / etc
+	public function filterRulesToConditions($rules) {
+		$rules = json_decode($rules, true);
+		$operators = array('OR', 'NOT');
+		foreach ($operators as $op) {
+			if (!empty($rules['tags'][$op])) {
+				$event_ids = $this->EventTag->find('list', array(
+					'recursive' => -1,
+					'conditions' => array('EventTag.tag_id' => $rules['tags'][$op]),
+					'fields' => array('EventTag.event_id')	
+				));
+				$rules['events'][$op] = $event_ids;
+			}
+		}
+		$conditions = array();
+		$fields = array('events' => 'Event.id', 'orgs' => 'Event.orgc_id');
+		foreach ($fields as $k => $field) {
+			$temp = array();
+			if (!empty($rules[$k]['OR'])) $temp['OR'][$field] = $rules[$k]['OR'];
+			if (!empty($rules[$k]['NOT'])) $temp['AND'][$field . ' !='] = $rules[$k]['NOT'];
+			$conditions['AND'][] = $temp;
+		}
+		return $conditions;
 	}
 }

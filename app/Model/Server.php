@@ -2258,6 +2258,7 @@ class Server extends AppModel {
 	// Loops through all servers and checks which servers' push rules don't conflict with the given event.
 	// returns the server objects that would allow the event to be pushed
 	public function eventFilterPushableServers($event, $servers) {
+		debug($event);
 		$eventTags = array();
 		$validServers = array();
 		foreach ($event['EventTag'] as $tag) $eventTags[] = $tag['tag_id'];

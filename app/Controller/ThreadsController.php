@@ -91,40 +91,20 @@ class ThreadsController extends AppController {
 		if (isset($this->passedArgs['post_id'])) $post_id = $this->passedArgs['post_id'];
 		if ($eventView) {
 			$id = $thread_id;
-			$this->loadModel('Event');
-			$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
-			if (empty($result)) throw new MethodNotAllowedException('You are not authorised to see that.');
-			$result = $result[0];
 			// Show the discussion
-			
 			$this->Thread->Behaviors->unload('SysLogLogable.SysLogLogable');
 			$params = array('conditions' => array('event_id' => $id),
 					'recursive' => -1,
 					'fields' => array('id', 'event_id', 'distribution', 'title', 'sharing_group_id')
 			);
 			$thread = $this->Thread->find('first', $params);
-			if (empty($thread)) {
-				$newThread = array(
-						'date_created' => date('Y/m/d H:i:s'),
-						'date_modified' => date('Y/m/d H:i:s'),
-						'user_id' => $this->Auth->user('id'),
-						'event_id' => $id,
-						'title' => 'Discussion about Event #' . $result['Event']['id'] . ' (' . $result['Event']['info'] . ')',
-						'distribution' => $result['Event']['distribution'],
-						'sharing_group_id' => $result['Event']['sharing_group_id'],
-						'post_count' => 0,
-						'org_id' => $result['Event']['orgc_id']
-				);
-				$this->Thread->save($newThread);
-				$thread = ($this->Thread->read());
-			} else {
-				if ($thread['Thread']['distribution'] != $result['Event']['distribution']) {
-					$thread['Thread']['distribution'] = $result['Event']['distribution'];
-					$this->Thread->save($thread);
+			if (empty($thread)) new NotFoundException('Invalid thread.');
+			if (!$this->_isSiteAdmin()) {
+				if ($thread['Thread']['distribution'] == 0 && $thread['Thread']['org_id'] != $this->Auth->user('org_id')) {
+					throw new MethodNotAllowedException('Invalid Thread.');
 				}
-				if ($thread['Thread']['sharing_group_id'] != $result['Event']['sharing_group_id']) {
-					$thread['Thread']['sharing_group_id'] = $result['Event']['sharing_group_id'];
-					$this->Thread->save($thread);
+				if ($thread['Thread']['distribution'] == 4) {
+					if (!$this->Thread->SharingGroup->checkIfAuthorised($this->Auth->user(), $thread['Thread']['sharing_group_id'])) new NotFoundException('Invalid thread.');
 				}
 			}
 			$thread_id = $thread['Thread']['id'];
@@ -158,10 +138,10 @@ class ThreadsController extends AppController {
 			// If the user shouldn't be allowed to see the event send him away.
 			if (!$this->_isSiteAdmin()) {
 				if ($thread['Thread']['distribution'] == 0 && $thread['Thread']['org_id'] != $this->Auth->user('org_id')) {
-					throw new MethodNotAllowedException('You are not authorised to view this.');
+					throw new MethodNotAllowedException('Invalid Thread.');
 				}
 				if ($thread['Thread']['distribution'] == 4) {
-					if (!$this->Thread->SharingGroup->checkIfAuthorised($this->Auth->user(), $thread['Thread']['sharing_group_id'])) throw new MethodNotAllowedException('You are not authorised to view this');
+					if (!$this->Thread->SharingGroup->checkIfAuthorised($this->Auth->user(), $thread['Thread']['sharing_group_id'])) new NotFoundException('Invalid thread.');
 				}
 			}
 		}
