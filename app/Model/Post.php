@@ -116,4 +116,25 @@ class Post extends AppModel {
 			$this->User->sendEmail($recipient, $bodyDetail, $body, $subject);
 		}
 	}
+	
+	public function findPageNr($id, $context = 'thread', &$post_id = false) {
+		// find the current post and its position in the thread
+		if ($context == 'event') $conditions = array('Thread.event_id' => $id);
+		else $conditions = array('Thread.id' => $id);
+		$posts = $this->find('all', array('conditions' => $conditions, 'fields' => array('Post.id', 'thread_id'), 'contain' => array('Thread' => array('fields' => array('Thread.id', 'Thread.event_id')))));
+		if (empty($posts)) return false;
+		if (!$post_id) {
+			$pageNr = intval(ceil(count($posts)/10));
+			$lastItem = end($posts);
+			$post_id = $lastItem['Post']['id'];
+		} else {
+			foreach ($posts as $k => $post) {
+				if ($post['Post']['id'] == $post_id) {
+					$pageNr = intval(ceil($k/10));
+					continue;
+				}
+			}
+		}
+		return $pageNr;
+	}
 }

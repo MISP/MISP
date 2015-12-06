@@ -184,6 +184,12 @@ class ThreadsController extends AppController {
 				}
 			}
 		}
+		if ($eventView) {
+			$this->set('context', 'event');
+			if (!$this->request->is('ajax')) {
+				$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+			}
+		} else $this->set('context', 'thread');
 		$this->set('posts', $posts);
 		$this->set('post_id', $post_id);
 		$this->set('thread_id', $thread_id);
