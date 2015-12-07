@@ -862,7 +862,7 @@ class EventsController extends AppController {
 							}
 							// REST users want to see the newly created event
 							// REST users want to see the newly created event
-							$results = $this->Event->fetchEvent($created_id, false, $this->Auth->user('org'), $this->_isSiteAdmin());
+							$results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $created_id));
 							$event = &$results[0];
 							if (!empty($validationErrors)) {
 								$event['errors'] = $validationErrors;

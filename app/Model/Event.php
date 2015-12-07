@@ -999,7 +999,9 @@ class Event extends AppModel {
 		} else {
 			$conditions = array();
 		}
-		if (!isset($user['org_id'])) throw new Exception('There was an error with the user account.');
+		if (!isset($user['org_id'])) {
+			throw new Exception('There was an error with the user account.');
+		}
 		$isSiteAdmin = $user['Role']['perm_site_admin'];
 		if (isset($options['disableSiteAdmin']) && $options['disableSiteAdmin']) $isSiteAdmin = false;
 		$conditionsAttributes = array();
