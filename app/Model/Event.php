@@ -708,9 +708,7 @@ class Event extends AppModel {
 				if (!$found) return 403;
 			}
 		}
-		
 		$serverModel = ClassRegistry::init('Server');
-		$servers = $serverModel->find('all', array('conditions' => array('push' => 1)));
 		$server = $serverModel->eventFilterPushableServers($event, array($server));
 		if (empty($server)) return 403;
 		$server = $server[0];
@@ -785,13 +783,14 @@ class Event extends AppModel {
 		// rearrange things to be compatible with the Xml::fromArray()
 		$objectsToRearrange = array('Attribute', 'Orgc', 'SharingGroup', 'EventTag', 'Org');
 		foreach ($objectsToRearrange as $o) {
-			$event['Event'][$o] = $event[$o];
-			unset($event[$o]);
+			if (isset($event[$o])) {
+				$event['Event'][$o] = $event[$o];
+				unset($event[$o]);
+			}
 		}
 		
 		// cleanup the array from things we do not want to expose
 		foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'locked', 'org', 'orgc') as $field) unset($event['Event'][$field]);
-		
 		foreach ($event['Event']['EventTag'] as $kt => $tag) {
 			if (!$tag['Tag']['exportable']) unset($event['Event']['EventTag'][$kt]);
 		}
@@ -993,22 +992,19 @@ class Event extends AppModel {
 	// includeAllTags: true will include the tags
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array()) {
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin');
 		foreach ($possibleOptions as &$opt) if (!isset($options[$opt])) $options[$opt] = false;
 		if ($options['eventid']) {
-			$this->id = $options['eventid'];
-			if (!$this->exists()) {
-				throw new NotFoundException(__('Invalid event'));
-			}
-			$conditions = array("Event.id" => $options['eventid']);
+			$conditions['AND'][] = array("Event.id" => $options['eventid']);
 		} else {
 			$conditions = array();
 		}
 		if (!isset($user['org_id'])) throw new Exception('There was an error with the user account.');
 		$isSiteAdmin = $user['Role']['perm_site_admin'];
+		if (isset($options['disableSiteAdmin']) && $options['disableSiteAdmin']) $isSiteAdmin = false;
 		$conditionsAttributes = array();
 		//restricting to non-private or same org if the user is not a site-admin.
-		if (!$user['Role']['perm_site_admin']) {
+		if (!$isSiteAdmin) {
 			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
 			$conditions['AND']['OR'] = array(
 				'Event.org_id' => $user['org_id'],
@@ -1017,6 +1013,7 @@ class Event extends AppModel {
 						'Event.distribution >' => 0,
 						'Event.distribution <' => 4,
 						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+						$options['distribution'] !== false ? array('Event.distribution =' => $options['distribution']) : array(), 
 					),
 				),
 				array(
@@ -1024,6 +1021,7 @@ class Event extends AppModel {
 						'Event.sharing_group_id' => $sgids,
 						'Event.distribution' => 4,
 						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+						$options['sharing_group_id'] !== false ? array('Event.sharing_group_id =' => $options['sharing_group_id']) : array(),
 					)
 				)
 			);
@@ -1031,10 +1029,12 @@ class Event extends AppModel {
 				array('AND' => array(
 					'Attribute.distribution >' => 0,
 					'Attribute.distribution !=' => 4,
+					$options['distribution'] !== false ? array('Attribute.distribution =' => $options['distribution']) : array(),
 				)),
 				array('AND' => array(
 					'Attribute.distribution' => 4,
 					'Attribute.sharing_group_id' => $sgids,
+					$options['sharing_group_id'] !== false ? array('Attribute.sharing_group_id =' => $options['sharing_group_id']) : array(),
 				)),
 				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
 			);
@@ -1042,6 +1042,8 @@ class Event extends AppModel {
 		if ($options['from']) $conditions['AND'][] = array('Event.date >=' => $options['from']);
 		if ($options['to']) $conditions['AND'][] = array('Event.date <=' => $options['to']);
 		if ($options['last']) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
+		if ($options['event_uuid']) $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
+	
 		
 		if ($options['idList'] && !$options['tags']) {
 			$conditions['AND'][] = array('Event.id' => $options['idList']);
@@ -1068,7 +1070,7 @@ class Event extends AppModel {
 			$conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
 		}
 		
-		if ($user['Server']['push_rules']) {
+		if (isset($user['Server']) && $user['Server']['push_rules']) {
 			$conditions['AND'][] = $this->filterRulesToConditions($user['Server']['push_rules']);
 		}
 

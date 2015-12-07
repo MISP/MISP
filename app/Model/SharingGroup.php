@@ -85,13 +85,9 @@ class SharingGroup extends AppModel {
 	public function fetchAllAuthorisedForServer($server) {
 		$conditions = array();
 		$ids = array();
-		//fetchAllSGsForServer($server_id)
-		$sgs = $this->find('list', array(
-				'recursive' => -1,
-				'fields' => array('id', 'name'),
-				'order' => 'name ASC',
-				'conditions' => $conditions,
-		));
+		$sgs = $this->SharingGroupOrg->fetchAllAuthorised($server['RemoteOrg']['id']);
+		$sgs = array_merge($sgs, $this->SharingGroupServer->fetchAllSGsForServer($server['Server']['id']));
+		return $sgs;
 	}
 	
 	// returns a list of all sharing groups that the user is allowed to see

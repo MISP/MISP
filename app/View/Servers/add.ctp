@@ -10,12 +10,15 @@
 				'label' => 'Instance name',
 		));
 	?>
-		<div class="input clear"></div>
-
+		<div class="input clear" style="width:100%;">
+		<hr />
+		<p class="red">Information about the organisation that will receive the events, typically the remote instance's host organisation.</p>
+		</div>
+		<div class = "input clear"></div>
 	<?php	
 		if ($isSiteAdmin) :
 		echo $this->Form->input('organisation_type', array(
-				'label' => 'Organisation Type',
+				'label' => 'Remote Sync Organisation Type',
 				'options' => $organisationOptions,
 		));
 	?>
@@ -45,6 +48,7 @@
 		echo $this->Form->input('authkey', array(
 		));
 	?>
+		<div class = "input clear" style="width:100%;"><hr /></div>
 		<div class = "input clear"></div>
 	<?php
 		echo $this->Form->input('push', array(
