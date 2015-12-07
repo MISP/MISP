@@ -150,7 +150,7 @@ class Event extends AppModel {
 		'date' => array(
 			'date' => array(
 				'rule' => array('date'),
-				//'message' => 'Your custom message here',
+				'message' => 'Expected date format: YYYY-MM-DD',
 				//'allowEmpty' => false,
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -508,19 +508,21 @@ class Event extends AppModel {
 					}
 				}
 			}
-			// get the new attribute uuids in an array
-			$newerUuids = array();
-			foreach ($event['Attribute'] as $attribute) {
-				$newerUuids[$attribute['id']] = $attribute['uuid'];
-				$attribute['event_id'] = $remoteId;
-			}
-			// get the already existing attributes and delete the ones that are not there
-			foreach ($xml->Event->Attribute as $attribute) {
-				foreach ($attribute as $key => $value) {
-					if ($key == 'uuid') {
-						if (!in_array((string)$value, $newerUuids)) {
-							$anAttr = ClassRegistry::init('Attribute');
-							$anAttr->deleteAttributeFromServer((string)$value, $server, $HttpSocket);
+			if ($remoteId) {
+				// get the new attribute uuids in an array
+				$newerUuids = array();
+				foreach ($event['Attribute'] as $attribute) {
+					$newerUuids[$attribute['id']] = $attribute['uuid'];
+					$attribute['event_id'] = $remoteId;
+				}
+				// get the already existing attributes and delete the ones that are not there
+				foreach ($xml->Event->Attribute as $attribute) {
+					foreach ($attribute as $key => $value) {
+						if ($key == 'uuid') {
+							if (!in_array((string)$value, $newerUuids)) {
+								$anAttr = ClassRegistry::init('Attribute');
+								$anAttr->deleteAttributeFromServer((string)$value, $server, $HttpSocket);
+							}
 						}
 					}
 				}
@@ -1293,7 +1295,7 @@ class Event extends AppModel {
 	 *
 	 * @return bool true if success
 	 */
-	public function _add(&$data, $fromXml, $user, $org='', $passAlong = null, $fromPull = false, $jobId = null) {
+	public function _add(&$data, $fromXml, $user, $org='', $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array()) {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
@@ -1327,8 +1329,8 @@ class Event extends AppModel {
 			$data = $this->cleanupEventArrayFromXML($data);
 			// the event_id field is not set (normal) so make sure no validation errors are thrown
 			// LATER do this with	 $this->validator()->remove('event_id');
-			unset($this->Attribute->validate['event_id']);
-			unset($this->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
+			unset($this->Attribute->validate['event_id']); // otherwise gives bugs because event_id is not set
+			unset($this->Attribute->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
 		}
 		unset ($data['Event']['id']);
 		if (isset($data['Event']['uuid'])) {
@@ -1338,12 +1340,8 @@ class Event extends AppModel {
 				// RESTfull, set responce location header..so client can find right URL to edit
 				if ($fromPull) return false;
 				$existingEvent = $this->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
+				if ($fromXml) $created_id = $existingEvent['Event']['id'];
 				return $existingEvent['Event']['id'];
-			}
-		}
-		if (isset($data['Attribute'])) {
-			foreach ($data['Attribute'] as &$attribute) {
-				unset ($attribute['id']);
 			}
 		}
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
@@ -1351,10 +1349,32 @@ class Event extends AppModel {
 				'Event' => array('org', 'orgc', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution', 'comment')
 		);
-		$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,
-				'atomic' => true));
-		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
+		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
+		$this->Log = ClassRegistry::init('Log');
 		if ($saveResult) {
+			if (isset($data['Attribute'])) {
+				foreach ($data['Attribute'] as $k => &$attribute) {
+					$attribute['event_id'] = $this->id;
+					unset ($attribute['id']);
+					$this->Attribute->create();
+					if (!$this->Attribute->save($attribute, array('fieldList' => $fieldList['Attribute']))) {
+						$validationErrors['Attribute'][$k] = $this->Attribute->validationErrors;
+						$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+						$this->Log->create();
+						$this->Log->save(array(
+								'org' => $user['org'],
+								'model' => 'Attribute',
+								'model_id' => 0,
+								'email' => $user['email'],
+								'action' => 'add',
+								'user_id' => $user['id'],
+								'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
+								'change' => json_encode($this->Attribute->validationErrors),
+						));
+					}
+				}
+			}
+			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
 				if ('true' != Configure::read('MISP.disablerestalert')) {
@@ -1364,15 +1384,16 @@ class Event extends AppModel {
 			}
 			return true;
 		} else {
-			//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
-			return false;
+			$validationErrors['Event'] = $this->validationErrors;
+			return json_encode($this->validationErrors);
 		}
 	}
 	
-	public function _edit(&$data, $id, $jobId = null) {
+	public function _edit(&$data, $user, $id, $jobId = null) {
 		if ($jobId) {
 			App::import('Component','Auth');
 		}
+		$this->Log = ClassRegistry::init('Log');
 		$localEvent = $this->find('first', array('conditions' => array('Event.id' => $id), 'recursive' => -1, 'contain' => array('Attribute', 'ThreatLevel', 'ShadowAttribute')));
 		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
 		if ($localEvent['Event']['timestamp'] < $data['Event']['timestamp']) {
@@ -1388,34 +1409,47 @@ class Event extends AppModel {
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp', 'comment')
 		);
 		$data['Event']['id'] = $localEvent['Event']['id'];
-		if (isset($data['Event']['Attribute'])) {
-			foreach ($data['Event']['Attribute'] as $k => &$attribute) {
-				$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $localEvent);
-				if (count($existingAttribute)) {
-					$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
-					// Check if the attribute's timestamp is bigger than the one that already exists.
-					// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-					// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-					if ($data['Event']['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-						$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
-						$data['Attribute'][] = $data['Event']['Attribute'][$k];
-						unset($data['Event']['Attribute'][$k]);
-					} else {
-					unset($data['Event']['Attribute'][$k]);
+		$data = $this->cleanupEventArrayFromXML($data);
+		$saveResult = $this->save($data, array('fieldList' => $fieldList['Event']));
+		if ($saveResult) {
+			if (isset($data['Attribute'])) {
+				foreach ($data['Attribute'] as $k => &$attribute) {
+					$mode = 'add';
+					$data['Attribute'][$k]['event_id'] = $this->id;
+					$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $localEvent);
+					if (count($existingAttribute)) {
+						// Check if the attribute's timestamp is bigger than the one that already exists.
+						// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+						// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+						if ($data['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+							$data['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
+						} else {
+							unset($data['Attribute'][$k]);
+							continue;
 						}
-				} else {
-					unset($data['Event']['Attribute'][$k]['id']);
-					$data['Attribute'][] = $data['Event']['Attribute'][$k];
-					unset($data['Event']['Attribute'][$k]);
+					} else {
+						unset($data['Attribute'][$k]['id']);
+						$this->Attribute->create();
+					}
+					if (!$this->Attribute->save($data['Attribute'][$k], array('fieldList' => $fieldList['Attribute']))) {
+						$validationErrors[] = $this->Attribute->validationErrors;
+						$attribute_short = (isset($data['Attribute'][$k]['category']) ? $data['Attribute'][$k]['category'] : 'N/A') . '/' . (isset($data['Attribute'][$k]['type']) ? $data['Attribute'][$k]['type'] : 'N/A') . ' ' . (isset($data['Attribute'][$k]['value']) ? $data['Attribute'][$k]['value'] : 'N/A');
+						$this->Log->create();
+						$this->Log->save(array(
+								'org' => $user['org'],
+								'model' => 'Attribute',
+								'model_id' => 0,
+								'email' => $user['email'],
+								'action' => 'validation_error',
+								'user_id' => $user['id'],
+								'title' => 'Attribute validation for Event ' . $this->id . ' failed: ' . $attribute_short,
+								'change' => json_encode($this->Attribute->validationErrors),
+						));
+					}
 				}
 			}
-		}
-	$data = $this->cleanupEventArrayFromXML($data);
-	$saveResult = $this->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList));
-	if ($saveResult) {
-		return 'success';
-	}
-		else return 'Saving the event has failed.';
+			return 'success';
+		} else return 'Saving the event has failed.';
 	}
 	
 	private function __searchUuidInAttributeArray($uuid, &$attr_array) {
@@ -1683,34 +1717,27 @@ class Event extends AppModel {
 		}
 		
 		if (!$response) {
-			$temp = $xmlArray;
-			$xmlArray = array();
-			$xmlArray['response'] = $temp;
+			$xmlArray = array('response' => $xmlArray);
 		}
 		// if a version is set, it must be at least 2.2.0 - check the version and save the result of the comparison
 		if (isset($xmlArray['response']['xml_version'])) $version = $this->compareVersions($xmlArray['response']['xml_version'], $this->mispVersion);
 		// if no version is set, set the version to older (-1) manually
 		else $version = -1;
 		// same version, proceed normally
-		if ($version == 0) {
-			unset ($xmlArray['response']['xml_version']);
-			if ($response) return $xmlArray;
-			else return $xmlArray['response'];
-		}
-
-		// The xml is from an instance that is newer than the local instance, let the user know that the admin needs to upgrade before it could be imported
-		if ($version == 1) throw new Exception('This XML file is from a MISP instance that is newer than the current instance. Please contact your administrator about upgrading this instance.');
-
-		// if the xml contains an event or events from an older MISP instance, let's try to upgrade it!
-		// Let's manually set the version to something below 2.2.0 if there is no version set in the xml		
-		if (!isset($xmlArray['response']['xml_version'])) $xmlArray['response']['xml_version'] = '2.1.0'; 
-		
-		// Upgrade from versions below 2.2.0 will need to replace the risk field with threat level id
-		if ($this->compareVersions($xmlArray['response']['xml_version'], '2.2.0') < 0) {
-			if ($response) $xmlArray['response'] = $this->__updateXMLArray220($xmlArray['response']);
-			else $xmlArray = $this->__updateXMLArray220($xmlArray);
-		}
-		
+		if ($version != 0) {
+			// The xml is from an instance that is newer than the local instance, let the user know that the admin needs to upgrade before it could be imported
+			if ($version == 1) throw new Exception('This XML file is from a MISP instance that is newer than the current instance. Please contact your administrator about upgrading this instance.');
+	
+			// if the xml contains an event or events from an older MISP instance, let's try to upgrade it!
+			// Let's manually set the version to something below 2.2.0 if there is no version set in the xml		
+			if (!isset($xmlArray['response']['xml_version'])) $xmlArray['response']['xml_version'] = '2.1.0'; 
+			
+			// Upgrade from versions below 2.2.0 will need to replace the risk field with threat level id
+			if ($this->compareVersions($xmlArray['response']['xml_version'], '2.2.0') < 0) {
+				if ($response) $xmlArray['response'] = $this->__updateXMLArray220($xmlArray['response']);
+				else $xmlArray = $this->__updateXMLArray220($xmlArray);
+			}
+		}		
 		unset ($xmlArray['response']['xml_version']);
 		if ($response) return $xmlArray;
 		else return $xmlArray['response'];

@@ -96,41 +96,42 @@ class ComplexTypeTool {
 		if (strlen($input) == 40 && preg_match("#[0-9a-f]{40}$#", $input)) return array('types' => array('sha1'), 'to_ids' => true, 'default_type' => 'sha1');
 		if (strlen($input) == 64 && preg_match("#[0-9a-f]{64}$#", $input)) return array('types' => array('sha256'), 'to_ids' => true, 'default_type' => 'sha256');
 		
+		$inputRefanged = preg_replace('/^hxxp/i', 'http', $input);
+		$inputRefanged = preg_replace('/\[\.\]/', '.' , $inputRefanged);
 		// note down and remove the port if it's a url / domain name / hostname / ip
 		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
 		$comment = false;
-		if (preg_match('/(:[0-9]{2,5})$/', $input, $port)) {
+		if (preg_match('/(:[0-9]{2,5})$/', $inputRefanged, $port)) {
 			$comment = 'On port ' . substr($port[0], 1);
-			$input2 = str_replace($port[0], '', $input);
-		} else $input2 = $input;		
-		
+			$inputRefangedNoPort = str_replace($port[0], '', $inputRefanged);
+		} else $inputRefangedNoPort = $inputRefanged;		
 		// check for IP
-		if (filter_var($input2, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $input2);
-		if (strpos($input2, '/')) {
-			$temp = explode('/', $input2);
+		if (filter_var($inputRefangedNoPort, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+		if (strpos($inputRefangedNoPort, '/')) {
+			$temp = explode('/', $inputRefangedNoPort);
 			if (count($temp == 2)) {
-				if (filter_var($temp[0], FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $input2);
+				if (filter_var($temp[0], FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 			}
 		}
 		
 		
 		// check for domain name, hostname, filename
-		if (strpos($input, '.') !== false) {
-			$temp = explode('.', $input);
-		
+		if (strpos($inputRefanged, '.') !== false) {
+			$temp = explode('.', $inputRefanged);
+	
 			//if (filter_var($input, FILTER_VALIDATE_URL)) {
-			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/u', $input)) {
+			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/u', $inputRefanged)) {
 				if (count($temp) > 2) {
-					return array('types' => array('hostname', 'domain', 'url'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $comment, 'value' => $input2);
+					return array('types' => array('hostname', 'domain', 'url'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				} else {
-					return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $input2);
+					return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				}
 			} else {
 				// check if it is a URL
 				// Adding http:// infront of the input in case it was left off. github.com/MISP/MISP should still be counted as a valid link
-				if (filter_var($input2, FILTER_VALIDATE_URL) || filter_var('http://' . $input2, FILTER_VALIDATE_URL)) {
-					if (preg_match('/^https:\/\/www.virustotal.com\//i', $input2)) return array('types' => array('link'), 'to_ids' => true, 'default_type' => 'link', 'comment' => $comment, 'value' => $input2);
-					return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $input2);
+				if (count($temp) > 1 && (filter_var($inputRefangedNoPort, FILTER_VALIDATE_URL) || filter_var('http://' . $inputRefangedNoPort, FILTER_VALIDATE_URL))) {
+					if (preg_match('/^https:\/\/www.virustotal.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'to_ids' => true, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+					return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				}
 				if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename');
 			}

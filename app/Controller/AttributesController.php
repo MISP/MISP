@@ -15,6 +15,7 @@ class AttributesController extends AppController {
 	public $paginate = array(
 			'limit' => 60,
 			'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
+			'conditions' => array('AND' => array('Event.id >' => 0))
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
@@ -2222,6 +2223,41 @@ class AttributesController extends AppController {
 		$orphans = $this->Attribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
 		if (count($orphans) > 0) $this->Attribute->deleteAll(array('Attribute.event_id !=' => $events), false, true);
 		$this->Session->setFlash('Removed ' . count($orphans) . ' attribute(s).');
+		$this->redirect('/pages/display/administration');
+	}
+	
+	public function updateAttributeValues($script) {
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('You are not authorised to do that.');
+		switch ($script) {
+			case 'urlSanitisation':
+				$replaceConditions = array(
+					array('search' => 'UPPER(Attribute.value1) LIKE', 'from' => 'HXXP', 'to' => 'http', 'ci' => true, 'condition' => 'startsWith'),
+					array('search' => 'Attribute.value1 LIKE', 'from' => '[.]', 'to' => '.', 'ci' => false, 'condition' => 'contains'),
+				);
+				break;
+			default:
+				throw new Exception('Invalid script.');
+		}
+		$counter = 0;
+		foreach ($replaceConditions as &$rC) {
+			$searchPattern = '';
+			if (in_array($rC['condition'], array('endsWith', 'contains'))) $searchPattern .= '%';
+			$searchPattern .= $rC['from'];
+			if (in_array($rC['condition'], array('startsWith', 'contains'))) $searchPattern .= '%';
+			$attributes = $this->Attribute->find('all', array('conditions' => array($rC['search'] => $searchPattern), 'recursive' => -1));
+			foreach ($attributes as &$attribute) {
+				$regex = '/';
+				if (!in_array($rC['condition'], array('startsWith', 'contains'))) $regex .= '^';
+				$regex .= $rC['from'];
+				if (!in_array($rC['condition'], array('endsWith', 'contains'))) $regex .= '$';
+				$regex .= '/';
+				if ($rC['ci']) $regex .= 'i';
+				$attribute['Attribute']['value'] = preg_replace($regex, $rC['to'], $attribute['Attribute']['value']);
+				$this->Attribute->save($attribute);
+				$counter++;
+			}
+		}
+		$this->Session->setFlash('Updated ' . $counter . ' attribute(s).');
 		$this->redirect('/pages/display/administration');
 	}
 }

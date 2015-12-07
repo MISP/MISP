@@ -2,6 +2,7 @@
 class XMLConverterTool {
 	public function recursiveEcho($array) {
 		$text = "";
+		if (!is_array($array)) return $array;
 		foreach ($array as $k => $v) {
 			if (is_array($v)) {
 				if (empty($v)) $text .= '<' . $k . '/>';
@@ -102,11 +103,15 @@ class XMLConverterTool {
 				unset($temp);
 			}
 		}
-		return array('Event' => $event['Event']);
+		$result = array('Event' => $event['Event']);
+		if (isset($event['errors']) && !empty($event['errors'])) $result['errors'] = $event['errors'];
+		return $result;
 	}
 	
 	public function event2XML($event, $isSiteAdmin=false) {
 		$xmlArray = $this->event2xmlArray($event, $isSiteAdmin);
-		return $this->recursiveEcho(array('Event' => array(0 => $xmlArray['Event'])));
+		$result = array('Event' => array(0 => $xmlArray['Event']));
+		if (isset($xmlArray['errors']) && !empty($xmlArray['errors'])) $result['errors'] = array($xmlArray['errors']);
+		return $this->recursiveEcho($result);
 	}
 }

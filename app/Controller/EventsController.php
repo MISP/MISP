@@ -281,16 +281,25 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$this->set('passedArgs', json_encode($this->passedArgs));
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel');
+		$passedArgs = $this->passedArgs;
+		if (isset($this->request->data)) {
+			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
+			foreach ($overrideAbleParams as &$oap) {
+				if (isset($this->request->data['search' . $oap])) $this->request->data[$oap] = $this->request->data['search' . $oap];
+				if (isset($this->request->data[$oap])) $passedArgs['search' . $oap] = $this->request->data[$oap];
+			}
+		}
+		$this->set('passedArgs', json_encode($passedArgs));
 		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
-		foreach ($this->passedArgs as $k => $v) {
+		foreach ($passedArgs as $k => $v) {
 			if (substr($k, 0, 6) === 'search') {
 				if ($urlparams != "") $urlparams .= "/"; 
 				$urlparams .= $k . ":" . $v;
 				$searchTerm = substr($k, 6);
 				switch ($searchTerm) {
 					case 'all' :
-						$this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($this->passedArgs['searchall']));
+						$this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($passedArgs['searchall']));
 						break;
 					case 'attribute' :
 						$event_id_arrays = $this->__filterOnAttributeValue($v);
@@ -364,41 +373,71 @@ class EventsController extends AppController {
 						if (!$v || !Configure::read('MISP.tagging') || $v === 0) continue 2;
 						$pieces = explode('|', $v);
 						$filterString = "";
+						$expectOR = false;
+						$setOR = false;
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
+								if (is_numeric(substr($piece, 1))) $conditions = array('OR' => array('Tag.id' => substr($piece, 1)));
+								else $conditions = array('OR' => array('Tag.name' => substr($piece, 1)));
+
+								$tagName = $this->Event->EventTag->Tag->find('first', array(
+									'conditions' => $conditions,
+									'fields' => array('id', 'name'),
+									'recursive' => -1,
+								));
+								
+								if (empty($tagName)) {
+									if ($filterString != "") $filterString .= "|";
+									$filterString .= '!' . $piece;
+									continue;
+								}
+								
+								
 								$block = $this->Event->EventTag->find('all', array(
-										'conditions' => array('tag_id' => substr($piece, 1)),
+										'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
 										'fields' => 'event_id',
 										'recursive' => -1,
 								));
 								foreach ($block as $b) {
 									$this->paginate['conditions']['AND'][] = array('Event.id !=' => $b['EventTag']['event_id']);
 								}
+								if ($filterString != "") $filterString .= "|";
+								$filterString .= '!' . (isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece);
+							} else {
+								$expectOR = true;
+								if (is_numeric($piece)) $conditions = array('OR' => array('Tag.id' => $piece));
+								else $conditions = array('OR' => array('Tag.name' => $piece));
+								
 								$tagName = $this->Event->EventTag->Tag->find('first', array(
-										'conditions' => array('id' => substr($piece, 1)),
+										'conditions' => $conditions,
 										'fields' => array('id', 'name'),
 										'recursive' => -1,
 								));
-								if ($filterString != "") $filterString .= "|";
-								$filterString .= '!' . $tagName['Tag']['name'];
-							} else {
+								
+								if (empty($tagName)) {
+									if ($filterString != "") $filterString .= "|";
+									$filterString .= $piece;
+									continue;
+								}
+
 								$allow = $this->Event->EventTag->find('all', array(
-										'conditions' => array('tag_id' => $piece),
+										'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
 										'fields' => 'event_id',
 										'recursive' => -1,
 								));
-								foreach ($allow as $a) {
-									$this->paginate['conditions']['AND']['OR'][] = array('Event.id' => $a['EventTag']['event_id']);
+								if (!empty($allow)) {
+									foreach ($allow as $a) {
+										$setOR = true;
+										$this->paginate['conditions']['AND']['OR'][] = array('Event.id' => $a['EventTag']['event_id']);
+									}
 								}
-								$tagName = $this->Event->EventTag->Tag->find('first', array(
-										'conditions' => array('id' => $piece),
-										'fields' => array('id', 'name'),
-										'recursive' => -1,
-								));
 								if ($filterString != "") $filterString .= "|";
-								$filterString .= $tagName['Tag']['name'];
+								$filterString .= isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece;
 							}
 						}
+						// If we have a list of OR-d arguments, we expect to end up with a list of allowed event IDs
+						// If we don't however, it means that none of the tags was found. To prevent displaying the entire event index in this case:
+						if ($expectOR && !$setOR) $this->paginate['conditions']['AND'][] = array('Event.id' => -1);
 						$v = $filterString;
 						break;
 					case 'distribution' :
@@ -436,8 +475,7 @@ class EventsController extends AppController {
 						$v = $filterString;
 						break;
 					default:
-						if ($v == "") continue 2;
-						$this->paginate['conditions'][] = array('lower(Event.' . substr($k, 6) . ') LIKE' => '%' . $v . '%');
+						continue 2;
 						break;
 				}
 				$passedArgsArray[$searchTerm] = $v;
@@ -467,21 +505,22 @@ class EventsController extends AppController {
 			$rules = array();
 			$fieldNames = array_keys($this->Event->getColumnTypes());
 			$directions = array('ASC', 'DESC');
-			if (isset($this->passedArgs['sort']) && in_array($this->passedArgs['sort'], $fieldNames)) {
-				if (isset($this->passedArgs['direction']) && in_array(strtoupper($this->passedArgs['direction']), $directions)) {
-					$rules['order'] = array($this->passedArgs['sort'] => $this->passedArgs['direction']);
+			if (isset($passedArgs['sort']) && in_array($passedArgs['sort'], $fieldNames)) {
+				if (isset($passedArgs['direction']) && in_array(strtoupper($passedArgs['direction']), $directions)) {
+					$rules['order'] = array($passedArgs['sort'] => $passedArgs['direction']);
 				} else {
-					$rules['order'] = array($this->passedArgs['sort'] => 'ASC');
+					$rules['order'] = array($passedArgs['sort'] => 'ASC');
 				}
 			} else {
 				$rules['order'] = array('Event.id' => 'DESC');
 			}
-			if (isset($this->passedArgs['limit'])) {
-				$rules['limit'] = intval($this->passedArgs['limit']);
+			if (isset($passedArgs['limit'])) {
+				$rules['limit'] = intval($passedArgs['limit']);
 			}
 			$rules['contain'] = $this->paginate['contain'];
 			if (isset($this->paginate['conditions'])) $rules['conditions'] = $this->paginate['conditions'];
 			$events = $this->Event->find('all', $rules);
+
 			$this->set('events', $events);
 		} else {
 			$this->set('events', $this->paginate());
@@ -755,43 +794,32 @@ class EventsController extends AppController {
 					'fields' => array('id', 'event_id', 'distribution', 'title')
 			);
 			$thread = $this->Thread->find('first', $params);
-			if (empty($thread)) {
-				$newThread = array(
-						'date_created' => date('Y/m/d H:i:s'),
-						'date_modified' => date('Y/m/d H:i:s'),
-						'user_id' => $this->Auth->user('id'),
-						'event_id' => $id,
-						'title' => 'Discussion about Event #' . $result['Event']['id'] . ' (' . $result['Event']['info'] . ')',
-						'distribution' => $result['Event']['distribution'],
-						'post_count' => 0,
-						'org' => $result['Event']['orgc']
-				);
-				$this->Thread->save($newThread);
-				$thread = ($this->Thread->read());
-			} else {
+			$posts = array();
+			if (!empty($thread)) {
 				if ($thread['Thread']['distribution'] != $result['Event']['distribution']) {
 					$this->Thread->saveField('distribution', $result['Event']['distribution']);
 				}
-			}
-			$this->loadModel('Post');
-			$this->paginate['Post'] = array(
-					'limit' => 5,
-					'conditions' => array('Post.thread_id' => $thread['Thread']['id']),
-					'contain' => 'User'
-			);
-			$posts = $this->paginate('Post');
-			if (!$this->_isSiteAdmin()) {
-				foreach ($posts as &$post) {
-					if ($post['User']['org'] != $this->Auth->user('org')) {
-						$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org'] . ')';
+				$this->loadModel('Post');
+				$this->paginate['Post'] = array(
+						'limit' => 20,
+						'conditions' => array('Post.thread_id' => $thread['Thread']['id']),
+						'contain' => 'User'
+				);
+				$posts = $this->paginate('Post');
+				if (!$this->_isSiteAdmin()) {
+					foreach ($posts as &$post) {
+						if ($post['User']['org'] != $this->Auth->user('org')) {
+							$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org'] . ')';
+						}
 					}
 				}
 			}
 			// Show the discussion
 			$this->set('posts', $posts);
-			$this->set('thread_id', $thread['Thread']['id']);
+			$this->set('thread', $thread);
+			$this->set('thread_id', isset($thread['Thread']['id']) ? $thread['Thread']['id'] : 0);
 			$this->set('myuserid', $this->Auth->user('id'));
-			$this->set('thread_title', $thread['Thread']['title']);
+			$this->set('thread_title', isset($thread['Thread']['id']) ? $thread['Thread']['title'] : '');
 			if ($this->request->is('ajax')) {
 				$this->disableCache();
 				$this->layout = 'ajax';
@@ -965,15 +993,24 @@ class EventsController extends AppController {
 						$this->request->data = $this->Event->updateXMLArray($this->request->data, false);
 						if (isset($this->request->data['Event']['orgc']) && !$this->userRole['perm_sync']) $this->request->data['Event']['orgc'] = $this->Auth->user('org');
 					}
-					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '');
-					if ($add && !is_numeric($add)) {
+					$validationErrors = array();
+					$created_id = 0;
+					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '', null, false, null, $created_id, $validationErrors);
+					if ($add === true && !is_numeric($add)) {
 						if ($this->_isRest()) {
 							if ($add === 'blocked') {
 								throw new ForbiddenException('Event blocked by local blacklist.');
 							}
 							// REST users want to see the newly created event
-							$this->view($this->Event->getId());
+							// REST users want to see the newly created event
+							$results = $this->Event->fetchEvent($created_id, false, $this->Auth->user('org'), $this->_isSiteAdmin());
+							$event = &$results[0];
+							if (!empty($validationErrors)) {
+								$event['errors'] = $validationErrors;
+							}
+							$this->set('event', $event);
 							$this->render('view');
+							return true;
 						} else {
 							// TODO now save uploaded attributes using $this->Event->getId() ..
 							if (isset($this->data['Event']['submittedgfi'])) $this->_addGfiZip($this->Event->getId());
@@ -994,9 +1031,12 @@ class EventsController extends AppController {
 								$this->response->send();
 								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
 							}
-							// REST users want to see the failed event
-							$this->view($this->Event->getId());
-							$this->render('view');
+							$this->set('name', 'Add event failed.');
+							$this->set('message', 'The event could not be saved.');
+							$this->set('errors', $validationErrors);
+							$this->set('url', '/events/add');
+							$this->set('_serialize', array('name', 'message', 'url', 'errors'));
+							return false;
 						} else {
 							$this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
 							// TODO return error if REST
@@ -1063,107 +1103,33 @@ class EventsController extends AppController {
 		$this->set('published', $this->Event->data['Event']['published']);
 	}
 
-	public function add_xml() {
+	public function add_misp_export() {
 		if (!$this->userRole['perm_modify']) {
 			throw new UnauthorizedException('You do not have permission to do that.');
 		}
 		if ($this->request->is('post')) {
 			if (!empty($this->data)) {
 				$ext = '';
-				if (isset($this->data['Event']['submittedxml'])) {
+				if (isset($this->data['Event']['submittedfile'])) {
 					App::uses('File', 'Utility');
-					$file = new File($this->data['Event']['submittedxml']['name']);
+					$file = new File($this->data['Event']['submittedfile']['name']);
 					$ext = $file->ext();
 				}
-				if (isset($this->data['Event']['submittedxml']) && ($ext != 'xml') && $this->data['Event']['submittedxml']['size'] > 0 &&
+				if (isset($this->data['Event']['submittedfile']) && ($ext != 'xml' && $ext != 'json') && $this->data['Event']['submittedfile']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedxml']['tmp_name'])) {
-					$this->Session->setFlash(__('You may only upload MISP XML files.'));
+					$this->Session->setFlash(__('You may only upload MISP XML or MISP JSON files.'));
 				}
-				if (isset($this->data['Event']['submittedxml'])) {
+				if (isset($this->data['Event']['submittedfile'])) {
 					if (Configure::read('MISP.take_ownership_xml_import') 
 						&& (isset($this->data['Event']['takeownership']) && $this->data['Event']['takeownership'] == 1)) {
-						$this->_addXMLFile(true);
+						$results = $this->_addMISPExportFile($ext, true);
 					} else {
-						$this->_addXMLFile();
+						$results = $this->_addMISPExportFile($ext);
 					}
 				}
-
-				// redirect to the view of the newly created event
-				if (!CakeSession::read('Message.flash')) {
-					$this->Session->setFlash(__('The event has been saved'));
-				} else {
-					$existingFlash = CakeSession::read('Message.flash');
-					$this->Session->setFlash(__('The event has been saved. ' . $existingFlash['message']));
-				}
 			}
-		}
-	}
-
-
-	/**
-	 * Low level function to add an Event based on an Event $data array
-	 *
-	 * @return bool true if success
-	 */
-	public function _add(&$data, $fromXml, $or='', $passAlong = null, $fromPull = false) {
-		$this->Event->create();
-		// force check userid and orgname to be from yourself
-		$auth = $this->Auth;
-		$data['Event']['user_id'] = $auth->user('id');
-		$date = new DateTime();
-		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
-		//else $data['Event']['org'] = $auth->user('org');
-		$data['Event']['org'] = $auth->user('org');
-		// set these fields if the event is freshly created and not pushed from another instance.
-		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
-		if (!isset ($data['Event']['orgc'])) $data['Event']['orgc'] = $data['Event']['org'];
-		if ($fromXml) {
-			// Workaround for different structure in XML/array than what CakePHP expects
-			$this->Event->cleanupEventArrayFromXML($data);
-			// the event_id field is not set (normal) so make sure no validation errors are thrown
-			// LATER do this with	 $this->validator()->remove('event_id');
-			unset($this->Event->Attribute->validate['event_id']);
-			unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-		}
-		unset ($data['Event']['id']);
-		if (isset($data['Event']['uuid'])) {
-			// check if the uuid already exists
-			$existingEventCount = $this->Event->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
-			if ($existingEventCount > 0) {
-				// RESTfull, set responce location header..so client can find right URL to edit
-				if ($fromPull) return false;
-				$existingEvent = $this->Event->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
-				$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $existingEvent['Event']['id']);
-				$this->response->send();
-				return false;
-			}
-		}
-		if (isset($data['Attribute'])) {
-			foreach ($data['Attribute'] as &$attribute) {
-				unset ($attribute['id']);
-			}
-		}
-		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
-		$fieldList = array(
-				'Event' => array('org', 'orgc', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'locked'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'timestamp', 'distribution')
-		);
-
-		$saveResult = $this->Event->saveAssociated($data, array('validate' => true, 'fieldList' => $fieldList,
-			'atomic' => true));
-		// FIXME chri: check if output of $saveResult is what we expect when data not valid, see issue #104
-		if ($saveResult) {
-			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
-				// do the necessary actions to publish the event (email, upload,...)
-				if ('true' != Configure::read('MISP.disablerestalert')) {
-					$this->Event->sendAlertEmailRouter($this->Event->getId(), $this->Auth->user(), $this->_isSiteAdmin());
-				}
-				$this->Event->publish($this->Event->getId(), $passAlong);
-			}
-			return true;
-		} else {
-			//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
-			return false;
+			$this->set('results', $results);
+			$this->render('add_misp_export_result');
 		}
 	}
 
@@ -1244,94 +1210,132 @@ class EventsController extends AppController {
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment'),
 						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org', 'event_org', 'comment', 'event_uuid', 'deleted', 'to_ids', 'uuid')
 				);
-				$c = 0;
-				if (isset($this->request->data['Attribute'])) {
-					foreach ($this->request->data['Attribute'] as $attribute) {
-						if (isset($attribute['uuid'])) {
-							$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
-							if (count($existingAttribute)) {
-								if ($existingAttribute['Attribute']['event_id'] != $id) {
-									$this->loadModel('Log');
-									$result = $this->Log->save(array(
-											'org' => $this->Auth->user('org'),
-											'model' => 'Event',
-											'model_id' => $id,
-											'email' => $this->Auth->user('email'),
-											'action' => 'edit',
-											'user_id' => $this->Auth->user('id'),
-											'title' => 'Duplicate UUID found in attribute',
-											'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
-									));
-									unset($this->request->data['Attribute'][$c]);
-								} else {
-									// If a field is not set in the request, just reuse the old value
-									$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
-									foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $this->request->data['Attribute'][$c][$rF] = $existingAttribute['Attribute'][$rF];
-									$this->request->data['Attribute'][$c]['id'] = $existingAttribute['Attribute']['id'];
-									// Check if the attribute's timestamp is bigger than the one that already exists.
-									// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-									// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-									if (isset($this->request->data['Attribute'][$c]['timestamp'])) {
-										if ($this->request->data['Attribute'][$c]['timestamp'] <= $existingAttribute['Attribute']['timestamp']) unset($this->request->data['Attribute'][$c]);
+				
+				$saveResult = $this->Event->save(array('Event' => $this->request->data['Event']), array('fieldList' => $fieldList['Event']));
+				$this->loadModel('Log');
+				if ($saveResult) {
+					$validationErrors = array();
+					if (isset($this->request->data['Attribute'])) {
+						foreach ($this->request->data['Attribute'] as $k => $attribute) {
+							if (isset($attribute['uuid'])) {
+								$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
+								if (count($existingAttribute)) {
+									if ($existingAttribute['Attribute']['event_id'] != $id) {
+										$result = $this->Log->save(array(
+												'org' => $this->Auth->user('org'),
+												'model' => 'Event',
+												'model_id' => $id,
+												'email' => $this->Auth->user('email'),
+												'action' => 'edit',
+												'user_id' => $this->Auth->user('id'),
+												'title' => 'Duplicate UUID found in attribute',
+												'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
+										));
+										unset($this->request->data['Attribute'][$k]);
 									} else {
-										$this->request->data['Event']['timestamp'] = $date;
+										// If a field is not set in the request, just reuse the old value
+										$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
+										foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $this->request->data['Attribute'][$c][$rF] = $existingAttribute['Attribute'][$rF];
+										$this->request->data['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
+										// Check if the attribute's timestamp is bigger than the one that already exists.
+										// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+										// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+										if (isset($this->request->data['Attribute'][$k]['timestamp'])) {
+											if ($this->request->data['Attribute'][$k]['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
+												unset($this->request->data['Attribute'][$k]);
+												continue;
+											} 
+										} else $this->request->data['Event']['timestamp'] = $date;
 									}
 								}
 							}
-						}
-						$c++;
-					}
-				}
-				
-				// check if the exact proposal exists, if yes check if the incoming one is deleted or not. If it is deleted, remove the old proposal and replace it with the one marked for being deleted
-				// otherwise throw the new one away.
-				if (isset($this->request->data['ShadowAttribute'])) {
-					foreach ($this->request->data['ShadowAttribute'] as $k => &$proposal) {
-						$existingProposal = $this->Event->ShadowAttribute->find('first', array(
-							'recursive' => -1,
-							'conditions' => array(
-								'value' => $proposal['value'],
-								'category' => $proposal['category'],
-								'to_ids' => $proposal['to_ids'],
-								'type' => $proposal['type'],
-								'event_uuid' => $proposal['event_uuid'],
-								'uuid' => $proposal['uuid']
-							)
-						));
-						if ($existingProposal['ShadowAttribute']['deleted'] == 1) {
-							$this->Event->ShadowAttribute->delete($existingProposal['ShadowAttribute']['id'], false);
-						} else {
-							unset($this->request->data['ShadowAttribute'][$k]);
+							$this->request->data['Attribute'][$k]['event_id'] = $this->Event->id;
+							if (!$this->Event->Attribute->save($this->request->data['Attribute'][$k], array('fieldList' => $fieldList))) {
+								$validationErrors['Attribute'][$k] = $this->Event->Attribute->validationErrors;
+								$attribute_short = (isset($this->request->data['Attribute'][$k]['category']) ? $this->request->data['Attribute'][$k]['category'] : 'N/A') . '/' . (isset($this->request->data['Attribute'][$k]['type']) ? $this->request->data['Attribute'][$k]['type'] : 'N/A') . ' ' . (isset($this->request->data['Attribute'][$k]['value']) ? $this->request->data['Attribute'][$k]['value'] : 'N/A');
+								$this->Log->create();
+								$this->Log->save(array(
+										'org' => $this->Auth->user('org'),
+										'model' => 'Attribute',
+										'model_id' => 0,
+										'email' => $this->Auth->user('email'),
+										'action' => 'edit',
+										'user_id' => $this->Auth->user('id'),
+										'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
+										'change' => json_encode($this->Event->Attribute->validationErrors),
+								));
+							}
 						}
 					}
-				}
-				// this saveAssociated() function will save not only the event, but also the attributes
-				// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-				if ($saveEvent) {
-					$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
-				} else {
-					throw new MethodNotAllowedException();
-				}
-
-				if ($saveResult) {
-					// TODO RESTfull: we now need to compare attributes, to see if we need to do a RESTfull attribute delete
+					// check if the exact proposal exists, if yes check if the incoming one is deleted or not. If it is deleted, remove the old proposal and replace it with the one marked for being deleted
+					// otherwise throw the new one away.
+					if (isset($this->request->data['ShadowAttribute'])) {
+						foreach ($this->request->data['ShadowAttribute'] as $k => &$proposal) {
+							$existingProposal = $this->Event->ShadowAttribute->find('first', array(
+									'recursive' => -1,
+									'conditions' => array(
+											'value' => $proposal['value'],
+											'category' => $proposal['category'],
+											'to_ids' => $proposal['to_ids'],
+											'type' => $proposal['type'],
+											'event_uuid' => $proposal['event_uuid'],
+											'uuid' => $proposal['uuid']
+									)
+							));
+							if (!empty($existingProposal)) {
+								if ($existingProposal['ShadowAttribute']['deleted'] == 1) {
+									$this->Event->ShadowAttribute->delete($existingProposal['ShadowAttribute']['id'], false);
+								} else {
+									unset($this->request->data['ShadowAttribute'][$k]);
+									continue;
+								}
+								$this->Event->ShadowAttribute->create();
+							}
+							$this->Event->ShadowAttribute->save($this->request->data['ShadowAttribute'][$k], array('fieldList' => $fieldList));
+						}
+					}
+					// this saveAssociated() function will save not only the event, but also the attributes
+					// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
+					if ($saveEvent) {
+						$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
+					} else {
+						throw new MethodNotAllowedException();
+					}
 					$message = 'Saved';
 					$this->set('event', $this->Event->data);
 					//if published -> do the actual publishing
 					if ((!empty($this->request->data['Event']['published']) && 1 == $this->request->data['Event']['published'])) {
 						// do the necessary actions to publish the event (email, upload,...)
+						if ('true' != Configure::read('MISP.disablerestalert')) {
+							$this->Event->sendAlertEmailRouter($id, $this->Auth->user());
+						}
 						$this->Event->publish($existingEvent['Event']['id']);
 					}
-
+					
 					// REST users want to see the newly created event
-					$this->view($this->Event->getId());
+					$results = $this->Event->fetchEvent($id, false, $this->Auth->user('org'), $this->_isSiteAdmin());
+					$event = &$results[0];
+					if (!empty($validationErrors)) {
+						$event['errors'] = $validationErrors;
+					}
+					$this->set('event', $event);
 					$this->render('view');
 					return true;
 				} else {
 					$message = 'Error';
-					$this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
-					$this->render('edit');
-					//throw new MethodNotAllowedException("Validation ERROR: \n".var_export($this->Event->validationErrors, true));
+					if ($this->_isRest()) {
+						App::uses('JSONConverterTool', 'Tools');
+						$converter = new JSONConverterTool();
+						$errors = $converter->arrayPrinter($this->Event->validationErrors);
+						$this->set('name', 'Add event failed.');
+						$this->set('message', $message);
+						$this->set('errors', $errors);
+						$this->set('url', '/events/edit/' . $id);
+						$this->set('_serialize', array('name', 'message', 'url', 'errors'));
+					} else {
+						$this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
+						$this->render('edit');
+					}
 					return false;
 				}
 			}
@@ -2162,38 +2166,51 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function _addXMLFile($take_ownership = false) {
-		if (!empty($this->data) && $this->data['Event']['submittedxml']['size'] > 0 &&
-		is_uploaded_file($this->data['Event']['submittedxml']['tmp_name'])) {
-			$xmlData = fread(fopen($this->data['Event']['submittedxml']['tmp_name'], "r"),
-					$this->data['Event']['submittedxml']['size']);
+	public function _addMISPExportFile($ext, $take_ownership = false) {
+		$data = fread(fopen($this->data['Event']['submittedfile']['tmp_name'], "r"), $this->data['Event']['submittedfile']['size']);
+		if ($ext == 'xml') {
 			App::uses('Xml', 'Utility');
-			$xmlArray = Xml::toArray(Xml::build($xmlData));
-
-			// In case we receive an event that is not encapsulated in a response. This should never happen (unless it's a copy+paste fail),
-			// but just in case, let's clean it up anyway.
-			if (isset($xmlArray['Event'])) {
-				$xmlArray['response']['Event'] = $xmlArray['Event'];
-				unset($xmlArray['Event']);
-			}
-
-			if (!isset($xmlArray['response']) || !isset($xmlArray['response']['Event'])) {
-				throw new Exception('This is not a valid MISP XML file.');
-			}
-			$xmlArray = $this->Event->updateXMLArray($xmlArray);	
-			
-			if (isset($xmlArray['response']['Event'][0])) {
-				foreach ($xmlArray['response']['Event'] as $event) {
-					$temp['Event'] = $event;
-					if ($take_ownership) $temp['Event']['orgc'] = $this->Auth->user('org');
-					$this->Event->_add($temp, true, $this->Auth->user());
+			$dataArray = Xml::toArray(Xml::build($data));
+		} else {
+			$dataArray = json_decode($data, true);
+			if (isset($dataArray['response'][0])) {
+				foreach ($dataArray['response'] as $k => &$temp) {
+					$dataArray['Event'][] = $temp['Event'];
+					unset ($dataArray['response'][$k]);
 				}
-			} else {
-				$temp['Event'] = $xmlArray['response']['Event'];
-				if ($take_ownership) $temp['Event']['orgc'] = $this->Auth->user('org');
-				$this->Event->_add($temp, true, $this->Auth->user());
 			}
 		}
+		// In case we receive an event that is not encapsulated in a response. This should never happen (unless it's a copy+paste fail),
+		// but just in case, let's clean it up anyway.
+		if (isset($dataArray['Event'])) {
+			$dataArray['response']['Event'] = $dataArray['Event'];
+			unset($dataArray['Event']);
+		}
+		if (!isset($dataArray['response']) || !isset($dataArray['response']['Event'])) {
+			throw new Exception('This is not a valid MISP XML file.');
+		}
+		$dataArray = $this->Event->updateXMLArray($dataArray);
+		$results = array();
+		$validationIssues = array();
+		if (isset($dataArray['response']['Event'][0])) {
+			foreach ($dataArray['response']['Event'] as $k => $event) {
+				$result = array('info' => $event['info']);
+				if ($take_ownership) $event['orgc'] = $this->Auth->user('org');
+				$event = array('Event' => $event);
+				$created_id = 0;
+				$result['result'] = $this->Event->_add($event, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
+				$result['id'] = $created_id;
+				$result['validationIssues'] = $validationIssues;
+				$results[] = $result;
+			}
+		} else {
+			$temp['Event'] = $dataArray['response']['Event'];
+			if ($take_ownership) $temp['Event']['orgc'] = $this->Auth->user('org');
+			$created_id = 0;
+			$result = $this->Event->_add($temp, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
+			$results = array(0 => array('info' => $temp['Event']['info'], 'result' => $result, 'id' => $created_id, 'validationIssues' => $validationIssues));
+		}
+		return $results;
 	}
 
 	public function _readGfiXML($data, $id) {

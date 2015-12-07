@@ -468,6 +468,10 @@ class Attribute extends AppModel {
 				$pieces = explode('|', $this->data['Attribute']['value']);
 				$this->data['Attribute']['value'] = $pieces[0] . '|' . strtolower($pieces[1]);
 				break;
+			case 'url':
+				$this->data['Attribute']['value'] = preg_replace('/^hxxp/i', 'http', $this->data['Attribute']['value']);
+				$this->data['Attribute']['value'] = preg_replace('/\[\.\]/', '.' , $this->data['Attribute']['value']);
+				break;
 		}
 
 		// uppercase the following types
@@ -1694,5 +1698,17 @@ class Attribute extends AppModel {
 			if ($hashType['length'] == $length && preg_match($hashType['pattern'], $temp)) $validTypes[] = $k;
 		}
 		return $validTypes;
+	}
+	
+	public function validateAttribute($attribute, $context = true) {
+		$this->set($attribute);
+		if (!$context) {
+			unset($this->validate['event_id']); 
+			unset($this->validate['value']['uniqueValue']);
+		}
+		if ($this->validates()) return true;
+		else {
+			return $this->validationErrors;
+		}
 	}
 }
