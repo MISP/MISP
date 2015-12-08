@@ -8,7 +8,7 @@
 			echo $this->Form->input('comment', array(
 					'type' => 'textarea',
 					'label' => false,
-					'value' => h($object['comment']),
+					'value' => $object['comment'],
 					'error' => array('escape' => false),
 					'class' => 'inline-input',
 					'id' => 'Attribute' . '_' . $object['id'] . '_comment_field',
