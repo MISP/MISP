@@ -3018,10 +3018,7 @@ class EventsController extends AppController {
 	
 	public function exportChoice($id) {
 		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
-		$event = $this->Event->fetchEvent($this->Auth->user(), array(
-				'conditions' => array('Event.id' => $id),
-				'fields' => array('Event.distribution', 'Event.orgc_id','Event.id', 'Event.published'),
-		));
+		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
 		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
 		$event = $event[0];
 		$exports = array(

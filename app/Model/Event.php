@@ -993,6 +993,7 @@ class Event extends AppModel {
 	// includeAllTags: true will include the tags
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array()) {
+		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
 		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments');
 		foreach ($possibleOptions as &$opt) if (!isset($options[$opt])) $options[$opt] = false;
 		if ($options['eventid']) {
