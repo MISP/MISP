@@ -882,6 +882,10 @@ class Attribute extends AppModel {
 				if (substr($value, 0, 1) == '+') $value = '00' . $value(substr($value, 1));
 				$value = preg_replace('/[^0-9]+/', '', $value);
 				break;
+			case 'url':
+				$value = preg_replace('/^hxxp/i', 'http', $value);
+				$value = preg_replace('/\[\.\]/', '.' , $value);
+				break;
 				
 		}
 		return $value;
