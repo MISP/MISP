@@ -330,6 +330,12 @@ class SharingGroup extends AppModel {
 			$newSG['sync_user_id'] = $user['id'];
 			if (!$this->save($newSG)) return false;
 			$sgids = $this->id;
+		} else {
+			if ($sg['modified'] > $existingSG['SharingGroup']['modified']) {
+				$sgids = $existingSG['SharingGroup']['id'];
+			} else {
+				return $existingSG['SharingGroup']['id'];
+			}
 		}
 		$sg['org_id'] = $this->Organisation->captureOrg($sg['Organisation'], $user);
 		unset ($sg['Organisation']);
