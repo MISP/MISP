@@ -136,6 +136,22 @@ class Server extends AppModel {
 							'test' => 'testBaseURL',
 							'type' => 'string',
 					),
+					'live' => array(
+							'level' => 0,
+							'description' => 'Unless set to true, the instance will only be accessible by site admins.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
+					'maintenance_message' => array(
+							'level' => 2,
+							'description' => 'The message that users will see if the instance is not live.',
+							'value' => 'Great things are happening! MISP is undergoing maintenance, but will return shortly. You can contact the administration at $email.',
+							'errorMessage' => 'If this is not set the default value will be used.',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
 					'name' => array(
 							'level' => 3,
 							'description' => 'This setting is deprecated and can be safely removed.',
@@ -1785,6 +1801,7 @@ class Server extends AppModel {
 	}
 	
 	public function captureServer($server, $user) {
+		if ($server['url'] == Configure::read('MISP.baseurl')) return 0;
 		$existingServer = $this->find('first', array(
 				'recursive' => -1,
 				'conditions' => array('url' => $server['url'])

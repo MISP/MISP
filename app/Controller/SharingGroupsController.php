@@ -113,7 +113,7 @@ class SharingGroupsController extends AppController {
 				$failedField = array_keys($validationErrors)[0];
 				$reason = reset($this->SharingGroup->validationErrors)[0];
 				foreach ($validationReplacements as $k => $vR) if ($reason == $k) $reason = $vR;
-				$this->Session->setFlash('The sharing group could not be added. ' . ucfirst($failedField) . ': ' . $reason);
+				$this->Session->setFlash('The sharing group could not be edited. ' . ucfirst($failedField) . ': ' . $reason);
 			}
 		}
 		$orgs = $this->SharingGroup->Organisation->find('all', array(

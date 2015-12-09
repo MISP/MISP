@@ -112,7 +112,11 @@ class AppModel extends Model {
 				KEY `taxonomy_id` (`taxonomy_id`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 				
-				$sqlArray[] = 'ALTER TABLE `jobs` ADD  `org` text COLLATE utf8_bin NOT NULL';
+				$sqlArray[] = 'ALTER TABLE `jobs` ADD  `org` text COLLATE utf8_bin NOT NULL;';
+				
+				$sqlArray[] = 'ALTER TABLE  `servers` ADD  `name` varchar(255) NOT NULL;';
+				
+				$sqlArray[] = 'ALTER TABLE  `sharing_groups` ADD  `sync_user_id` INT( 11 ) NOT NULL DEFAULT \'0\' AFTER  `org_id`;';
 				
 				break;
 			default:

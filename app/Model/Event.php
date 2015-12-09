@@ -598,15 +598,11 @@ class Event extends AppModel {
 		foreach ($objects as $object) {
 			// Workaround for different structure in XML/array than what CakePHP expects
 			if (isset($data['Event'][$object]) && is_array($data['Event'][$object]) && count($data['Event'][$object])) {
-				if (is_numeric(implode(array_keys($data['Event'][$object]), ''))) {
-					// normal array of multiple Attributes
-					$data[$object] = $data['Event'][$object];
-				} else {
+				if (!is_numeric(implode(array_keys($data['Event'][$object]), ''))) {
 					// single attribute
-					$data[$object][0] = $data['Event'][$object];
+					$data['Event'][$object][0] = $data['Event'][$object];
 				}
 			}
-			unset($data['Event'][$object]);
 		}
 		return $data;
 	}
@@ -1008,6 +1004,7 @@ class Event extends AppModel {
 		//restricting to non-private or same org if the user is not a site-admin.
 		if (!$isSiteAdmin) {
 			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
+			if (empty($sgids)) $sgids = array(-1);
 			$conditions['AND']['OR'] = array(
 				'Event.org_id' => $user['org_id'],
 				array(
@@ -1071,10 +1068,6 @@ class Event extends AppModel {
 		if ($options['to_ids']) {
 			$conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
 		}
-		
-		if (isset($user['Server']) && $user['Server']['push_rules']) {
-			$conditions['AND'][] = $this->filterRulesToConditions($user['Server']['push_rules']);
-		}
 
 		// removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
 		// $conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
@@ -1132,12 +1125,11 @@ class Event extends AppModel {
 				),
 			)
 		);
-		
 		if ($user['Role']['perm_site_admin']) {
 			$params['contain']['User'] = array('fields' => 'email');
 		}
 		$results = $this->find('all', $params);
-		if (empty($results)) throw new NotFoundException(__('Invalid event'));
+		if (empty($results)) return array();
 		// Do some refactoring with the event
 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
 		foreach ($results as $eventKey => &$event) {
@@ -1553,6 +1545,27 @@ class Event extends AppModel {
 	// When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
 	// or which we need to update. All of that is controller in this method.
 	private function __captureObjects($data, $user) {
+		// First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
+		// For this we first collect all the sharing groups
+		$sgs = array();
+		if ($data['Event']['distribution'] == 4) $sgs[$data['Event']['SharingGroup']['uuid']] = $data['Event']['SharingGroup'];
+		if (isset($data['Event']['Attribute'])) {
+			foreach ($data['Event']['Attribute'] as &$attribute) {
+				if ($attribute['distribution'] == 4 && !isset($sgs[$attribute['SharingGroup']['uuid']])) $sgs[$attribute['SharingGroup']['uuid']] = $attribute['SharingGroup']; 
+			}
+		}
+		
+		if ($data['Event']['distribution'] == 4) {
+			$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
+			unset ($data['Event']['SharingGroup']);
+		}
+		if(isset($data['Attribute'])) foreach ($data['Attribute'] as $k => &$a) {
+			unset($data['Attribute']['id']);
+			if($a['distribution'] == 4) {
+				$data['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Attribute'][$k]['SharingGroup'], $user);
+			}
+			unset($data['Attribute'][$k]['SharingGroup']);
+		}
 		// first we want to see how the creator organisation is encoded
 		// The options here are either by passing an organisation object along or simply passing a string along
 		if (isset($data['Event']['Orgc'])) {
@@ -1576,17 +1589,6 @@ class Event extends AppModel {
 				unset ($data['Event']['EventTag'][$k]);
 			}
 			$data['Event']['EventTag'] = $eventTags;
-		}
-		if ($data['Event']['distribution'] == 4) {
-			$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
-			unset ($data['Event']['SharingGroup']);
-		}
-		if(isset($data['Attribute'])) foreach ($data['Attribute'] as $k => &$a) {
-			unset($data['Attribute']['id']);
-			if($a['distribution'] == 4) {
-				$data['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Attribute'][$k]['SharingGroup'], $user);
-			}
-			unset($data['Attribute'][$k]['SharingGroup']);
 		}
 		return $data;
 	}
@@ -1659,13 +1661,15 @@ class Event extends AppModel {
 		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
 		$this->Log = ClassRegistry::init('Log');
 		if ($saveResult) {
-			if (isset($data['Event']['EventTag'])) foreach ($data['Event']['EventTag'] as $et) {
+			if (isset($data['Event']['EventTag'])) { 
+				foreach ($data['Event']['EventTag'] as $et) {
 					$this->EventTag->create();
 					$et['event_id'] = $this->id;
 					$this->EventTag->save($et);
+				}
 			}
-			if (isset($data['Attribute'])) {
-				foreach ($data['Attribute'] as $k => &$attribute) {
+			if (isset($data['Event']['Attribute'])) {
+				foreach ($data['Event']['Attribute'] as $k => &$attribute) {
 					$attribute['event_id'] = $this->id;
 					unset ($attribute['id']);
 					$this->Attribute->create();
@@ -1686,7 +1690,7 @@ class Event extends AppModel {
 					}
 				}
 			}
-
+			
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
@@ -1724,28 +1728,28 @@ class Event extends AppModel {
 		$data = $this->cleanupEventArrayFromXML($data);
 		$saveResult = $this->save($data, array('fieldList' => $fieldList['Event']));
 		if ($saveResult) {
-			if (isset($data['Attribute'])) {
-				foreach ($data['Attribute'] as $k => &$attribute) {
+			if (isset($data['Event']['Attribute'])) {
+				foreach ($data['Event']['Attribute'] as $k => &$attribute) {
 					$mode = 'add';
-					$data['Attribute'][$k]['event_id'] = $this->id;
+					$data['Event']['Attribute'][$k]['event_id'] = $this->id;
 					$existingAttribute = $this->__searchUuidInAttributeArray($attribute['uuid'], $localEvent);
 					if (count($existingAttribute)) {
 						// Check if the attribute's timestamp is bigger than the one that already exists.
 						// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
 						// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-						if ($data['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-							$data['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
+						if ($data['Event']['Attribute'][$k]['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+							$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
 						} else {
-							unset($data['Attribute'][$k]);
+							unset($data['Event']['Attribute'][$k]);
 							continue;
 						}
 					} else {
-						unset($data['Attribute'][$k]['id']);
+						unset($data['Event']['Attribute'][$k]['id']);
 						$this->Attribute->create();
 					}
-					if (!$this->Attribute->save($data['Attribute'][$k], array('fieldList' => $fieldList['Attribute']))) {
+					if (!$this->Attribute->save($data['Event']['Attribute'][$k], array('fieldList' => $fieldList['Attribute']))) {
 						$validationErrors[] = $this->Attribute->validationErrors;
-						$attribute_short = (isset($data['Attribute'][$k]['category']) ? $data['Attribute'][$k]['category'] : 'N/A') . '/' . (isset($data['Attribute'][$k]['type']) ? $data['Attribute'][$k]['type'] : 'N/A') . ' ' . (isset($data['Attribute'][$k]['value']) ? $data['Attribute'][$k]['value'] : 'N/A');
+						$attribute_short = (isset($data['Event']['Attribute'][$k]['category']) ? $data['Event']['Attribute'][$k]['category'] : 'N/A') . '/' . (isset($data['Event']['Attribute'][$k]['type']) ? $data['Event']['Attribute'][$k]['type'] : 'N/A') . ' ' . (isset($data['Event']['Attribute'][$k]['value']) ? $data['Event']['Attribute'][$k]['value'] : 'N/A');
 						$this->Log->create();
 						$this->Log->save(array(
 								'org' => $user['Organisation']['name'],
@@ -1933,7 +1937,7 @@ class Event extends AppModel {
 			if (!empty($hostOrg)) {
 				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => false, 'perm_site_admin' => false), 'Organisation' => $hostOrg['Org']);
 				$fullEvent = $this->fetchEvent($user, array('eventid' => $id));
-				$pubSubTool->publishEvent($fullEvent[0]);
+				if (!empty($fullEvent)) $pubSubTool->publishEvent($fullEvent[0]);
 			}
 		}
 		if ($event['Event']['distribution'] > 1) {

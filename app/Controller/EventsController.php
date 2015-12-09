@@ -702,9 +702,9 @@ class EventsController extends AppController {
 			$conditions['includeAllTags'] = true;
 		}
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
+		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = &$results[0];
 
-		if (empty($results)) throw new NotFoundException('Invalid event');
 		if ($this->_isRest()) $this->set('event', $event);
 		if (!$this->_isRest()) $this->__viewUI($event, $continue, $fromEvent);
 	}
@@ -820,7 +820,8 @@ class EventsController extends AppController {
 			throw new MethodNotAllowedException('You don\'t have permissions to create events');
 		}
 		$this->loadModel('SharingGroup');
-		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+		if ($this->userRole['perm_sync']) $sguuids = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'uuid',  1);
+		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), false,  1);
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
 				
@@ -843,7 +844,12 @@ class EventsController extends AppController {
 				} else {
 					// If the distribution is set to sharing group, check if the id provided is really visible to the user, if not throw an error.
 					if ($this->request->data['Event']['distribution'] == 4) {
-						if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
+						if ($this->userRole['perm_sync']) {
+							if (!$this->SharingGroup->checkIfAuthorisedToSave($this->Auth->user(), $this->request->data['Event']['SharingGroup'])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised. (Sync user is not contained in the Sharing group)');
+							//if (!isset($this->request->data['Event']['SharingGroup']))
+						} else {
+							if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
+						}
 					} else {
 						// If the distribution is set to something "traditional", set the SG id to 0. 
 						$this->request->data['Event']['sharing_group_id'] = 0;
@@ -1285,7 +1291,7 @@ class EventsController extends AppController {
 		$this->Event->read();
 		
 		if (!$this->_isSiteAdmin()) {
-			if ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg()) {
+			if ($this->Event->data['Event']['org_id'] != $this->_checkOrg() || !$this->userRole['perm_modify']) {
 				throw new MethodNotAllowedException();
 			}
 		}

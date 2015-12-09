@@ -180,6 +180,26 @@ class AppController extends Controller {
 			$base_dir = '';
 		}
 
+		// check if MISP is live
+		if ($this->Auth->user() && !Configure::read('MISP.live')) {
+			$role = $this->getActions();
+			if (!$role['perm_site_admin']) {
+				$message = Configure::read('MISP.maintenance_message');
+				if (empty($messaage)) {
+					$this->loadModel('Server');
+					$message = $this->Server->serverSettings['MISP']['maintenance_message']['value'];
+				}
+				if (strpos($message, '$email') && Configure::read('MISP.email')) {
+					$email = Configure::read('MISP.email');
+					$message = str_replace('$email', $email, $message);
+				}
+				$this->Auth->logout();
+				throw new MethodNotAllowedException($message);
+			} else {
+				$this->Session->setFlash('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)');				
+			}
+		}
+
 		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
 			$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 		}
