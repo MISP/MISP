@@ -141,7 +141,7 @@ class Server extends AppModel {
 							'description' => 'Unless set to true, the instance will only be accessible by site admins.',
 							'value' => false,
 							'errorMessage' => '',
-							'test' => 'testBool',
+							'test' => 'testLive',
 							'type' => 'boolean',
 					),
 					'maintenance_message' => array(
@@ -1457,6 +1457,12 @@ class Server extends AppModel {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		$protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
 		if ($value != strtolower($protocol) . '://' . $_SERVER['HTTP_HOST']) return false;
+		return true;
+	}
+	
+	public function testLive($value) {
+		if ($this->testBool($value) !== true) return $this->testBool($value);
+		if (!$value) return 'MISP disabled.';
 		return true;
 	}
 	

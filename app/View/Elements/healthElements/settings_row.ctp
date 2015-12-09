@@ -18,5 +18,5 @@
 		<td id="setting_<?php echo $k; ?>_placeholder" class="short hidden inline-field-placeholder" style="<?php echo $bgColour; ?>width:500px;"></td>
 	<?php endif; ?>
 	<td style="<?php echo $bgColour; ?>"><?php echo h($setting['description']);?></td>
-	<td style="<?php echo $bgColour; ?>"><?php if (isset($setting['error']) && $setting['level'] != 3) echo h($setting['errorMessage']); ?></td>
+	<td  class="short" style="<?php echo $bgColour; ?>"><?php if (isset($setting['error']) && $setting['level'] != 3) echo h($setting['errorMessage']); ?></td>
 </tr>
