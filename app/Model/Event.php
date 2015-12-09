@@ -786,7 +786,7 @@ class Event extends AppModel {
 		}
 		
 		// cleanup the array from things we do not want to expose
-		foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'locked', 'org', 'orgc') as $field) unset($event['Event'][$field]);
+		foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) unset($event['Event'][$field]);
 		foreach ($event['Event']['EventTag'] as $kt => $tag) {
 			if (!$tag['Tag']['exportable']) unset($event['Event']['EventTag'][$kt]);
 		}

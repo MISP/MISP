@@ -821,7 +821,7 @@ class EventsController extends AppController {
 		}
 		$this->loadModel('SharingGroup');
 		if ($this->userRole['perm_sync']) $sguuids = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'uuid',  1);
-		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), false,  1);
+		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
 				
@@ -844,7 +844,7 @@ class EventsController extends AppController {
 				} else {
 					// If the distribution is set to sharing group, check if the id provided is really visible to the user, if not throw an error.
 					if ($this->request->data['Event']['distribution'] == 4) {
-						if ($this->userRole['perm_sync']) {
+						if ($this->userRole['perm_sync'] && $this->_isRest()) {
 							if (!$this->SharingGroup->checkIfAuthorisedToSave($this->Auth->user(), $this->request->data['Event']['SharingGroup'])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised. (Sync user is not contained in the Sharing group)');
 							//if (!isset($this->request->data['Event']['SharingGroup']))
 						} else {
