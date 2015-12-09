@@ -68,7 +68,7 @@ class UsersController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// What fields should be saved (allowed to be saved)
-			$fieldList = array('email', 'autoalert', 'gpgkey', 'nids_sid', 'contactalert');
+			$fieldList = array('email', 'autoalert', 'gpgkey', 'nids_sid', 'contactalert', 'disabled');
 			if ("" != $this->request->data['User']['password'])
 				$fieldList[] = 'password';
 			// Save the data
@@ -357,6 +357,7 @@ class UsersController extends AppController {
 				$this->request->data['User']['change_pw'] = 1;
 				$this->request->data['User']['termsaccepted'] = 0;
 			}
+			if (!isset($this->request->data['User']['disabled'])) $this->request->data['User']['disabled'] = false;
 			$this->request->data['User']['newsread'] = '2000-01-01';
 			if (!$this->_isSiteAdmin()) {
 				$this->request->data['User']['org_id'] = $this->Auth->User('org_id');

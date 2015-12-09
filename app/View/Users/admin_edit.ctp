@@ -38,6 +38,11 @@
 
 		echo $this->Html->link('Reset Auth Key', array('controller' => 'users', 'action' => 'resetauthkey', $currentId));
 	?>
+		<div class="clear"></div>
+	<?php
+		echo $this->Form->input('disabled', array('label' => 'Disable this user account'));
+		
+	?>
 	</fieldset>
 <?php
 	echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));

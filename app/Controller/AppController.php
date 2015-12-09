@@ -179,7 +179,31 @@ class AppController extends Controller {
 		if ($base_dir == '/') {
 			$base_dir = '';
 		}
-
+		
+		if ($this->Auth->user()) {
+			if ($this->Auth->user('disabled')) {
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$log = array(
+						'org' => $this->Auth->user('Organisation')['name'],
+						'model' => 'User',
+						'model_id' => $this->Auth->user('id'),
+						'email' => $this->Auth->user('email'),
+						'action' => 'auth_fail',
+						'title' => 'Login attempt by disabled user.',
+						'change' => null,
+				);
+				$this->Log->save($log);
+				$this->Auth->logout();
+				if ($this->_isRest()) {
+					throw new ForbiddenException('Authentication failed. Your user account has been disabled.');
+				} else {
+					$this->Session->setFlash('Your user account has been disabled.');
+					$this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+				}
+			}
+		}
+		
 		// check if MISP is live
 		if ($this->Auth->user() && !Configure::read('MISP.live')) {
 			$role = $this->getActions();

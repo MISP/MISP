@@ -50,6 +50,7 @@
 			<th><?php echo $this->Paginator->sort('nids_sid');?></th>
 			<th><?php echo $this->Paginator->sort('termsaccepted');?></th>
 			<th><?php echo $this->Paginator->sort('newsread');?></th>
+			<th><?php echo $this->Paginator->sort('disabled');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 		</tr>
 		<?php
@@ -81,6 +82,8 @@
 			?>&nbsp;</td>
 			<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 			<?php echo h($user['User']['newsread']); ?>&nbsp;</td>
+			<td class="short <?php if ($user['User']['disabled']) echo 'red bold';?>" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
+			<?php echo ($user['User']['disabled'] ? 'Yes' : 'No'); ?></td>
 			<td class="short action-links">
 				<?php
 		if (($isAclAdmin && (($user['User']['org_id'] == $me['org_id'])) || ('1' == $me['id'])) || ($isSiteAdmin)) {
@@ -88,7 +91,7 @@
 			<span class="icon-refresh useCursorPointer" onClick="initiatePasswordReset('<?php echo $user['User']['id']; ?>');"></span>
 		<?php
 					echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $user['User']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
-					echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $user['User']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $user['User']['id']));
+					echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $user['User']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', $user['User']['id']));
 		}?>
 				<?php echo $this->Html->link('', array('admin' => true, 'action' => 'view', $user['User']['id']), array('class' => 'icon-list-alt', 'title' => 'View')); ?>
 			</td>

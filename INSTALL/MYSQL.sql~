@@ -544,7 +544,6 @@ CREATE TABLE IF NOT EXISTS `users` (
   `change_pw` tinyint(4) NOT NULL,
   `contactalert` tinyint(1) NOT NULL,
   `disabled` BOOLEAN NOT NULL,
-  `expiration` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `email` (`email`),
   KEY `password` (`password`)

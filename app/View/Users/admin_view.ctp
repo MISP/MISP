@@ -87,6 +87,11 @@ if (h($user['User']['change_pw']) == 1) {
 			<?php echo h($user['User']['newsread']); ?>
 			&nbsp;
 		</dd>
+		<dt><?php echo __('Disabled'); ?></dt>
+		<dd <?php if ($user['User']['disabled']) echo 'class="visibleDL notPublished"';?>>
+			<?php echo $user['User']['disabled'] ? 'Yes' : 'No'; ?>
+			&nbsp;
+		</dd>
 	</dl>
 	<br />
 	<div class="related table table-striped table-condensed">
