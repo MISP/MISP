@@ -1241,6 +1241,8 @@ class EventsController extends AppController {
 
 		$this->loadModel('SharingGroup');
 		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+		// even if the SG is not local, we still want the option to select the currently assigned SG
+		if (!isset($sgs[$this->Event->data['SharingGroup']['id']])) $sgs[$this->Event->data['SharingGroup']['id']] = $this->Event->data['SharingGroup']['name'];
 		$this->set('sharingGroups', $sgs);
 		
 		$distributionLevels = $this->Event->distributionLevels;
@@ -1262,7 +1264,6 @@ class EventsController extends AppController {
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
-
 		$this->set('event', $this->Event->data);
 	}
 

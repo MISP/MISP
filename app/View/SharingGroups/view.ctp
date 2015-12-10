@@ -21,7 +21,7 @@
 			endforeach;
 		?>
 		<dt>Created by</dt>
-		<dd><a href="/organisation/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
+		<dd><a href="/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
 	</dl><br />
 	<div class="row" style="width:100%;">
 	<?php 

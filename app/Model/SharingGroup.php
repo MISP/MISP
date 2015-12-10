@@ -328,6 +328,7 @@ class SharingGroup extends AppModel {
 			foreach ($attributes as $a)	$newSG[$a] = $sg[$a];
 			$newSG['local'] = 0;
 			$newSG['sync_user_id'] = $user['id'];
+			$newSG['org_id'] = $this->Organisation->captureOrg($sg['Organisation'], $user);
 			if (!$this->save($newSG)) return false;
 			$sgids = $this->id;
 		} else {
