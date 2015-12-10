@@ -24,11 +24,13 @@ class Organisation extends AppModel{
 		'uuid' => array(
             'unique' => array(
                 'rule' => 'isUnique',
-                'message' => 'An organisation with this UUID already exists.'
+                'message' => 'An organisation with this UUID already exists.',
+            	'allowEmpty' => true
             ),
 			'uuid' => array(
 				'rule' => array('uuid'),
-				'message' => 'Please provide a valid UUID'
+				'message' => 'Please provide a valid UUID',
+				'allowEmpty' => true
 			),
 		)
 	);
@@ -71,7 +73,7 @@ class Organisation extends AppModel{
 	
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-		if (empty($this->data['Organisation']['uuid'])) {
+		if (empty($this->data['Organisation']['uuid']) && (isset($this->data['Organisation']['local']) && $this->data['Organisation']['local'])) {
 			$this->data['Organisation']['uuid'] = $this->generateUuid();
 		}
 		$date = date('Y-m-d H:i:s');
@@ -91,13 +93,18 @@ class Organisation extends AppModel{
 	}
 	
 	public function captureOrg($org, $user) {
+
 		if (is_array($org)) {
-			$conditions = array('uuid' => $org['uuid']);
-			$uuid = $org['uuid'];
+			if (isset($org['uuid'])) {
+				$conditions = array('uuid' => $org['uuid']);
+				$uuid = $org['uuid'];
+				$conditions2 = array('name' => $org['name']);
+			} else {
+				$conditions = array('name' => $org['name']);
+			}
 			$name = $org['name'];
 		} else {
 			$conditions = array('name' => $org);
-			$uuid = $this->generateUuid();
 			$name = $org;
 		}
 		
@@ -105,7 +112,12 @@ class Organisation extends AppModel{
 				'recursive' => -1,
 				'conditions' => $conditions,
 		));
-		
+		if (empty($existingOrg) && isset($conditions2)) {
+			$existingOrg = $this->find('first', array(
+					'recursive' => -1,
+					'conditions' => $conditions2,
+			));
+		}
 		if (empty($existingOrg)) {
 			$this->create();
 			$organisation = array(
@@ -114,8 +126,12 @@ class Organisation extends AppModel{
 					'local' => 0, 
 					'created_by' => $user['id']
 			);
+			if (isset($uuid)) $organisation['uuid'] = $uuid;
 			$this->save($organisation);
 			return $this->id;
+		} else {
+			if (isset($org['uuid']) && empty($existingOrg['Orgc']['uuid'])) $existingOrg['Orgc']['uuid'] = $org['uuid'];
+			$this->save($existingOrg);
 		}
 		return $existingOrg[$this->alias]['id'];
 	}
