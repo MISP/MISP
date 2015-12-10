@@ -1810,7 +1810,7 @@ class Event extends AppModel {
 										'SharingGroupOrg' => array(
 											'fields' => array('id', 'org_id'),
 											'Organisation' => array(
-												'fields' => array('id', 'uuid', 'name')
+												'fields' => array('id', 'uuid', 'name', 'extend')
 											)
 										),
 										'SharingGroupServer' => array(
@@ -1829,7 +1829,7 @@ class Event extends AppModel {
 								'fields' => array('id', 'uuid', 'name', 'local'),
 							),
 							'SharingGroupOrg' => array(
-								'fields' => array('id', 'org_id'),
+								'fields' => array('id', 'org_id', 'extend'),
 								'Organisation' => array(
 									'fields' => array('id', 'uuid', 'name')
 								)

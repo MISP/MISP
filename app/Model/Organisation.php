@@ -117,7 +117,6 @@ class Organisation extends AppModel{
 		if (empty($existingOrg)) {
 			$this->create();
 			$organisation = array(
-					'uuid' => $uuid, 
 					'name' => $name, 
 					'local' => 0, 
 					'created_by' => $user['id']
