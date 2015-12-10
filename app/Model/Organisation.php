@@ -77,12 +77,8 @@ class Organisation extends AppModel{
 			$this->data['Organisation']['uuid'] = $this->generateUuid();
 		}
 		$date = date('Y-m-d H:i:s');
-		if (empty($this->data['Organisation']['id'])) {
-			$this->data['Organisation']['date_created'] = $date;
-			$this->data['Organisation']['date_modified'] = $date;
-		} else {
-			$this->data['Organisation']['date_modified'] = $date;
-		}
+		if (empty($this->data['Organisation']['date_created'])) $this->data['Organisation']['date_created'] = $date;
+		$this->data['Organisation']['date_modified'] = $date;
 		return true;
 	}
 	
