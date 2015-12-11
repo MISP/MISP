@@ -728,7 +728,6 @@ class Event extends AppModel {
 		);
 		$uri = isset($urlPath) ? $urlPath : $url . '/events';
 		$data = json_encode($event);
-		
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
 		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
@@ -1080,6 +1079,7 @@ class Event extends AppModel {
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete');
 		$fieldsOrg = array('id', 'name', 'uuid');
+		$fieldsServer = array('id', 'url', 'name');
 		$fieldsSharingGroup = array(
 			array('fields' => array('SharingGroup.id','SharingGroup.name', 'SharingGroup.releasability', 'SharingGroup.description')),
 			array(
@@ -1088,12 +1088,10 @@ class Event extends AppModel {
 						'Organisation' => array('fields' => $fieldsOrg),
 					),
 					'SharingGroupServer' => array(
-						'Server',
+						'Server' => array('fields' => $fieldsServer),
 				),
 			),
 		);
-		$fieldsServer = array('id', 'name');
-
 		if (!$options['includeAllTags']) $tagConditions = array('exportable' => 1);
 		else $tagConditions = array();
 		
@@ -1134,6 +1132,13 @@ class Event extends AppModel {
 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
 		foreach ($results as $eventKey => &$event) {
 			// unset the empty sharing groups that are created due to the way belongsTo is handled
+			if (isset($event['SharingGroup']['SharingGroupServer'])) {
+				foreach ($event['SharingGroup']['SharingGroupServer'] as &$sgs) {
+					if ($sgs['server_id'] == 0) {
+						$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+					}
+				}
+			}
 			if ($event['SharingGroup']['id'] == null) unset($event['SharingGroup']);
 			// unset empty event tags that got added because the tag wasn't exportable
 			foreach ($event['EventTag'] as $k => &$eventTag) {
