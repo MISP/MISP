@@ -1653,10 +1653,10 @@ class Event extends AppModel {
 				if ($fromXml) $created_id = $existingEvent['Event']['id'];
 				return $existingEvent['Event']['id'];
 			} else {
-				$data = $this->__captureObjects($data, $user);
+				if ($fromXml) $data = $this->__captureObjects($data, $user);
 			}
 		} else {
-			$data = $this->__captureObjects($data, $user);
+			if ($fromXml) $data = $this->__captureObjects($data, $user);
 		}
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
