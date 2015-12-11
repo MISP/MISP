@@ -1080,6 +1080,7 @@ class Event extends AppModel {
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete');
 		$fieldsOrg = array('id', 'name', 'uuid');
+		$fieldsServer = array('id', 'url');
 		$fieldsSharingGroup = array(
 			array('fields' => array('SharingGroup.id','SharingGroup.name', 'SharingGroup.releasability', 'SharingGroup.description')),
 			array(
@@ -1088,7 +1089,7 @@ class Event extends AppModel {
 						'Organisation' => array('fields' => $fieldsOrg),
 					),
 					'SharingGroupServer' => array(
-						'Server',
+						'Server' => array('fields' => $fieldsServer),
 				),
 			),
 		);
@@ -1559,12 +1560,14 @@ class Event extends AppModel {
 			$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
 			unset ($data['Event']['SharingGroup']);
 		}
-		if(isset($data['Attribute'])) foreach ($data['Attribute'] as $k => &$a) {
-			unset($data['Attribute']['id']);
-			if($a['distribution'] == 4) {
-				$data['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Attribute'][$k]['SharingGroup'], $user);
+		if (isset($data['Event']['Attribute'])) {
+			foreach ($data['Event']['Attribute'] as $k => &$a) {
+				unset($data['Event']['Attribute']['id']);
+				if($a['distribution'] == 4) {
+					$data['Event']['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['Attribute'][$k]['SharingGroup'], $user);
+				}
+				unset($data['Event']['Attribute'][$k]['SharingGroup']);
 			}
-			unset($data['Attribute'][$k]['SharingGroup']);
 		}
 		// first we want to see how the creator organisation is encoded
 		// The options here are either by passing an organisation object along or simply passing a string along
@@ -1810,7 +1813,7 @@ class Event extends AppModel {
 										'SharingGroupOrg' => array(
 											'fields' => array('id', 'org_id'),
 											'Organisation' => array(
-												'fields' => array('id', 'uuid', 'name', 'extend')
+												'fields' => array('id', 'uuid', 'name')
 											)
 										),
 										'SharingGroupServer' => array(
@@ -1829,7 +1832,7 @@ class Event extends AppModel {
 								'fields' => array('id', 'uuid', 'name', 'local'),
 							),
 							'SharingGroupOrg' => array(
-								'fields' => array('id', 'org_id', 'extend'),
+								'fields' => array('id', 'org_id'),
 								'Organisation' => array(
 									'fields' => array('id', 'uuid', 'name')
 								)

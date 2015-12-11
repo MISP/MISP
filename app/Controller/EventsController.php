@@ -819,9 +819,8 @@ class EventsController extends AppController {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create events');
 		}
-		$this->loadModel('SharingGroup');
-		if ($this->userRole['perm_sync']) $sguuids = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'uuid',  1);
-		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+		if ($this->userRole['perm_sync']) $sguuids = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'uuid',  1);
+		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
 				
@@ -845,8 +844,7 @@ class EventsController extends AppController {
 					// If the distribution is set to sharing group, check if the id provided is really visible to the user, if not throw an error.
 					if ($this->request->data['Event']['distribution'] == 4) {
 						if ($this->userRole['perm_sync'] && $this->_isRest()) {
-							if (!$this->SharingGroup->checkIfAuthorisedToSave($this->Auth->user(), $this->request->data['Event']['SharingGroup'])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised. (Sync user is not contained in the Sharing group)');
-							//if (!isset($this->request->data['Event']['SharingGroup']))
+							if (!$this->Event->SharingGroup->checkIfAuthorisedToSave($this->Auth->user(), $this->request->data['Event']['SharingGroup'])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised. (Sync user is not contained in the Sharing group)');
 						} else {
 							if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
 						}
@@ -1065,6 +1063,11 @@ class EventsController extends AppController {
 						// For users that are sync users, only allow the edit if the event is locked
 						if ($existingEvent['Event']['orgc_id'] === $this->_checkOrg()
 								|| ($this->userRole['perm_sync'] && $existingEvent['Event']['locked']) || $this->_isSiteAdmin()) {
+								if ($this->userRole['perm_sync']) {
+									if ($this->Event->data['Event']['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $this->Event->data['Event']['sharing_group_id'])) {
+										throw new MethodNotAllowedException('Event could not be saved: The sync user has to either be an extender of the sharing group or be the sync user that has first synchronised the sharing group to this instance.');
+									}
+								}
 							// Only allow an edit if this is true!
 							$saveEvent = true;
 						} else throw new MethodNotAllowedException('Event could not be saved: The user used to edit the event is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the event whilst also not being a site administrator.');
@@ -1083,8 +1086,8 @@ class EventsController extends AppController {
 				$this->loadModel('Log');
 				if ($saveResult) {
 					$validationErrors = array();
-					if (isset($this->request->data['Attribute'])) {
-						foreach ($this->request->data['Attribute'] as $k => $attribute) {
+					if (isset($this->request->data['Event']['Attribute'])) {
+						foreach ($this->request->data['Event']['Attribute'] as $k => $attribute) {
 							if (isset($attribute['uuid'])) {
 								$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
 								if (count($existingAttribute)) {
@@ -1099,28 +1102,28 @@ class EventsController extends AppController {
 												'title' => 'Duplicate UUID found in attribute',
 												'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
 										));
-										unset($this->request->data['Attribute'][$k]);
+										unset($this->request->data['Event']['Attribute'][$k]);
 									} else {
 										// If a field is not set in the request, just reuse the old value
 										$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
-										foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $this->request->data['Attribute'][$c][$rF] = $existingAttribute['Attribute'][$rF];
-										$this->request->data['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
+										foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $this->request->data['Event']['Attribute'][$c][$rF] = $existingAttribute['Attribute'][$rF];
+										$this->request->data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
 										// Check if the attribute's timestamp is bigger than the one that already exists.
 										// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
 										// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-										if (isset($this->request->data['Attribute'][$k]['timestamp'])) {
-											if ($this->request->data['Attribute'][$k]['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
-												unset($this->request->data['Attribute'][$k]);
+										if (isset($this->request->data['Event']['Attribute'][$k]['timestamp'])) {
+											if ($this->request->data['Event']['Attribute'][$k]['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
+												unset($this->request->data['Event']['Attribute'][$k]);
 												continue;
 											} 
 										} else $this->request->data['Event']['timestamp'] = $date;
 									}
 								}
 							}
-							$this->request->data['Attribute'][$k]['event_id'] = $this->Event->id;
-							if (!$this->Event->Attribute->save($this->request->data['Attribute'][$k], array('fieldList' => $fieldList))) {
+							$this->request->data['Event']['Attribute'][$k]['event_id'] = $this->Event->id;
+							if (!$this->Event->Attribute->save($this->request->data['Event']['Attribute'][$k], array('fieldList' => $fieldList))) {
 								$validationErrors['Attribute'][$k] = $this->Event->Attribute->validationErrors;
-								$attribute_short = (isset($this->request->data['Attribute'][$k]['category']) ? $this->request->data['Attribute'][$k]['category'] : 'N/A') . '/' . (isset($this->request->data['Attribute'][$k]['type']) ? $this->request->data['Attribute'][$k]['type'] : 'N/A') . ' ' . (isset($this->request->data['Attribute'][$k]['value']) ? $this->request->data['Attribute'][$k]['value'] : 'N/A');
+								$attribute_short = (isset($this->request->data['Event']['Attribute'][$k]['category']) ? $this->request->data['Event']['Attribute'][$k]['category'] : 'N/A') . '/' . (isset($this->request->data['Event']['Attribute'][$k]['type']) ? $this->request->data['Event']['Attribute'][$k]['type'] : 'N/A') . ' ' . (isset($this->request->data['Event']['Attribute'][$k]['value']) ? $this->request->data['Event']['Attribute'][$k]['value'] : 'N/A');
 								$this->Log->create();
 								$this->Log->save(array(
 										'org' => $this->Auth->user('Organisation')['name'],
@@ -1137,8 +1140,8 @@ class EventsController extends AppController {
 					}
 					// check if the exact proposal exists, if yes check if the incoming one is deleted or not. If it is deleted, remove the old proposal and replace it with the one marked for being deleted
 					// otherwise throw the new one away.
-					if (isset($this->request->data['ShadowAttribute'])) {
-						foreach ($this->request->data['ShadowAttribute'] as $k => &$proposal) {
+					if (isset($this->request->data['Event']['ShadowAttribute'])) {
+						foreach ($this->request->data['Event']['ShadowAttribute'] as $k => &$proposal) {
 							$existingProposal = $this->Event->ShadowAttribute->find('first', array(
 									'recursive' => -1,
 									'conditions' => array(
@@ -1159,7 +1162,7 @@ class EventsController extends AppController {
 								}
 								$this->Event->ShadowAttribute->create();
 							}
-							$this->Event->ShadowAttribute->save($this->request->data['ShadowAttribute'][$k], array('fieldList' => $fieldList));
+							$this->Event->ShadowAttribute->save($this->request->data['Event']['ShadowAttribute'][$k], array('fieldList' => $fieldList));
 						}
 					}
 					// this saveAssociated() function will save not only the event, but also the attributes
@@ -1239,9 +1242,8 @@ class EventsController extends AppController {
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
 
-		$this->loadModel('SharingGroup');
-		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		// even if the SG is not local, we still want the option to select the currently assigned SG
+		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		if (!isset($sgs[$this->Event->data['SharingGroup']['id']])) $sgs[$this->Event->data['SharingGroup']['id']] = $this->Event->data['SharingGroup']['name'];
 		$this->set('sharingGroups', $sgs);
 		

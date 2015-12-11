@@ -146,6 +146,7 @@ class SharingGroup extends AppModel {
 	//       avoid situations where no one can create / edit an SG on an instance after a push)
 	
 	public function checkIfAuthorisedToSave($user, $sg) {
+		if (isset($sg[0])) $sg = $sg[0];
 		if ($user['Role']['perm_site_admin']) return true;
 		if (!$user['Role']['perm_sharing_group']) return false;
 		// First let us find out if we already have the SG
@@ -159,6 +160,7 @@ class SharingGroup extends AppModel {
 			$serverCheck = false;
 			if (isset($sg['SharingGroupOrg'])) {
 				foreach ($sg['SharingGroupOrg'] as $org) {
+					if (isset($org['Organisation'][0])) $org['Organisation'] = $org['Organisation'][0]; 
 					if ($org['Organisation']['uuid'] == $user['Organisation']['uuid']) {
 						if ($user['Role']['perm_sync'] || $org['extend'] == 1) {
 							$orgCheck = true;
@@ -169,6 +171,7 @@ class SharingGroup extends AppModel {
 			}
 			if (isset($sg['SharingGroupServer'])) {
 				foreach ($sg['SharingGroupServer'] as $server) {
+					if (isset($server['Server'][0])) $server['Server'] = $server['Server'][0];
 					if ($server['Server']['url'] == Configure::read('MISP.baseurl')) {
 						$serverCheck = true;
 						continue;
