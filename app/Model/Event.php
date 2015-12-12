@@ -1815,7 +1815,7 @@ class Event extends AppModel {
 						'Attribute' => array(
 								'SharingGroup' => array(
 										'SharingGroupOrg' => array(
-											'fields' => array('id', 'org_id'),
+											'fields' => array('id', 'org_id', 'extend'),
 											'Organisation' => array(
 												'fields' => array('id', 'uuid', 'name')
 											)
@@ -1836,7 +1836,7 @@ class Event extends AppModel {
 								'fields' => array('id', 'uuid', 'name', 'local'),
 							),
 							'SharingGroupOrg' => array(
-								'fields' => array('id', 'org_id'),
+								'fields' => array('id', 'org_id', 'extend'),
 								'Organisation' => array(
 									'fields' => array('id', 'uuid', 'name')
 								)
