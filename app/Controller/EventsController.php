@@ -1080,7 +1080,6 @@ class EventsController extends AppController {
 						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment'),
 						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org_id', 'event_org_id', 'comment', 'event_uuid', 'deleted', 'to_ids', 'uuid')
 				);
-				
 				$saveResult = $this->Event->save(array('Event' => $this->request->data['Event']), array('fieldList' => $fieldList['Event']));
 				$this->loadModel('Log');
 				if ($saveResult) {
@@ -1104,7 +1103,7 @@ class EventsController extends AppController {
 										unset($this->request->data['Event']['Attribute'][$k]);
 									} else {
 										// If a field is not set in the request, just reuse the old value
-										$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
+										$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'sharing_group_id');
 										foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $this->request->data['Event']['Attribute'][$c][$rF] = $existingAttribute['Attribute'][$rF];
 										$this->request->data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
 										// Check if the attribute's timestamp is bigger than the one that already exists.
@@ -1120,6 +1119,9 @@ class EventsController extends AppController {
 								}
 							}
 							$this->request->data['Event']['Attribute'][$k]['event_id'] = $this->Event->id;
+							if ($this->request->data['Event']['Attribute'][$k]['distribution'] == 4) {
+								$this->request->data['Event']['Attribute'][$k]['sharing_group_id'] = $this->Event->SharingGroup->captureSG($this->request->data['Event']['Attribute'][$k]['SharingGroup'], $this->Auth->user());
+							}
 							if (!$this->Event->Attribute->save($this->request->data['Event']['Attribute'][$k], array('fieldList' => $fieldList))) {
 								$validationErrors['Attribute'][$k] = $this->Event->Attribute->validationErrors;
 								$attribute_short = (isset($this->request->data['Event']['Attribute'][$k]['category']) ? $this->request->data['Event']['Attribute'][$k]['category'] : 'N/A') . '/' . (isset($this->request->data['Event']['Attribute'][$k]['type']) ? $this->request->data['Event']['Attribute'][$k]['type'] : 'N/A') . ' ' . (isset($this->request->data['Event']['Attribute'][$k]['value']) ? $this->request->data['Event']['Attribute'][$k]['value'] : 'N/A');
