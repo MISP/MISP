@@ -87,13 +87,14 @@ class LogsController extends AppController {
 		// if we are not the owners of the event and we aren't site admins, then we should only see the entries for attributes that are not private
 		// This means that we will not be able to see deleted attributes - since those could have been private
 		if (!$mayModify) {
+			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
 		// get a list of the attributes that belong to the event
 		
 			$this->loadModel('Attribute');
 			$this->Attribute->recursive = -1;
 			$attributes = $this->Attribute->find('all', array(
 					'conditions' => array('event_id' => $id),
-					'fields' => array ('id', 'event_id', 'distribution'),
+					'fields' => array ('id', 'event_id', 'distribution', 'sharing_group_id'),
 					'contain' => 'Event.distribution'
 			));
 			// get a list of all log entries that affect the current event or any of the attributes found above
@@ -102,7 +103,7 @@ class LogsController extends AppController {
 			$conditions['OR'][1]['AND']['OR'][0] = array('Log.model_id LIKE' => null);
 			foreach ($attributes as $a) {
 				// Hop over the attributes that are private if the user should is not of the same org and not an admin
-				if ($mineOrAdmin || ($a['Event']['distribution'] != 0 && $a['Attribute']['distribution'] != 0)) {
+				if ($mineOrAdmin || ($a['Event']['distribution'] != 0 && ($a['Attribute']['distribution'] != 0 && ($a['Attribute']['distribution'] != 4 || in_array($a['Attribute']['sharing_group_id'] , $sgs))))) {
 					$conditions['OR'][1]['AND']['OR'][] = array('Log.model_id LIKE' => $a['Attribute']['id']);
 				}
 			}
