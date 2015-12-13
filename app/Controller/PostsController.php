@@ -54,20 +54,6 @@ class PostsController extends AppController {
 					}
 				}
 				$thread = $this->Thread->find('first', array('conditions' => array('event_id' => $target_id)));
-				if (empty($thread)) {
-					$newThread = array(
-							'date_created' => date('Y/m/d H:i:s'),
-							'date_modified' => date('Y/m/d H:i:s'),
-							'user_id' => $this->Auth->user('id'),
-							'event_id' => $target_id,
-							'title' => 'Discussion about Event #' . $this->Event->data['Event']['id'] . ' (' . $this->Event->data['Event']['info'] . ')',
-							'distribution' => $this->Event->data['Event']['distribution'],
-							'post_count' => 0,
-							'org' => $this->Event->data['Event']['orgc']
-					);
-					$this->Thread->save($newThread);
-					$thread = ($this->Thread->read());
-				}
 				$title = $eventDiscussionTitle;
 				if (isset($thread['Thread']['id'])) {
 					$target_thread_id = $thread['Thread']['id'];
@@ -75,6 +61,7 @@ class PostsController extends AppController {
 					$target_thread_id = null;
 				}
 				$distribution = $this->Event->data['Event']['distribution'];
+				$sgid = $this->Event->data['Event']['sharing_group_id'];
 				$org = $this->Event->data['Event']['org_id'];
 				$event_id = $this->Event->data['Event']['id'];
 			break;
@@ -106,6 +93,7 @@ class PostsController extends AppController {
 				$title = $this->Thread->data['Thread']['title'];
 				$previousPost = $this->_grabPreviousPost($target_id);
 				$distribution = $previousPost['Thread']['distribution'];
+				$sgid = $previousPost['Thread']['sharing_group_id'];
 				$event_id = $previousPost['Thread']['event_id'];
 				$post_id = $target_id;
 				$target_thread_id = $previousPost['Thread']['id'];
@@ -137,6 +125,7 @@ class PostsController extends AppController {
 						'event_id' => $event_id,
 						'title' => $title,
 						'distribution' => $distribution,
+						'sharing_group_id' => $sgid,
 						'post_count' => 1,
 						'org_id' => $org
 				);

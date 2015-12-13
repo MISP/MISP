@@ -2204,21 +2204,38 @@ class AttributesController extends AppController {
 		$this->redirect('/pages/display/administration');
 	}
 	
-	/*public function arcsight() {
-		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
-		if ($tags) $tags = str_replace(';', ':', $tags);
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to');
-		foreach ($simpleFalse as $sF) {
-			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
+	public function updateAttributeValues($script) {
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('You are not authorised to do that.');
+		switch ($script) {
+			case 'urlSanitisation':
+				$replaceConditions = array(
+					array('search' => 'UPPER(Attribute.value1) LIKE', 'from' => 'HXXP', 'to' => 'http', 'ci' => true, 'condition' => 'startsWith'),
+					array('search' => 'Attribute.value1 LIKE', 'from' => '[.]', 'to' => '.', 'ci' => false, 'condition' => 'contains'),
+				);
+				break;
+			default:
+				throw new Exception('Invalid script.');
 		}
-		if ($key!=null && $key!='download') {
-			$user = $this->checkAuthUser($key);
-		} else {
-			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
-			$user = $this->checkAuthUser($this->Auth->user('authkey'));
+		$counter = 0;
+		foreach ($replaceConditions as &$rC) {
+			$searchPattern = '';
+			if (in_array($rC['condition'], array('endsWith', 'contains'))) $searchPattern .= '%';
+			$searchPattern .= $rC['from'];
+			if (in_array($rC['condition'], array('startsWith', 'contains'))) $searchPattern .= '%';
+			$attributes = $this->Attribute->find('all', array('conditions' => array($rC['search'] => $searchPattern), 'recursive' => -1));
+			foreach ($attributes as &$attribute) {
+				$regex = '/';
+				if (!in_array($rC['condition'], array('startsWith', 'contains'))) $regex .= '^';
+				$regex .= $rC['from'];
+				if (!in_array($rC['condition'], array('endsWith', 'contains'))) $regex .= '$';
+				$regex .= '/';
+				if ($rC['ci']) $regex .= 'i';
+				$attribute['Attribute']['value'] = preg_replace($regex, $rC['to'], $attribute['Attribute']['value']);
+				$this->Attribute->save($attribute);
+				$counter++;
+			}
 		}
-		if ($this->request->is('post')) {
-			
-		}
-	}*/
+		$this->Session->setFlash('Updated ' . $counter . ' attribute(s).');
+		$this->redirect('/pages/display/administration');
+	}
 }

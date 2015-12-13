@@ -136,6 +136,22 @@ class Server extends AppModel {
 							'test' => 'testBaseURL',
 							'type' => 'string',
 					),
+					'live' => array(
+							'level' => 0,
+							'description' => 'Unless set to true, the instance will only be accessible by site admins.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testLive',
+							'type' => 'boolean',
+					),
+					'maintenance_message' => array(
+							'level' => 2,
+							'description' => 'The message that users will see if the instance is not live.',
+							'value' => 'Great things are happening! MISP is undergoing maintenance, but will return shortly. You can contact the administration at $email.',
+							'errorMessage' => 'If this is not set the default value will be used.',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
 					'name' => array(
 							'level' => 3,
 							'description' => 'This setting is deprecated and can be safely removed.',
@@ -1114,7 +1130,7 @@ class Server extends AppModel {
 			$job = ClassRegistry::init('Job');
 			$job->read(null, $jobId);
 		}
-		$eventModel = ClassRegistry::init('Event');
+		$this->Event = ClassRegistry::init('Event');
 		$this->read(null, $id);
 		$url = $this->data['Server']['url'];
 		if (!$this->checkVersionCompatibility($id, $user)['canPush']) {
@@ -1139,20 +1155,44 @@ class Server extends AppModel {
 			$this->redirect(array('action' => 'index'));
 		}
 		
-		// Update distribution checks - move to fetchEvent()?
+		$sgs = $this->Event->SharingGroup->find('all', array(
+			'recursive' => -1,
+			'contain' => array('Organisation', 'SharingGroupOrg', 'SharingGroupServer')
+		));
+		$sgIds = array();
+		foreach ($sgs as $k => $sg) {
+			if (!$this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
+				unset($sgs[$k]);
+				continue;
+			}
+			$sgIds[] = $sg['SharingGroup']['id'];
+		}
 		$findParams = array(
 				'conditions' => array(
 						$eventid_conditions_key => $eventid_conditions_value,
-						'Event.distribution >' => 0,
 						'Event.published' => 1,
-						'Event.attribute_count >' => 0
+						'Event.attribute_count >' => 0,
+						'OR' => array(
+							array(
+								'AND' => array(
+									array('Event.distribution >' => 0),
+									array('Event.distribution <' => 4),
+								),
+							),
+							array(
+								'AND' => array(
+									'Event.distribution' => 4,
+									'Event.sharing_group_id' => $sgIds
+								),
+							)
+						)
 				), //array of conditions
 				'recursive' => -1, //int
 				'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid'), //array of field names
 		);
-		$eventIds = $eventModel->find('all', $findParams);
-		$eventUUIDsFiltered = $this->filterEventIdsForPush($id, $HttpSocket, $eventIds);
-		if ($eventUUIDsFiltered === false) $pushFailed = true;
+		$eventIds = $this->Event->find('all', $findParams);
+		$eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
+		if ($eventUUIDsFiltered === false || empty($eventUUIDsFiltered)) $pushFailed = true;
 		if (!empty($eventUUIDsFiltered)) {
 			$eventCount = count($eventUUIDsFiltered);
 			//debug($eventIds);
@@ -1162,11 +1202,10 @@ class Server extends AppModel {
 				$fails = array();
 				$lowestfailedid = null;
 				foreach ($eventUUIDsFiltered as $k => $eventUuid) {
-					$eventModel->recursive=1;
-					$eventModel->contain(array('Attribute'));
-					$event = $eventModel->findByUuid($eventUuid);
+					$event = $this->Event->fetchEvent($user, array('event_uuid' => $eventUuid, 'includeAttachments' => true));
+					$event = $event[0];
 					$event['Event']['locked'] = true;
-					$result = $eventModel->uploadEventToServer(
+					$result = $this->Event->uploadEventToServer(
 							$event,
 							$this->data,
 							$HttpSocket);
@@ -1193,7 +1232,7 @@ class Server extends AppModel {
 			}
 		}
 		
-		$this->syncProposals($HttpSocket, $this->data, null, null, $eventModel);
+		$this->syncProposals($HttpSocket, $this->data, null, null, $this->Event);
 		
 		if (!isset($successes)) $successes = null;
 		if (!isset($fails)) $fails = null;
@@ -1206,7 +1245,7 @@ class Server extends AppModel {
 				'email' => $user['email'],
 				'action' => 'push',
 				'user_id' => $user['id'],
-				'title' => 'Push to ' . $url . ' initiated by ' . $email,
+				'title' => 'Push to ' . $url . ' initiated by ' . $user['email'],
 				'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
 		));
 		if ($jobId) {
@@ -1220,11 +1259,13 @@ class Server extends AppModel {
 		}
 	}
 	
-	public function filterEventIdsForPush($id, $HttpSocket, $eventIds) {
+	public function getEventIdsForPush($id, $HttpSocket, $eventIds, $user) {
+		$server = $this->read(null, $id);
+		$this->Event = ClassRegistry::init('Event');
+
 		foreach ($eventIds as $k => $event) {
 			unset($eventIds[$k]['Event']['id']);
 		}
-		$server = $this->read(null, $id);
 		if (null == $HttpSocket) {
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
@@ -1416,6 +1457,12 @@ class Server extends AppModel {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		$protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
 		if ($value != strtolower($protocol) . '://' . $_SERVER['HTTP_HOST']) return false;
+		return true;
+	}
+	
+	public function testLive($value) {
+		if ($this->testBool($value) !== true) return $this->testBool($value);
+		if (!$value) return 'MISP disabled.';
 		return true;
 	}
 	
@@ -1760,6 +1807,7 @@ class Server extends AppModel {
 	}
 	
 	public function captureServer($server, $user) {
+		if ($server['url'] == Configure::read('MISP.baseurl')) return 0;
 		$existingServer = $this->find('first', array(
 				'recursive' => -1,
 				'conditions' => array('url' => $server['url'])
@@ -2258,7 +2306,6 @@ class Server extends AppModel {
 	// Loops through all servers and checks which servers' push rules don't conflict with the given event.
 	// returns the server objects that would allow the event to be pushed
 	public function eventFilterPushableServers($event, $servers) {
-		debug($event);
 		$eventTags = array();
 		$validServers = array();
 		foreach ($event['EventTag'] as $tag) $eventTags[] = $tag['tag_id'];
@@ -2276,7 +2323,7 @@ class Server extends AppModel {
 				if (!in_array($event['Event']['orgc_id'], $push_rules['orgs']['OR'])) continue;
 			}
 			if (!empty($push_rules['orgs']['NOT'])) {
-				if (in_array($event['Event']['orgc_id'], $push_rules['orgs']['OR'])) continue;
+				if (in_array($event['Event']['orgc_id'], $push_rules['orgs']['NOT'])) continue;
 			}
 			$validServers[] = $server;
 		}

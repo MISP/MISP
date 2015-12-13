@@ -15,6 +15,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 	echo $this->Form->input('distribution', array(
 		'options' => array($distributionLevels),
 		'label' => 'Distribution',
+		'default' => $event['Event']['distribution'],
 	));
 ?>
 	<div id="SGContainer" style="display:none;">
@@ -23,6 +24,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 			echo $this->Form->input('sharing_group_id', array(
 				'options' => array($sharingGroups),
 				'label' => 'Sharing Group',
+				'default' => $event['Event']['sharing_group_id'],
 			));
 		}
 		?>
@@ -80,7 +82,6 @@ foreach ($analysisDescriptions as $type => $def) {
 ?>
 
 $(document).ready(function() {
-
 	if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
 	else $('#SGContainer').hide();
 

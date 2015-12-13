@@ -24,11 +24,13 @@ class Organisation extends AppModel{
 		'uuid' => array(
             'unique' => array(
                 'rule' => 'isUnique',
-                'message' => 'An organisation with this UUID already exists.'
+                'message' => 'An organisation with this UUID already exists.',
+            	'allowEmpty' => true
             ),
 			'uuid' => array(
 				'rule' => array('uuid'),
-				'message' => 'Please provide a valid UUID'
+				'message' => 'Please provide a valid UUID',
+				'allowEmpty' => true
 			),
 		)
 	);
@@ -71,16 +73,12 @@ class Organisation extends AppModel{
 	
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-		if (empty($this->data['Organisation']['uuid'])) {
-			$this->data['Organisation']['uuid'] = $this->generateUuid();
+		if (empty($this->data['uuid']) && (isset($this->data['local']) && $this->data['local'])) {
+			$this->data['uuid'] = $this->generateUuid();
 		}
 		$date = date('Y-m-d H:i:s');
-		if (empty($this->data['Organisation']['id'])) {
-			$this->data['Organisation']['date_created'] = $date;
-			$this->data['Organisation']['date_modified'] = $date;
-		} else {
-			$this->data['Organisation']['date_modified'] = $date;
-		}
+		if (empty($this->data['date_created'])) $this->data['date_created'] = $date;
+		$this->data['date_modified'] = $date;
 		return true;
 	}
 	
@@ -90,14 +88,19 @@ class Organisation extends AppModel{
 		return true;
 	}
 	
-	public function captureOrg($org, $user) {
+	public function captureOrg($org, $user, $force = false) {
+
 		if (is_array($org)) {
-			$conditions = array('uuid' => $org['uuid']);
-			$uuid = $org['uuid'];
+			if (isset($org['uuid'])) {
+				$conditions = array('uuid' => $org['uuid']);
+				$uuid = $org['uuid'];
+				$conditions2 = array('name' => $org['name']);
+			} else {
+				$conditions = array('name' => $org['name']);
+			}
 			$name = $org['name'];
 		} else {
 			$conditions = array('name' => $org);
-			$uuid = $this->generateUuid();
 			$name = $org;
 		}
 		
@@ -105,17 +108,34 @@ class Organisation extends AppModel{
 				'recursive' => -1,
 				'conditions' => $conditions,
 		));
-		
+		if (empty($existingOrg) && isset($conditions2)) {
+			$existingOrg = $this->find('first', array(
+					'recursive' => -1,
+					'conditions' => $conditions2,
+			));
+		}
 		if (empty($existingOrg)) {
+			$date = date('Y-m-d H:i:s');
 			$this->create();
 			$organisation = array(
-					'uuid' => $uuid, 
 					'name' => $name, 
 					'local' => 0, 
-					'created_by' => $user['id']
+					'created_by' => $user['id'],
+					'date_modified' => $date,
+					'date_created' => $date					
 			);
+			if (isset($uuid)) $organisation['uuid'] = $uuid;
 			$this->save($organisation);
 			return $this->id;
+		} else {
+			if (isset($org['uuid']) && empty($existingOrg['Organisation']['uuid'])) $existingOrg['Organisation']['uuid'] = $org['uuid'];
+			if ($force) {
+				$fields = array('type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts', 'landingpage');
+				foreach ($fields as $field) {
+					if (isset($org[$field])) $existingOrg['Organisation'][$field] = $org[$field];
+				}
+			}
+			$this->save($existingOrg);
 		}
 		return $existingOrg[$this->alias]['id'];
 	}

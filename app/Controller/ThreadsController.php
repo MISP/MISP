@@ -98,16 +98,17 @@ class ThreadsController extends AppController {
 					'fields' => array('id', 'event_id', 'distribution', 'title', 'sharing_group_id')
 			);
 			$thread = $this->Thread->find('first', $params);
-			if (empty($thread)) new NotFoundException('Invalid thread.');
-			if (!$this->_isSiteAdmin()) {
-				if ($thread['Thread']['distribution'] == 0 && $thread['Thread']['org_id'] != $this->Auth->user('org_id')) {
-					throw new MethodNotAllowedException('Invalid Thread.');
+			if (!empty($thread)) {
+				if (!$this->_isSiteAdmin()) {
+					if ($thread['Thread']['distribution'] == 0 && $thread['Thread']['org_id'] != $this->Auth->user('org_id')) {
+						throw new MethodNotAllowedException('Invalid Thread.');
+					}
+					if ($thread['Thread']['distribution'] == 4) {
+						if (!$this->Thread->SharingGroup->checkIfAuthorised($this->Auth->user(), $thread['Thread']['sharing_group_id'])) new NotFoundException('Invalid thread.');
+					}
 				}
-				if ($thread['Thread']['distribution'] == 4) {
-					if (!$this->Thread->SharingGroup->checkIfAuthorised($this->Auth->user(), $thread['Thread']['sharing_group_id'])) new NotFoundException('Invalid thread.');
-				}
-			}
-			$thread_id = $thread['Thread']['id'];
+				$thread_id = $thread['Thread']['id'];
+			} else $thread_id = 0;
 			$this->set('currentEvent', $id);
 		} else {
 			$this->Thread->recursive = -1;
@@ -145,24 +146,30 @@ class ThreadsController extends AppController {
 				}
 			}
 		}
-		$this->paginate = array(
-				'limit' => 10,
-				'conditions' => array('Post.thread_id' => $thread_id),
-				'contain' => array(
-						'User' => array(
-								'Organisation' => array(
-										'fields' => array('id', 'name')
-								),
-						),
-				),
-		);
-		$posts = $this->paginate('Post');
-		if (!$this->_isSiteAdmin()) {
-			foreach ($posts as &$post) {
-				if ($post['User']['org_id'] != $this->Auth->user('org_id')) {
-					$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org_id'] . ')';
+		if ($thread_id) {
+			$this->paginate = array(
+					'limit' => 10,
+					'conditions' => array('Post.thread_id' => $thread_id),
+					'contain' => array(
+							'User' => array(
+									'Organisation' => array(
+											'fields' => array('id', 'name')
+									),
+							),
+					),
+			);
+			$posts = $this->paginate('Post');
+			if (!$this->_isSiteAdmin()) {
+				foreach ($posts as &$post) {
+					if ($post['User']['org_id'] != $this->Auth->user('org_id')) {
+						$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org_id'] . ')';
+					}
 				}
 			}
+			$this->set('posts', $posts);
+			$this->set('post_id', $post_id);
+			$this->set('thread_id', $thread_id);
+			$this->set('thread_title', $thread['Thread']['title']);
 		}
 		if ($eventView) {
 			$this->set('context', 'event');
@@ -170,11 +177,7 @@ class ThreadsController extends AppController {
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
 			}
 		} else $this->set('context', 'thread');
-		$this->set('posts', $posts);
-		$this->set('post_id', $post_id);
-		$this->set('thread_id', $thread_id);
 		$this->set('myuserid', $this->Auth->user('id'));
-		$this->set('thread_title', $thread['Thread']['title']);
 		if ($this->request->is('ajax')) {
 			$this->layout = 'ajax';
 			$this->render('/Elements/eventdiscussion');

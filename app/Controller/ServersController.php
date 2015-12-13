@@ -98,7 +98,8 @@ class ServersController extends AppController {
 		$customPagination = new CustomPaginationTool();
 		$params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
 		$this->params->params['paging'] = array($this->modelClass => $params);
-		$customPagination->truncateByPagination($events, $params);
+		if (is_array($events)) $customPagination->truncateByPagination($events, $params);
+		else ($events = array());
 		$this->set('events', $events);
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);

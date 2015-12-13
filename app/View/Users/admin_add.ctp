@@ -29,6 +29,10 @@
 	<?php 
 		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published'));
 		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests'));
+	?>
+		<div class="clear"></div>
+	<?php 
+		echo $this->Form->input('disabled', array('label' => 'Disable this user account'));
 
 	?>
 	</fieldset>

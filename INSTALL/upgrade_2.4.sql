@@ -48,6 +48,8 @@ call AddColumnUnlessExists(Database(), 'shadow_attributes', 'org_id', 'INT( 11 )
 call AddColumnUnlessExists(Database(), 'shadow_attributes', 'event_org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
 call AddColumnUnlessExists(Database(), 'shadow_attributes', 'proposal_to_delete', 'BOOLEAN NOT NULL');
 
+call AddColumnUnlessExists(Database(), 'sharing_groups', 'sync_user_id', 'INT( 11 ) NOT NULL DEFAULT 0');
+
 call AddColumnUnlessExists(Database(), 'tags', 'exportable', 'TINYINT( 1 ) NOT NULL DEFAULT 0');
 
 call AddColumnUnlessExists(Database(), 'threads', 'org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
@@ -55,6 +57,8 @@ call AddColumnUnlessExists(Database(), 'threads', 'sharing_group_id', 'INT( 11 )
 
 call AddColumnUnlessExists(Database(), 'users', 'org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
 call AddColumnUnlessExists(Database(), 'users', 'server_id', 'INT( 11 ) NOT NULL DEFAULT 0');
+call AddColumnUnlessExists(Database(), 'users', 'disabled', 'BOOLEAN NOT NULL');
+call AddColumnUnlessExists(Database(), 'users', 'expiration', 'datetime DEFAULT NULL');
 
 call AddColumnUnlessExists(Database(), 'correlations', 'org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
 call AddColumnUnlessExists(Database(), 'correlations', 'distribution', 'tinyint( 4 ) NOT NULL DEFAULT 0');

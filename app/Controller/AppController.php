@@ -179,6 +179,50 @@ class AppController extends Controller {
 		if ($base_dir == '/') {
 			$base_dir = '';
 		}
+		
+		if ($this->Auth->user()) {
+			if ($this->Auth->user('disabled')) {
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$log = array(
+						'org' => $this->Auth->user('Organisation')['name'],
+						'model' => 'User',
+						'model_id' => $this->Auth->user('id'),
+						'email' => $this->Auth->user('email'),
+						'action' => 'auth_fail',
+						'title' => 'Login attempt by disabled user.',
+						'change' => null,
+				);
+				$this->Log->save($log);
+				$this->Auth->logout();
+				if ($this->_isRest()) {
+					throw new ForbiddenException('Authentication failed. Your user account has been disabled.');
+				} else {
+					$this->Session->setFlash('Your user account has been disabled.');
+					$this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+				}
+			}
+		}
+		
+		// check if MISP is live
+		if ($this->Auth->user() && !Configure::read('MISP.live')) {
+			$role = $this->getActions();
+			if (!$role['perm_site_admin']) {
+				$message = Configure::read('MISP.maintenance_message');
+				if (empty($messaage)) {
+					$this->loadModel('Server');
+					$message = $this->Server->serverSettings['MISP']['maintenance_message']['value'];
+				}
+				if (strpos($message, '$email') && Configure::read('MISP.email')) {
+					$email = Configure::read('MISP.email');
+					$message = str_replace('$email', $email, $message);
+				}
+				$this->Auth->logout();
+				throw new MethodNotAllowedException($message);
+			} else {
+				$this->Session->setFlash('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)');				
+			}
+		}
 
 		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
 			$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));

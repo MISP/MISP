@@ -13,7 +13,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		</dd>
 		<dt><?php echo __('Org'); ?></dt>
 		<dd>
-			<?php echo h($user['Organisation']['name']); ?>
+			<a href="<?php echo $baseurl?>/organisations/view/<?php echo h($user['Organisation']['id']); ?>"><?php echo h($user['Organisation']['name']); ?></a>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Role'); ?></dt>
@@ -85,6 +85,11 @@ if (h($user['User']['change_pw']) == 1) {
 		<dt><?php echo __('Newsread'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['newsread']); ?>
+			&nbsp;
+		</dd>
+		<dt><?php echo __('Disabled'); ?></dt>
+		<dd <?php if ($user['User']['disabled']) echo 'class="visibleDL notPublished"';?>>
+			<?php echo $user['User']['disabled'] ? 'Yes' : 'No'; ?>
 			&nbsp;
 		</dd>
 	</dl>

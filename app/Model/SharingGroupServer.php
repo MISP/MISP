@@ -104,9 +104,10 @@ class SharingGroupServer extends AppModel {
 			'recursive' => -1,
 			'conditions' => array('server_id' => $server_id)
 		));
+		if (empty($sgs)) return array();
 		$sgids = array();
 		foreach ($sgs as &$temp) {
-			$sgids[] = $temp[$this->alias][$id];
+			$sgids[] = $temp[$this->alias]['id'];
 		}
 		return $sgids;
 	}
