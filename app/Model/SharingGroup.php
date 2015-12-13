@@ -324,6 +324,7 @@ class SharingGroup extends AppModel {
 					'SharingGroupOrg' => array('Organisation')
 				)				
 		));
+		$force = false;
 		if (empty($existingSG)) {
 			$this->create();
 			$newSG = array();
@@ -336,12 +337,32 @@ class SharingGroup extends AppModel {
 			$sgids = $this->id;
 		} else {
 			if ($sg['modified'] > $existingSG['SharingGroup']['modified']) {
-				$sgids = $existingSG['SharingGroup']['id'];
+				if ($user['Role']['perm_sync'] && $existingSG['SharingGroup']['sync_user_id'] = $user['id']) $force = true;
+				if ($user['Role']['perm_sharing_group']) {
+					if ($user['org_id'] == $existingSG['SharingGroup']['org_id'] && $existingSG['SharingGroup']['local']) $force = true;
+					else {
+						foreach ($sg['SharingGroupOrg'] as $org) {
+							if ($org['org_id'] == $user['id'] && $org['extend']) {
+								$force = true;
+								continue;
+							}
+						}
+					}
+				}
+				if ($force) {
+					$sgids = $existingSG['SharingGroup']['id'];
+					$editedSG = $existingSG['SharingGroup'];
+					$attributes = array('name', 'releasability', 'description', 'uuid', 'organisation_uuid', 'created', 'modified');
+					foreach ($attributes as &$a) $editedSG[$a] = $sg[$a];
+					$this->save($editedSG);
+				} else {
+					return $existingSG['SharingGroup']['id'];
+				}
 			} else {
 				return $existingSG['SharingGroup']['id'];
 			}
 		}
-		$sg['org_id'] = $this->Organisation->captureOrg($sg['Organisation'], $user);
+		$sg['org_id'] = $this->Organisation->captureOrg($sg['Organisation'], $user, $force);
 		unset ($sg['Organisation']);
 		
 		if (isset($sg['SharingGroupOrg']['id'])) {
@@ -350,10 +371,25 @@ class SharingGroup extends AppModel {
 			$sg['SharingGroupOrg'][0] = $temp;
 		}
 		foreach ($sg['SharingGroupOrg'] as $k => $org) {
-			$sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user);
+			$sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user, $force);
 			unset ($sg['SharingGroupOrg'][$k]['Organisation']);
-			$this->SharingGroupOrg->create();
-			$this->SharingGroupOrg->save(array('sharing_group_id' => $sgids, 'org_id' => $sg['SharingGroupOrg'][$k]['org_id'], 'extend' => $org['extend']));
+			if ($force) {
+				// we are editing not creating here
+				$temp = $this->SharingGroupOrg->find('first', array(
+					'recursive' => -1,
+					'conditions' => array(
+						'sharing_group_id' => $existingSG['SharingGroup']['id'],
+						'org_id' => $sg['SharingGroupOrg'][$k]['org_id']
+					),
+				));
+				if ($temp['SharingGroupOrg']['extend'] != $sg['SharingGroupOrg'][$k]['extend']) {
+					$temp['SharingGroupOrg']['extend'] = $sg['SharingGroupOrg'][$k]['extend'];
+					$this->SharingGroupOrg->save($temp['SharingGroupOrg']);
+				}
+			} else {
+				$this->SharingGroupOrg->create();
+				$this->SharingGroupOrg->save(array('sharing_group_id' => $sgids, 'org_id' => $sg['SharingGroupOrg'][$k]['org_id'], 'extend' => $org['extend']));
+			}
 		}
 		
 		if (isset($sg['SharingGroupServer']['id'])) {
@@ -362,11 +398,26 @@ class SharingGroup extends AppModel {
 			$sg['SharingGroupServer'][0] = $temp;
 		}
 		foreach ($sg['SharingGroupServer'] as $k => $server) {
-			$sg['SharingGroupServer'][$k]['server_id'] = $this->SharingGroupServer->Server->captureServer($server['Server'], $user);
+			$sg['SharingGroupServer'][$k]['server_id'] = $this->SharingGroupServer->Server->captureServer($server['Server'], $user, $force);
 			if ($sg['SharingGroupServer'][$k]['server_id'] === false) unset ($sg['SharingGroupServer'][$k]);
 			else {
-				$this->SharingGroupServer->create();
-				$this->SharingGroupServer->save(array('sharing_group_id' => $sgids, 'server_id' => $sg['SharingGroupServer'][$k]['server_id'], 'all_orgs' => $server['all_orgs']));
+				if ($force) {
+					// we are editing not creating here
+					$temp = $this->SharingGroupServer->find('first', array(
+						'recursive' => -1,
+						'conditions' => array(
+							'sharing_group_id' => $existingSG['SharingGroup']['id'],
+							'server_id' => $sg['SharingGroupServer'][$k]['server_id']
+						),
+					));
+					if ($temp['SharingGroupServer']['all_orgs'] != $sg['SharingGroupServer'][$k]['all_orgs']) {
+						$temp['SharingGroupServer']['all_orgs'] = $sg['SharingGroupServer'][$k]['all_orgs'];
+						$this->SharingGroupServer->save($temp['SharingGroupServer']);
+					}
+				} else {
+					$this->SharingGroupServer->create();
+					$this->SharingGroupServer->save(array('sharing_group_id' => $sgids, 'server_id' => $sg['SharingGroupServer'][$k]['server_id'], 'all_orgs' => $server['all_orgs']));
+				}
 			}
 		}
 		if (!empty($existingSG)) return $existingSG[$this->alias]['id'];

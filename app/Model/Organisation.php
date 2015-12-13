@@ -88,7 +88,7 @@ class Organisation extends AppModel{
 		return true;
 	}
 	
-	public function captureOrg($org, $user) {
+	public function captureOrg($org, $user, $force = false) {
 
 		if (is_array($org)) {
 			if (isset($org['uuid'])) {
@@ -128,7 +128,13 @@ class Organisation extends AppModel{
 			$this->save($organisation);
 			return $this->id;
 		} else {
-			if (isset($org['uuid']) && empty($existingOrg['Orgc']['uuid'])) $existingOrg['Orgc']['uuid'] = $org['uuid'];
+			if (isset($org['uuid']) && empty($existingOrg['Organisation']['uuid'])) $existingOrg['Organisation']['uuid'] = $org['uuid'];
+			if ($force) {
+				$fields = array('type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts', 'landingpage');
+				foreach ($fields as $field) {
+					if (isset($org[$field])) $existingOrg['Organisation'][$field] = $org[$field];
+				}
+			}
 			$this->save($existingOrg);
 		}
 		return $existingOrg[$this->alias]['id'];

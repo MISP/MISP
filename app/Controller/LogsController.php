@@ -102,7 +102,7 @@ class LogsController extends AppController {
 			$conditions['OR'][1]['AND']['OR'][0] = array('Log.model_id LIKE' => null);
 			foreach ($attributes as $a) {
 				// Hop over the attributes that are private if the user should is not of the same org and not an admin
-				if ($mineOrAdmin || ($a['Event']['distribution'] != 0 && $a['Attribute']['distribution'] != 0)) {
+				if ($mineOrAdmin || ($a['Event']['distribution'] != 0 && ($a['Attribute']['distribution'] != 0 && $a['Attribute']['distribution'] != 4))) {
 					$conditions['OR'][1]['AND']['OR'][] = array('Log.model_id LIKE' => $a['Attribute']['id']);
 				}
 			}

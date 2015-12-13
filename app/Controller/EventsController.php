@@ -1078,6 +1078,10 @@ class EventsController extends AppController {
 					// edit timestamp newer than existing event timestamp
 					if (!isset($this->request->data['Event']['timestamp'])) $this->request->data['Event']['timestamp'] = $date;
 					if ($this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+						if ($this->request->data['Event']['distribution'] == 4) {
+							$this->request->data['Event']['sharing_group_id'] = $this->Event->SharingGroup->captureSG($this->request->data['Event']['SharingGroup'], $this->Auth->user());
+							unset ($this->request->data['Event']['SharingGroup']);
+						}
 						// If the above is true, we have two more options:
 						// For users that are of the creating org of the event, always allow the edit
 						// For users that are sync users, only allow the edit if the event is locked
