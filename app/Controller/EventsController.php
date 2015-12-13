@@ -305,14 +305,27 @@ class EventsController extends AppController {
 					case 'org' :
 						if ($v == "") continue 2;
 						if (!Configure::read('MISP.showorg')) continue 2;
+						$orgArray = $this->Event->Org->find('list', array('fields' => array('Org.name')));
+						$orgArray = array_map('strtoupper', $orgArray);
 						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
 						$pieces = explode('|', $v);
 						$test = array();
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
-								foreach ($sorgs as $sorg) $this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => substr($piece, 1));
+								if (is_numeric(substr($piece, 1))) {
+									$this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => substr($piece, 1));
+								} else {
+									$org_id = array_search(strtoupper(substr($piece, 1)), $orgArray);
+									if ($org_id) $this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => $org_id);
+								}
 							} else {
-								$test['OR'][] = array('Event.orgc_id' => array('Event.orgc_id' => $piece));
+								if (is_numeric($piece)) {
+									$test['OR'][] = array('Event.orgc_id' => array('Event.orgc_id' => $piece));
+								} else {
+									$org_id = array_search(strtoupper($piece), $orgArray);
+									if ($org_id) $test['OR'][] = array('Event.orgc_id' => $org_id);
+									else $test['OR'][] = array('Event.orgc_id' => -1);
+								}
 							}
 						}
 						$this->paginate['conditions']['AND'][] = $test;
@@ -443,6 +456,7 @@ class EventsController extends AppController {
 				$passedArgsArray[$searchTerm] = $v;
 			}
 		}
+	
 		if (Configure::read('MISP.tagging') && !$this->_isRest()) {
 			$this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
 			$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
@@ -480,9 +494,16 @@ class EventsController extends AppController {
 				$rules['limit'] = intval($passedArgs['limit']);
 			}
 			$rules['contain'] = $this->paginate['contain'];
+			if (Configure::read('MISP.tagging')) {
+				$rules['contain']['EventTag'] = array('Tag' => array('fields' => array('id', 'name', 'colour', 'exportable'), 'conditions' => array('Tag.exportable' => true)));
+			}
 			if (isset($this->paginate['conditions'])) $rules['conditions'] = $this->paginate['conditions'];
 			$events = $this->Event->find('all', $rules);
-
+			foreach ($events as $k => &$event) {
+				foreach ($event['EventTag'] as $k2 => &$et) {
+					if (empty($et['Tag'])) unset ($events[$k]['EventTag'][$k2]);
+				}
+			}
 			$this->set('events', $events);
 		} else {
 			$this->set('events', $this->paginate());
@@ -1077,7 +1098,7 @@ class EventsController extends AppController {
 				} else throw new MethodNotAllowedException('Event could not be saved: Could not find the local event.');
 				$fieldList = array(
 						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'distribution', 'timestamp'),
-						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment'),
+						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment', 'sharing_group_id'),
 						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org_id', 'event_org_id', 'comment', 'event_uuid', 'deleted', 'to_ids', 'uuid')
 				);
 				$saveResult = $this->Event->save(array('Event' => $this->request->data['Event']), array('fieldList' => $fieldList['Event']));
@@ -1120,6 +1141,7 @@ class EventsController extends AppController {
 							}
 							$this->request->data['Event']['Attribute'][$k]['event_id'] = $this->Event->id;
 							if ($this->request->data['Event']['Attribute'][$k]['distribution'] == 4) {
+								$sid = $this->Event->SharingGroup->captureSG($this->request->data['Event']['Attribute'][$k]['SharingGroup'], $this->Auth->user());
 								$this->request->data['Event']['Attribute'][$k]['sharing_group_id'] = $this->Event->SharingGroup->captureSG($this->request->data['Event']['Attribute'][$k]['SharingGroup'], $this->Auth->user());
 							}
 							if (!$this->Event->Attribute->save($this->request->data['Event']['Attribute'][$k], array('fieldList' => $fieldList))) {
