@@ -3,12 +3,11 @@ php:
     - 5.6
 
 services:
-    - mysql
     - redis
 
-sudo: true
-
-cache: pip
+sudo: required
+dist: trusty
+group: edge
 
 env:
     - DB=mysql
@@ -19,6 +18,7 @@ addons:
         - localhost
     apt:
         packages:
+            - mysql-server
             - python-dev
             - python-pip
             - libxml2-dev
@@ -26,13 +26,13 @@ addons:
             - php5-dev
             - apache2
             - libapache2-mod-php5
-            - libapache2-mod-fastcgi
             - curl
             - python-virtualenv
             - python-pip
             - php5-mysql
 
 install:
+    - git pull --recurse-submodules && git submodule update
     - pip install --user pyzmq
     - pip install --user coveralls
     - pip install --user codecov
@@ -47,22 +47,26 @@ install:
     - composer config vendor-dir Vendor
     - composer install
     - popd
+    - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty multiverse" && sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty-updates multiverse"
+    - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty universe" && sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty-updates universe"
+    - sudo apt-get update -qq
+    - sudo apt-get install libapache2-mod-fastcgi php5-redis
 
 before_script:
     # enable php-fpm
-    - sudo cp ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf.default ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf
-    - sudo a2enmod rewrite actions fastcgi alias
-    - echo "cgi.fix_pathinfo = 1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
-    - ~/.phpenv/versions/$(phpenv version-name)/sbin/php-fpm
+    #- sudo cp ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf.default ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf
+    #- sudo a2enmod rewrite actions fastcgi alias
+    #- echo "cgi.fix_pathinfo = 1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+    #- ~/.phpenv/versions/$(phpenv version-name)/sbin/php-fpm
     # configure apache virtual hosts
-    - sudo cp -f build/travis-ci-apache /etc/apache2/sites-available/misp
-    - sudo sed -e "s?%TRAVIS_BUILD_DIR%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp
-    - cat /etc/apache2/sites-available/misp
-    - sudo a2dissite default
-    - sudo a2ensite misp
+    - sudo cp -f build/travis-ci-apache /etc/apache2/sites-available/misp.local.conf
+    - sudo sed -e "s?%TRAVIS_BUILD_DIR%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp.local.conf
+    - sudo a2dissite 000-default
+    - sudo a2ensite misp.local.conf
     - sudo service apache2 restart
     - phpenv config-add travis/myphpconfig.ini
     - mkdir .gnupg
+    - sudo cp -a /dev/urandom /dev/random
     - gpg --homedir .gnupg --gen-key --batch travis/gpg
     - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
     - cp travis/bootstrap.php app/Config/bootstrap.php
@@ -75,14 +79,14 @@ before_script:
     - mysql -u misp -pblah misp < INSTALL/MYSQL.sql
     - AUTH=`app/Console/cake userInit -q`
     - sudo chown -R www-data:www-data app/
-    - curl http://misp.local >> /dev/null
+    - curl http://misp.local
     - pushd PyMISP
     - echo 'url = "http://misp.local"' >> tests/keys.py
     - echo 'key = "'${AUTH}'"' >> tests/keys.py
     - cat tests/keys.py
     - popd
     - sudo chown -R www-data:www-data ./
-    - sudo chmod -R 755 ./
+    - sudo chmod -R 755 /home/
     - sudo chmod 700 .gnupg
     - sudo chmod -R 777 app/tmp
     - sudo chmod -R 777 app/files
@@ -92,6 +96,18 @@ before_script:
 script:
     - pushd PyMISP
     - coverage run setup.py test
+    - popd
+
+after_failure:
+    - curl http://misp.local
+    - cat /etc/apache2/sites-available/misp.local.conf
+    - sudo ls -l /var/log/apache2
+    - sudo cat /var/log/apache2/error.log
+    - sudo cat /var/log/apache2/misp.local_error.log
+    - sudo cat /var/log/apache2/misp.local_access.log
+    - pwd
+    - sudo ls -lR ../../
+
 
 after_success:
     - coveralls
