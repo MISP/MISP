@@ -608,11 +608,22 @@ class Event extends AppModel {
 	}
 
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
+		$this->Server = ClassRegistry::init('Server');
+		$push = $this->Server->checkVersionCompatibility($server['Server']['id'])['canPush'];
+		if ($push !== true) {
+			if ($push === 'mangle' && $event['Event']['distribution'] != 4) {
+				$event['Event']['orgc'] = $event['Orgc']['name'];
+				$event['mangle'] = true;
+			} else return 'Trying to push to an outdated instance.';
+		}
 		$updated = null;
 		$newLocation = $newTextBody = '';
 		$result = $this->restfullEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
 		if ($result === 403) {
 			return 'The distribution level of this event blocks it from being pushed.';
+		}
+		if ($result === 405) {
+			return 'The sync user on the remote instance does not have the required privileges to handle this event.';
 		}
 		if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
@@ -775,34 +786,39 @@ class Event extends AppModel {
 	}
 	
 	private function __updateEventForSync($event, $server) {
-		// rearrange things to be compatible with the Xml::fromArray()
-		$objectsToRearrange = array('Attribute', 'Orgc', 'SharingGroup', 'EventTag', 'Org');
-		foreach ($objectsToRearrange as $o) {
-			if (isset($event[$o])) {
-				$event['Event'][$o] = $event[$o];
-				unset($event[$o]);
-			}
-		}
-		
-		// cleanup the array from things we do not want to expose
-		foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) unset($event['Event'][$field]);
-		foreach ($event['Event']['EventTag'] as $kt => $tag) {
-			if (!$tag['Tag']['exportable']) unset($event['Event']['EventTag'][$kt]);
-		}
-		
-		// Add the local server to the list of instances in the SG
-		if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
-			foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
-				if ($s['server_id'] == 0) {
-					$s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
+		$mangle = isset($event['mangle']);
+		if (!$mangle) {
+			// rearrange things to be compatible with the Xml::fromArray()
+			$objectsToRearrange = array('Attribute', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute');
+			foreach ($objectsToRearrange as $o) {
+				if (isset($event[$o])) {
+					$event['Event'][$o] = $event[$o];
+					unset($event[$o]);
 				}
 			}
+			
+			// cleanup the array from things we do not want to expose
+			foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) unset($event['Event'][$field]);
+			foreach ($event['Event']['EventTag'] as $kt => $tag) {
+				if (!$tag['Tag']['exportable']) unset($event['Event']['EventTag'][$kt]);
+			}
+			
+			// Add the local server to the list of instances in the SG
+			if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
+				foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
+					if ($s['server_id'] == 0) {
+						$s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
+					}
+				}
+			}
+		} else {
+			foreach (array('org_id', 'orgc_id', 'proposal_email_lock', 'org') as $field) unset($event['Event'][$field]);
+			foreach (array('Org', 'Orgc', 'SharingGroup', 'EventTag') as $field) unset($event[$field]);
 		}
-		
 		// remove value1 and value2 from the output
 		if (isset($event['Event']['Attribute'])) {
 			foreach ($event['Event']['Attribute'] as $key => &$attribute) {
-				// do not keep attributes that are private, nor cluster
+			// do not keep attributes that are private, nor cluster
 				if ($attribute['distribution'] < 2) {
 					unset($event['Event']['Attribute'][$key]);
 					continue; // stop processing this
@@ -841,6 +857,37 @@ class Event extends AppModel {
 				// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
 				// solves the issue and a new attribute is always created.
 				unset($attribute['id']);
+			}
+		}
+		
+		if ($mangle) {
+			$event['Event']['timestamp'] = $event['Event']['timestamp'] -1;
+			if (isset($event['Attribute'])) {
+				foreach ($event['Attribute'] as $key => &$attribute) {
+					$event['Attribute'][$key]['timestamp'] = $event['Attribute'][$key]['timestamp'] -1;
+					if ($attribute['distribution'] == 5) $attribute['distribution'] = $event['Event']['distribution'];
+					if ($attribute['distribution'] < 2) {
+						unset($event['Event']['Attribute'][$key]);
+						continue;
+					}
+					if ($attribute['distribution'] == 2) {
+						$attribute['distribution'] = 1;
+					}
+					unset ($event['Attribute'][$key]['SharingGroup'], $event['Attribute'][$key]['sharing_group_id']);
+					if ($attribute['distribution'] == 4) {
+						unset($event['Event']['Attribute'][$key]);
+						continue;
+					}
+					// remove value1 and value2 from the output
+					unset($attribute['value1']);
+					unset($attribute['value2']);
+					// also add the encoded attachment
+					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+						$attribute['data'] = $encodedFile;
+					}
+					unset($attribute['id']);
+				}
 			}
 		}
 		
@@ -1856,10 +1903,10 @@ class Event extends AppModel {
 		if ($event['Event']['distribution'] < 2) return true;
 		$event['Event']['locked'] = 1;
 		// get a list of the servers
-		$serverModel = ClassRegistry::init('Server');
+		$this->Server = ClassRegistry::init('Server');
 		$conditions = array('push' => 1);
 		if ($passAlong) $conditions[] = array('Server.id !=' => $passAlong); 
-		$servers = $serverModel->find('all', array('conditions' => $conditions));
+		$servers = $this->Server->find('all', array('conditions' => $conditions));
 		// iterate over the servers and upload the event
 		if(empty($servers))
 			return true;
@@ -1878,7 +1925,7 @@ class Event extends AppModel {
 					$failedServers[] = $server['Server']['url'];
 				}
 				if (isset($this->data['ShadowAttribute'])) {
-					$serverModel->syncProposals($HttpSocket, $server, null, $id, $this);
+					$this->Server->syncProposals($HttpSocket, $server, null, $id, $this);
 				}
 			}
 		}
@@ -1941,8 +1988,7 @@ class Event extends AppModel {
 		if (Configure::read('Plugin.ZeroMQ_enable')) {
 			App::uses('PubSubTool', 'Tools');
 			$pubSubTool = new PubSubTool();
-			$hostOrg = Configure::read('MISP.org');
-			$hostOrg = $this->Org->find('first', array('conditions' => array('name' => $hostOrg), 'fields' => array('id')));
+			$hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
 			if (!empty($hostOrg)) {
 				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => false, 'perm_site_admin' => false), 'Organisation' => $hostOrg['Org']);
 				$fullEvent = $this->fetchEvent($user, array('eventid' => $id));

@@ -477,6 +477,15 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
+					'ManglePushTo23' => array(
+							'level' => 0,
+							'description' => 'When enabled, your 2.4+ instance can push events to MISP 2.3 installations. This is highly advised against and will result in degraded events and lost information. Use this at your own risk.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testMangle',
+							'type' => 'boolean',
+							'null' => true
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
@@ -1133,7 +1142,8 @@ class Server extends AppModel {
 		$this->Event = ClassRegistry::init('Event');
 		$this->read(null, $id);
 		$url = $this->data['Server']['url'];
-		if (!$this->checkVersionCompatibility($id, $user)['canPush']) {
+		$push = $this->checkVersionCompatibility($id, $user)['canPush'];
+		if (!$push) {
 			if ($jobId) {
 				$job->id = $jobId;
 				$job->saveField('progress', 100);
@@ -1155,17 +1165,22 @@ class Server extends AppModel {
 			$this->redirect(array('action' => 'index'));
 		}
 		
-		$sgs = $this->Event->SharingGroup->find('all', array(
-			'recursive' => -1,
-			'contain' => array('Organisation', 'SharingGroupOrg', 'SharingGroupServer')
-		));
-		$sgIds = array();
-		foreach ($sgs as $k => $sg) {
-			if (!$this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
-				unset($sgs[$k]);
-				continue;
+		if ($push !== 'mangle') {
+			$sgs = $this->Event->SharingGroup->find('all', array(
+				'recursive' => -1,
+				'contain' => array('Organisation', 'SharingGroupOrg', 'SharingGroupServer')
+			));
+			$sgIds = array();
+			foreach ($sgs as $k => $sg) {
+				if (!$this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
+					unset($sgs[$k]);
+					continue;
+				}
+				$sgIds[] = $sg['SharingGroup']['id'];
 			}
-			$sgIds[] = $sg['SharingGroup']['id'];
+		}
+		if (!isset($sgIds) || empty($sgIds)) {
+			$sgIds = array(-1);
 		}
 		$findParams = array(
 				'conditions' => array(
@@ -1421,7 +1436,7 @@ class Server extends AppModel {
 			}
 			if ($setting !== '') $leafValue['value'] = $setting;
 		} else {
-			if ($leafKey != 'branch') {
+			if ($leafKey != 'branch' && (!isset($leafValue['null']) || !$leafValue['null'])) {
 				$leafValue['error'] = 1;
 				$leafValue['errorMessage'] = 'Value not set.';
 			}
@@ -1457,6 +1472,12 @@ class Server extends AppModel {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		$protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
 		if ($value != strtolower($protocol) . '://' . $_SERVER['HTTP_HOST']) return false;
+		return true;
+	}
+	
+	public function testMangle($value) {
+		if ($this->testBool($value) !== true) return $this->testBool($value);
+		if ($value) return 'Enabled, expect issues.';
 		return true;
 	}
 	
@@ -1710,7 +1731,9 @@ class Server extends AppModel {
 		}
 	}
 	
-	public function checkVersionCompatibility($id, $user, $HttpSocket = false) {
+	public function checkVersionCompatibility($id, $user = array(), $HttpSocket = false) {
+		// for event publishing when we don't have a user.
+		if (empty($user)) $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
 		App::uses('Folder', 'Utility');
 		$file = new File (ROOT . DS . 'VERSION.json', true);
 		$localVersion = json_decode($file->read(), true);
@@ -1785,6 +1808,11 @@ class Server extends AppModel {
 		else $issueLevel = "error";
 		if ($response === false && $localVersion['hotfix'] > $remoteVersion[2]) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes behind.";
 		if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
+		
+		if (Configure::read('MISP.ManglePushTo23') && !$canPush) {
+			$canPush = 'mangle';
+			$response = "Sync to Server ('" . $id . "') should have been blocked, but mangle sync override is enabled. A downgraded synchronisation is highly advised again, please upgrade your instance as soon as possible.";
+		}
 		
 		if ($response !== false) {
 			$this->Log = ClassRegistry::init('Log');
