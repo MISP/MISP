@@ -288,6 +288,15 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
+					'disable_emailing' => array(
+							'level' => 0,
+							'description' => 'You can disable all e-mailing using this setting. When enabled, no outgoing e-mails will be sent by MISP.',
+							'value' => false,
+							'errorMessage' => '',
+							'null' => true,
+							'test' => 'testDisableEmail',
+							'type' => 'boolean',
+					),
 					'contact' => array(
 							'level' => 1,
 							'description' => 'The e-mail address that MISP should include as a contact address for the instance\'s support team.',
@@ -1478,6 +1487,11 @@ class Server extends AppModel {
 	public function testMangle($value) {
 		if ($this->testBool($value) !== true) return $this->testBool($value);
 		if ($value) return 'Enabled, expect issues.';
+		return true;
+	}
+	
+	public function testDisableEmail($value) {
+		if (isset($value) && $value) return 'E-mailing is blocked.';
 		return true;
 	}
 	

@@ -840,6 +840,20 @@ class ShadowAttributesController extends AppController {
 	
 	
 	private function __sendProposalAlertEmail($id) {
+		if (Configure::read('MISP.disable_emailing')) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'User',
+					'model_id' => $this->Auth->user('id'),
+					'email' => $this->Auth->user('email'),
+					'action' => 'email',
+					'title' => 'The sending of new proposal alert e-mails for event ' . $id . ' failed. Reason: Emailing is currently disabled on this instance.',
+					'change' => null,
+			));
+			return true;
+		}
 		$this->loadModel('Event');
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(null, $id);
