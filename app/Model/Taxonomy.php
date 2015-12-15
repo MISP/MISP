@@ -133,7 +133,7 @@ class Taxonomy extends AppModel{
 		foreach ($taxonomyIdList as &$taxonomy) {
 			$allTaxonomyTags = array_merge($allTaxonomyTags, array_keys($this->getTaxonomyTags($taxonomy, true)));
 		}
-		$allTags = $this->Tag->find('list', array('fields' => array('name')));
+		$allTags = $this->Tag->find('list', array('fields' => array('name'), 'order' => array('UPPER(Tag.name) ASC')));
 		foreach ($allTags as $k => &$tag) {
 			if ($inverse && in_array(strtoupper($tag), $allTaxonomyTags)) unset($allTags[$k]);
 			if (!$inverse && !in_array(strtoupper($tag), $allTaxonomyTags)) unset($allTags[$k]);
@@ -145,7 +145,7 @@ class Taxonomy extends AppModel{
 		$taxonomy = $this->__getTaxonomy($id, array('full' => true, 'filter' => false));
 		if ($existingOnly) {
 			$this->Tag = ClassRegistry::init('Tag');
-			$tags = $this->Tag->find('list', array('fields' => array('name')));
+			$tags = $this->Tag->find('list', array('fields' => array('name'), 'order' => array('UPPER(Tag.name) ASC')));
 			foreach ($tags as &$tag) $tag = strtoupper($tag);
 		}
 		$entries = array();

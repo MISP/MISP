@@ -59,7 +59,8 @@ class TagsController extends AppController {
 			}
 			unset($tag['EventTag']);
 			if (!empty($taxonomyNamespaces)) {
-				foreach (array_keys($taxonomyNamespaces) as &$tns) {
+				$taxonomyNamespaceArrayKeys = array_keys($taxonomyNamespaces);
+				foreach ($taxonomyNamespaceArrayKeys as &$tns) {
 					if (substr(strtoupper($tag['Tag']['name']), 0, strlen($tns)) === strtoupper($tns)) {
 						$tag['Tag']['Taxonomy'] = $taxonomyNamespaces[$tns];
 						if (!isset($taxonomyTags[$tns])) $taxonomyTags[$tns] = $this->Taxonomy->getTaxonomyTags($taxonomyNamespaces[$tns]['id'], true);
@@ -244,7 +245,7 @@ class TagsController extends AppController {
 	public function selectTaxonomy($event_id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
 		$this->loadModel('Taxonomy');
-		$options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace')));
+		$options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
 		foreach ($options as $k => &$option) {
 			$tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
 			if (empty($tags)) unset($options[$k]);

@@ -655,16 +655,6 @@ class EventsController extends AppController {
 		$this->__setDeletable($pivot, $event['Event']['id'], true);
 		$this->set('allPivots', $this->Session->read('pivot_thread'));
 		$this->set('pivot', $pivot);
-		// set all tag data
-		if (Configure::read('MISP.tagging')) {
-			$this->helpers[] = 'TextColour';
-			$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1, 'order' => array('Tag.name ASC')));
-			$allTags = array('0' => 'None');
-			foreach ($tags as $k => $v) {
-				$allTags[$v['Tag']['id']] = $v['Tag']['name'];
-			}
-			$this->set('allTags', $allTags);
-		}
 		
 		// set data for the view, the event is already set in view()
 		$dataForView = array(

@@ -171,7 +171,7 @@
 	function insertThread() {
 		document.getElementById("PostMessage").value+="[Thread][/Thread]"; 
 	}
-	<?php if ($post_id): ?>
+	<?php if (isset($post_id) && $post_id): ?>
 		$(document).ready(function() {
 			location.hash = "#message_<?php echo h($post_id); ?>";
 		});
