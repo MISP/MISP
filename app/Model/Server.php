@@ -2146,6 +2146,8 @@ class Server extends AppModel {
 			$this->Job->saveField('progress', 10);
 			$this->Job->saveField('message', 'Starting the migration of the database to 2.4');
 		}
+		$this->query('UPDATE `roles` SET `perm_template` = 1 WHERE `perm_site_admin` = 1 OR `perm_admin` = 1');
+		$this->query('UPDATE `roles` SET `perm_sharing_group` = 1 WHERE `perm_site_admin` = 1 OR `perm_sync` = 1');
 		$localOrgs = array();
 		$externalOrgs = array();
 		$orgs = array('local' => array(), 'external' => array());
