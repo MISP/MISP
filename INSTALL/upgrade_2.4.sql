@@ -48,8 +48,6 @@ call AddColumnUnlessExists(Database(), 'shadow_attributes', 'org_id', 'INT( 11 )
 call AddColumnUnlessExists(Database(), 'shadow_attributes', 'event_org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
 call AddColumnUnlessExists(Database(), 'shadow_attributes', 'proposal_to_delete', 'BOOLEAN NOT NULL');
 
-call AddColumnUnlessExists(Database(), 'sharing_groups', 'sync_user_id', 'INT( 11 ) NOT NULL DEFAULT 0');
-
 call AddColumnUnlessExists(Database(), 'tags', 'exportable', 'TINYINT( 1 ) NOT NULL DEFAULT 0');
 
 call AddColumnUnlessExists(Database(), 'threads', 'org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
@@ -112,6 +110,7 @@ CREATE TABLE IF NOT EXISTS `sharing_groups` (
   `created` datetime NOT NULL,
   `modified` datetime NOT NULL,
   `local` tinyint(1) NOT NULL,
+  `sync_user_id` INT( 11 ) NOT NULL DEFAULT 0, 
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
