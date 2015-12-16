@@ -105,7 +105,7 @@ class PostsController extends AppController {
 		if ($this->request->is('post')) {
 			// Set the default values that we'll alter before actually saving data. These are the default values unless specifically modified.
 			// By default, all discussions will be visibile to everyone on the platform
-			$org = $this->Auth->user('org_id');
+
 			// Set the title if it is setable in the add view.
 			if (empty($thread_id) && empty($target_type)) {
 				$title = $this->request->data['Post']['title'];
@@ -124,10 +124,10 @@ class PostsController extends AppController {
 						'user_id' => $this->Auth->user('id'),
 						'event_id' => $event_id,
 						'title' => $title,
-						'distribution' => $distribution,
-						'sharing_group_id' => $sgid,
+						'distribution' => isset($distribution) ? $distribution : 1,
+						'sharing_group_id' => isset($sgid) ? $sgid : 0,
 						'post_count' => 1,
-						'org_id' => $org
+						'org_id' => $this->Auth->user('org_id')
 				);
 				$this->Thread->save($newThread);
 				$target_thread_id = $this->Thread->getId();
