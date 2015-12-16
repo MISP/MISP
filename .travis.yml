@@ -112,6 +112,7 @@ script:
 
 after_failure:
     - curl http://misp.local
+    - cat /etc/apache2/envvars
     - cat /etc/apache2/sites-available/misp.local.conf
     - sudo ls -l /var/log/apache2
     - sudo cat `pwd`/app/tmp/logs/error.log
