@@ -72,7 +72,7 @@ class Log extends AppModel {
 		if ($org !== 'all') {
 			$org = $this->Organisation->find('first', array('fields' => array('name'), 'recursive' => -1, 'conditions' => array('UPPER(Organisation.name) LIKE' => strtoupper($org))));
 			if (empty($org)) return MethodNotAllowedException('Invalid organisation.');
-			$conditions['org_id'] = $org['Organisation']['id'];
+			$conditions['org'] = $org['Organisation']['name'];
 		}
 		$conditions['AND']['NOT'] = array('action' => array('login', 'logout', 'changepw'));
 		$validDates = $this->find('all', array(
