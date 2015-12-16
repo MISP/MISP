@@ -47,7 +47,6 @@ install:
     - php composer.phar require kamisama/cake-resque:4.1.2
     - php composer.phar config vendor-dir Vendor
     - php composer.phar install
-    - pecl install redis
     - popd
     - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty multiverse" && sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty-updates multiverse"
     - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty universe" && sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty-updates universe"
@@ -57,42 +56,50 @@ install:
     - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
     # Set perms
     - sudo chown -R www-data:www-data `pwd`
-    - sudo -R 750 `pwd`
-    - chmod -R g+ws `pwd`/app/tmp
-    - chmod -R g+ws `pwd`/app/files
-    - chmod -R g+ws `pwd`/app/files/script/tmp
+    - sudo chmod -R 755 `pwd`
+    - sudo chmod -R g+ws `pwd`/app/tmp
+    - sudo chmod -R g+ws `pwd`/app/files
+    - sudo chmod -R g+ws `pwd`/app/files/scripts/tmp
     # install MySQL
+    - sudo chmod -R 777 `pwd`/INSTALL
     - mysql -u root -e 'create database misp;'
     - mysql -u root -e "grant usage on *.* to misp@localhost identified by 'blah'";
     - mysql -u root -e "grant all privileges on misp.* to misp@localhost;"
     - mysql -u misp -pblah misp < INSTALL/MYSQL.sql
     # configure apache virtual hosts
+    - sudo chmod -R 777 `pwd`/build
     - sudo cp -f build/travis-ci-apache /etc/apache2/sites-available/misp.local.conf
     - sudo sed -e "s?%TRAVIS_BUILD_DIR%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp.local.conf
     - sudo a2dissite 000-default
     - sudo a2ensite misp.local.conf
-    - a2enmod rewrite
+    - sudo a2enmod rewrite
     - sudo service apache2 restart
     # MISP configuration
-    - cp travis/bootstrap.php app/Config/bootstrap.php
-    - cp travis/database.php app/Config/database.php
-    - cp travis/core.php app/Config/core.php
-    - cp travis/config.php app/Config/config.php
+    - sudo chmod -R 777 `pwd`/travis
+    - sudo cp travis/bootstrap.php app/Config/bootstrap.php
+    - sudo cp travis/database.php app/Config/database.php
+    - sudo cp travis/core.php app/Config/core.php
+    - sudo cp travis/config.php app/Config/config.php
     # Ensure the perms
     - sudo chown -R www-data:www-data `pwd`/app/Config
     - sudo chmod -R 750 `pwd`/app/Config
     # GPG setup
-    - mkdir `pwd`/.gnupg
-    - sudo www-data:www-data `pwd`/.gnupg
-    - sudo chmod 700 `pwd`/.gnupg
+    - sudo mkdir `pwd`/.gnupg
     # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
     - sudo cp -a /dev/urandom /dev/random
-    - sudo -u www-data gpg --homedir `pwd`/.gnupg --gen-key --batch travis/gpg
+    - sudo gpg --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
+    - sudo chown www-data:www-data `pwd`/.gnupg
+    - sudo chmod 700 `pwd`/.gnupg
+    # Get authkey
+    - sudo app/Console/cake userInit -q | sudo tee ./key.txt > /dev/null
+    - sudo chmod 777 ./key.txt
+    - sudo chown -R www-data:www-data `pwd`
 
 before_script:
     - curl http://misp.local
+    - AUTH=`cat key.txt`
+    - sudo chmod -R 777 PyMISP
     - pushd PyMISP
-    - AUTH=`app/Console/cake userInit -q`
     - echo 'url = "http://misp.local"' >> tests/keys.py
     - echo 'key = "'${AUTH}'"' >> tests/keys.py
     - cat tests/keys.py
