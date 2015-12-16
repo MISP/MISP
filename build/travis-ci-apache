@@ -3,13 +3,10 @@
         ServerName misp.local
         DocumentRoot %TRAVIS_BUILD_DIR%/app/webroot
         <Directory %TRAVIS_BUILD_DIR%/app/webroot>
-                Options +FollowSymLinks -Indexes
+                Options -Indexes
                 AllowOverride all
                 Order allow,deny
                 Allow from all
-                Allow from 127.0.0.1
-                Allow from ::1
-                Require all granted
         </Directory>
 
         LogLevel warn
