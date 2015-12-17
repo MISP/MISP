@@ -16,7 +16,7 @@ class AdminShell extends AppShell
 		
 		for ($i = 0; $i < ceil($attributeCount / 1000); $i++) {
 			$currentIds = array_slice($attribute_ids, ($i * 1000), (($i+1) * 1000));
-			$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Event.date', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id');
+			$fields = array('Attribute.id', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Attribute.type', 'Attribute.value1', 'Attribute.value2','Event.date', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id');
 			// get all attributes..
 			$attributes = $this->Attribute->find('all', array('recursive' => -1, 'conditions' => array('Attribute.id' => $currentIds), 'contain' => array('Event'), 'fields' => $fields));
 			foreach ($attributes as $k => $attribute) {
