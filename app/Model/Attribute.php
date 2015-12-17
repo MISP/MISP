@@ -1084,7 +1084,7 @@ class Attribute extends AppModel {
 		}
 	}
 
-	public function __afterSaveCorrelation($a) {
+	public function __afterSaveCorrelation($a, $full = false) {
 		// Don't do any correlation if the type is a non correlating type
 		if (!in_array($a['type'], $this->nonCorrelatingTypes)) {
 			$event = $this->Event->find('first', array(
@@ -1097,6 +1097,8 @@ class Attribute extends AppModel {
 			$fields = array('value1', 'value2');
 			$correlatingValues = array($a['value1']);
 			if (!empty($a['value2'])) $correlatingValues[] = $a['value2'];
+			if ($full) $temp = array('Attribute.id >' => $a['id']);
+			else $temp = array();
 			foreach ($correlatingValues as $k => $cV) {
 				$correlatingAttributes[$k] = $this->find('all', array(
 						'conditions' => array(
@@ -1107,6 +1109,7 @@ class Attribute extends AppModel {
 							'AND' => array(
 								'Attribute.type !=' => $this->nonCorrelatingTypes,
 								'Attribute.id !=' => $a['id'],
+								$temp,
 								'Attribute.event_id !=' => $a['event_id']
 							),
 						),
@@ -1500,7 +1503,7 @@ class Attribute extends AppModel {
 	 
 	 public function generateCorrelation($jobId = false, $startPercentage = 0) {
 	 	$this->Correlation = ClassRegistry::init('Correlation');
-	 	$this->Correlation->deleteAll(array(), false);
+	 	$this->Correlation->deleteAll(array('id !=' => 0), false);
 	 	//$fields = array('Attribute.id', 'Attribute.type', 'Attribute.value1', 'Attribute.value2', 'Attribute.event_id');
 	 	// get all attributes..
 	 	$eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
@@ -1512,16 +1515,16 @@ class Attribute extends AppModel {
 	 	}
 		foreach ($eventIds as $j => $id) {
 			if ($jobId && Configure::read('MISP.background_jobs')) {
-				$this->Job->saveField('progress', $startPercentage + ($j / 60));
+				$this->Job->saveField('progress', ($startPercentage + ($j / $eventCount * (100 - $startPercentage))));
 			}
 			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id)));
 			foreach ($attributes as $k => $attribute) {
-				$this->__afterSaveCorrelation($attribute['Attribute']);
+				$this->__afterSaveCorrelation($attribute['Attribute'], true);
 				$attributeCount++;
 			}
 		}
 		$this->Job->saveField('message', 'Job done.');
-	 	return $k;
+	 	return $attributeCount;
 	 }
 	 
 	 public function reportValidationIssuesAttributes($eventId) {
