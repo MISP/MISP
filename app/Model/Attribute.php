@@ -1084,14 +1084,17 @@ class Attribute extends AppModel {
 		}
 	}
 
-	public function __afterSaveCorrelation($a, $full = false) {
+	public function __afterSaveCorrelation($a, $full = false, $event = false) {
 		// Don't do any correlation if the type is a non correlating type
 		if (!in_array($a['type'], $this->nonCorrelatingTypes)) {
-			$event = $this->Event->find('first', array(
-					'recursive' => -1,
-					'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id'),
-					'conditions' => array('id' => $a['event_id'])
-			));
+			$start = microtime(true);
+			if (!$event) {
+				$event = $this->Event->find('first', array(
+						'recursive' => -1,
+						'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id'),
+						'conditions' => array('id' => $a['event_id'])
+				));
+			}
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$correlations = array();
 			$fields = array('value1', 'value2');
@@ -1518,9 +1521,14 @@ class Attribute extends AppModel {
 				$this->Job->saveField('message', 'Correlating Event ' . $id);
 				$this->Job->saveField('progress', ($startPercentage + ($j / $eventCount * (100 - $startPercentage))));
 			}
+			$event = $this->Event->find('first', array(
+					'recursive' => -1,
+					'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id'),
+					'conditions' => array('id' => $id)
+			));
 			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id)));
 			foreach ($attributes as $k => $attribute) {
-				$this->__afterSaveCorrelation($attribute['Attribute'], true);
+				$this->__afterSaveCorrelation($attribute['Attribute'], true, $event);
 				$attributeCount++;
 			}
 		}
