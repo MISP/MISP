@@ -71,7 +71,7 @@ foreach ($servers as $server):
 		<td><a href="/organisations/view/<?php echo h($server['RemoteOrg']['id']); ?>"><?php echo h($server['RemoteOrg']['name']); ?></a></td>
 		<td class="short"><?php echo h($server['Server']['cert_file']); ?>&nbsp;</td>
 		<td class="short"><span class="<?php echo ($server['Server']['self_signed'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
-		<td class="short"><a href="/organisations/view<?php echo h($server['Organisation']['id']); ?>"><?php echo h($server['Organisation']['name']); ?></a></td>
+		<td class="short"><a href="/organisations/view/<?php echo h($server['Organisation']['id']); ?>"><?php echo h($server['Organisation']['name']); ?></a></td>
 		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="short action-links">

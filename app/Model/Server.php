@@ -2260,7 +2260,7 @@ class Server extends AppModel {
 			$this->Job->saveField('progress', 40);
 			$this->Job->saveField('message', 'Rebuilding all correlations (this will take a while...)');
 		}
-		$this->Attribute->generateCorrelation();
+		$this->Attribute->generateCorrelation($jobId, 40);
 	}
 	
 	
