@@ -1498,16 +1498,29 @@ class Attribute extends AppModel {
 	 	return $values;
 	 }
 	 
-	 public function generateCorrelation() {
+	 public function generateCorrelation($jobId = false, $startPercentage = 0) {
 	 	$this->Correlation = ClassRegistry::init('Correlation');
 	 	$this->Correlation->deleteAll(array(), false);
 	 	//$fields = array('Attribute.id', 'Attribute.type', 'Attribute.value1', 'Attribute.value2', 'Attribute.event_id');
 	 	// get all attributes..
-	 	$attributes = $this->find('all', array('recursive' => -1));
-	 	// for all attributes..
-	 	foreach ($attributes as $k => $attribute) {
-	 		$this->__afterSaveCorrelation($attribute['Attribute']);
+	 	$eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
+	 	$attributeCount = 0;
+	 	if (Configure::read('MISP.background_jobs') && $jobId) {
+	 		$this->Job = ClassRegistry::init('Job');
+	 		$this->Job->id = $jobId;
+	 		$eventCount = count($eventIds);
 	 	}
+		foreach ($eventIds as $j => $id) {
+			if ($jobId && Configure::read('MISP.background_jobs')) {
+				$this->Job->saveField('progress', $startPercentage + ($j / 60));
+			}
+			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id)));
+			foreach ($attributes as $k => $attribute) {
+				$this->__afterSaveCorrelation($attribute['Attribute']);
+				$attributeCount++;
+			}
+		}
+		$this->Job->saveField('message', 'Job done.');
 	 	return $k;
 	 }
 	 
