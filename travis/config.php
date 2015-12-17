@@ -1,6 +1,6 @@
 <?php
 $config = array (
-  'debug' => 0,
+  'debug' => 1,
   'Security' =>
   array (
     'level' => 'medium',

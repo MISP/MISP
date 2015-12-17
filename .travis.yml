@@ -58,8 +58,15 @@ install:
     - sudo chown -R www-data:www-data `pwd`
     - sudo chmod -R 755 `pwd`
     - sudo chmod -R g+ws `pwd`/app/tmp
+    - sudo chmod -R g+ws `pwd`/app/tmp/cache
+    - sudo chmod -R g+ws `pwd`/app/tmp/cache/persistent
+    - sudo chmod -R g+ws `pwd`/app/tmp/cache/models
+    - sudo chmod -R g+ws `pwd`/app/tmp/logs
     - sudo chmod -R g+ws `pwd`/app/files
     - sudo chmod -R g+ws `pwd`/app/files/scripts/tmp
+    # Resque perms
+    - sudo chown -R www-data:www-data `pwd`/app/Plugin/CakeResque/tmp
+    - sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
     # install MySQL
     - sudo chmod -R 777 `pwd`/INSTALL
     - mysql -u root -e 'create database misp;'
@@ -91,8 +98,8 @@ install:
     - sudo chown www-data:www-data `pwd`/.gnupg
     - sudo chmod 700 `pwd`/.gnupg
     # Get authkey
-    - sudo chmod -R 777 app/Lib/cakephp
-    - sudo app/Console/cake userInit -q | sudo tee ./key.txt > /dev/null
+    - sudo usermod -a -G www-data $USER
+    - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
     - sudo chmod 777 ./key.txt
     - sudo chown -R www-data:www-data `pwd`
     - sudo chmod +x /home/travis/build
@@ -120,6 +127,7 @@ after_failure:
     - cat /etc/apache2/sites-available/misp.local.conf
     - sudo ls -l /var/log/apache2
     - sudo cat `pwd`/app/tmp/logs/error.log
+    - sudo cat `pwd`/app/tmp/logs/debug.log
     - sudo cat /var/log/apache2/error.log
     - sudo cat /var/log/apache2/misp.local_error.log
     - sudo cat /var/log/apache2/misp.local_access.log
