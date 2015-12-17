@@ -5,8 +5,7 @@
         <Directory %TRAVIS_BUILD_DIR%/app/webroot>
                 Options -Indexes
                 AllowOverride all
-                Order allow,deny
-                Allow from all
+                Require all granted
         </Directory>
 
         LogLevel warn

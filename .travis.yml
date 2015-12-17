@@ -91,9 +91,13 @@ install:
     - sudo chown www-data:www-data `pwd`/.gnupg
     - sudo chmod 700 `pwd`/.gnupg
     # Get authkey
+    - sudo chmod -R 777 app/Lib/cakephp
     - sudo app/Console/cake userInit -q | sudo tee ./key.txt > /dev/null
     - sudo chmod 777 ./key.txt
     - sudo chown -R www-data:www-data `pwd`
+    - sudo chmod +x /home/travis/build
+    - sudo chmod +x /home/travis
+    - sudo chmod +x /home
 
 before_script:
     - curl http://misp.local
