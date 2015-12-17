@@ -251,7 +251,6 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) COLLATE utf8_bin NOT NULL,
   `url` varchar(255) COLLATE utf8_bin NOT NULL,
-  `name` varchar(255) NOT NULL,
   `authkey` varchar(40) COLLATE utf8_bin NOT NULL,
   `org_id` int(11) NOT NULL,
   `push` tinyint(1) NOT NULL,
@@ -645,26 +644,25 @@ CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
 -- 6. Read Only - read
 --
 
-INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, 'temp_template', 'perm_sharing_group')
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
 VALUES ('1', 'admin', NOW() , NOW() , '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1');
 
-INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, 'temp_template', 'perm_sharing_group')
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
 VALUES ('2', 'Org Admin', NOW() , NOW() , '1', '1', '1' , '1', '1', '1', '1', '0' , '1', '0', '1', '0', '1', '1');
 
-INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, 'temp_template', 'perm_sharing_group')
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
 VALUES ('3', 'User', NOW() , NOW() , '1', '1', '1' , '0' , '0' , '0' , '0' , '0' , '0', '0', '0', '0', '0', '0');
 
-INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, 'temp_template', 'perm_sharing_group')
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
 VALUES ('4', 'Publisher', NOW() , NOW() , '1', '1', '1' , '1' , '0' , '0' , '0' , '0' , '0', '0', '0', '0', '0', '0');
 
-INSERT INTO `roles` 
-(`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, 'temp_template', 'perm_sharing_group')
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
 VALUES ('5', 'Sync user', NOW(), NOW(), '1', '1', '1', '1', '1', '0', '0', '0', '1', '0', '0', '0', '0', '1');
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, 'temp_template', 'perm_sharing_group')
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
 VALUES ('6', 'Automation user', NOW(), NOW(), '1', '1', '1', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0');
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, 'temp_template', 'perm_sharing_group')
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
 VALUES ('7', 'Read Only', NOW(), NOW(), '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
 
 -- --------------------------------------------------------
