@@ -1513,8 +1513,9 @@ class Attribute extends AppModel {
 	 		$this->Job->id = $jobId;
 	 		$eventCount = count($eventIds);
 	 	}
-		foreach ($eventIds as $j => $id) {
+		foreach (array_values($eventIds) as $j => $id) {
 			if ($jobId && Configure::read('MISP.background_jobs')) {
+				$this->Job->saveField('message', 'Correlating Event ' . $id);
 				$this->Job->saveField('progress', ($startPercentage + ($j / $eventCount * (100 - $startPercentage))));
 			}
 			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id)));

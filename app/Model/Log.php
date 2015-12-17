@@ -88,7 +88,7 @@ class Log extends AppModel {
 		return $data;
 	}
 	
-	public function createLogEntry($user, $action, $model, $model_id, $title, $change) {
+	public function createLogEntry($user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0), $action, $model, $model_id = 0, $title = '', $change = '') {
 		$this->create();
 		$this->save(array(
 				'org' => $user['Organisation']['name'],
