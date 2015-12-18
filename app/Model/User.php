@@ -468,17 +468,20 @@ class User extends AppModel {
 			else $validOrgs = array_merge($validOrgs, $sgOrgs);
 		}
 		$validOrgs = array_unique($validOrgs);
-		if (!$all) $conditions['AND']['OR'][] = array('org_id' => $validOrgs);
+		if (!$all) {
+			$conditions['AND']['OR'][] = array('org_id' => $validOrgs);
+
+			// Add the site-admins to the list
+			$roles = $this->Role->find('all', array(
+					'conditions' => array('perm_site_admin' => 1),
+					'fields' => array('id')
+			));
+			$roleIDs = array();
+			foreach ($roles as $role) $roleIDs[] = $role['Role']['id'];
+			$conditions['AND']['OR'][] = array('role_id' => $roleIDs);
+		}
 		$conditions['AND'][] = $userConditions;
-		
-		$roles = $this->Role->find('all', array(
-			'conditions' => array('perm_site_admin' => 1),
-			'fields' => array('id')
-		));
-		$roleIDs = array();
-		foreach ($roles as $role) $roleIDs[] = $role['Role']['id'];
-		
-		$conditions['AND']['OR'][] = array('role_id' => $roleIDs); 
+
 		$users = $this->find('all', array(
 			'conditions' => $conditions,
 			'recursive' => -1,
