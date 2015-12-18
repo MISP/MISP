@@ -1414,7 +1414,7 @@ class Event extends AppModel {
 
 	 	$userCount = count($users);
 	 	foreach ($users as $k => $user) {
-	 		$this->User->sendEmail($senderUser, $body, false, $subject);
+	 		$this->User->sendEmail($user, $body, false, $subject);
 		 		if ($processId) {
 		 			$this->Job->id = $processId;
 		 			$this->Job->saveField('progress', $k / $userCount * 100);
