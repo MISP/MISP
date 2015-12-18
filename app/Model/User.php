@@ -462,7 +462,7 @@ class User extends AppModel {
 		}
 		
 		// add all orgs to the conditions that can see the SG
-		if ($distribution = 4) {
+		if ($distribution == 4) {
 			$sgOrgs = $sgModel->getOrgsWithAccess($sharing_group_id);
 			if ($sgOrgs === true) $all = true;
 			else $validOrgs = array_merge($validOrgs, $sgOrgs);
