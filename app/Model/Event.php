@@ -1403,6 +1403,7 @@ class Event extends AppModel {
 	 	} else {
 	 		$subject = '';
 	 	}
+	 	$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event['ThreatLevel']['name'] . " - TLP Amber";
 	 	
 	 	// Initialise the Job class if we have a background process ID
 	 	// This will keep updating the process's progress bar
