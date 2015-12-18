@@ -124,7 +124,46 @@ class AppModel extends Model {
 				$sqlArray[] = 'UPDATE `roles` SET `perm_template` = 1 WHERE `perm_site_admin` = 1 OR `perm_admin` = 1';
 				$sqlArray[] = 'UPDATE `roles` SET `perm_sharing_group` = 1 WHERE `perm_site_admin` = 1 OR `perm_sync` = 1';
 				
+				//create indexes
 				break;
+			case 'indexTables':
+				$fieldsToIndex = array(
+					'attributes' => array(array('value1', 'FULLTEXT'), array('value2', 'FULLTEXT'), array('event_id', 'INDEX'), array('sharing_group_id', 'INDEX'), array('uuid', 'INDEX')),
+					'correlations' =>  array(array('org_id', 'INDEX'), array('event_id', 'INDEX'), array('attribute_id', 'INDEX'), array('sharing_group_id', 'INDEX'), array('1_event_id', 'INDEX'), array('1_attribute_id', 'INDEX'), array('a_sharing_group_id', 'INDEX'), array('org_id', 'INDEX')),
+					'events' => array(array('info', 'FULLTEXT'), array('sharing_group_id', 'INDEX'), array('org_id', 'INDEX'), array('orgc_id', 'INDEX'), array('uuid', 'INDEX')),
+					'event_tags' => array(array('event_id', 'INDEX'), array('tag_id', 'INDEX')),
+					'organisations' => array(array('uuid', 'INDEX'), array('name', 'FULLTEXT')),
+					'posts' => array(array('post_id', 'INDEX'), array('thread_id', 'INDEX')),
+					'shadow_attributes' => array(array('value1', 'FULLTEXT'), array('value2', 'FULLTEXT'), array('old_id', 'INDEX'), array('event_id', 'INDEX'), array('uuid', 'INDEX'), array('event_org_id', 'INDEX'), array('event_uuid', 'INDEX')),
+					'sharing_groups' => array(array('org_id', 'INDEX'), array('sync_user_id', 'INDEX'), array('uuid', 'INDEX'), array('organisation_uuid', 'INDEX')),
+					'sharing_group_orgs' => array(array('sharing_group_id', 'INDEX'), array('org_id', 'INDEX')),
+					'sharing_group_servers' => array(array('sharing_group_id', 'INDEX'), array('server_id', 'INDEX')),
+					'servers' => array(array('org_id', 'INDEX'), array('remote_org_id', 'INDEX')),
+					'tags' => array(array('name', 'FULLTEXT')),
+					'threads' => array(array('user_id', 'INDEX'), array('event_id', 'INDEX'), array('org_id', 'INDEX'), array('sharing_group_id', 'INDEX')),
+					'users' => array(array('org_id', 'INDEX'), array('server_id', 'INDEX')),
+				);
+				
+				$version = $this->query('select version();');
+				$version = $version[0][0]['version()'];
+				$version = explode('.', $version);
+				$version[0] = intval($version[0]);
+				$version[1] = intval($version[1]);
+				$downgrade = true;
+				if ($version[0] > 5 || ($version[0] == 5 && $version[1] > 5)) $downgrade = false;
+				
+				// keep the fulltext for now, we can change it later to actually use it once we require MySQL 5.6 / or if we decide to move some tables to MyISAM
+
+				foreach ($fieldsToIndex as $table => $fields) {
+					$downgradeThis = false;
+					$table_data = $this->query("SHOW TABLE STATUS WHERE Name = '" . $table . "'");
+					if ($downgrade && $table_data[0]['TABLES']['Engine'] !== 'MyISAM') $downgradeThis = true;
+					foreach ($fields as $field) {
+						$sqlArray[] = 'ALTER TABLE `' . $table . '` ADD ' . ($downgradeThis ? 'INDEX' : $field[1]) . ' `' . $field[0] . '` (`' . $field[0] . '`)';
+					}
+				}
+				break;
+				
 			default:
 				return false;
 				break;
