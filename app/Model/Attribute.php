@@ -1092,7 +1092,8 @@ class Attribute extends AppModel {
 				$event = $this->Event->find('first', array(
 						'recursive' => -1,
 						'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id'),
-						'conditions' => array('id' => $a['event_id'])
+						'conditions' => array('id' => $a['event_id']),
+						'order' => array(),
 				));
 			}
 			$this->Correlation = ClassRegistry::init('Correlation');
@@ -1119,6 +1120,7 @@ class Attribute extends AppModel {
 						'recursive => -1',
 						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id'),
 						'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
+						'order' => array(),
 				));
 			}
 			$correlations = array();
@@ -1524,15 +1526,16 @@ class Attribute extends AppModel {
 			$event = $this->Event->find('first', array(
 					'recursive' => -1,
 					'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id'),
-					'conditions' => array('id' => $id)
+					'conditions' => array('id' => $id),
+					'order' => array()
 			));
-			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id)));
+			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id), 'order' => array()));
 			foreach ($attributes as $k => $attribute) {
 				$this->__afterSaveCorrelation($attribute['Attribute'], true, $event);
 				$attributeCount++;
 			}
 		}
-		$this->Job->saveField('message', 'Job done.');
+		if ($jobId && Configure::read('MISP.background_jobs')) $this->Job->saveField('message', 'Job done.');
 	 	return $attributeCount;
 	 }
 	 
