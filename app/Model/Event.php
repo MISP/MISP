@@ -1414,7 +1414,9 @@ class Event extends AppModel {
 
 	 	$userCount = count($users);
 	 	foreach ($users as $k => $user) {
-	 		$this->User->sendEmail($user, $body, false, $subject);
+	 		$body = $this->__buildAlertEmailBody($event[0], $user, $sgModel);
+	 		$bodyNoEnc = "A new or modified event was just published on " . Configure::read('MISP.baseurl') . "/events/view/" . $event[0]['Event']['id'];
+	 		$this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
 		 		if ($processId) {
 		 			$this->Job->id = $processId;
 		 			$this->Job->saveField('progress', $k / $userCount * 100);

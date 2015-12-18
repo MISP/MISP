@@ -497,6 +497,8 @@ class User extends AppModel {
 	// Just pass the user ID in an array that is the target of the e-mail along with the message body and the alternate message body if the message cannot be encrypted
 	// the remaining two parameters are the e-mail subject and a secondary user object which will be used as the replyto address if set. If it is set and an encryption key for the replyTo user exists, then his/her public key will also be attached
 	public function sendEmail($user, $body, $bodyNoEnc = false, $subject, $replyToUser = false) {
+		debug($user);
+		throw new Exception();
 		if (Configure::read('MISP.disable_emailing')) {
 			$this->Log = ClassRegistry::init('Log');
 			$this->Log->create();
