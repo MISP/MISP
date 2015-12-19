@@ -14,8 +14,9 @@ MISP, Malware Information Sharing Platform and Threat Sharing, core functionalit
 - An **efficient IOC and indicators** database allowing to store technical and non-technical information about malware samples, incidents, attackers and intelligence.
 - Automatic **correlation** finding relationships between attributes and indicators from malware, attacks campaigns or analysis.
 - Built-in **sharing functionality** to ease data sharing using different model of distributions. MISP can synchronize automatically events and attributes among different MISP. Advanced filtering functionalities can be used to meet each organization sharing policy including a **flexible sharing group** capacity and an attribute level distribution mechanisms.
+- An **intuitive user-interface** for end-users to create, update and collaborate on events and attributes/indicators. A **graphical interface** to navigate seamlessly between events and their correlations.
 - **storing data** in a structured format (allowing automated use of the database for various purposes) with an extensive support of cyber security indicators along fraud indicators as in the financial sector.
-- **export**: generating IDS, OpenIOC, plain text, MISP XML or JSON output to integrate with other systems (network IDS, host IDS, custom tools)
+- **export**: generating IDS, OpenIOC, plain text, CSV, MISP XML or JSON output to integrate with other systems (network IDS, host IDS, custom tools)
 - **import**: bulk-import, batch-import, import from OpenIOC, GFI sandbox, ThreatConnect CSV.
 - Flexible **free text import** tool to ease the integration of unstructured reports into MISP.
 - A gentle system to **collaborate** on events and attributes allowing MISP users to propose changes or updates to attributes/indicators.
