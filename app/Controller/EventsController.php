@@ -1134,6 +1134,8 @@ class EventsController extends AppController {
 								} else {
 									$this->Event->Attribute->create();
 								}
+							} else {
+								$this->Event->Attribute->create();
 							}
 							$this->request->data['Event']['Attribute'][$k]['event_id'] = $this->Event->id;
 							if ($this->request->data['Event']['Attribute'][$k]['distribution'] == 4) {
