@@ -1,6 +1,14 @@
 <?php
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
+if (Configure::read('Plugin.Sightings_enable')) {
+	if (isset($event['Sighting']) && !empty($event['Sighting'])) {
+		$ownSightings = array();
+		foreach ($event['Sighting'] as $sighting) {
+			if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
+		}
+	}
+}
 ?>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
@@ -126,26 +134,27 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 					&nbsp;
 				</dd>
 				<?php 
-					$published = '';
-					$notPublished = 'style="display:none;"';
-					if ($event['Event']['published'] == 0) {
-						$published = 'style="display:none;"';
-						$notPublished = '';
+					$dtclass='published';
+					$ddclass='published green';
+					if (!$event['Event']['published']) {
+						if ($isAclPublish) {
+							$dtclass = $ddclass = 'visibleDL notPublished';
+						} else {
+							$dtclass = 'notPublished';
+							$ddclass = 'nobPublished red';
+						}
 					}
 				?>
-						<dt class="published" <?php echo $published;?>>Published</dt>
-						<dd class="published green" <?php echo $published;?>>Yes</dd>
-				<?php 
-					if ($isAclPublish) :
-				?>
-						<dt class="visibleDL notPublished" <?php echo $notPublished;?>>Published</dt>
-						<dd class="visibleDL notPublished" <?php echo $notPublished;?>>No</dd>
-				<?php 
-					else: 
-				?>
-						<dt class="notPublished" <?php echo $notPublished;?>>Published</dt>
-						<dd class="notPublished red" <?php echo $notPublished;?>>No</dd>
-				<?php endif; ?>
+				<dt class="<?php echo $dtclass;?>">Published</dt>
+				<dd class="<?php echo $ddclass;?>"><?php echo ($event['Event']['published'] ? 'Yes' : 'No');?></dd>
+				<?php if (Configure::read('Plugin.Sightings_enable')): ?>
+				<dt>Sightings</dt>
+				<dd style="word-wrap: break-word;">
+					<span id="eventSightingCount" class="bold sightingsCounter"><?php echo count($event['Sighting']); ?></span>
+					(<span id="eventOwnSightingCount" class="green bold sightingsCounter"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
+					<?php if(!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'?>
+				</dd>
+				<?php endif;?>
 			</dl>
 		</div>
 	<?php if (!empty($event['RelatedEvent'])):?>

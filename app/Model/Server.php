@@ -640,7 +640,7 @@ class Server extends AppModel {
 			'Plugin' => array(
 					'branch' => 1,
 					'RPZ_policy' => array(
-						'level' => 1,
+						'level' => 2,
 						'description' => 'The default policy action for the values added to the RPZ.',
 						'value' => 0,
 						'errorMessage' => '',
@@ -783,7 +783,32 @@ class Server extends AppModel {
 						'type' => 'string',
 						'afterHook' => 'zmqAfterHook',
 					),
-					
+					'Sightings_enable' => array(
+						'level' => 1,
+						'description' => 'Enables or disables the sighting functionality. When enabled, users can use the UI or the appropriate APIs to submit sightings data about indicators.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'beforeHook' => 'sightingsBeforeHook',
+					),
+					'Sightings_policy' => array(
+						'level' => 1,
+						'description' => 'This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).',
+						'value' => 0,
+						'errorMessage' => '',
+						'test' => 'testForSightingVisibility',
+						'type' => 'numeric',
+						'options' => array(0 => 'Event Owner', 1 => 'Sighting reporters', 2 => 'Everyone'),
+					),
+					'Sightings_anonymise' => array(
+						'level' => 1,
+						'description' => 'Enabling the anonymisation of sightings will simply aggregate all sightings instead of showing the organisations that have reported a sighting. Users will be able to tell the number of sightings their organisation has submitted and the number of sightings for other organisations',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+					),
 			),
 			'debug' => array(
 					'level' => 0,
@@ -1564,6 +1589,20 @@ class Server extends AppModel {
 		$numeric = $this->testforNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 0 || $value > 3) return 'Invalid setting, valid range is 0-3 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden.';
+		return true;
+	}
+	
+	public function testForSightingVisibility($value) {
+		$numeric = $this->testforNumeric($value);
+		if ($numeric !== true) return $numeric;
+		if ($value < 0 || $value > 2) return 'Invalid setting, valid range is 0-2 (0 = Event owner, 1 = Sighting reporters, 2 = Everyone.';
+		return true;
+	}
+	
+	public function sightingsBeforeHook($setting, $value) {
+		if ($value == true) {
+			$this->updateDatabase('addSightings');
+		}
 		return true;
 	}
 	

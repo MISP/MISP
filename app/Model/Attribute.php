@@ -1808,7 +1808,8 @@ class Attribute extends AppModel {
 	 	if (isset($options['contain'])) $params['contain'] = $options['contain'];
 	 	if (isset($options['fields'])) $params['fields'] = $options['fields'];
 	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
-	 	if (isset($options['order'])) $params['conditions']['AND'][] = $options['order'];
+	 	if (isset($options['order'])) $params['order'] = $options['order'];
+	 	else ($params['order'] = array());
 	 	if (isset($options['group'])) $params['group'] = $options['group'];
 	 	if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('Event.published' => 1);
 	 	$results = $this->find('all', $params);
