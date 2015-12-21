@@ -4,9 +4,19 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 if (Configure::read('Plugin.Sightings_enable')) {
 	if (isset($event['Sighting']) && !empty($event['Sighting'])) {
 		$ownSightings = array();
+		$orgSightings = array();
 		foreach ($event['Sighting'] as $sighting) {
 			if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
+			if (isset($sighting['org_id'])) {
+				if (isset($orgSightings[$sighting['Organisation']['name']])) $orgSightings[$sighting['Organisation']['name']]++;
+				else $orgSightings[$sighting['Organisation']['name']] = 1;
+			} else {
+				if (isset($orgSightings['Other organisations'])) $orgSightings['Other organisations']++;
+				else $orgSightings['Other organisations'] = 1;
+			}
 		}
+		$sightingPopover = '';
+		foreach ($orgSightings as $org => $sightingCount) $sightingPopover .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green\'>' . h($sightingCount) . '</span><br />';
 	}
 }
 ?>
@@ -150,9 +160,9 @@ if (Configure::read('Plugin.Sightings_enable')) {
 				<?php if (Configure::read('Plugin.Sightings_enable')): ?>
 				<dt>Sightings</dt>
 				<dd style="word-wrap: break-word;">
-					<span id="eventSightingCount" class="bold sightingsCounter"><?php echo count($event['Sighting']); ?></span>
-					(<span id="eventOwnSightingCount" class="green bold sightingsCounter"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
-					<?php if(!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'?>
+						<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" title="Sighting Details" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
+						(<span id="eventOwnSightingCount" class="green bold sightingsCounter" data-toggle="popover" title="Sighting Details" data-content="<?php echo $sightingPopover; ?>"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
+						<?php if(!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'; ?>
 				</dd>
 				<?php endif;?>
 			</dl>
@@ -215,6 +225,7 @@ if (Configure::read('Plugin.Sightings_enable')) {
 <script type="text/javascript">
 // tooltips
 $(document).ready(function () {
+	popoverStartup();
 	//loadEventTags("<?php echo $event['Event']['id']; ?>");	
 	$("th, td, dt, div, span, li").tooltip({
 		'placement': 'top',

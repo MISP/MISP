@@ -15,9 +15,6 @@ class SightingsController extends AppController {
 			'order' => array('Sighting.date_sighting' => 'DESC'),
 	);
 
-	public function index() {
-	}
-
 	// takes an attribute ID or UUID
 	public function add($id) {
 		if (!$this->userRole['perm_add']) throw new MethodNotAllowedException('You are not authorised to add sightings data as you don\'t have write access.');
@@ -61,9 +58,6 @@ class SightingsController extends AppController {
 			}
 		}
 	}
-	
-	public function edit($id) {
-	}
 
 	// takes a sighting ID
 	public function delete($id) {
@@ -86,14 +80,5 @@ class SightingsController extends AppController {
 			$this->set('url', '/sightings/delete/' . $id);
 			$this->set('_serialize', array('name', 'message', 'url'));
 		}
-	}
-	
-	public function resetLikeButton($id) {
-		$attribute = $this->Sighting->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
-		if (empty($attribute)) throw new MethodNotAllowedException('Invalid attribute');
-		$this->layout = 'text/default';
-		$this->set('id', $id);
-		$this->autoRender = false;
-		$this->render('/Sightings/ajax/like_button');
 	}
 }

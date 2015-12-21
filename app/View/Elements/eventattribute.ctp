@@ -13,6 +13,7 @@
 	if (Configure::read('Plugin.Sightings_enable')) {
 		$attributeSightings = array();
 		$attributeOwnSightings = array();
+		$attributeSightingsPopover = array();
 		if (isset($event['Sighting']) && !empty($event['Sighting'])) {
 			foreach ($event['Sighting'] as $sighting) {
 				$attributeSightings[$sighting['attribute_id']][] = $sighting;
@@ -20,7 +21,29 @@
 					if (isset($attributeOwnSightings[$sighting['attribute_id']])) $attributeOwnSightings[$sighting['attribute_id']]++;
 					else $attributeOwnSightings[$sighting['attribute_id']] = 1;
 				}
+				if (isset($sighting['org_id'])) {
+					if (isset($attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']])) {
+						$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]++;
+					} else {
+						$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']] = 1;
+					}
+				} else {
+					if (isset($attributeSightingsPopover[$sighting['attribute_id']]['Other organisations'])) {
+						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']++;
+					} else {
+						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations'] = 1;
+					}
+				}
 			}	
+			if (!empty($attributeSightingsPopover)) {
+				$attributeSightingsPopoverText = array();
+				foreach ($attributeSightingsPopover as $aid =>  &$attribute) {
+					$attributeSightingsPopoverText[$aid] = '';
+					foreach ($attribute as $org => $count) {
+						$attributeSightingsPopoverText[$aid] .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green\'>' . h($count) . '</span><br />';
+					}
+				}
+			}
 		}
 	}
 ?>
@@ -292,8 +315,12 @@
 						?>
 						</span>
 						<span class="icon-thumbs-up useCursorPointer" onClick="addSighting('<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
-						<span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>"><?php echo (!empty($attributeSightings[$object['id']]) ? count($attributeSightings[$object['id']]) : 0); ?></span>
-						(<span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold green sightingsCounter_<?php echo h($object['id']); ?>"><?php echo (isset($attributeOwnSightings[$object['id']]) ? $attributeOwnSightings[$object['id']] : 0); ?></span>)
+						<span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>"  data-toggle="popover" title="Sighting Details" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
+							<?php echo (!empty($attributeSightings[$object['id']]) ? count($attributeSightings[$object['id']]) : 0); ?>
+						</span>
+						<span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold green sightingsCounter_<?php echo h($object['id']); ?>" data-toggle="popover" title="Sighting Details" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
+							<?php echo '(' . (isset($attributeOwnSightings[$object['id']]) ? $attributeOwnSightings[$object['id']] : 0) . ')'; ?>
+						</span>
 						<?php 
 							endif;
 						?>
@@ -371,6 +398,7 @@
     </div>
 <script type="text/javascript">
 	$(document).ready(function(){
+		popoverStartup();
 		$('input:checkbox').removeAttr('checked');
 		$('.mass-select').hide();
 		$('.mass-proposal-select').hide();
