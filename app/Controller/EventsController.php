@@ -1159,6 +1159,26 @@ class EventsController extends AppController {
 							}
 						}
 					}
+					if (isset($this->request->data['Event']['Tag']) && $this->userRole['perm_tagger']) {
+						foreach ($this->request->data['Event']['Tag'] as $tag) {
+							$tag_id = $this->Event->EventTag->Tag->captureTag($tag, $this->Auth->user());
+							if ($tag_id) {
+								$this->Event->EventTag->attachTagToEvent($this->Event->id, $tag_id);
+							} else {
+								$this->Log->create();
+								$this->Log->save(array(
+										'org' => $this->Auth->user('Organisation')['name'],
+										'model' => 'Event',
+										'model_id' => $this->Event->id,
+										'email' => $this->Auth->user('email'),
+										'action' => 'edit',
+										'user_id' => $this->Auth->user('id'),
+										'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the event.',
+										'change' => ''
+								));
+							}
+						}
+					}
 					// check if the exact proposal exists, if yes check if the incoming one is deleted or not. If it is deleted, remove the old proposal and replace it with the one marked for being deleted
 					// otherwise throw the new one away.
 					if (isset($this->request->data['Event']['ShadowAttribute'])) {
