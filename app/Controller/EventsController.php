@@ -2820,6 +2820,7 @@ class EventsController extends AppController {
 					'email-dst' => 'Payload delivery',
 					'text' => 'Other',
 			);
+			$this->set('event', $event);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 			$this->set('defaultCategories', $defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);

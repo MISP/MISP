@@ -1087,7 +1087,6 @@ class Attribute extends AppModel {
 	public function __afterSaveCorrelation($a, $full = false, $event = false) {
 		// Don't do any correlation if the type is a non correlating type
 		if (!in_array($a['type'], $this->nonCorrelatingTypes)) {
-			$start = microtime(true);
 			if (!$event) {
 				$event = $this->Event->find('first', array(
 						'recursive' => -1,
