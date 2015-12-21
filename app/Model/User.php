@@ -462,23 +462,26 @@ class User extends AppModel {
 		}
 		
 		// add all orgs to the conditions that can see the SG
-		if ($distribution = 4) {
+		if ($distribution == 4) {
 			$sgOrgs = $sgModel->getOrgsWithAccess($sharing_group_id);
 			if ($sgOrgs === true) $all = true;
 			else $validOrgs = array_merge($validOrgs, $sgOrgs);
 		}
 		$validOrgs = array_unique($validOrgs);
-		if (!$all) $conditions['AND']['OR'][] = array('org_id' => $validOrgs);
+		if (!$all) {
+			$conditions['AND']['OR'][] = array('org_id' => $validOrgs);
+
+			// Add the site-admins to the list
+			$roles = $this->Role->find('all', array(
+					'conditions' => array('perm_site_admin' => 1),
+					'fields' => array('id')
+			));
+			$roleIDs = array();
+			foreach ($roles as $role) $roleIDs[] = $role['Role']['id'];
+			$conditions['AND']['OR'][] = array('role_id' => $roleIDs);
+		}
 		$conditions['AND'][] = $userConditions;
-		
-		$roles = $this->Role->find('all', array(
-			'conditions' => array('perm_site_admin' => 1),
-			'fields' => array('id')
-		));
-		$roleIDs = array();
-		foreach ($roles as $role) $roleIDs[] = $role['Role']['id'];
-		
-		$conditions['AND']['OR'][] = array('role_id' => $roleIDs); 
+
 		$users = $this->find('all', array(
 			'conditions' => $conditions,
 			'recursive' => -1,

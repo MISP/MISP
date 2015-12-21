@@ -1403,6 +1403,7 @@ class Event extends AppModel {
 	 	} else {
 	 		$subject = '';
 	 	}
+	 	$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - TLP Amber";
 	 	
 	 	// Initialise the Job class if we have a background process ID
 	 	// This will keep updating the process's progress bar
@@ -1414,7 +1415,9 @@ class Event extends AppModel {
 
 	 	$userCount = count($users);
 	 	foreach ($users as $k => $user) {
-	 		$this->User->sendEmail($senderUser, $body, false, $subject);
+	 		$body = $this->__buildAlertEmailBody($event[0], $user, $sgModel);
+	 		$bodyNoEnc = "A new or modified event was just published on " . Configure::read('MISP.baseurl') . "/events/view/" . $event[0]['Event']['id'];
+	 		$this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
 		 		if ($processId) {
 		 			$this->Job->id = $processId;
 		 			$this->Job->saveField('progress', $k / $userCount * 100);

@@ -1131,7 +1131,11 @@ class EventsController extends AppController {
 											} 
 										} else $this->request->data['Event']['timestamp'] = $date;
 									}
+								} else {
+									$this->Event->Attribute->create();
 								}
+							} else {
+								$this->Event->Attribute->create();
 							}
 							$this->request->data['Event']['Attribute'][$k]['event_id'] = $this->Event->id;
 							if ($this->request->data['Event']['Attribute'][$k]['distribution'] == 4) {
@@ -3320,8 +3324,8 @@ class EventsController extends AppController {
 			$json['nodes'][$old_event]['expanded'] = 1;
 			$current_event_id = $old_event;
 		} else {
-			if ($this->__orgImgExists($event[0]['Orgc']['name'])) $image = '/img/orgs/' . h($event[0]['Orgc']['name']) . '.png';
-			else $image = '/img/orgs/MISP.png';
+			if ($this->__orgImgExists($event[0]['Orgc']['name'])) $image = Configure::read('MISP.baseurl') . '/img/orgs/' . h($event[0]['Orgc']['name']) . '.png';
+			else $image = Configure::read('MISP.baseurl') . '/img/orgs/MISP.png';
 			$json['nodes'][] = array(
 					'name' => 'Event ' . $id,
 					'type' => 'event',

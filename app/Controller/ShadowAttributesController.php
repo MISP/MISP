@@ -511,7 +511,7 @@ class ShadowAttributesController extends AppController {
  * @throws InternalErrorException
  */
 	public function add_attachment($eventId = null) {
-		$event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('conditions' => array('eventid' => $eventId), 'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'), 'contain' => array()));
+		$event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
 		if (empty($event)) throw new NotFoundException('Invalid Event');
 		$event = $event[0];		
 		
