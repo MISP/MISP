@@ -78,7 +78,7 @@ foreach ($servers as $server):
 			<?php
 			echo $this->Html->link('', array('action' => 'previewIndex', $server['Server']['id']), array('class' => 'icon-search', 'title' => 'Explore'));
 			if ($server['Server']['pull'])
-				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'update'), array('class' => 'icon-refresh', 'title' => 'Pull updates only'));
+				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'update'), array('class' => 'icon-refresh', 'title' => 'Pull updates to events that already exist locally'));
 				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'full'), array('class' => 'icon-download', 'title' => 'Pull all'));
 			if ($server['Server']['push'])
 				echo $this->Html->link('', array('action' => 'push', $server['Server']['id'], 'full'), array('class' => 'icon-upload', 'title' => 'Push all'));

@@ -1362,11 +1362,6 @@ class Attribute extends AppModel {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-			if ($id) {
-				foreach ($eventIds as $k => $v) {
-					if ($v['Event']['id'] !== $id) unset($eventIds[$k]);
-				}
-			}
 			if (!empty($tagArray[0])) {
 				foreach ($eventIds as $k => $v) {
 					if (!in_array($v['Event']['id'], $tagArray[0])) unset($eventIds[$k]);
@@ -1376,6 +1371,12 @@ class Attribute extends AppModel {
 				foreach ($eventIds as $k => $v) {
 					if (in_array($v['Event']['id'], $tagArray[1])) unset($eventIds[$k]);
 				}
+			}
+		}
+		
+		if ($id) {
+			foreach ($eventIds as $k => $v) {
+				if ($v['Event']['id'] !== $id) unset($eventIds[$k]);
 			}
 		}
 
@@ -1485,8 +1486,6 @@ class Attribute extends AppModel {
  							array('type' => $v),
 	 					),
  						'fields' => array('Attribute.value'), //array of field names
- 						'order' => array('Attribute.value'), //string or array defining order
- 						'group' => array('Attribute.value'), //fields to GROUP BY
 	 				)
 	 		);
 	 		if ($k == 'hostname') {

@@ -1125,12 +1125,12 @@ class Server extends AppModel {
 						// get rid of events that are the same timestamp as ours or older, we don't want to transfer the attributes for those
 						// The event's timestamp also matches the newest attribute timestamp by default
 						if ($this->Event->checkIfNewer($event)) {
-						if ($force_uuid) $eventIds[] = $event['uuid'];
-						else $eventIds[] = $event['id'];
-						}
+							if ($force_uuid) $eventIds[] = $event['uuid'];
+							else $eventIds[] = $event['id'];
 						}
 					}
-					return $eventIds;
+				}
+				return $eventIds;
 			}
 			if ($response->code == '403') {
 					return 403;
