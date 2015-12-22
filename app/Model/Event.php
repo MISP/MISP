@@ -1648,6 +1648,13 @@ class Event extends AppModel {
 			}
 			$data['Event']['EventTag'] = $eventTags;
 		}
+		if (!isset($data['Event']['EventTag'])) $data['Event']['EventTag'] = array();
+		if (isset($data['Event']['Tag'])) {
+			if (isset($event['Event']['Tag']['id'])) $event['Event']['Tag'] = array($event['Event']['Tag']);
+			foreach ($data['Event']['Tag'] as $tag) {
+				$data['Event']['EventTag'][] = array('tag_id' => $this->EventTag->Tag->captureTag($tag, $user));
+			}
+		}
 		return $data;
 	}
 	
@@ -2199,7 +2206,7 @@ class Event extends AppModel {
 	}
 	
 	public function checkIfNewer($incomingEvent) {
-		$localEvent = $this->find('first', array('conditions' => array('uuid' => $incomingEvent['uuid']), 'recursive' => -1));
+		$localEvent = $this->find('first', array('conditions' => array('uuid' => $incomingEvent['uuid']), 'recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp')));
 		if (empty($localEvent) || $incomingEvent['timestamp'] > $localEvent['Event']['timestamp']) return true;
 		return false;
 	}
