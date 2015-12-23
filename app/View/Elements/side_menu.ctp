@@ -112,7 +112,6 @@
 					<li id='liedit'><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
 					<li class="divider"></li>
 					<?php endif; ?>
-					<li id='linews'><a href="<?php echo $baseurl;?>/users/news">News</a></li>
 					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 					<li id='limembers'><a href="<?php echo $baseurl;?>/users/memberslist">Members List</a></li>
 					<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
