@@ -1816,7 +1816,7 @@ class EventsController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
-		
+		$exportType = $eventid;
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
@@ -1852,29 +1852,36 @@ class EventsController extends AppController {
 			foreach ($attributes as &$attribute) {
 				$list[] = $attribute['Attribute']['id'];
 			}
+		} else if ($eventid === false) {
+			$events = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
+			if (empty($events)) $events = array(0 => -1);
 		}
-		$attributes = $this->Event->csv($user, $eventid, $ignore, $list, $tags, $category, $type, $includeContext, $from, $to, $last);
-		$this->loadModel('Whitelist');
+		
+		if (!isset($events)) $events = array(0 => false);
 		$final = array();
-		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
-		foreach ($attributes as $attribute) {
-			$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . $attribute['Attribute']['comment'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
-			if ($includeContext) {
-				foreach($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
-					if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
-					else $line .= ',' . $attribute['Event'][$field['var']];
+		$this->loadModel('Whitelist');
+		foreach ($events as $eventid) {
+			$attributes = $this->Event->csv($user, $eventid, $ignore, $list, $tags, $category, $type, $includeContext, $from, $to, $last);
+			$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
+			foreach ($attributes as $attribute) {
+				$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . $attribute['Attribute']['comment'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
+				if ($includeContext) {
+					foreach($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
+						if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
+						else $line .= ',' . $attribute['Event'][$field['var']];
+					}
 				}
+				$final[] = $line;
 			}
-			$final[] = $line;
 		}
 		
 		$this->response->type('csv');	// set the content type
-		if (!$eventid) {
+		if (!$exportType) {
 			$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
-		} else if ($eventid === 'search') {
+		} else if ($exportType === 'search') {
 			$this->header('Content-Disposition: download; filename="misp.search_result.csv"');
 		} else {
-			$this->header('Content-Disposition: download; filename="misp.event_' . $eventid . '.csv"');
+			$this->header('Content-Disposition: download; filename="misp.event_' . $exportType . '.csv"');
 		}
 		$this->layout = 'text/default';
 		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'comment', 'to_ids', 'date');
