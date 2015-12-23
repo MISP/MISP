@@ -2258,9 +2258,25 @@ class Server extends AppModel {
 		}
 		if (Configure::read('MISP.background_jobs') && $jobId) {
 			$this->Job->saveField('progress', 40);
-			$this->Job->saveField('message', 'Rebuilding all correlations (this will take a while...)');
+			$this->Job->saveField('message', 'Rebuilding all correlations.');
 		}
-		$this->Attribute->generateCorrelation($jobId, 40);
+		//$this->Attribute->generateCorrelation($jobId, 40);
+		// upgrade correlations. No need to recorrelate, we can be a bit trickier here
+		// Private = 0 attributes become distribution 1 for both the event and attribute.
+		// For all intents and purposes, this oversimplification works fine when upgrading from 2.3
+		// Even though the distribution values stored in the correlation won't be correct, they will provide the exact same realeasability
+		// Event1 = distribution 0 and Attribute1 distribution 3 would lead to private = 1, so setting distribution = 0 and a_distribution = 0
+		// will result in the same visibility, etc. Once events / attributes get put into a sharing group this will get recorrelated anyway 
+		// Also by unsetting the org field after the move the changes we ensure that these correlations won't get hit again by the script if we rerun it
+		// and that we don't accidentally "upgrade" a 2.4 correlation
+		$this->query('UPDATE `correlations` SET `distribution` = 1, `a_distribution` = 1 WHERE `org` != "" AND `private` = 0');
+		foreach ($orgMapping as $old => $new) {
+			$this->query('UPDATE `correlations` SET `org_id` = "' . $new . '", `org` = "" WHERE `org` = "' . $old . '";');
+		}
+		if (Configure::read('MISP.background_jobs') && $jobId) {
+			$this->Job->saveField('progress', 100);
+			$this->Job->saveField('message', 'Correlations rebuilt');
+		}
 	}
 	
 	
