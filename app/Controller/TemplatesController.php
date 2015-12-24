@@ -276,7 +276,7 @@ class TemplatesController extends AppController {
 		if ($this->request->is('post')) {
 			$errors = array();
 			$this->set('template', $this->request->data);
-			$result = $this->Event->Attribute->checkTemplateAttributes($template, $this->request->data, $event_id, $event['Event']['distribution']);
+			$result = $this->Event->Attribute->checkTemplateAttributes($template, $this->request->data, $event_id);
 			if (isset($this->request->data['Template']['modify']) || !empty($result['errors'])) {
 				$fileArray = $this->request->data['Template']['fileArray'];
 				$this->set('fileArray', $fileArray);
@@ -288,7 +288,7 @@ class TemplatesController extends AppController {
 				$this->set('attributes', $result['attributes']);
 				$fileArray = $this->request->data['Template']['fileArray'];
 				$this->set('fileArray', $fileArray);
-				$this->set('distributionLevels', $this->Event->distributionLevels);
+				$this->set('distributionLevels', $this->Event->Attribute->distributionLevels);
 				$this->render('populate_event_from_template_attributes');
 			}
 		} else {
