@@ -2274,8 +2274,13 @@ class Server extends AppModel {
 			$this->query('UPDATE `correlations` SET `org_id` = "' . $new . '", `org` = "" WHERE `org` = "' . $old . '";');
 		}
 		if (Configure::read('MISP.background_jobs') && $jobId) {
+			$this->Job->saveField('progress', 60);
+			$this->Job->saveField('message', 'Correlations rebuilt. Indexing all tables.');
+		}
+		$this->updateDatabase('indexTables');
+		if (Configure::read('MISP.background_jobs') && $jobId) {
 			$this->Job->saveField('progress', 100);
-			$this->Job->saveField('message', 'Correlations rebuilt');
+			$this->Job->saveField('message', 'Upgrade complete.');
 		}
 	}
 	
