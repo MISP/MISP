@@ -142,7 +142,7 @@ class AppModel extends Model {
 			case 'indexTables':
 				$fieldsToIndex = array(
 					'attributes' => array(array('value1', 'FULLTEXT'), array('value2', 'FULLTEXT'), array('event_id', 'INDEX'), array('sharing_group_id', 'INDEX'), array('uuid', 'INDEX')),
-					'correlations' =>  array(array('org_id', 'INDEX'), array('event_id', 'INDEX'), array('attribute_id', 'INDEX'), array('sharing_group_id', 'INDEX'), array('1_event_id', 'INDEX'), array('1_attribute_id', 'INDEX'), array('a_sharing_group_id', 'INDEX'), array('org_id', 'INDEX')),
+					'correlations' =>  array(array('org_id', 'INDEX'), array('event_id', 'INDEX'), array('attribute_id', 'INDEX'), array('sharing_group_id', 'INDEX'), array('1_event_id', 'INDEX'), array('1_attribute_id', 'INDEX'), array('a_sharing_group_id', 'INDEX'), array('org_id', 'INDEX'), array('value', 'FULLTEXT')),
 					'events' => array(array('info', 'FULLTEXT'), array('sharing_group_id', 'INDEX'), array('org_id', 'INDEX'), array('orgc_id', 'INDEX'), array('uuid', 'INDEX')),
 					'event_tags' => array(array('event_id', 'INDEX'), array('tag_id', 'INDEX')),
 					'organisations' => array(array('uuid', 'INDEX'), array('name', 'FULLTEXT')),

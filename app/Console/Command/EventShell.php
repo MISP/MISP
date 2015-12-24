@@ -210,8 +210,7 @@ class EventShell extends AppShell
 		$this->Job->id = $id;
 		$format = $this->args[2];
 		$sid = $this->args[3];
-		// TEMP: change to passing an options array with the user!!
-		$eventIds = $this->Event->fetchEventIds($user);
+		$eventIds = array_values($this->Event->fetchEventIds($user, false, false, false, true));
 		$eventCount = count($eventIds);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format);
 		if ($user['Role']['perm_site_admin']) {
@@ -222,9 +221,9 @@ class EventShell extends AppShell
 		$file->write('');
 		foreach ($eventIds as $k => $eventId) {
 			if ($k == 0) {
-				$temp = $this->Attribute->nids($user, $format, $eventId['Event']['id']);
+				$temp = $this->Attribute->nids($user, $format, $eventId);
 			} else {
-				$temp = $this->Attribute->nids($user, $format, $eventId['Event']['id'], true);
+				$temp = $this->Attribute->nids($user, $format, $eventId, true);
 			}
 			foreach ($temp as $line) {
 				$file->append($line . PHP_EOL);

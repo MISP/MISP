@@ -198,29 +198,27 @@ class SharingGroup extends AppModel {
 		if ($this->checkIfOwner($user, $id)) return true;
 		$this->id = $id;
 		if (!$this->exists()) return false;
-		$sgo = $this->SharingGroupOrg->find('first', array(
-			'conditions' => array(
-				'sharing_group_id' => $id,
-				'org_id' => $user['org_id'],
-				'extend' => 1,
-			),
-			'recursive' => -1,
-			'fields' => array('id', 'org_id', 'extend')
-		));
-		if (empty($sgo)) {
-			if ($user['Role']['perm_sync']) {
-				$sg = $this->find('first', array(
-					'conditions' => array(
-						'id' => $id,
-						'sync_user_id' => $user['id'],
-					),
-					'recursive' => -1,
-				));
-				if (empty($sg)) return false;
-				else return true;
-			}
-			return false;
+		if ($user['Role']['perm_sync']) {
+			$sg = $this->find('first', array(
+				'conditions' => array(
+					'id' => $id,
+					'sync_user_id' => $user['id'],
+				),
+				'recursive' => -1,
+			));
+			if (empty($sg)) return false;
+			else return true;
 		}
+		$sgo = $this->SharingGroupOrg->find('first', array(
+				'conditions' => array(
+						'sharing_group_id' => $id,
+						'org_id' => $user['org_id'],
+						'extend' => 1,
+				),
+				'recursive' => -1,
+				'fields' => array('id', 'org_id', 'extend')
+		));
+		if (empty($sgo)) return false;
 		else return true;
 	}
 	
@@ -327,13 +325,21 @@ class SharingGroup extends AppModel {
 		));
 		$force = false;
 		if (empty($existingSG)) {
+			if (!$user['Role']['perm_sharing_group']) throw new Exception('User not authorised to create sharing groups.');
 			$this->create();
 			$newSG = array();
 			$attributes = array('name', 'releasability', 'description', 'uuid', 'organisation_uuid', 'created', 'modified');
 			foreach ($attributes as $a)	$newSG[$a] = $sg[$a];
 			$newSG['local'] = 0;
 			$newSG['sync_user_id'] = $user['id'];
-			$newSG['org_id'] = $this->Organisation->captureOrg($sg['Organisation'], $user);
+			if (!isset($sg['Organisation'])) {
+				foreach ($sg['SharingGroupOrg'] as $k => $org) {
+					if (isset($org['Organisation'][0])) $org['Organisation'] = $org['Organisation'][0];
+					if ($org['Organisation']['uuid'] == $sg['uuid']) $newSG['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user);
+				}
+			} else {
+				$newSG['org_id'] = $this->Organisation->captureOrg($sg['Organisation'], $user);
+			}
 			if (!$this->save($newSG)) return false;
 			$sgids = $this->id;
 		} else {
@@ -353,7 +359,7 @@ class SharingGroup extends AppModel {
 				if ($force) {
 					$sgids = $existingSG['SharingGroup']['id'];
 					$editedSG = $existingSG['SharingGroup'];
-					$attributes = array('name', 'releasability', 'description', 'uuid', 'organisation_uuid', 'created', 'modified');
+					$attributes = array('name', 'releasability', 'description', 'created', 'modified');
 					foreach ($attributes as &$a) $editedSG[$a] = $sg[$a];
 					$this->save($editedSG);
 				} else {
@@ -363,7 +369,6 @@ class SharingGroup extends AppModel {
 				return $existingSG['SharingGroup']['id'];
 			}
 		}
-		$sg['org_id'] = $this->Organisation->captureOrg($sg['Organisation'], $user, $force);
 		unset ($sg['Organisation']);
 		
 		if (isset($sg['SharingGroupOrg']['id'])) {
@@ -372,6 +377,7 @@ class SharingGroup extends AppModel {
 			$sg['SharingGroupOrg'][0] = $temp;
 		}
 		foreach ($sg['SharingGroupOrg'] as $k => $org) {
+			if (isset($org['Organisation'][0])) $org['Organisation'] = $org['Organisation'][0];
 			$sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user, $force);
 			unset ($sg['SharingGroupOrg'][$k]['Organisation']);
 			if ($force) {
@@ -399,6 +405,7 @@ class SharingGroup extends AppModel {
 			$sg['SharingGroupServer'][0] = $temp;
 		}
 		foreach ($sg['SharingGroupServer'] as $k => $server) {
+			if (isset($server[0])) $server = $server[0];
 			$sg['SharingGroupServer'][$k]['server_id'] = $this->SharingGroupServer->Server->captureServer($server['Server'], $user, $force);
 			if ($sg['SharingGroupServer'][$k]['server_id'] === false) unset ($sg['SharingGroupServer'][$k]);
 			else {

@@ -389,9 +389,10 @@ class UsersController extends AppController {
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
 		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name')));
-		$servers = array(0 => 'Nothing');
+		$servers = array(0 => 'Not bound to a server');
 		if (!empty($temp)) foreach ($temp as $t) {
-			$servers[$t['Server']['id']] = $t['Server']['name'];
+			if (!empty($t['Server']['name'])) $servers[$t['Server']['id']] = $t['Server']['name'];
+			else $servers[$t['Server']['id']] = $t['Server']['url'];
 		}
 		$this->set('servers', $servers);
 		$this->set(compact('roles'));
@@ -518,10 +519,11 @@ class UsersController extends AppController {
 		$this->loadModel('Server');
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
-		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name')));
-		$servers = array(0 => 'Nothing');
+		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name', 'url')));
+		$servers = array(0 => 'Not bound to a server');
 		foreach ($temp as $t) {
-			$servers[$t['Server']['id']] = $t['Server']['name'];
+			if (!empty($t['Server']['name'])) $servers[$t['Server']['id']] = $t['Server']['name'];
+			else $servers[$t['Server']['id']] = $t['Server']['url'];
 		}
 		$this->set('servers', $servers);
 		$this->set('orgs', $orgs);
@@ -836,7 +838,7 @@ class UsersController extends AppController {
 		// write to syslogd as well
 		App::import('Lib', 'SysLog.SysLog');
 		$syslog = new SysLog();
-		if ($fieldsResult) $syslog->write('notice', $description . ' -- ' . $action . ' -- ' . $fieldsResult);
+		if (isset($fieldsResult) && $fieldResult) $syslog->write('notice', $description . ' -- ' . $action . ' -- ' . $fieldsResult);
 		else $syslog->write('notice', $description . ' -- ' . $action);
 	}
 

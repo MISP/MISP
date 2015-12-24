@@ -548,8 +548,21 @@ class User extends AppModel {
 		if (!$failed && $canEncrypt) {
 			$keyImportOutput = $gpg->importKey($user['User']['gpgkey']);
 			try {
-			$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-				$body = $gpg->encrypt($body, true);
+				$key = $gpg->getKeys($keyImportOutput['fingerprint']);
+				$subKeys = $key[0]->getSubKeys();
+				$canEncrypt = false;
+				$currentTimestamp = time();
+				foreach ($subKeys as $subKey) {
+					$expiration = $subKey->getExpirationDate();
+					if (($expiration == 0 || $currentTimestamp < $expiration) && $subKey->canEncrypt()) $canEncrypt = true;
+				}
+				if ($canEncrypt) {
+					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
+					$body = $gpg->encrypt($body, true);
+				} else {
+					$failed = true;
+					$failureReason = " the message could not be encrypted because the provided key is either expired or cannot be used for encryption.";
+				}
 			} catch (Exception $e){
 				// despite the user having a PGP key and the signing already succeeding earlier, we get an exception. This must mean that there is an issue with the user's key.
 				$failureReason = " the message could not be encrypted because there was an issue with the user's PGP key. The following error message was returned by gpg: " . $e->getMessage();

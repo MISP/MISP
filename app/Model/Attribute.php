@@ -1087,7 +1087,6 @@ class Attribute extends AppModel {
 	public function __afterSaveCorrelation($a, $full = false, $event = false) {
 		// Don't do any correlation if the type is a non correlating type
 		if (!in_array($a['type'], $this->nonCorrelatingTypes)) {
-			$start = microtime(true);
 			if (!$event) {
 				$event = $this->Event->find('first', array(
 						'recursive' => -1,
@@ -1363,11 +1362,6 @@ class Attribute extends AppModel {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-			if ($id) {
-				foreach ($eventIds as $k => $v) {
-					if ($v['Event']['id'] !== $id) unset($eventIds[$k]);
-				}
-			}
 			if (!empty($tagArray[0])) {
 				foreach ($eventIds as $k => $v) {
 					if (!in_array($v['Event']['id'], $tagArray[0])) unset($eventIds[$k]);
@@ -1377,6 +1371,12 @@ class Attribute extends AppModel {
 				foreach ($eventIds as $k => $v) {
 					if (in_array($v['Event']['id'], $tagArray[1])) unset($eventIds[$k]);
 				}
+			}
+		}
+		
+		if ($id) {
+			foreach ($eventIds as $k => $v) {
+				if ($v['Event']['id'] !== $id) unset($eventIds[$k]);
 			}
 		}
 
@@ -1486,8 +1486,6 @@ class Attribute extends AppModel {
  							array('type' => $v),
 	 					),
  						'fields' => array('Attribute.value'), //array of field names
- 						'order' => array('Attribute.value'), //string or array defining order
- 						'group' => array('Attribute.value'), //fields to GROUP BY
 	 				)
 	 		);
 	 		if ($k == 'hostname') {
@@ -1601,7 +1599,7 @@ class Attribute extends AppModel {
 	 }
 	 
 	 
-	 public function checkTemplateAttributes($template, &$data, $event_id, $distribution) {
+	 public function checkTemplateAttributes($template, &$data, $event_id) {
 		 $result = array();
 		 $errors = array();
 		 $attributes = array();
@@ -1629,7 +1627,7 @@ class Attribute extends AppModel {
 		 		} else {
 		 			foreach ($result['attributes'] as &$a) {
 		 				$a['event_id'] = $event_id;
-		 				$a['distribution'] = $distribution;
+		 				$a['distribution'] = 5;
 		 				$test = $this->checkForValidationIssues(array('Attribute' => $a));
 		 				if ($test) {
 		 					foreach ($test['value'] as $e) {
