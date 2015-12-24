@@ -1008,9 +1008,19 @@ class ShadowAttributesController extends AppController {
 		}
 		$this->ShadowAttribute->recursive = -1;
 		$temp = $this->ShadowAttribute->findAllByEventUuid($uuid);
-		if ($temp == null) throw new NotFoundException(__('Invalid event'));
-		$this->set('proposal', $temp);
-		$this->render('get_proposals_by_uuid');
+		if ($temp == null) {
+			$this->response->statusCode(404);
+			$this->set('name', 'Invalid Event.');
+			$this->set('message', 'Invalid Event');
+			$this->set('errors', 'Invalid Event');
+			$this->set('url', '/shadow_attributes/getProposalsByUuid/edit/' . $uuid);
+			$this->set('_serialize', array('name', 'message', 'url', 'errors'));
+			$this->response->send();
+			return false;
+		} else {
+			$this->set('proposal', $temp);
+			$this->render('get_proposals_by_uuid');
+		}
 	}
 	
 	public function fetchEditForm($id, $field = null) {

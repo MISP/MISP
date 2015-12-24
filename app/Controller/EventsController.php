@@ -1039,197 +1039,17 @@ class EventsController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
-				$saveEvent = false;
 				if ($this->_isRest()) {
 					if (isset($this->request->data['response'])) $this->request->data = $this->Event->updateXMLArray($this->request->data, true);
 					else $this->request->data = $this->Event->updateXMLArray($this->request->data, false);
 				}
 				// Workaround for different structure in XML/array than what CakePHP expects
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
-				$this->request->data = $this->Event->cleanupEventArrayFromXML($this->request->data);
-				// the event_id field is not set (normal) so make sure no validation errors are thrown
-				// LATER do this with	 $this->validator()->remove('event_id');
-				unset($this->Event->Attribute->validate['event_id']);
-				unset($this->Event->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-				// http://book.cakephp.org/2.0/en/models/saving-your-data.html
-				// Creating or updating is controlled by the models id field.
-				// If $Model->id is set, the record with this primary key is updated.
-				// Otherwise a new record is created
-
-				// reposition to get the event.id with given uuid
-				$existingEvent = $this->Event->findByUuid($this->request->data['Event']['uuid']);
-				// If the event exists...
-				$dateObj = new DateTime();
-				$date = $dateObj->getTimestamp();
-				if (count($existingEvent)) {
-					$this->request->data['Event']['id'] = $existingEvent['Event']['id'];
-					// Conditions affecting all:
-					// user.org == event.org
-					// edit timestamp newer than existing event timestamp
-					if (!isset($this->request->data['Event']['timestamp'])) $this->request->data['Event']['timestamp'] = $date;
-					if ($this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
-						if ($this->request->data['Event']['distribution'] == 4) {
-							$this->request->data['Event']['sharing_group_id'] = $this->Event->SharingGroup->captureSG($this->request->data['Event']['SharingGroup'], $this->Auth->user());
-							unset ($this->request->data['Event']['SharingGroup']);
-						}
-						// If the above is true, we have two more options:
-						// For users that are of the creating org of the event, always allow the edit
-						// For users that are sync users, only allow the edit if the event is locked
-						if ($existingEvent['Event']['orgc_id'] === $this->_checkOrg()
-								|| ($this->userRole['perm_sync'] && $existingEvent['Event']['locked']) || $this->_isSiteAdmin()) {
-								if ($this->userRole['perm_sync']) {
-									if ($this->Event->data['Event']['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $this->Event->data['Event']['sharing_group_id'])) {
-										throw new MethodNotAllowedException('Event could not be saved: The sync user has to either be an extender of the sharing group or be the sync user that has first synchronised the sharing group to this instance.');
-									}
-								}
-							// Only allow an edit if this is true!
-							$saveEvent = true;
-						} else throw new MethodNotAllowedException('Event could not be saved: The user used to edit the event is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the event whilst also not being a site administrator.');
-					} else throw new MethodNotAllowedException('Event could not be saved: Event in the request not newer than the local copy.');
-					// If a field is not set in the request, just reuse the old value
-					$recoverFields = array('analysis', 'threat_level_id', 'info', 'distribution', 'date');
-					foreach ($recoverFields as $rF) if (!isset($this->request->data['Event'][$rF])) $this->request->data['Event'][$rF] = $existingEvent['Event'][$rF]; 
-				} else throw new MethodNotAllowedException('Event could not be saved: Could not find the local event.');
-				$fieldList = array(
-						'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'distribution', 'timestamp'),
-						'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment', 'sharing_group_id'),
-						'ShadowAttribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'org_id', 'event_org_id', 'comment', 'event_uuid', 'deleted', 'to_ids', 'uuid')
-				);
-				$saveResult = $this->Event->save(array('Event' => $this->request->data['Event']), array('fieldList' => $fieldList['Event']));
-				$this->loadModel('Log');
-				if ($saveResult) {
-					$validationErrors = array();
-					if (isset($this->request->data['Event']['Attribute'])) {
-						foreach ($this->request->data['Event']['Attribute'] as $k => $attribute) {
-							if (isset($attribute['uuid'])) {
-								$existingAttribute = $this->Event->Attribute->findByUuid($attribute['uuid']);
-								if (count($existingAttribute)) {
-									if ($existingAttribute['Attribute']['event_id'] != $id) {
-										$result = $this->Log->save(array(
-												'org' => $this->Auth->user('Organisation')['name'],
-												'model' => 'Event',
-												'model_id' => $id,
-												'email' => $this->Auth->user('email'),
-												'action' => 'edit',
-												'user_id' => $this->Auth->user('id'),
-												'title' => 'Duplicate UUID found in attribute',
-												'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
-										));
-										unset($this->request->data['Event']['Attribute'][$k]);
-									} else {
-										// If a field is not set in the request, just reuse the old value
-										$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'sharing_group_id');
-										foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $this->request->data['Event']['Attribute'][$c][$rF] = $existingAttribute['Attribute'][$rF];
-										$this->request->data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
-										// Check if the attribute's timestamp is bigger than the one that already exists.
-										// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-										// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-										if (isset($this->request->data['Event']['Attribute'][$k]['timestamp'])) {
-											if ($this->request->data['Event']['Attribute'][$k]['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
-												unset($this->request->data['Event']['Attribute'][$k]);
-												continue;
-											} 
-										} else $this->request->data['Event']['timestamp'] = $date;
-									}
-								} else {
-									$this->Event->Attribute->create();
-								}
-							} else {
-								$this->Event->Attribute->create();
-							}
-							$this->request->data['Event']['Attribute'][$k]['event_id'] = $this->Event->id;
-							if ($this->request->data['Event']['Attribute'][$k]['distribution'] == 4) {
-								$sid = $this->Event->SharingGroup->captureSG($this->request->data['Event']['Attribute'][$k]['SharingGroup'], $this->Auth->user());
-								$this->request->data['Event']['Attribute'][$k]['sharing_group_id'] = $this->Event->SharingGroup->captureSG($this->request->data['Event']['Attribute'][$k]['SharingGroup'], $this->Auth->user());
-							}
-							if (!$this->Event->Attribute->save($this->request->data['Event']['Attribute'][$k], array('fieldList' => $fieldList))) {
-								$validationErrors['Attribute'][$k] = $this->Event->Attribute->validationErrors;
-								$attribute_short = (isset($this->request->data['Event']['Attribute'][$k]['category']) ? $this->request->data['Event']['Attribute'][$k]['category'] : 'N/A') . '/' . (isset($this->request->data['Event']['Attribute'][$k]['type']) ? $this->request->data['Event']['Attribute'][$k]['type'] : 'N/A') . ' ' . (isset($this->request->data['Event']['Attribute'][$k]['value']) ? $this->request->data['Event']['Attribute'][$k]['value'] : 'N/A');
-								$this->Log->create();
-								$this->Log->save(array(
-										'org' => $this->Auth->user('Organisation')['name'],
-										'model' => 'Attribute',
-										'model_id' => 0,
-										'email' => $this->Auth->user('email'),
-										'action' => 'edit',
-										'user_id' => $this->Auth->user('id'),
-										'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
-										'change' => json_encode($this->Event->Attribute->validationErrors),
-								));
-							}
-						}
-					}
-					if (isset($this->request->data['Event']['Tag']) && $this->userRole['perm_tagger']) {
-						foreach ($this->request->data['Event']['Tag'] as $tag) {
-							$tag_id = $this->Event->EventTag->Tag->captureTag($tag, $this->Auth->user());
-							if ($tag_id) {
-								$this->Event->EventTag->attachTagToEvent($this->Event->id, $tag_id);
-							} else {
-								$this->Log->create();
-								$this->Log->save(array(
-										'org' => $this->Auth->user('Organisation')['name'],
-										'model' => 'Event',
-										'model_id' => $this->Event->id,
-										'email' => $this->Auth->user('email'),
-										'action' => 'edit',
-										'user_id' => $this->Auth->user('id'),
-										'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the event.',
-										'change' => ''
-								));
-							}
-						}
-					}
-					// check if the exact proposal exists, if yes check if the incoming one is deleted or not. If it is deleted, remove the old proposal and replace it with the one marked for being deleted
-					// otherwise throw the new one away.
-					if (isset($this->request->data['Event']['ShadowAttribute'])) {
-						foreach ($this->request->data['Event']['ShadowAttribute'] as $k => &$proposal) {
-							$existingProposal = $this->Event->ShadowAttribute->find('first', array(
-									'recursive' => -1,
-									'conditions' => array(
-											'value' => $proposal['value'],
-											'category' => $proposal['category'],
-											'to_ids' => $proposal['to_ids'],
-											'type' => $proposal['type'],
-											'event_uuid' => $proposal['event_uuid'],
-											'uuid' => $proposal['uuid']
-									)
-							));
-							if (!empty($existingProposal)) {
-								if ($existingProposal['ShadowAttribute']['deleted'] == 1) {
-									$this->Event->ShadowAttribute->delete($existingProposal['ShadowAttribute']['id'], false);
-								} else {
-									unset($this->request->data['ShadowAttribute'][$k]);
-									continue;
-								}
-								$this->Event->ShadowAttribute->create();
-							}
-							$this->Event->ShadowAttribute->save($this->request->data['Event']['ShadowAttribute'][$k], array('fieldList' => $fieldList));
-						}
-					}
-					// this saveAssociated() function will save not only the event, but also the attributes
-					// from the attributes attachments are also saved to the disk thanks to the afterSave() fonction of Attribute
-					if ($saveEvent) {
-						$saveResult = $this->Event->saveAssociated($this->request->data, array('validate' => true, 'fieldList' => $fieldList));
-					} else {
-						throw new MethodNotAllowedException();
-					}
-					$message = 'Saved';
-					$this->set('event', $this->Event->data);
-					//if published -> do the actual publishing
-					if ((!empty($this->request->data['Event']['published']) && 1 == $this->request->data['Event']['published'])) {
-						// do the necessary actions to publish the event (email, upload,...)
-						if ('true' != Configure::read('MISP.disablerestalert')) {
-							$this->Event->sendAlertEmailRouter($id, $this->Auth->user());
-						}
-						$this->Event->publish($existingEvent['Event']['id']);
-					}
-					
+				$result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id);
+				if ($result === true) {
 					// REST users want to see the newly created event
 					$results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
 					$event = &$results[0];
-					if (!empty($validationErrors)) {
-						$event['errors'] = $validationErrors;
-					}
 					$this->set('event', $event);
 					$this->render('view');
 					return true;
@@ -1238,8 +1058,9 @@ class EventsController extends AppController {
 					if ($this->_isRest()) {
 						App::uses('JSONConverterTool', 'Tools');
 						$converter = new JSONConverterTool();
-						$errors = $converter->arrayPrinter($this->Event->validationErrors);
-						$this->set('name', 'Add event failed.');
+						if (isset($result['error'])) $errors = $result['error'];
+						else $errors = $converter->arrayPrinter($result);
+						$this->set('name', 'Edit event failed.');
 						$this->set('message', $message);
 						$this->set('errors', $errors);
 						$this->set('url', '/events/edit/' . $id);
@@ -1285,7 +1106,6 @@ class EventsController extends AppController {
 
 		// even if the SG is not local, we still want the option to select the currently assigned SG
 		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
-		if (!isset($sgs[$this->Event->data['SharingGroup']['id']])) $sgs[$this->Event->data['SharingGroup']['id']] = $this->Event->data['SharingGroup']['name'];
 		$this->set('sharingGroups', $sgs);
 		
 		$distributionLevels = $this->Event->distributionLevels;

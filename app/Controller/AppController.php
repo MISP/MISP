@@ -501,7 +501,7 @@ class AppController extends Controller {
 		$this->loadModel('Server');
 		if (!Configure::read('MISP.background_jobs')) {
 			$this->Server->upgrade2324($this->Auth->user('id'));
-		$this->Session->setFlash('Done. For more details check the audit logs.');
+			$this->Session->setFlash('Done. For more details check the audit logs.');
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		} else {
 			$job = ClassRegistry::init('Job');

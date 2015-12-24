@@ -908,49 +908,12 @@ class Server extends AppModel {
 									$event['Event']['distribution'] = '0';
 									break;
 							}
-							// correct $event if just one Attribute
-							if (is_array($event['Event']['Attribute']) && isset($event['Event']['Attribute']['id'])) {
-								$tmp = $event['Event']['Attribute'];
-								unset($event['Event']['Attribute']);
-								$event['Event']['Attribute'][0] = $tmp;
-							}
-							if (is_array($event['Event']['Attribute'])) {
-								$size = count($event['Event']['Attribute']);
-								if ($size == 0) {
-									$fails[$eventId] = 'Empty event received.';
-									continue;
-								}
-								for ($i = 0; $i < $size; $i++) {
-									if (!isset($event['Event']['Attribute'][$i]['distribution'])) { // version 1
-										$event['Event']['Attribute'][$i]['distribution'] = 1;
-									}
-									switch($event['Event']['Attribute'][$i]['distribution']) {
-										case 1:
-										case 'This community only': // backwards compatibility
-											// if community falseonly, downgrade to org only after pull
-											$event['Event']['Attribute'][$i]['distribution'] = '0';
-											break;
-										case 2:
-										case 'Connected communities': // backwards compatibility
-											// if connected communities downgrade to community only
-											$event['Event']['Attribute'][$i]['distribution'] = '1';
-											break;
-										case 'All communities': // backwards compatibility
-											$event['Event']['Attribute'][$i]['distribution'] = '3';
-											break;
-										case 'Your organisation only': // backwards compatibility
-											$event['Event']['Attribute'][$i]['distribution'] = '0';
-											break;
-									}
-								}
-								$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
-							} else {
+							if (!is_array($event['Event']['Attribute']) || empty($event['Event']['Attribute'])) {
 								$fails[$eventId] = 'Empty event received.';
 								continue;
 							}
-							$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 						} else {
-							$fails[$eventId] = 'Empty event received.';
+							$fails[$eventId] = 'Event blocked by blacklist.';
 							continue;
 						}
 						// Distribution, set reporter of the event, being the admin that initiated the pull
@@ -968,9 +931,12 @@ class Server extends AppModel {
 
 							}
 						} else {
-							$result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId);
-							if ($result === 'success') $successes[] = $eventId;
-							else $fails[$eventId] = $result;
+							$tempUser = $user;
+							$tempUser['Role']['perm_site_admin'] = false;
+							$result = $eventModel->_edit($event, $tempUser, $existingEvent['Event']['id'], $jobId);
+							if ($result === true) $successes[] = $eventId;
+							else if (isset($result['error'])) $fails[$eventId] = $result['error'];
+							else $fails[$eventId] = json_encode($result);
 						}
 					} else {
 						// error
@@ -1078,6 +1044,7 @@ class Server extends AppModel {
 	 * @return array of event_ids
 	 */
 	public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false) {
+		$start = microtime(true);
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if ($ignoreFilterRules) $filter_rules = array();
@@ -1118,13 +1085,14 @@ class Server extends AppModel {
 				} else {
 					// multiple events, iterate over the array
 					$this->Event = ClassRegistry::init('Event');
-					foreach ($eventArray as &$event) {
+					foreach ($eventArray as $k => &$event) {
 						if (1 != $event['published']) {
-							continue; // do not keep non-published events
+							unset($eventArray[$k]); // do not keep non-published events
 						}
-						// get rid of events that are the same timestamp as ours or older, we don't want to transfer the attributes for those
-						// The event's timestamp also matches the newest attribute timestamp by default
-						if ($this->Event->checkIfNewer($event)) {
+					}
+					$this->Event->removeOlder($eventArray);
+					if (!empty($eventArray)) {
+						foreach ($eventArray as $event) {
 							if ($force_uuid) $eventIds[] = $event['uuid'];
 							else $eventIds[] = $event['id'];
 						}
@@ -1849,6 +1817,7 @@ class Server extends AppModel {
 	}
 	
 	public function captureServer($server, $user) {
+		if (isset($server[0])) $server = $server[0];
 		if ($server['url'] == Configure::read('MISP.baseurl')) return 0;
 		$existingServer = $this->find('first', array(
 				'recursive' => -1,
