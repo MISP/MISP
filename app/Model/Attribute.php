@@ -1599,7 +1599,7 @@ class Attribute extends AppModel {
 	 }
 	 
 	 
-	 public function checkTemplateAttributes($template, &$data, $event_id, $distribution) {
+	 public function checkTemplateAttributes($template, &$data, $event_id) {
 		 $result = array();
 		 $errors = array();
 		 $attributes = array();
@@ -1627,7 +1627,7 @@ class Attribute extends AppModel {
 		 		} else {
 		 			foreach ($result['attributes'] as &$a) {
 		 				$a['event_id'] = $event_id;
-		 				$a['distribution'] = $distribution;
+		 				$a['distribution'] = 5;
 		 				$test = $this->checkForValidationIssues(array('Attribute' => $a));
 		 				if ($test) {
 		 					foreach ($test['value'] as $e) {
