@@ -1348,8 +1348,8 @@ class Attribute extends AppModel {
 			$export = new HidsExport();
 			$rules = array_merge($rules, $export->export($items, strtoupper($type), $continue));
 			$continue = true;
-		return $rules;
 		}
+		return $rules;
 	}
 
 	
@@ -1443,8 +1443,7 @@ class Attribute extends AppModel {
 	 	}
 	 	$attributes = $this->fetchAttributes($user, array(
 	 			'conditions' => $conditions, 
-	 			'order' => 'Attribute.value1', 
-	 			'group' => 'Attribute.value1',
+	 			'order' => 'Attribute.value1 ASC',
 	 			'fields' => array('value'),
 				'contain' => array('Event' => array(
 					'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
@@ -1460,7 +1459,8 @@ class Attribute extends AppModel {
 	 	if ($to) $conditions['AND']['Event.date <='] = $to;
 	 	if ($eventId !== false) {
 	 		$conditions['AND'][] = array('Event.id' => $eventId);
-	 	} elseif ($tags !== false) {
+	 	} 
+	 	if ($tags !== false) {
 	 		// If we sent any tags along, load the associated tag names for each attribute
 	 		$tag = ClassRegistry::init('Tag');
 	 		$args = $this->dissectArgs($tags);
@@ -1488,13 +1488,16 @@ class Attribute extends AppModel {
  						'fields' => array('Attribute.value'), //array of field names
 	 				)
 	 		);
+	 		if (empty($temp)) continue;
 	 		if ($k == 'hostname') {
 	 			foreach ($temp as $value) {
 	 				$found = false;
-	 				foreach ($values['domain'] as $domain) {
-	 					if (strpos($value['Attribute']['value'], $domain) != 0) { 
-	 						$found = true;
-	 					}
+	 				if (isset($values['domain'])) {
+		 				foreach ($values['domain'] as $domain) {
+		 					if (strpos($value['Attribute']['value'], $domain) != 0) { 
+		 						$found = true;
+		 					}
+		 				}
 	 				}
 	 				if (!$found) $values[$k][] = $value['Attribute']['value'];
 	 			}
@@ -1806,7 +1809,7 @@ class Attribute extends AppModel {
 	 	if (isset($options['contain'])) $params['contain'] = $options['contain'];
 	 	if (isset($options['fields'])) $params['fields'] = $options['fields'];
 	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
-	 	if (isset($options['order'])) $params['conditions']['AND'][] = $options['order'];
+	 	if (isset($options['order'])) $params['order'] = $options['order'];
 	 	if (isset($options['group'])) $params['group'] = $options['group'];
 	 	if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('Event.published' => 1);
 	 	$results = $this->find('all', $params);

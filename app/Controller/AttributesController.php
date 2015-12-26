@@ -1782,7 +1782,7 @@ class AttributesController extends AppController {
 			}
 		}
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
-		if ($to) $from = $this->Attribute->Event->dateFieldCheck($to);
+		if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1794,7 +1794,13 @@ class AttributesController extends AppController {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
 		}
-		$values = $this->Attribute->rpz($this->Auth->user(), $tags, $eventId, $from, $to);
+		if (false === $eventId) $eventIds = $this->Attribute->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
+		else if (is_numeric($eventId)) $eventIds = array($eventId);
+		else throw new MethodNotAllowedException('Invalid event ID format.');
+		$values = array();
+		foreach ($eventIds as $k => $eventId) {
+			$values = array_merge_recursive($values, $this->Attribute->rpz($this->Auth->user(), $tags, $eventId, $from, $to));	
+		}
 		$this->response->type('txt');	// set the content type
 		$file = '';
 		if ($tags) $file = 'filtered.';

@@ -61,6 +61,7 @@ class EventShell extends AppShell
 			$temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id']));
 			$file->append($converter->event2XML($temp[0], $user['Role']['perm_site_admin']) . PHP_EOL);
 			$this->Job->saveField('progress', ($k+1) / $eventCount *100);
+			$this->Job->saveField('message', 'Job done.');
 		}
 		$file->append('<xml_version>' . $this->Event->mispVersion . '</xml_version>');
 		$file->append('</response>' . PHP_EOL);
@@ -111,6 +112,7 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cacherpz() {
@@ -120,7 +122,15 @@ class EventShell extends AppShell
 		$this->Job->id = $id;
 		$extra = $this->args[2];
 		$this->Job->saveField('progress', 1);
-		$values = $this->Attribute->rpz($user);
+		$eventIds = $this->Attribute->Event->fetchEventIds($user, false, false, false, true);
+		$values = array();
+		$eventCount = count($eventIds);
+		if ($eventCount) {
+			foreach ($eventIds as $k => $eventId) {
+				$values = array_merge_recursive($values, $this->Attribute->rpz($user, false, $eventId));
+				if ($k % 10 == 0) $this->Job->saveField('progress', $k * 80 / $eventCount);
+			}
+		}
 		$this->Job->saveField('progress', 80);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
 		if ($user['Role']['perm_site_admin']) {
@@ -140,6 +150,7 @@ class EventShell extends AppShell
 		$file->write($rpzExport->export($values, $rpzSettings));
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cachecsv() {
@@ -175,6 +186,7 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cachetext() {
@@ -201,6 +213,7 @@ class EventShell extends AppShell
 			$this->Job->saveField('progress', $k / $typeCount * 100);
 		}
 		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cachenids() {
@@ -234,6 +247,7 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function alertemail() {
