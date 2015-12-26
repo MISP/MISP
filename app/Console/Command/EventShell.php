@@ -123,10 +123,10 @@ class EventShell extends AppShell
 		$values = $this->Attribute->rpz($user);
 		$this->Job->saveField('progress', 80);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
-		if ($isSiteAdmin) {
+		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.rpz.ADMIN.txt');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.rpz.' . $org . '.txt');
+			$file = new File($dir->pwd() . DS . 'misp.rpz.' . $user['Organisation']['name'] . '.txt');
 		}
 		App::uses('RPZExport', 'Export');
 		$rpzExport = new RPZExport();

@@ -105,7 +105,7 @@ class ServerShell extends AppShell
 			
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
-			$result = $this->Server->pull($user['User'], $server['Server']['id'], 'full', $server, $jobId);
+			$result = $this->Server->pull($user, $server['Server']['id'], 'full', $server, $jobId);
 			$this->Job->save(array(
 					'id' => $jobId,
 					'message' => 'Job done.',
