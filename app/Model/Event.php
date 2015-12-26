@@ -2342,6 +2342,7 @@ class Event extends AppModel {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
+		if (empty($idList)) throw new Exception('No matching events found to export.');
 		$events = $this->fetchEvent($user, array('idList' => $idList, 'last' => $last, 'from' => $from, 'last' => $last));
 		if (empty($events)) throw new Exception('No matching events found to export.');
 
