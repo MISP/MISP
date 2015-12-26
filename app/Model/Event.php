@@ -1770,7 +1770,9 @@ class Event extends AppModel {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
+		if (empty($idList)) throw new Exception('Invalid Event(s).');
 		$events = $this->fetchEvent(null, $idList, $org, $isSiteAdmin, false, false, $from, $to, $last);
+		if (empty($events)) throw new Exception('Invalid Event(s).');
 		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
 		if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
 			foreach ($events as &$event) {
