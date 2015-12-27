@@ -46,7 +46,7 @@ class EventShell extends AppShell
 		$eventIds = $this->Event->fetchEventIds($user);
 		$result = array();
 		$eventCount = count($eventIds);
-		$dir = new Folder(APP . 'tmp/cached_exports/xml');
+		$dir = new Folder(APP . 'tmp/cached_exports/xml', true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.xml' . '.ADMIN.xml');
 		} else {
@@ -100,7 +100,7 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', 1);
 		$rules = $this->Attribute->hids($user, $extra);
 		$this->Job->saveField('progress', 80);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra, true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.txt');
 		} else {
@@ -132,7 +132,7 @@ class EventShell extends AppShell
 			}
 		}
 		$this->Job->saveField('progress', 80);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra, true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.rpz.ADMIN.txt');
 		} else {
@@ -165,7 +165,7 @@ class EventShell extends AppShell
 		$eventIds = $this->Event->fetchEventIds($user);
 		$eventCount = count($eventIds);
 		$attributes = array();
-		$dir = new Folder(APP . 'tmp/cached_exports/' . $extra);
+		$dir = new Folder(APP . 'tmp/cached_exports/' . $extra, true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.csv');
 		} else {
@@ -197,7 +197,7 @@ class EventShell extends AppShell
 		$extra = $this->args[2];
 		$types = array_keys($this->Attribute->typeDefinitions);
 		$typeCount = count($types);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/text');
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/text', true, 0750);
 		foreach ($types as $k => $type) {
 			$final = $this->Attribute->text($user, $type);
 			if ($user['Role']['perm_site_admin']) {
@@ -225,7 +225,7 @@ class EventShell extends AppShell
 		$sid = $this->args[3];
 		$eventIds = array_values($this->Event->fetchEventIds($user, false, false, false, true));
 		$eventCount = count($eventIds);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format, true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $format . '.ADMIN.rules');
 		} else {
