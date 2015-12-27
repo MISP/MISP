@@ -640,8 +640,8 @@ class EventsController extends AppController {
 		if (isset($this->params['named']['attributesPage'])) $page = $this->params['named']['attributesPage'];
 		else $page = 1;
 		// set the data for the contributors / history field
-		$this->loadModel('Log');
-		$logEntries = $this->Log->getEventContributors($event);
+		$org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
+		$contributors = $this->Event->Org->find('list', array('fields' => array('Org.name'), 'conditions' => array('Org.id' => $org_ids)));
 
 		// set the pivot data
 		$this->helpers[] = 'Pivot';
@@ -682,7 +682,7 @@ class EventsController extends AppController {
 				$this->set($variable, $currentModel->{$variable});
 			}
 		}
-		$this->set('logEntries', $logEntries);
+		$this->set('contributors', $contributors);
 	}
 	
 	/**
