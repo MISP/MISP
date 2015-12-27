@@ -83,7 +83,7 @@ class ServerShell extends AppShell
 			return;
 		}
 		$user = $this->User->getAuthUser($userId);
-		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('push' => 1)));
+		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('pull' => 1)));
 		$count = count($servers);
 		$failCount = 0;
 		foreach ($servers as $k => $server) {
