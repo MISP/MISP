@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `comment` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
-  INDEX `value1` (`value1`),
-  INDEX `value2` (`value2`),
+  INDEX `value1` (`value1`(255)),
+  INDEX `value2` (`value2`(255)),
   INDEX `sharing_group_id` (`sharing_group_id`),
   UNIQUE KEY `uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS `event_tags` (
   `tag_id` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
-  INDEX `tag_id` (`tag_id`),
+  INDEX `tag_id` (`tag_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
@@ -314,8 +314,8 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   INDEX `event_org_id` (`event_org_id`),
   INDEX `uuid` (`uuid`),
   INDEX `old_id` (`old_id`),
-  INDEX `value1` (`value1`),
-  INDEX `value2` (`value2`),
+  INDEX `value1` (`value1`(255)),
+  INDEX `value2` (`value2`(255))
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -399,8 +399,7 @@ CREATE TABLE IF NOT EXISTS `tasks` (
   `description` varchar(255) NOT NULL,
   `next_execution_time` int(11) NOT NULL,
   `message` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`),
-  INDEX `name` (`name`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
 
