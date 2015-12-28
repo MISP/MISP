@@ -70,7 +70,7 @@ class JobsController extends AppController {
 		$progress = $this->Job->find('first', array(
 			'conditions' => array(
 				'job_type' => $type,
-				'org' => $org
+				'org_id' => $org
 			),
 			'fields' => array('id', 'progress'),
 			'order' => array('Job.id' => 'desc'),
