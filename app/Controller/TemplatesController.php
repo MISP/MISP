@@ -226,7 +226,7 @@ class TemplatesController extends AppController {
 		$event = $this->Event->find('first' ,array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
-				'fields' => array('orgc', 'id'),
+				'fields' => array('orgc_id', 'id'),
 		));
 		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) throw new NotFoundException('Event not found or you are not authorised to edit it.');
 	
