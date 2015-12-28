@@ -46,7 +46,7 @@ class EventShell extends AppShell
 		$eventIds = $this->Event->fetchEventIds($user);
 		$result = array();
 		$eventCount = count($eventIds);
-		$dir = new Folder(APP . 'tmp/cached_exports/xml');
+		$dir = new Folder(APP . 'tmp/cached_exports/xml', true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.xml' . '.ADMIN.xml');
 		} else {
@@ -61,6 +61,7 @@ class EventShell extends AppShell
 			$temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id']));
 			$file->append($converter->event2XML($temp[0], $user['Role']['perm_site_admin']) . PHP_EOL);
 			$this->Job->saveField('progress', ($k+1) / $eventCount *100);
+			$this->Job->saveField('message', 'Job done.');
 		}
 		$file->append('<xml_version>' . $this->Event->mispVersion . '</xml_version>');
 		$file->append('</response>' . PHP_EOL);
@@ -99,7 +100,7 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', 1);
 		$rules = $this->Attribute->hids($user, $extra);
 		$this->Job->saveField('progress', 80);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra, true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.txt');
 		} else {
@@ -111,6 +112,7 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cacherpz() {
@@ -120,13 +122,21 @@ class EventShell extends AppShell
 		$this->Job->id = $id;
 		$extra = $this->args[2];
 		$this->Job->saveField('progress', 1);
-		$values = $this->Attribute->rpz($user);
+		$eventIds = $this->Attribute->Event->fetchEventIds($user, false, false, false, true);
+		$values = array();
+		$eventCount = count($eventIds);
+		if ($eventCount) {
+			foreach ($eventIds as $k => $eventId) {
+				$values = array_merge_recursive($values, $this->Attribute->rpz($user, false, $eventId));
+				if ($k % 10 == 0) $this->Job->saveField('progress', $k * 80 / $eventCount);
+			}
+		}
 		$this->Job->saveField('progress', 80);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
-		if ($isSiteAdmin) {
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra, true, 0750);
+		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.rpz.ADMIN.txt');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.rpz.' . $org . '.txt');
+			$file = new File($dir->pwd() . DS . 'misp.rpz.' . $user['Organisation']['name'] . '.txt');
 		}
 		App::uses('RPZExport', 'Export');
 		$rpzExport = new RPZExport();
@@ -140,6 +150,7 @@ class EventShell extends AppShell
 		$file->write($rpzExport->export($values, $rpzSettings));
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cachecsv() {
@@ -154,7 +165,7 @@ class EventShell extends AppShell
 		$eventIds = $this->Event->fetchEventIds($user);
 		$eventCount = count($eventIds);
 		$attributes = array();
-		$dir = new Folder(APP . 'tmp/cached_exports/' . $extra);
+		$dir = new Folder(APP . 'tmp/cached_exports/' . $extra, true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.csv');
 		} else {
@@ -175,6 +186,7 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cachetext() {
@@ -185,7 +197,7 @@ class EventShell extends AppShell
 		$extra = $this->args[2];
 		$types = array_keys($this->Attribute->typeDefinitions);
 		$typeCount = count($types);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/text');
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/text', true, 0750);
 		foreach ($types as $k => $type) {
 			$final = $this->Attribute->text($user, $type);
 			if ($user['Role']['perm_site_admin']) {
@@ -201,6 +213,7 @@ class EventShell extends AppShell
 			$this->Job->saveField('progress', $k / $typeCount * 100);
 		}
 		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cachenids() {
@@ -210,10 +223,9 @@ class EventShell extends AppShell
 		$this->Job->id = $id;
 		$format = $this->args[2];
 		$sid = $this->args[3];
-		// TEMP: change to passing an options array with the user!!
-		$eventIds = $this->Event->fetchEventIds($user);
+		$eventIds = array_values($this->Event->fetchEventIds($user, false, false, false, true));
 		$eventCount = count($eventIds);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format, true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $format . '.ADMIN.rules');
 		} else {
@@ -222,9 +234,9 @@ class EventShell extends AppShell
 		$file->write('');
 		foreach ($eventIds as $k => $eventId) {
 			if ($k == 0) {
-				$temp = $this->Attribute->nids($user, $format, $eventId['Event']['id']);
+				$temp = $this->Attribute->nids($user, $format, $eventId);
 			} else {
-				$temp = $this->Attribute->nids($user, $format, $eventId['Event']['id'], true);
+				$temp = $this->Attribute->nids($user, $format, $eventId, true);
 			}
 			foreach ($temp as $line) {
 				$file->append($line . PHP_EOL);
@@ -235,6 +247,7 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function alertemail() {

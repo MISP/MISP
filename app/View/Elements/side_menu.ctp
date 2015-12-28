@@ -14,6 +14,10 @@
 						if ($isAclPublish) $mayPublish = true;
 					}
 		?>
+					<?php if ($menuItem === 'freetextResults'): ?>
+					<li id='lifreetextResults'><a href="#">Freetext Import Results</a></li>
+					<li class="divider"></li>
+					<?php endif;?>
 					<li id='liviewEvent'><a href="<?php echo $baseurl;?>/events/view/<?php echo h($event['Event']['id']);?>">View Event</a></li>
 					<li id='liviewEventGraph'><a href="<?php echo $baseurl;?>/events/viewGraph/<?php echo h($event['Event']['id']);?>">View Correlation Graph</a></li>
 					<li id='lieventLog'><a href="<?php echo $baseurl;?>/logs/event_index/<?php echo h($event['Event']['id']);?>">View Event History</a></li>
@@ -108,7 +112,6 @@
 					<li id='liedit'><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
 					<li class="divider"></li>
 					<?php endif; ?>
-					<li id='linews'><a href="<?php echo $baseurl;?>/users/news">News</a></li>
 					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 					<li id='limembers'><a href="<?php echo $baseurl;?>/users/memberslist">Members List</a></li>
 					<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>

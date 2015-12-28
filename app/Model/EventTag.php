@@ -52,4 +52,19 @@ class EventTag extends AppModel {
 		$eventIDs = array_unique($eventIDs);
 		return $eventIDs;
 	}
+	
+	public function attachTagToEvent($event_id, $tag_id) {
+		$existingAssociation = $this->find('first', array(
+			'recursive' => -1,
+			'conditions' => array(
+				'tag_id' => $tag_id,
+				'event_id' => $event_id
+			)
+		));
+		if (empty($existingAssociation)) {
+			$this->create();
+			if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag_id))) return false;
+		}
+		return true;
+	}
 }
