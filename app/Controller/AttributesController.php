@@ -436,7 +436,7 @@ class AttributesController extends AppController {
 		// combobox for distribution
 		$this->loadModel('Event');
 		$this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
-		$this->set('distributionLevels', $this->Event->distributionLevels);
+		$this->set('distributionLevels', $this->Event->Attribute->distributionLevels);
 		
 		$this->loadModel('SharingGroup');
 		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
