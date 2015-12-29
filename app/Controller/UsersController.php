@@ -833,12 +833,12 @@ class UsersController extends AppController {
 			'email' => $this->Auth->user('email'),
 			'action' => $action,
 			'title' => $description,
-			'change' => isset($fieldsResult) ? $fieldResult : ''));
+			'change' => isset($fieldsResult) ? $fieldsResult : ''));
 
 		// write to syslogd as well
 		App::import('Lib', 'SysLog.SysLog');
 		$syslog = new SysLog();
-		if (isset($fieldsResult) && $fieldResult) $syslog->write('notice', $description . ' -- ' . $action . ' -- ' . $fieldsResult);
+		if (isset($fieldsResult) && $fieldsResult) $syslog->write('notice', $description . ' -- ' . $action . ' -- ' . $fieldsResult);
 		else $syslog->write('notice', $description . ' -- ' . $action);
 	}
 
