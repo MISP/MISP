@@ -1467,7 +1467,7 @@ class EventsController extends AppController {
 		return $difference . " " . $periods[$j] . " ago";
 	}
 
-	public function xml($key, $eventid=null, $withAttachment = false, $tags = false, $from = false, $to = false, $last = false) {
+	public function xml($key, $eventid=false, $withAttachment = false, $tags = false, $from = false, $to = false, $last = false) {
 		App::uses('XMLConverterTool', 'Tools');
 		$converter = new XMLConverterTool();
 		$this->loadModel('Whitelist');
@@ -1524,10 +1524,12 @@ class EventsController extends AppController {
 		}
 		$final = "";
 		$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
-		
+		$validEvents = 0;
 		if (!$eventid) $eventIdArray = $this->Event->fetchEventIds($user, $from, $to, $last, true);
 		foreach ($eventIdArray as $currentEventId) {
-			$result = $this->__fetchEvent($currentEventId, null, $user, $tags, $from, $to);
+			$result = $this->Event->fetchEvent($user, array('eventid' => $currentEventId, 'tags' => $tags, 'from' => $from, 'to' => $to, 'last' => $last));
+			if (empty($result)) continue;
+			$validEvents++;
 			if ($withAttachment) {
 				foreach ($result[0]['Attribute'] as &$attribute) {
 					if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
@@ -1539,6 +1541,7 @@ class EventsController extends AppController {
 			$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
 			$final .= $converter->event2XML($result[0]) . PHP_EOL;
 		}
+		if ($validEvents == 0) throw new NotFoundException('No events found that match the passed parameters.');
 		$final .= '</response>' . PHP_EOL;
 		$this->response->body($final);
 		$this->response->type('xml');
@@ -1673,10 +1676,9 @@ class EventsController extends AppController {
 				$list[] = $attribute['Attribute']['id'];
 			}
 		} else if ($eventid === false) {
-			$events = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
+			$events = $this->Event->fetchEventIds($this->Auth->user(), $from, $to, $last, true);
 			if (empty($events)) $events = array(0 => -1);
 		}
-		
 		if (!isset($events)) $events = array(0 => false);
 		$final = array();
 		$this->loadModel('Whitelist');
@@ -1694,7 +1696,6 @@ class EventsController extends AppController {
 				$final[] = $line;
 			}
 		}
-		
 		$this->response->type('csv');	// set the content type
 		if (!$exportType) {
 			$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
