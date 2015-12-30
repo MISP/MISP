@@ -1,19 +1,63 @@
 <?php
 
 class IOCImportComponent extends Component {
-
-	// predefined attribute pairs that should be saved together - these are the exceptions to AND operators that will not be omitted
-	// The format is: attribute1, attribute2, new type, category, behaviour.
-	// Behaviour can be one of the following: 'first', 'second', 'both'  -> this explains what the attribute that is to be created should carry as a value
-	// first means that the value will be equal to the first attribute, second means that it will equal that of the second. Both will add both separated by '|'
-	private $attributePairs = array(
-			array('filename', 'md5', 'filename|md5', 'Payload installation', 'both', '|'),
-			array('filename', 'sha1', 'filename|sha1', 'Payload installation', 'both', '|'),
-			array('filename', 'sha256', 'filename|sha256', 'Payload installation', 'both', '|'),
-			array('regkey', 'tempRegValue', 'regkey|value', 'Persistence mechanism', 'both', '|'),
-			array('filename', 'tempCertificateSubject', 'filename', 'Payload installation', 'first', ''),
-			array('filename', 'tempExtension', 'filename', 'Payload installation', 'both', '.'),
-			);
+	
+	// rework of handling composite attributes
+	// each entry is only triggered if an "AND" branch contains the exact list of parsed attribute types that are set in the components field
+	// Note that some indicators are not immediately discarded by the parser even if they cannot be turned into an attribute
+	// The reason for this is that they might not be convertable to an attribute, but they might be converted into a part of a composite attribute
+	// For example: There is no Registry value type in MISP, but there is a regkey|value type. Meaning that a Registry value can be turned into an attribute
+	// as long as a registry key is "AND"ed with the value in the OpenIOC file.
+	
+	// notes about the format for the composition:
+	// - components have to be in alphabetical order
+	// - returnFormat has to be a valid MISP type
+	// - returnCategory has to be a valid MISP category
+	// - replace: passed attribute values will replace the $[component position] substring to form the final attribute value
+	private $attributeComposition = array(
+		array(
+				'components' => array('filename', 'md5'), 
+				'returnFormat' => 'filename|md5', 
+				'returnCategory' => 'Payload installation', 
+				'replace'=> '$0|$1'
+		),
+		array(
+				'components' => array('filename', 'sha1'), 
+				'returnFormat' => 'filename|sha1', 
+				'returnCategory' => 'Payload installation', 
+				'replace'=> '$0|$1'
+		),
+		array(
+				'components' => array('filename', 'sha256'), 
+				'returnFormat' => 'filename|sha256', 
+				'returnCategory' => 'Payload installation', 
+				'replace'=> '$0|$1'
+		),
+		array(
+				'components' => array('regkey', 'tempRegValue'), 
+				'returnFormat' => 'regkey|value', 
+				'returnCategory' => 'Persistence mechanism', 
+				'replace'=> '$0|$1'
+		),
+		array(
+				'components' => array('filename', 'tempCertificateSubject'), 
+				'returnFormat' => 'filename', 
+				'returnCategory' => 'Payload installation', 
+				'replace'=> '$0'
+		),
+		array(
+				'components' => array('filename', 'tempExtension'), 
+				'returnFormat' => 'filename', 
+				'returnCategory' => 'Payload installation', 
+				'replace'=> '$0.$1'
+		),
+		array(
+				'components' => array('regkey', 'tempRegName', 'tempRegValue'), 
+				'returnFormat' => 'regkey|value', 
+				'returnCategory' => 'Persistence mechanism', 
+				'replace'=> '$0$1|$2'
+		),
+	);
 
 	// Indicators that we can safely remove if they pop up within an AND branch
 	private $discardableIndicators = array(
@@ -83,6 +127,7 @@ class IOCImportComponent extends Component {
 	private $filename = "";
 
 	public function readXML($data, $id, $dist, $filename) {
+		$this->Attribute = ClassRegistry::init('Attribute');
 		$this->filename = $filename;
 		$event = array();
 		$attributes = array();
@@ -133,11 +178,12 @@ class IOCImportComponent extends Component {
 		$duplicateFilter = array();
 		// check if we have any attributes, if yes, add their UUIDs to our list of success-array
 		if (count ($event['Attribute']) > 0) {
-			foreach ($event['Attribute'] as $k => $attribute) {
+			foreach ($event['Attribute'] as $k => &$attribute) {
 				$condensed = strtolower($attribute['value']) . $attribute['category'] . $attribute['type'];
 				if (!in_array($condensed, $duplicateFilter)) {
 					$this->saved_uuids[] = $attribute['uuid'];
 					$duplicateFilter[] = $condensed;
+					$attribute['uuid'] = $this->Attribute->generateUuid();
 				} else unset($event['Attribute'][$k]);
 			}
 		}
@@ -149,7 +195,7 @@ class IOCImportComponent extends Component {
 		// Add a special attribute that captures the basic data about the .ioc such as the ioc-s uuid, info, long info, author, etc.
 		// Define the fields used in the global iocinfo variable.
 		foreach ($this->iocinfo as $k => $v) {
-			if (isset($event[$v])) $event['Attribute'][] = array('uuid' => $this->{$Model->alias}->generateUuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => $this->typeToIdsSettings['comment'], 'distribution' => $this->distribution, 'comment' => 'OpenIOC import from file ' . $filename);
+			if (isset($event[$v])) $event['Attribute'][] = array('uuid' => $this->Attribute->generateUuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => $this->typeToIdsSettings['comment'], 'distribution' => $this->distribution, 'comment' => 'OpenIOC import from file ' . $filename);
 		}
 
 		// attach the graph to the event
@@ -202,12 +248,12 @@ class IOCImportComponent extends Component {
 			$attribute['type'] = 'other';
 			$attribute['value'] = 'containsnot: ' . $attribute['value'];
 		}
-		$attribute['to_ids'] = $this->typeToIdsSettings[$attribute['type']];
+		if (isset($this->typeToIdsSettings[$attribute['type']])) $attribute['to_ids'] = $this->typeToIdsSettings[$attribute['type']];
 		// If we couldn't figure out the category / type and got Other/other, append the search term in the value
 		if ($temp[0] == 'Other' && $temp[1] == 'other') {
 			$attribute['value'] = $attribute['search'] . ': ' . $attribute['value'];
 		}
-		$attribute['comment'] = 'OpenIOC import from file ' . $this->filename;
+		$attribute['comment'] = 'OpenIOC import from file ' . $this->filename . PHP_EOL . 'Original UUID: ' . $attribute['uuid'];
 		return $attribute;
 	}
 
@@ -317,6 +363,8 @@ class IOCImportComponent extends Component {
 			case 'RegistryItem/Path':
 				return array('Persistence mechanism', 'regkey', true);
 				break;
+			case 'RegistryItem/ValueName':
+				return array('Persistence mechanism', 'tempRegName', false);
 			case 'Snort/Snort':
 				return array('Network activity', 'snort', true);
 				break;
@@ -332,6 +380,7 @@ class IOCImportComponent extends Component {
 				return array('Network activity', 'hostname', true);
 				break;
 			case 'RegistryItem/Text':
+			case 'RegistryItem/Value':
 				return array('Persistence mechanism', 'tempRegValue', false);
 				break;
 				// We don't keep the following, they are often used with AND and a filename. We'll only keep the filename in those cases.
@@ -364,14 +413,9 @@ class IOCImportComponent extends Component {
 
 	private function __resolveBranch($branch, $uuid, $type, &$leaves, $root = false) {
 		$toBeOmitted = $branch;
-		$toReindex = false;
 		// Resolve any deeper branching before we attempt to resolve this, as we might be able to turn it into a single attribute
 		foreach ($branch['branches'] as $key => $value) {
 			$r = $this->__resolveBranch($value, $branch['uuid'], $branch['type'], $branch['leaves']);
-			// If one of the child branch became empty, mark the whole branch for reindexing
-			if ($r == null) {
-				$toReindex = true;
-			}
 			if ($r === 'getFromTemp') {
 				unset ($branch['branches'][$key]);
 				foreach ($this->tempLeaves as $tempLeaf) {
@@ -445,10 +489,9 @@ class IOCImportComponent extends Component {
 				$this->saved_uuids[] = $branch['uuid'];
 			}
 		}
-
 		if (isset($branch['leaves']) && count($branch['leaves']) == 1 && count($branch['branches']) == 0) {
 			$leaves[] = $branch['leaves'][0];
-			$branch['leaves'] = array();
+			$branch['leaves'] = $leaves;
 		}
 
 		if (($branch['type'] == 'OR') && count($branch['branches']) == 0 && count($branch['leaves']) != 0) {
@@ -458,7 +501,6 @@ class IOCImportComponent extends Component {
 				return 'getFromTemp';
 			}
 		}
-
 		// If we have no branches and no leaves left after all of this, return nothing and unset this branch
 		if ((!isset($branch['leaves']) || count($branch['leaves']) == 0) && count($branch['branches']) == 0 && !isset($branch['long_info'])) {
 			return;
@@ -503,29 +545,21 @@ class IOCImportComponent extends Component {
 
 	private function __resolveAndBranch($array, $id) {
 		// Let's see how many indicators we have left and take action accordingly
-		switch (count($array)) {
-			case 0 :
-				// We are left with 0 eligible indicators, just return nothing
-				return;
-				break;
-			case 1 :
-				// If the eliminations have gotten us down to just one indicator left, we can return it - Unless it's of type other, we don't want to keep that and interfere with further resolution
-				if ($array[0]['category'] == 'Other' && $array[0]['type'] == 'other') return;
+		$count = count($array);
+		if ($count == 0) return;
+		else if ($count == 1) {
+			return $array[0];
+		} else {
+			for ($i=0; $i < $count; $i++) $att[$i] = $this->__analyseIndicator($array[$i], $id);
+			$attempt = $this->__convertToCompositeAttribute($att, $id);
+			if ($attempt) {
+				$attempt['uuid'] = $att[0]['uuid'];
 				$this->saved_uuids[] = $id;
-				return $array[0];
-				break;
-			case 2 :
-				// We are left with more than one indicator, check whether they can be turned into a single attribute, if it's not possible, return false
-				$att1 = $this->__analyseIndicator($array[0], $id);
-				$att2 = $this->__analyseIndicator($array[1], $id);
-				$attempt = $this->__convertToCompositeAttribute($att1, $att2, $id);
-				if ($attempt) {
-					$this->saved_uuids[] = $id;
-					return $attempt;
-				}
-				break;
+				foreach ($att as &$temp) $this->saved_uuids[] = $temp['uuid'];
+				return $attempt;
+			}
+			return;
 		}
-		return;
 	}
 
 	// We have a list of attributes that we can omit in nested logical branches - the idea is to always make sure that we don't insert attributes
@@ -541,45 +575,34 @@ class IOCImportComponent extends Component {
 	}
 
 	// Attempt to convert the two attributes retrieved from an AND indicator into a single attribute, if they are eligible to be converted. If not, add it to the array of failures.
-	private function __convertToCompositeAttribute($att1, $att2, $uuid) {
+	private function __convertToCompositeAttribute($att, $uuid) {
 		// check if the current attribute is one of the known pairs saved in the array $attributePairs
-		foreach ($this->attributePairs as $pair) {
-			// if attribute 1's type = the first type of the pair and attribute 2's type is the type of the second attribute of the pair, return a new joint attribute with the new type-name (usually type1|type2) and its predefined category
-			if($att1['type'] == $pair[0] && $att2['type'] == $pair[1]) {
-				$this->saved_uuids[] = $uuid;
-				$this->saved_uuids[] = $att1['uuid'];
-				$this->saved_uuids[] = $att2['uuid'];
-				if ($pair[4] == 'both') $value = $att1['value'] . $pair[5] . $att2['value'];
-				// switch to see which value to keep and which to get rid of
-				switch ($pair[4]) {
-					case 'first':
-						$value = $att1['value'];
-						break;
-					case 'second':
-						$value = $att2['value'];
-						break;
-					default:
-						$value = $att1['value'] . '|' . $att2['value'];
+		$componentCount = count($att);
+		$tempArray = $values = $uuids = array();
+		foreach ($att as &$temp) $tempArray[$temp['type']] = $temp;
+		ksort($tempArray);
+		$keys = array_keys($tempArray);
+		$att = array_values($tempArray);
+		foreach ($att as &$temp) {
+			$values[] = $temp['value'];
+			$uuids[] = $temp['uuid'];
+		}
+		
+		foreach ($this->attributeComposition as $composition) {
+			if (count($composition['components']) != count($att)) continue;
+			if ($keys === $composition['components']) {
+				$value = $composition['replace'];
+				foreach ($values as $k => &$v) {
+					$value = str_replace('$' . $k, $v, $value);
 				}
-				return array('type' => $pair[2], 'value' => $value, 'uuid' => $this->{$Model->alias}->generateUuid(), 'category' => $pair[3], 'to_ids' => $this->typeToIdsSettings[$pair[2]], 'distribution' => $this->distribution);
-			}
-			// Try the same thing above with the attributes reversed
-			if ($att2['type'] == $pair[0] && $att1['type'] == $pair[1]) {
-				$this->saved_uuids[] = $uuid;
-				$this->saved_uuids[] = $att1['uuid'];
-				$this->saved_uuids[] = $att2['uuid'];
-				// switch to see which value to keep and which to get rid of
-				switch ($pair[4]) {
-					case 'first':
-						$value = $att2['value'];
-						break;
-					case 'second':
-						$value = $att1['value'];
-						break;
-					default:
-						$value = $att2['value'] . '|' . $att1['value'];
-				}
-				return array('type' => $pair[2], 'value' => $value, 'uuid' => $this->{$Model->alias}->generateUuid(), 'category' => $pair[3], 'to_ids' => $this->typeToIdsSettings[$pair[2]], 'distribution' => $this->distribution);
+				return array(
+						'type' => $composition['returnFormat'], 
+						'category' => $composition['returnCategory'], 
+						'value' => $value, 
+						'to_ids' => $this->typeToIdsSettings[$composition['returnFormat']], 
+						'distribution' => $this->distribution, 
+						'comment' => 'OpenIOC import from file ' . $this->filename . ' - Original UUIDs:' . PHP_EOL . implode(PHP_EOL, $uuids),
+				);
 			}
 		}
 		// If no match found, return false, it's not a valid composite attribute for MISP
@@ -589,7 +612,7 @@ class IOCImportComponent extends Component {
 	// used to save the value of attributes of type other (attributes that could not be mapped) and convert temporary attributes to type other.
 	private function __convertToOther(&$attribute) {
 		$attribute['category'] = 'Other';
-		$attribute['type'] = 'other';
+		$attribute['type'] = 'comment';
 		$attribute['value'] = $attribute['search'] . ': ' . $attribute['value'];
 	}
 }

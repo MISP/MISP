@@ -194,7 +194,7 @@ class RegexpController extends AppController {
  *
  */
 	public function admin_clean() {
-		if(!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if(!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('This action is only accessible via a POST request.');
 		$allRegexp = $this->Regexp->find('all');
 		$deletable = array();
 		$modifications = 0;
@@ -219,5 +219,22 @@ class RegexpController extends AppController {
 		}
 		$this->Session->setFlash(__('All done! Number of changed attributes: ' . $modifications . ' Number of deletions: ' . count($deletable)));
 		$this->redirect(array('action' => 'index'));
+	}
+	
+
+	public function cleanRegexModifiers() {
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
+		$entries = $this->Regexp->find('all', array());
+		$changes = 0;
+		foreach($entries as $entry) {
+			$length = strlen($entry['Regexp']['regexp']);
+			$this->Regexp->sanitizeModifiers($entry['Regexp']['regexp']);
+			if (strlen($entry['Regexp']['regexp']) < $length) {
+				$this->Regexp->save($entry);
+				$changes++;
+			}
+		}
+		$this->Session->setFlash(__('All done! Found and cleaned ' . $changes . ' potentially malcious regexes.'));
+		$this->redirect('/pages/display/administration');
 	}
 }

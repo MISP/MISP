@@ -58,7 +58,7 @@
 		</div>
 		<?php
 			$topGap = 50;
-			if (Configure::read('debug') != 0) {
+			if (Configure::read('debug') > 1) {
 				$topGap = 10;
 			} else {
 	 			if ($has_flash) $topGap += 50;

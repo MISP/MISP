@@ -1,4 +1,4 @@
-<div class="shadowAttributes form">
+<div class="shadow_attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php echo $this->Form->create('ShadowAttribute');?>
 	<fieldset>
 		<legend><?php echo __('Add ShadowAttribute'); ?></legend>
@@ -40,11 +40,29 @@
 		$this->Js->get('#ShadowAttributeType')->event('change', 'showFormInfo("#ShadowAttributeType")');
 	?>
 	</fieldset>
-		<p style="color:red;font-weight:bold;display:none;<?php if($ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
-<?php
-	echo $this->Form->button('Propose', array('class' => 'btn btn-primary'));
-	echo $this->Form->end();
-?>
+	<p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+	<?php if (isset($ajax) && $ajax): ?>
+		<div class="overlay_spacing">
+			<table>
+				<tr>
+				<td style="vertical-align:top">
+					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'propose')">Propose</span>
+				</td>
+				<td style="width:540px;">
+					<p style="color:red;font-weight:bold;display:none;<?php if(isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+				</td>
+				<td style="vertical-align:top;">
+					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
+				</td>
+				</tr>
+			</table>
+		</div>
+	<?php 
+		else: 
+			echo $this->Form->button('Propose', array('class' => 'btn btn-primary'));
+		endif;
+		echo $this->Form->end();
+	?>
 </div>
 <?php 
 	$event['Event']['id'] = $this->request->data['ShadowAttribute']['event_id'];

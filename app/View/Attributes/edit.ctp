@@ -8,12 +8,29 @@
 				'empty' => '(choose one)'
 				));
 		echo $this->Form->input('type', array(
-				'empty' => '(first choose category)'
-				));
+			'empty' => '(first choose category)'
+			));
+		
+		?>
+			<div class="input clear"></div>
+		<?php
+		
 		echo $this->Form->input('distribution', array(
 			'options' => array($distributionLevels),
 			'label' => 'Distribution',
 		));
+		?>
+			<div id="SGContainer" style="display:none;">
+		<?php
+			if (!empty($sharingGroups)) {
+				echo $this->Form->input('sharing_group_id', array(
+						'options' => array($sharingGroups),
+						'label' => 'Sharing Group',
+					));
+			}
+		?>
+		</div>
+		<?php 
 		echo $this->Form->input('value', array(
 				'type' => 'textarea',
 				'error' => array('escape' => false),
@@ -104,7 +121,12 @@ foreach ($distributionDescriptions as $type => $def) {
 ?>
 
 $(document).ready(function() {
-
+	
+	$('#AttributeDistribution').change(function() {
+		if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
+		else $('#SGContainer').hide();
+	});
+	
 	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {

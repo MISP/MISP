@@ -77,5 +77,5 @@
 	</tr>
 	<?php endforeach;?>
 </table>
-<p><a href="/pages/display/doc/md/categories_and_types">Click here to get the .md version for gitbook generation.</a></p>
+<p><a href="<?php echo $baseurl;?>/pages/display/doc/md/categories_and_types">Click here to get the .md version for gitbook generation.</a></p>
 </div>

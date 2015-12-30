@@ -7,7 +7,18 @@ App::uses('AppModel', 'Model');
 */
 class Job extends AppModel {
 	
-	public function cache($type, $isSiteAdmin, $org, $target, $jobOrg, $sid = null) {
+	public function beforeValidate($options = array()) {
+		parent::beforeValidate();
+		$date = date('Y-m-d H:i:s');
+		if (empty($this->data['Job']['id'])) {
+			$this->data['Job']['date_created'] = $date;
+			$this->data['Job']['date_modified'] = $date;
+		} else {
+			$this->data['Job']['date_modified'] = $date;
+		}
+	}
+	
+	public function cache($type, $user, $target, $jobOrg) {
 		$extra = null;
 		$extra2 = null;
 		$shell = 'Event';
@@ -19,6 +30,7 @@ class Job extends AppModel {
 				'status' => 0,
 				'retries' => 0,
 				'org' => $jobOrg,
+				'org_id' => $user['org_id'],
 				'message' => 'Fetching events.',
 		);
 		if ($type === 'md5' || $type === 'sha1') {
@@ -32,7 +44,7 @@ class Job extends AppModel {
 		if ($type === 'suricata' || $type === 'snort') {
 			$extra = $type;
 			$type = 'nids';
-			$extra2 = $sid;
+			$extra2 = $user['nids_sid'];
 		}
 		if ($type === 'rpz') $extra = $type;
 		$this->save($data);
@@ -40,7 +52,7 @@ class Job extends AppModel {
 		$process_id = CakeResque::enqueue(
 				'cache',
 				$shell . 'Shell',
-				array('cache' . $type, $org, $isSiteAdmin, $id, $extra, $extra2),
+				array('cache' . $type, $user['id'], $id, $extra, $extra2),
 				true
 		);
 		$this->saveField('process_id', $process_id);

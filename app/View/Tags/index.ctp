@@ -19,8 +19,10 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
+			<th><?php echo $this->Paginator->sort('exportable');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
-			<th>Count</th>
+			<th>Taxonomy</th>
+			<th>Tagged events</th>
 			<?php if ($isAclTagger): ?>
 			<th class="actions"><?php echo __('Actions');?></th>
 			<?php endif; ?>
@@ -28,7 +30,16 @@
 foreach ($list as $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['Tag']['id']); ?>&nbsp;</td>
-		<td><a href="/events/index/searchtag:<?php echo $item['Tag']['id']; ?>" class="tag" style="background-color: <?php echo h($item['Tag']['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']); ?>"><?php echo h($item['Tag']['name']); ?></a></td>
+		<td class="short"><span class="<?php echo ($item['Tag']['exportable'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
+		<td><a href="<?php echo $baseurl."/events/index/searchtag:".$item['Tag']['id']; ?>" class="tag" style="background-color: <?php echo h($item['Tag']['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']); ?>" title="<?php echo isset($item['Tag']['Taxonomy']['expanded']) ? h($item['Tag']['Taxonomy']['expanded']) : h($item['Tag']['name']); ?>"><?php echo h($item['Tag']['name']); ?></a></td>
+		<td class="short">
+		<?php 
+			if (isset($item['Tag']['Taxonomy'])): 
+				echo '<a href="' . $baseurl . '/taxonomies/view/' . h($item['Tag']['Taxonomy']['id']) . '" title="' . (isset($item['Tag']['Taxonomy']['description']) ? h($item['Tag']['Taxonomy']['description']) : h($item['Tag']['Taxonomy']['namespace'])) . '">' . h($item['Tag']['Taxonomy']['namespace']) . '</a>'; 
+			endif;
+		?>
+		&nbsp;
+		</td>
 		<td class="short"><?php echo h($item['Tag']['count']); ?>&nbsp;</td>
 		<?php if ($isAclTagger): ?>
 		<td class="short action-links">

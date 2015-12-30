@@ -38,7 +38,15 @@ class ShadowAttribute extends AppModel {
 			'fields' => '',
 			'order' => '',
 			'counterCache' => true
-		)
+		),
+		'Org' => array(
+				'className' => 'Organisation',
+				'foreignKey' => 'org_id'
+		),
+		'EventOrg' => array(
+				'className' => 'Organisation',
+				'foreignKey' => 'event_org_id'
+		),
 	);
 
 /**
@@ -55,17 +63,6 @@ class ShadowAttribute extends AppModel {
  */
 	public $virtualFields = array(
 			'value' => 'IF (ShadowAttribute.value2="", ShadowAttribute.value1, CONCAT(ShadowAttribute.value1, "|", ShadowAttribute.value2))',
-			'category_order' => 'IF (ShadowAttribute.category="Internal reference", "a",
-			IF (ShadowAttribute.category="Antivirus detection", "b",
-			IF (ShadowAttribute.category="Payload delivery", "c",
-			IF (ShadowAttribute.category="Payload installation", "d",
-			IF (ShadowAttribute.category="Artifacts dropped", "e",
-			IF (ShadowAttribute.category="Persistence mechanism", "f",
-			IF (ShadowAttribute.category="Network activity", "g",
-			IF (ShadowAttribute.category="Payload type", "h",
-			IF (ShadowAttribute.category="Attribution", "i",
-			IF (ShadowAttribute.category="Attribution", "j",
-			IF (ShadowAttribute.category="External analysis", "k", "l")))))))))))'
 	); // TODO hardcoded
 
 /**
@@ -91,107 +88,8 @@ class ShadowAttribute extends AppModel {
 			'attachment'
 	);
 
-	public $typeDefinitions = array(
-			'md5' => array('desc' => 'A checksum in md5 format', 'formdesc' => "You are encouraged to use filename|md5 instead. <br/>A checksum in md5 format, only use this if you don't know the correct filename"),
-			'sha1' => array('desc' => 'A checksum in sha1 format', 'formdesc' => "You are encouraged to use filename|sha1 instead. <br/>A checksum in sha1 format, only use this if you don't know the correct filename"),
-            'sha256' => array('desc' => 'A checksum in sha256 format', 'formdesc' => "You are encouraged to use filename|sha256 instead. A checksum in sha256 format, o nly use this if you don't know the correct filename"),
-			'filename' => array('desc' => 'Filename'),
-			'filename|md5' => array('desc' => 'A filename and an md5 hash separated by a |', 'formdesc' => "A filename and an md5 hash separated by a | (no spaces)"),
-			'filename|sha1' => array('desc' => 'A filename and an sha1 hash separated by a |', 'formdesc' => "A filename and an sha1 hash separated by a | (no spaces)"),
-			'ip-src' => array('desc' => "A source IP address of the attacker"),
-			'ip-dst' => array('desc' => 'A destination IP address of the attacker or C&C server', 'formdesc' => "A destination IP address of the attacker or C&C server. <br/>Also set the IDS flag on when this IP is hardcoded in malware"),
-			'hostname' => array('desc' => 'A full host/dnsname of an attacker', 'formdesc' => "A full host/dnsname of an attacker. <br/>Also set the IDS flag on when this hostname is hardcoded in malware"),
-			'domain' => array('desc' => 'A domain name used in the malware', 'formdesc' => "A domain name used in the malware. <br/>Use this instead of hostname when the upper domain is <br/>important or can be used to create links between events."),
-			'email-src' => array('desc' => "The email address (or domainname) used to send the malware."),
-			'email-dst' => array('desc' => "A recipient email address", 'formdesc' => "A recipient email address that is not related to your constituency."),
-			'email-subject' => array('desc' => "The subject of the email"),
-			'email-attachment' => array('desc' => "File name of the email attachment."),
-			'url' => array('desc' => 'url'),
-            'http-method' => array('desc' => "HTTP method used by the malware (e.g. POST, GET, ...)."),
-            'user-agent' => array('desc' => "The user-agent used by the malware in the HTTP request."),
-			'regkey' => array('desc' => "Registry key or value"),
-			'regkey|value' => array('desc' => "Registry value + data separated by |"),
-			'AS' => array('desc' => 'Autonomous system'),
-			'snort' => array('desc' => 'An IDS rule in Snort rule-format', 'formdesc' => "An IDS rule in Snort rule-format. <br/>This rule will be automatically rewritten in the NIDS exports."),
-			'pattern-in-file' => array('desc' => 'Pattern in file that identifies the malware'),
-			'pattern-in-traffic' => array('desc' => 'Pattern in network traffic that identifies the malware'),
-			'pattern-in-memory' => array('desc' => 'Pattern in memory dump that identifies the malware'),
-			'yara' => array('desc' => 'Yara signature'),
-			'vulnerability' => array('desc' => 'A reference to the vulnerability used in the exploit'),
-			'attachment' => array('desc' => 'Attachment with external information', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button."),
-			'malware-sample' => array('desc' => 'Attachment containing encrypted malware sample', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button."),
-			'link' => array('desc' => 'Link to an external information'),
-			'comment' => array('desc' => 'Comment or description in a human language', 'formdesc' => 'Comment or description in a human language. <br/> This will not be correlated with other attributes (NOT IMPLEMENTED YET)'),
-			'text' => array('desc' => 'Name, ID or a reference'),
-            'named pipe' => array('desc' => 'Named pipe, use the format \\.\pipe\<PipeName>'),
-            'mutex' => array('desc' => 'Mutex, use the format \BaseNamedObjects\<Mutex>'),
-			'other' => array('desc' => 'Other attribute'),
-			'target-user' => array('desc' => 'Attack Targets Username(s)'),
-			'target-email' => array('desc' => 'Attack Targets Email(s)'),
-			'target-machine' => array('desc' => 'Attack Targets Machine Name(s)'),
-			'target-org' => array('desc' => 'Attack Targets Department or Orginization(s)'),
-			'target-location' => array('desc' => 'Attack Targets Physical Location(s)'),
-			'target-external' => array('desc' => 'External Target Orginizations Affected by this Attack'),
-	);
-
 	// definitions of categories
-	public $categoryDefinitions = array(
-			'Internal reference' => array(
-					'desc' => 'Reference used by the publishing party (e.g. ticket number)',
-					'types' => array('link', 'comment', 'text', 'other')
-					),
-			'Targeting data' => array(
-					'desc' => 'Internal Attack Targeting and Compromise Information',
-					'formdesc' => 'Targeting information to include recipient email, infected machines, department, and or locations.<br/>',
-					'types' => array('target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'comment')
-			),
-			'Antivirus detection' => array(
-					'desc' => 'All the info about how the malware is detected by the antivirus products',
-					'formdesc' => 'List of anti-virus vendors detecting the malware or information on detection performance (e.g. 13/43 or 67%).<br/>Attachment with list of detection or link to VirusTotal could be placed here as well.',
-					'types' => array('link', 'comment', 'text', 'attachment', 'other')
-					),
-			'Payload delivery' => array(
-					'desc' => 'Information about how the malware is delivered',
-					'formdesc' => 'Information about the way the malware payload is initially delivered, <br/>for example information about the email or web-site, vulnerability used, originating IP etc. <br/>Malware sample itself should be attached here.',
-					'types' => array('md5', 'sha1', 'sha256', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'ip-dst', 'user-agent', 'http-method',  'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'vulnerability', 'other')
-					),
-			'Artifacts dropped' => array(
-					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
-					'types' => array('md5', 'sha1', 'sha256', 'filename', 'filename|md5', 'filename|sha256', 'filename|sha1', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'yara', 'attachment', 'malware-sample', 'comment', 'text', 'other', 'named pipe', 'mutex')
-					),
-			'Payload installation' => array(
-					'desc' => 'Info on where the malware gets installed in the system',
-					'formdesc' => 'Location where the payload was placed in the system and the way it was installed.<br/>For example, a filename|md5 type attribute can be added here like this:<br/>c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.',
-					'types' => array('md5', 'sha1', 'sha256', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'attachment', 'malware-sample', 'comment', 'text', 'other')
-					),
-			'Persistence mechanism' => array(
-					'desc' => 'Mechanisms used by the malware to start at boot',
-					'formdesc' => 'Mechanisms used by the malware to start at boot.<br/>This could be a registry key, legitimate driver modification, LNK file in startup',
-					'types' => array('filename', 'regkey', 'regkey|value', 'comment', 'text', 'other')
-					),
-			'Network activity' => array(
-					'desc' => 'Information about network traffic generated by the malware',
-					'types' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'email-dst', 'url', 'user-agent', 'http-method','AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'other')
-					),
-			'Payload type' => array(
-					'desc' => 'Information about the final payload(s)',
-					'formdesc' => 'Information about the final payload(s).<br/>Can contain a function of the payload, e.g. keylogger, RAT, or a name if identified, such as Poison Ivy.',
-					'types' => array('comment', 'text', 'other')
-					),
-			'Attribution' => array(
-					'desc' => 'Identification of the group, organisation, or country behind the attack',
-					'types' => array('comment', 'text', 'other')
-					),
-			'External analysis' => array(
-					'desc' => 'Any other result from additional analysis of the malware like tools output',
-					'formdesc' => 'Any other result from additional analysis of the malware like tools output<br/>Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.',
-					'types' => array('md5', 'sha1', 'sha256', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'url', 'user-agent', 'http-method', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'other')
-					),
-			'Other' => array(
-					'desc' => 'Attributes that are not part of any other category',
-					'types' => array('comment', 'text', 'other')
-					)
-	);
+	public $categoryDefinitions;
 
 	public $order = array("ShadowAttribute.event_id" => "DESC", "ShadowAttribute.type" => "ASC");
 
@@ -223,22 +121,10 @@ class ShadowAttribute extends AppModel {
 		),
 		// this could be initialized from categoryDefinitions but dunno how at the moment
 		'category' => array(
-			'rule' => array('inList', array(
-							'Internal reference',
-							'Targeting data',
-							'Antivirus detection',
-							'Payload delivery',
-							'Payload installation',
-							'Artifacts dropped',
-							'Persistence mechanism',
-							'Network activity',
-							'Payload type',
-							'Attribution',
-							'External analysis',
-							'Other',
-							'' // FIXME remove this once all attributes have a category. Otherwise sigs without category are not shown in the list
-						)),
-			'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
+			'validCategory' => array(
+				'rule' => array('validCategory'),
+				'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
+			),
 		),
 		'value' => array(
 			'valueNotEmpty' => array(
@@ -247,31 +133,23 @@ class ShadowAttribute extends AppModel {
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),
 				'message' => 'Value not in the right type/format. Please double check the value or select "other" for a type.',
-				//'allowEmpty' => false,
-				//'required' => true,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
 		'to_ids' => array(
 			'boolean' => array(
 				'rule' => array('boolean'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
 				'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
 		'uuid' => array(
 			'uuid' => array(
 				'rule' => array('uuid'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
+		),
+		'proposal_to_delete' => array(
+				'boolean' => array(
+						'rule' => array('boolean'),
+				),
 		),
 	);
 
@@ -284,11 +162,12 @@ class ShadowAttribute extends AppModel {
 		$this->fieldDescriptions = Set::merge($this->fieldDescriptions,array(
 			//'distribution' => array('desc' => 'This fields indicates the intended distribution of the attribute (same as when adding an event, see Add Event)'),
 		));
+		$this->categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
+		$this->typeDefinitions = $this->Event->Attribute->typeDefinitions;
 	}
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
-
-
+	
 /**
  * beforeSave
  *
@@ -321,11 +200,25 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function afterSave($created, $options = array()) {
-
 		$result = true;
 		// if the 'data' field is set on the $this->data then save the data to the correct file
-		if (isset($this->data['ShadowAttribute']['type']) && $this->typeIsAttachment($this->data['ShadowAttribute']['type']) && !empty($this->data['ShadowAttribute']['data'])) {
-			$result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
+		if (isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) {
+			$sa = $this->find('first', array('conditions' => array('ShadowAttribute.id' => $this->data['ShadowAttribute']['id']), 'recursive' => -1, 'fields' => array('ShadowAttribute.id', 'ShadowAttribute.event_id', 'ShadowAttribute.type')));
+			if ($this->typeIsAttachment($sa['ShadowAttribute']['type'])) {
+				// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
+				// only delete the file if it exists
+				$filepath = APP . "files" . DS . 'shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id'];
+				$file = new File ($filepath);
+				if ($file->exists()) {
+					if (!$file->delete()) {
+						throw new InternalErrorException('Delete of file attachment failed. Please report to administrator.');
+					}
+				}
+			}
+		} else {
+			if (isset($this->data['ShadowAttribute']['type']) && $this->typeIsAttachment($this->data['ShadowAttribute']['type']) && !empty($this->data['ShadowAttribute']['data'])) {
+				$result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
+			}
 		}
 		return $result;
 	}
@@ -336,7 +229,7 @@ class ShadowAttribute extends AppModel {
 		if ($this->typeIsAttachment($this->data['ShadowAttribute']['type'])) {
 			// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 			// only delete the file if it exists
-			$filepath = APP . "files" . DS . $this->data['ShadowAttribute']['event_id'] . DS . 'shadow' . DS . $this->data['ShadowAttribute']['id'];
+			$filepath = APP . "files" . DS . 'shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id'];
 			$file = new File ($filepath);
 			if ($file->exists()) {
 				if (!$file->delete()) {
@@ -361,20 +254,8 @@ class ShadowAttribute extends AppModel {
 			$this->data['ShadowAttribute']['timestamp'] = $date->getTimestamp();
 		}
 
-		switch($this->data['ShadowAttribute']['type']) {
-			// lowercase these things
-			case 'md5':
-			case 'sha1':
-			case 'domain':
-			case 'hostname':
-				$this->data['ShadowAttribute']['value'] = strtolower($this->data['ShadowAttribute']['value']);
-				break;
-			case 'filename|md5':
-			case 'filename|sha1':
-				$pieces = explode('|', $this->data['ShadowAttribute']['value']);
-				$this->data['ShadowAttribute']['value'] = $pieces[0] . '|' . strtolower($pieces[1]);
-				break;
-		}
+		// make some last changes to the inserted value
+		$this->data['ShadowAttribute']['value'] = $this->Event->Attribute->modifyBeforeValidation($this->data['ShadowAttribute']['type'], $this->data['ShadowAttribute']['value']);
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['ShadowAttribute']['uuid'])) {
@@ -391,6 +272,10 @@ class ShadowAttribute extends AppModel {
 			return in_array($fields['type'], $this->categoryDefinitions[$category]['types']);
 		}
 		return false;
+	}
+	
+	public function validCategory($fields) {
+		return $this->Event->Attribute->validCategory($fields);
 	}
 
 	public function validateAttributeValue($fields) {
@@ -429,7 +314,7 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function base64EncodeAttachment($attribute) {
-		$filepath = APP . "files" . DS . $attribute['event_id'] . DS . 'shadow' . DS. $attribute['id'];
+		$filepath = APP . "files" . DS . 'shadow' . DS . $attribute['event_id'] . DS. $attribute['id'];
 		$file = new File($filepath);
 		if (!$file->exists()) {
 			return '';
@@ -551,6 +436,15 @@ class ShadowAttribute extends AppModel {
 		));
 		if (empty($oldsa)) return false;
 		else return $oldsa['ShadowAttribute'];
+	}
+	
+	public function getEventContributors($id) {
+		$orgs = $this->find('all', array('fields' => array('DISTINCT(org_id)'), 'conditions' => array('event_id' => $id)));
+		$org_ids = array();
+		foreach ($orgs as $org) {
+			$org_ids[] = $org['ShadowAttribute']['org_id'];
+		}
+		return $org_ids;
 	}
 }
 

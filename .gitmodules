@@ -6,3 +6,6 @@
 	path = PyMISP
 	url = https://github.com/MISP/PyMISP.git
 	branch = master
+[submodule "app/files/taxonomies"]
+	path = app/files/taxonomies
+	url = https://github.com/MISP/misp-taxonomies.git

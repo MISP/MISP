@@ -38,97 +38,30 @@ class EventShell extends AppShell
 	}
 	
 	public function cachexml() {
-		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$id = $this->args[2];
+		$user_id = $this->args[0];
+		$id = $this->args[1];
+		$user = $this->User->getAuthUser($user_id);
 		$this->Job->id = $id;
-		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
+		// TEMP: change to passing an options array with the user!!
+		$eventIds = $this->Event->fetchEventIds($user);
 		$result = array();
 		$eventCount = count($eventIds);
-		$dir = new Folder(APP . 'tmp/cached_exports/xml');
-		if ($isSiteAdmin) {
+		$dir = new Folder(APP . 'tmp/cached_exports/xml', true, 0750);
+		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.xml' . '.ADMIN.xml');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.xml' . '.' . $org . '.xml');
+			$file = new File($dir->pwd() . DS . 'misp.xml' . '.' . $user['Organisation']['name'] . '.xml');
 		}
+		App::uses('XMLConverterTool', 'Tools');
+		$converter = new XMLConverterTool();
 		$toEscape = array("&", "<", ">", "\"", "'");
 		$escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
 		$file->write('<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>');
 		foreach ($eventIds as $k => $eventId) {
-			$temp = $this->Event->fetchEvent($eventId['Event']['id'], null, $org, $isSiteAdmin, $this->Job->id);
-			$result = $temp[0];
-			$result['Event']['Attribute'] = $result['Attribute'];
-			$result['Event']['ShadowAttribute'] = $result['ShadowAttribute'];
-			$result['Event']['RelatedEvent'] = $result['RelatedEvent'];
-			$result['Event']['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['info']);
-			$result['Event']['info'] = str_replace($toEscape, $escapeWith, $result['Event']['info']);
-			
-			//
-			// cleanup the array from things we do not want to expose
-			//
-			unset($result['Event']['user_id']);
-			// hide the org field is we are not in showorg mode
-			if ('true' != Configure::read('MISP.showorg') && !$isSiteAdmin) {
-				unset($result['Event']['org']);
-				unset($result['Event']['orgc']);
-				unset($result['Event']['from']);
-			}
-			
-			// remove value1 and value2 from the output and remove invalid utf8 characters for the xml parser
-			foreach ($result['Event']['Attribute'] as $key => $value) {
-				if (Configure::read('MISP.cached_attachments') && $this->Event->Attribute->typeIsAttachment($result['Event']['Attribute'][$key]['type'])) {
-					$encodedFile = $this->Event->Attribute->base64EncodeAttachment($result['Event']['Attribute'][$key]);
-					$result['Event']['Attribute'][$key]['data'] = $encodedFile;
-				}
-				$result['Event']['Attribute'][$key]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['value']);
-				$result['Event']['Attribute'][$key]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['comment']);
-				unset($result['Event']['Attribute'][$key]['value1']);
-				unset($result['Event']['Attribute'][$key]['value2']);
-				unset($result['Event']['Attribute'][$key]['category_order']);
-				$result['Event']['Attribute'][$key]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['value']);
-				$result['Event']['Attribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['comment']);
-
-				foreach($result['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
-					if (Configure::read('MISP.cached_attachments') && $this->Event->ShadowAttribute->typeIsAttachment($result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['type'])) {
-						$encodedFile = $this->Event->ShadowAttribute->base64EncodeAttachment($result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]);
-						$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['data'] = $encodedFile;
-					}
-					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
-					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
-					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
-					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
-				}
-			}
-			// remove invalid utf8 characters for the xml parser
-			foreach($result['Event']['ShadowAttribute'] as $key => $value) {
-				if (Configure::read('MISP.cached_attachments') && $this->Event->ShadowAttribute->typeIsAttachment($result['Event']['ShadowAttribute'][$key]['type'])) {
-					$encodedFile = $this->Event->ShadowAttribute->base64EncodeAttachment($result['Event']['ShadowAttribute'][$key]);
-					$result['Event']['ShadowAttribute'][$key]['data'] = $encodedFile;
-				}
-				$result['Event']['ShadowAttribute'][$key]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['ShadowAttribute'][$key]['value']);
-				$result['Event']['ShadowAttribute'][$key]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['ShadowAttribute'][$key]['value']);
-				$result['Event']['ShadowAttribute'][$key]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['ShadowAttribute'][$key]['comment']);
-				$result['Event']['ShadowAttribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['ShadowAttribute'][$key]['comment']);
-			}
-			
-			if (isset($result['Event']['RelatedEvent'])) {
-				foreach ($result['Event']['RelatedEvent'] as $key => $value) {
-					$temp = $value['Event'];
-					unset($result['Event']['RelatedEvent'][$key]['Event']);
-					$result['Event']['RelatedEvent'][$key]['Event'][0] = $temp;
-					unset($result['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
-					$result['Event']['RelatedEvent'][$key]['Event'][0]['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['RelatedEvent'][$key]['Event'][0]['info']);
-					$result['Event']['RelatedEvent'][$key]['Event'][0]['info'] = str_replace($toEscape, $escapeWith, $result['Event']['RelatedEvent'][$key]['Event'][0]['info']);
-					if ('true' != Configure::read('MISP.showorg') && !$isAdmin) {
-						unset($result['Event']['RelatedEvent'][$key]['Event'][0]['org']);
-						unset($result['Event']['RelatedEvent'][$key]['Event'][0]['orgc']);
-					}
-					unset($temp);
-				}
-			}
-			$text = $this->__recursiveEcho(array('Event' => array(0 => $result['Event'])));
-			$file->append($text);
-			$this->Job->saveField('progress', ($k+1) / $eventCount * 100);
+			$temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id']));
+			$file->append($converter->event2XML($temp[0], $user['Role']['perm_site_admin']) . PHP_EOL);
+			$this->Job->saveField('progress', ($k+1) / $eventCount *100);
+			$this->Job->saveField('message', 'Job done.');
 		}
 		$file->append('<xml_version>' . $this->Event->mispVersion . '</xml_version>');
 		$file->append('</response>' . PHP_EOL);
@@ -159,19 +92,19 @@ class EventShell extends AppShell
 	}
 	
 	public function cachehids() {
-		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$id = $this->args[2];
+		$user_id = $this->args[0];
+		$user = $this->User->getAuthUser($user_id);
+		$id = $this->args[1];
 		$this->Job->id = $id;
-		$extra = $this->args[3];
+		$extra = $this->args[2];
 		$this->Job->saveField('progress', 1);
-		$rules = $this->Attribute->hids($isSiteAdmin, $org, $extra);
+		$rules = $this->Attribute->hids($user, $extra);
 		$this->Job->saveField('progress', 80);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
-		if ($isSiteAdmin) {
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra, true, 0750);
+		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.txt');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.txt');
+			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $user['Organisation']['name'] . '.txt');
 		}
 		$file->write('');
 		foreach ($rules as $rule) {
@@ -179,22 +112,31 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cacherpz() {
-		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$id = $this->args[2];
+		$user_id = $this->args[0];
+		$user = $this->User->getAuthUser($user_id);
+		$id = $this->args[1];
 		$this->Job->id = $id;
-		$extra = $this->args[3];
+		$extra = $this->args[2];
 		$this->Job->saveField('progress', 1);
-		$values = $this->Attribute->rpz($org, $isSiteAdmin);
+		$eventIds = $this->Attribute->Event->fetchEventIds($user, false, false, false, true);
+		$values = array();
+		$eventCount = count($eventIds);
+		if ($eventCount) {
+			foreach ($eventIds as $k => $eventId) {
+				$values = array_merge_recursive($values, $this->Attribute->rpz($user, false, $eventId));
+				if ($k % 10 == 0) $this->Job->saveField('progress', $k * 80 / $eventCount);
+			}
+		}
 		$this->Job->saveField('progress', 80);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
-		if ($isSiteAdmin) {
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra, true, 0750);
+		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.rpz.ADMIN.txt');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.rpz.' . $org . '.txt');
+			$file = new File($dir->pwd() . DS . 'misp.rpz.' . $user['Organisation']['name'] . '.txt');
 		}
 		App::uses('RPZExport', 'Export');
 		$rpzExport = new RPZExport();
@@ -208,29 +150,31 @@ class EventShell extends AppShell
 		$file->write($rpzExport->export($values, $rpzSettings));
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cachecsv() {
-		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$id = $this->args[2];
+		$user_id = $this->args[0];
+		$user = $this->User->getAuthUser($user_id);
+		$id = $this->args[1];
 		$this->Job->id = $id;
-		$extra = $this->args[3];
+		$extra = $this->args[2];
 		if ($extra == 'csv_all') $ignore = 1;
 		else $ignore = 0;
-		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
+		// TEMP: change to passing an options array with the user!!
+		$eventIds = $this->Event->fetchEventIds($user);
 		$eventCount = count($eventIds);
 		$attributes = array();
-		$dir = new Folder(APP . 'tmp/cached_exports/' . $extra);
-		if ($isSiteAdmin) {
+		$dir = new Folder(APP . 'tmp/cached_exports/' . $extra, true, 0750);
+		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.csv');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.csv');
+			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $user['Organisation']['name'] . '.csv');
 		}
 		$file->write('uuid,event_id,category,type,value,to_ids,date' . PHP_EOL);
 		foreach ($eventIds as $k => $eventId) {
 			$chunk = "";
-			$attributes = $this->Event->csv($org, $isSiteAdmin, $eventId['Event']['id'], $ignore);
+			$attributes = $this->Event->csv($user, $eventId['Event']['id'], $ignore);
 			$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 			foreach ($attributes as $attribute) {
 				$chunk .= $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'] . PHP_EOL;
@@ -242,23 +186,24 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cachetext() {
-		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$id = $this->args[2];
+		$user_id = $this->args[0];
+		$user = $this->User->getAuthUser($user_id);
+		$id = $this->args[1];
 		$this->Job->id = $id;
-		$extra = $this->args[3];
+		$extra = $this->args[2];
 		$types = array_keys($this->Attribute->typeDefinitions);
 		$typeCount = count($types);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/text');
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/text', true, 0750);
 		foreach ($types as $k => $type) {
-			$final = $this->Attribute->text($org, $isSiteAdmin, $type);
-			if ($isSiteAdmin) {
+			$final = $this->Attribute->text($user, $type);
+			if ($user['Role']['perm_site_admin']) {
 				$file = new File($dir->pwd() . DS . 'misp.text_' . $type . '.ADMIN.txt');
 			} else {
-				$file = new File($dir->pwd() . DS . 'misp.text_' . $type . '.' . $org . '.txt');
+				$file = new File($dir->pwd() . DS . 'misp.text_' . $type . '.' . $user['Organisation']['name'] . '.txt');
 			}
 			$file->write('');
 			foreach ($final as $attribute) {
@@ -268,29 +213,30 @@ class EventShell extends AppShell
 			$this->Job->saveField('progress', $k / $typeCount * 100);
 		}
 		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cachenids() {
-		$org = $this->args[0];
-		$isSiteAdmin = $this->args[1];
-		$id = $this->args[2];
+		$user_id = $this->args[0];
+		$user = $this->User->getAuthUser($user_id);
+		$id = $this->args[1];
 		$this->Job->id = $id;
-		$format = $this->args[3];
-		$sid = $this->args[4];
-		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
+		$format = $this->args[2];
+		$sid = $this->args[3];
+		$eventIds = array_values($this->Event->fetchEventIds($user, false, false, false, true));
 		$eventCount = count($eventIds);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format);
-		if ($isSiteAdmin) {
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format, true, 0750);
+		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $format . '.ADMIN.rules');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.' . $format . '.' . $org . '.rules');
+			$file = new File($dir->pwd() . DS . 'misp.' . $format . '.' . $user['Organisation']['name'] . '.rules');
 		}
 		$file->write('');
 		foreach ($eventIds as $k => $eventId) {
 			if ($k == 0) {
-				$temp = $this->Attribute->nids($isSiteAdmin, $org, $format, $sid, $eventId['Event']['id']);
+				$temp = $this->Attribute->nids($user, $format, $eventId);
 			} else {
-				$temp = $this->Attribute->nids($isSiteAdmin, $org, $format, $sid, $eventId['Event']['id'], true);
+				$temp = $this->Attribute->nids($user, $format, $eventId, true);
 			}
 			foreach ($temp as $line) {
 				$file->append($line . PHP_EOL);
@@ -301,14 +247,16 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function alertemail() {
-		$org = $this->args[0];
+		$userId = $this->args[0];
 		$processId = $this->args[1];
 		$job = $this->Job->read(null, $processId);
 		$eventId = $this->args[2];
-		$result = $this->Event->sendAlertEmail($eventId, $org, $processId);
+		$user = $this->User->getAuthUser($userId);
+		$result = $this->Event->sendAlertEmail($eventId, $user, $processId);
 		$job['Job']['progress'] = 100;
 		$job['Job']['message'] = 'Emails sent.';
 		$this->Job->save($job);
@@ -322,7 +270,7 @@ class EventShell extends AppShell
 		$isSiteAdmin = $this->args[4];
 		$processId = $this->args[5];
 		$this->Job->id = $processId;
-		$user = $this->User->read(null, $userId);
+		$user = $this->User->getAuthUser($userId);
 		$eventId = $this->args[2];
 		$result = $this->Event->sendContactEmail($id, $message, $all, $user, $isSiteAdmin);
 		$this->Job->saveField('progress', '100');
@@ -376,13 +324,8 @@ class EventShell extends AppShell
 		$id = $this->args[0];
 		$passAlong = $this->args[1];
 		$jobId = $this->args[2];
-		$org = $this->args[3];
-		$email = $this->args[4];
-		$user = $this->User->find('first', array(
-			'conditions' => array('email' => $email),
-			'fields' => array('email', 'org', 'id'),
-			'recursive' => -1,
-		));
+		$userId = $this->args[3];
+		$user = $this->User->getAuthUser($userId);
 		$job = $this->Job->read(null, $jobId);
 		$eventId = $this->args[2];
 		$this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
@@ -396,13 +339,7 @@ class EventShell extends AppShell
 		$this->Job->save($job);
 		$log = ClassRegistry::init('Log');
 		$log->create();
-		$log->save(array(
-				'org' => $user['User']['org'],
-				'email' =>$user['User']['email'],
-				'user_id' => $user['User']['id'],
-				'action' => 'publish',
-				'title' => 'Event (' . $id . '): published.',
-				'change' => 'published () => (1)'));
+		$log->createLogEntry($user, 'publish', 'Event (' . $id . '): published.', 'publised () => (1)');
 	}
 
 }

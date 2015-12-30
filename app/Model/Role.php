@@ -63,6 +63,19 @@ class Role extends AppModel {
 		'permission' => "IF (Role.perm_add && Role.perm_modify && Role.perm_publish, '3', IF (Role.perm_add && Role.perm_modify_org, '2', IF (Role.perm_add, '1', '0')))",
 	);
 
+	public $permFlags = array(
+		'perm_admin' => array('id' => 'RolePermAdmin', 'text' => 'Admin'),
+		'perm_site_admin' => array('id' => 'RolePermSiteAdmin', 'text' => 'Site Admin'),
+		'perm_sync' => array('id' => 'RolePermSync', 'text' => 'Sync Actions'),
+		'perm_audit' => array('id' => 'RolePermAudit', 'text' => 'Audit Actions'),
+		'perm_auth' => array('id' => 'RolePermAuth', 'text' => 'Auth key access'),
+		'perm_regexp_access' => array('id' => 'RolePermRegexpAccess', 'text' => 'Regex Actions'),
+		'perm_tagger' => array('id' => 'RolePermTagger', 'text' => 'Tag Editor'),
+		'perm_template' => array('id' => 'RolePermTemplate', 'text' => 'Template Editor'),
+		'perm_sharing_group' => array('id' => 'RolePermSharingGroup', 'text' => 'Sharing Group Editor'),
+	);
+	
+	public $premissionLevelName = array('Read Only', 'Manage Own Events', 'Manage Organisation Events', 'Manage and Publish Organisation Events');
 
 	public function beforeSave($options = array()) {
 		switch ($this->data['Role']['permission']) {

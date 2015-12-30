@@ -7,7 +7,10 @@
 		echo $this->Form->input('password');
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
 		if ($isSiteAdmin) {
-			echo $this->Form->input('org', array('label' => 'Organisation'));
+			echo $this->Form->input('org_id', array(
+					'options' => $orgs,
+					'label' => 'Organisation',
+			));
 		}
 		echo $this->Form->input('role_id', array('label' => 'Role', 'div' => 'input clear'));	// TODO ACL, User edit role_id.
 		echo $this->Form->input('authkey', array('disabled' => 'disabled', 'label' => 'Authentication key'));
@@ -17,16 +20,28 @@
 				'type' => 'text',
 				'class' => 'datepicker',
 		));
+	?>
+		<div id = "syncServers" class="hidden">
+	<?php 
+			echo $this->Form->input('server_id', array('label' => 'Sync user for', 'div' => 'clear', 'options' => $servers));
+	?>
+		</div>
+	<?php 
 		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
-		?>
+	?>
 			<div class="clear"><span onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
-		<?php 
+	<?php 
 		echo $this->Form->input('termsaccepted', array('label' => 'Terms accepted'));
 		echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => 'Change Password'));
 		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published'));
 		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests'));
 
 		echo $this->Html->link('Reset Auth Key', array('controller' => 'users', 'action' => 'resetauthkey', $currentId));
+	?>
+		<div class="clear"></div>
+	<?php
+		echo $this->Form->input('disabled', array('label' => 'Disable this user account'));
+		
 	?>
 	</fieldset>
 <?php
@@ -37,3 +52,12 @@ echo $this->Form->end();?>
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'editUser'));
 ?>
 
+<script type="text/javascript">
+var syncRoles = <?php echo json_encode($syncRoles); ?>;
+$(document).ready(function() {
+	syncUserSelected();
+	$('#UserRoleId').change(function() {
+		syncUserSelected();
+	});
+});
+</script>

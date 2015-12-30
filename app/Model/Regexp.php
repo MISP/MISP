@@ -30,6 +30,20 @@ class Regexp extends AppModel {
  */
 	public $useTable = 'regexp';
 
+	public function beforeValidate($options = array()) {
+		$this->sanitizeModifiers($this->data['Regexp']['regexp']);
+	}
+	
+	public function sanitizeModifiers(&$regex) {
+		preg_match('/[a-zA-Z]*$/i', $regex, $modifiers);
+		if (!empty($modifiers[0])) {
+			$modifier_length = strlen($modifiers[0]);
+			$regex = substr($regex, 0, -$modifier_length);
+			$modifiers[0] = str_ireplace('e', '', $modifiers[0]);
+			$regex .= $modifiers[0];
+		}
+	}
+	
 	public function checkRegexp() {
 		if (@preg_replace($this->data['Regexp']['regexp'], 'success', $this->data['Regexp']['regexp']) != null) return true;
 		return false;

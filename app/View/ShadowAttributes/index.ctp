@@ -41,13 +41,19 @@
 		</tr>
 		<?php foreach ($shadowAttributes as $event):?>
 		<tr>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['Event']['id']);?>
 			</td>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
-				<?php echo h($event['ShadowAttribute']['org'])?>
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
+				<?php
+					$imgRelativePath = 'orgs' . DS . h($event['Org']['name']) . '.png';
+					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
+					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Org']['name']) . '.png', array('title' => h($event['Org']['name']), 'style' => 'width:24px; height:24px'));
+					else echo $this->Html->tag('span', h($event['Org']['name']), array('style' => 'float:left;'));
+				?>
+				&nbsp;
 			</td>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php 
 					if ($event['ShadowAttribute']['old_id'] != 0) {
 						echo 'Attribute edit';
@@ -56,16 +62,16 @@
 					}
 				?>
 			</td>
-			<td onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['Event']['info']); ?>
 			</td>
-			<td onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['ShadowAttribute']['value']);?>
 			</td>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['ShadowAttribute']['category']);?>
 			</td>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['ShadowAttribute']['type']);?>
 			</td>
 		</tr>

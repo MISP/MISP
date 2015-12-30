@@ -10,7 +10,7 @@ App::uses('AppHelper', 'View/Helper');
 			$pivot['info'] = h($pivot['info']);
 			// Truncate string if longer than (11 - length of event id) chars to fit the pivot bubble
 			if (strlen($pivot['info']) > (11 - strlen((string)$pivot['id'])) && strlen($pivot['info']) > 9) {
-				$text .= substr($pivot['info'], 0, 6) . '...';				
+				$text .= mb_substr($pivot['info'], 0, 6) . '...';				
 			} else {
 				$text .= $pivot['info'];
 			}
@@ -25,9 +25,9 @@ App::uses('AppHelper', 'View/Helper');
 			
 			$data[] = '<span class ="'.$pivotSpanType.'">';
 			if ($pivot['deletable']) {
-				$data[] = '<a class="pivotDelete icon-remove" href="/events/removePivot/' . $pivot['id'] . '/' . $currentEvent . '"></a>';
+				$data[] = '<a class="pivotDelete icon-remove" href="' . h(Configure::read('MISP.baseurl')) . '/events/removePivot/' . $pivot['id'] . '/' . $currentEvent . '"></a>';
 			}
-			$data[] = '<a class="' . $pivotType . '" href="/events/view/' . $pivot['id'] . '/1/' . $currentEvent . '" title="' . h($pivot['info']) . ' (' . $pivot['date'] . ')">' . h($text) . '</a>';
+			$data[] = '<a class="' . $pivotType . '" href="' . h(Configure::read('MISP.baseurl')) . '/events/view/' . $pivot['id'] . '/1/' . $currentEvent . '" title="' . h($pivot['info']) . ' (' . $pivot['date'] . ')">' . h($text) . '</a>';
 			$data[] = '</span>';
 			if (!empty($pivot['children'])) {
 				foreach ($pivot['children'] as $k => $v) {

@@ -1,6 +1,6 @@
 <?php
-	$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
-	$mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
+	$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
+	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 ?>
 
 <div class="attribute_creation">
@@ -20,7 +20,7 @@
 				$initialDistribution = 3;
 				if (Configure::read('MISP.default_attribute_distribution') != null) {
 					if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-						$initialDistribution = $event['Event']['distribution'];	
+						$initialDistribution = 5;	
 					} else {
 						$initialDistribution = Configure::read('MISP.default_attribute_distribution');
 					}

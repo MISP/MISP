@@ -262,6 +262,12 @@ td.highlight2 {
 	
 }
 
+td.highlight3 {
+	background-color: red !important;
+	color: #ffffff !important;
+	
+}
+
 tr.highlightBlueSides {
 	border-left:2px solid #0088cc;
 	border-right:2px solid #0088cc;
@@ -1026,9 +1032,30 @@ a.proposal_link_red:hover {
 	margin-left:200px;
 }
 
+.taxFilter {
+	float:none !important;
+	margin-bottom:0px !important;
+}
+
+.taxFilterButton {
+	border-radius: 0px 10px 0 0 !important; 
+	border: 1px solid #ddd !important; 
+	border-bottom: 0px !important;
+	padding-left: 3px;
+	padding-top: 2px;
+	padding-bottom: 5px;
+	padding-right: 4px;
+	background-color: #f9f9f9 !important;
+}
+
 .tabMenu [class^="icon-"] {
 	vertical-align:baseline;
 	margin-top:3px;
+}
+
+.tabMenuActive {
+	color:white;
+	background-color: #0088cc;
 }
 
 .memberslistBar {
@@ -1346,11 +1373,15 @@ a.proposal_link_red:hover {
 }
 
 .red {
-	color: red;
+	color: red !important;
 }
 
 .green {
-	color: green;
+	color: green !important;
+}
+
+.orange {
+	color: orange !important;
 }
 
 .orange {
@@ -1369,6 +1400,15 @@ a.discrete {
 	color:black;
 	text-decoration:none;
 	font-weight:normal;
+}
+
+.multi-page-form-div {
+	border:1px solid #dddddd; 
+	padding:10px;
+}
+
+.verticalSeparator {
+	border-left: 1px solid grey;
 }
 
 @-webkit-keyframes rotation {

@@ -21,24 +21,22 @@
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
-			<th><?php echo $this->Paginator->sort('perm_sync', 'Sync Actions');?></th>
-			<th><?php echo $this->Paginator->sort('perm_audit', 'Audit Actions');?></th>
-			<th><?php echo $this->Paginator->sort('perm_regexp', 'Regexp Actions');?></th>			
-			<th><?php echo $this->Paginator->sort('perm_auth', 'Auth Key Access');?></th>
-			<th><?php echo $this->Paginator->sort('perm_admin', 'Administration Actions');?></th>
-			<th><?php echo $this->Paginator->sort('perm_site_admin', 'Site Admin');?></th>
+			<?php 
+				foreach ($permFlags as $k => $flags):
+			?>
+				<th><?php echo $this->Paginator->sort($k, $flags['text']);?></th>
+			<?php 
+				endforeach;
+			?>
 	</tr><?php
 foreach ($list as $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['Role']['id']); ?>&nbsp;</td>
 		<td><?php echo h($item['Role']['name']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Role']['perm_sync']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Role']['perm_audit']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Role']['perm_regexp_access']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Role']['perm_auth']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Role']['perm_admin']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Role']['perm_site_admin']); ?>&nbsp;</td>
+		<?php foreach ($permFlags as $k => $flags): ?>
+			<td class="short"><span class="<?php if ($item['Role'][$k]) echo 'icon-ok'; ?>"></span>&nbsp;</td>
+		<?php endforeach; ?>
 	</tr><?php
 endforeach; ?>
 	</table>

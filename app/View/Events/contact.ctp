@@ -1,6 +1,6 @@
 <?php
-$mayModify = (($isAclModify && $this->request->data['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $this->request->data['Event']['orgc'] == $me['org']));
-$mayPublish = ($isAclPublish && $this->request->data['Event']['orgc'] == $me['org']);
+$mayModify = (($isAclModify && $this->request->data['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $this->request->data['Event']['orgc'] == $me['Organisation']['name']));
+$mayPublish = ($isAclPublish && $this->request->data['Event']['orgc'] == $me['Organisation']['name']);
 ?>
 <div class="events form">
 <?php echo $this->Form->create('Event');?>

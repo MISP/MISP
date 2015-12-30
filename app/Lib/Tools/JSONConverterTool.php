@@ -1,9 +1,29 @@
 <?php
 class JSONConverterTool {
 	public function event2JSON($event, $isSiteAdmin=false) {
+		$event['Event']['Org'] = $event['Org'];
+		$event['Event']['Orgc'] = $event['Orgc'];
+		if (isset($event['SharingGroup']['SharingGroupOrg'])) {
+			foreach ($event['SharingGroup']['SharingGroupOrg'] as $key => $sgo) {
+				$event['SharingGroup']['SharingGroupOrg'][$key]['Organisation'] = $event['SharingGroup']['SharingGroupOrg'][$key]['Organisation'];
+			}
+		}
+		if (isset($event['SharingGroup']['SharingGroupServer'])) {
+			foreach ($event['SharingGroup']['SharingGroupServer'] as $key => $sgs) {
+				$event['SharingGroup']['SharingGroupServer'][$key]['Server'] = $event['SharingGroup']['SharingGroupServer'][$key]['Server'];
+			}
+		}
+		if (isset($event['SharingGroup'])) $event['Event']['SharingGroup'] = $event['SharingGroup'];
 		$event['Event']['Attribute'] = $event['Attribute'];
 		$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
 		$event['Event']['RelatedEvent'] = $event['RelatedEvent'];
+		
+		if (isset($event['EventTag'])) {
+			foreach ($event['EventTag'] as $k => $tag) {
+				$event['Event']['Tag'][$k] = $tag['Tag'];
+			}
+		}
+		
 		if (isset($event['RelatedAttribute'])) $event['Event']['RelatedAttribute'] = $event['RelatedAttribute'];
 		else $event['Event']['RelatedAttribute'] = array();
 		//
@@ -42,6 +62,26 @@ class JSONConverterTool {
 			}
 		}
 		$result = array('Event' => $event['Event']);
+		if (isset($event['errors']))$result = array_merge($result, array('errors' => $event['errors']));
 		return json_encode($result);
+	}
+	
+	public function arrayPrinter($array, $root = true) {
+		if (is_array($array)) {
+			$resultArray = array();
+			foreach ($array as $k => $element) {
+				$temp = $this->arrayPrinter($element, false);
+				if (!is_array($temp)) {
+					$resultArray[] = '[' . $k .']' . $temp;	
+				} else {
+					foreach ($temp as &$t) $resultArray[] = '[' . $k . ']' . $t;
+				}
+			}
+		} else $resultArray = ': ' . $array . PHP_EOL;
+		if ($root) {
+			$text = '';
+			foreach ($resultArray as &$r) $text .= $r;
+			return $text;
+		} else return $resultArray;
 	}
 }

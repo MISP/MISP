@@ -38,22 +38,22 @@
 		</tr>
 		<?php foreach ($events as $event):?>
 		<tr <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php
 				if ($event['Event']['published'] == 1) {
 				?>
-					<a href="/events/view/<?php echo $event['Event']['id'] ?>" class = "icon-ok" title = "View"></a>
+					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "View"></a>
 				<?php
 				} else {
 				?>
-					<a href="/events/view/<?php echo $event['Event']['id'] ?>" class = "icon-remove" title = "View"></a>
+					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "View"></a>
 				<?php
 				}?>&nbsp;
 			</td>
 			<td class="short">
-				<a href="/events/view/<?php echo $event['Event']['id'] ?>"><?php echo $event['Event']['id'];?></a>
+				<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>"><?php echo $event['Event']['id'];?></a>
 			</td>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'" style="color:red;font-weight:bold;">
+			<td class="short" onclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" style="color:red;font-weight:bold;">
 				<?php echo count($event['ShadowAttribute']); ?>&nbsp;
 			</td>
 			<td class="short">
@@ -68,17 +68,17 @@
 				&nbsp;
 			</td>
 			<?php if ('true' == $isSiteAdmin): ?>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" onclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['User']['email']); ?>&nbsp;
 			</td>
 			<?php endif; ?>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" onclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
-			<td onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td onclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
 			</td>
-			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" onclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>
 			</td>
 		</tr>

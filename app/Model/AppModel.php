@@ -76,35 +76,126 @@ class AppModel extends Model {
 				$sql = 'DELETE FROM `cake_sessions` WHERE `expires` < ' . time() . ';';
 				$clean = false;
 				break;
+			case 'addIPLogging':
+				$sql = 'ALTER TABLE `logs` ADD  `ip` varchar(45) COLLATE utf8_bin DEFAULT NULL;';
+				break;
+			case '24betaupdates':
+				$sqlArray = array();
+				$sqlArray[] = 'ALTER TABLE `shadow_attributes` ADD  `proposal_to_delete` BOOLEAN NOT NULL';
+				
+				$sqlArray[] = 'ALTER TABLE `logs` MODIFY  `change` text COLLATE utf8_bin NOT NULL';
+				
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomies` (
+				`id` int(11) NOT NULL AUTO_INCREMENT,
+				`namespace` varchar(255) COLLATE utf8_bin NOT NULL,
+				`description` text COLLATE utf8_bin NOT NULL,
+				`version` int(11) NOT NULL,
+				`enabled` tinyint(1) NOT NULL DEFAULT '0',
+				PRIMARY KEY (`id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;";
+				
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
+				`id` int(11) NOT NULL AUTO_INCREMENT,
+				`taxonomy_predicate_id` int(11) NOT NULL,
+				`value` text COLLATE utf8_bin NOT NULL,
+				`expanded` text COLLATE utf8_bin NOT NULL,
+				PRIMARY KEY (`id`),
+				KEY `taxonomy_predicate_id` (`taxonomy_predicate_id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+				
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
+				`id` int(11) NOT NULL AUTO_INCREMENT,
+				`taxonomy_id` int(11) NOT NULL,
+				`value` text COLLATE utf8_bin NOT NULL,
+				`expanded` text COLLATE utf8_bin NOT NULL,
+				PRIMARY KEY (`id`),
+				KEY `taxonomy_id` (`taxonomy_id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+				
+				$sqlArray[] = 'ALTER TABLE `jobs` ADD  `org` text COLLATE utf8_bin NOT NULL;';
+				
+				$sqlArray[] = 'ALTER TABLE  `servers` ADD  `name` varchar(255) NOT NULL;';
+				
+				$sqlArray[] = 'ALTER TABLE  `sharing_groups` ADD  `sync_user_id` INT( 11 ) NOT NULL DEFAULT \'0\' AFTER  `org_id`;';
+				
+				$sqlArray[] = 'ALTER TABLE `users` ADD  `disabled` BOOLEAN NOT NULL;';
+				$sqlArray[] = 'ALTER TABLE `users` ADD  `expiration` datetime DEFAULT NULL;';
+				
+				$sqlArray[] = 'UPDATE `roles` SET `perm_template` = 1 WHERE `perm_site_admin` = 1 OR `perm_admin` = 1';
+				$sqlArray[] = 'UPDATE `roles` SET `perm_sharing_group` = 1 WHERE `perm_site_admin` = 1 OR `perm_sync` = 1';
+				
+				//create indexes
+				break;
+			case 'indexTables':
+				$fieldsToIndex = array(
+					'attributes' => array(array('value1', 'FULLTEXT'), array('value2', 'FULLTEXT'), array('event_id', 'INDEX'), array('sharing_group_id', 'INDEX'), array('uuid', 'INDEX')),
+					'correlations' =>  array(array('org_id', 'INDEX'), array('event_id', 'INDEX'), array('attribute_id', 'INDEX'), array('sharing_group_id', 'INDEX'), array('1_event_id', 'INDEX'), array('1_attribute_id', 'INDEX'), array('a_sharing_group_id', 'INDEX'), array('org_id', 'INDEX'), array('value', 'FULLTEXT')),
+					'events' => array(array('info', 'FULLTEXT'), array('sharing_group_id', 'INDEX'), array('org_id', 'INDEX'), array('orgc_id', 'INDEX'), array('uuid', 'INDEX')),
+					'event_tags' => array(array('event_id', 'INDEX'), array('tag_id', 'INDEX')),
+					'organisations' => array(array('uuid', 'INDEX'), array('name', 'FULLTEXT')),
+					'posts' => array(array('post_id', 'INDEX'), array('thread_id', 'INDEX')),
+					'shadow_attributes' => array(array('value1', 'FULLTEXT'), array('value2', 'FULLTEXT'), array('old_id', 'INDEX'), array('event_id', 'INDEX'), array('uuid', 'INDEX'), array('event_org_id', 'INDEX'), array('event_uuid', 'INDEX')),
+					'sharing_groups' => array(array('org_id', 'INDEX'), array('sync_user_id', 'INDEX'), array('uuid', 'INDEX'), array('organisation_uuid', 'INDEX')),
+					'sharing_group_orgs' => array(array('sharing_group_id', 'INDEX'), array('org_id', 'INDEX')),
+					'sharing_group_servers' => array(array('sharing_group_id', 'INDEX'), array('server_id', 'INDEX')),
+					'servers' => array(array('org_id', 'INDEX'), array('remote_org_id', 'INDEX')),
+					'tags' => array(array('name', 'FULLTEXT')),
+					'threads' => array(array('user_id', 'INDEX'), array('event_id', 'INDEX'), array('org_id', 'INDEX'), array('sharing_group_id', 'INDEX')),
+					'users' => array(array('org_id', 'INDEX'), array('server_id', 'INDEX'), array('email', 'INDEX')),
+				);
+				
+				$version = $this->query('select version();');
+				$version = $version[0][0]['version()'];
+				$version = explode('.', $version);
+				$version[0] = intval($version[0]);
+				$version[1] = intval($version[1]);
+				$downgrade = true;
+				if ($version[0] > 5 || ($version[0] == 5 && $version[1] > 5)) $downgrade = false;
+				
+				// keep the fulltext for now, we can change it later to actually use it once we require MySQL 5.6 / or if we decide to move some tables to MyISAM
+
+				foreach ($fieldsToIndex as $table => $fields) {
+					$downgradeThis = false;
+					$table_data = $this->query("SHOW TABLE STATUS WHERE Name = '" . $table . "'");
+					if ($downgrade && $table_data[0]['TABLES']['Engine'] !== 'MyISAM') $downgradeThis = true;
+					foreach ($fields as $field) {
+						$sqlArray[] = 'ALTER TABLE `' . $table . '` ADD ' . ($downgradeThis ? 'INDEX' : $field[1]) . ' `' . $field[0] . '` (`' . $field[0] . '`)';
+					}
+				}
+				break;
+				
 			default:
 				return false;
 				break;
 		}
-		try {
-			$this->query($sql);
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => 'Successfuly executed the SQL query for ' . $command,
-					'change' => 'The executed SQL query was: ' . $sql
-			));
-		} catch (Exception $e) {
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => 'Issues executing the SQL query for ' . $command,
-					'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
-			));
+		if (!isset($sqlArray)) $sqlArray = array($sql);
+		foreach ($sqlArray as $sql) {
+			try {
+				$this->query($sql);
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => 'SYSTEM',
+						'model' => 'Server',
+						'model_id' => 0,
+						'email' => 'SYSTEM',
+						'action' => 'update_database',
+						'user_id' => 0,
+						'title' => 'Successfuly executed the SQL query for ' . $command,
+						'change' => 'The executed SQL query was: ' . $sql
+				));
+			} catch (Exception $e) {
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => 'SYSTEM',
+						'model' => 'Server',
+						'model_id' => 0,
+						'email' => 'SYSTEM',
+						'action' => 'update_database',
+						'user_id' => 0,
+						'title' => 'Issues executing the SQL query for ' . $command,
+						'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
+				));
+			}
 		}
 		if ($clean) $this->cleanCacheFiles();
 		return true;

@@ -18,10 +18,12 @@
     </div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
+			<th><?php echo $this->Paginator->sort('name');?></th>
+			<th>Connection test</th>
 			<th><?php echo $this->Paginator->sort('push');?></th>
 			<th><?php echo $this->Paginator->sort('pull');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
-			<th>From</th>
+			<th>Remote Organisation</th>
 			<th><?php echo $this->Paginator->sort('cert_file');?></th>
 			<th><?php echo $this->Paginator->sort('self_signed');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
@@ -29,28 +31,61 @@
 			<th>Last Pushed ID</th>
 			<th class="actions">Actions</th>
 	</tr>
-	<?php
-foreach ($servers as $server): ?>
+	<?php 
+foreach ($servers as $server): 
+	$rules = array();
+	$rules['push'] = json_decode($server['Server']['push_rules'], true);
+	$rules['pull'] = json_decode($server['Server']['pull_rules'], true);
+	$syncOptions = array('pull', 'push');
+	$fieldOptions = array('tags', 'orgs');
+	$typeOptions = array('OR' => array('colour' => 'green', 'text' => 'allowed'), 'NOT' => array('colour' => 'red', 'text' => 'blocked'));
+	$ruleDescription = array('pull' => '', 'push' => '');
+	foreach ($syncOptions as $syncOption) {
+		foreach ($fieldOptions as $fieldOption) {
+			foreach ($typeOptions as $typeOption => $typeData) {
+				if (isset($rules[$syncOption][$fieldOption][$typeOption]) && !empty($rules[$syncOption][$fieldOption][$typeOption])) {
+					$ruleDescription[$syncOption] .= '<span class=\'bold\'>' . ucfirst($fieldOption) . ' ' . $typeData['text'] . '</span>: <span class=\'' . $typeData['colour'] . '\'>';
+					foreach ($rules[$syncOption][$fieldOption][$typeOption] as $k => $temp) {
+						if ($k != 0) $ruleDescription[$syncOption] .= ', ';
+						if ($syncOption === 'push') $temp = $collection[$fieldOption][$temp];
+						$ruleDescription[$syncOption] .= h($temp);
+					}
+					$ruleDescription[$syncOption] .= '</span><br />';
+				}
+			}
+		}
+	}
+?>
 	<tr>
-		<td class="short" style="text-align: center;"><?php echo ($server['Server']['push'])? 'Yes' : 'No'; ?>&nbsp;</td>
-		<td class="short" style="text-align: center;"><?php echo ($server['Server']['pull'])? 'Yes' : 'No'; ?>&nbsp;</td>
+		<td>
+			<?php 
+				if (!empty($server['Server']['name'])) echo h($server['Server']['name']);
+				else echo h($server['Server']['url']); 
+			?>
+		</td>
+		<td id="connection_test_<?php echo $server['Server']['id'];?>"><span class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');">Run</span></td>
+		
+		<td><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['push']; ?>"> (Rules)</span></td>
+		<td><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (Rules)</span>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
-		<td><?php echo h($server['Server']['organization']); ?>&nbsp;</td>
+		<td><a href="/organisations/view/<?php echo h($server['RemoteOrg']['id']); ?>"><?php echo h($server['RemoteOrg']['name']); ?></a></td>
 		<td class="short"><?php echo h($server['Server']['cert_file']); ?>&nbsp;</td>
-		<td class="short"><?php echo ($server['Server']['self_signed'] ? 'Yes' : 'No'); ?>&nbsp;</td>
-		<td class="short"><?php echo h($server['Server']['org']); ?>&nbsp;</td>
+		<td class="short"><span class="<?php echo ($server['Server']['self_signed'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
+		<td class="short"><a href="/organisations/view/<?php echo h($server['Organisation']['id']); ?>"><?php echo h($server['Organisation']['name']); ?></a></td>
 		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
 		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="short action-links">
 			<?php
+			echo $this->Html->link('', array('action' => 'previewIndex', $server['Server']['id']), array('class' => 'icon-search', 'title' => 'Explore'));
 			if ($server['Server']['pull'])
+				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'update'), array('class' => 'icon-refresh', 'title' => 'Pull updates to events that already exist locally'));
 				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'full'), array('class' => 'icon-download', 'title' => 'Pull all'));
 			if ($server['Server']['push'])
 				echo $this->Html->link('', array('action' => 'push', $server['Server']['id'], 'full'), array('class' => 'icon-upload', 'title' => 'Push all'));
 			?>
 			&nbsp;
 			<?php
-			$mayModify = ($isSiteAdmin || ($isAdmin && ($server['Server']['org'] == $me['org'])));
+			$mayModify = ($isSiteAdmin);
 			if ($mayModify) echo $this->Html->link('', array('action' => 'edit', $server['Server']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
 			if ($mayModify) echo $this->Form->postLink('', array('action' => 'delete', $server['Server']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $server['Server']['id']));
 			?>
@@ -78,6 +113,11 @@ endforeach; ?>
     </div>
 
 </div>
+<script type="text/javascript"> 
+	$(document).ready(function(){
+		popoverStartup();
+	});
+</script>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'index'));
 ?>

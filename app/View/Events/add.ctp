@@ -13,10 +13,27 @@
 		}
 		echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
+				'div' => 'input clear',
 				'label' => 'Distribution',
 				'selected' => $initialDistribution,
 			));
+<<<<<<< HEAD
 		echo $this->Form->input('threat_level_id', array('label' => 'Urgency Level',
+=======
+		?>
+			<div id="SGContainer" style="display:none;">
+		<?php 
+		if (!empty($sharingGroups)) {
+			echo $this->Form->input('sharing_group_id', array(
+					'options' => array($sharingGroups),
+					'label' => 'Sharing Group',
+			));
+		}
+		?>
+			</div>
+		<?php 
+		echo $this->Form->input('threat_level_id', array(
+>>>>>>> af062c7b84ed19bf0d68b42afc1c474a210435b4
 				'div' => 'input clear'
 				));
 		echo $this->Form->input('analysis', array(
@@ -70,8 +87,16 @@ foreach ($analysisDescriptions as $type => $def) {
 }
 ?>
 
+$('#EventDistribution').change(function() {
+	if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
+	else $('#SGContainer').hide();
+});
+
 $(document).ready(function() {
 
+	if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
+	else $('#SGContainer').hide();
+	
 	$("#EventAnalysis, #EventThreatLevelId, #EventDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {

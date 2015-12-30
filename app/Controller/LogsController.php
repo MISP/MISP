@@ -68,13 +68,12 @@ class LogsController extends AppController {
 		$this->Event->read(null, $id);
 		// send unauthorised people away. Only site admins and users of the same org may see events that are "your org only". Everyone else can proceed for all other levels of distribution
 		if (!$this->_isSiteAdmin()) {
-			if ($this->Event->data['Event']['distribution'] == 0) {
-				if ($this->Event->data['Event']['org'] != $this->Auth->user('org')) {
-					$this->Session->setFlash(__('You don\'t have access to view this event.'));
-					$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-				} else {
-					$mineOrAdmin = true;
-				}
+			if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
+				$this->Session->setFlash(__('You don\'t have access to view this event.'));
+				$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+			}
+			if ($this->Event->data['Event']['org_id'] == $this->Auth->user('org_id')) {
+				$mineOrAdmin = true;
 			}
 		} else {
 			$mineOrAdmin = true;
@@ -88,13 +87,14 @@ class LogsController extends AppController {
 		// if we are not the owners of the event and we aren't site admins, then we should only see the entries for attributes that are not private
 		// This means that we will not be able to see deleted attributes - since those could have been private
 		if (!$mayModify) {
+			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
 		// get a list of the attributes that belong to the event
 		
 			$this->loadModel('Attribute');
 			$this->Attribute->recursive = -1;
 			$attributes = $this->Attribute->find('all', array(
 					'conditions' => array('event_id' => $id),
-					'fields' => array ('id', 'event_id', 'distribution'),
+					'fields' => array ('id', 'event_id', 'distribution', 'sharing_group_id'),
 					'contain' => 'Event.distribution'
 			));
 			// get a list of all log entries that affect the current event or any of the attributes found above
@@ -103,7 +103,7 @@ class LogsController extends AppController {
 			$conditions['OR'][1]['AND']['OR'][0] = array('Log.model_id LIKE' => null);
 			foreach ($attributes as $a) {
 				// Hop over the attributes that are private if the user should is not of the same org and not an admin
-				if ($mineOrAdmin || ($a['Event']['distribution'] != 0 && $a['Attribute']['distribution'] != 0)) {
+				if ($mineOrAdmin || ($a['Event']['distribution'] != 0 && ($a['Attribute']['distribution'] != 0 && ($a['Attribute']['distribution'] != 4 || in_array($a['Attribute']['sharing_group_id'] , $sgs))))) {
 					$conditions['OR'][1]['AND']['OR'][] = array('Log.model_id LIKE' => $a['Attribute']['id']);
 				}
 			}
@@ -154,6 +154,7 @@ class LogsController extends AppController {
 				$action = $this->request->data['Log']['action'];
 				$title = $this->request->data['Log']['title'];
 				$change = $this->request->data['Log']['change'];
+				if (Configure::read('MISP.log_client_ip')) $ip = $this->request->data['Log']['ip'];
 
 				// for info on what was searched for
 				$this->set('emailSearch', $email);
@@ -161,6 +162,7 @@ class LogsController extends AppController {
 				$this->set('actionSearch', $action);
 				$this->set('titleSearch', $title);
 				$this->set('changeSearch', $change);
+				if (Configure::read('MISP.log_client_ip')) $this->set('ipSearch', $ip);
 				$this->set('isSearch', 1);
 
 				// search the db
@@ -180,6 +182,9 @@ class LogsController extends AppController {
 				if (isset($change) && !empty($change)) {
 					$conditions['LOWER(Log.change) LIKE'] = '%' . strtolower($change) . '%';
 				}
+				if (Configure::read('MISP.log_client_ip') && isset($ip) && !empty($ip)) {
+					$conditions['Log.ip LIKE'] = '%' . $ip . '%';
+				} 
 				$this->{$this->defaultModel}->recursive = 0;
 				$this->paginate = array(
 					'limit' => 60,
@@ -195,6 +200,7 @@ class LogsController extends AppController {
 				$this->Session->write('paginate_conditions_log_action', $action);
 				$this->Session->write('paginate_conditions_log_title', $title);
 				$this->Session->write('paginate_conditions_log_change', $change);
+				if (Configure::read('MISP.log_client_ip')) $this->Session->write('paginate_conditions_log_ip', $ip);
 
 				// set the same view as the index page
 				$this->render('admin_index');
@@ -215,6 +221,7 @@ class LogsController extends AppController {
 			$action = $this->Session->read('paginate_conditions_log_action');
 			$title = $this->Session->read('paginate_conditions_log_title');
 			$change = $this->Session->read('paginate_conditions_log_change');
+			if (Configure::read('MISP.log_client_ip')) $ip = $this->Session->read('paginate_conditions_log_ip');
 
 			// for info on what was searched for
 			$this->set('emailSearch', $email);
@@ -222,6 +229,7 @@ class LogsController extends AppController {
 			$this->set('actionSearch', $action);
 			$this->set('titleSearch', $title);
 			$this->set('changeSearch', $change);
+			if (Configure::read('MISP.log_client_ip')) $this->set('ipSearch', $ip);
 			$this->set('isSearch', 1);
 
 			// re-get pagination

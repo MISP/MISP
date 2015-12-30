@@ -1,6 +1,6 @@
 <?php
-$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
-$mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
+$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc_id'] == $me['org_id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id']));
+$mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 ?>
 <div class="events form">
 <?php echo $this->Form->create('Event');?>
@@ -15,7 +15,21 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	echo $this->Form->input('distribution', array(
 		'options' => array($distributionLevels),
 		'label' => 'Distribution',
+		'default' => $event['Event']['distribution'],
 	));
+?>
+	<div id="SGContainer" style="display:none;">
+		<?php 
+		if (!empty($sharingGroups)) {
+			echo $this->Form->input('sharing_group_id', array(
+				'options' => array($sharingGroups),
+				'label' => 'Sharing Group',
+				'default' => $event['Event']['sharing_group_id'],
+			));
+		}
+		?>
+	</div>
+<?php 
 	echo $this->Form->input('threat_level_id', array(
 			'label' => 'Urgency Level',
 			'div' => 'input clear'
@@ -69,7 +83,14 @@ foreach ($analysisDescriptions as $type => $def) {
 ?>
 
 $(document).ready(function() {
+	if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
+	else $('#SGContainer').hide();
 
+	$('#EventDistribution').change(function() {
+		if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
+		else $('#SGContainer').hide();
+	});
+	
 	$("#EventAnalysis, #EventThreatLevelId, #EventDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {
