@@ -404,6 +404,10 @@ class Event extends AppModel {
 			$date = new DateTime();
 			$this->data['Event']['timestamp'] = $date->getTimestamp();
 		}
+		
+		if (empty($this->data['Event']['date'])) {
+			$this->data['Event']['date'] = date('Y-m-d');
+		}
 	}
 
 	public function isOwnedByOrg($eventid, $org) {
