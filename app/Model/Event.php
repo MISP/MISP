@@ -1237,35 +1237,30 @@ class Event extends AppModel {
 		$attributeList = array();
 	 	$econditions = array();
 	 	$this->recursive = -1;
-
 	 	// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
 	 	if ($eventid !== 'search') {
 	 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 	 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 	 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-	 		if ($eventid == 0 && $ignore == 0) $conditions['AND'][] = array('Event.published' => 1);
+	 		if ($ignore == false) $conditions['AND'][] = array('Event.published' => 1);
 	 		
-	 		// If it's a full download (eventid == false) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
-	 		if (!$eventid) {
-	 			$this->recursive = -1;
-	 			// If we sent any tags along, load the associated tag names for each attribute
-	 			if ($tags) {
-	 				$tag = ClassRegistry::init('Tag');
-	 				$args = $this->Attribute->dissectArgs($tags);
-	 				$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-	 				$temp = array();
-	 				foreach ($tagArray[0] as $accepted) {
-	 					$temp['OR'][] = array('Event.id' => $accepted);
-	 				}
-	 				if (!empty($temp)) $conditions['AND'][] = $temp;
-	 				$temp = array();
-	 				foreach ($tagArray[1] as $rejected) {
-	 					$temp['AND'][] = array('Event.id !=' => $rejected);
-	 				}
-	 				if (!empty($temp)) $conditions['AND'][] = $temp;
-	 			}
-	 		}
+ 			// If we sent any tags along, load the associated tag names for each attribute
+ 			if ($tags) {
+ 				$tag = ClassRegistry::init('Tag');
+ 				$args = $this->Attribute->dissectArgs($tags);
+ 				$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+ 				$temp = array();
+ 				foreach ($tagArray[0] as $accepted) {
+ 					$temp['OR'][] = array('Event.id' => $accepted);
+ 				}
+ 				if (!empty($temp)) $conditions['AND'][] = $temp;
+ 				$temp = array();
+ 				foreach ($tagArray[1] as $rejected) {
+ 					$temp['AND'][] = array('Event.id !=' => $rejected);
+ 				}
+ 				if (!empty($temp)) $conditions['AND'][] = $temp;
+ 			}
 	 		// if we're downloading a single event, set it as a condition
 	 		if ($eventid) $conditions['AND'][] = array('Event.id' => $eventid);
 	 		
