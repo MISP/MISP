@@ -581,6 +581,7 @@ class UsersController extends AppController {
 				$siteAdmin = array('Role' => array(
 					'id' => 1,
 					'name' => 'Site Admin',
+					'permission' => 3,
 					'perm_add' => 1,
 					'perm_modify' => 1,
 					'perm_modify_org' => 1,
@@ -591,21 +592,32 @@ class UsersController extends AppController {
 					'perm_auth' => 1,
 					'perm_site_admin' => 1,
 					'perm_regexp_access' => 1,
+					'perm_sharing_group' => 1,
+					'perm_template' => 1,
 					'perm_tagger' => 1,
 					'perm_site_admin' => 1
 				));
 				$this->Role->save($siteAdmin);
 			}
 				
-			if ($this->User->Organisation->find('count') == 0) {
+			if ($this->User->Organisation->find('count', array('conditions' => array('Organisation.local' => true))) == 0) {
 				$org = array('Organisation' => array(
-					'id' => 1,
-					'name' => 'ADMIN',
-					'description' => 'Automatically generated admin organisation',
-					'type' => 'ADMIN',
-					'local' => 1
+						'id' => 1,
+						'name' => !empty(Configure::read('MISP.org')) ? Configure::read('MISP.org') : 'ADMIN',
+						'description' => 'Automatically generated admin organisation',
+						'type' => 'ADMIN',
+						'uuid' => $this->User->Organisation->generateUuid(),
+						'local' => 1
 				));
 				$this->User->Organisation->save($org);
+				$org_id = $this->User->Organisation->id;
+			} else {
+				$hostOrg = $this->User->Organisation->find('first', array('conditions' => array('Organisation.name' => Configure::read('MISP.org'), 'Organisation.local' => true), 'recursive' => -1));
+				if (!empty($hostOrg)) $org_id = $hostOrg['Organisation']['id'];
+				else {
+					$firstOrg = $this->User->Organisation->find('first', array('conditions' => array('Organisation.local' => true), 'order' => 'Organisation.id ASC'));
+					$org_id = $firstOrg['Organisation']['id'];
+				}
 			}
 			
 			// populate the DB with the first user if it's empty
@@ -613,7 +625,7 @@ class UsersController extends AppController {
 				$admin = array('User' => array(
 					'id' => 1,
 					'email' => 'admin@admin.test',
-					'org_id' => 1,
+					'org_id' => $org_id,
 					'password' => 'admin',
 					'confirm_password' => 'admin',
 					'authkey' => $this->User->generateAuthKey(),
@@ -833,12 +845,12 @@ class UsersController extends AppController {
 			'email' => $this->Auth->user('email'),
 			'action' => $action,
 			'title' => $description,
-			'change' => isset($fieldsResult) ? $fieldResult : ''));
+			'change' => isset($fieldsResult) ? $fieldsResult : ''));
 
 		// write to syslogd as well
 		App::import('Lib', 'SysLog.SysLog');
 		$syslog = new SysLog();
-		if (isset($fieldsResult) && $fieldResult) $syslog->write('notice', $description . ' -- ' . $action . ' -- ' . $fieldsResult);
+		if (isset($fieldsResult) && $fieldsResult) $syslog->write('notice', $description . ' -- ' . $action . ' -- ' . $fieldsResult);
 		else $syslog->write('notice', $description . ' -- ' . $action);
 	}
 

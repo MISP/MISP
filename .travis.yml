@@ -63,7 +63,6 @@ before_script:
     - sudo service apache2 restart
     - phpenv config-add travis/myphpconfig.ini
     - mkdir .gnupg
-    - gpg --homedir .gnupg --gen-key --batch travis/gpg
     - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
     - cp travis/bootstrap.php app/Config/bootstrap.php
     - cp travis/database.php app/Config/database.php
