@@ -147,12 +147,12 @@ class Attribute extends AppModel {
 			'threat-actor' => array('desc' => 'A string identifying the threat actor'),//
 			'campaign-name' => array('desc' => 'Associated campaign name'),//
 			'campaign-id' => array('desc' => 'Associated campaign ID'),//
-			'malware-type' => array('desc' => 'test'),//
-			'uri' => array('desc' => 'test'),
+			'malware-type' => array('desc' => ''),//
+			'uri' => array('desc' => 'Uniform Resource Identifier'),
 			'authentihash' => array('desc' => 'Authenticode executable signature hash', 'formdesc' => "You are encouraged to use filename|authentihash instead. Authenticode executable signature hash, only use this if you don't know the correct filename"),//x
 			'ssdeep' => array('desc' => 'A checksum in ssdeep format', 'formdesc' => "You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"),////x
 			'imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.', 'formdesc' => "You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"),//x
-			'pehash' => array('desc' => 'test'),//x
+			'pehash' => array('desc' => 'PEhash - a hash calculated based of certain pieces of a PE executable file'),//x
 			'sha-224' => array('desc' => 'A checksum in sha-224 format', 'formdesc' => "You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"),//x
 			'sha-384' => array('desc' => 'A checksum in sha-384 format', 'formdesc' => "You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename"),//x
 			'sha-512' => array('desc' => 'A checksum in sha-512 format', 'formdesc' => "You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename"),//x
@@ -162,7 +162,7 @@ class Attribute extends AppModel {
 			'filename|authentihash' => array('desc' => 'A checksum in md5 format'),
 			'filename|ssdeep' => array('desc' => 'A checksum in ssdeep format'),//x
 			'filename|imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.'),//x
-			'filename|pehash' => array('desc' => ''),//x
+			'filename|pehash' => array('desc' => 'A filename and a PEhash separated by a |'),//x
 			'filename|sha-224' => array('desc' => 'A filename and a sha-224 hash separated by a |'),//x
 			'filename|sha-384' => array('desc' => 'A filename and a sha-384 hash separated by a |'),//x
 			'filename|sha-512' => array('desc' => 'A filename and a sha-512 hash separated by a |'),//x
@@ -176,10 +176,10 @@ class Attribute extends AppModel {
 			'whois-registrant-phone' => array('desc' => 'The phone number of a domain\'s registrant, obtained from the WHOIS information.'),//x
 			'whois-registar' => array('desc' => 'The registar of the domain, obtained from the WHOIS information.'),//x
 			'whois-creation-date' => array('desc' => 'The date of domain\'s creation, obtained from the WHOIS information.'),//x
-			'targeted-threat-index' => array('desc' => 'test'),
-			'mailslot' => array('desc' => 'test'),
-			'pipe' => array('desc' => 'test'),
-			'ssl-cert-attributes' => array('desc' => 'test'),
+			'targeted-threat-index' => array('desc' => ''),
+			'mailslot' => array('desc' => 'MailSlot interprocess communication'),
+			'pipe' => array('desc' => 'Pipeline (for named pipes use the attribute type "named pipe")'),
+			'ssl-cert-attributes' => array('desc' => 'SSL certificate attributes'),
 	);
 
 	// definitions of categories
