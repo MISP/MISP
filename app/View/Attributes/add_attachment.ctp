@@ -4,7 +4,7 @@
 		<legend><?php echo __('Add Attachment'); ?></legend>
 		<?php
 		echo $this->Form->hidden('event_id');
-		echo $this->Form->input('category');
+		echo $this->Form->input('category', array('default' => 'Payload delivery'));
 		?>
 		<div class="input clear"></div>
 		<?php
