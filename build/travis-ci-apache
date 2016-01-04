@@ -1,23 +1,15 @@
-<VirtualHost *:80>
-  ServerAdmin admin@misp.local
-  ServerName misp.local
-  DocumentRoot %TRAVIS_BUILD_DIR%/app/webroot
+<VirtualHost misp.local>
+        ServerAdmin me@me.local
+        ServerName misp.local
+        DocumentRoot %TRAVIS_BUILD_DIR%/app/webroot
+        <Directory %TRAVIS_BUILD_DIR%/app/webroot>
+                Options -Indexes
+                AllowOverride all
+                Require all granted
+        </Directory>
 
-  <Directory %TRAVIS_BUILD_DIR%/app/webroot>
-    Options FollowSymLinks MultiViews ExecCGI -Indexes
-    AllowOverride All
-    Order allow,deny
-    Allow from all
-  </Directory>
-
-  # Wire up Apache to use Travis CI's php-fpm.
-  <IfModule mod_fastcgi.c>
-    AddHandler php5-fcgi .php
-    Action php5-fcgi /php5-fcgi
-    Alias /php5-fcgi /usr/lib/cgi-bin/php5-fcgi
-    FastCgiExternalServer /usr/lib/cgi-bin/php5-fcgi -host 127.0.0.1:9000 -pass-header Authorization
-  </IfModule>
-
-  LogLevel warn
-
+        LogLevel warn
+        ErrorLog /var/log/apache2/misp.local_error.log
+        CustomLog /var/log/apache2/misp.local_access.log combined
+        ServerSignature Off
 </VirtualHost>
