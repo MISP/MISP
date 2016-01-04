@@ -3,12 +3,11 @@ php:
     - 5.6
 
 services:
-    - mysql
     - redis
 
-sudo: true
-
-cache: pip
+sudo: required
+dist: trusty
+group: edge
 
 env:
     - DB=mysql
@@ -19,6 +18,7 @@ addons:
         - localhost
     apt:
         packages:
+            - mysql-server
             - python-dev
             - python-pip
             - libxml2-dev
@@ -26,13 +26,13 @@ addons:
             - php5-dev
             - apache2
             - libapache2-mod-php5
-            - libapache2-mod-fastcgi
             - curl
             - python-virtualenv
             - python-pip
             - php5-mysql
 
 install:
+    - git pull --recurse-submodules && git submodule update
     - pip install --user pyzmq
     - pip install --user coveralls
     - pip install --user codecov
@@ -43,54 +43,97 @@ install:
     - pear install Net_GeoIP
     - phpenv rehash
     - pushd app
-    - composer require kamisama/cake-resque:4.1.2
-    - composer config vendor-dir Vendor
-    - composer install
+    - curl -s https://getcomposer.org/installer | php
+    - php composer.phar require kamisama/cake-resque:4.1.2
+    - php composer.phar config vendor-dir Vendor
+    - php composer.phar install
     - popd
-
-before_script:
-    # enable php-fpm
-    - sudo cp ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf.default ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf
-    - sudo a2enmod rewrite actions fastcgi alias
-    - echo "cgi.fix_pathinfo = 1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
-    - ~/.phpenv/versions/$(phpenv version-name)/sbin/php-fpm
-    # configure apache virtual hosts
-    - sudo cp -f build/travis-ci-apache /etc/apache2/sites-available/misp
-    - sudo sed -e "s?%TRAVIS_BUILD_DIR%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp
-    - cat /etc/apache2/sites-available/misp
-    - sudo a2dissite default
-    - sudo a2ensite misp
-    - sudo service apache2 restart
+    - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty multiverse" && sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty-updates multiverse"
+    - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty universe" && sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty-updates universe"
+    - sudo apt-get update -qq
+    - sudo apt-get install libapache2-mod-fastcgi php5-redis
     - phpenv config-add travis/myphpconfig.ini
-    - mkdir .gnupg
     - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
-    - cp travis/bootstrap.php app/Config/bootstrap.php
-    - cp travis/database.php app/Config/database.php
-    - cp travis/core.php app/Config/core.php
-    - cp travis/config.php app/Config/config.php
+    # Set perms
+    - sudo chown -R www-data:www-data `pwd`
+    - sudo chmod -R 755 `pwd`
+    - sudo chmod -R g+ws `pwd`/app/tmp
+    - sudo chmod -R g+ws `pwd`/app/tmp/cache
+    - sudo chmod -R g+ws `pwd`/app/tmp/cache/persistent
+    - sudo chmod -R g+ws `pwd`/app/tmp/cache/models
+    - sudo chmod -R g+ws `pwd`/app/tmp/logs
+    - sudo chmod -R g+ws `pwd`/app/files
+    - sudo chmod -R g+ws `pwd`/app/files/scripts/tmp
+    # Resque perms
+    - sudo chown -R www-data:www-data `pwd`/app/Plugin/CakeResque/tmp
+    - sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
+    # install MySQL
+    - sudo chmod -R 777 `pwd`/INSTALL
     - mysql -u root -e 'create database misp;'
     - mysql -u root -e "grant usage on *.* to misp@localhost identified by 'blah'";
     - mysql -u root -e "grant all privileges on misp.* to misp@localhost;"
     - mysql -u misp -pblah misp < INSTALL/MYSQL.sql
-    - AUTH=`app/Console/cake userInit -q`
-    - sudo chown -R www-data:www-data app/
-    - curl http://misp.local >> /dev/null
+    # configure apache virtual hosts
+    - sudo chmod -R 777 `pwd`/build
+    - sudo cp -f build/travis-ci-apache /etc/apache2/sites-available/misp.local.conf
+    - sudo sed -e "s?%TRAVIS_BUILD_DIR%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp.local.conf
+    - sudo a2dissite 000-default
+    - sudo a2ensite misp.local.conf
+    - sudo a2enmod rewrite
+    - sudo service apache2 restart
+    # MISP configuration
+    - sudo chmod -R 777 `pwd`/travis
+    - sudo cp travis/bootstrap.php app/Config/bootstrap.php
+    - sudo cp travis/database.php app/Config/database.php
+    - sudo cp travis/core.php app/Config/core.php
+    - sudo cp travis/config.php app/Config/config.php
+    # Ensure the perms
+    - sudo chown -R www-data:www-data `pwd`/app/Config
+    - sudo chmod -R 750 `pwd`/app/Config
+    # GPG setup
+    - sudo mkdir `pwd`/.gnupg
+    # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
+    - sudo cp -a /dev/urandom /dev/random
+    - sudo gpg --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
+    - sudo chown www-data:www-data `pwd`/.gnupg
+    - sudo chmod 700 `pwd`/.gnupg
+    # Get authkey
+    - sudo usermod -a -G www-data $USER
+    - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
+    - sudo chmod 777 ./key.txt
+    - sudo chown -R www-data:www-data `pwd`
+    - sudo chmod +x /home/travis/build
+    - sudo chmod +x /home/travis
+    - sudo chmod +x /home
+
+before_script:
+    - curl http://misp.local
+    - AUTH=`cat key.txt`
+    - sudo chmod -R 777 PyMISP
     - pushd PyMISP
     - echo 'url = "http://misp.local"' >> tests/keys.py
     - echo 'key = "'${AUTH}'"' >> tests/keys.py
     - cat tests/keys.py
     - popd
-    - sudo chown -R www-data:www-data ./
-    - sudo chmod -R 755 ./
-    - sudo chmod 700 .gnupg
-    - sudo chmod -R 777 app/tmp
-    - sudo chmod -R 777 app/files
-    - sudo chmod -R 777 app/files/scripts/tmp
-    - sudo chmod -R 777 PyMISP
 
 script:
     - pushd PyMISP
     - coverage run setup.py test
+    - popd
+
+after_failure:
+    - curl http://misp.local
+    - cat /etc/apache2/envvars
+    - cat /etc/apache2/sites-available/misp.local.conf
+    - sudo ls -l /var/log/apache2
+    - sudo cat `pwd`/app/tmp/logs/error.log
+    - sudo cat `pwd`/app/tmp/logs/debug.log
+    - sudo cat /var/log/apache2/error.log
+    - sudo cat /var/log/apache2/misp.local_error.log
+    - sudo cat /var/log/apache2/misp.local_access.log
+    - pwd
+    - sudo ls -lR /home
+
 
 after_success:
     - coveralls
