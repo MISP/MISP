@@ -2476,9 +2476,18 @@ class Event extends AppModel {
 				unset ($event['Event'][$k]);
 			}
 		}
+		$filterType = false;
+		if (isset($passedArgs['attributeFilter'])) {
+			if (in_array($passedArgs['attributeFilter'], array_keys($this->Attribute->typeGroupings))) {
+				$filterType = $passedArgs['attributeFilter'];
+			} else {
+				unset($passedArgs['attributeFilter']);
+			}
+		}
 		$eventArray = array();
 		$shadowAttributeTemp = array();
 		foreach ($event['Attribute'] as $attribute) {
+			if ($filterType) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			if ($attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
 			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
@@ -2488,6 +2497,7 @@ class Event extends AppModel {
 		}
 		unset($event['Attribute']);
 		foreach ($event['ShadowAttribute'] as $shadowAttribute) {
+			if ($filterType) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			$shadowAttribute['objectType'] = 2;
 			$eventArray[] = $shadowAttribute;
 		}

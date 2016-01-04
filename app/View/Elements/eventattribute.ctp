@@ -81,6 +81,13 @@
 		<span id="attribute-replace-button" title="Replace all attributes of a category/type combination within the event" class="icon-random useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'attributes', 'attributeReplace');"></span>	
 	</div>
 	<?php endif; ?>
+	<div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
+		<span id="filter_header" class="attribute_filter_header">Filters: </span>
+		<div id="filter_all" title="Show all attributes" class="attribute_filter_text_active" onClick="filterAttributes('all', '<?php echo h($event['Event']['id']); ?>');">All</div>
+		<?php foreach ($typeGroups as $group): ?>
+			<div id="filter_<?php echo $group; ?>" title="Only show network related attributes" class="attribute_filter_text" onClick="filterAttributes('<?php echo $group; ?>', '<?php echo h($event['Event']['id']); ?>');"><?php echo ucfirst($group); ?></div>
+		<?php endforeach; ?>
+	</div>
 	<table class="table table-striped table-condensed">
 		<tr>
 			<?php if ($mayModify && !empty($event['objects'])): ?>

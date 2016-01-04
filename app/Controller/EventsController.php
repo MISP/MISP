@@ -631,6 +631,7 @@ class EventsController extends AppController {
 				$this->set($variable, $currentModel->{$variable});
 			}
 		}
+		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 		$this->disableCache();
 		$this->layout = 'ajax';
 		$this->render('/Elements/eventattribute');
@@ -683,6 +684,7 @@ class EventsController extends AppController {
 			}
 		}
 		$this->set('contributors', $contributors);
+		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 	}
 	
 	/**
