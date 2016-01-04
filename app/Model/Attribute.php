@@ -105,6 +105,7 @@ class Attribute extends AppModel {
 			'ip-dst' => array('desc' => 'A destination IP address of the attacker or C&C server', 'formdesc' => "A destination IP address of the attacker or C&C server. Also set the IDS flag on when this IP is hardcoded in malware"),
 			'hostname' => array('desc' => 'A full host/dnsname of an attacker', 'formdesc' => "A full host/dnsname of an attacker. Also set the IDS flag on when this hostname is hardcoded in malware"),
 			'domain' => array('desc' => 'A domain name used in the malware', 'formdesc' => "A domain name used in the malware. Use this instead of hostname when the upper domain is important or can be used to create links between events."),
+			'domain|ip' => array('desc' => 'A domain name and its IP address (as found in DNS lookup) separated by a |','formdesc' => "A domain name and its IP address (as found in DNS lookup) separated by a | (no spaces)"),
 			'email-src' => array('desc' => "The email address (or domainname) used to send the malware."),
 			'email-dst' => array('desc' => "A recipient email address", 'formdesc' => "A recipient email address that is not related to your constituency."),
 			'email-subject' => array('desc' => "The subject of the email"),
@@ -146,12 +147,12 @@ class Attribute extends AppModel {
 			'threat-actor' => array('desc' => 'A string identifying the threat actor'),//
 			'campaign-name' => array('desc' => 'Associated campaign name'),//
 			'campaign-id' => array('desc' => 'Associated campaign ID'),//
-			'malware-type' => array('desc' => 'test'),//
-			'uri' => array('desc' => 'test'),
+			'malware-type' => array('desc' => ''),//
+			'uri' => array('desc' => 'Uniform Resource Identifier'),
 			'authentihash' => array('desc' => 'Authenticode executable signature hash', 'formdesc' => "You are encouraged to use filename|authentihash instead. Authenticode executable signature hash, only use this if you don't know the correct filename"),//x
 			'ssdeep' => array('desc' => 'A checksum in ssdeep format', 'formdesc' => "You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"),////x
 			'imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.', 'formdesc' => "You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"),//x
-			'pehash' => array('desc' => 'test'),//x
+			'pehash' => array('desc' => 'PEhash - a hash calculated based of certain pieces of a PE executable file'),//x
 			'sha-224' => array('desc' => 'A checksum in sha-224 format', 'formdesc' => "You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"),//x
 			'sha-384' => array('desc' => 'A checksum in sha-384 format', 'formdesc' => "You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename"),//x
 			'sha-512' => array('desc' => 'A checksum in sha-512 format', 'formdesc' => "You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename"),//x
@@ -161,7 +162,7 @@ class Attribute extends AppModel {
 			'filename|authentihash' => array('desc' => 'A checksum in md5 format'),
 			'filename|ssdeep' => array('desc' => 'A checksum in ssdeep format'),//x
 			'filename|imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.'),//x
-			'filename|pehash' => array('desc' => ''),//x
+			'filename|pehash' => array('desc' => 'A filename and a PEhash separated by a |'),//x
 			'filename|sha-224' => array('desc' => 'A filename and a sha-224 hash separated by a |'),//x
 			'filename|sha-384' => array('desc' => 'A filename and a sha-384 hash separated by a |'),//x
 			'filename|sha-512' => array('desc' => 'A filename and a sha-512 hash separated by a |'),//x
@@ -173,10 +174,12 @@ class Attribute extends AppModel {
 			'windows-service-displayname' => array('desc' => 'A windows service\'s displayname, not to be confused with the windows-service-name. This is the name that applications will generally display as the service\'s name in applications.'),//x
 			'whois-registrant-email' => array('desc' => 'The e-mail of a domain\'s registrant, obtained from the WHOIS information.'),//x
 			'whois-registrant-phone' => array('desc' => 'The phone number of a domain\'s registrant, obtained from the WHOIS information.'),//x
-			'targeted-threat-index' => array('desc' => 'test'),
-			'mailslot' => array('desc' => 'test'),
-			'pipe' => array('desc' => 'test'),
-			'ssl-cert-attributes' => array('desc' => 'test'),
+			'whois-registar' => array('desc' => 'The registar of the domain, obtained from the WHOIS information.'),//x
+			'whois-creation-date' => array('desc' => 'The date of domain\'s creation, obtained from the WHOIS information.'),//x
+			'targeted-threat-index' => array('desc' => ''),
+			'mailslot' => array('desc' => 'MailSlot interprocess communication'),
+			'pipe' => array('desc' => 'Pipeline (for named pipes use the attribute type "named pipe")'),
+			'ssl-cert-attributes' => array('desc' => 'SSL certificate attributes'),
 	);
 
 	// definitions of categories
@@ -216,7 +219,7 @@ class Attribute extends AppModel {
 					),
 			'Network activity' => array(
 					'desc' => 'Information about network traffic generated by the malware',
-					'types' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'other')
+					'types' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'other')
 					),
 			'Payload type' => array(
 					'desc' => 'Information about the final payload(s)',
@@ -225,12 +228,12 @@ class Attribute extends AppModel {
 					),
 			'Attribution' => array(
 					'desc' => 'Identification of the group, organisation, or country behind the attack',
-					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'comment', 'text', 'other')
+					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registar', 'whois-creation-date','comment', 'text', 'other')
 					),
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
 					'formdesc' => 'Any other result from additional analysis of the malware like tools output Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.',
-					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'other')
+					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'other')
 					),
 			'Financial fraud' => array(
 					'desc' => 'Financial Fraud indicators',
@@ -241,6 +244,16 @@ class Attribute extends AppModel {
 					'desc' => 'Attributes that are not part of any other category',
 					'types' => array('comment', 'text', 'other')
 					)
+	);
+	
+	// typeGroupings are a mapping to high level groups for attributes
+	// for example, IP addresses, domain names, hostnames e-mail addresses are all network related attribute types
+	// whilst filenames and hashes are all file related attribute types
+	// This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?) 
+	public $typeGroupings = array(
+		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample'),
+		'network' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'link'),
+		'financial' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn')
 	);
 
 	public $order = array("Attribute.event_id" => "DESC");
@@ -692,6 +705,15 @@ class Attribute extends AppModel {
 					$returnValue = 'Domain name has invalid format. Please double check the value or select "other" for a type.';
 				}
 				break;
+			case 'domain|ip':
+				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}\|.*$#i", $value)) {
+					$parts = explode('|', $value);
+					if (filter_var($parts[1],FILTER_VALIDATE_IP)) {$returnValue = true;}
+					else {$returnValue = 'IP address has invalid format.';}
+				} else {
+					$returnValue = 'Domain name has invalid format.';
+				}
+				break;		
 			case 'email-src':
 			case 'email-dst':
 			case 'target-email':
@@ -756,6 +778,8 @@ class Attribute extends AppModel {
  			case 'regkey|value':
 			case 'filename':
 			case 'windows-scheduled-task':
+			case 'whois-registar':
+			case 'whois-creation-date':
  				// no newline	
  				if (!preg_match("#\n#", $value)) {
  					$returnValue = true;
@@ -846,6 +870,7 @@ class Attribute extends AppModel {
 			case 'tlsh':
 			case 'email-src':
 			case 'email-dst':
+			case 'domain|ip':
 			case 'target-email':
 			case 'whois-registrant-email':
 				$value = strtolower($value);
@@ -1084,19 +1109,24 @@ class Attribute extends AppModel {
 		}
 	}
 
-	public function __afterSaveCorrelation($a) {
+	public function __afterSaveCorrelation($a, $full = false, $event = false) {
 		// Don't do any correlation if the type is a non correlating type
 		if (!in_array($a['type'], $this->nonCorrelatingTypes)) {
-			$event = $this->Event->find('first', array(
-					'recursive' => -1,
-					'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id'),
-					'conditions' => array('id' => $a['event_id'])
-			));
+			if (!$event) {
+				$event = $this->Event->find('first', array(
+						'recursive' => -1,
+						'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id'),
+						'conditions' => array('id' => $a['event_id']),
+						'order' => array(),
+				));
+			}
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$correlations = array();
 			$fields = array('value1', 'value2');
 			$correlatingValues = array($a['value1']);
 			if (!empty($a['value2'])) $correlatingValues[] = $a['value2'];
+			if ($full) $temp = array('Attribute.id >' => $a['id']);
+			else $temp = array();
 			foreach ($correlatingValues as $k => $cV) {
 				$correlatingAttributes[$k] = $this->find('all', array(
 						'conditions' => array(
@@ -1107,12 +1137,14 @@ class Attribute extends AppModel {
 							'AND' => array(
 								'Attribute.type !=' => $this->nonCorrelatingTypes,
 								'Attribute.id !=' => $a['id'],
+								$temp,
 								'Attribute.event_id !=' => $a['event_id']
 							),
 						),
 						'recursive => -1',
 						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id'),
 						'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
+						'order' => array(),
 				));
 			}
 			$correlations = array();
@@ -1341,8 +1373,8 @@ class Attribute extends AppModel {
 			$export = new HidsExport();
 			$rules = array_merge($rules, $export->export($items, strtoupper($type), $continue));
 			$continue = true;
-		return $rules;
 		}
+		return $rules;
 	}
 
 	
@@ -1355,11 +1387,6 @@ class Attribute extends AppModel {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-			if ($id) {
-				foreach ($eventIds as $k => $v) {
-					if ($v['Event']['id'] !== $id) unset($eventIds[$k]);
-				}
-			}
 			if (!empty($tagArray[0])) {
 				foreach ($eventIds as $k => $v) {
 					if (!in_array($v['Event']['id'], $tagArray[0])) unset($eventIds[$k]);
@@ -1369,6 +1396,12 @@ class Attribute extends AppModel {
 				foreach ($eventIds as $k => $v) {
 					if (in_array($v['Event']['id'], $tagArray[1])) unset($eventIds[$k]);
 				}
+			}
+		}
+		
+		if ($id) {
+			foreach ($eventIds as $k => $v) {
+				if ($v['Event']['id'] !== $id) unset($eventIds[$k]);
 			}
 		}
 
@@ -1435,8 +1468,7 @@ class Attribute extends AppModel {
 	 	}
 	 	$attributes = $this->fetchAttributes($user, array(
 	 			'conditions' => $conditions, 
-	 			'order' => 'Attribute.value1', 
-	 			'group' => 'Attribute.value1',
+	 			'order' => 'Attribute.value1 ASC',
 	 			'fields' => array('value'),
 				'contain' => array('Event' => array(
 					'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
@@ -1452,7 +1484,8 @@ class Attribute extends AppModel {
 	 	if ($to) $conditions['AND']['Event.date <='] = $to;
 	 	if ($eventId !== false) {
 	 		$conditions['AND'][] = array('Event.id' => $eventId);
-	 	} elseif ($tags !== false) {
+	 	} 
+	 	if ($tags !== false) {
 	 		// If we sent any tags along, load the associated tag names for each attribute
 	 		$tag = ClassRegistry::init('Tag');
 	 		$args = $this->dissectArgs($tags);
@@ -1478,17 +1511,18 @@ class Attribute extends AppModel {
  							array('type' => $v),
 	 					),
  						'fields' => array('Attribute.value'), //array of field names
- 						'order' => array('Attribute.value'), //string or array defining order
- 						'group' => array('Attribute.value'), //fields to GROUP BY
 	 				)
 	 		);
+	 		if (empty($temp)) continue;
 	 		if ($k == 'hostname') {
 	 			foreach ($temp as $value) {
 	 				$found = false;
-	 				foreach ($values['domain'] as $domain) {
-	 					if (strpos($value['Attribute']['value'], $domain) != 0) { 
-	 						$found = true;
-	 					}
+	 				if (isset($values['domain'])) {
+		 				foreach ($values['domain'] as $domain) {
+		 					if (strpos($value['Attribute']['value'], $domain) != 0) { 
+		 						$found = true;
+		 					}
+		 				}
 	 				}
 	 				if (!$found) $values[$k][] = $value['Attribute']['value'];
 	 			}
@@ -1500,7 +1534,7 @@ class Attribute extends AppModel {
 	 
 	 public function generateCorrelation($jobId = false, $startPercentage = 0) {
 	 	$this->Correlation = ClassRegistry::init('Correlation');
-	 	$this->Correlation->deleteAll(array(), false);
+	 	$this->Correlation->deleteAll(array('id !=' => 0), false);
 	 	//$fields = array('Attribute.id', 'Attribute.type', 'Attribute.value1', 'Attribute.value2', 'Attribute.event_id');
 	 	// get all attributes..
 	 	$eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
@@ -1510,18 +1544,25 @@ class Attribute extends AppModel {
 	 		$this->Job->id = $jobId;
 	 		$eventCount = count($eventIds);
 	 	}
-		foreach ($eventIds as $j => $id) {
+		foreach (array_values($eventIds) as $j => $id) {
 			if ($jobId && Configure::read('MISP.background_jobs')) {
-				$this->Job->saveField('progress', $startPercentage + ($j / 60));
+				$this->Job->saveField('message', 'Correlating Event ' . $id);
+				$this->Job->saveField('progress', ($startPercentage + ($j / $eventCount * (100 - $startPercentage))));
 			}
-			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id)));
+			$event = $this->Event->find('first', array(
+					'recursive' => -1,
+					'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id'),
+					'conditions' => array('id' => $id),
+					'order' => array()
+			));
+			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id), 'order' => array()));
 			foreach ($attributes as $k => $attribute) {
-				$this->__afterSaveCorrelation($attribute['Attribute']);
+				$this->__afterSaveCorrelation($attribute['Attribute'], true, $event);
 				$attributeCount++;
 			}
 		}
-		$this->Job->saveField('message', 'Job done.');
-	 	return $k;
+		if ($jobId && Configure::read('MISP.background_jobs')) $this->Job->saveField('message', 'Job done.');
+	 	return $attributeCount;
 	 }
 	 
 	 public function reportValidationIssuesAttributes($eventId) {
@@ -1586,7 +1627,7 @@ class Attribute extends AppModel {
 	 }
 	 
 	 
-	 public function checkTemplateAttributes($template, &$data, $event_id, $distribution) {
+	 public function checkTemplateAttributes($template, &$data, $event_id) {
 		 $result = array();
 		 $errors = array();
 		 $attributes = array();
@@ -1614,7 +1655,7 @@ class Attribute extends AppModel {
 		 		} else {
 		 			foreach ($result['attributes'] as &$a) {
 		 				$a['event_id'] = $event_id;
-		 				$a['distribution'] = $distribution;
+		 				$a['distribution'] = 5;
 		 				$test = $this->checkForValidationIssues(array('Attribute' => $a));
 		 				if ($test) {
 		 					foreach ($test['value'] as $e) {
@@ -1793,7 +1834,7 @@ class Attribute extends AppModel {
 	 	if (isset($options['contain'])) $params['contain'] = $options['contain'];
 	 	if (isset($options['fields'])) $params['fields'] = $options['fields'];
 	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
-	 	if (isset($options['order'])) $params['conditions']['AND'][] = $options['order'];
+	 	if (isset($options['order'])) $params['order'] = $options['order'];
 	 	if (isset($options['group'])) $params['group'] = $options['group'];
 	 	if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('Event.published' => 1);
 	 	$results = $this->find('all', $params);

@@ -89,7 +89,9 @@ class AppController extends Controller {
 
 		// send users away that are using ancient versions of IE
 		// Make sure to update this if IE 20 comes out :)
-		if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
+		if (isset($_SERVER['HTTP_USER_AGENT'])) {
+			if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
+		}
 		
 		// REST authentication
 		if ($this->_isRest() || $this->_isAutomation()) {
@@ -439,7 +441,7 @@ class AppController extends Controller {
 			));
 			foreach ($attributes as $k => $attribute) {
 				if ($k > 0) {
-					$attribute['Attribute']['uuid'] = $this->{$this->alias}->generateUuid();
+					$attribute['Attribute']['uuid'] = $this->Attribute->generateUuid();
 					$this->Attribute->save($attribute);
 					$counter++;
 				}
@@ -499,7 +501,7 @@ class AppController extends Controller {
 		$this->loadModel('Server');
 		if (!Configure::read('MISP.background_jobs')) {
 			$this->Server->upgrade2324($this->Auth->user('id'));
-		$this->Session->setFlash('Done. For more details check the audit logs.');
+			$this->Session->setFlash('Done. For more details check the audit logs.');
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		} else {
 			$job = ClassRegistry::init('Job');
@@ -510,7 +512,7 @@ class AppController extends Controller {
 					'job_input' => 'Old database',
 					'status' => 0,
 					'retries' => 0,
-					'org_id' => $this->Auth->user('org_id'),
+					'org_id' => 0,
 					'message' => 'Job created.',
 			);
 			$job->save($data);

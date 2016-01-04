@@ -226,7 +226,7 @@ class TemplatesController extends AppController {
 		$event = $this->Event->find('first' ,array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
-				'fields' => array('orgc', 'id'),
+				'fields' => array('orgc_id', 'id'),
 		));
 		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) throw new NotFoundException('Event not found or you are not authorised to edit it.');
 	
@@ -261,13 +261,13 @@ class TemplatesController extends AppController {
 		$event = $this->Event->find('first', array(
 			'conditions' => array('id' => $event_id),
 			'recursive' => -1,
-			'fields' => array('id', 'orgc', 'distribution'),
+			'fields' => array('id', 'orgc_id', 'distribution'),
 		));
 		
 		if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 		if (empty($template)) throw new MethodNotAllowedException('Template not found or you are not authorised to edit it.');
 		if (!$this->_isSiteAdmin()) {
-			if ($event['Event']['orgc'] != $this->Auth->user('Organisation')['name']) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
+			if ($event['Event']['orgc_id'] != $this->Auth->user('Organisation')['name']) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 			if ($template['Template']['org'] != $this->Auth->user('Organisation')['name'] && !$template['Template']['share']) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');	
 		}
 		
@@ -276,7 +276,7 @@ class TemplatesController extends AppController {
 		if ($this->request->is('post')) {
 			$errors = array();
 			$this->set('template', $this->request->data);
-			$result = $this->Event->Attribute->checkTemplateAttributes($template, $this->request->data, $event_id, $event['Event']['distribution']);
+			$result = $this->Event->Attribute->checkTemplateAttributes($template, $this->request->data, $event_id);
 			if (isset($this->request->data['Template']['modify']) || !empty($result['errors'])) {
 				$fileArray = $this->request->data['Template']['fileArray'];
 				$this->set('fileArray', $fileArray);
@@ -288,7 +288,7 @@ class TemplatesController extends AppController {
 				$this->set('attributes', $result['attributes']);
 				$fileArray = $this->request->data['Template']['fileArray'];
 				$this->set('fileArray', $fileArray);
-				$this->set('distributionLevels', $this->Event->distributionLevels);
+				$this->set('distributionLevels', $this->Event->Attribute->distributionLevels);
 				$this->render('populate_event_from_template_attributes');
 			}
 		} else {
@@ -305,7 +305,7 @@ class TemplatesController extends AppController {
 			$event = $this->Event->find('first', array(
 					'conditions' => array('id' => $event_id),
 					'recursive' => -1,
-					'fields' => array('id', 'orgc', 'distribution', 'published'),
+					'fields' => array('id', 'orgc_id', 'distribution', 'published'),
 					'contain' => 'EventTag',
 			));
 			if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');

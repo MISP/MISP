@@ -18,7 +18,10 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `sharing_group_id` int(11) NOT NULL,
   `comment` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `event_id` (`event_id`),
+  INDEX `event_id` (`event_id`),
+  INDEX `value1` (`value1`(255)),
+  INDEX `value2` (`value2`(255)),
+  INDEX `sharing_group_id` (`sharing_group_id`),
   UNIQUE KEY `uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
@@ -68,9 +71,13 @@ CREATE TABLE IF NOT EXISTS `correlations` (
   `date` date NOT NULL,
   `info` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `1_event_id` (`1_event_id`),
-  KEY `1_attribute_id` (`1_attribute_id`),
-  KEY `attribute_id` (`attribute_id`)
+  INDEX `event_id` (`event_id`),
+  INDEX `1_event_id` (`1_event_id`),
+  INDEX `attribute_id` (`attribute_id`),
+  INDEX `1_attribute_id` (`1_attribute_id`),
+  INDEX `org_id` (`org_id`),
+  INDEX `sharing_group_id` (`sharing_group_id`),
+  INDEX `a_sharing_group_id` (`a_sharing_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -99,7 +106,10 @@ CREATE TABLE IF NOT EXISTS `events` (
   `publish_timestamp` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uuid` (`uuid`),
-  FULLTEXT KEY `info` (`info`)
+  FULLTEXT KEY `info` (`info`),
+  INDEX `sharing_group_id` (`sharing_group_id`),
+  INDEX `org_id` (`org_id`),
+  INDEX `orgc_id` (`orgc_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- -------------------------------------------------------
@@ -112,7 +122,9 @@ CREATE TABLE IF NOT EXISTS `event_tags` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `event_id` int(11) NOT NULL,
   `tag_id` int(11) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `event_id` (`event_id`),
+  INDEX `tag_id` (`tag_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
@@ -179,7 +191,8 @@ CREATE TABLE `organisations` (
   `local` tinyint(1) NOT NULL DEFAULT '0',
   `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `uuid` (`uuid`)
+  KEY `uuid` (`uuid`),
+  INDEX `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -196,7 +209,9 @@ CREATE TABLE IF NOT EXISTS `posts` (
   `contents` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `post_id` int(11) NOT NULL DEFAULT '0',
   `thread_id` int(11) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `post_id` (`post_id`),
+  INDEX `thread_id` (`thread_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 ;
 
 -- --------------------------------------------------------
@@ -264,7 +279,9 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `pull_rules` text COLLATE utf8_bin NOT NULL,
   `push_rules` text COLLATE utf8_bin NOT NULL,
   `cert_file` varchar(255) COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `org_id` (`org_id`),
+  INDEX `remote_org_id` (`remote_org_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -292,9 +309,13 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   `timestamp` int(11) NOT NULL DEFAULT '0',
   `proposal_to_delete` BOOLEAN NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `event_id` (`event_id`),
-  KEY `uuid` (`uuid`),
-  KEY `old_id` (`old_id`)
+  INDEX `event_id` (`event_id`),
+  INDEX `event_uuid` (`event_uuid`),
+  INDEX `event_org_id` (`event_org_id`),
+  INDEX `uuid` (`uuid`),
+  INDEX `old_id` (`old_id`),
+  INDEX `value1` (`value1`(255)),
+  INDEX `value2` (`value2`(255))
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -308,7 +329,9 @@ CREATE TABLE `sharing_group_orgs` (
   `sharing_group_id` int(11) NOT NULL,
   `org_id` int(11) NOT NULL,
   `extend` tinyint(1) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `org_id` (`org_id`),
+  INDEX `sharing_group_id` (`sharing_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -322,7 +345,9 @@ CREATE TABLE `sharing_group_servers` (
   `sharing_group_id` int(11) NOT NULL,
   `server_id` int(11) NOT NULL,
   `all_orgs` tinyint(1) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `server_id` (`server_id`),
+  INDEX `sharing_group_id` (`sharing_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -344,7 +369,11 @@ CREATE TABLE `sharing_groups` (
   `created` datetime NOT NULL,
   `modified` datetime NOT NULL,
   `local` tinyint(1) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `org_id` (`org_id`),
+  INDEX `sync_user_id` (`sync_user_id`),
+  UNIQUE INDEX `uuid` (`uuid`),
+  INDEX `organisation_uuid` (`organisation_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -503,7 +532,11 @@ CREATE TABLE IF NOT EXISTS `threads` (
   `title` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `org_id` int(11) NOT NULL,
   `sharing_group_id` int(11) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `user_id` (`user_id`),
+  INDEX `event_id` (`event_id`),
+  INDEX `org_id` (`org_id`),
+  INDEX `sharing_group_id` (`sharing_group_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ;
 
 -- --------------------------------------------------------
@@ -545,8 +578,9 @@ CREATE TABLE IF NOT EXISTS `users` (
   `disabled` BOOLEAN NOT NULL,
   `expiration` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `email` (`email`),
-  KEY `password` (`password`)
+  INDEX `email` (`email`),
+  INDEX `org_id` (`org_id`),
+  INDEX `server_id` (`server_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;
 
 -- --------------------------------------------------------

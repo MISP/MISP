@@ -88,7 +88,7 @@ class Log extends AppModel {
 		return $data;
 	}
 	
-	public function createLogEntry($user, $action, $model, $model_id, $title, $change) {
+	public function createLogEntry($user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0), $action, $model, $model_id = 0, $title = '', $change = '') {
 		$this->create();
 		$this->save(array(
 				'org' => $user['Organisation']['name'],
@@ -100,15 +100,5 @@ class Log extends AppModel {
 				'model' => $model,
 				'model_id' => $model_id,
 		));
-	}
-	
-	public function getEventContributors(&$event) {
-		$logEntries = $this->find('all', array(
-				'conditions' => array('model' => 'ShadowAttribute', 'org !=' => $event['Orgc']['name'], 'title LIKE' => '%Event (' . $event['Event']['id'] . ')%'),
-				'fields' => array('org'),
-				'group' => 'org'
-		));
-		foreach ($logEntries as $k => $entry) if (!isset($entry['Log']['org'])) unset ($logEntries[$k]);
-		return $logEntries;
 	}
 }

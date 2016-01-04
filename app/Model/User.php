@@ -462,23 +462,26 @@ class User extends AppModel {
 		}
 		
 		// add all orgs to the conditions that can see the SG
-		if ($distribution = 4) {
+		if ($distribution == 4) {
 			$sgOrgs = $sgModel->getOrgsWithAccess($sharing_group_id);
 			if ($sgOrgs === true) $all = true;
 			else $validOrgs = array_merge($validOrgs, $sgOrgs);
 		}
 		$validOrgs = array_unique($validOrgs);
-		if (!$all) $conditions['AND']['OR'][] = array('org_id' => $validOrgs);
+		if (!$all) {
+			$conditions['AND']['OR'][] = array('org_id' => $validOrgs);
+
+			// Add the site-admins to the list
+			$roles = $this->Role->find('all', array(
+					'conditions' => array('perm_site_admin' => 1),
+					'fields' => array('id')
+			));
+			$roleIDs = array();
+			foreach ($roles as $role) $roleIDs[] = $role['Role']['id'];
+			$conditions['AND']['OR'][] = array('role_id' => $roleIDs);
+		}
 		$conditions['AND'][] = $userConditions;
-		
-		$roles = $this->Role->find('all', array(
-			'conditions' => array('perm_site_admin' => 1),
-			'fields' => array('id')
-		));
-		$roleIDs = array();
-		foreach ($roles as $role) $roleIDs[] = $role['Role']['id'];
-		
-		$conditions['AND']['OR'][] = array('role_id' => $roleIDs); 
+
 		$users = $this->find('all', array(
 			'conditions' => $conditions,
 			'recursive' => -1,
@@ -545,8 +548,21 @@ class User extends AppModel {
 		if (!$failed && $canEncrypt) {
 			$keyImportOutput = $gpg->importKey($user['User']['gpgkey']);
 			try {
-			$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-				$body = $gpg->encrypt($body, true);
+				$key = $gpg->getKeys($keyImportOutput['fingerprint']);
+				$subKeys = $key[0]->getSubKeys();
+				$canEncrypt = false;
+				$currentTimestamp = time();
+				foreach ($subKeys as $subKey) {
+					$expiration = $subKey->getExpirationDate();
+					if (($expiration == 0 || $currentTimestamp < $expiration) && $subKey->canEncrypt()) $canEncrypt = true;
+				}
+				if ($canEncrypt) {
+					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
+					$body = $gpg->encrypt($body, true);
+				} else {
+					$failed = true;
+					$failureReason = " the message could not be encrypted because the provided key is either expired or cannot be used for encryption.";
+				}
 			} catch (Exception $e){
 				// despite the user having a PGP key and the signing already succeeding earlier, we get an exception. This must mean that there is an issue with the user's key.
 				$failureReason = " the message could not be encrypted because there was an issue with the user's PGP key. The following error message was returned by gpg: " . $e->getMessage();

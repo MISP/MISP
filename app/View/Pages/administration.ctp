@@ -23,6 +23,7 @@ if (!$isSiteAdmin) exit();
 <li><?php echo $this->Form->postLink('Remove url type attribute sanitisation', $baseurl . '/attributes/updateAttributeValues/urlSanitisation');?> (Hotfix 2.3.173: Sanitised URLs can cause issues with the NIDS exports and as of this version attributes will be modified on entry to correct this. To correct existing entries, run this script.)</li>
 <li><?php echo $this->Form->postLink('Upgrade to 2.4', $baseurl . '/servers/upgrade2324');?> (This script will make the final changes to the database to bring it up to speed with 2.4)</li>
 <li><?php echo $this->Form->postLink('BETA UPDATES', $baseurl . '/servers/updateDatabase/24betaupdates');?> (This script will update your db from an earlier version of the beta)</li>
+<li><?php echo $this->Form->postLink('Index tables', $baseurl . '/servers/updateDatabase/indexTables');?> (This script will create indeces for all of the tables in MISP (other than primary keys))</li>
 </ul>
 </div>
 <?php 

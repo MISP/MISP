@@ -1032,6 +1032,37 @@ a.proposal_link_red:hover {
 	margin-left:200px;
 }
 
+.tabMenuFiltersBlock {
+	margin-left:400px;
+}
+
+.attribute_filter_header {
+	float:left;
+	padding-top:3px;
+	padding-right:5px;
+}
+
+.attribute_filter_text {
+	float:left;
+	cursor: pointer;
+	padding-top:3px;
+	padding-left:5px;
+	padding-right:5px;
+	border-left:1px solid #ddd;
+	background-color:white;
+}
+
+.attribute_filter_text_active {
+	float:left;
+	cursor: pointer;
+	padding-top:3px;
+	padding-left:5px;
+	padding-right:5px;
+	border-left:1px solid #ddd;
+	color:white;
+	background-color:#0088cc;
+}
+
 .taxFilter {
 	float:none !important;
 	margin-bottom:0px !important;
