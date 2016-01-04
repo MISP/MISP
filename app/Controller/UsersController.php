@@ -17,8 +17,13 @@ class UsersController extends AppController {
 
 	public $paginate = array(
 			'limit' => 60,
+			'recursive' => -1,
 			'order' => array(
 					'Organisation.name' => 'ASC'
+			),
+			'contain' => array(
+				'Organisation' => array('id', 'name'),
+				'Role' => array('id', 'name')
 			)
 	);
 
@@ -160,10 +165,10 @@ class UsersController extends AppController {
 		$urlparams = "";
 		$passedArgsArray = array();
 		$booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
-		$textFields = array('role', 'email');
+		$textFields = array('role', 'email', 'all');
 		// org admins can't see users of other orgs
 		if ($this->_isSiteAdmin()) $textFields[] = 'org';
-		
+		$this->set('passedArgs', json_encode($this->passedArgs));
 		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
 		foreach ($this->passedArgs as $k => $v) {
 			if (substr($k, 0, 6) === 'search') {
@@ -183,10 +188,20 @@ class UsersController extends AppController {
 							if ($piece[0] == '!') {
 								if ($searchTerm == 'email') $this->paginate['conditions']['AND'][] = array('LOWER(User.' . $searchTerm . ') NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
 								else if ($searchTerm == 'org') $this->paginate['conditions']['AND'][] = array('User.org_id !=' => substr($piece, 1));
+
 								else $this->paginate['conditions']['AND'][] = array('User.' . $searchTerm => substr($piece, 1));
 							} else {
 								if ($searchTerm == 'email') $test['OR'][] = array('LOWER(User.' . $searchTerm . ') LIKE' => '%' . strtolower($piece) . '%');
 								else if ($searchTerm == 'org') $this->paginate['conditions']['OR'][] = array('User.org_id' => $piece);
+								else if ($searchTerm == 'all') {
+									$this->paginate['conditions']['AND'][] = array(
+											'OR' => array(
+													'UPPER(User.email) LIKE' => '%' . strtoupper($piece) . '%',
+													'UPPER(Organisation.name) LIKE' => '%' . strtoupper($piece) . '%',
+													'UPPER(Role.name) LIKE' => '%' . strtoupper($piece) . '%',
+											),
+									);
+								}
 								else $test['OR'][] = array('User.' . $searchTerm => $piece);
 							}
 						}
@@ -198,7 +213,6 @@ class UsersController extends AppController {
 		}
 		$this->set('urlparams', $urlparams);
 		$this->set('passedArgsArray', $passedArgsArray);
-		$this->User->recursive = 0;
 		$conditions = array();
 		if ($this->_isSiteAdmin()) {
 			$this->set('users', $this->paginate());
@@ -215,6 +229,9 @@ class UsersController extends AppController {
 	public function index($id) {
 		$this->autoRender = false;
 		$this->layout = false;
+		$overrideAbleParams = array('all');
+		$passedArgs = $this->passedArgs;
+		$overrideAbleParams = array('all');
 		$org = $this->User->Organisation->read(null, $id);
 		if (!$this->User->Organisation->exists() || !($this->_isSiteAdmin() || $this->Auth->user('org_id') == $id)) {
 			throw MethodNotAllowedException('Organisation not found or no authorisation to view it.');
@@ -223,7 +240,16 @@ class UsersController extends AppController {
 		$conditions = array('org_id' => $id);
 		if ($this->_isSiteAdmin() || ($this->_isAdmin() && $this->Auth->user('org_id') == $id)) {
 			$user_fields = array_merge($user_fields, array('newsread', 'termsaccepted', 'change_pw', 'authkey'));
-		} 
+		}
+		$passedArgs = $this->passedArgs;
+		if (isset($this->request->data)) {
+			if (isset($this->request->data['searchall'])) $this->request->data['all'] = $this->request->data['searchall'];
+			if (isset($this->request->data['all']) && !empty($this->request->data['all'])) {
+				$passedArgs['searchall'] = $this->request->data['all'];
+				$conditions['OR'][] = array('User.email LIKE' => '%' . $passedArgs['searchall'] . '%');
+			}	
+		}
+		$this->set('passedArgs', json_encode($passedArgs));
 		$this->paginate = array(
 			'conditions' => $conditions,
 			'recursive' => -1,

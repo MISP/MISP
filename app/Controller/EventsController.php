@@ -261,7 +261,7 @@ class EventsController extends AppController {
 				$searchTerm = substr($k, 6);
 				switch ($searchTerm) {
 					case 'all' :
-						$this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($passedArgs['searchall']));
+						if (!empty($passedArgs['searchall'])) $this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($passedArgs['searchall']));
 						break;
 					case 'attribute' :
 						$event_id_arrays = $this->__filterOnAttributeValue($v);

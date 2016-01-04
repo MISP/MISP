@@ -1067,9 +1067,8 @@ function indexEvaluateFiltering() {
 	$('#generatedURLContent').html(indexCreateFilters());
 }
 
-function quickFilterEvents(passedArgs) {
+function quickFilter(passedArgs, url) {
 	passedArgs["searchall"] = $('#quickFilterField').val();
-	var url = "/events/index";
 	for (var key in passedArgs) {
 		url += "/" + key + ":" + passedArgs[key];
 	}

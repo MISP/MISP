@@ -38,7 +38,7 @@
 			<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
 		</span>
 		<?php endif;?>
-		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilterEvents(<?php echo h($passedArgs);?>);'>Filter</span>
+		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilter(<?php echo h($passedArgs);?>, "/events/index");'>Filter</span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
 	<?php endif; ?>
