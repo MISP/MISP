@@ -132,7 +132,8 @@ class Event extends AppModel {
 		'event_distribution' => array('object' => false, 'var' => 'distribution'), 
 		'event_threat_level_id' => array('object' => 'ThreatLevel', 'var' => 'name'), 
 		'event_analysis' => array('object' => false, 'var' => 'analysis'), 
-		'event_date' => array('object' => false, 'var' => 'date'), 
+		'event_date' => array('object' => false, 'var' => 'date'),
+		'event_tag' => array('object' => 'Tag', 'var' => 'name')
 	 );
 	
 /**
@@ -1287,7 +1288,8 @@ class Event extends AppModel {
  						'Orgc' => array('id', 'name'),
  						'ThreatLevel' => array(
  								'fields' => array('id', 'name'),
- 						)
+ 						),
+ 						'EventTag' => array('Tag' => array('id', 'name'))
  				),
 	 		);
 	 	}
@@ -1302,6 +1304,14 @@ class Event extends AppModel {
 	 		if ($includeContext) {
 				$attribute['Event']['info'] = str_replace(array('"'), '""', $attribute['Event']['info']);
 				$attribute['Event']['info'] = '"' . $attribute['Event']['info'] . '"';
+				$attribute['Event']['Tag']['name'] = '';
+				if (!empty($attribute['Event']['EventTag'])) {
+					foreach ($attribute['Event']['EventTag'] as $eventTag) {
+						if (!empty($attribute['Event']['Tag']['name'])) $attribute['Event']['Tag']['name'] .= ',';
+						$attribute['Event']['Tag']['name'] .= str_replace(array('"'), '""', $eventTag['Tag']['name']);
+					} 
+				}
+				if (!empty($attribute['Event']['Tag']['name'])) $attribute['Event']['Tag']['name'] = '"' . $attribute['Event']['Tag']['name'] . '"'; 
 	 		}
 	 	}
 	 	return $attributes;
