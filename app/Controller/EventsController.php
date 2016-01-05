@@ -1702,8 +1702,21 @@ class EventsController extends AppController {
 					$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . $attribute['Attribute']['comment'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
 					if ($includeContext) {
 						foreach($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
-							if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
-							else $line .= ',' . $attribute['Event'][$field['var']];
+							if ($field['object']) {
+								if (!strpos($field['object'], '.')) {
+									$line .= ',' . $attribute['Event'][$field['object']][$field['var']];
+								} else {
+									$field['object'] = explode('.', $field['object']);
+									$temp = array();
+									foreach ($attribute['Event'][$field['object'][0]] as $relationalObject) {
+										$temp[] = $relationalObject[$field['object'][1]][$field['var']];
+									}
+									if (empty($temp)) $line .= ',';
+									$line .= ',"' . implode(',', $temp) . '"';
+								}
+							} else {
+								$line .= ',' . $attribute['Event'][$field['var']];
+							}
 						}
 					}
 					$final[] = $line;
