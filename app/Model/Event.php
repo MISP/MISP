@@ -1289,7 +1289,11 @@ class Event extends AppModel {
  						'ThreatLevel' => array(
  								'fields' => array('id', 'name'),
  						),
- 						'EventTag' => array('Tag' => array('id', 'name'))
+ 						'EventTag' => array(
+ 								'Tag' => array(
+ 										'fields' => array('id', 'name')
+ 								)
+ 						)
  				),
 	 		);
 	 	}
