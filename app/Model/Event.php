@@ -409,6 +409,8 @@ class Event extends AppModel {
 		if (empty($this->data['Event']['date'])) {
 			$this->data['Event']['date'] = date('Y-m-d');
 		}
+		
+		if (!isset($this->data['Event']['distribution']) || $this->data['Event']['distribution'] != 4) $this->data['Event']['sharing_group_id'] = 0;
 	}
 
 	public function isOwnedByOrg($eventid, $org) {
