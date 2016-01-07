@@ -85,6 +85,11 @@ class AppController extends Controller {
 
 		// Let us access $baseurl from all views
 		$baseurl = Configure::read('MISP.baseurl');
+		if (substr($baseurl, -1) == '/') {
+			// if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
+			$baseurl = rtrim($baseurl, '/');
+			Configure::write('MISP.baseurl', $baseurl); 
+		}
 		$this->set('baseurl', h($baseurl)); 
 
 		// send users away that are using ancient versions of IE
