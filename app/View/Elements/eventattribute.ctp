@@ -95,6 +95,7 @@
 				<th><input class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
 			<?php endif;?>
 			<th><?php echo $this->Paginator->sort('date');?></th>
+			<th><?php echo $this->Paginator->sort('Org.name', 'Org'); ?>
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
@@ -146,7 +147,7 @@
 						</td>
 					<?php endif; 
 						if (isset($object['proposal_to_delete']) && $object['proposal_to_delete']): 
-							for ($i = 0; $i < 8; $i++): 	
+							for ($i = 0; $i < 9; $i++): 	
 					?>
 								<td class="<?php echo $extra; ?>" style="font-weight:bold;"><?php echo ($i == 0 ? 'DELETE' : '&nbsp;'); ?></td>
 					<?php 
@@ -160,6 +161,20 @@
 										else echo '&nbsp';				
 									?>
 								</div>
+							</td>
+							<td class="short <?php echo $extra; ?>">
+						<?php 
+							if ($object['objectType'] != 0) {  
+								if (isset($object['Org']['name'])) {
+									$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($object['Org']['name']) . '.png';
+									if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($object['Org']['name']) . '.png', array('alt' => h($object['Org']['name']), 'title' => h($object['Org']['name']), 'style' => 'width:24px; height:24px'));
+									else echo h($object['Org']['name']);
+								}
+							} else { ?>
+							&nbsp;
+						<?php 
+							}
+						?>
 							</td>
 							<td class="shortish <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_category_placeholder'; ?>" class = "inline-field-placeholder"></div>
