@@ -33,6 +33,9 @@ class AttributesController extends AppController {
 		if ('search' == $this->request->params['action']) {
 			$this->Security->csrfUseOnce = false;
 		}
+		if ($this->action == 'add_attachment') {
+			$this->Security->disabledFields = array('values');
+		}
 		$this->Security->validatePost = true;
 
 		// convert uuid to id if present in the url, and overwrite id field
@@ -326,81 +329,90 @@ class AttributesController extends AppController {
 			if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
 				throw new UnauthorizedException('You do not have permission to do that.');
 			}
-			// Check if there were problems with the file upload
-			// only keep the last part of the filename, this should prevent directory attacks
-			$filename = basename($this->request->data['Attribute']['value']['name']);
-			$tmpfile = new File($this->request->data['Attribute']['value']['tmp_name']);
-			if ((isset($this->request->data['Attribute']['value']['error']) && $this->request->data['Attribute']['value']['error'] == 0) ||
-			(!empty( $this->request->data['Attribute']['value']['tmp_name']) && $this->request->data['Attribute']['value']['tmp_name'] != 'none')
-			) {
-				if (!is_uploaded_file($tmpfile->path))
-					throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
-			} else {
-				$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
-			}
-
+			$partialFails = array();
 			$fails = array();
-			$completeFail = false;
+			$success = 0;
 			
-			if ($this->request->data['Attribute']['malware']) {
-				$result = $this->Event->Attribute->handleMaliciousBase64($this->request->data['Attribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
-				if (!$result['success']) {
-					$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
-					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
+			foreach ($this->request->data['Attribute']['values'] as $k => $value) {
+			
+				// Check if there were problems with the file upload
+				// only keep the last part of the filename, this should prevent directory attacks
+				$filename = basename($value['name']);
+				$tmpfile = new File($value['tmp_name']);
+				if ((isset($value['error']) && $value['error'] == 0) ||
+				(!empty($value['tmp_name']) && $value['tmp_name'] != 'none')
+				) {
+					if (!is_uploaded_file($tmpfile->path))
+						throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
+				} else {
+					$fails[] = $filename;
+					continue;
 				}
-				foreach ($hashes as $hash => $typeName) {
-					if (!$result[$hash]) continue;
+	
+				if ($this->request->data['Attribute']['malware']) {
+					$result = $this->Event->Attribute->handleMaliciousBase64($this->request->data['Attribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
+					if (!$result['success']) {
+						$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
+						$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
+					}
+					foreach ($hashes as $hash => $typeName) {
+						if (!$result[$hash]) continue;
+						$attribute = array(
+							'Attribute' => array(
+								'value' => $filename . '|' . $result[$hash],
+								'category' => $this->request->data['Attribute']['category'],
+								'type' => $typeName,
+								'event_id' => $this->request->data['Attribute']['event_id'],
+								'comment' => $this->request->data['Attribute']['comment'],
+								'to_ids' => 1,
+								'distribution' => $this->request->data['Attribute']['distribution'],
+								'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
+							)
+						);
+						if ($hash == 'md5') $attribute['Attribute']['data'] = $result['data'];
+						$this->Attribute->create();
+						$r = $this->Attribute->save($attribute);
+						if ($r == false) {
+							if ($hash == 'md5') {
+								$fails[] = $filename;
+							} else {
+								$partialFails[] = '[' . $typeName . ']' . $filename;
+							}
+							$fails[] = array($typeName);
+						} else {
+							if ($hash == 'md5') $success++;
+						}
+					}
+				} else {
 					$attribute = array(
-						'Attribute' => array(
-							'value' => $filename . '|' . $result[$hash],
-							'category' => $this->request->data['Attribute']['category'],
-							'type' => $typeName,
-							'event_id' => $this->request->data['Attribute']['event_id'],
-							'comment' => $this->request->data['Attribute']['comment'],
-							'to_ids' => 1,
-							'distribution' => $this->request->data['Attribute']['distribution'],
-							'sharing_group_id' => $this->request->data['Attribute']['sharing_group_id'],
-						)
+							'Attribute' => array(
+								'value' => $filename,
+								'category' => $this->request->data['Attribute']['category'],
+								'type' => 'attachment',
+								'event_id' => $this->request->data['Attribute']['event_id'],
+								'data' => base64_encode($tmpfile->read()),
+								'comment' => $this->request->data['Attribute']['comment'],
+								'to_ids' => 0,
+								'distribution' => $this->request->data['Attribute']['distribution'],
+								'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
+							)
 					);
-					if ($hash == 'md5') $attribute['Attribute']['data'] = $result['data'];
 					$this->Attribute->create();
 					$r = $this->Attribute->save($attribute);
-					if ($r == false) $fails[] = array($typeName);
-					if (count($fails) == count($hashes)) $completeFail = true;
-				}
-			} else {
-				$attribute = array(
-						'Attribute' => array(
-							'value' => $filename,
-							'category' => $this->request->data['Attribute']['category'],
-							'type' => 'attachment',
-							'event_id' => $this->request->data['Attribute']['event_id'],
-							'data' => base64_encode($tmpfile->read()),
-							'comment' => $this->request->data['Attribute']['comment'],
-							'to_ids' => 0,
-							'distribution' => $this->request->data['Attribute']['distribution'],
-							'sharing_group_id' => $this->request->data['Attribute']['sharing_group_id'],
-						)
-				);
-				$this->Attribute->create();
-				$r = $this->Attribute->save($attribute);
-				if ($r == false) {
-					$fails[] = array('attachment');
-					$completeFail = true;
+					if ($r == false) $fails[] = $filename;
+					else $success++;
 				}
 			}
 			
-			if (!$completeFail) {
-				// attribute(s) saved correctly in the db
-				// remove the published flag from the event
-				if (empty($fails)) $this->Session->setFlash(__('The attachment has been uploaded'));
-				else $this->Session->setFlash(__('The attachment has been uploaded, but some of the attributes could not be created. The failed attributes are: ' . implode(', ', $fails)));
+			$message = 'The attachment(s) have been uploaded.';
+			if (!empty($partialFails)) $message .= ' Some of the hashes however could not be generated.';
+			if (!empty($fails)) $message = 'Some of the attachments failed to upload. The failed files were: ' . implode(', ', $fails);
+			if (empty($success)) $message = 'The attachment(s) could not be saved, please contact your administrator.';
+			else {
 				$this->Event->id = $this->request->data['Attribute']['event_id'];
 				$this->Event->saveField('published', 0);
-			} else {
-				$this->Session->setFlash(__('The attachment could not be saved, please contact your administrator.'));
 			}
+			$this->Session->setFlash($message);
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));	
 		} else {
 			// set the event_id in the form

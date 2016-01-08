@@ -1,7 +1,12 @@
 # 1. Upgrade procedure from v2.3 to v2.4
 # it is assumed that a the upgrade happens from an up-to-date 2.3 instance
+# It is a good idea to back up your MISP installation and data before upgrading to a new release.
 
 # - git pull the latest version of MISP from https://github.com/MISP/MISP.git
+git pull
+git checkout 2.4
+git submodule init
+git submodule update
 
 # delete everything from MISP's cache directory to get rid of the cached models
 find /var/www/MISP/app/tmp/cache/ -type f -not -name 'empty' -delete
@@ -17,5 +22,4 @@ mysql -u [misp_mysql_user] -p [misp_database] < upgrade_2.4.sql
 # After this run the upgrade script from within the application
 # simply navigate to Administration -> Administrative Tools -> Upgrade to 2.4
 
-# Since this version is still not finished, expect to run into issues. 
-# Please report any such issues that you run into via github.
+# Let us know if you run into any issues during or after the upgrade

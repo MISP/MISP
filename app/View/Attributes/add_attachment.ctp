@@ -4,7 +4,7 @@
 		<legend><?php echo __('Add Attachment'); ?></legend>
 		<?php
 		echo $this->Form->hidden('event_id');
-		echo $this->Form->input('category');
+		echo $this->Form->input('category', array('default' => 'Payload delivery'));
 		?>
 		<div class="input clear"></div>
 		<?php
@@ -45,8 +45,10 @@
 		<div class="input clear"></div>
 		<div class="input">
 		<?php
-		echo $this->Form->file('value', array(
+		echo $this->Form->input('values.', array(
 			'error' => array('escape' => false),
+			'type' => 'file',
+			'multiple' => true
 		));
 		?>
 		</div>

@@ -132,7 +132,8 @@ class Event extends AppModel {
 		'event_distribution' => array('object' => false, 'var' => 'distribution'), 
 		'event_threat_level_id' => array('object' => 'ThreatLevel', 'var' => 'name'), 
 		'event_analysis' => array('object' => false, 'var' => 'analysis'), 
-		'event_date' => array('object' => false, 'var' => 'date'), 
+		'event_date' => array('object' => false, 'var' => 'date'),
+		'event_tag' => array('object' => 'Tag', 'var' => 'name')
 	 );
 	
 /**
@@ -404,6 +405,12 @@ class Event extends AppModel {
 			$date = new DateTime();
 			$this->data['Event']['timestamp'] = $date->getTimestamp();
 		}
+		
+		if (empty($this->data['Event']['date'])) {
+			$this->data['Event']['date'] = date('Y-m-d');
+		}
+		
+		if (!isset($this->data['Event']['distribution']) || $this->data['Event']['distribution'] != 4) $this->data['Event']['sharing_group_id'] = 0;
 	}
 
 	public function isOwnedByOrg($eventid, $org) {
@@ -1233,35 +1240,30 @@ class Event extends AppModel {
 		$attributeList = array();
 	 	$econditions = array();
 	 	$this->recursive = -1;
-
 	 	// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
 	 	if ($eventid !== 'search') {
 	 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 	 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 	 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-	 		if ($eventid == 0 && $ignore == 0) $conditions['AND'][] = array('Event.published' => 1);
+	 		if ($ignore == false) $conditions['AND'][] = array('Event.published' => 1);
 	 		
-	 		// If it's a full download (eventid == false) and the user is not a site admin, we need to first find all the events that the user can see and save the IDs
-	 		if (!$eventid) {
-	 			$this->recursive = -1;
-	 			// If we sent any tags along, load the associated tag names for each attribute
-	 			if ($tags) {
-	 				$tag = ClassRegistry::init('Tag');
-	 				$args = $this->Attribute->dissectArgs($tags);
-	 				$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-	 				$temp = array();
-	 				foreach ($tagArray[0] as $accepted) {
-	 					$temp['OR'][] = array('Event.id' => $accepted);
-	 				}
-	 				if (!empty($temp)) $conditions['AND'][] = $temp;
-	 				$temp = array();
-	 				foreach ($tagArray[1] as $rejected) {
-	 					$temp['AND'][] = array('Event.id !=' => $rejected);
-	 				}
-	 				if (!empty($temp)) $conditions['AND'][] = $temp;
-	 			}
-	 		}
+ 			// If we sent any tags along, load the associated tag names for each attribute
+ 			if ($tags) {
+ 				$tag = ClassRegistry::init('Tag');
+ 				$args = $this->Attribute->dissectArgs($tags);
+ 				$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+ 				$temp = array();
+ 				foreach ($tagArray[0] as $accepted) {
+ 					$temp['OR'][] = array('Event.id' => $accepted);
+ 				}
+ 				if (!empty($temp)) $conditions['AND'][] = $temp;
+ 				$temp = array();
+ 				foreach ($tagArray[1] as $rejected) {
+ 					$temp['AND'][] = array('Event.id !=' => $rejected);
+ 				}
+ 				if (!empty($temp)) $conditions['AND'][] = $temp;
+ 			}
 	 		// if we're downloading a single event, set it as a condition
 	 		if ($eventid) $conditions['AND'][] = array('Event.id' => $eventid);
 	 		
@@ -1288,6 +1290,11 @@ class Event extends AppModel {
  						'Orgc' => array('id', 'name'),
  						'ThreatLevel' => array(
  								'fields' => array('id', 'name'),
+ 						),
+ 						'EventTag' => array(
+ 								'Tag' => array(
+ 										'fields' => array('id', 'name')
+ 								)
  						)
  				),
 	 		);
@@ -1303,6 +1310,14 @@ class Event extends AppModel {
 	 		if ($includeContext) {
 				$attribute['Event']['info'] = str_replace(array('"'), '""', $attribute['Event']['info']);
 				$attribute['Event']['info'] = '"' . $attribute['Event']['info'] . '"';
+				$attribute['Event']['Tag']['name'] = '';
+				if (!empty($attribute['Event']['EventTag'])) {
+					foreach ($attribute['Event']['EventTag'] as $eventTag) {
+						if (!empty($attribute['Event']['Tag']['name'])) $attribute['Event']['Tag']['name'] .= ',';
+						$attribute['Event']['Tag']['name'] .= str_replace(array('"'), '""', $eventTag['Tag']['name']);
+					} 
+				}
+				if (!empty($attribute['Event']['Tag']['name'])) $attribute['Event']['Tag']['name'] = '"' . $attribute['Event']['Tag']['name'] . '"'; 
 	 		}
 	 	}
 	 	return $attributes;
@@ -2477,18 +2492,29 @@ class Event extends AppModel {
 				unset ($event['Event'][$k]);
 			}
 		}
+		$filterType = false;
+		if (isset($passedArgs['attributeFilter'])) {
+			if (in_array($passedArgs['attributeFilter'], array_keys($this->Attribute->typeGroupings)) || $passedArgs['attributeFilter'] == 'proposal') {
+				$filterType = $passedArgs['attributeFilter'];
+			} else {
+				unset($passedArgs['attributeFilter']);
+			}
+		}
 		$eventArray = array();
 		$shadowAttributeTemp = array();
 		foreach ($event['Attribute'] as $attribute) {
+			if ($filterType && $filterType !== 'proposal') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			if ($attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
 			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
 			else $attribute['hasChildren'] = 0;
+			if ($filterType === 'proposal' && $attribute['hasChildren'] == 0) continue; 
 			$eventArray[] = $attribute;
 			$current = count($eventArray)-1;
 		}
 		unset($event['Attribute']);
 		foreach ($event['ShadowAttribute'] as $shadowAttribute) {
+			if ($filterType && $filterType !== 'proposal') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			$shadowAttribute['objectType'] = 2;
 			$eventArray[] = $shadowAttribute;
 		}

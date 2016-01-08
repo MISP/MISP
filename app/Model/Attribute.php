@@ -105,6 +105,7 @@ class Attribute extends AppModel {
 			'ip-dst' => array('desc' => 'A destination IP address of the attacker or C&C server', 'formdesc' => "A destination IP address of the attacker or C&C server. Also set the IDS flag on when this IP is hardcoded in malware"),
 			'hostname' => array('desc' => 'A full host/dnsname of an attacker', 'formdesc' => "A full host/dnsname of an attacker. Also set the IDS flag on when this hostname is hardcoded in malware"),
 			'domain' => array('desc' => 'A domain name used in the malware', 'formdesc' => "A domain name used in the malware. Use this instead of hostname when the upper domain is important or can be used to create links between events."),
+			'domain|ip' => array('desc' => 'A domain name and its IP address (as found in DNS lookup) separated by a |','formdesc' => "A domain name and its IP address (as found in DNS lookup) separated by a | (no spaces)"),
 			'email-src' => array('desc' => "The email address (or domainname) used to send the malware."),
 			'email-dst' => array('desc' => "A recipient email address", 'formdesc' => "A recipient email address that is not related to your constituency."),
 			'email-subject' => array('desc' => "The subject of the email"),
@@ -146,12 +147,12 @@ class Attribute extends AppModel {
 			'threat-actor' => array('desc' => 'A string identifying the threat actor'),//
 			'campaign-name' => array('desc' => 'Associated campaign name'),//
 			'campaign-id' => array('desc' => 'Associated campaign ID'),//
-			'malware-type' => array('desc' => 'test'),//
-			'uri' => array('desc' => 'test'),
+			'malware-type' => array('desc' => ''),//
+			'uri' => array('desc' => 'Uniform Resource Identifier'),
 			'authentihash' => array('desc' => 'Authenticode executable signature hash', 'formdesc' => "You are encouraged to use filename|authentihash instead. Authenticode executable signature hash, only use this if you don't know the correct filename"),//x
 			'ssdeep' => array('desc' => 'A checksum in ssdeep format', 'formdesc' => "You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"),////x
 			'imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.', 'formdesc' => "You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"),//x
-			'pehash' => array('desc' => 'test'),//x
+			'pehash' => array('desc' => 'PEhash - a hash calculated based of certain pieces of a PE executable file'),//x
 			'sha-224' => array('desc' => 'A checksum in sha-224 format', 'formdesc' => "You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"),//x
 			'sha-384' => array('desc' => 'A checksum in sha-384 format', 'formdesc' => "You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename"),//x
 			'sha-512' => array('desc' => 'A checksum in sha-512 format', 'formdesc' => "You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename"),//x
@@ -161,7 +162,7 @@ class Attribute extends AppModel {
 			'filename|authentihash' => array('desc' => 'A checksum in md5 format'),
 			'filename|ssdeep' => array('desc' => 'A checksum in ssdeep format'),//x
 			'filename|imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.'),//x
-			'filename|pehash' => array('desc' => ''),//x
+			'filename|pehash' => array('desc' => 'A filename and a PEhash separated by a |'),//x
 			'filename|sha-224' => array('desc' => 'A filename and a sha-224 hash separated by a |'),//x
 			'filename|sha-384' => array('desc' => 'A filename and a sha-384 hash separated by a |'),//x
 			'filename|sha-512' => array('desc' => 'A filename and a sha-512 hash separated by a |'),//x
@@ -173,10 +174,12 @@ class Attribute extends AppModel {
 			'windows-service-displayname' => array('desc' => 'A windows service\'s displayname, not to be confused with the windows-service-name. This is the name that applications will generally display as the service\'s name in applications.'),//x
 			'whois-registrant-email' => array('desc' => 'The e-mail of a domain\'s registrant, obtained from the WHOIS information.'),//x
 			'whois-registrant-phone' => array('desc' => 'The phone number of a domain\'s registrant, obtained from the WHOIS information.'),//x
-			'targeted-threat-index' => array('desc' => 'test'),
-			'mailslot' => array('desc' => 'test'),
-			'pipe' => array('desc' => 'test'),
-			'ssl-cert-attributes' => array('desc' => 'test'),
+			'whois-registar' => array('desc' => 'The registar of the domain, obtained from the WHOIS information.'),//x
+			'whois-creation-date' => array('desc' => 'The date of domain\'s creation, obtained from the WHOIS information.'),//x
+			'targeted-threat-index' => array('desc' => ''),
+			'mailslot' => array('desc' => 'MailSlot interprocess communication'),
+			'pipe' => array('desc' => 'Pipeline (for named pipes use the attribute type "named pipe")'),
+			'ssl-cert-attributes' => array('desc' => 'SSL certificate attributes'),
 	);
 
 	// definitions of categories
@@ -216,7 +219,7 @@ class Attribute extends AppModel {
 					),
 			'Network activity' => array(
 					'desc' => 'Information about network traffic generated by the malware',
-					'types' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'other')
+					'types' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'other')
 					),
 			'Payload type' => array(
 					'desc' => 'Information about the final payload(s)',
@@ -225,12 +228,12 @@ class Attribute extends AppModel {
 					),
 			'Attribution' => array(
 					'desc' => 'Identification of the group, organisation, or country behind the attack',
-					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'comment', 'text', 'other')
+					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registar', 'whois-creation-date','comment', 'text', 'other')
 					),
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
 					'formdesc' => 'Any other result from additional analysis of the malware like tools output Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.',
-					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'other')
+					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'other')
 					),
 			'Financial fraud' => array(
 					'desc' => 'Financial Fraud indicators',
@@ -241,6 +244,16 @@ class Attribute extends AppModel {
 					'desc' => 'Attributes that are not part of any other category',
 					'types' => array('comment', 'text', 'other')
 					)
+	);
+	
+	// typeGroupings are a mapping to high level groups for attributes
+	// for example, IP addresses, domain names, hostnames e-mail addresses are all network related attribute types
+	// whilst filenames and hashes are all file related attribute types
+	// This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?) 
+	public $typeGroupings = array(
+		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample'),
+		'network' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'link'),
+		'financial' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn')
 	);
 
 	public $order = array("Attribute.event_id" => "DESC");
@@ -505,6 +518,8 @@ class Attribute extends AppModel {
 			$this->data['Attribute']['value'] = $result;
 		}
 		// always return true, otherwise the object cannot be saved
+		
+		if (!isset($this->data['Attribute']['distribution']) || $this->data['Attribute']['distribution'] != 4) $this->data['Attribute']['sharing_group_id'] = 0;
 		return true;
 	}
 
@@ -692,6 +707,15 @@ class Attribute extends AppModel {
 					$returnValue = 'Domain name has invalid format. Please double check the value or select "other" for a type.';
 				}
 				break;
+			case 'domain|ip':
+				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}\|.*$#i", $value)) {
+					$parts = explode('|', $value);
+					if (filter_var($parts[1],FILTER_VALIDATE_IP)) {$returnValue = true;}
+					else {$returnValue = 'IP address has invalid format.';}
+				} else {
+					$returnValue = 'Domain name has invalid format.';
+				}
+				break;		
 			case 'email-src':
 			case 'email-dst':
 			case 'target-email':
@@ -756,6 +780,8 @@ class Attribute extends AppModel {
  			case 'regkey|value':
 			case 'filename':
 			case 'windows-scheduled-task':
+			case 'whois-registar':
+			case 'whois-creation-date':
  				// no newline	
  				if (!preg_match("#\n#", $value)) {
  					$returnValue = true;
@@ -846,6 +872,7 @@ class Attribute extends AppModel {
 			case 'tlsh':
 			case 'email-src':
 			case 'email-dst':
+			case 'domain|ip':
 			case 'target-email':
 			case 'whois-registrant-email':
 				$value = strtolower($value);
@@ -1806,7 +1833,8 @@ class Attribute extends AppModel {
  				), 
  			),	
  		);
-	 	if (isset($options['contain'])) $params['contain'] = $options['contain'];
+	 	if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
+	 	else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id');
 	 	if (isset($options['fields'])) $params['fields'] = $options['fields'];
 	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 	 	if (isset($options['order'])) $params['order'] = $options['order'];

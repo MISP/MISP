@@ -17,6 +17,7 @@ class CustomPaginationTool {
 			),
 		);
 		$validOptions = array('sort', 'direction', 'page');
+		if ($model == 'events') $validOptions[] = 'attributeFilter';
 		foreach ($validOptions as $v) {
 			if (isset($options[$v])) {
 				$params[$v] = $options[$v];

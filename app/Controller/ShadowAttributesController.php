@@ -149,7 +149,7 @@ class ShadowAttributesController extends AppController {
 			$attribute = $shadow;
 		
 			// set the distribution equal to that of the event
-			$attribute['distribution'] = $event['Event']['distribution'];
+			$attribute['distribution'] = 5;
 			$this->Attribute->create();
 			$this->Attribute->save($attribute);
 			$this->ShadowAttribute->setDeleted($toDeleteId);
