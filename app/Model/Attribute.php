@@ -1833,7 +1833,8 @@ class Attribute extends AppModel {
  				), 
  			),	
  		);
-	 	if (isset($options['contain'])) $params['contain'] = $options['contain'];
+	 	if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
+	 	else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id');
 	 	if (isset($options['fields'])) $params['fields'] = $options['fields'];
 	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 	 	if (isset($options['order'])) $params['order'] = $options['order'];
