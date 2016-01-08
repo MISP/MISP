@@ -322,7 +322,7 @@ class AttributesController extends AppController {
 	 */
 	public function add_attachment($eventId = null) {
 		if ($this->request->is('post')) {
-			$hashes = array('md5' => 'malware-sample','md5' => 'filename|md5','sha1' => 'filename|sha1', 'sha256' => 'filename|sha256','md5' => 'md5','sha1' => 'sha1','sha256'=>'sha256');
+			$hashes = array('md5' => 'md5','sha1' => 'sha1','sha256'=>'sha256');
 			$this->loadModel('Event');
 			$this->Event->id = $this->request->data['Attribute']['event_id'];
 			$this->Event->recursive = -1;
@@ -415,6 +415,8 @@ class AttributesController extends AppController {
                                                 	}
 						}
 						
+						
+						//Create hash
 						$attribute = array(
                                                         'Attribute' => array(
                                                         'value' => $result[$hash],
