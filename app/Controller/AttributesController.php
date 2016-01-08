@@ -1,3 +1,4 @@
+
 <?php
 App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
@@ -321,7 +322,7 @@ class AttributesController extends AppController {
 	 */
 	public function add_attachment($eventId = null) {
 		if ($this->request->is('post')) {
-			$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
+			$hashes = array('md5' => 'malware-sample','md5' => 'filename|md5','sha1' => 'filename|sha1', 'sha256' => 'filename|sha256','md5' => 'md5','sha1' => 'sha1','sha256'=>'sha256');
 			$this->loadModel('Event');
 			$this->Event->id = $this->request->data['Attribute']['event_id'];
 			$this->Event->recursive = -1;
@@ -357,19 +358,21 @@ class AttributesController extends AppController {
 					}
 					foreach ($hashes as $hash => $typeName) {
 						if (!$result[$hash]) continue;
+						
+						//Create filename|hash
 						$attribute = array(
 							'Attribute' => array(
-								'value' => $filename . '|' . $result[$hash],
-								'category' => $this->request->data['Attribute']['category'],
-								'type' => $typeName,
-								'event_id' => $this->request->data['Attribute']['event_id'],
-								'comment' => $this->request->data['Attribute']['comment'],
-								'to_ids' => 1,
-								'distribution' => $this->request->data['Attribute']['distribution'],
-								'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
+							'value' => $filename . '|' . $result[$hash],
+							'category' => $this->request->data['Attribute']['category'],
+							'type' => 'filename|'.$typeName,
+							'event_id' => $this->request->data['Attribute']['event_id'],
+							'comment' => $this->request->data['Attribute']['comment'],
+							'to_ids' => 1,
+							'distribution' => $this->request->data['Attribute']['distribution'],
+							'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
 							)
 						);
-						if ($hash == 'md5') $attribute['Attribute']['data'] = $result['data'];
+                                                
 						$this->Attribute->create();
 						$r = $this->Attribute->save($attribute);
 						if ($r == false) {
@@ -382,6 +385,61 @@ class AttributesController extends AppController {
 						} else {
 							if ($hash == 'md5') $success++;
 						}
+						
+						//Create datafile if MD5
+						if($hash=='md5'){	
+							$attribute = array(
+                                                        	'Attribute' => array(
+                                                        	'value' => $filename . '|' . $result[$hash],
+                                                        	'category' => $this->request->data['Attribute']['category'],
+                                                        	'type' => 'malware-sample',
+                                                        	'event_id' => $this->request->data['Attribute']['event_id'],
+                                                        	'comment' => $this->request->data['Attribute']['comment'],
+                                                        	'to_ids' => 1,
+                                                        	'distribution' => $this->request->data['Attribute']['distribution'],
+                                                        	'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
+                                                        	)
+                                                	);
+							$attribute['Attribute']['data'] = $result['data'];
+                                                	$this->Attribute->create();
+                                                	$r = $this->Attribute->save($attribute);
+                                                	if ($r == false) {
+                                                        	if ($hash == 'md5') {
+                                                                	$fails[] = $filename;
+                                                        	} else {
+                                                                	$partialFails[] = '[' . $typeName . ']' . $filename;
+                                                        	}
+                                                        	$fails[] = array($typeName);
+                                                	} else {
+                                                        	if ($hash == 'md5') $success++;
+                                                	}
+						}
+						
+						$attribute = array(
+                                                        'Attribute' => array(
+                                                        'value' => $result[$hash],
+                                                        'category' => $this->request->data['Attribute']['category'],
+                                                        'type' => $typeName,
+                                                        'event_id' => $this->request->data['Attribute']['event_id'],
+                                                        'comment' => $this->request->data['Attribute']['comment'],
+                                                        'to_ids' => 1,
+                                                        'distribution' => $this->request->data['Attribute']['distribution'],
+                                                        'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
+                                                        )
+                                                );
+						if ($hash == 'md5') $attribute['Attribute']['data'] = $result['data'];
+						$this->Attribute->create();
+                                                $r = $this->Attribute->save($attribute);
+                                                if ($r == false) {
+                                                        if ($hash == 'md5') {
+                                                                $fails[] = $filename;
+                                                        } else {
+                                                                $partialFails[] = '[' . $typeName . ']' . $filename;
+                                                        }
+                                                        $fails[] = array($typeName);
+                                                } else {
+                                                        if ($hash == 'md5') $success++;
+                                                }
 					}
 				} else {
 					$attribute = array(

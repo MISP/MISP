@@ -518,7 +518,7 @@ class ShadowAttributesController extends AppController {
 		if ($this->request->is('post')) {
 			// Check if there were problems with the file upload
 			// only keep the last part of the filename, this should prevent directory attacks
-			$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
+			$hashes = array('md5' => 'md5','sha1' => 'sha1','sha256'=>'sha256');			
 			$filename = basename($this->request->data['ShadowAttribute']['value']['name']);
 			$tmpfile = new File($this->request->data['ShadowAttribute']['value']['tmp_name']);
 			if ((isset($this->request->data['ShadowAttribute']['value']['error']) && $this->request->data['ShadowAttribute']['value']['error'] == 0) ||
@@ -542,19 +542,63 @@ class ShadowAttributesController extends AppController {
 				}
 				foreach ($hashes as $hash => $typeName) {
 					if (!$result[$hash]) continue;
+					//Create filename|hash
+			
 					$shadowAttribute = array(
-							'ShadowAttribute' => array(
-									'value' => $filename . '|' . $result[$hash],
-									'category' => $this->request->data['ShadowAttribute']['category'],
-									'type' => $typeName,
-									'event_id' => $this->request->data['ShadowAttribute']['event_id'],
-									'comment' => $this->request->data['ShadowAttribute']['comment'],
-									'to_ids' => 1,
-									'email' => $this->Auth->user('email'),
-									'org_id' => $this->Auth->user('org_id'),
-									'event_uuid' => $event['Event']['uuid'],
-									'event_org_id' => $event['Event']['orgc_id'],
-							)
+						'ShadowAttribute' => array(
+							'value' => $filename . '|' . $result[$hash],
+							'category' => $this->request->data['ShadowAttribute']['category'],
+							'type' => 'filename|'.$typeName,
+							'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+							'comment' => $this->request->data['ShadowAttribute']['comment'],
+							'to_ids' => 1,
+							'email' => $this->Auth->user('email'),
+							'org_id' => $this->Auth->user('org_id'),
+							'event_uuid' => $event['Event']['uuid'],
+							'event_org_id' => $event['Event']['orgc_id'],
+						)
+					);
+					$this->ShadowAttribute->create();
+					$r = $this->ShadowAttribute->save($shadowAttribute);
+					if ($r == false) $fails[] = array($typeName);
+					if (count($fails) == count($hashes)) $completeFail = true;
+
+					//Create datafiles
+					if($hash=='md5'){
+						$shadowAttribute = array(
+                                                	'ShadowAttribute' => array(
+                                                        	'value' => $filename . '|' . $result[$hash],
+                                                        	'category' => $this->request->data['ShadowAttribute']['category'],
+                                                        	'type' => 'malware-sample',
+                                                        	'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+                                                        	'comment' => $this->request->data['ShadowAttribute']['comment'],
+                                                        	'to_ids' => 1,
+                                                        	'email' => $this->Auth->user('email'),
+                                                        	'org_id' => $this->Auth->user('org_id'),
+                                                        	'event_uuid' => $event['Event']['uuid'],
+                                                        	'event_org_id' => $event['Event']['orgc_id'],
+                                                	)
+                                        	);
+						$shadowAttribute['ShadowAttribute']['data'] = $result['data'];
+                                        	$this->ShadowAttribute->create();
+                                        	$r = $this->ShadowAttribute->save($shadowAttribute);
+                                        	if ($r == false) $fails[] = array($typeName);
+                                        	if (count($fails) == count($hashes)) $completeFail = true;
+					}
+					//Create hashes
+					$shadowAttribute = array(
+						'ShadowAttribute' => array(
+							'value' => $result[$hash],
+							'category' => $this->request->data['ShadowAttribute']['category'],
+							'type' => $typeName,
+							'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+							'comment' => $this->request->data['ShadowAttribute']['comment'],
+							'to_ids' => 1,
+							'email' => $this->Auth->user('email'),
+							'org_id' => $this->Auth->user('org_id'),
+							'event_uuid' => $event['Event']['uuid'],
+							'event_org_id' => $event['Event']['orgc_id'],
+						)
 					);
 					if ($hash == 'md5') $shadowAttribute['ShadowAttribute']['data'] = $result['data'];
 					$this->ShadowAttribute->create();
