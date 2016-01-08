@@ -95,7 +95,7 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 					<?php echo h($event['Event']['date']); ?>
 					&nbsp;
 				</dd>
-				<dt title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>">Threat Level</dt>
+				<dt title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>">Urgency Level</dt>
 				<dd>
 					<?php 
 						if ($event['ThreatLevel']['name']) echo h($event['ThreatLevel']['name']);

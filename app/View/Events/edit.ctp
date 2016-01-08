@@ -31,6 +31,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 	</div>
 <?php 
 	echo $this->Form->input('threat_level_id', array(
+			'label' => 'Urgency Level',
 			'div' => 'input clear'
 			));
 	echo $this->Form->input('analysis', array(
