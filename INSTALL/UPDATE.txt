@@ -5,11 +5,12 @@
 cd /var/www/MISP
 git pull
 
-# 2. Update CakePHP to the latest 2.6 code
+# 2. Update CakePHP to the latest supported version (if for some reason it doesn't get updated automatically with git submodule
 
-cd /var/www/MISP/app/Lib/cakephp
-git fetch origin
-git checkout 2.6
+rm -R /var/www/MISP/app/Lib/cakephp
+cd /var/www/MISP
+git submodule init
+git submodule update
 
 # 3. Update Mitre's STIX and its dependencies
 
