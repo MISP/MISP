@@ -79,6 +79,7 @@ class Organisation extends AppModel{
 		$date = date('Y-m-d H:i:s');
 		if (!isset($this->data['Organisation']['date_created']) || empty($this->data['Organisation']['date_created'])) $this->data['Organisation']['date_created'] = $date;
 		$this->data['Organisation']['date_modified'] = $date;
+		if (!isset($this->data['Organisation']['nationality']) || empty($this->data['Organisation']['nationality'])) $this->data['Organisation']['nationality'] = 'Not specified';
 		return true;
 	}
 	

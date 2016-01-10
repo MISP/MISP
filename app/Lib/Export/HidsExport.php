@@ -16,27 +16,29 @@ class HidsExport {
 	}
 
 	public function export($items, $type = 'MD5', $continue = false) {
-		foreach ($items as &$item) {
-			# md5
-			$ruleFormat = '%s';
-
-			$attribute = &$item['Attribute'];
-
-			switch ($attribute['type']) {
-				case 'md5':
-				case 'sha1':
-				case 'sha256':
-					if (!in_array ($attribute['value1'], $this->rules)) $this->rules[] = $attribute['value1'];
-					break;
-				case 'filename|md5':
-				case 'malware-sample':
-				case 'filename|sha1':
-				case 'filename|sha256':
-					if (!in_array ($attribute['value2'], $this->rules)) $this->rules[] = $attribute['value2'];
-					break;
-				default:
-					break;
-
+		if (!empty($items)) {
+			foreach ($items as &$item) {
+				# md5
+				$ruleFormat = '%s';
+	
+				$attribute = &$item['Attribute'];
+	
+				switch ($attribute['type']) {
+					case 'md5':
+					case 'sha1':
+					case 'sha256':
+						if (!in_array ($attribute['value1'], $this->rules)) $this->rules[] = $attribute['value1'];
+						break;
+					case 'filename|md5':
+					case 'malware-sample':
+					case 'filename|sha1':
+					case 'filename|sha256':
+						if (!in_array ($attribute['value2'], $this->rules)) $this->rules[] = $attribute['value2'];
+						break;
+					default:
+						break;
+	
+				}
 			}
 		}
 		if (!$continue) $this->explain($type);
