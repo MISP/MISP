@@ -409,6 +409,8 @@ class Event extends AppModel {
 		if (empty($this->data['Event']['date'])) {
 			$this->data['Event']['date'] = date('Y-m-d');
 		}
+		
+		if (!isset($this->data['Event']['distribution']) || $this->data['Event']['distribution'] != 4) $this->data['Event']['sharing_group_id'] = 0;
 	}
 
 	public function isOwnedByOrg($eventid, $org) {
@@ -2492,7 +2494,7 @@ class Event extends AppModel {
 		}
 		$filterType = false;
 		if (isset($passedArgs['attributeFilter'])) {
-			if (in_array($passedArgs['attributeFilter'], array_keys($this->Attribute->typeGroupings))) {
+			if (in_array($passedArgs['attributeFilter'], array_keys($this->Attribute->typeGroupings)) || $passedArgs['attributeFilter'] == 'proposal') {
 				$filterType = $passedArgs['attributeFilter'];
 			} else {
 				unset($passedArgs['attributeFilter']);
@@ -2501,17 +2503,18 @@ class Event extends AppModel {
 		$eventArray = array();
 		$shadowAttributeTemp = array();
 		foreach ($event['Attribute'] as $attribute) {
-			if ($filterType) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
+			if ($filterType && $filterType !== 'proposal') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			if ($attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
 			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
 			else $attribute['hasChildren'] = 0;
+			if ($filterType === 'proposal' && $attribute['hasChildren'] == 0) continue; 
 			$eventArray[] = $attribute;
 			$current = count($eventArray)-1;
 		}
 		unset($event['Attribute']);
 		foreach ($event['ShadowAttribute'] as $shadowAttribute) {
-			if ($filterType) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
+			if ($filterType && $filterType !== 'proposal') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			$shadowAttribute['objectType'] = 2;
 			$eventArray[] = $shadowAttribute;
 		}

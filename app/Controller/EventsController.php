@@ -2220,6 +2220,7 @@ class EventsController extends AppController {
 					if (is_array(${$parameters[$k]})) $elements = ${$parameters[$k]};
 					else $elements = explode('&&', ${$parameters[$k]});
 					foreach($elements as $v) {
+						if ($v == '') continue;
 						if (substr($v, 0, 1) == '!') {
 							if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
 								$cidrresults = $this->Cidr->CIDR(substr($v, 1));
@@ -2288,6 +2289,7 @@ class EventsController extends AppController {
 			$params = array(
 					'conditions' => $conditions,
 					'fields' => array('DISTINCT(Attribute.event_id)'),
+					'contain' => array()
 			);
 			$attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $params);
 			$eventIds = array();
