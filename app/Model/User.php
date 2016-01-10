@@ -361,15 +361,11 @@ class User extends AppModel {
 	}
 	
 	public function getOrgs() {
-		$orgs = $this->Organisation->find('all', array(
+		$orgs = $this->Organisation->find('list', array(
 			'recursive' => -1,
 			'fields' => array('name'),
 		));
-		$orgNames = array();
-		foreach ($orgs as $org) {
-			$orgNames[] = $org['Organisation']['name'];
-		}
-		return $orgNames;
+		return $orgs;
 	}
 	
 	public function getOrgMemberCount($org) {

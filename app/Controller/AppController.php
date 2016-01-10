@@ -76,11 +76,10 @@ class AppController extends Controller {
 			'Security'
 	);
 	
-	public $mispVersion = '2.4.0';
 	
 	public function beforeFilter() {
 		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
-		$this->mispVersionFull = implode('.', array_values($versionArray));
+		$this->mispVersion = implode('.', array_values($versionArray));
 		$this->Security->blackHoleCallback = 'blackHole';
 
 		// Let us access $baseurl from all views
@@ -240,7 +239,6 @@ class AppController extends Controller {
 		if ($this->Auth->user()) {
 			//$this->_refreshAuth();
 			$this->set('mispVersion', $this->mispVersion);
-			$this->set('mispVersionFull', $this->mispVersionFull);
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
 			$this->set('isAdmin', $role['perm_admin']);
@@ -526,5 +524,9 @@ class AppController extends Controller {
 			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		}
+	}
+	
+	public function test() {
+		$this->{$this->modelClass}->runUpdates();
 	}
 }

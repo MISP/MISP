@@ -633,7 +633,7 @@ class UsersController extends AppController {
 						'description' => 'Automatically generated admin organisation',
 						'type' => 'ADMIN',
 						'uuid' => $this->User->Organisation->generateUuid(),
-						'local' => 1
+						'local' => 1,
 				));
 				$this->User->Organisation->save($org);
 				$org_id = $this->User->Organisation->id;

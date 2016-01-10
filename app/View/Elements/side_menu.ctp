@@ -46,6 +46,9 @@
 					?>
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
+					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
+						<li id='lidelegateEvent'><a href="#" onClick="delegatePopup('<?php echo h($event['Event']['id']); ?>');">Delegate Publishing</a></li>
+					<?php endif;?>
 
 					<li id='licontact'><a href="<?php echo $baseurl;?>/events/contact/<?php echo h($event['Event']['id']);?>">Contact Reporter</a></li>
 					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>

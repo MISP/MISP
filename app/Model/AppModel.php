@@ -46,6 +46,14 @@ class AppModel extends Model {
 		$this->name = get_class($this);
 	}
 	
+	public $db_changes = array(
+		2 => array(
+			4 => array(
+				6 => 'enableEventDelegation'
+			)
+		)
+	);
+	
 
 	public function updateDatabase($command) {
 		$sql = '';
@@ -86,31 +94,31 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE `logs` MODIFY  `change` text COLLATE utf8_bin NOT NULL';
 				
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomies` (
-				`id` int(11) NOT NULL AUTO_INCREMENT,
-				`namespace` varchar(255) COLLATE utf8_bin NOT NULL,
-				`description` text COLLATE utf8_bin NOT NULL,
-				`version` int(11) NOT NULL,
-				`enabled` tinyint(1) NOT NULL DEFAULT '0',
-				PRIMARY KEY (`id`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;";
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`namespace` varchar(255) COLLATE utf8_bin NOT NULL,
+					`description` text COLLATE utf8_bin NOT NULL,
+					`version` int(11) NOT NULL,
+					`enabled` tinyint(1) NOT NULL DEFAULT '0',
+					PRIMARY KEY (`id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;";
 				
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
-				`id` int(11) NOT NULL AUTO_INCREMENT,
-				`taxonomy_predicate_id` int(11) NOT NULL,
-				`value` text COLLATE utf8_bin NOT NULL,
-				`expanded` text COLLATE utf8_bin NOT NULL,
-				PRIMARY KEY (`id`),
-				KEY `taxonomy_predicate_id` (`taxonomy_predicate_id`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`taxonomy_predicate_id` int(11) NOT NULL,
+					`value` text COLLATE utf8_bin NOT NULL,
+					`expanded` text COLLATE utf8_bin NOT NULL,
+					PRIMARY KEY (`id`),
+					KEY `taxonomy_predicate_id` (`taxonomy_predicate_id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 				
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
-				`id` int(11) NOT NULL AUTO_INCREMENT,
-				`taxonomy_id` int(11) NOT NULL,
-				`value` text COLLATE utf8_bin NOT NULL,
-				`expanded` text COLLATE utf8_bin NOT NULL,
-				PRIMARY KEY (`id`),
-				KEY `taxonomy_id` (`taxonomy_id`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`taxonomy_id` int(11) NOT NULL,
+					`value` text COLLATE utf8_bin NOT NULL,
+					`expanded` text COLLATE utf8_bin NOT NULL,
+					PRIMARY KEY (`id`),
+					KEY `taxonomy_id` (`taxonomy_id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 				
 				$sqlArray[] = 'ALTER TABLE `jobs` ADD  `org` text COLLATE utf8_bin NOT NULL;';
 				
@@ -163,7 +171,18 @@ class AppModel extends Model {
 					}
 				}
 				break;
-				
+			case 'enableEventDelegation':
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_delegations` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`org_id` int(11) NOT NULL,
+					`event_id` int(11) NOT NULL,
+					`message` text,
+					`distribution` tinyint(4),
+					PRIMARY KEY (`id`),
+					KEY `org_id` (`org_id`),
+					KEY `event_id` (`event_id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
 			default:
 				return false;
 				break;
@@ -264,5 +283,12 @@ class AppModel extends Model {
 		$value[$field] = trim($value[$field]);
 		if (!empty($value[$field])) return true;
 		return ucfirst($field) . ' cannot be empty.';
+	}
+	
+	public function runUpdates() {
+		$adminTable = $this->query("SHOW TABLES LIKE 'administration';");
+		if (empty($adminTable)) $dbVersion = '2.4.0';
+		$currentVersion = explode('.', $this->mispVersion);
+		$dbVersion;
 	}
 }
