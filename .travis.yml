@@ -137,4 +137,6 @@ after_failure:
 
 after_success:
     - coveralls
-    - codecov
+    - coverage report
+    - coverage xml
+    - codecov -d
