@@ -3003,7 +3003,7 @@ class EventsController extends AppController {
 	// Either send it to an existing event, or let MISP create a new one automatically
 	public function upload_sample($event_id = null) {
 		$this->loadModel('Log');
-		$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
+		$hashes = array('md5' => 'md5','sha1' => 'sha1','sha256' => 'sha256');
 		$categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
 		$types = array();
 		foreach ($categoryDefinitions as $k => $v) {
@@ -3108,15 +3108,16 @@ class EventsController extends AppController {
 					$file[$hash] = $temp[$hash];
 					$file['data'] = $temp['data'];
 					$this->Event->Attribute->create();
+					
+					//Create filename | hash attributes
 					$attribute = array(
-							'value' => $file['filename'] . '|' . $file[$hash],
-							'distribution' => $data['distribution'],
-							'category' => $data['category'],
-							'type' => $typeName,
-							'event_id' => $data['event_id'],
-							'to_ids' => $data['to_ids']
+						'value' => $file['filename'] . '|' . $file[$hash],
+						'distribution' => $data['distribution'],
+						'category' => $data['category'],
+						'type' => 'filename|'.$typeName,
+						'event_id' => $data['event_id'],
+						'to_ids' => $data['to_ids']
 					);
-					if ($hash == 'md5') $attribute['data'] = $file['data'];
 					$result = $this->Event->Attribute->save($attribute);
 					if (!$result) {
 						$this->Log->save(array(
@@ -3129,8 +3130,67 @@ class EventsController extends AppController {
 								'title' => 'Error: Failed to create attribute using the upload sample functionality',
 								'change' => 'There was an issue creating an attribute (' . $typeName . ': ' . $file['filename'] . '|' . $file[$hash] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
 						));
-						if ($typeName == 'malware-sample') $errors[] = array('filename' => $file['filename'], 'hash' => $file[$hash], 'error' => $this->Event->Attribute->validationErrors);
+					if ($typeName == 'malware-sample') $errors[] = array('filename' => $file['filename'], 'hash' => $file[$hash], 'error' => $this->Event->Attribute->validationErrors);
 					} else if ($typeName == 'malware-sample') $successCount++;
+					
+
+					//Create datafile if MD5
+					$file[$hash] = $temp[$hash];
+                                        $file['data'] = $temp['data'];
+                                        $this->Event->Attribute->create();
+					if($hash=='md5'){
+                                        $attribute = array(
+                                                'value' => $file['filename'] . '|' . $file[$hash],
+                                                'distribution' => $data['distribution'],
+                                                'category' => $data['category'],
+                                                'type' => 'malware-sample',
+                                                'event_id' => $data['event_id'],
+                                                'to_ids' => $data['to_ids']
+                                        );
+                                        if ($hash == 'md5') $attribute['data'] = $file['data'];
+					$result = $this->Event->Attribute->save($attribute);
+                                        if (!$result) {
+                                                $this->Log->save(array(
+                                                                'org' => $this->Auth->user('Organisation')['name'],
+                                                                'model' => 'Event',
+                                                                'model_id' => $data['event_id'],
+                                                                'email' => $this->Auth->user('email'),
+                                                                'action' => 'upload_sample',
+                                                                'user_id' => $this->Auth->user('id'),
+                                                                'title' => 'Error: Failed to create attribute using the upload sample functionality',
+                                                                'change' => 'There was an issue creating an attribute (' . $typeName . ': ' . $file['filename'] . '|' . $file[$hash] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
+                                                ));
+                                        if ($typeName == 'malware-sample') $errors[] = array('filename' => $file['filename'], 'hash' => $file[$hash], 'error' => $this->Event->Attribute->validationErrors);
+                                        } else if ($typeName == 'malware-sample') $successCount++;
+					}
+
+					//Create hash attributes
+                                        $file[$hash] = $temp[$hash];
+                                        $file['data'] = $temp['data'];
+                                        $this->Event->Attribute->create();
+					$attribute = array(
+                                                'value' =>  $file[$hash],
+                                                'distribution' => $data['distribution'],
+                                                'category' => $data['category'],
+                                                'type' => $typeName,
+                                                'event_id' => $data['event_id'],
+                                                'to_ids' => $data['to_ids']
+                                        );
+					$result = $this->Event->Attribute->save($attribute);
+					if (!$result) {
+                                                $this->Log->save(array(
+                                                                'org' => $this->Auth->user('Organisation')['name'],
+                                                                'model' => 'Event',
+                                                                'model_id' => $data['event_id'],
+                                                                'email' => $this->Auth->user('email'),
+                                                                'action' => 'upload_sample',
+                                                                'user_id' => $this->Auth->user('id'),
+                                                                'title' => 'Error: Failed to create attribute using the upload sample functionality',
+                                                                'change' => 'There was an issue creating an attribute (' . $typeName . ': ' . $file['filename'] . '|' . $file[$hash] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
+                                                ));
+                                                if ($typeName == 'malware-sample') $errors[] = array('filename' => $file['filename'], 'hash' => $file[$hash], 'error' => $this->Event->Attribute->validationErrors);
+                                        } else if ($typeName == 'malware-sample') $successCount++;
+
 				}
 			} else {
 				$errors[] = array('filename' => $file['filename'], 'hash' => $file['hash'], 'error' => 'Failed to encrypt and compress the file.');

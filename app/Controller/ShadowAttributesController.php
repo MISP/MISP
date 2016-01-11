@@ -542,19 +542,63 @@ class ShadowAttributesController extends AppController {
 				}
 				foreach ($hashes as $hash => $typeName) {
 					if (!$result[$hash]) continue;
+					//Create filename|hash
+			
 					$shadowAttribute = array(
-							'ShadowAttribute' => array(
-									'value' => $filename . '|' . $result[$hash],
-									'category' => $this->request->data['ShadowAttribute']['category'],
-									'type' => $typeName,
-									'event_id' => $this->request->data['ShadowAttribute']['event_id'],
-									'comment' => $this->request->data['ShadowAttribute']['comment'],
-									'to_ids' => 1,
-									'email' => $this->Auth->user('email'),
-									'org_id' => $this->Auth->user('org_id'),
-									'event_uuid' => $event['Event']['uuid'],
-									'event_org_id' => $event['Event']['orgc_id'],
-							)
+						'ShadowAttribute' => array(
+							'value' => $filename . '|' . $result[$hash],
+							'category' => $this->request->data['ShadowAttribute']['category'],
+							'type' => 'filename|'.$typeName,
+							'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+							'comment' => $this->request->data['ShadowAttribute']['comment'],
+							'to_ids' => 1,
+							'email' => $this->Auth->user('email'),
+							'org_id' => $this->Auth->user('org_id'),
+							'event_uuid' => $event['Event']['uuid'],
+							'event_org_id' => $event['Event']['orgc_id'],
+						)
+					);
+					$this->ShadowAttribute->create();
+					$r = $this->ShadowAttribute->save($shadowAttribute);
+					if ($r == false) $fails[] = array($typeName);
+					if (count($fails) == count($hashes)) $completeFail = true;
+
+					//Create datafiles
+					if($hash=='md5'){
+						$shadowAttribute = array(
+                                                	'ShadowAttribute' => array(
+                                                        	'value' => $filename . '|' . $result[$hash],
+                                                        	'category' => $this->request->data['ShadowAttribute']['category'],
+                                                        	'type' => 'malware-sample',
+                                                        	'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+                                                        	'comment' => $this->request->data['ShadowAttribute']['comment'],
+                                                        	'to_ids' => 1,
+                                                        	'email' => $this->Auth->user('email'),
+                                                        	'org_id' => $this->Auth->user('org_id'),
+                                                        	'event_uuid' => $event['Event']['uuid'],
+                                                        	'event_org_id' => $event['Event']['orgc_id'],
+                                                	)
+                                        	);
+						$shadowAttribute['ShadowAttribute']['data'] = $result['data'];
+                                        	$this->ShadowAttribute->create();
+                                        	$r = $this->ShadowAttribute->save($shadowAttribute);
+                                        	if ($r == false) $fails[] = array($typeName);
+                                        	if (count($fails) == count($hashes)) $completeFail = true;
+					}
+					//Create hashes
+					$shadowAttribute = array(
+						'ShadowAttribute' => array(
+							'value' => $result[$hash],
+							'category' => $this->request->data['ShadowAttribute']['category'],
+							'type' => $typeName,
+							'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+							'comment' => $this->request->data['ShadowAttribute']['comment'],
+							'to_ids' => 1,
+							'email' => $this->Auth->user('email'),
+							'org_id' => $this->Auth->user('org_id'),
+							'event_uuid' => $event['Event']['uuid'],
+							'event_org_id' => $event['Event']['orgc_id'],
+						)
 					);
 					if ($hash == 'md5') $shadowAttribute['ShadowAttribute']['data'] = $result['data'];
 					$this->ShadowAttribute->create();
