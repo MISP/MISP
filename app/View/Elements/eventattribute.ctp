@@ -144,7 +144,9 @@
 			<th>Related Events</th>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
 			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
-			<?php if (Configure::read('Plugin.Sightings_enable'))?><th>Sightings</th>
+			<?php if (Configure::read('Plugin.Sightings_enable')): ?>
+				<th>Sightings</th>
+			<?php endif; ?>
 			<th class="actions">Actions</th>
 		</tr>
 		<?php 
