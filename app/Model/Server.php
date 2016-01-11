@@ -1852,10 +1852,19 @@ class Server extends AppModel {
 		App::uses('Folder', 'Utility');
 		// check writeable directories
 		$writeableDirs = array(
-				'tmp' => 0, 'files' => 0, 'files' . DS . 'scripts' . DS . 'tmp' => 0,
-				'tmp' . DS . 'csv_all' => 0, 'tmp' . DS . 'csv_sig' => 0, 'tmp' . DS . 'md5' => 0, 'tmp' . DS . 'sha1' => 0,
-				'tmp' . DS . 'snort' => 0, 'tmp' . DS . 'suricata' => 0, 'tmp' . DS . 'text' => 0, 'tmp' . DS . 'xml' => 0,
-				'tmp' . DS . 'files' => 0, 'tmp' . DS . 'logs' => 0,
+				'tmp' => 0, 
+				'files' => 0, 
+				'files' . DS . 'scripts' . DS . 'tmp' => 0,
+				'tmp' . DS . 'csv_all' => 0, 
+				'tmp' . DS . 'csv_sig' => 0, 
+				'tmp' . DS . 'md5' => 0, 
+				'tmp' . DS . 'sha1' => 0,
+				'tmp' . DS . 'snort' => 0, 
+				'tmp' . DS . 'suricata' => 0, 
+				'tmp' . DS . 'text' => 0, 
+				'tmp' . DS . 'xml' => 0,
+				'tmp' . DS . 'files' => 0, 
+				'tmp' . DS . 'logs' => 0,
 		);
 		foreach ($writeableDirs as $path => &$error) {
 			$dir = new Folder(APP . DS . $path);
@@ -1867,6 +1876,23 @@ class Server extends AppModel {
 			$file->close();
 		}
 		return $writeableDirs;
+	}
+	
+	public function writeableFilesDiagnostics(&$diagnostic_errors) {
+		$writeableFiles = array(
+				'Config' . DS . 'config.php' => 0,
+		);
+		foreach ($writeableFiles as $path => &$error) {
+			if (!file_exists(APP . $path)) {
+				$error = 1;
+				continue;
+			}
+			if (!is_writeable(APP . $path)) {
+				$error = 2;
+				$diagnostic_errors++;
+			}
+		}
+		return $writeableFiles;
 	}
 	
 	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion) {
