@@ -629,6 +629,37 @@ class ServersController extends AppController {
 				// check if the current version of MISP is outdated or not
 				$version = $this->__checkVersion();
 				$this->set('version', $version);
+				$phpSettings = array(
+						'max_execution_time' => array(
+							'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
+							'recommended' => 300,
+							'unit' => false
+						), 
+						'memory_limit' => array(
+							'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
+							'recommended' => 512,
+							'unit' => 'M'
+						), 
+						'upload_max_filesize' => array(
+							'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
+							'recommended' => 50,
+							'unit' => 'M'
+						), 
+						'post_max_size' => array(
+							'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
+							'recommended' => 50,
+							'unit' => 'M'
+						)
+						
+				);
+				
+				foreach ($phpSettings as $setting => &$settingArray) {
+					$settingArray['value'] = ini_get($setting);
+					if ($settingArray['unit']) $settingArray['value'] = intval(rtrim($settingArray['value'], $settingArray['unit']));
+					else $settingArray['value'] = intval($settingArray['value']);
+				}
+				$this->set('phpSettings', $phpSettings);
+				
 				if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) $diagnostic_errors++;
 					
 				// check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py

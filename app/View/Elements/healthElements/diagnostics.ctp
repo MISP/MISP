@@ -58,6 +58,18 @@
 			} 
 		?>
 	</div>
+	<h3>PHP Settings</h3>
+	<p>The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.</p>
+	<?php 
+		foreach ($phpSettings as $settingName => &$phpSetting): 
+			echo $settingName . ' (' . $phpSetting['value'] . ($phpSetting['unit'] ? $phpSetting['unit'] : '') .')' . '.....';
+			if ($phpSetting['value'] < $phpSetting['recommended']) $pass = false;
+			else $pass = true;
+	?>
+	<span style="color:<?php echo $pass ? 'green': 'red'; ?>"><?php echo $pass ? 'OK' : 'FAIL'; ?> (recommended: <?php echo strval($phpSetting['recommended']) . ($phpSetting['unit'] ? $phpSetting['unit'] : '') . ')'; ?></span><br />
+	<?php 
+		endforeach;
+	?>
 	<h3>
 	STIX and Cybox libraries
 	</h3>
