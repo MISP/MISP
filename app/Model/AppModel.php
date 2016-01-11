@@ -154,7 +154,7 @@ class AppModel extends Model {
 					'servers' => array(array('org_id', 'INDEX'), array('remote_org_id', 'INDEX')),
 					'tags' => array(array('name', 'FULLTEXT')),
 					'threads' => array(array('user_id', 'INDEX'), array('event_id', 'INDEX'), array('org_id', 'INDEX'), array('sharing_group_id', 'INDEX')),
-					'users' => array(array('org_id', 'INDEX'), array('server_id', 'INDEX')),
+					'users' => array(array('org_id', 'INDEX'), array('server_id', 'INDEX'), array('email', 'INDEX')),
 				);
 				
 				$version = $this->query('select version();');
@@ -176,7 +176,10 @@ class AppModel extends Model {
 					}
 				}
 				break;
-				
+			case 'fixNonEmptySharingGroupID':
+				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
+				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
+				break;
 			default:
 				return false;
 				break;

@@ -14,7 +14,7 @@ class JobsController extends AppController {
 			'limit' => 20,
 			'order' => array(
 					'Job.id' => 'desc'
-			)
+			),
 	);
 	
 	public function beforeFilter() {
@@ -70,7 +70,7 @@ class JobsController extends AppController {
 		$progress = $this->Job->find('first', array(
 			'conditions' => array(
 				'job_type' => $type,
-				'org' => $org
+				'org_id' => $org
 			),
 			'fields' => array('id', 'progress'),
 			'order' => array('Job.id' => 'desc'),
@@ -86,12 +86,10 @@ class JobsController extends AppController {
 	public function cache($type) {
 		if ($this->_isSiteAdmin()) {
 			$target = 'All events.';
-			$jobOrg = 'ADMIN';
 		} else { 
 			$target = 'Events visible to: '.$this->Auth->user('Organisation')['name'];
-			$jobOrg = $this->Auth->user('Organisation')['name'];
 		}
-		$id = $this->Job->cache($type, $this->Auth->user(), $target, $jobOrg);
+		$id = $this->Job->cache($type, $this->Auth->user(), $target);
 		return new CakeResponse(array('body' => json_encode($id)));
 	}
 }

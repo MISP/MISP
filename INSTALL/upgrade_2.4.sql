@@ -69,17 +69,18 @@ CREATE TABLE IF NOT EXISTS `organisations` (
   `name` varchar(255) COLLATE utf8_bin NOT NULL,
   `date_created` datetime NOT NULL,
   `date_modified` datetime NOT NULL,
-  `description` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `nationality` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `sector` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `description` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `nationality` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `sector` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `created_by` int(11) NOT NULL,
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
-  `contacts` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `contacts` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `local` tinyint(1) NOT NULL DEFAULT '0',
-  `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   PRIMARY KEY (`id`),
-  KEY `uuid` (`uuid`)
+  KEY `uuid` (`uuid`),
+  INDEX `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 CREATE TABLE IF NOT EXISTS `sharing_group_servers` (

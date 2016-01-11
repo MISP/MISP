@@ -73,12 +73,13 @@ class Organisation extends AppModel{
 	
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-		if (empty($this->data['uuid']) && (isset($this->data['local']) && $this->data['local'])) {
-			$this->data['uuid'] = $this->generateUuid();
+		if (empty($this->data['Organisation']['uuid']) && (isset($this->data['Organisation']['local']) && $this->data['Organisation']['local'])) {
+			$this->data['Organisation']['uuid'] = $this->generateUuid();
 		}
 		$date = date('Y-m-d H:i:s');
-		if (empty($this->data['date_created'])) $this->data['date_created'] = $date;
-		$this->data['date_modified'] = $date;
+		if (!isset($this->data['Organisation']['date_created']) || empty($this->data['Organisation']['date_created'])) $this->data['Organisation']['date_created'] = $date;
+		$this->data['Organisation']['date_modified'] = $date;
+		if (!isset($this->data['Organisation']['nationality']) || empty($this->data['Organisation']['nationality'])) $this->data['Organisation']['nationality'] = 'Not specified';
 		return true;
 	}
 	
@@ -91,7 +92,7 @@ class Organisation extends AppModel{
 	public function captureOrg($org, $user, $force = false) {
 
 		if (is_array($org)) {
-			if (isset($org['uuid'])) {
+			if (isset($org['uuid']) && !empty($org['uuid'])) {
 				$conditions = array('uuid' => $org['uuid']);
 				$uuid = $org['uuid'];
 				$conditions2 = array('name' => $org['name']);

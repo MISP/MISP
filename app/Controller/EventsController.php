@@ -261,7 +261,7 @@ class EventsController extends AppController {
 				$searchTerm = substr($k, 6);
 				switch ($searchTerm) {
 					case 'all' :
-						$this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($passedArgs['searchall']));
+						if (!empty($passedArgs['searchall'])) $this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($passedArgs['searchall']));
 						break;
 					case 'attribute' :
 						$event_id_arrays = $this->__filterOnAttributeValue($v);
@@ -631,6 +631,7 @@ class EventsController extends AppController {
 				$this->set($variable, $currentModel->{$variable});
 			}
 		}
+		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 		$this->disableCache();
 		$this->layout = 'ajax';
 		$this->render('/Elements/eventattribute');
@@ -640,8 +641,8 @@ class EventsController extends AppController {
 		if (isset($this->params['named']['attributesPage'])) $page = $this->params['named']['attributesPage'];
 		else $page = 1;
 		// set the data for the contributors / history field
-		$this->loadModel('Log');
-		$logEntries = $this->Log->getEventContributors($event);
+		$org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
+		$contributors = $this->Event->Org->find('list', array('fields' => array('Org.name'), 'conditions' => array('Org.id' => $org_ids)));
 
 		// set the pivot data
 		$this->helpers[] = 'Pivot';
@@ -682,7 +683,8 @@ class EventsController extends AppController {
 				$this->set($variable, $currentModel->{$variable});
 			}
 		}
-		$this->set('logEntries', $logEntries);
+		$this->set('contributors', $contributors);
+		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 	}
 	
 	/**
@@ -1393,7 +1395,7 @@ class EventsController extends AppController {
 						'fields' => array('id', 'progress'),
 						'conditions' => array(
 								'job_type' => 'cache_' . $k,
-								'org' => $useOrg
+								'org_id' => $useOrg
 							),
 						'order' => array('Job.id' => 'desc')
 				));
@@ -1467,7 +1469,7 @@ class EventsController extends AppController {
 		return $difference . " " . $periods[$j] . " ago";
 	}
 
-	public function xml($key, $eventid=null, $withAttachment = false, $tags = false, $from = false, $to = false, $last = false) {
+	public function xml($key, $eventid=false, $withAttachment = false, $tags = false, $from = false, $to = false, $last = false) {
 		App::uses('XMLConverterTool', 'Tools');
 		$converter = new XMLConverterTool();
 		$this->loadModel('Whitelist');
@@ -1524,10 +1526,12 @@ class EventsController extends AppController {
 		}
 		$final = "";
 		$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
-		
+		$validEvents = 0;
 		if (!$eventid) $eventIdArray = $this->Event->fetchEventIds($user, $from, $to, $last, true);
 		foreach ($eventIdArray as $currentEventId) {
-			$result = $this->__fetchEvent($currentEventId, null, $user, $tags, $from, $to);
+			$result = $this->Event->fetchEvent($user, array('eventid' => $currentEventId, 'tags' => $tags, 'from' => $from, 'to' => $to, 'last' => $last));
+			if (empty($result)) continue;
+			$validEvents++;
 			if ($withAttachment) {
 				foreach ($result[0]['Attribute'] as &$attribute) {
 					if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
@@ -1539,6 +1543,7 @@ class EventsController extends AppController {
 			$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
 			$final .= $converter->event2XML($result[0]) . PHP_EOL;
 		}
+		if ($validEvents == 0) throw new NotFoundException('No events found that match the passed parameters.');
 		$final .= '</response>' . PHP_EOL;
 		$this->response->body($final);
 		$this->response->type('xml');
@@ -1673,28 +1678,38 @@ class EventsController extends AppController {
 				$list[] = $attribute['Attribute']['id'];
 			}
 		} else if ($eventid === false) {
-			$events = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
+			$events = $this->Event->fetchEventIds($this->Auth->user(), $from, $to, $last, true);
 			if (empty($events)) $events = array(0 => -1);
 		}
-		
-		if (!isset($events)) $events = array(0 => false);
 		$final = array();
 		$this->loadModel('Whitelist');
-		foreach ($events as $eventid) {
-			$attributes = $this->Event->csv($user, $eventid, $ignore, $list, $tags, $category, $type, $includeContext, $from, $to, $last);
-			$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
-			foreach ($attributes as $attribute) {
-				$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . $attribute['Attribute']['comment'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
-				if ($includeContext) {
-					foreach($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
-						if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
-						else $line .= ',' . $attribute['Event'][$field['var']];
-					}
+		if ($tags) {
+			$args = $this->Event->Attribute->dissectArgs($tags);
+			$tagArray = $this->Event->EventTag->Tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			if (!empty($tagArray[0])) $events = array_intersect($events, $tagArray[0]);
+			if (!empty($tagArray[1])) {
+				foreach ($events as $k => $eventid) {
+					if (in_array($eventid, $tagArray[1])) unset($events[$k]);
 				}
-				$final[] = $line;
 			}
 		}
-		
+		if (isset($events)) {
+			foreach ($events as $eventid) {
+				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext);
+				$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
+				foreach ($attributes as $attribute) {
+					$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . $attribute['Attribute']['comment'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
+					if ($includeContext) {
+						foreach($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
+							if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
+							else $line .= ',' . $attribute['Event'][$field['var']];
+						}
+					}
+					$final[] = $line;
+				}
+			}
+		}
 		$this->response->type('csv');	// set the content type
 		if (!$exportType) {
 			$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
@@ -2205,6 +2220,7 @@ class EventsController extends AppController {
 					if (is_array(${$parameters[$k]})) $elements = ${$parameters[$k]};
 					else $elements = explode('&&', ${$parameters[$k]});
 					foreach($elements as $v) {
+						if ($v == '') continue;
 						if (substr($v, 0, 1) == '!') {
 							if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
 								$cidrresults = $this->Cidr->CIDR(substr($v, 1));
@@ -2273,6 +2289,7 @@ class EventsController extends AppController {
 			$params = array(
 					'conditions' => $conditions,
 					'fields' => array('DISTINCT(Attribute.event_id)'),
+					'contain' => array()
 			);
 			$attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $params);
 			$eventIds = array();

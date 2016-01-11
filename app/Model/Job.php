@@ -7,6 +7,15 @@ App::uses('AppModel', 'Model');
 */
 class Job extends AppModel {
 	
+	public $belongsTo = array(
+			'Org' => array(
+					'className' => 'Organisation',
+					'foreignKey' => 'org_id',
+					'order' => array(),
+					'fields' => array('id', 'name', 'uuid')
+			),
+		);
+	
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		$date = date('Y-m-d H:i:s');
@@ -18,7 +27,7 @@ class Job extends AppModel {
 		}
 	}
 	
-	public function cache($type, $user, $target, $jobOrg) {
+	public function cache($type, $user, $target, $jobOrg = null) {
 		$extra = null;
 		$extra2 = null;
 		$shell = 'Event';
@@ -29,7 +38,6 @@ class Job extends AppModel {
 				'job_input' => $target,
 				'status' => 0,
 				'retries' => 0,
-				'org' => $jobOrg,
 				'org_id' => $user['org_id'],
 				'message' => 'Fetching events.',
 		);
@@ -44,7 +52,7 @@ class Job extends AppModel {
 		if ($type === 'suricata' || $type === 'snort') {
 			$extra = $type;
 			$type = 'nids';
-			$extra2 = $user['nids_sid'];
+			$extra2 = isset($user['nids_sid']) ? $user['nids_sid'] : 0;
 		}
 		if ($type === 'rpz') $extra = $type;
 		$this->save($data);

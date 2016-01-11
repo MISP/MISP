@@ -45,7 +45,7 @@
 			<th><?php echo $this->Paginator->sort('job_type');?></th>
 			<th><?php echo $this->Paginator->sort('job_input', 'Input');?></th>
 			<th><?php echo $this->Paginator->sort('message');?></th>
-			<th><?php echo $this->Paginator->sort('org');?></th>
+			<th><?php echo $this->Paginator->sort('Org.name');?></th>
 			<th><?php echo $this->Paginator->sort('status');?></th>
 			<th><?php echo $this->Paginator->sort('retries');?></th>
 			<th><?php echo $this->Paginator->sort('progress');?></th>
@@ -60,7 +60,7 @@ foreach ($list as $k => $item): ?>
 		<td class="short"><?php echo h($item['Job']['job_type']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Job']['job_input']); ?>&nbsp;</td>
 		<td><?php echo h($item['Job']['message']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Job']['org']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Org']['name']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Job']['status']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Job']['retries']); ?>&nbsp;</td>
 		<td style="width:200px;">

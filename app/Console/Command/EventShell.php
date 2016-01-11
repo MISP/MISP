@@ -5,7 +5,7 @@ App::uses('File', 'Utility');
 require_once 'AppShell.php';
 class EventShell extends AppShell
 {
-	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server');
+	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation');
 
 	public function doPublish() {
 		$id = $this->args[0];
@@ -46,7 +46,7 @@ class EventShell extends AppShell
 		$eventIds = $this->Event->fetchEventIds($user);
 		$result = array();
 		$eventCount = count($eventIds);
-		$dir = new Folder(APP . 'tmp/cached_exports/xml');
+		$dir = new Folder(APP . 'tmp/cached_exports/xml', true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.xml' . '.ADMIN.xml');
 		} else {
@@ -57,11 +57,15 @@ class EventShell extends AppShell
 		$toEscape = array("&", "<", ">", "\"", "'");
 		$escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
 		$file->write('<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>');
-		foreach ($eventIds as $k => $eventId) {
-			$temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id']));
-			$file->append($converter->event2XML($temp[0], $user['Role']['perm_site_admin']) . PHP_EOL);
-			$this->Job->saveField('progress', ($k+1) / $eventCount *100);
+		if (!empty($eventIds)) {
+			foreach ($eventIds as $k => $eventId) {
+				$temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id']));
+				$file->append($converter->event2XML($temp[0], $user['Role']['perm_site_admin']) . PHP_EOL);
+				$this->Job->saveField('progress', ($k+1) / $eventCount *100);
+			}
 		}
+		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done.');
 		$file->append('<xml_version>' . $this->Event->mispVersion . '</xml_version>');
 		$file->append('</response>' . PHP_EOL);
 		$file->close();
@@ -99,7 +103,7 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', 1);
 		$rules = $this->Attribute->hids($user, $extra);
 		$this->Job->saveField('progress', 80);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra, true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.txt');
 		} else {
@@ -111,6 +115,7 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cacherpz() {
@@ -120,13 +125,21 @@ class EventShell extends AppShell
 		$this->Job->id = $id;
 		$extra = $this->args[2];
 		$this->Job->saveField('progress', 1);
-		$values = $this->Attribute->rpz($user);
+		$eventIds = $this->Attribute->Event->fetchEventIds($user, false, false, false, true);
+		$values = array();
+		$eventCount = count($eventIds);
+		if ($eventCount) {
+			foreach ($eventIds as $k => $eventId) {
+				$values = array_merge_recursive($values, $this->Attribute->rpz($user, false, $eventId));
+				if ($k % 10 == 0) $this->Job->saveField('progress', $k * 80 / $eventCount);
+			}
+		}
 		$this->Job->saveField('progress', 80);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
-		if ($isSiteAdmin) {
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra, true, 0750);
+		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.rpz.ADMIN.txt');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.rpz.' . $org . '.txt');
+			$file = new File($dir->pwd() . DS . 'misp.rpz.' . $user['Organisation']['name'] . '.txt');
 		}
 		App::uses('RPZExport', 'Export');
 		$rpzExport = new RPZExport();
@@ -140,6 +153,7 @@ class EventShell extends AppShell
 		$file->write($rpzExport->export($values, $rpzSettings));
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cachecsv() {
@@ -154,7 +168,7 @@ class EventShell extends AppShell
 		$eventIds = $this->Event->fetchEventIds($user);
 		$eventCount = count($eventIds);
 		$attributes = array();
-		$dir = new Folder(APP . 'tmp/cached_exports/' . $extra);
+		$dir = new Folder(APP . 'tmp/cached_exports/' . $extra, true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.csv');
 		} else {
@@ -175,6 +189,7 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cachetext() {
@@ -185,7 +200,7 @@ class EventShell extends AppShell
 		$extra = $this->args[2];
 		$types = array_keys($this->Attribute->typeDefinitions);
 		$typeCount = count($types);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/text');
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/text', true, 0750);
 		foreach ($types as $k => $type) {
 			$final = $this->Attribute->text($user, $type);
 			if ($user['Role']['perm_site_admin']) {
@@ -201,6 +216,7 @@ class EventShell extends AppShell
 			$this->Job->saveField('progress', $k / $typeCount * 100);
 		}
 		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function cachenids() {
@@ -212,7 +228,7 @@ class EventShell extends AppShell
 		$sid = $this->args[3];
 		$eventIds = array_values($this->Event->fetchEventIds($user, false, false, false, true));
 		$eventCount = count($eventIds);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format, true, 0750);
 		if ($user['Role']['perm_site_admin']) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $format . '.ADMIN.rules');
 		} else {
@@ -234,6 +250,7 @@ class EventShell extends AppShell
 		}
 		$file->close();
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('message', 'Job done.');
 	}
 	
 	public function alertemail() {
@@ -287,20 +304,43 @@ class EventShell extends AppShell
 		// been updated. 
 		if ($task['Task']['next_execution_time'] != $timestamp) return;
 
-		$orgs = $this->User->getOrgs();
+		$users = $this->User->find('all', array(
+				'recursive' => -1,
+				'conditions' => array(
+						'Role.perm_site_admin' => 0,
+						'User.disabled' => 0,
+				),
+				'contain' => array(
+						'Organisation' => array('fields' => array('name')),
+						'Role' => array('fields' => array('perm_site_admin'))	
+				),
+				'fields' => array('User.org_id', 'User.id'),
+				'group' => array('User.org_id')
+		));
+		$site_admin = $this->User->find('first', array(
+				'recursive' => -1,
+				'conditions' => array(
+						'Role.perm_site_admin' => 1,
+						'User.disabled' => 0
+				),
+				'contain' => array(
+						'Organisation' => array('fields' => array('name')),
+						'Role' => array('fields' => array('perm_site_admin'))	
+				),
+				'fields' => array('User.org_id', 'User.id')
+		));
+		$users[] = $site_admin;
 		
 		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'cache', 'EventShell', 'enqueueCaching', false, false);
 		
 		// Queue a set of exports for admins. This "ADMIN" organisation. The organisation of the admin users doesn't actually matter, it is only used to indentify
 		// the special cache files containing all events
 		$i = 0;
-		foreach($this->Event->export_types as $k => $type) {
-			foreach ($orgs as $org) {
-				$this->Job->cache($k, false, $org, 'Events visible to: ' . $org, $org);
+		foreach ($users as $user) {
+			foreach($this->Event->export_types as $k => $type) {
+				$this->Job->cache($k, $user['User'], 'Events visible to: ' . ($user['Role']['perm_site_admin'] ? 'ADMIN' : $user['Organisation']['name']));
 				$i++;
 			}
-			$this->Job->cache($k, true, 'ADMIN', 'All events.', 'ADMIN');
-			$i++;
 		}
 		$this->Task->id = $task['Task']['id'];
 		$this->Task->saveField('message', $i . ' job(s) started at ' . date('d/m/Y - H:i:s') . '.');

@@ -968,8 +968,10 @@ class Server extends AppModel {
 						$fails[$eventId] = 'failed downloading the event';
 					}
 					if ($jobId) {
-						$job->id = $jobId;
-						$job->saveField('progress', 100 * (($k + 1) / count($eventIds)));
+						if ($k % 10 == 0) {
+							$job->id = $jobId;
+							$job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
+						}
 					}
 				}
 				if (count($fails) > 0) {
@@ -984,6 +986,9 @@ class Server extends AppModel {
 				// grab all of the shadow attributes that are relevant to us
 			}
 		}
+		if ($jobId) {
+			$job->saveField('message', 'Pulling proposals.');
+		}
 		$events = $eventModel->find('all', array(
 				'fields' => array('id', 'uuid'),
 				'recursive' => -1,
@@ -991,7 +996,7 @@ class Server extends AppModel {
 		));
 		$shadowAttribute = ClassRegistry::init('ShadowAttribute');
 		$shadowAttribute->recursive = -1;
-		foreach ($events as &$event) {
+		foreach ($events as $k => &$event) {
 			$proposals = $eventModel->downloadEventFromServer($event['Event']['uuid'], $server, null, true);
 			if (null != $proposals) {
 				if (isset($proposals['ShadowAttribute']['id'])) {
@@ -1025,6 +1030,17 @@ class Server extends AppModel {
 					}
 				}
 			}
+			if ($jobId) {
+				if ($k % 10 == 0) {
+					$job->id = $jobId;
+					$job->saveField('progress', 50 * (($k + 1) / count($events)));
+				}
+			}
+		}
+		if ($jobId) {
+			$job->saveField('progress', 100);
+			$job->saveField('message', 'Pull completed.');
+			$job->saveField('status', 4);
 		}
 		$this->Log = ClassRegistry::init('Log');
 		$this->Log->create();

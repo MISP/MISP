@@ -24,6 +24,7 @@ if (!$isSiteAdmin) exit();
 <li><?php echo $this->Form->postLink('Upgrade to 2.4', $baseurl . '/servers/upgrade2324');?> (This script will make the final changes to the database to bring it up to speed with 2.4)</li>
 <li><?php echo $this->Form->postLink('BETA UPDATES', $baseurl . '/servers/updateDatabase/24betaupdates');?> (This script will update your db from an earlier version of the beta)</li>
 <li><?php echo $this->Form->postLink('Index tables', $baseurl . '/servers/updateDatabase/indexTables');?> (This script will create indeces for all of the tables in MISP (other than primary keys))</li>
+<li><?php echo $this->Form->postLink('Fix non-empty sharing group IDs', $baseurl . '/servers/updateDatabase/fixNonEmptySharingGroupID');?> (This script will change the sharing_group_id to 0 in all non sharing group setting events and attributes))</li>
 </ul>
 </div>
 <?php 

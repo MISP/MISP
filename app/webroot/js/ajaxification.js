@@ -1090,9 +1090,8 @@ function indexEvaluateFiltering() {
 	$('#generatedURLContent').html(indexCreateFilters());
 }
 
-function quickFilterEvents(passedArgs) {
+function quickFilter(passedArgs, url) {
 	passedArgs["searchall"] = $('#quickFilterField').val();
-	var url = "/events/index";
 	for (var key in passedArgs) {
 		url += "/" + key + ":" + passedArgs[key];
 	}
@@ -2168,4 +2167,23 @@ function syncUserSelected() {
 	} else {
 		$('#syncServers').hide();
 	}
+}
+
+function filterAttributes(filter, id) {
+	$.ajax({
+		type:"get",
+		url:"/events/viewEventAttributes/" + id + "/attributeFilter:" + filter,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data) {
+			$("#attributes_div").html(data);
+			$(".attribute_filter_text_active").removeClass("attribute_filter_text_active").addClass("attribute_filter_text");
+			$("#filter_" + filter).removeClass("attribute_filter_text").addClass("attribute_filter_text_active");
+			$(".loading").hide();
+		},
+		error:function() {
+			showMessage('fail', 'Something went wrong - could not fetch attributes.');
+		}
+	});
 }
