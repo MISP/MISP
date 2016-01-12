@@ -938,7 +938,7 @@ class UsersController extends AppController {
 			else $this->Session->setFlash(__('E-mails sent.'));
 		}
 		$conditions = array();
-		if (!$this->_isSiteAdmin()) $conditions = array('org' => $this->Auth->user('org_id'));
+		if (!$this->_isSiteAdmin()) $conditions = array('org_id' => $this->Auth->user('org_id'));
 		$temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email'), 'order' => array('email ASC'), 'conditions' => $conditions));
 		$emails = array();
 		$gpgKeys = array();
