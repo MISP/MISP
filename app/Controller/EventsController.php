@@ -1496,7 +1496,7 @@ class EventsController extends AppController {
 			if (!Configure::read('MISP.background_jobs')) {
 				if (!is_array($result)) {
 					// redirect to the view event page
-					$this->Session->setFlash(__('Event published, but NO mail sent to any participants.', true));
+					$this->Session->setFlash(__('Event published without alerts.', true));
 				} else {
 					$lastResult = array_pop($result);
 					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
@@ -2917,6 +2917,7 @@ class EventsController extends AppController {
 					if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset ($resultArray[$k]);
 				}
 			}
+			$resultArray = array_values($resultArray);
 			$typeCategoryMapping = array();
 			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
 				foreach ($cat['types'] as $type) {
