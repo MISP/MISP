@@ -1,4 +1,6 @@
 # After installing MISP you can keep it up to date by periodically running the commands below.
+# use this between hotfix versions (such as 2.4.3 -> 2.4.13)
+# If you would like to upgrade from a minor version to another, look at the UPGRADE.txt file instead (such as 2.3.142 -> 2.4.13)
 
 # 1. Update the MISP code to the latest hotfix. If a new major version (2.4.x) has been released, refer to UPGRADE.txt instead.
 
