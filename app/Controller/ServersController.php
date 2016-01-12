@@ -791,6 +791,21 @@ class ServersController extends AppController {
 		if ($this->request->is('post')) {
 			$this->autoRender = false;
 			$this->loadModel('Log');
+			if (!is_writeable(APP . 'Config/config.php')) {
+				$this->Log->create();
+				$result = $this->Log->save(array(
+						'org' => $this->Auth->user('Organisation')['name'],
+						'model' => 'Server',
+						'model_id' => 0,
+						'email' => $this->Auth->user('email'),
+						'action' => 'serverSettingsEdit',
+						'user_id' => $this->Auth->user('id'),
+						'title' => 'Server setting issue',
+						'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
+				));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.')),'status'=>200));
+			}
+			
 			if (isset($found['beforeHook'])) {
 				$beforeResult = call_user_func_array(array($this->Server, $found['beforeHook']), array($setting, $this->request->data['Server']['value']));
 				if ($beforeResult !== true) {
@@ -805,7 +820,7 @@ class ServersController extends AppController {
 							'title' => 'Server setting issue',
 							'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
 					));
-					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)),'status'=>200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $beforeResult)),'status'=>200));
 				}
 			}
 			if ($found['type'] == 'boolean') {
