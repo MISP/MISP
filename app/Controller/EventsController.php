@@ -1680,6 +1680,8 @@ class EventsController extends AppController {
 		} else if ($eventid === false) {
 			$events = $this->Event->fetchEventIds($this->Auth->user(), $from, $to, $last, true);
 			if (empty($events)) $events = array(0 => -1);
+		} else {
+			$events = array($eventid);
 		}
 		$final = array();
 		$this->loadModel('Whitelist');
