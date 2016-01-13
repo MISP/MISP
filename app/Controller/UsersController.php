@@ -320,6 +320,7 @@ class UsersController extends AppController {
 			'conditions' => array('local' => 1),
 			'recursive' => -1, 
 			'fields' => array('id', 'name'),
+			'order' => array('LOWER(name) ASC')
 		));
 		$orgs = array();
 		foreach ($temp as $org) {
