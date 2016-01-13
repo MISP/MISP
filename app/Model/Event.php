@@ -1279,6 +1279,7 @@ class Event extends AppModel {
 	 	$params = array(
 	 			'conditions' => $conditions, //array of conditions
 	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp'),
+	 			'order' => array('Attribute.uuid ASC')
 	 	);
 	 	
 	 	if ($includeContext) {
