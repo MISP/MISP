@@ -242,9 +242,17 @@ class LogsController extends AppController {
 			$actions = array('' => array('ALL' => 'ALL'), 'actions' => array());
 			$actions['actions'] = array_merge($actions['actions'], $this->_arrayToValuesIndexArray($this->{$this->defaultModel}->validate['action']['rule'][1]));
 			$this->set('actions', $actions);
+			
+			// combobox for models
 			$models = array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist');
+			$existing_models = $this->Log->find('list', array(
+					'fields' => array('Log.model'),
+					'group' => array('Log.model')
+			));
+			$models = array_intersect($models, $existing_models);
 			$models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
 			$this->set('models', $models);
+			
 			$this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
 		}
 	}
