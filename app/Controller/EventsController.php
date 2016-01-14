@@ -217,16 +217,18 @@ class EventsController extends AppController {
 		}
 
 		// Finally, let's search on the event metadata!
-		
+		$conditions = array();
+		$orgs = $this->Event->Org->find('list', array(
+				'conditions' => array('lower(name) LIKE' => '%' .  strtolower($value) . '%'),
+				'recursive' => -1,
+				'fields' => array('id')					
+		));
+		if (!empty($orgs)) $conditions['OR']['orgc_id'] = array_values($orgs);
+		$conditions['OR']['lower(info) LIKE'] = '%' . strtolower($value) .'%';	
 		$otherEvents = $this->Event->find('all', array(
 				'recursive' => -1,
 				'fields' => array('id', 'orgc_id', 'info'),
-				'conditions' => array(
-					'OR' => array(
-						'lower(orgc) LIKE' => '%' . strtolower($value) .'%',
-						'lower(info) LIKE' => '%' . strtolower($value) .'%',
-					),
-				),
+				'conditions' => $conditions,
 		));
 		foreach ($otherEvents as $oE) {
 			if (!in_array($oE['Event']['id'], $result)) $result[] = $oE['Event']['id'];
