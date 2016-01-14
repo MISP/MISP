@@ -964,51 +964,97 @@ class Server extends AppModel {
 		if ($jobId) {
 			$job->saveField('message', 'Pulling proposals.');
 		}
-		$events = $eventModel->find('all', array(
-				'fields' => array('id', 'uuid'),
+		$events = $eventModel->find('list', array(
+				'fields' => array('uuid'),
 				'recursive' => -1,
 				'conditions' => $conditions
 		));
 		$shadowAttribute = ClassRegistry::init('ShadowAttribute');
 		$shadowAttribute->recursive = -1;
-		foreach ($events as $k => &$event) {
-			$proposals = $eventModel->downloadEventFromServer($event['Event']['uuid'], $server, null, true);
-			if (null != $proposals) {
-				if (isset($proposals['ShadowAttribute']['id'])) {
-					$temp = $proposals['ShadowAttribute'];
-					$proposals['ShadowAttribute'] = array(0 => $temp);
-				}
-				foreach($proposals['ShadowAttribute'] as &$proposal) {
-					unset($proposal['id']);
+		if (!empty($events)) {
+			$proposals = $eventModel->downloadProposalsFromServer($events, $server, false);
+			if ($proposals !== null) {
+				$uuidEvents = array_flip($events);
+				foreach ($proposals as $k => &$proposal) {
+					$proposal = $proposal['ShadowAttribute'];
 					$oldsa = $shadowAttribute->findOldProposal($proposal);
-					$proposal['event_id'] = $event['Event']['id'];
+					$proposal['event_id'] = $uuidEvents[$proposal['event_uuid']];
 					if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
 						if ($oldsa) $shadowAttribute->delete($oldsa['id']);
-						if (!isset($pulledProposals[$event['Event']['id']])) $pulledProposals[$event['Event']['id']] = 0;
-						$pulledProposals[$event['Event']['id']]++;
+						if (!isset($pulledProposals[$proposal['event_id']])) $pulledProposals[$proposal['event_id']] = 0;
+						$pulledProposals[$proposal['event_id']]++;
 						if (isset($proposal['old_id'])) {
 							$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
 							if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
 							else $proposal['old_id'] = 0;
 						}
 						// check if this is a proposal from an old MISP instance
-						if (!isset($proposal['org_id']) && isset($proposal['org'])) {
+						if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
 							$proposal['Org'] = $proposal['org'];
 							$proposal['EventOrg'] = $proposal['event_org'];
+						} else if (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
+							continue;
 						}
 						$proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
 						$proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
 						unset($proposal['Org']);
 						unset($proposal['EventOrg']);
 						$shadowAttribute->create();
-						$shadowAttribute->save($proposal);
+						if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
+					}
+					if ($jobId) {
+						if ($k % 50 == 0) {
+							$job->id = $jobId;
+							$job->saveField('progress', 50 * (($k + 1) / count($proposals)));
+						}
 					}
 				}
-			}
-			if ($jobId) {
-				if ($k % 10 == 0) {
-					$job->id = $jobId;
-					$job->saveField('progress', 50 * (($k + 1) / count($events)));
+			} else {
+				// Fallback for < 2.4.7 instances
+				$k = 0;
+				foreach ($events as $eid => &$event) {
+					$proposals = $eventModel->downloadEventFromServer($event, $server, null, true);
+					if (null != $proposals) {
+						if (isset($proposals['ShadowAttribute']['id'])) {
+							$temp = $proposals['ShadowAttribute'];
+							$proposals['ShadowAttribute'] = array(0 => $temp);
+						}
+						foreach($proposals['ShadowAttribute'] as &$proposal) {
+							$oldsa = $shadowAttribute->findOldProposal($proposal);
+							$proposal['event_id'] = $eid;
+							if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
+								if ($oldsa) $shadowAttribute->delete($oldsa['id']);
+								if (!isset($pulledProposals[$eid])) $pulledProposals[$eid] = 0;
+								$pulledProposals[$eid]++;
+								if (isset($proposal['old_id'])) {
+									$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
+									if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
+									else $proposal['old_id'] = 0;
+								}
+								// check if this is a proposal from an old MISP instance
+								if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
+									$proposal['Org'] = $proposal['org'];
+									$proposal['EventOrg'] = $proposal['event_org'];
+								} else if (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
+									continue;
+								}
+								$proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
+								$proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
+								unset($proposal['Org']);
+								unset($proposal['EventOrg']);
+								$shadowAttribute->create();
+								if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($eid);
+								
+							}
+						}
+					}
+					if ($jobId) {
+						if ($k % 10 == 0) {
+							$job->id = $jobId;
+							$job->saveField('progress', 50 * (($k + 1) / count($events)));
+						}
+					}
+					$k++;
 				}
 			}
 		}

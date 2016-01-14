@@ -965,8 +965,8 @@ class Event extends AppModel {
 		$request = array(
 				'header' => array(
 						'Authorization' => $authkey,
-						'Accept' => 'application/json',
-						'Content-Type' => 'application/json',
+						'Accept' => 'application/xml',
+						'Content-Type' => 'application/xml',
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
@@ -976,6 +976,34 @@ class Event extends AppModel {
 			$uri = $url . '/shadow_attributes/getProposalsByUuid/' . $eventId;
 		}
 		$response = $HttpSocket->get($uri, $data = '', $request);
+		if ($response->isOk()) {
+			$xmlArray = Xml::toArray(Xml::build($response->body));
+			$xmlArray = $this->updateXMLArray($xmlArray);
+			return $xmlArray['response'];
+		} else {
+			// TODO parse the XML response and keep the reason why it failed
+			return null;
+		}
+	}
+	
+	public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = false) {
+		$url = $server['Server']['url'];
+		$authkey = $server['Server']['authkey'];
+		if (null == $HttpSocket) {
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
+		}
+		$request = array(
+				'header' => array(
+						'Authorization' => $authkey,
+						'Accept' => 'application/json',
+						'Content-Type' => 'application/json',
+						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+				)
+		);
+		$uri = $url . '/shadow_attributes/getProposalsByUuidList';
+		$response = $HttpSocket->post($uri, json_encode($uuidList), $request);
 		if ($response->isOk()) {
 			return(json_decode($response->body, true));
 		} else {
