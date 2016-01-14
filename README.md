@@ -60,6 +60,11 @@ There are 2 branches:
 - develop: (very active development) new features and improvements.
 - 2.4 (current stable version): what we consider as stable with frequent updates as hot-fixes.
 
+Feature Request
+---------------
+
+[![Feature Requests](http://feathub.com/MISP/MISP?format=svg)](http://feathub.com/MISP/MISP)
+
 License
 -------
 
