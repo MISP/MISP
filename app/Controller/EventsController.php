@@ -2899,7 +2899,7 @@ class EventsController extends AppController {
 					} else {
 						$counter++;
 					}
-					//if (!$sa['deleted']) $this->Event->ShadowAttribute->__sendProposalAlertEmail($event['Event']['id']);
+					if (!$sa['deleted']) $this->Event->ShadowAttribute->__sendProposalAlertEmail($event['Event']['id']);
 				}
 			}
 			if ($success) {
