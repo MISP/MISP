@@ -33,6 +33,10 @@ addons:
             - python-pip
             - php5-mysql
 
+
+before_install:
+    - git config --global user.name "TravisCI"
+
 install:
     - git pull --recurse-submodules && git submodule update
     - pip install --user pyzmq
@@ -103,6 +107,7 @@ install:
     - sudo usermod -a -G www-data $USER
     - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
     - sudo chmod 777 ./key.txt
+    - sudo chmod -R 777 ./tests
     - sudo chown -R www-data:www-data `pwd`
     - sudo chmod +x /home/travis/build
     - sudo chmod +x /home/travis
@@ -119,13 +124,15 @@ before_script:
     - popd
 
 script:
+    - pushd tests
+    - ./curl_tests.sh $AUTH
+    - popd
     - pushd PyMISP
     - coverage run setup.py test
     - popd
 
 after_failure:
     - curl http://misp.local
-    - cat /etc/apache2/envvars
     - cat /etc/apache2/sites-available/misp.local.conf
     - sudo ls -l /var/log/apache2
     - sudo cat `pwd`/app/tmp/logs/error.log
@@ -134,7 +141,6 @@ after_failure:
     - sudo cat /var/log/apache2/misp.local_error.log
     - sudo cat /var/log/apache2/misp.local_access.log
     - pwd
-    - sudo ls -lR /home
 
 
 after_success:
