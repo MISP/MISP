@@ -239,6 +239,8 @@ su -s /bin/bash apache -c 'scl enable rh-php56 /var/www/MISP/app/Console/worker/
 vi /etc/rc.local
 # Add the following line at the end
 su -s /bin/bash apache -c 'scl enable rh-php56 /var/www/MISP/app/Console/worker/start.sh'
+# and make sure it will execute
+chmod +x /etc/rc.local
 
 # Now log in using the webinterface:
 # The default user/pass = admin@admin.test/admin 
