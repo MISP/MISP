@@ -1,0 +1,16 @@
+<VirtualHost *:80>
+	ServerAdmin me@me.local
+	ServerName misp.local
+	DocumentRoot /var/www/MISP/app/webroot
+	<Directory /var/www/MISP/app/webroot>
+		Options -Indexes
+		AllowOverride all
+		Order allow,deny
+		allow from all
+	</Directory>
+
+	LogLevel warn
+	ErrorLog /var/log/apache2/misp.local_error.log
+	CustomLog /var/log/apache2/misp.local_access.log combined
+	ServerSignature Off
+</VirtualHost>
