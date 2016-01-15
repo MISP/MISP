@@ -965,8 +965,8 @@ class Event extends AppModel {
 		$request = array(
 				'header' => array(
 						'Authorization' => $authkey,
-						'Accept' => 'application/xml',
-						'Content-Type' => 'application/xml',
+						'Accept' => 'application/json',
+						'Content-Type' => 'application/json',
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
@@ -977,9 +977,7 @@ class Event extends AppModel {
 		}
 		$response = $HttpSocket->get($uri, $data = '', $request);
 		if ($response->isOk()) {
-			$xmlArray = Xml::toArray(Xml::build($response->body));
-			$xmlArray = $this->updateXMLArray($xmlArray);
-			return $xmlArray['response'];
+			return json_decode($response->body, true);
 		} else {
 			// TODO parse the XML response and keep the reason why it failed
 			return null;
