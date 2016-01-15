@@ -22,17 +22,38 @@ Once the system is installed you can perform the following steps as root:
 curl -o epel.rpm http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
 rpm -Uvh epel.rpm
 
+# Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
+# Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
+yum install centos-release-scl
+
 # Because vim is just so practical
 yum install vim
 
 # Install the dependencies:
-yum install gcc git zip redis mysql-server php-mysql python-devel python-pip libxslt-devel zlib-devel php-devel php-xml php-mbstring
-yum install php-pear php-pecl-geoip
+yum install gcc git httpd zip redis mysql-server python-devel python-pip libxslt-devel zlib-devel
+
+# Install PHP 5.6 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php56/
+yum install rh-php56 rh-php56-php-fpm rh-php56-php-devel rh-php56-php-mysqlnd rh-php56-php-mbstring
+
+# rh-php56-php only provided mod_php for httpd24-httpd from SCL
+# if we want to use httpd from CentOS base we can use rh-php56-php-fpm instead
+chkconfig rh-php56-php-fpm on
+service rh-php56-php-fpm start
+
+# php-fpm is accessed using the fcgi interface
+yum install mod_fcgid mod_proxy_fcgi
+
+# Start a new shell with rh-php56 enabled
+scl enable rh-php56 bash
 
 pear channel-update pear.php.net
 
 pear install Crypt_GPG    # we need version >1.3.0 
-pear install Net_GeoIP
+
+# GPG needs lots of entropy, haveged provides entropy
+yum install haveged
+chkconfig haveged on
+service haveged start
 
 # Enable and start redis
 chkconfig redis on
@@ -54,7 +75,7 @@ cd /var/www/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
-git checkout v2.1.0.10
+git checkout v2.1.0.12
 git config core.filemode false
 # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
@@ -84,10 +105,14 @@ php composer.phar config vendor-dir Vendor
 php composer.phar install
 
 # CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis
-yum install php-pecl-redis
+pecl install redis
+echo "extension=redis.so" > /etc/opt/rh/rh-php56/php-fpm.d/redis.ini
+ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php56/php.d/99-redis.ini
+service rh-php56-php-fpm restart
 
 # If you have not yet set a timezone in php.ini
-echo 'date.timezone = "Europe/Amsterdam"' > /etc/php.d/timezone.ini
+echo 'date.timezone = "Europe/Amsterdam"' > /etc/opt/rh/rh-php56/php-fpm.d/timezone.ini
+ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php56/php.d/99-timezone.ini
 
 # To use the scheduler worker for scheduled tasks, do the following:
 cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
@@ -134,14 +159,11 @@ mysql -u misp -p misp < INSTALL/MYSQL.sql
 7/ Apache configuration
 -----------------------
 # Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
-# A sample ghost can be found in /var/www/MISP/INSTALL/apache.misp
+# A sample vhost can be found in /var/www/MISP/INSTALL/apache.misp.centos6
 
-cp /var/www/MISP/INSTALL/apache.misp /etc/httpd/conf.d/misp.conf
+cp /var/www/MISP/INSTALL/apache.misp.centos6 /etc/httpd/conf.d/misp.conf
 
-# Edit the misp.conf file and replace /var/log/apache2 with /var/log/httpd
-vi /etc/httpd/conf.d/misp.conf
-
-# Allow httpd to connect to the redis server over tcp/ip
+# Allow httpd to connect to the redis server and php-fpm over tcp/ip
 setsebool -P httpd_can_network_connect on
 
 # Enable and start the httpd service 
@@ -171,9 +193,6 @@ cp -a config.default.php config.php
 # bootstrap.php: uncomment the last 3 lines to enable the background workers (see below)
 # CakePlugin::loadAll(array('CakeResque' => array('bootstrap' => true)));
 
-# Setup localhost in database.php:
-# 'host' => 'localhost',
-
 # To enable the background workers, if you have installed the package required for it in 4/, uncomment the following lines:
 # in core.php (if you have just recently updated MISP, just add this line at the end of the file):
 # require_once dirname(__DIR__) . '/Vendor/autoload.php';
@@ -187,25 +206,25 @@ cp -a config.default.php config.php
 chown apache:apache /var/www/MISP/app/Config/config.php
 
 # Generate a GPG encryption key.
-mkdir /var/www/MISP/.gnupg
-chmod 700 /var/www/MISP/.gnupg
 # If the following command gives an error message, try it as root from the console
-# can't connect to `/var/www/MISP/.gnupg/S.gpg-agent': No such file or directory
-gpg --homedir /var/www/MISP/.gnupg --gen-key
+gpg --gen-key
+mv ~/.gnupg /var/www/MISP/
 chown -R apache:apache /var/www/MISP/.gnupg
+
 # The email address should match the one set in the config.php configuration file
-# Make sure that you use the same settings in the MISP Server Settings tool (Described on line 212)
+# Make sure that you use the same settings in the MISP Server Settings tool (Described on line 232)
 
 # And export the public key to the webroot
 sudo -u apache gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
 
 # Start the workers to enable background jobs
-su -s /bin/bash apache -c 'bash /var/www/MISP/app/Console/worker/start.sh'
+chmod +x /var/www/MISP/app/Console/worker/start.sh
+su -s /bin/bash apache -c 'scl enable rh-php56 /var/www/MISP/app/Console/worker/start.sh'
 
 # To make the background workers start on boot
 vi /etc/rc.local
 # Add the following line at the end
-su -s /bin/bash apache -c 'bash /var/www/MISP/app/Console/worker/start.sh'
+su -s /bin/bash apache -c 'scl enable rh-php56 /var/www/MISP/app/Console/worker/start.sh'
 
 # Now log in using the webinterface:
 # The default user/pass = admin@admin.test/admin 

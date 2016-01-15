@@ -29,7 +29,6 @@ apt-get install vim
 # Install the dependencies:
 apt-get install gcc zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev libapache2-mod-php5 curl
 pear install Crypt_GPG    # we need version >1.3.0 
-pear install Net_GeoIP
 
 3/ MISP code
 ------------
@@ -47,7 +46,7 @@ cd /var/www/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
-git checkout v2.1.0.10
+git checkout v2.1.0.12
 python setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
 git checkout v1.1.1.4
@@ -110,9 +109,9 @@ mysql -u misp -p misp < INSTALL/MYSQL.sql
 7/ Apache configuration
 -----------------------
 # Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
-# A sample ghost can be found in /var/www/MISP/INSTALL/apache.misp
+# A sample vhost can be found in /var/www/MISP/INSTALL/apache.misp.ubuntu
 
-cp /var/www/MISP/INSTALL/apache.misp /etc/apache2/sites-available/misp.conf
+cp /var/www/MISP/INSTALL/apache.misp.ubuntu /etc/apache2/sites-available/misp.conf
 
 # Be aware that the configuration files for apache 2.4 and up have changed. 
 # The configuration file has to have the .conf extension in the sites-available directory
