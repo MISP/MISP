@@ -108,6 +108,7 @@ php composer.phar install
 pecl install redis
 echo "extension=redis.so" > /etc/opt/rh/rh-php56/php-fpm.d/redis.ini
 ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php56/php.d/99-redis.ini
+service rh-php56-php-fpm restart
 
 # If you have not yet set a timezone in php.ini
 echo 'date.timezone = "Europe/Amsterdam"' > /etc/opt/rh/rh-php56/php-fpm.d/timezone.ini
@@ -211,7 +212,7 @@ mv ~/.gnupg /var/www/MISP/
 chown -R apache:apache /var/www/MISP/.gnupg
 
 # The email address should match the one set in the config.php configuration file
-# Make sure that you use the same settings in the MISP Server Settings tool (Described on line 230)
+# Make sure that you use the same settings in the MISP Server Settings tool (Described on line 232)
 
 # And export the public key to the webroot
 sudo -u apache gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
