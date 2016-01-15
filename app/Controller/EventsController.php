@@ -1036,7 +1036,7 @@ class EventsController extends AppController {
 		$this->Event->read(null, $id);
 		// check for if private and user not authorised to edit, go away
 		if (!$this->_isSiteAdmin() && !($this->userRole['perm_sync'] && $this->_isRest())) {
-			if (($this->Event->data['Event']['org_id'] != $this->_checkOrg()) || !($this->userRole['perm_modify'])) {
+			if (($this->Event->data['Event']['orgc_id'] != $this->_checkOrg()) || !($this->userRole['perm_modify'])) {
 				$this->Session->setFlash(__('You are not authorised to do that. Please considering using the propose attribute feature.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
@@ -1159,7 +1159,7 @@ class EventsController extends AppController {
 		$this->Event->read();
 		
 		if (!$this->_isSiteAdmin()) {
-			if ($this->Event->data['Event']['org_id'] != $this->_checkOrg() || !$this->userRole['perm_modify']) {
+			if ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify']) {
 				throw new MethodNotAllowedException();
 			}
 		}
