@@ -45,7 +45,7 @@ class Taxonomy extends AppModel{
 			$current = $this->find('first', array(
 				'conditions' => array('namespace' => $vocab['namespace']),
 				'recursive' => -1,
-				'fields' => array('version', 'enabled')
+				'fields' => array('version', 'enabled', 'namespace')
 			));
 			if (empty($current) || $vocab['version'] > $current['Taxonomy']['version']) {
 				$result = $this->__updateVocab($vocab, $current, array('colour'));
@@ -65,7 +65,7 @@ class Taxonomy extends AppModel{
 		$taxonomy = array();
 		if (!empty($current)) {
 			if ($current['Taxonomy']['enabled']) $enabled = true;
-			$this->delete($current['Taxonomy']['id']);
+			$this->deleteAll(array('Taxonomy.namespace' => $current['Taxonomy']['namespace']));
 		}
 		$taxonomy['Taxonomy'] = array('namespace' => $vocab['namespace'], 'description' => $vocab['description'], 'version' => $vocab['version'], 'enabled' => $enabled);
 		$predicateLookup = array();
