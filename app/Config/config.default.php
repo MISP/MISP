@@ -12,7 +12,7 @@ $config = array (
   array (
     'baseurl' => '',
     'footerpart1' => 'Powered by MISP',
-    'footerpart2' => '&copy; Belgian Defense CERT & NCIRC',
+    'footerpart2' => '© Belgian Defense CERT & NCIRC',
     'org' => 'ORGNAME',
     'showorg' => true,
     'background_jobs' => true,
