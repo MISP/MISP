@@ -90,7 +90,6 @@ class Organisation extends AppModel{
 	}
 	
 	public function captureOrg($org, $user, $force = false) {
-
 		if (is_array($org)) {
 			if (isset($org['uuid']) && !empty($org['uuid'])) {
 				$conditions = array('uuid' => $org['uuid']);

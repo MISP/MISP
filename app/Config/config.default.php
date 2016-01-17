@@ -11,8 +11,8 @@ $config = array (
   'MISP' => 
   array (
     'baseurl' => '',
-    'footerpart1' => 'Powered by MISP',
-    'footerpart2' => '© Belgian Defense CERT & NCIRC',
+    'footermidleft' => '',
+    'footermidright' => '',
     'org' => 'ORGNAME',
     'showorg' => true,
     'background_jobs' => true,
