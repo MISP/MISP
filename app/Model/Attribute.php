@@ -174,7 +174,8 @@ class Attribute extends AppModel {
 			'windows-service-displayname' => array('desc' => 'A windows service\'s displayname, not to be confused with the windows-service-name. This is the name that applications will generally display as the service\'s name in applications.'),//x
 			'whois-registrant-email' => array('desc' => 'The e-mail of a domain\'s registrant, obtained from the WHOIS information.'),//x
 			'whois-registrant-phone' => array('desc' => 'The phone number of a domain\'s registrant, obtained from the WHOIS information.'),//x
-			'whois-registar' => array('desc' => 'The registar of the domain, obtained from the WHOIS information.'),//x
+            'whois-registrant-name' => array('desc' => 'The name of a domain\'s registrant, obtained from the WHOIS information.'),//x
+            'whois-registar' => array('desc' => 'The registar of the domain, obtained from the WHOIS information.'),//x
 			'whois-creation-date' => array('desc' => 'The date of domain\'s creation, obtained from the WHOIS information.'),//x
 			'targeted-threat-index' => array('desc' => ''),
 			'mailslot' => array('desc' => 'MailSlot interprocess communication'),
@@ -228,7 +229,7 @@ class Attribute extends AppModel {
 					),
 			'Attribution' => array(
 					'desc' => 'Identification of the group, organisation, or country behind the attack',
-					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registar', 'whois-creation-date','comment', 'text', 'other')
+					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registar', 'whois-creation-date','comment', 'text', 'other')
 					),
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
@@ -780,7 +781,8 @@ class Attribute extends AppModel {
  			case 'regkey':
  			case 'regkey|value':
 			case 'filename':
-			case 'windows-scheduled-task':
+            case 'windows-scheduled-task':
+            case 'whois-registrant-name':
 			case 'whois-registar':
 			case 'whois-creation-date':
  				// no newline	
