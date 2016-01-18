@@ -78,30 +78,28 @@ class ComplexTypeTool {
 	private function __resolveType($input) {
 		$result = array();
 		$input = trim($input);
-		$input = strtolower($input);
-		
 		if (strpos($input, '|')) {
 			$compositeParts = explode('|', $input);
 			if (count($compositeParts) == 2) {
 				if ($this->__resolveFilename($compositeParts[0])) {
-					if (strlen($compositeParts[1]) == 32 && preg_match("#[0-9a-f]{32}$#", $compositeParts[1])) return array('types' => array('filename|md5', 'filename|imphash'), 'to_ids' => true, 'default_type' => 'filename|md5');
-					if (strlen($compositeParts[1]) == 40 && preg_match("#[0-9a-f]{40}$#", $compositeParts[1])) return array('types' => array('filename|sha1', 'filename|pehash'), 'to_ids' => true, 'default_type' => 'filename|sha1');
-					if (strlen($compositeParts[1]) == 56 && preg_match("#[0-9a-f]{56}$#", $compositeParts[1])) return array('types' => array('filename|sha512/224', 'filename|sha224'), 'to_ids' => true, 'default_type' => 'filename|sha224');
-					if (strlen($compositeParts[1]) == 64 && preg_match("#[0-9a-f]{64}$#", $compositeParts[1])) return array('types' => array('filename|sha256', 'filename|sha512/256', 'filename|authentihash'), 'to_ids' => true, 'default_type' => 'filename|sha256');
-					if (strlen($compositeParts[1]) == 96 && preg_match("#[0-9a-f]{96}$#", $compositeParts[1])) return array('types' => array('filename|sha384'), 'to_ids' => true, 'default_type' => 'filename|sha384');
-					if (strlen($compositeParts[1]) == 128 && preg_match("#[0-9a-f]{128}$#", $compositeParts[1])) return array('types' => array('filename|sha512', 'filename|sha'), 'to_ids' => true, 'default_type' => 'filename|sha512');
+					if (strlen($compositeParts[1]) == 32 && preg_match("#[0-9a-f]{32}$#i", $compositeParts[1])) return array('types' => array('filename|md5', 'filename|imphash'), 'to_ids' => true, 'default_type' => 'filename|md5');
+					if (strlen($compositeParts[1]) == 40 && preg_match("#[0-9a-f]{40}$#i", $compositeParts[1])) return array('types' => array('filename|sha1', 'filename|pehash'), 'to_ids' => true, 'default_type' => 'filename|sha1');
+					if (strlen($compositeParts[1]) == 56 && preg_match("#[0-9a-f]{56}$#i", $compositeParts[1])) return array('types' => array('filename|sha512/224', 'filename|sha224'), 'to_ids' => true, 'default_type' => 'filename|sha224');
+					if (strlen($compositeParts[1]) == 64 && preg_match("#[0-9a-f]{64}$#i", $compositeParts[1])) return array('types' => array('filename|sha256', 'filename|sha512/256', 'filename|authentihash'), 'to_ids' => true, 'default_type' => 'filename|sha256');
+					if (strlen($compositeParts[1]) == 96 && preg_match("#[0-9a-f]{96}$#i", $compositeParts[1])) return array('types' => array('filename|sha384'), 'to_ids' => true, 'default_type' => 'filename|sha384');
+					if (strlen($compositeParts[1]) == 128 && preg_match("#[0-9a-f]{128}$#i", $compositeParts[1])) return array('types' => array('filename|sha512', 'filename|sha'), 'to_ids' => true, 'default_type' => 'filename|sha512');
 					if (preg_match('#^[0-9]+:.+:.+$#', $compositeParts[1])) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep');
 				}
 			}
 		}
 		
 		// check for hashes
-		if (strlen($input) == 32 && preg_match("#[0-9a-f]{32}$#", $input)) return array('types' => array('md5', 'imhash'), 'to_ids' => true, 'default_type' => 'md5');
-		if (strlen($input) == 40 && preg_match("#[0-9a-f]{40}$#", $input)) return array('types' => array('sha1', 'pehash'), 'to_ids' => true, 'default_type' => 'sha1');
-		if (strlen($input) == 56 && preg_match("#[0-9a-f]{56}$#", $input)) return array('types' => array('sha224', 'sha512/224'), 'to_ids' => true, 'default_type' => 'sha224');
-		if (strlen($input) == 64 && preg_match("#[0-9a-f]{64}$#", $input)) return array('types' => array('sha256', 'sha512/256', 'authentihash'), 'to_ids' => true, 'default_type' => 'sha256');
-		if (strlen($input) == 96 && preg_match("#[0-9a-f]{96}$#", $input)) return array('types' => array('sha384'), 'to_ids' => true, 'default_type' => 'sha384');
-		if (strlen($input) == 128 && preg_match("#[0-9a-f]{128}$#", $input)) return array('types' => array('sha512'), 'to_ids' => true, 'default_type' => 'sha512');
+		if (strlen($input) == 32 && preg_match("#[0-9a-f]{32}$#i", $input)) return array('types' => array('md5', 'imhash'), 'to_ids' => true, 'default_type' => 'md5');
+		if (strlen($input) == 40 && preg_match("#[0-9a-f]{40}$#i", $input)) return array('types' => array('sha1', 'pehash'), 'to_ids' => true, 'default_type' => 'sha1');
+		if (strlen($input) == 56 && preg_match("#[0-9a-f]{56}$#i", $input)) return array('types' => array('sha224', 'sha512/224'), 'to_ids' => true, 'default_type' => 'sha224');
+		if (strlen($input) == 64 && preg_match("#[0-9a-f]{64}$#i", $input)) return array('types' => array('sha256', 'sha512/256', 'authentihash'), 'to_ids' => true, 'default_type' => 'sha256');
+		if (strlen($input) == 96 && preg_match("#[0-9a-f]{96}$#i", $input)) return array('types' => array('sha384'), 'to_ids' => true, 'default_type' => 'sha384');
+		if (strlen($input) == 128 && preg_match("#[0-9a-f]{128}$#i", $input)) return array('types' => array('sha512'), 'to_ids' => true, 'default_type' => 'sha512');
 		if (preg_match('#^[0-9]+:.+:.+$#', $input)) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep');
 		
 		$inputRefanged = preg_replace('/^hxxp/i', 'http', $input);
@@ -128,7 +126,7 @@ class ComplexTypeTool {
 			$temp = explode('.', $inputRefanged);
 	
 			//if (filter_var($input, FILTER_VALIDATE_URL)) {
-			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/u', $inputRefanged)) {
+			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/iu', $inputRefanged)) {
 				if (count($temp) > 2) {
 					return array('types' => array('hostname', 'domain', 'url'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				} else {
