@@ -782,6 +782,7 @@ class Attribute extends AppModel {
  			case 'regkey':
  			case 'regkey|value':
 			case 'filename':
+			case 'pdb':
             case 'windows-scheduled-task':
             case 'whois-registrant-name':
 			case 'whois-registar':
