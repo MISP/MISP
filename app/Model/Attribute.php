@@ -776,6 +776,7 @@ class Attribute extends AppModel {
  			case 'email-attachment':
 			case 'malware-type':
  			case 'url':
+ 			case 'uri':
  			case 'user-agent':
  			case 'regkey':
  			case 'regkey|value':
