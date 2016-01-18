@@ -941,11 +941,10 @@ class AttributesController extends AppController {
 					'recursive' => -1,
 					'fields' => array('id', 'orgc_id', 'user_id')
 			));
-			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org_id'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
+			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
 				throw new MethodNotAllowedException('Invalid Event.');
 			}
 		}
-		
 		// find all attributes from the ID list that also match the provided event ID.
 		$attributes = $this->Attribute->find('all', array(
 			'recursive' => -1,
