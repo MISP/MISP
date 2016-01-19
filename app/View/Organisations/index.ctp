@@ -21,7 +21,7 @@
 <ul>
 <?php
 $this->Paginator->options(array(
-		'url' => $baseurl . '/organisations/index/' . $scope,
+		'url' => '/organisations/index/' . $scope,
 		'update' => '.span12',
 		'evalScripts' => true,
 		'before' => '$(".progress").show()',
