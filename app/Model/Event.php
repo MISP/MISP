@@ -606,8 +606,7 @@ class Event extends AppModel {
 			if (isset($data['Event'][$object]) && is_array($data['Event'][$object]) && count($data['Event'][$object])) {
 				if (!is_numeric(implode(array_keys($data['Event'][$object]), ''))) {
 					// single attribute
-					$data['Event'][$object][0] = $data['Event'][$object];
-					//$data['Event'][$object] = array(0 => $data['Event'][$object]);
+					$data['Event'][$object] = array(0 => $data['Event'][$object]);
 				}
 			}
 		}
@@ -1657,6 +1656,7 @@ class Event extends AppModel {
 		$sgs = array();
 		if ($data['Event']['distribution'] == 4) $sgs[$data['Event']['SharingGroup']['uuid']] = $data['Event']['SharingGroup'];
 		if (isset($data['Event']['Attribute'])) {
+			if (!isset($data['Event']['Attribute'][0])) $data['Event']['Attribute'] = array(0 => $data['Event']['Attribute']);
 			foreach ($data['Event']['Attribute'] as &$attribute) {
 				if (isset($attribute['SharingGroup']) && !empty($attribute['SharingGroup']) && isset($attribute['SharingGroup'][0])) $attribute['SharingGroup'] = $attribute['SharingGroup'][0]; 
 				if ($attribute['distribution'] == 4 && !isset($sgs[$attribute['SharingGroup']['uuid']])) $sgs[$attribute['SharingGroup']['uuid']] = $attribute['SharingGroup']; 
