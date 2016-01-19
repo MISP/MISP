@@ -3,12 +3,12 @@ App::uses('AppController', 'Controller');
 
 class OrganisationsController extends AppController {
 	public $components = array('Session', 'RequestHandler');
-	
+
 	public function beforeFilter() {
 		parent::beforeFilter();
 		if(!empty($this->request->params['admin']) && !$this->_isSiteAdmin()) $this->redirect('/');
 	}
-	
+
 	public $paginate = array(
 			'limit' => 60,
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
@@ -16,12 +16,32 @@ class OrganisationsController extends AppController {
 					'Organisation.name' => 'ASC'
 			),
 	);
-	
-	public function index($local = true) {
+
+	public function index() {
+		$conditions = array();
 		// We can either index all of the organisations existing on this instance (default)
 		// or we can pass the 'external' keyword in the URL to look at the added external organisations
-		if ($local === 'external' || $local === 'remote') $local = false;
-		$this->paginate['conditions'] = array('Organisation.local' => $local);
+		$scope = isset($this->passedArgs['scope']) ? $this->passedArgs['scope'] : 'local';
+		if ($scope !== 'all') $conditions['AND'][] = array('Organisation.local' => $scope === 'external' ? 0 : 1);
+		$passedArgs = $this->passedArgs;
+
+		if (isset($this->request->data['searchall'])) $searchall = $this->request->data['searchall'];
+		else if (isset($this->passedArgs['all'])) $searchall = $this->passedArgs['all'];
+		else if (isset($this->passedArgs['searchall'])) $searchall = $this->passedArgs['searchall'];
+
+
+		if (isset($searchall) && !empty($searchall)) {
+			$passedArgs['searchall'] = $searchall;
+			$allSearchFields = array('name', 'description', 'nationality', 'sector', 'type', 'contacts');
+			foreach ($allSearchFields as $field) {
+				$conditions['OR'][] = array('Organisation.' . $field . ' LIKE' => '%' . $passedArgs['searchall'] . '%');
+			}
+		}
+		$this->set('passedArgs', json_encode($passedArgs));
+		$this->paginate = array(
+				'conditions' => $conditions,
+				'recursive' => -1,
+		);
 		$orgs = $this->paginate();
 		if ($this->_isSiteAdmin()) {
 			$this->loadModel('User');
@@ -35,13 +55,13 @@ class OrganisationsController extends AppController {
 						$org_creator_ids[$org['Organisation']['created_by']] = 'Unknown';
 					}
 				}
-			}	
+			}
 			$this->set('org_creator_ids', $org_creator_ids);
 		}
-		$this->set('local', $local);
+		$this->set('scope', $scope);
 		$this->set('orgs', $orgs);
 	}
-	
+
 	public function admin_add() {
 		if($this->request->is('post')) {
 			$this->Organisation->create();
@@ -56,7 +76,7 @@ class OrganisationsController extends AppController {
 		}
 		$this->set('countries', $this->_arrayToValuesIndexArray($this->Organisation->countries));
 	}
-	
+
 	public function admin_edit($id) {
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
@@ -76,12 +96,12 @@ class OrganisationsController extends AppController {
 		$this->request->data = $this->Organisation->data;
 		$this->set('id', $id);
 	}
-	
+
 	public function admin_delete($id) {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('Action not allowed, post request expected.');
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
-		
+
 		$org = $this->Organisation->find('first', array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
@@ -97,12 +117,12 @@ class OrganisationsController extends AppController {
 			$this->redirect($url);
 		}
 	}
-	
+
 	public function admin_generateuuid() {
 		$this->set('uuid', $this->Organisation->generateUuid());
 		$this->set('_serialize', array('uuid'));
 	}
-	
+
 	public function view($id) {
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
@@ -116,9 +136,9 @@ class OrganisationsController extends AppController {
 				'conditions' => array('id' => $id),
 				'fields' => $fields
 		));
-		
+
 		$this->set('local', $org['Organisation']['local']);
-	
+
 		if ($fullAccess) {
 			$creator = $this->Organisation->User->find('first', array('conditions' => array('User.id' => $org['Organisation']['created_by'])));
 			$this->set('creator', $creator);
@@ -127,7 +147,7 @@ class OrganisationsController extends AppController {
 		$this->set('org', $org);
 		$this->set('id', $id);
 	}
-	
+
 	public function landingpage($id) {
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
@@ -138,7 +158,7 @@ class OrganisationsController extends AppController {
 		$this->set('org', $org['Organisation']['name']);
 		$this->render('ajax/landingpage');
 	}
-	
+
 	public function fetchOrgsForSG($idList = '{}', $type) {
 		if ($type === 'local') $local = 1;
 		else $local = 0;
@@ -162,7 +182,7 @@ class OrganisationsController extends AppController {
 		$this->set('orgs', $orgs);
 		$this->render('ajax/fetch_orgs_for_sg');
 	}
-	
+
 	public function fetchSGOrgRow($id, $removable = false, $extend = false) {
 		$this->layout = false;
 		$this->autoRender = false;
@@ -171,18 +191,22 @@ class OrganisationsController extends AppController {
 		$this->set('extend', $extend);
 		$this->render('ajax/sg_org_row_empty');
 	}
-	
+
 	public function getUUIDs() {
 		if (!$this->Auth->user('Role')['perm_sync']) throw new MethodNotAllowedException('This action is restricted to sync users');
 		$temp = $this->Organisation->find('all', array(
-			'recursive' => -1,
-			'conditions' => array('local' => 1),
-			'fields' => array('Organisation.uuid')
+				'recursive' => -1,
+				'conditions' => array('local' => 1),
+				'fields' => array('Organisation.uuid')
 		));
 		$orgs = array();
 		foreach ($temp as $t) {
 			$orgs[] = $t['Organisation']['uuid'];
 		}
 		return new CakeResponse(array('body'=> json_encode($orgs)));
+	}
+	
+	public function adminMerge() {
+		
 	}
 }

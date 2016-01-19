@@ -1,13 +1,27 @@
 <div class="organisations index">
-<?php if ($local): ?>
-	<h2>Local organisations on this instance</h2>
-<?php else: ?>
-	<h2>Known remote organisations on other instances</h2>
-<?php endif;?>
+<?php 
+	$texts = array(
+			'all' => array(
+					'text' => 'All organisations',
+					'extra' => ', both local and remote'
+			),
+			'external' => array(
+					'text' => 'Known remote organisations',
+					'extra' => ' on other instances'
+			),
+			'local' => array(
+					'text' => 'Local organisations',
+					'extra' => ' having a presence on this instance'
+			),
+	);
+	if (!in_array($scope, array_keys($texts))) $scope = 'local';
+?>
+<h2><?php echo $texts[$scope]['text'] . $texts[$scope]['extra']; ?></h2>
 <div class="pagination">
 <ul>
 <?php
 $this->Paginator->options(array(
+		'url' => $baseurl . '/organisations/index/' . $scope,
 		'update' => '.span12',
 		'evalScripts' => true,
 		'before' => '$(".progress").show()',
@@ -20,9 +34,16 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
 ?>
         </ul>
     </div>
-    <div class="tabMenuFixedContainer">
-    	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($local) echo 'tabMenuActive';?>" onClick="window.location='/organisations/index'">Local Organisations</span>
-    	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if (!$local) echo 'tabMenuActive';?>" onClick="window.location='/organisations/index/remote'">Known Remote Organisations</span>
+    <div class="tabMenuFixedContainer" style="display:inline-block;">
+    <?php 
+    	foreach (array('local', 'external', 'all') as $scopeChoice):
+    ?>
+    	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($scope === $scopeChoice) echo 'tabMenuActive';?>" onClick="window.location='/organisations/index/scope:<?php echo h($scopeChoice);?>'"><?php echo $texts[$scopeChoice]['text'];?></span>
+    <?php
+    	endforeach; 	
+    ?>
+		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo  h($passedArgs); ?>, '<?php echo $baseurl . '/organisations/index'; ?>');">Filter</span>
+		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
     </div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
@@ -40,6 +61,7 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
 			<?php if ($isSiteAdmin): ?>
 				<th>Added by</th>
 			<?php endif; ?>
+			<th><?php echo $this->Paginator->sort('local');?></th>
 			<th class="actions">Actions</th>
 	</tr>
 	<?php
@@ -66,6 +88,7 @@ foreach ($orgs as $org): ?>
 		<?php if ($isSiteAdmin): ?>
 			<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org_creator_ids[$org['Organisation']['created_by']]); ?></td>
 		<?php endif; ?>
+		<td class="short <?php echo $org['Organisation']['local'] ? 'green' : 'red';?>" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo $org['Organisation']['local'] ? 'Yes' : 'No';?></td>
 		<td class="short action-links">
 			<?php if ($isSiteAdmin): ?>
 				<a href='/admin/organisations/edit/<?php echo $org['Organisation']['id'];?>' class = "icon-edit" title = "Edit"></a>

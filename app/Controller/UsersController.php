@@ -234,14 +234,13 @@ class UsersController extends AppController {
 		$overrideAbleParams = array('all');
 		$org = $this->User->Organisation->read(null, $id);
 		if (!$this->User->Organisation->exists() || !($this->_isSiteAdmin() || $this->Auth->user('org_id') == $id)) {
-			throw MethodNotAllowedException('Organisation not found or no authorisation to view it.');
+			throw new MethodNotAllowedException('Organisation not found or no authorisation to view it.');
 		}
 		$user_fields = array('id', 'email', 'gpgkey', 'nids_sid');
 		$conditions = array('org_id' => $id);
 		if ($this->_isSiteAdmin() || ($this->_isAdmin() && $this->Auth->user('org_id') == $id)) {
 			$user_fields = array_merge($user_fields, array('newsread', 'termsaccepted', 'change_pw', 'authkey'));
 		}
-		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['searchall'])) $this->request->data['all'] = $this->request->data['searchall'];
 			if (isset($this->request->data['all']) && !empty($this->request->data['all'])) {
