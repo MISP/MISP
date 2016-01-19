@@ -719,7 +719,17 @@ class EventsController extends AppController {
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = &$results[0];
-		if ($this->_isRest()) $this->set('event', $event);
+		if ($this->_isRest()) {
+			if (!empty($event['Attribute'])) {
+				foreach ($event['Attribute'] as &$attribute) {
+					if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
+						$encodedFile = $this->Event->Attribute->base64EncodeAttachment($attribute);
+						$attribute['data'] = $encodedFile;
+					}
+				}
+			}
+			$this->set('event', $event);
+		}
 		if (!$this->_isRest()) $this->__viewUI($event, $continue, $fromEvent);
 	}
 	
