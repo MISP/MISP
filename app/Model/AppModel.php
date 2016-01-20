@@ -167,6 +167,19 @@ class AppModel extends Model {
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
 				break;
+			case 'cleanupAfterUpgrade':
+				$sqlArray[] = 'ALTER TABLE `events` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `events` DROP `orgc`;';
+				$sqlArray[] = 'ALTER TABLE `correlations` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `jobs` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `jobs` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `servers` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `servers` DROP `organization`;';
+				$sqlArray[] = 'ALTER TABLE `shadow_attributes` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `shadow_attributes` DROP `event_org`;';
+				$sqlArray[] = 'ALTER TABLE `threads` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `users` DROP `org`;';
+				break;
 			default:
 				return false;
 				break;

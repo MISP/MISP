@@ -1419,6 +1419,14 @@ a.proposal_link_red:hover {
 	color: orange;
 }
 
+.white {
+	color: white;
+}
+
+.red-background {
+	background-color:red;
+}
+
 .bold {
 	font-weight: bold;
 }
