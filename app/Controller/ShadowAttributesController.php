@@ -828,7 +828,7 @@ class ShadowAttributesController extends AppController {
 	public function index($eventId = false) {
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
-			$conditions = array('Event.org =' => $this->Auth->user('org_id'));
+			$conditions = array('Event.org_id' => $this->Auth->user('org_id'));
 		}
 		if ($eventId && is_numeric($eventId)) $conditions['ShadowAttribute.event_id'] = $eventId;
 		$conditions[] = array('deleted' => 0);
