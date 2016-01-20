@@ -172,7 +172,6 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE `events` DROP `orgc`;';
 				$sqlArray[] = 'ALTER TABLE `correlations` DROP `org`;';
 				$sqlArray[] = 'ALTER TABLE `jobs` DROP `org`;';
-				$sqlArray[] = 'ALTER TABLE `jobs` DROP `org`;';
 				$sqlArray[] = 'ALTER TABLE `servers` DROP `org`;';
 				$sqlArray[] = 'ALTER TABLE `servers` DROP `organization`;';
 				$sqlArray[] = 'ALTER TABLE `shadow_attributes` DROP `org`;';
