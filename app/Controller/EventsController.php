@@ -588,21 +588,17 @@ class EventsController extends AppController {
 			$eIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
 			$conditions['AND'][] = array('Event.id' => $eIds);
 		}
-		$events = $this->Event->find('all', array(
-			'recursive' => -1,
-			'fields' => array('orgc_id', 'distribution'),
-			'contain' => array('Orgc' => array('fields' => array('id', 'name'))),
-			'conditions' => $conditions,
-			'group' => 'orgc_id'
-		));
 		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
 		if (Configure::read('MISP.showorg')){
-			$orgs = array();
-			foreach ($events as $e) {
-				$orgs[$e['Event']['orgc_id']] = $e['Orgc']['name'];
-			}
+			$orgs = $this->Event->find('list', array(
+					'recursive' => -1,
+					'fields' => array('Orgc.name'),
+					'contain' => array('Orgc'),
+					'conditions' => $conditions,
+					'group' => 'LOWER(Orgc.name)'
+			));
 			$this->set('showorg', true);
-			$this->set('orgs', $orgs);
+			$this->set('orgs', $this->_arrayToValuesIndexArray($orgs));
 			$rules[] = 'org';
 		} else {
 			$this->set('showorg', false);
