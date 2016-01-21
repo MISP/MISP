@@ -625,7 +625,6 @@ class UsersController extends AppController {
 				));
 				$this->Role->save($siteAdmin);
 			}
-				
 			if ($this->User->Organisation->find('count', array('conditions' => array('Organisation.local' => true))) == 0) {
 				$org = array('Organisation' => array(
 						'id' => 1,
