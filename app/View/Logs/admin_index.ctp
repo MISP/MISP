@@ -69,7 +69,7 @@
 				else echo (h($item['Log']['org'])); ?>&nbsp;</td>
 			<td class="short"><?php echo h($item['Log']['created']); ?>&nbsp;</td>
 			<td class="short"><?php
-				if (isset($modelSearch) && $modelSearch != "ALL") echo nl2br($this->Highlight->highlighter(h($item['Log']['model']), $modelSearchReplacePairs));
+				if (isset($modelSearch) && $modelSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['model']), $modelSearchReplacePairs));
 				else echo (h($item['Log']['model'])); ?>&nbsp;</td>
 			<td class="short"><?php
 				if (isset($actionSearch) && $actionSearch != "ALL") echo nl2br($this->Highlight->highlighter(h($item['Log']['action']), $actionSearchReplacePairs));
