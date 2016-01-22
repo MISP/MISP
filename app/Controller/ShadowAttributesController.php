@@ -476,7 +476,7 @@ class ShadowAttributesController extends AppController {
 		}
 		$sa = $this->ShadowAttribute->find('first', array(
 			'recursive' => -1,
-			'contain' => array('Event' => array('fields' => array('Event.org', 'Event.distribution', 'Event.id'))),
+			'contain' => array('Event' => array('fields' => array('Event.org_id', 'Event.distribution', 'Event.id'))),
 			'conditions' => array('ShadowAttribute.id' => $id)
 		));
 		if (!$this->ShadowAttribute->Event->checkIfAuthorised($this->Auth->user(), $sa['Event']['id'])) throw new UnauthorizedException('You do not have the permission to view this event.');
