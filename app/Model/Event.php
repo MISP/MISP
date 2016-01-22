@@ -1230,6 +1230,14 @@ class Event extends AppModel {
 			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgsids);
 			// Let's also find all the relations for the attributes - this won't be in the xml export though
 			$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgsids);
+			if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute']) && isset($options['includeAttachments']) && $options['includeAttachments']) {
+				foreach ($event['ShadowAttribute'] as &$sa) {
+					if ($this->ShadowAttribute->typeIsAttachment($sa['type'])) {
+						$encodedFile = $this->ShadowAttribute->base64EncodeAttachment($sa);
+						$sa['data'] = $encodedFile;
+					}
+				}
+			}
 			foreach ($event['Attribute'] as $key => &$attribute) {
 				if (isset($options['includeAttachments']) && $options['includeAttachments']) {
 					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
@@ -1258,7 +1266,9 @@ class Event extends AppModel {
 			}
 			// remove proposals to attributes that we cannot see
 			// if the shadow attribute wasn't moved within an attribute before, this is the case
-			foreach ($event['ShadowAttribute'] as $k => &$sa) if(!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
+			foreach ($event['ShadowAttribute'] as $k => &$sa) {
+				if(!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
+			}
 		}
 		return $results;
 	}
