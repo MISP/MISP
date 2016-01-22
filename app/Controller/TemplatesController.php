@@ -267,7 +267,7 @@ class TemplatesController extends AppController {
 		if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 		if (empty($template)) throw new MethodNotAllowedException('Template not found or you are not authorised to edit it.');
 		if (!$this->_isSiteAdmin()) {
-			if ($event['Event']['orgc_id'] != $this->Auth->user('Organisation')['name']) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
+			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 			if ($template['Template']['org'] != $this->Auth->user('Organisation')['name'] && !$template['Template']['share']) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');	
 		}
 		
