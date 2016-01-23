@@ -104,6 +104,7 @@ class ComplexTypeTool {
 		
 		$inputRefanged = preg_replace('/^hxxp/i', 'http', $input);
 		$inputRefanged = preg_replace('/\[\.\]/', '.' , $inputRefanged);
+		$inputRefanged = rtrim($inputRefanged, ".");
 		// note down and remove the port if it's a url / domain name / hostname / ip
 		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
 		$comment = false;
@@ -124,7 +125,6 @@ class ComplexTypeTool {
 		// check for domain name, hostname, filename
 		if (strpos($inputRefanged, '.') !== false) {
 			$temp = explode('.', $inputRefanged);
-	
 			//if (filter_var($input, FILTER_VALIDATE_URL)) {
 			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/iu', $inputRefanged)) {
 				if (count($temp) > 2) {
