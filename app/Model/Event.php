@@ -1505,6 +1505,7 @@ class Event extends AppModel {
 	 	$body .= 'Date        : ' . $event['Event']['date'] . "\n";
 	 	if (Configure::read('MISP.showorg')) {
 	 		$body .= 'Reported by : ' . $event['Orgc']['name'] . "\n";
+	 		$body .= 'Local owner of the event : ' . $event['Org']['name'] . "\n";
 	 	}
 	 	$body .= 'Distribution: ' . $this->distributionLevels[$event['Event']['distribution']] . "\n";
 	 	if ($event['Event']['distribution'] == 4) {
