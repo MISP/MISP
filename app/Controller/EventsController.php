@@ -2633,7 +2633,6 @@ class EventsController extends AppController {
 				'fields' => array('id', 'orgc_id'),
 				'recursive' => -1
 		));
-		if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc_id'] != $this->Auth->user('org_id')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 		$this->set('event_id', $id);
 		if ($this->request->is('get')) {
 			$this->layout = 'ajax';
@@ -2709,9 +2708,10 @@ class EventsController extends AppController {
 			$event = $this->Event->find('first', array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
-				'fields' => array('orgc_id', 'id', 'distribution', 'published'),
+				'fields' => array('orgc_id', 'id', 'distribution', 'published', 'uuid'),
 			));
-			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc_id'] != $this->Auth->user('org_id')) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc_id'] != $this->Auth->user('org_id')) $objectType = 'ShadowAttribute';
+			else $objectType = 'Attribute';
 			$saved = 0;
 			$failed = 0;
 			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
@@ -2722,12 +2722,18 @@ class EventsController extends AppController {
 					$types = array($attribute['type']);
 				}
 				foreach ($types as $type) {
-					$this->Event->Attribute->create();
+					$this->Event->$objectType->create();
 					$attribute['type'] = $type;
 					$attribute['distribution'] = 5;
 					if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
 					$attribute['event_id'] = $id;
-					if ($this->Event->Attribute->save($attribute)) {
+					if ($objectType == 'ShadowAttribute') {
+						$attribute['org_id'] = $this->Auth->user('org_id');
+						$attribute['event_org_id'] = $event['Event']['orgc_id'];
+						$attribute['email'] = $this->Auth->user('email');
+						$attribute['event_uuid'] = $event['Event']['uuid'];
+					}
+					if ($this->Event->$objectType->save($attribute)) {
 						$saved++;
 					} else {
 						$failed++;
