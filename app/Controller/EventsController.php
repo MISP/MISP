@@ -2711,6 +2711,7 @@ class EventsController extends AppController {
 				'fields' => array('orgc_id', 'id', 'distribution', 'published', 'uuid'),
 			));
 			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc_id'] != $this->Auth->user('org_id')) $objectType = 'ShadowAttribute';
+			else if ($this->_isSiteAdmin() && isset($this->request->data['Attribute']['force']) && $this->request->data['Attribute']['force']) $objectType = 'ShadowAttribute';
 			else $objectType = 'Attribute';
 			$saved = 0;
 			$failed = 0;
