@@ -414,7 +414,7 @@ class UsersController extends AppController {
 		$this->loadModel('Server');
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
-		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name')));
+		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name', 'url')));
 		$servers = array(0 => 'Not bound to a server');
 		if (!empty($temp)) foreach ($temp as $t) {
 			if (!empty($t['Server']['name'])) $servers[$t['Server']['id']] = $t['Server']['name'];
