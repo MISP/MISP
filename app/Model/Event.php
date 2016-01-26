@@ -1121,7 +1121,7 @@ class Event extends AppModel {
 		}
 		if ($options['from']) $conditions['AND'][] = array('Event.date >=' => $options['from']);
 		if ($options['to']) $conditions['AND'][] = array('Event.date <=' => $options['to']);
-		if ($options['last']) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
+		if ($options['last']) $conditions['AND'][] = array('Event.publish_timestamp >=' => $options['last']);
 		if ($options['event_uuid']) $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
 	
 		
