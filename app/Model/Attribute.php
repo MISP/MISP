@@ -134,9 +134,9 @@ class Attribute extends AppModel {
  			'target-user' => array('desc' => 'Attack Targets Username(s)'),
  			'target-email' => array('desc' => 'Attack Targets Email(s)'),
  			'target-machine' => array('desc' => 'Attack Targets Machine Name(s)'),
- 			'target-org' => array('desc' => 'Attack Targets Department or Orginization(s)'),
- 			'target-location' => array('desc' => 'Attack Targets Physical Location(s)'),
- 			'target-external' => array('desc' => 'External Target Orginizations Affected by this Attack'),
+			'target-org' => array('desc' => 'Attack Targets Department or Organization(s)'),
+			'target-location' => array('desc' => 'Attack Targets Physical Location(s)'),
+			'target-external' => array('desc' => 'External Target Organizations Affected by this Attack'),
 			'btc' => array('desc' => 'Bitcoin Address'),//
 			'iban' => array('desc' => 'International Bank Account Number'),//
 			'bic' => array('desc' => 'Bank Identifier Code Number'),
