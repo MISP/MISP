@@ -179,6 +179,7 @@
 					<li id='liaddOrg'><a href="<?php echo $baseurl;?>/admin/organisations/add">Add Organisation</a></li>
 					<?php if ($menuItem === 'editOrg' || $menuItem === 'viewOrg'): ?>
 						<li id='lieditOrg'><a href="<?php echo $baseurl;?>/admin/organisations/edit/<?php echo h($id);?>">Edit Organisation</a></li>
+						<li id='limergeOrg'><a class="useCursorPointer" onClick="getPopup('<?php echo h($id); ?>', 'organisations', 'merge', 'admin');">Merge Organisation</a></li>
 					<?php endif;?>
 					<?php if ($menuItem === 'editOrg' || $menuItem === 'viewOrg'): ?>
 						<li id='liviewOrg'><a href="<?php echo $baseurl;?>/organisations/view/<?php echo h($id);?>">View Organisation</a></li>

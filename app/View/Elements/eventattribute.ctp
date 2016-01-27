@@ -77,8 +77,8 @@
 	<div class="tabMenu tabMenuToolsBlock noPrint">
 		<?php if ($mayModify): ?>
 			<span id="create-button" title="Populate using a template" class="icon-list-alt useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'templates', 'templateChoices');"></span>
-		<?php endif; ?>		
-		<span id="freetext-button" title="Populate using the freetext import tool" class="icon-exclamation-sign useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'events', 'freeTextImport');"></span>
+		<?php endif; ?>
+		<span id="freetext-button" title="Populate using the freetext import tool" class="icon-exclamation-sign icon-inverse useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'events', 'freeTextImport');"></span>
 		<?php if ($mayModify): ?>
 			<span id="attribute-replace-button" title="Replace all attributes of a category/type combination within the event" class="icon-random useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'attributes', 'attributeReplace');"></span>
 		<?php endif; ?>			

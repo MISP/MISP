@@ -206,7 +206,35 @@ class OrganisationsController extends AppController {
 		return new CakeResponse(array('body'=> json_encode($orgs)));
 	}
 	
-	public function adminMerge() {
-		
+	public function admin_merge($id) {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
+		if ($this->request->is('Post')) {
+			$result = $this->Organisation->orgMerge($id, $this->request->data, $this->Auth->user());
+			if ($result) $this->Session->setFlash('The organisation has been successfully merged.');
+			else $this->Session->setFlash('There was an error while merging the organisations. To find out more about what went wrong, refer to the audit logs. If you would like to revert the changes, you can find a .sql file ');
+			$this->redirect(array('admin' => false, 'action' => 'index'));
+		} else {
+			$currentOrg = $this->Organisation->find('first', array('fields' => array('id', 'name', 'uuid', 'local'), 'recursive' => -1, 'conditions' => array('Organisation.id' => $id)));
+			$orgs['local'] = $this->Organisation->find('all', array(
+					'fields' => array('id', 'name', 'uuid'), 
+					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => true),
+					'order' => 'lower(Organisation.name) ASC'
+			));
+			$orgs['external'] = $this->Organisation->find('all', array(
+					'fields' => array('id', 'name', 'uuid'),
+					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => false),
+					'order' => 'lower(Organisation.name) ASC'
+			));
+			foreach (array('local', 'external') as $type) {
+				$orgOptions[$type] = Hash::combine($orgs[$type], '{n}.Organisation.id', '{n}.Organisation.name');
+				$orgs[$type] = Hash::combine($orgs[$type], '{n}.Organisation.id', '{n}');
+			}
+			$this->set('orgs', json_encode($orgs));
+			$this->set('orgOptions', $orgOptions);
+			$this->set('currentOrg', $currentOrg);
+			$this->layout = false;
+			$this->autoRender = false;
+			$this->render('ajax/merge');
+		}
 	}
 }

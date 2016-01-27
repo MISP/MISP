@@ -893,9 +893,10 @@ function templateElementFileCategoryChange(category) {
 	}
 }
 
-function getPopup(id, context, target) {
+function getPopup(id, context, target, admin) {
 	$("#gray_out").fadeIn();
 	var url = "";
+	if (typeof admin !== 'undefined') url+= "/admin";
 	if (context != '') url += "/" + context;
 	if (target != '') url += "/" + target;
 	if (id != '') url += "/" + id;
@@ -2163,4 +2164,26 @@ function filterAttributes(filter, id) {
 			showMessage('fail', 'Something went wrong - could not fetch attributes.');
 		}
 	});
+}
+
+function mergeOrganisationUpdate() {
+	var orgTypeOptions = ['local', 'external'];
+	var orgTypeSelects = ['OrganisationOrgsLocal', 'OrganisationOrgsExternal'];
+	orgType = orgTypeSelects[$('#OrganisationTargetType').val()];
+	orgID = $('#' + orgType).val();
+	org = orgArray[orgTypeOptions[$('#OrganisationTargetType').val()]][orgID]['Organisation'];
+	$('#org_id').text(org['id']);
+	$('#org_name').text(org['name']);
+	$('#org_uuid').text(org['uuid']);
+	$('#org_local').text(orgTypeOptions[$('#OrganisationTargetType').val()]);
+}
+
+function mergeOrganisationTypeToggle() {
+	if ($('#OrganisationTargetType').val() == 0) {
+		$('#orgsLocal').show();
+		$('#orgsExternal').hide();
+	} else {
+		$('#orgsLocal').hide();
+		$('#orgsExternal').show();
+	}
 }

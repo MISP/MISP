@@ -1500,7 +1500,6 @@ class EventsController extends AppController {
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		if ($last) $last = $this->Event->resolveTimeDelta($last);
-		
 		$eventIdArray = array();
 		
 		if ($eventid) {

@@ -770,13 +770,15 @@ a.proposal_link_red:hover {
 	z-index:5;
 }
 
-.ajax_popover_form legend {
+.ajax_popover_form legend, .ajax_popover_form .legend {
 	border-radius: 10px 10px 0px 0px;
 	padding-left:10px;
-	margin-bottom:5px;
+	margin-bottom:0px;
 	width:690px;
 	background-color:black;
 	color:white;
+	font-size: 21px;
+	line-height: 40px;
 }
 
 .ajax_popover_form form {
@@ -1431,6 +1433,10 @@ a.proposal_link_red:hover {
 	font-weight: bold;
 }
 
+.align-right {
+	text-align: right;
+}
+
 .hidden {
 	display:none;
 }
@@ -1448,6 +1454,17 @@ a.discrete {
 
 .verticalSeparator {
 	border-left: 1px solid grey;
+}
+
+.bottomGap {
+	margin-bottom:5px;
+}
+
+.highlightedBlock {
+	border:1px solid black;
+	background-color:white;
+	padding:5px;
+	border-radius:5px;
 }
 
 @-webkit-keyframes rotation {

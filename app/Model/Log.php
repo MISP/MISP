@@ -41,7 +41,8 @@ class Log extends AppModel {
 							'reset_auth_key',
 							'update',
 							'enable',
-							'disable'
+							'disable',
+							'merge'
 						)),
 			'message' => 'Options : ...'
 		)
