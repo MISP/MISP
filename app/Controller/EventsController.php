@@ -2949,7 +2949,7 @@ class EventsController extends AppController {
 					'checkbox' => false,
 			),
 			'csv' => array(
-					'url' => '/events/csv/download/' . $id . '/1',
+					'url' => '/events/csv/download/' . $id,
 					'text' => 'CSV',
 					'requiresPublished' => true,
 					'checkbox' => true,
