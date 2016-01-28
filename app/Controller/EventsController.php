@@ -642,6 +642,19 @@ class EventsController extends AppController {
 		$org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
 		$contributors = $this->Event->Org->find('list', array('fields' => array('Org.name'), 'conditions' => array('Org.id' => $org_ids)));
 
+		if ($this->userRole['perm_publish'] && $event['Event']['orgc_id'] == $this->Auth->user('org_id')) {
+			$proposalStatus = false;
+			if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute'])) $proposalStatus = true;
+			if (!$proposalStatus && !empty($event['Attribute'])) {
+				foreach ($event['Attribute'] as &$temp) {
+					if (isset($temp['ShadowAttribute']) && !empty($temp['ShadowAttribute'])) {
+						$proposalStatus = true;
+						continue;
+					}
+				}
+			}
+			if ($proposalStatus && empty($this->Session->read('Message'))) $this->Session->setFlash('This event has active proposals for you to accept or discard.');
+		}
 		// set the pivot data
 		$this->helpers[] = 'Pivot';
 		if ($continue) {
