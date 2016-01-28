@@ -582,6 +582,7 @@ class User extends AppModel {
 				$replyToLog = 'from ' . $replyToUser['User']['email'];
 			}
 			$Email->from(Configure::read('MISP.email'));
+			$Email->returnPath(Configure::read('MISP.email'));
 			$Email->to($user['User']['email']);
 			$Email->subject($subject);
 			$Email->emailFormat('text');
