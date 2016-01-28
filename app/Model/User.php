@@ -572,7 +572,11 @@ class User extends AppModel {
 		}
 		$replyToLog = '';
 		if (!$failed) {
-			$Email = new CakeEmail();
+			$Email = new CakeEmail(array(
+				'transport' => 'Mail',
+				'charset' => 'utf-8',
+				'additionalParameters' => '-f ' . Configure::read('MISP.email')
+			));
 			
 			// If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender
 			// For this reason we should also attach the public key of the sender along with the message (if applicable)
@@ -585,7 +589,6 @@ class User extends AppModel {
 			$Email->returnPath(Configure::read('MISP.email'));
 			$Email->to($user['User']['email']);
 			$Email->subject($subject);
-			$Email->additionalParams = '-f ' . Configure::read('MISP.email');
 			$Email->emailFormat('text');
 			$result = $Email->send($body);
 			$Email->reset();
