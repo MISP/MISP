@@ -585,6 +585,7 @@ class User extends AppModel {
 			$Email->returnPath(Configure::read('MISP.email'));
 			$Email->to($user['User']['email']);
 			$Email->subject($subject);
+			$Email->additionalParams = '-f ' . Configure::read('MISP.email');
 			$Email->emailFormat('text');
 			$result = $Email->send($body);
 			$Email->reset();
