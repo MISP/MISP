@@ -475,7 +475,7 @@ class ShadowAttribute extends AppModel {
 		$subject =  "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id;
 		$result = true;
 		foreach ($orgMembers as &$user) {
-			$result = $result && $this->User->sendEmail($user, $body, $body, $subject);
+			$result = $this->User->sendEmail($user, $body, $body, $subject) && $result;
 		}
 		return $result;
 	}
