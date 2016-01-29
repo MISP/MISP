@@ -48,6 +48,8 @@ Documentation
 
 [MISP user-guide](https://github.com/MISP/misp-book) is available [online](https://www.circl.lu/doc/misp/) or as [PDF](https://www.circl.lu/doc/misp/book.pdf) or as [EPUB](https://www.circl.lu/doc/misp/book.epub) or as [MOBI/Kindle](https://www.circl.lu/doc/misp/book.mobi).
 
+For installation guide see [INSTALL](https://github.com/MISP/MISP/tree/2.4/INSTALL)
+
 Contributing
 ------------
 
