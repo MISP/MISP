@@ -11,6 +11,7 @@
 		echo $this->Form->input('model', array(
 				'between' => $this->Html->div('forminfo', '', array('id' => 'LogModelDiv')),
 				'div' => 'input clear'));
+		echo $this->Form->input('model_id', array('between' => $this->Html->div('forminfo', '', array('id' => 'LogModelIdDiv')),'type' => 'text', 'label' => 'Model ID'));
 		echo $this->Form->input('action', array(
 				'between' => $this->Html->div('forminfo', '', array('id' => 'LogActionDiv')),
 		));

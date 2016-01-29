@@ -7,6 +7,7 @@
 				'email' => array('text' => 'for user', 'default' => null),
 				'org' => array('text' => 'of organisation', 'default' => null),
 				'model' => array('text' => 'for model', 'default' => ''),
+				'model_id' => array('text' => 'for model ID', 'default' => ''),
 				'action' => array('text' => 'of type', 'default' => 'ALL'),
 				'title' => array('text' => 'with the title', 'default' => null),
 				'change' => array('text' => 'including the change', 'default' => null),
@@ -46,6 +47,7 @@
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<th><?php echo $this->Paginator->sort('created');?></th>
 			<th><?php echo $this->Paginator->sort('model');?></th>
+			<th><?php echo $this->Paginator->sort('model_id', 'Model_ID');?></th>
 			<th><?php echo $this->Paginator->sort('action');?></th>
 			<th><?php echo $this->Paginator->sort('title');?></th>
 			<th><?php echo $this->Paginator->sort('change');?></th>
@@ -71,6 +73,9 @@
 			<td class="short"><?php
 				if (isset($modelSearch) && $modelSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['model']), $modelSearchReplacePairs));
 				else echo (h($item['Log']['model'])); ?>&nbsp;</td>
+			<td style="width:100px;"><?php
+				if (isset($model_idSearch) && $model_idSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['model_id']), $model_idSearchReplacePairs));
+				else echo (h($item['Log']['model_id'])); ?>&nbsp;</td>
 			<td class="short"><?php
 				if (isset($actionSearch) && $actionSearch != "ALL") echo nl2br($this->Highlight->highlighter(h($item['Log']['action']), $actionSearchReplacePairs));
 				else echo (h($item['Log']['action'])); ?>&nbsp;</td>
