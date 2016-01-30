@@ -425,12 +425,12 @@ class Event extends AppModel {
 		$eventIds = Set::extract('/Event/id', $events);
 		$conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventIds, $sgids);
 		$correlations = $this->Correlation->find('all',array(
-				'fields' => array('Correlation.event_id', 'count(distinct(Correlation.1_event_id)) as count'),
+				'fields' => array('Correlation.1_event_id', 'count(distinct(Correlation.event_id)) as count'),
 				'conditions' => $conditionsCorrelation,
 				'recursive' => -1,
-				'group' => array('Correlation.event_id'),
+				'group' => array('Correlation.1_event_id'),
 		));
-		$correlations = Hash::combine($correlations, '{n}.Correlation.event_id', '{n}.0.count');
+		$correlations = Hash::combine($correlations, '{n}.Correlation.1_event_id', '{n}.0.count');
 		foreach ($events as &$event) $event['Event']['correlation_count'] = (isset($correlations[$event['Event']['id']])) ? $correlations[$event['Event']['id']] : 0;
 	}
 	
