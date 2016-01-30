@@ -71,6 +71,9 @@
 				<th class="filter">Tags</th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
+			<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
+				<th><?php echo $this->Paginator->sort('correlation_count', '#Corr.');?></th>
+			<?php endif; ?>
 			<?php if ($isSiteAdmin): ?>
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 			<?php endif; ?>
@@ -138,6 +141,11 @@
 			<td style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo $event['Event']['attribute_count']; ?>&nbsp;
 			</td>
+			<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
+				<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
+					<?php echo !empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : ''; ?>&nbsp;
+				</td>
+			<?php endif; ?>
 			<?php if ('true' == $isSiteAdmin): ?>
 			<td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['User']['email']); ?>&nbsp;

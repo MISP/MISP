@@ -36,6 +36,8 @@ class EventsController extends AppController {
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
+	
+	public $paginationFunctions = array('index', 'proposalEventIndex');
 
 	public function beforeFilter() {
 		parent::beforeFilter();
@@ -71,8 +73,9 @@ class EventsController extends AppController {
 		}
 
 		// if not admin or own org, check private as well..
-		if (!$this->_isSiteAdmin()) {
+		if (!$this->_isSiteAdmin() && in_array($this->action, $this->paginationFunctions)) {
 			$sgids = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
+			if (empty($sgids)) $sgids = array(-1);
 			$conditions = array(
 				'AND' => array(
 					array(
@@ -508,7 +511,9 @@ class EventsController extends AppController {
 			}
 			$this->set('events', $events);
 		} else {
-			$this->set('events', $this->paginate());
+			$events = $this->paginate();
+			if (Configure::read('MISP.showCorrelationsOnIndex')) $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
+			$this->set('events', $events);
 		}
 		
 		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
