@@ -155,6 +155,11 @@ cp -a config.default.php config.php
 # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt, 
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
+# Change base url in config.php
+'baseurl' => 'http://yourhostname.net',
+#or if using https:
+'baseurl' => 'https://yourhostname.net',
+
 # and make sure the file permissions are still OK
 chown -R www-data:www-data /var/www/MISP/app/Config
 chmod -R 750 /var/www/MISP/app/Config
