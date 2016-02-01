@@ -1480,7 +1480,7 @@ class Server extends AppModel {
 	
 	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion) {
 		$result = array();
-		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.10');
+		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.12');
 		// check if the STIX and Cybox libraries are working using the test script stixtest.py
 		$scriptResult = shell_exec('python ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
 		$scriptResult = json_decode($scriptResult, true);
