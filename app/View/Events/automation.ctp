@@ -18,7 +18,7 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <pre><?php echo $baseurl;?>/events/xml/download/1</pre>
 <p>You can post an XML or JSON object containing additional parameters in the following formats:</p>
 <p>JSON:</p>
-<pre>curl -H "Accept: application/json" -H Authorization:XXX https://<?php echo $baseurl;?>/events/</pre>
+<pre><?php echo $baseurl;?>/events/xml/download.json</pre>
 <code>{"request": {"eventid":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
 <p>XML:</p>
 <pre><?php echo $baseurl;?>/events/xml/download</pre>
@@ -134,7 +134,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 </p>
 <p>You can post an XML or JSON object containing additional parameters in the following formats:</p>
 <p>JSON:</p>
-<pre>curl -H "Accept: application/json" -H Authorization:XXX http://<?php echo $baseurl;?>/events/stix/download.json</pre>
+<pre><?php echo $baseurl;?>/events/stix/download.json</pre>
 <code>{"request": {"id":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
 <p>XML:</p>
 <pre><?php echo $baseurl;?>/events/stix/download</pre>
