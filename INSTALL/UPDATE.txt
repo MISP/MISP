@@ -2,6 +2,8 @@
 
 # 1. Update the MISP code to the latest hotfix. If a new major version (2.4.x) has been released, refer to UPGRADE.txt instead.
 
+As user root, do the following:
+
 cd /var/www/MISP
 git pull
 
@@ -36,16 +38,9 @@ cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResqu
 
 # 5. Make sure all file permissions are set correctly
 
-chown -R root:www-data /var/www/MISP
 find /var/www/MISP -type d -exec chmod g=rx {} \;
 chmod -R g+r,o= /var/www/MISP
-chown www-data:www-data /var/www/MISP/app/files
-chown www-data:www-data /var/www/MISP/app/files/terms
-chown www-data:www-data /var/www/MISP/app/files/scripts/tmp
-chown www-data:www-data /var/www/MISP/app/Plugin/CakeResque/tmp
-chown -R www-data:www-data /var/www/MISP/app/tmp
-chown -R www-data:www-data /var/www/MISP/app/webroot/img/orgs
-chown -R www-data:www-data /var/www/MISP/app/webroot/img/custom
+chown -R www-data:www-data /var/www/MISP
 
 # 6. Restart the CakeResque workers
 
