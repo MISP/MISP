@@ -142,12 +142,6 @@ cp -a config.default.php config.php
  
 # Configure the fields in the newly created files:
 # database.php : login, port, password, database
-# bootstrap.php: uncomment the last 3 lines to enable the background workers (see below)
-# CakePlugin::loadAll(array('CakeResque' => array('bootstrap' => true)));
-
-# To enable the background workers, if you have installed the package required for it in 4/, uncomment the following lines:
-# in core.php (if you have just recently updated MISP, just add this line at the end of the file):
-# require_once dirname(__DIR__) . '/Vendor/autoload.php';
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
 # The salt key must be an at least 32 byte long string.
