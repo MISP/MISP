@@ -27,7 +27,7 @@ Once the system is installed you can perform the following steps as root:
 apt-get install vim
 
 # Install the dependencies:
-apt-get install gcc zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev libapache2-mod-php5 php5-mysql curl
+apt-get install gcc zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev libapache2-mod-php5 php5-mysql curl gnupg-agent
 pear install Crypt_GPG    # we need version >1.3.0 
 
 3/ MISP code
@@ -174,7 +174,7 @@ sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL 
 chmod +x /var/www/MISP/app/Console/worker/start.sh
 sudo vim /etc/rc.local
 # Add the following line before the last line (exit 0). Make sure that you replace www-data with your apache user:
-su www-data -c 'bash /var/www/MISP/app/Console/worker/start.sh'
+sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
 
 # Now log in using the webinterface:
 # The default user/pass = admin@admin.test/admin 
@@ -215,3 +215,5 @@ Optional features
 -------------------
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 pip install pyzmq
+# ZeroMQ depends on the Python client for Redis
+pip install redis
