@@ -1642,15 +1642,15 @@ class Event extends AppModel {
 		// print the event in mail-format
 		// LATER place event-to-email-layout in a function
 		$appendlen = 20;
-		$body .= 'URL		 : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
+		$body .= 'URL         : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
 		$bodyevent = $body;
-		$bodyevent .= 'Event	   : ' . $event['Event']['id'] . "\n";
-		$bodyevent .= 'Date		: ' . $event['Event']['date'] . "\n";
+		$bodyevent .= 'Event ID    : ' . $event['Event']['id'] . "\n";
+		$bodyevent .= 'Date        : ' . $event['Event']['date'] . "\n";
 		if (Configure::read('MISP.showorg')) {
 			$body .= 'Reported by : ' . $event['Orgc']['name'] . "\n";
 		}
-		$body .= 'Risk		: ' . $event['ThreatLevel']['name'] . "\n";
-		$body .= 'Analysis  : ' . $event['Event']['analysis'] . "\n";
+		$bodyevent .= 'Risk        : ' . $event['ThreatLevel']['name'] . "\n";
+		$bodyevent .= 'Analysis    : ' . $event['Event']['analysis'] . "\n";
 		
 		$userModel = ClassRegistry::init('User');
 		$targetUser = $userModel->getAuthUser($orgMembers[0]['User']['id']);
@@ -1681,12 +1681,8 @@ class Event extends AppModel {
 		$bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$result = true;
 		foreach ($orgMembers as &$reporter) {
-			$bodyNoEnc = false;
-			if (Configure::read('GnuPG.bodyonlyencrypted') && empty($reporter['User']['gpgkey'])) {
-				$bodyNoEnc = $body;
-			}
 			$subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - TLP Amber";
-			$result = $this->User->sendEmail($reporter, $bodyevent, $bodyNoEnc, $subject, $user) && $result;
+			$result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
 		}
 		return $result;
 	}
