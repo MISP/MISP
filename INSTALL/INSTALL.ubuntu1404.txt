@@ -5,7 +5,7 @@ INSTALLATION INSTRUCTIONS
 -------------------------
 
 Install a minimal ubuntu 14.04-server system with the software:
-fo
+
 - OpenSSH server
 - LAMP server (don't forget php5-mysql)
 - Mail server
