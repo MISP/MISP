@@ -1133,20 +1133,18 @@ class Attribute extends AppModel {
 			$fields = array('value1', 'value2');
 			$correlatingValues = array($a['value1']);
 			if (!empty($a['value2'])) $correlatingValues[] = $a['value2'];
-			if ($full) $temp = array('Attribute.id >' => $a['id']);
-			else $temp = array();
 			foreach ($correlatingValues as $k => $cV) {
 				$correlatingAttributes[$k] = $this->find('all', array(
 						'conditions' => array(
-							'OR' => array(
-								'Attribute.value1' => $cV,
-								'Attribute.value2' => $cV
-							),
 							'AND' => array(
+								'OR' => array(
+										'Attribute.value1' => $cV,
+										'Attribute.value2' => $cV
+								),
 								'Attribute.type !=' => $this->nonCorrelatingTypes,
-								'Attribute.id !=' => $a['id'],
-								$temp,
-								'Attribute.event_id !=' => $a['event_id']
+								//'Attribute.id !=' => $a['id'],
+								//$temp,
+								//'Attribute.event_id !=' => $a['event_id']
 							),
 						),
 						'recursive => -1',
@@ -1154,6 +1152,11 @@ class Attribute extends AppModel {
 						'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
 						'order' => array(),
 				));
+				foreach ($correlatingAttributes[$k] as $key => &$correlatingAttribute) {
+					if ($correlatingAttribute['Attribute']['id'] == $a['id']) unset($correlatingAttributes[$k][$key]);
+					else if ($correlatingAttribute['Attribute']['event_id'] == $a['event_id']) unset($correlatingAttributes[$k][$key]);
+					else if ($full && $correlatingAttribute['Attribute']['id'] <= $a['id']) unset($correlatingAttributes[$k][$key]);
+				}
 			}
 			$correlations = array();
 			foreach ($correlatingAttributes as $k => $cA) {
