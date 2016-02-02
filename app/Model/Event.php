@@ -2249,8 +2249,7 @@ class Event extends AppModel {
 			$job->saveField('process_id', $process_id);
 			return true;
 		} else {
-			$userMod['User'] = $user;
-			$result = $this->sendContactEmail($id, $message, $creator_only, $userMod, $isSiteAdmin);
+			$result = $this->sendContactEmail($id, $message, $creator_only, array('User' => $user), $isSiteAdmin);
 			return $result;
 		}
 	}
