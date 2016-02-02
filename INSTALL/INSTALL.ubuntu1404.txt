@@ -183,7 +183,7 @@ sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
 # It is especially vital that no critical issues remain!
 # start the workers by navigating to the workers tab and clicking restart all workers
 
-Don't forget to change the email, password and authentication key after installation.
+# Don't forget to change the email, password and authentication key after installation.
 
 # Once done, have a look at the diagnostics
 
