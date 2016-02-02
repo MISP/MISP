@@ -1589,35 +1589,40 @@ class Event extends AppModel {
 	 	return $body;
 	 }
 	
-	public function sendContactEmail($id, $message, $all, $user, $isSiteAdmin) {
+	public function sendContactEmail($id, $message, $creator_only, $user, $isSiteAdmin) {
 		// fetch the event
 		$event = $this->read(null, $id);
 		$this->User = ClassRegistry::init('User');
-		if (!$all) {
+		if (!$creator_only) {
 			//Insert extra field here: alertOrg or something, then foreach all the org members
 			//limit this array to users with contactalerts turned on!
 			$orgMembers = array();
 			$this->User->recursive = 0;
 			$temp = $this->User->find('all', array(
-					'org_id' => $event['Event']['orgc_id'], 
-					'fields' => array('email', 'gpgkey', 'contactalert', 'id')
+					'fields' => array('email', 'gpgkey', 'contactalert', 'id', 'org_id'),
+					'conditions' => array('disabled' => 0, 'User.org_id' => $event['Event']['orgc_id']),
+					'recursive' => -1
 			));
 			if (empty($temp)) {
 				$temp = $this->User->find('all', array(
-						'org_id' => $event['Event']['org_id'], 
-						'fields' => array('email', 'gpgkey', 'contactalert', 'id')
+						'fields' => array('email', 'gpgkey', 'contactalert', 'id', 'org_id'),
+						'conditions' => array('disabled' => 0, 'User.org_id' => $event['Event']['org_id']),
+						'recursive' => -1
 				));
 			}
-
 			foreach ($temp as $tempElement) {
 				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
 					array_push($orgMembers, $tempElement);
 				}
 			}
 		} else {
-			$orgMembers = $this->User->findAllById($event['Event']['user_id'], array('email', 'gpgkey'));
+			$temp = $this->User->find('first', array(
+					'conditions' => array('User.id' => $event['Event']['user_id'], 'User.disabled' => 0),
+					'fields' => array('User.email', 'User.gpgkey'),
+			));
+			if (!empty($temp)) $orgMembers = array(0 => $temp);
 		}
-	
+		if (empty($orgMembers)) return false;
 		// The mail body, h() is NOT needed as we are sending plain-text mails.
 		$body = "";
 		$body .= "Hello, \n";
@@ -1674,13 +1679,14 @@ class Event extends AppModel {
 		}
 		$bodyevent .= "\n";
 		$bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
+		$result = true;
 		foreach ($orgMembers as &$reporter) {
 			$bodyNoEnc = false;
 			if (Configure::read('GnuPG.bodyonlyencrypted') && empty($reporter['User']['gpgkey'])) {
 				$bodyNoEnc = $body;
 			}
 			$subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - TLP Amber";
-			$result = $this->User->sendEmail($reporter, $bodyevent, $bodyNoEnc, $subject, $user);
+			$result = $this->User->sendEmail($reporter, $bodyevent, $bodyNoEnc, $subject, $user) && $result;
 		}
 		return $result;
 	}
@@ -2224,7 +2230,7 @@ class Event extends AppModel {
 	 *
 	 * @return True if success, False if error
 	 */
-	public function sendContactEmailRouter($id, $message, $all, $user, $isSiteAdmin, $JobId = false) {
+	public function sendContactEmailRouter($id, $message, $creator_only, $user, $isSiteAdmin, $JobId = false) {
 		if (Configure::read('MISP.background_jobs')) {
 			$job = ClassRegistry::init('Job');
 			$job->create();
@@ -2242,13 +2248,13 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'email',
 					'EventShell',
-					array('contactemail', $id, $message, $all, $user['id'], $isSiteAdmin, $jobId)
+					array('contactemail', $id, $message, $creator_only, $user['id'], $isSiteAdmin, $jobId)
 			);
 			$job->saveField('process_id', $process_id);
 			return true;
 		} else {
 			$userMod['User'] = $user;
-			$result = $this->sendContactEmail($id, $message, $all, $userMod, $isSiteAdmin);
+			$result = $this->sendContactEmail($id, $message, $creator_only, $userMod, $isSiteAdmin);
 			return $result;
 		}
 	}

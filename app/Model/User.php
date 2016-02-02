@@ -468,6 +468,7 @@ class User extends AppModel {
 			else $validOrgs = array_merge($validOrgs, $sgOrgs);
 		}
 		$validOrgs = array_unique($validOrgs);
+		$conditions['AND'][] = array('disabled' => 0);
 		if (!$all) {
 			$conditions['AND']['OR'][] = array('org_id' => $validOrgs);
 

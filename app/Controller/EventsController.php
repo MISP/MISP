@@ -1357,10 +1357,10 @@ class EventsController extends AppController {
 		// User has filled in his contact form, send out the email.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$message = $this->request->data['Event']['message'];
-			$all = $this->request->data['Event']['person'];
+			$creator_only = $this->request->data['Event']['person'];
 			$user = $this->Auth->user();
 			$user['gpgkey'] = $this->Event->User->getPGP($user['id']);
-			if ($this->Event->sendContactEmailRouter($id, $message, $all, $user, $this->_isSiteAdmin())) {
+			if ($this->Event->sendContactEmailRouter($id, $message, $creator_only, $user, $this->_isSiteAdmin())) {
 				// redirect to the view event page
 				$this->Session->setFlash(__('Email sent to the reporter.', true));
 			} else {

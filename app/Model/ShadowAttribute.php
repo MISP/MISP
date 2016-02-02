@@ -464,7 +464,8 @@ class ShadowAttribute extends AppModel {
 		$orgMembers = $this->User->find('all',array(
 				'conditions' => array(
 						'org_id' => $event['Event']['orgc_id'],
-						'contactalert' => 1
+						'contactalert' => 1,
+						'disabled' => 0
 				),
 				'fields' => array('email', 'gpgkey', 'contactalert', 'id')
 		));
