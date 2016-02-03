@@ -1878,7 +1878,7 @@ class Event extends AppModel {
 			// user.org == event.org
 			// edit timestamp newer than existing event timestamp
 			if (!isset($data['Event']['timestamp'])) $data['Event']['timestamp'] = $date;
-			if ($data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+			if ($data['Event']['timestamp'] >= $existingEvent['Event']['timestamp']) {
 				if ($data['Event']['distribution'] == 4) {
 					$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
 					if ($data['Event']['sharing_group_id'] === false) return (array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.'));
