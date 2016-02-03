@@ -1415,7 +1415,7 @@ class EventsController extends AppController {
 						'fields' => array('id', 'progress'),
 						'conditions' => array(
 								'job_type' => 'cache_' . $k,
-								'org_id' => $useOrg
+								'org_id' => $useOrg_id
 							),
 						'order' => array('Job.id' => 'desc')
 				));
