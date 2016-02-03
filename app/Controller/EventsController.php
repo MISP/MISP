@@ -1191,7 +1191,7 @@ class EventsController extends AppController {
 					// user.org == event.org
 					// edit timestamp newer than existing event timestamp
 					if (!isset($this->request->data['Event']['timestamp'])) $this->request->data['Event']['timestamp'] = $date;
-					if ($this->request->data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+					if ($this->request->data['Event']['timestamp'] >= $existingEvent['Event']['timestamp']) {
 						// If the above is true, we have two more options:
 						// For users that are of the creating org of the event, always allow the edit
 						// For users that are sync users, only allow the edit if the event is locked
