@@ -13,7 +13,12 @@
 						$mayModify = true;
 						if ($isAclPublish) $mayPublish = true;
 					}
-		?>
+					if (($menuItem === 'template_populate_results')):
+					?>
+						<li id='litemplate_populate_results'><a href="<?php echo $baseurl;?>/templates/index">Populate From Template</a></li>
+					<?php 
+						endif;
+					?> 
 					<?php if ($menuItem === 'freetextResults'): ?>
 					<li id='lifreetextResults'><a href="#">Freetext Import Results</a></li>
 					<li class="divider"></li>

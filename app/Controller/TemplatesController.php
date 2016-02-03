@@ -262,7 +262,7 @@ class TemplatesController extends AppController {
 			'recursive' => -1,
 			'fields' => array('id', 'orgc_id', 'distribution'),
 		));
-		
+		$this->set('event', $event);
 		if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 		if (empty($template)) throw new MethodNotAllowedException('Template not found or you are not authorised to edit it.');
 		if (!$this->_isSiteAdmin()) {
