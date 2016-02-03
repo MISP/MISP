@@ -56,7 +56,7 @@ var selectedTags = [
 	<?php 
 		foreach ($currentTags as $k => $t) {
 			if ($k != 0) echo ', ';
-			echo '"' . $t['Tag']['name'] . '"';
+			echo '"' . $t['Tag']['id'] . '"';
 		}
 	?>
 ];

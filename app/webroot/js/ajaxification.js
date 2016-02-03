@@ -720,26 +720,38 @@ function cancelPopoverForm() {
 	$('#popover_form').fadeOut();
 }
 
+function activateTagField() {
+	$("#addTagButton").hide();
+	$("#addTagField").show();
+}
 
-function appendTemplateTag(selected) {
-	var selectedTag;
-	allTags.forEach(function(tag) {
-		if (tag.name == selected) {
-			$.ajax({
-				beforeSend: function (XMLHttpRequest) {
-					$(".loading").show();
-				}, 
-				dataType:"html", 
-				cache: false,
-				success:function (data, textStatus) {
-					$(".loading").hide();
-					$("#tags").append(data);
-				}, 
-				url:"/tags/viewTag/" + tag.id,
-			});
-			updateSelectedTags();
+function tagFieldChange() {
+	if ($("#addTagField :selected").val() > 0) {
+		var selected_id = $("#addTagField :selected").val();
+		var selected_text = $("#addTagField :selected").text();
+		if ($.inArray(selected_id, selectedTags)==-1) {
+			selectedTags.push(selected_id);
+			appendTemplateTag(selected_id);
 		}
+	}
+	$("#addTagButton").show();
+	$("#addTagField").hide();
+}
+
+function appendTemplateTag(selected_id) {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		dataType:"html", 
+		cache: false,
+		success:function (data, textStatus) {
+			$(".loading").hide();
+			$("#tags").append(data);
+		}, 
+		url:"/tags/viewTag/" + selected_id,
 	});
+	updateSelectedTags();
 }
 
 function addAllTags(tagArray) {
@@ -751,8 +763,8 @@ function addAllTags(tagArray) {
 
 function removeTemplateTag(id, name) {
 	selectedTags.forEach(function(tag) {
-		if (tag == name) {
-			var index = selectedTags.indexOf(name);
+		if (tag == id) {
+			var index = selectedTags.indexOf(id);
 			if (index > -1) {
 				selectedTags.splice(index, 1);
 				updateSelectedTags();
@@ -2187,3 +2199,4 @@ function mergeOrganisationTypeToggle() {
 		$('#orgsExternal').show();
 	}
 }
+

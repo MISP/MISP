@@ -49,7 +49,6 @@ class TemplatesController extends AppController {
 		
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$this->request->data['Template']['id'] = $id;
-			
 			unset($this->request->data['Template']['tagsPusher']);
 			$tags = $this->request->data['Template']['tags'];
 			unset($this->request->data['Template']['tags']);
@@ -67,7 +66,7 @@ class TemplatesController extends AppController {
 
 				$newTags = $this->TemplateTag->Tag->find('all', array(
 					'recursive' => -1,
-					'conditions' => array('name' => $tagArray)
+					'conditions' => array('id' => $tagArray)
 				));
 				
 				foreach($oldTags as $k => $oT) {
@@ -147,7 +146,7 @@ class TemplatesController extends AppController {
 				$this->loadModel('Tag');
 				foreach ($tagArray as $t) {
 					$tag = $this->Tag->find('first', array(
-						'conditions' => array('name' => $t),
+						'conditions' => array('id' => $t),
 						'fields' => array('id', 'name'),
 						'recursive' => -1,
 					));
