@@ -217,9 +217,9 @@ class TemplateElementsController extends AppController {
 	public function delete($id) {
 		if (!$this->request->is('ajax')) Throw new MethodNotAllowedException('This action is for ajax requests only.');
 		$this->TemplateElement->read(null, $id);
-		if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($this->TemplateElement['Template']['id'], $this->Auth->user(), true)) throw new NotAllowedException('You are not authorised to do that.');
+		if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($this->TemplateElement->data['Template']['id'], $this->Auth->user(), true)) throw new NotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('post')) {
-			if ($this->_isSiteAdmin() || $this->Auth->user('Organisation')['name'] == $this->TemplateElement->data['TemplateElement']['org']) {
+			if ($this->_isSiteAdmin() || $this->Auth->user('Organisation')['name'] == $this->TemplateElement->data['Template']['org']) {
 				// check permissions
 				if (empty($this->TemplateElement->data)) throw new NotFoundException();
 				$type = 'TemplateElement' . ucfirst($this->TemplateElement->data['TemplateElement']['element_definition']);
