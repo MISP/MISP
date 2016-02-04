@@ -371,6 +371,15 @@ class Server extends AppModel {
 							'type' => 'string',
 							'options' => array('0' => 'Your organisation only', '1' => 'This community only', '2' => 'Connected communities', '3' => 'All communities', 'event' => 'Inherit from event'),
 					),
+					'default_event_threat_level' => array(
+							'level' => 1,
+							'description' => 'The default threat level setting when creating events.',
+							'value' => '1',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'options' => array('1' => 'High', '2' => 'Medium', '3' => 'Low', '4' => 'undefined'),
+					),
 					'tagging' => array(
 							'level' => 1,
 							'description' => 'Enable the tagging feature of MISP. This is highly recommended.',
