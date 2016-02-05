@@ -42,7 +42,7 @@ foreach ($list as $item): ?>
 		<td class="short" onclick="document.location.href ='<?php echo $baseurl."/templates/view/".$item['Template']['id']; ?>'"><?php if ($item['Template']['share']) echo 'Yes'; else echo 'No'; ?>&nbsp;</td>
 		<td onclick="document.location.href ='<?php echo $baseurl."/templates/view/".$item['Template']['id']; ?>'"><?php echo h($item['Template']['name']); ?>&nbsp;</td>
 		<td onclick="document.location.href ='<?php echo $baseurl."/templates/view/".$item['Template']['id']; ?>'"><?php echo h($item['Template']['description']); ?>&nbsp;</td>
-		<?php if ($isAclTagger): ?>
+		<?php if ($isAclTemplate): ?>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('action' => 'edit', $item['Template']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
 			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['Template']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete Template #' . $item['Template']['id'] . '?'));?>	
