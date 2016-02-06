@@ -170,7 +170,8 @@ class OrganisationsController extends AppController {
 						'id !=' => $id_exclusion_list,
 				),
 				'recursive' => -1,
-				'fields' => array('id', 'name')
+				'fields' => array('id', 'name'),
+				'order' => array('lower(name) ASC')
 		));
 		$orgs = array();
 		foreach ($temp as $org) {
