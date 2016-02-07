@@ -1,5 +1,5 @@
 <div class="servers form">
-<?php echo $this->Form->create('Server', array('type' => 'file', 'novalidate'=>true));?>
+<?php echo $this->Form->create('Server', array('type' => 'file', 'novalidate'=>true)); ?>
 	<fieldset>
 		<legend>Edit Server</legend>
 	<?php
@@ -67,14 +67,31 @@
 		echo $this->Form->input('self_signed', array(
 			'type' => 'checkbox',
 		));
-
-		echo $this->Form->input('Server.submitted_cert', array(
-			'label' => '<b>Certificate file</b>',
-			'type' => 'file',
-			'div' => 'clear'
-		));
 	?>
-	    <br /><b>Push rules:</b><br />
+	<div class="clear">
+		<p>
+			<span class="bold">Ceritificate file: </span>
+			<span id="serverEditCertValue"> 
+				<?php
+					if (isset($server['Server']['cert_file']) && !empty($server['Server']['cert_file'])) echo h($server['Server']['cert_file']);
+					else echo '<span class="green bold">Not set.</span>';
+				?>
+			</span>
+			<br />
+			<span id="add_cert_file" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Add certificate file</span>
+			<span id="remove_cert_file" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Remove certificate file</span>
+		</p>
+		<div style="width: 0px;height: 0px;overflow: hidden;">
+		<?php 
+			echo $this->Form->input('Server.submitted_cert', array(
+				'label' => false,
+				'type' => 'file',
+				'div' => false
+			));
+		?>
+		</div>
+	</div>
+	    <b>Push rules:</b><br />
 	    <span id="push_tags_OR" style="display:none;">Events with the following tags allowed: <span id="push_tags_OR_text" style="color:green;"></span><br /></span>
 	    <span id="push_tags_NOT" style="display:none;">Events with the following tags blocked: <span id="push_tags_NOT_text" style="color:red;"></span><br /></span>
 	    <span id="push_orgs_OR" style="display:none;">Events with the following organisations allowed: <span id="push_orgs_OR_text" style="color:green;"></span><br /></span>
@@ -90,6 +107,7 @@
 		echo $this->Form->input('push_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 		echo $this->Form->input('json', array('style' => 'display:none;', 'label' => false, 'div' => false));
+		echo $this->Form->checkbox('delete_cert', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
 	</fieldset>
 	<span class="btn btn-primary" onClick="serverSubmitForm('Edit');">Submit</span>
@@ -124,6 +142,7 @@ var validOptions = ['pull', 'push'];
 var validFields = ['tags', 'orgs'];
 var tags = <?php echo json_encode($allTags); ?>;
 var orgs = <?php echo json_encode($allOrganisations); ?>;
+var delete_cert = false;
 
 $(document).ready(function() {
 	serverOrgTypeChange();
@@ -151,6 +170,19 @@ $(document).ready(function() {
 	});
 	$("#pull_modify").click(function() {
 		serverRuleFormActivate('pull');
+	});
+
+	$('#add_cert_file').click(function() {
+		$('#ServerSubmittedCert').trigger('click');
+	});
+	$('input[type=file]').change(function() {
+		$('#serverEditCertValue').text($('input[type=file]').val());
+		$('#ServerDeleteCert').prop('checked', false);
+	}); 
+
+	$('#remove_cert_file').click(function() {
+		$('#serverEditCertValue').html('<span class="green bold">Not set.</span>');
+		$('#ServerDeleteCert').prop('checked', true);
 	});
 });
 </script>

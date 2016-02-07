@@ -320,8 +320,10 @@ class ServersController extends AppController {
 			if (!$fail) {
 				// Save the data
 				if ($this->Server->save($this->request->data, true, $fieldList)) {
-					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
+					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0 && !$this->request->data['Server']['delete_cert']) {
 						$this->__saveCert($this->request->data, $this->Server->id);
+					} else {
+						$this->__saveCert($this->request->data, $this->Server->id, true);
 					}
 					$this->Session->setFlash(__('The server has been saved'));
 					$this->redirect(array('action' => 'index'));
@@ -372,6 +374,7 @@ class ServersController extends AppController {
 		$allTags = array();
 		foreach ($temp as $t) $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
 		$this->set('allTags', $allTags);
+		$this->set('server', $s);
 	}
 
 /**
@@ -522,26 +525,32 @@ class ServersController extends AppController {
 		}
 	}
 	
-	private function __saveCert($server, $id) {
-		$ext = '';
-		App::uses('File', 'Utility');
-		App::uses('Folder', 'Utility');
-		$file = new File($server['Server']['submitted_cert']['name']);
-		$ext = $file->ext();
-		if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
-			$this->Session->setFlash('Incorrect extension or empty file.');
-			$this->redirect(array('action' => 'index'));
+	private function __saveCert($server, $id, $delete = false) {
+		if (!$delete) {
+			$ext = '';
+			App::uses('File', 'Utility');
+			App::uses('Folder', 'Utility');
+			$file = new File($server['Server']['submitted_cert']['name']);
+			$ext = $file->ext();
+			if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
+				$this->Session->setFlash('Incorrect extension or empty file.');
+				$this->redirect(array('action' => 'index'));
+			}
+			$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),
+					$server['Server']['submitted_cert']['size']);
+			$destpath = APP . "files" . DS . "certs" . DS;
+			$dir = new Folder(APP . "files" . DS . "certs", true);
+			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
+			$pemfile = new File ($destpath . $id . '.' . $ext);
+			$result = $pemfile->write($pemData); 
+			$s = $this->Server->read(null, $id);
+			$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
+			if ($result) $this->Server->save($s);
+		} else {
+			$s = $this->Server->read(null, $id);
+			$s['Server']['cert_file'] = '';
+			$this->Server->save($s);
 		}
-		$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),
-				$server['Server']['submitted_cert']['size']);
-		$destpath = APP . "files" . DS . "certs" . DS;
-		$dir = new Folder(APP . "files" . DS . "certs", true);
-		if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
-		$pemfile = new File ($destpath . $id . '.' . $ext);
-		$result = $pemfile->write($pemData); 
-		$s = $this->Server->read(null, $id);
-		$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
-		if ($result) $this->Server->save($s);
 	}
 	
 	public function serverSettingsReloadSetting($setting, $id) {
