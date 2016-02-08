@@ -33,6 +33,30 @@ misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "UR
 cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "URI" : "value", "AutonomousSystem" : "number", "Pipe" : "name", "Mutex" : "name"}
 misp_indicator_type = {"domain" : "Domain Watchlist", "hostname" : "Domain Watchlist", "url" : "URL Watchlist", "AS" : "", "mutex" : "Host Characteristics", "named pipe" : "Host Characteristics", "link" : ""}
 
+# mapping Windows Registry Hives and their abbreviations
+# see https://cybox.mitre.org/language/version2.1/xsddocs/objects/Win_Registry_Key_Object_xsd.html#RegistryHiveEnum
+# the dict keys must be UPPER CASE and end with \\
+misp_reghive = {
+    "HKEY_CLASSES_ROOT\\"                : "HKEY_CLASSES_ROOT",
+    "HKCR\\"                             : "HKEY_CLASSES_ROOT",
+    "HKEY_CURRENT_CONFIG\\"              : "HKEY_CURRENT_CONFIG",
+    "HKCC\\"                             : "HKEY_CURRENT_CONFIG",
+    "HKEY_CURRENT_USER\\"                : "HKEY_CURRENT_USER",
+    "HKCU\\"                             : "HKEY_CURRENT_USER",
+    "HKEY_LOCAL_MACHINE\\"               : "HKEY_LOCAL_MACHINE",
+    "HKLM\\"                             : "HKEY_LOCAL_MACHINE",
+    "HKEY_USERS\\"                       : "HKEY_USERS",
+    "HKU\\"                              : "HKEY_USERS",
+    "HKEY_CURRENT_USER_LOCAL_SETTINGS\\" : "HKEY_CURRENT_USER_LOCAL_SETTINGS",
+    "HKCULS\\"                           : "HKEY_CURRENT_USER_LOCAL_SETTINGS",
+    "HKEY_PERFORMANCE_DATA\\"            : "HKEY_PERFORMANCE_DATA",
+    "HKPD\\"                             : "HKEY_PERFORMANCE_DATA",
+    "HKEY_PERFORMANCE_NLSTEXT\\"         : "HKEY_PERFORMANCE_NLSTEXT",
+    "HKPN\\"                             : "HKEY_PERFORMANCE_NLSTEXT",
+    "HKEY_PERFORMANCE_TEXT\\"            : "HKEY_PERFORMANCE_TEXT",
+    "HKPT\\"                             : "HKEY_PERFORMANCE_TEXT",
+}
+
 def generateObservable(indicator, attribute):
     if (attribute["type"] in ("snort", "yara")):
         generateTM(indicator, attribute)
@@ -114,11 +138,17 @@ def generateRegkeyObservable(indicator, attribute):
         regvalue = attribute["value"].split('|')[1]
     else:
         regkey = attribute["value"]
+    reghive, regkey = resolveRegHive(regkey)
     reg_object = WinRegistryKey()
     reg_object.key = regkey
+    reg_object.key.condition = "Equals"
+    if (reghive != None):
+        reg_object.hive = reghive
+        reg_object.hive.condition = "Equals"
     if (regvalue != ""):
         reg_value_object = RegistryValue()
         reg_value_object.data = regvalue
+        reg_value_object.data.condition = "Equals"
         reg_object.values = RegistryValues(reg_value_object)
     return reg_object
 
@@ -232,3 +262,10 @@ def generateEmailAttachmentObject(indicator, attribute):
     observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-" + attribute["uuid"]
     indicator.observable = observable
 
+# split registry string into hive and key
+def resolveRegHive(regStr):
+    regStrU = regStr.upper()
+    for hive in misp_reghive.iterkeys():
+        if regStrU.startswith(hive):
+            return misp_reghive[hive], regStr[len(hive):]
+    return None, regStr
