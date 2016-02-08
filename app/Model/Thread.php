@@ -7,22 +7,36 @@ App::uses('AppModel', 'Model');
  *
 */
 class Thread extends AppModel {
-	public $actsAs = array('Containable');
+	public $actsAs = array(
+			'Containable',
+			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+					'roleModel' => 'Thread',
+					'roleKey' => 'thread_id',
+					'change' => 'full'
+			),
+	);
 	public $hasMany = 'Post';
-	public $belongsTo = 'Event';
+	public $belongsTo = array(
+		'Event', 
+		'Organisation' => array(
+			'className' => 'Organisation',
+			'foreignKey' => 'org_id'
+		),
+		'SharingGroup'
+	);
 	
-	public function updateAfterPostChange($add = false) {
-		$count = count($this->data['Post']);
+	public function updateAfterPostChange($thread, $add = false) {
+		$count = count($thread['Post']);
 		// If we have 0 posts left, delete the thread!
 		if ($count == 0) {
-			$this->delete();
+			$this->delete($thread['Thread']['id']);
 			return false;
 		} else {
-			$this->data['Thread']['post_count'] = $count;
+			$thread['Thread']['post_count'] = $count;
 			if ($add) {
-				$this->data['Thread']['date_modified'] = date('Y/m/d h:i:s');
+				$thread['Thread']['date_modified'] = date('Y/m/d h:i:s');
 			}
-			$this->save($this->data);
+			$this->save($thread);
 			return true;
 		}
 	}

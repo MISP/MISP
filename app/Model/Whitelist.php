@@ -38,17 +38,12 @@ class Whitelist extends AppModel {
  */
 	public $validate = array(
 		'name' => array(
-			'notempty' => array(
-			'rule' => array('notempty'),
-			'message' => 'Please fill in this field',
-			//'allowEmpty' => false,
-			//'required' => false,
-			//'last' => false, // Stop validation after this rule
-			//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 			'userdefined' => array(
 				'rule' => array('validateValue'),
-				'message' => 'Name not in the right format. Please double check the name.',
+ 				'message' => 'Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: "/8.8.8.8/" Please double check the name.', 				//'allowEmpty' => false,
 				//'allowEmpty' => false,
 				//'required' => true,
 				//'last' => false, // Stop validation after this rule

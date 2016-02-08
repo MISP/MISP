@@ -32,9 +32,8 @@ class Tag extends AppModel {
 	
 	public $validate = array(
 			'name' => array(
-					'notempty' => array(
-							'rule' => array('notempty'),
-							'message' => 'Please fill in this field',
+					'valueNotEmpty' => array(
+						'rule' => array('valueNotEmpty'),
 					),
 					'unique' => array(
 							'rule' => 'isUnique',
@@ -42,9 +41,8 @@ class Tag extends AppModel {
 					),
 			),
 			'colour' => array(
-					'notempty' => array(
-							'rule' => 'notempty',
-							'message' => 'Please fill in this field',
+					'valueNotEmpty' => array(
+						'rule' => array('valueNotEmpty'),
 					),
 					'userdefined' => array(
 							'rule' => 'validateColour',
@@ -84,6 +82,7 @@ class Tag extends AppModel {
 		return array($acceptIds, $rejectIds);
 	}
 	
+	// find all of the event Ids that belong to tags with certain names
 	public function findTags($array) {
 		$ids = array();
 		foreach ($array as $a) {
@@ -102,5 +101,78 @@ class Tag extends AppModel {
 			}
 		}
 		return $ids;
+	}
+	
+	public function captureTag($tag, $user) {
+		$existingTag = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('name' => $tag['name'])
+		));
+		if (empty($existingTag)) {
+			$this->create();
+			$tag = array(
+					'name' => $tag['name'],
+					'colour' => $tag['colour'],
+					'exportable' => $tag['exportable'],
+			);
+			$this->save($tag);
+			return $this->id;
+		}
+		return $existingTag['Tag']['id'];
+	}
+
+	// find all tags that belong to a given eventId
+	public function findEventTags($eventId) {
+		$tags = array();
+		$params = array(
+				'recursive' => 1,
+				'contain' => 'EventTag',
+		);
+		$result = $this->find('all', $params);
+		foreach ($result as $tag) {
+			foreach ($tag['EventTag'] as $eventTag) {
+				if ($eventTag['event_id'] == $eventId) {
+					$tags[] = $tag['Tag'];
+				}
+			}
+		}
+		return $tags;
+	}
+	
+	public function random_color() {
+		$colour = '#';
+		for ($i = 0; $i < 3; $i++) $colour .= str_pad(dechex(mt_rand(0,255)), 2, '0', STR_PAD_LEFT);
+		return $colour;
+	}
+	
+	public function quickAdd($name, $colour = false) {
+		$this->create();
+		if ($colour === false) $colour = $this->random_color();
+		$data = array(
+			'name' => $name,
+			'colour' => $colour,
+			'exportable' => 1
+		);
+		return ($this->save($data));
+	}
+	
+	public function quickEdit($tag, $name, $colour) {
+		if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name) {
+			$tag['Tag']['name'] = $name;
+			$tag['Tag']['colour'] = $colour;
+			return ($this->save($tag['Tag']));
+		}
+		return true;
+	}
+	
+	public function getTagsForNamespace($namespace) {
+		$tags_temp = $this->find('all', array(
+				'recursive' => -1,
+				'contain' => 'EventTag',
+				'conditions' => array('UPPER(name) LIKE' => strtoupper($namespace) . '%'),
+		));
+		$tags = array();
+		foreach ($tags_temp as &$temp) $tags[strtoupper($temp['Tag']['name'])] = $temp;
+		return $tags;
 	}
 }

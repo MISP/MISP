@@ -36,6 +36,7 @@ class PostsController extends AppController {
 		$distribution = 1;
 		$event_id = 0;
 		$post_id = 0;
+		if ($this->request->is('ajax')) $this->layout = 'ajax';
 		// we have a target type and a target id. The target id defines what type of object we want to attach this event to (is it a reply to another post, 
 		// did someone add a post to a thread, does a thread for the event exist already, etc. 
 		switch ($target_type) {
@@ -48,7 +49,7 @@ class PostsController extends AppController {
 					throw new NotFoundException(__('Invalid event'));
 				}
 				if (!$this->_isSiteAdmin()) {
-					if ($this->Event->data['Event']['distribution'] == 0 && $this->Event->data['Event']['org'] != $this->Auth->user('org')) {
+					if ($this->Event->data['Event']['distribution'] == 0 && $this->Event->data['Event']['org_id'] != $this->Auth->user('org_id')) {
 						throw new MethodNotAllowedException('You don\'t have permission to do that.');
 					}
 				}
@@ -60,7 +61,8 @@ class PostsController extends AppController {
 					$target_thread_id = null;
 				}
 				$distribution = $this->Event->data['Event']['distribution'];
-				$org = $this->Event->data['Event']['org'];
+				$sgid = $this->Event->data['Event']['sharing_group_id'];
+				$org = $this->Event->data['Event']['org_id'];
 				$event_id = $this->Event->data['Event']['id'];
 			break;
 			case 'thread' :
@@ -71,7 +73,7 @@ class PostsController extends AppController {
 						throw new NotFoundException(__('Invalid thread'));
 					}
 					if (!$this->_isSiteAdmin()) {
-						if ($thread['Thread']['distribution'] == 0 && $this->Auth->user('org') != $thread['Thread']['org']) {
+						if ($thread['Thread']['distribution'] == 0 && $this->Auth->user('org_id') != $thread['Thread']['org_id']) {
 							throw new MethodNotAllowedException('You don\'t have permission to do that.');
 						}
 					}
@@ -84,13 +86,14 @@ class PostsController extends AppController {
 				$target_thread_id = $this->Post->data['Post']['thread_id'];
 				$thread = $this->Thread->read(null, $target_thread_id);
 				if (!$this->_isSiteAdmin()) {
-					if ($thread['Thread']['distribution'] == 0 && $this->Auth->user('org') != $thread['Thread']['org']) {
+					if ($thread['Thread']['distribution'] == 0 && $this->Auth->user('org_id') != $thread['Thread']['org_id']) {
 						throw new MethodNotAllowedException('You don\'t have permission to do that.');
 					}
 				}
 				$title = $this->Thread->data['Thread']['title'];
 				$previousPost = $this->_grabPreviousPost($target_id);
 				$distribution = $previousPost['Thread']['distribution'];
+				$sgid = $previousPost['Thread']['sharing_group_id'];
 				$event_id = $previousPost['Thread']['event_id'];
 				$post_id = $target_id;
 				$target_thread_id = $previousPost['Thread']['id'];
@@ -99,11 +102,10 @@ class PostsController extends AppController {
 				$target_thread_id = null;
 			break;
 		}
-
 		if ($this->request->is('post')) {
 			// Set the default values that we'll alter before actually saving data. These are the default values unless specifically modified.
 			// By default, all discussions will be visibile to everyone on the platform
-			$org = $this->Auth->user('org');
+
 			// Set the title if it is setable in the add view.
 			if (empty($thread_id) && empty($target_type)) {
 				$title = $this->request->data['Post']['title'];
@@ -122,9 +124,10 @@ class PostsController extends AppController {
 						'user_id' => $this->Auth->user('id'),
 						'event_id' => $event_id,
 						'title' => $title,
-						'distribution' => $distribution,
+						'distribution' => isset($distribution) ? $distribution : 1,
+						'sharing_group_id' => isset($sgid) ? $sgid : 0,
 						'post_count' => 1,
-						'org' => $org
+						'org_id' => $this->Auth->user('org_id')
 				);
 				$this->Thread->save($newThread);
 				$target_thread_id = $this->Thread->getId();
@@ -134,7 +137,6 @@ class PostsController extends AppController {
 				$this->Thread->data['Thread']['date_modified'] = date('Y/m/d H:i:s');
 				$this->Thread->save();
 			}
-			
 			// Time to create our post! 
 			$this->Post->create();
 			$newPost = array(
@@ -148,82 +150,71 @@ class PostsController extends AppController {
 			if ($this->Post->save($newPost)) {
 				$this->Thread->recursive = 0;
 				$this->Thread->contain('Post');
-				$this->Thread->read(null, $target_thread_id);
-				$this->Thread->updateAfterPostChange(true);
-				$this->Session->setFlash(__('Post added'));
-				$this->Post->sendPostsEmailRouter($this->Auth->user('id'), $this->Post->getId(), $event_id, $title, $this->request->data['Post']['message']);
-				$this->redirect(array('action' => 'view', $this->Post->getId()));
+				$thread = $this->Thread->read(null, $target_thread_id);
+				$this->Thread->updateAfterPostChange($thread, true);
+				if (!$this->request->is('ajax')) $this->Session->setFlash(__('Post added'));
+				$post_id = $this->Post->getId();
+				$this->Post->sendPostsEmailRouter($this->Auth->user('id'), $post_id, $event_id, $title, $this->request->data['Post']['message']);
+
+				// redirect to thread view
+				if ($target_type != 'event') $target_id = $target_thread_id;
+				$pageNr = $this->Post->findPageNr($target_id, $target_type, $this->Post->id);
+				$this->redirect(array('controller' => 'threads', 'action' => 'view', $target_id, $target_type == 'event', 'page:' . $pageNr, 'post_id:' . $this->Post->id));
+				return true;
 			} else {
 				$this->Session->setFlash('The post could not be added.');
 			}
-		}
-		if ($target_type === 'post') {
-			$this->set('previous', $previousPost['Post']['contents']);
-		}
-		$this->set('thread_id', $target_thread_id);
-		$this->set('target_type', $target_type);
-		$this->set('target_id', $target_id);
-		if (isset($title)) {
-			$this->set('title', $title);
+		} else {
+			if ($target_type === 'post') {
+				$this->set('previous', $previousPost['Post']['contents']);
+			}
+			$this->set('thread_id', $target_thread_id);
+			$this->set('target_type', $target_type);
+			$this->set('target_id', $target_id);
+			if (isset($title)) {
+				$this->set('title', $title);
+			}
 		}
 	}
 	
-	public function edit($post_id) {
-		$this->Post->id = $post_id;
-		if (!$this->Post->exists()) {
-			throw new NotFoundException(__('Invalid post'));
-		}
-		$this->Post->recursive = 1; 
-		$this->Post->read(null, $post_id);
-		if (!$this->_isSiteAdmin() && $this->Auth->user('id') != $this->Post->data['Post']['user_id']) {
-			throw new MethodNotAllowedException('This is not your event.');
-		}
+	public function edit($post_id, $context = 'thread') {
+		$post = $this->Post->find('first', array('conditions' => array('Post.id' => $post_id), 'recursive' => -1, 'contain' => array('Thread')));
+		if (empty($post)) throw new NotFoundException(__('Invalid post'));
+		if (!$this->_isSiteAdmin() && $this->Auth->user('id') != $post['Post']['user_id']) throw new MethodNotAllowedException('This is not your event.');
+
 		if ($this->request->is('post') || $this->request->is('put')) {
-			$this->request->data['Post']['date_modified'] = date('Y/m/d H:i:s');
+			$post['Post']['date_modified'] = date('Y/m/d H:i:s');
 			$fieldList = array('date_modified', 'contents');
-			if ($this->Post->save($this->request->data, true, $fieldList)) {
+			$post['Post']['contents'] = $this->request->data['Post']['contents'];
+			if ($this->Post->save($post['Post'], true, $fieldList)) {
 				$this->Session->setFlash('Post edited');
-				$this->loadModel('Thread');
-				$this->Thread->recursive = 0;
-				$this->Thread->contain('Post');
-				$this->Thread->read(null, $this->Post->data['Post']['thread_id']);
-				$this->Thread->updateAfterPostChange();
-				$this->redirect(array('action' => 'view', $post_id));
+				$thread = $this->Post->Thread->find('first', array(
+						'recursive' => -1,
+						'contain' => array(
+							'Post' => array(
+								'fields' => array('Post.id')
+							)
+						),
+						'conditions' => array('Thread.id' => $post['Post']['thread_id'])
+				));
+				$this->Post->Thread->updateAfterPostChange($thread);
+				if ($context != 'event') $target_id = $post['Post']['thread_id'];
+				else $target_id = $thread['Thread']['event_id'];
+				$context = ($context == 'event');
+				$pageNr = $this->Post->findPageNr($target_id, $context, $post_id);
+				$this->redirect(array('controller' => 'threads', 'action' => 'view', $target_id, $context, 'page:' . $pageNr, 'post_id:' . $post_id));
+				return true;
 			} else {
 				$this->Session->setFlash('The Post could not be edited. Please, try again.');
 			}
 		}
-		$this->set('title', $this->Post->data['Thread']['title']);
-		$this->set('contents', $this->Post->data['Post']['contents']);
+		$this->set('title', $post['Thread']['title']);
+		$this->set('contents', $post['Post']['contents']);
 		$this->set('id', $post_id);
-		$this->set('thread_id', $this->Post->data['Post']['thread_id']);
+		$this->set('thread_id', $post['Post']['thread_id']);
 	}
 	
-	public function quick_add() {
-		if($this->RequestHandler->isAjax()) {
-			$this->layout = 'ajax'; //THIS LINE NEWLY ADDED
-			if(!empty($this->data)) {
-				if($this->Message->save($this->data)) {
-					$this->Session->setFlash('Your Message has been posted');
-				}
-			}
-		}
-	}
-	
-	
-	public function quick_edit() {
-		throw new Exception();
-		if($this->RequestHandler->isAjax()) {
-			$this->layout = 'ajax'; //THIS LINE NEWLY ADDED
-			if(!empty($this->data)) {
-				if($this->Message->save($this->data)) {
-					$this->Session->setFlash('Your Message has been posted');
-				}
-			}
-		}
-	}
-	
-	public function delete($post_id) {
+	public function delete($post_id, $context = 'thread') {
 			if (!$this->request->is('post')) {
 				throw new MethodNotAllowedException();
 			}
@@ -237,46 +228,42 @@ class PostsController extends AppController {
 				throw new MethodNotAllowedException('This post doesn\'t belong to you, so you cannot delete it.');
 			}
 			if ($this->Post->delete()) {
-				$this->loadModel('Thread');
-				$this->Thread->recursive = 0;
-				$this->Thread->contain('Post');
-				$this->Thread->read(null, $this->Post->data['Thread']['id']);
-				$thread = $this->Thread->data['Thread']['id'];
-				if (!$this->Thread->updateAfterPostChange()) {
+				$thread = $this->Post->Thread->find('first', array(
+						'recursive' => -1,
+						'contain' => array(
+								'Post' => array(
+										'fields' => array('Post.id')
+								)
+						),
+						'conditions' => array('Thread.id' => $temp['Post']['thread_id'])
+				));
+				if (!$this->Post->Thread->updateAfterPostChange($thread)) {
 					$this->Session->setFlash('Post and thread deleted');
-					$this->redirect(array('controller' => 'threads', 'action' => 'index'));
+					if ($context == 'event') {
+						$this->redirect(array('controller' => 'events', 'action' => 'view', $thread['Thread']['event_id']));
+						return true;
+					} else {
+						$this->redirect(array('controller' => 'threads', 'action' => 'index'));
+						return true;
+					}
 				} else {
 					$this->Session->setFlash('Post deleted');
+					if ($context == 'event') {
+						$this->redirect(array('controller' => 'events', 'action' => 'view', $thread['Thread']['event_id']));
+						return true;
+					}
+
 				}
 			}
-			$this->redirect(array('controller' => 'threads', 'action' => 'view', $thread));
+			$this->redirect(array('controller' => 'threads', 'action' => 'view', $thread['Thread']['id']));
 
 	}
 
-	
-	// Views the proper context for the post
-	public function view($post_id) {
-		$this->Post->id = $post_id;
-		if (!$this->Post->exists()) {
-			throw new NotFoundException(__('Invalid post'));
-		}
-		$this->Post->read();
-		// We don't know what the context was, so let's try to guess what the user wants to see!
-		// If the post belongs to an event's discussion thread, redirect the user to the event's view
-		if ($this->Post->data['Thread']['event_id'] != 0) {
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->Post->data['Thread']['event_id']));
-		} else {
-		//Otherwise send the user to the thread's index.
-			$this->redirect(array('controller' => 'threads',  'action' => 'view', $this->Post->data['Thread']['id']));
-		}
-	}
-	
 	private function _grabPreviousPost($post_id) {
 		$this->Post->id = $post_id;
 		$this->Post->read();
 		return $this->Post->data;
 	}
-	
 }
 ?>
 		

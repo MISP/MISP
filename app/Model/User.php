@@ -16,8 +16,8 @@ class User extends AppModel {
  * @var string
  */
 	public $displayField = 'email';
-
-	public $orgField = 'org';	// TODO Audit, LogableBehaviour + org
+	
+	public $orgField = array('Organisation', 'name');	// TODO Audit, LogableBehaviour + org
 
 	
 /**
@@ -62,24 +62,14 @@ class User extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'org' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				'message' => 'Please specify the organisation where you are working.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
-		),
+
 		'org_id' => array(
-			'notempty' => array(
-				'rule' => array('notempty'),
-				'message' => 'Please specify the organisation ID where you are working.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
+			),
+			'numeric' => array(
+					'rule' => array('numeric'),
+					'message' => 'The organisation ID has to be a numeric value.',
 			),
 		),
 		'email' => array(
@@ -122,13 +112,8 @@ class User extends AppModel {
 				'message' => 'A authkey of a minimum length of 40 is required.',
 				'required' => true,
 			),
-			'notempty' => array(
-				'rule' => array('notempty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 		),
 		'invited_by' => array(
@@ -152,13 +137,9 @@ class User extends AppModel {
 			),
 		),
 		'gpgkey' => array(
-			'notempty' => array(
+			'gpgvalidation' => array(
 				'rule' => array('validateGpgkey'),
 				'message' => 'GPG key not valid, please enter a valid key.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
 		'nids_sid' => array(
@@ -207,6 +188,20 @@ class User extends AppModel {
 			'conditions' => '',
 			'fields' => '',
 			'order' => ''
+		),
+		'Organisation' => array(
+			'className' => 'Organisation',
+			'foreignKey' => 'org_id',
+			'conditions' => '',
+			'fields' => '',
+			'order' => ''
+		),
+		'Server' => array(
+			'className' => 'Server',
+			'foreignKey' => 'server_id',
+			'conditions' => '',
+			'fields' => array('Server.id', 'Server.url', 'Server.push_rules'),
+			'order' => ''
 		)
 	);
 
@@ -229,19 +224,18 @@ class User extends AppModel {
 			'finderQuery' => '',
 			'counterQuery' => ''
 		),
-		'Post' => array(
-		)
+		'Post'
 	);
 
 	public $actsAs = array(
 		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
 			'userModel' => 'User',
 			'userKey' => 'user_id',
-			'change' => 'full'
+			'change' => 'full',
+			'ignore' => array('password')
 		),
 		'Trim',
 		'Containable'
-		//'RemoveNewline' => array('fields' => array('gpgkey')),
 	);
 
 	public function beforeSave($options = array()) {
@@ -249,12 +243,6 @@ class User extends AppModel {
 			$this->data[$this->alias]['password'] = AuthComponent::password($this->data[$this->alias]['password']);
 		}
 		return true;
-
-		// only accept add and edit in own org
-		//if ($this->data[$this->alias]['org'] != "TEST") {
-		//	return false;
-		//}
-		//return true;
 	}
 
 /**
@@ -373,13 +361,13 @@ class User extends AppModel {
 	}
 	
 	public function getOrgs() {
-		$this->recursive = -1;
-		$orgs = $this->find('all', array(
-				'fields' => array('DISTINCT (User.org) AS org'),
+		$orgs = $this->Organisation->find('all', array(
+			'recursive' => -1,
+			'fields' => array('name'),
 		));
 		$orgNames = array();
 		foreach ($orgs as $org) {
-			$orgNames[] = $org['User']['org'];
+			$orgNames[] = $org['Organisation']['name'];
 		}
 		return $orgNames;
 	}
@@ -391,22 +379,46 @@ class User extends AppModel {
 				)));
 	}
 	
-	public function verifyGPG() {
+	public function verifyGPG($id = false) {
 		require_once 'Crypt/GPG.php';
 		$this->Behaviors->detach('Trim');
 		$results = array();
+		$conditions = array('not' => array('gpgkey' => ''));
+		if ($id !== false) $conditions['User.id'] = $id;
 		$users = $this->find('all', array(
-			'conditions' => array('not' => array('gpgkey' => '')),
-			//'fields' => array('id', 'email', 'gpgkey'),
+			'conditions' => $conditions,
 			'recursive' => -1,
 		));
+		if (empty($users)) return results;
+		$currentTimestamp = time();
+		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 		foreach ($users as $k => $user) {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
-			$key = $gpg->importKey($user['User']['gpgkey']);
-			$gpg->addEncryptKey($key['fingerprint']); // use the key that was given in the import
 			try {
-				$enc = $gpg->encrypt('test', true);
+				$temp = $gpg->importKey($user['User']['gpgkey']);
+				$key = $gpg->getKeys($temp['fingerprint']);
+				$subKeys = $key[0]->getSubKeys();
+				$sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
+				foreach ($subKeys as $subKey) {
+					$issue = false;
+					$expiration = $subKey->getExpirationDate();
+					if ($expiration != 0 && $currentTimestamp > $expiration) {
+						$sortedKeys['expired']++;
+						continue;
+					}
+					if (!$subKey->canEncrypt()) {
+						$sortedKeys['noEncrypt']++;
+						continue;
+					}
+					$sortedKeys['valid']++;
+				}
+				if (!$sortedKeys['valid']) {
+					$results[$user['User']['id']][2] = 'The user\'s PGP key does not include a valid subkey that could be used for encryption.';
+					if ($sortedKeys['expired']) $results[$user['User']['id']][2] .= ' Found ' . $sortedKeys['expired'] . ' subkey(s) that have expired.';
+					if ($sortedKeys['noEncrypt']) $results[$user['User']['id']][2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
+					$results[$user['User']['id']][0] = true;
+				}
 			} catch (Exception $e){
+				$results[$user['User']['id']][2] = $e->getMessage();
 				$results[$user['User']['id']][0] = true;
 			}
 			$results[$user['User']['id']][1] = $user['User']['email'];
@@ -423,10 +435,86 @@ class User extends AppModel {
 		return $result['User']['gpgkey'];
 	}
 	
+	// get the current user and rearrange it to be in the same format as in the auth component
+	public function getAuthUser($id) {
+		$user = $this->find('first', array('conditions' => array('OR' => array('User.id' => $id, 'User.authkey' => $id)), 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
+		if (empty($user)) return $user;
+		// Rearrange it a bit to match the Auth object created during the login
+		$user['User']['Role'] = $user['Role'];
+		$user['User']['Organisation'] = $user['Organisation'];
+		$user['User']['Server'] = $user['Server'];
+		unset($user['Organisation'], $user['Role'], $user['Server']);
+		return $user['User'];
+	}
+	
+	// Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
+	// parameters are an array of org IDs that are owners (for an event this would be orgc and org) 
+	public function getUsersWithAccess($owners = array(), $distribution, $sharing_group_id = 0, $userConditions = array()) {
+		$sgModel = ClassRegistry::init('SharingGroup');
+		$conditions = array();
+		$validOrgs = array();
+		$all = true;
+
+		// add owners to the conditions
+		if ($distribution == 0 || $distribution == 4) {
+			$all = false;
+			$validOrgs = $owners;
+		}
+		
+		// add all orgs to the conditions that can see the SG
+		if ($distribution == 4) {
+			$sgOrgs = $sgModel->getOrgsWithAccess($sharing_group_id);
+			if ($sgOrgs === true) $all = true;
+			else $validOrgs = array_merge($validOrgs, $sgOrgs);
+		}
+		$validOrgs = array_unique($validOrgs);
+		$conditions['AND'][] = array('disabled' => 0);
+		if (!$all) {
+			$conditions['AND']['OR'][] = array('org_id' => $validOrgs);
+
+			// Add the site-admins to the list
+			$roles = $this->Role->find('all', array(
+					'conditions' => array('perm_site_admin' => 1),
+					'fields' => array('id')
+			));
+			$roleIDs = array();
+			foreach ($roles as $role) $roleIDs[] = $role['Role']['id'];
+			$conditions['AND']['OR'][] = array('role_id' => $roleIDs);
+		}
+		$conditions['AND'][] = $userConditions;
+
+		$users = $this->find('all', array(
+			'conditions' => $conditions,
+			'recursive' => -1,
+			'fields' => array('id', 'email', 'gpgkey', 'org_id'),
+			'contain' => array('Role' => array('fields' => array('perm_site_admin'))),
+		));
+		foreach ($users as &$user) {
+			$temp = $user['User'];
+			unset($user['User']);
+			$user = array_merge($temp, $user);
+		}
+		return $users;
+	}
+
 	// all e-mail sending is now handled by this method
 	// Just pass the user ID in an array that is the target of the e-mail along with the message body and the alternate message body if the message cannot be encrypted
 	// the remaining two parameters are the e-mail subject and a secondary user object which will be used as the replyto address if set. If it is set and an encryption key for the replyTo user exists, then his/her public key will also be attached
 	public function sendEmail($user, $body, $bodyNoEnc = false, $subject, $replyToUser = false) {
+		if (Configure::read('MISP.disable_emailing')) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'User',
+					'model_id' => $user['User']['id'],
+					'email' => $user['User']['email'],
+					'action' => 'email',
+					'title' => 'Email to ' . $user['User']['email'] . ', titled "' . $subject . '" failed. Reason: Emailing is currently disabled on this instance.',
+					'change' => null,
+			));
+			return true;
+		}
 		$failed = false;
 		$failureReason = "";
 		// check if the e-mail can be encrypted
@@ -461,8 +549,21 @@ class User extends AppModel {
 		if (!$failed && $canEncrypt) {
 			$keyImportOutput = $gpg->importKey($user['User']['gpgkey']);
 			try {
-			$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-				$body = $gpg->encrypt($body, true);
+				$key = $gpg->getKeys($keyImportOutput['fingerprint']);
+				$subKeys = $key[0]->getSubKeys();
+				$canEncrypt = false;
+				$currentTimestamp = time();
+				foreach ($subKeys as $subKey) {
+					$expiration = $subKey->getExpirationDate();
+					if (($expiration == 0 || $currentTimestamp < $expiration) && $subKey->canEncrypt()) $canEncrypt = true;
+				}
+				if ($canEncrypt) {
+					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
+					$body = $gpg->encrypt($body, true);
+				} else {
+					$failed = true;
+					$failureReason = " the message could not be encrypted because the provided key is either expired or cannot be used for encryption.";
+				}
 			} catch (Exception $e){
 				// despite the user having a PGP key and the signing already succeeding earlier, we get an exception. This must mean that there is an issue with the user's key.
 				$failureReason = " the message could not be encrypted because there was an issue with the user's PGP key. The following error message was returned by gpg: " . $e->getMessage();
@@ -482,6 +583,7 @@ class User extends AppModel {
 				$replyToLog = 'from ' . $replyToUser['User']['email'];
 			}
 			$Email->from(Configure::read('MISP.email'));
+			$Email->returnPath(Configure::read('MISP.email'));
 			$Email->to($user['User']['email']);
 			$Email->subject($subject);
 			$Email->emailFormat('text');

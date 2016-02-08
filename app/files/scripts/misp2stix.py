@@ -156,7 +156,8 @@ def generateSTIXObjects(event):
     if incident_status_name is not None:
         incident.status = IncidentStatus(incident_status_name)
     setTLP(incident, event["Event"]["distribution"])
-    setOrg(incident, event["Event"]["org"])
+    setOrg(incident, event["Org"]["name"])
+    setTag(incident, event["Tag"])
     resolveAttributes(incident, ttps, event["Attribute"])
     return [incident, ttps]
 
@@ -306,6 +307,11 @@ def setOrg(target, org):
     ident = Identity(name=org)
     information_source = InformationSource(identity = ident)
     target.information_source = information_source
+
+# takes an object and adds the passed tags as journal entries to it. 
+def setTag(target, tags):
+    for tag in tags:
+        addJournalEntry(target, "MISP Tag: " + tag["name"])
 
 def addReference(target, reference):
     if hasattr(target.information_source, "references"):

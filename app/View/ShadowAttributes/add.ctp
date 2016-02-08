@@ -1,4 +1,4 @@
-<div class="shadow_attributes <?php if (!$ajax) echo 'form';?>">
+<div class="shadow_attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php echo $this->Form->create('ShadowAttribute', array('url' => '/shadow_attributes/add/' . $event_id));?>
 	<fieldset>
 	<legend><?php echo __('Add Proposal'); ?></legend>
@@ -44,8 +44,8 @@
 		?>
 	</div>
 	</fieldset>
-	<p style="color:red;font-weight:bold;display:none;" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
-	<?php if ($ajax): ?>
+	<p style="color:red;font-weight:bold;display:none;<?php if($ajax) echo 'text-align:center;'; ?>" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+	<?php if (isset($ajax) && $ajax): ?>
 		<div class="overlay_spacing">
 			<table>
 				<tr>
@@ -53,7 +53,7 @@
 					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'propose')">Propose</span>
 				</td>
 				<td style="width:540px;">
-					<p style="color:red;font-weight:bold;display:none;<?php if($ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+					<p style="color:red;font-weight:bold;display:none;<?php if(isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 				</td>
 				<td style="vertical-align:top;">
 					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>

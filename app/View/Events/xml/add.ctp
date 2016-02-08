@@ -1,31 +1,7 @@
-<?php
-$xmlArray = array();
-// rearrange things to be compatible with the Xml::fromArray()
-$event['Event']['Attribute'] = $event['Attribute'];
-unset($event['Attribute']);
-
-// cleanup the array from things we do not want to expose
-// remove value1 and value2 from the output
-foreach ($event['Event']['Attribute'] as $key => $value) {
-	unset($event['Event']['Attribute'][$key]['value1']);
-	unset($event['Event']['Attribute'][$key]['value2']);
-	unset($event['Event']['Attribute'][$key]['category_order']);
-}
-
-// hide the org field is we are not in showorg mode
-if (!Configure::read('MISP.showorg') && !$isAdmin) {
-	unset($event['Event']['org']);
-}
-
-// build up a list of the related events
-if (isset($relatedEvents)) {
-	foreach ($relatedEvents as $relatedEvent) {
-		$event['Event']['RelatedEvent'][] = $relatedEvent['Event'];
-	}
-}
-
-// display the XML to the user
-$xmlArray['response']['Event'][] = $event['Event'];
-$xmlArray['response']['xml_version'] = $mispVersion;
-$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
-echo $xmlObject->asXML();
+<?php 
+App::uses('XMLConverterTool', 'Tools');
+$converter = new XMLConverterTool();
+echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
+echo $converter->event2XML($event) . PHP_EOL;
+echo '<xml_version>' . $mispVersion . '</xml_version>';
+echo '</response>' . PHP_EOL;

@@ -30,6 +30,18 @@ class SecureAuthComponent extends AuthComponent {
 					$user = $this->identify($this->request, $this->response);
 					unset($user['gpgkey']);
 					if ($user === false) {
+						$this->Log = ClassRegistry::init('Log');
+						$this->Log->create();
+						$log = array(
+								'org' => 'SYSTEM',
+								'model' => 'User',
+								'model_id' => 0,
+								'email' => $username,
+								'action' => 'login_fail',
+								'title' => 'Failed login attempt',
+								'change' => null,
+						);
+						$this->Log->save($log);
 						// insert row in Bruteforce table
 						$this->Bruteforce->insert($_SERVER['REMOTE_ADDR'], $username);
 						// do nothing as user is not logged in

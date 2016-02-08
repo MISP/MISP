@@ -44,20 +44,49 @@
 			</span>
 		</span>
 	</div>
-	<h3>Writeable Directories</h3>
-	<p>The following directories have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.</p>
+	<h3>Writeable Directories and files</h3>
+	<p>The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.</p>
+	<p><b>Directories</b></p>
 	<div style="background-color:#f7f7f9;width:300px;">
 		<?php 
 			foreach ($writeableDirs as $dir => $error) {
 				$colour = 'green';
 				$message = $writeableErrors[$error];
 				if ($error > 0) {
+					$message = 'Directory ' . $message;
 					$colour = 'red';
 				}
 				echo 'app/' . $dir . '.....<span style="color:' . $colour . ';">' . $message . '</span><br />';
 			} 
 		?>
 	</div>
+	<br />
+	<p><b>Files</b></p>
+	<div style="background-color:#f7f7f9;width:300px;">
+		<?php 
+			foreach ($writeableFiles as $file => $error) {
+				$colour = 'green';
+				$message = $writeableErrors[$error];
+				if ($error > 0) {
+					$message = 'File ' . $message;
+					$colour = 'red';
+				}
+				echo 'app/' . $file . '.....<span style="color:' . $colour . ';">' . $message . '</span><br />';
+			} 
+		?>
+	</div>
+	<h3>PHP Settings</h3>
+	<p>The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.</p>
+	<?php 
+		foreach ($phpSettings as $settingName => &$phpSetting): 
+			echo $settingName . ' (<span class="bold">' . $phpSetting['value'] . ($phpSetting['unit'] ? $phpSetting['unit'] : '') . '</span>' .')' . '.....';
+			if ($phpSetting['value'] < $phpSetting['recommended']) $pass = false;
+			else $pass = true;
+	?>
+	<span style="color:<?php echo $pass ? 'green': 'orange'; ?>"><?php echo $pass ? 'OK' : 'Low'; ?> (recommended: <?php echo strval($phpSetting['recommended']) . ($phpSetting['unit'] ? $phpSetting['unit'] : '') . ')'; ?></span><br />
+	<?php 
+		endforeach;
+	?>
 	<h3>
 	STIX and Cybox libraries
 	</h3>
@@ -125,4 +154,24 @@
 			echo 'Proxy settings....<span style="color:' . $colour . ';">' . $message . '</span>';
 		?>
 	</div>
+	<h3>
+	Session table
+	</h3>
+	<p>This tool checks how large your database's session table is. <br />Sessions in CakePHP rely on PHP's garbage collection for cleanup and in certain distributions this can be disabled by default resulting in an ever growing cake session table. <br />If you are affected by this, just click the clean session table button below.</p>
+	<div style="background-color:#f7f7f9;width:300px;">
+		<?php
+			$colour = 'green';
+			$message = $sessionErrors[$sessionStatus];
+			$sessionColours = array(0 => 'green', 1 => 'red', 2 => 'orange', 3 => 'red');
+			$colour = $sessionColours[$sessionStatus];
+			echo 'Expired sessions....<span style="color:' . $colour . ';">' . $sessionCount . ' (' . $message . ')' . '</span>';
+		?>
+	</div>
+	<?php 
+		if ($sessionStatus < 2):
+	?>
+	<a href="<?php echo $baseurl;?>/servers/purgeSessions"><span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">Purge sessions</span></a>
+	<?php 
+		endif;
+	?>
 </div>

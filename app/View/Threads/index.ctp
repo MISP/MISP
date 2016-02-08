@@ -33,45 +33,46 @@ foreach ($threads as $thread):
 	?>
 
 		<tr>
-			<td class="short" style="text-align: left;" onclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+			<td class="short" style="text-align: left;" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
 				<?php 
-					$imgRelativePath = 'orgs' . DS . h($thread['Thread']['org']) . '.png';
+					$imgRelativePath = 'orgs' . DS . h($thread['Organisation']['name']) . '.png';
 					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($thread['Thread']['org']) . '.png', array('alt' => h($thread['Thread']['org']), 'title' => h($thread['Thread']['org']), 'style' => 'width:24px; height:24px'));
-					else echo $this->Html->tag('span', h($thread['Thread']['org']), array('class' => 'welcome', 'style' => 'float:left;'));
+					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($thread['Organisation']['name']) . '.png', array('alt' => h($thread['Organisation']['name']), 'title' => h($thread['Organisation']['name']), 'style' => 'width:24px; height:24px'));
+					else echo $this->Html->tag('span', h($thread['Organisation']['name']), array('class' => 'welcome', 'style' => 'float:left;'));
 				?>
 				&nbsp;
 			</td>
-			<td onclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+			<td ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
 				<?php
 					echo h($thread['Thread']['title']);
 				?>
 			</td>
-			<td class="short" style="text-align: center;" onclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+			<td class="short" style="text-align: center;" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
 				<?php 
 					echo h($thread['Thread']['date_modified']);
 				?>
 				&nbsp;
 			</td>
-			<td class="short" style="text-align: center;" onclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+			<td class="short" style="text-align: center;" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
 				<?php 
 					echo h($lastPost['User']['email']);
 				?>
 				&nbsp;
 			</td>
-			<td class="short" style="text-align: center;" onclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+			<td class="short" style="text-align: center;" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
 				<?php
 					echo h($thread['Thread']['date_created']);
 				?>
 			</td>
-			<td class="short" onclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+			<td class="short" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
 				<?php
 					echo h($thread['Thread']['post_count']);
 				?>
 			</td>
-			<td class="short" onclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+			<td class="short" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
 				<?php
-					echo $distributionLevels[$thread['Thread']['distribution']];
+					if ($thread['Thread']['distribution'] < 4) echo $distributionLevels[$thread['Thread']['distribution']];
+					else echo '<a href="/sharing_groups/view/' . h($thread['Thread']['sharing_group_id']) . '" title="' . h($thread['SharingGroup']['name']) . '">Sharing group</a>';
 				?>
 			</td>
 		</tr>

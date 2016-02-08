@@ -29,13 +29,13 @@ class TemplatesController extends AppController {
 	public function index() {
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
-			$conditions['OR'] = array('org' => $this->Auth->user('org'), 'share' => true);
+			$conditions['OR'] = array('org' => $this->Auth->user('Organisation')['name'], 'share' => true);
 		}
 		if (!$this->_isSiteAdmin()) {
 			$this->paginate = Set::merge($this->paginate,array(
 					'conditions' =>
 					array("OR" => array(
-							array('org' => $this->Auth->user('org')),
+							array('org' => $this->Auth->user('Organisation')['name']),
 							array('share' => true),
 			))));
 		}
@@ -49,11 +49,10 @@ class TemplatesController extends AppController {
 		
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$this->request->data['Template']['id'] = $id;
-			
 			unset($this->request->data['Template']['tagsPusher']);
 			$tags = $this->request->data['Template']['tags'];
 			unset($this->request->data['Template']['tags']);
-			$this->request->data['Template']['org'] = $this->Auth->user('org');
+			$this->request->data['Template']['org'] = $this->Auth->user('Organisation')['name'];
 			$this->Template->create();
 			if ($this->Template->save($this->request->data)) {
 				$id = $this->Template->id;
@@ -67,7 +66,7 @@ class TemplatesController extends AppController {
 
 				$newTags = $this->TemplateTag->Tag->find('all', array(
 					'recursive' => -1,
-					'conditions' => array('name' => $tagArray)
+					'conditions' => array('id' => $tagArray)
 				));
 				
 				foreach($oldTags as $k => $oT) {
@@ -138,7 +137,7 @@ class TemplatesController extends AppController {
 			unset($this->request->data['Template']['tagsPusher']);
 			$tags = $this->request->data['Template']['tags'];
 			unset($this->request->data['Template']['tags']);
-			$this->request->data['Template']['org'] = $this->Auth->user('org');
+			$this->request->data['Template']['org'] = $this->Auth->user('Organisation')['name'];
 			$this->Template->create();
 			if ($this->Template->save($this->request->data)) {
 				$id = $this->Template->id;
@@ -147,7 +146,7 @@ class TemplatesController extends AppController {
 				$this->loadModel('Tag');
 				foreach ($tagArray as $t) {
 					$tag = $this->Tag->find('first', array(
-						'conditions' => array('name' => $t),
+						'conditions' => array('id' => $t),
 						'fields' => array('id', 'name'),
 						'recursive' => -1,
 					));
@@ -226,13 +225,13 @@ class TemplatesController extends AppController {
 		$event = $this->Event->find('first' ,array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
-				'fields' => array('orgc', 'id'),
+				'fields' => array('orgc_id', 'id'),
 		));
-		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc'] != $this->Auth->user('org'))) throw new NotFoundException('Event not found or you are not authorised to edit it.');
+		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) throw new NotFoundException('Event not found or you are not authorised to edit it.');
 	
 		$conditions = array();
 		if (!$this->_isSiteAdmin) {
-			$conditions['OR'] = array('Template.org' => $this->Auth->user('org'), 'Template.share' => true);
+			$conditions['OR'] = array('Template.org' => $this->Auth->user('Organisation')['name'], 'Template.share' => true);
 		}
 		$templates = $this->Template->find('all', array(
 				'recursive' => -1,
@@ -261,14 +260,14 @@ class TemplatesController extends AppController {
 		$event = $this->Event->find('first', array(
 			'conditions' => array('id' => $event_id),
 			'recursive' => -1,
-			'fields' => array('id', 'orgc', 'distribution'),
+			'fields' => array('id', 'orgc_id', 'distribution'),
 		));
-		
+		$this->set('event', $event);
 		if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 		if (empty($template)) throw new MethodNotAllowedException('Template not found or you are not authorised to edit it.');
 		if (!$this->_isSiteAdmin()) {
-			if ($event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
-			if ($template['Template']['org'] != $this->Auth->user('org') && !$template['Template']['share']) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');	
+			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
+			if ($template['Template']['org'] != $this->Auth->user('Organisation')['name'] && !$template['Template']['share']) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');	
 		}
 		
 		$this->set('template_id', $template_id);
@@ -276,7 +275,7 @@ class TemplatesController extends AppController {
 		if ($this->request->is('post')) {
 			$errors = array();
 			$this->set('template', $this->request->data);
-			$result = $this->Event->Attribute->checkTemplateAttributes($template, $this->request->data, $event_id, $event['Event']['distribution']);
+			$result = $this->Event->Attribute->checkTemplateAttributes($template, $this->request->data, $event_id);
 			if (isset($this->request->data['Template']['modify']) || !empty($result['errors'])) {
 				$fileArray = $this->request->data['Template']['fileArray'];
 				$this->set('fileArray', $fileArray);
@@ -288,7 +287,7 @@ class TemplatesController extends AppController {
 				$this->set('attributes', $result['attributes']);
 				$fileArray = $this->request->data['Template']['fileArray'];
 				$this->set('fileArray', $fileArray);
-				$this->set('distributionLevels', $this->Event->distributionLevels);
+				$this->set('distributionLevels', $this->Event->Attribute->distributionLevels);
 				$this->render('populate_event_from_template_attributes');
 			}
 		} else {
@@ -305,12 +304,12 @@ class TemplatesController extends AppController {
 			$event = $this->Event->find('first', array(
 					'conditions' => array('id' => $event_id),
 					'recursive' => -1,
-					'fields' => array('id', 'orgc', 'distribution', 'published'),
+					'fields' => array('id', 'orgc_id', 'distribution', 'published'),
 					'contain' => 'EventTag',
 			));
 			if (empty($event)) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 			if (!$this->_isSiteAdmin()) {
-				if ($event['Event']['orgc'] != $this->Auth->user('org')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
+				if ($event['Event']['orgc_id'] != $this->Auth->user('org_id')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
 			}
 
 			$template = $this->Template->find('first', array(

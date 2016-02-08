@@ -87,9 +87,17 @@ Configure::load('config');
 
 if (!Configure::read('MISP.baseurl')) {
 	if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) {
-		Configure::write('MISP.baseurl', sprintf('https://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
+		if ($_SERVER['SERVER_PORT'] == 443) {
+			Configure::write('MISP.baseurl', sprintf('https://%s', $_SERVER['SERVER_ADDR']));
+		} else {
+			Configure::write('MISP.baseurl', sprintf('https://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
+		}
 	} else {
-		Configure::write('MISP.baseurl', sprintf('http://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
+		if ($_SERVER['SERVER_PORT'] == 80) {
+			Configure::write('MISP.baseurl', sprintf('http://%s', $_SERVER['SERVER_ADDR']));
+		} else {
+			Configure::write('MISP.baseurl', sprintf('http://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
+		}
 	}
 }
 
@@ -150,8 +158,7 @@ CakeLog::config('error', array(
 	'file' => 'error',
 ));
 
-/*
+// comment the following out if you do not with to use the background processing (not recommended)
 CakePlugin::loadAll(array(
 	'CakeResque' => array('bootstrap' => true)
 ));
-*/

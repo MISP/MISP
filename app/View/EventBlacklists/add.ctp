@@ -7,7 +7,27 @@
 		echo $this->Form->input('uuids', array(
 				'type' => 'textarea',
 				'div' => 'input clear',
-				'class' => 'input-xxlarge'
+				'class' => 'input-xxlarge',
+				'placeholder' => 'Enter a single or a list of UUIDs'
+		));
+		echo $this->Form->input('event_orgc', array(
+				'div' => 'input clear',
+				'class' => 'input-xxlarge',
+				'label' => 'Creating organisation',
+				'placeholder' => '(Optional) The organisation that the event is associated with'
+		));
+		echo $this->Form->input('event_info', array(
+				'type' => 'textarea',
+				'div' => 'input clear',
+				'class' => 'input-xxlarge',
+				'label' => 'Event info',
+				'placeholder' => '(Optional) the event info of the event that you would like to block. It\'s best to leave this empty if you are adding a list of UUIDs.'
+		));
+		echo $this->Form->input('comment', array(
+				'type' => 'textarea',
+				'div' => 'input clear',
+				'class' => 'input-xxlarge',
+				'placeholder' => '(Optional) Any comments you would like to add regarding this (or these) entries.'
 		));
 	?>
 	</fieldset>

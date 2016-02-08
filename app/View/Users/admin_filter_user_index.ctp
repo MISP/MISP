@@ -41,6 +41,14 @@
 								'style' => 'display:none;width:438px;',
 								'div' => false
 						));
+					} else if ($t == 'org') {
+						echo $this->Form->input('search' . $t, array(
+								'options' => array($orgs),
+								'label' => false,
+								'class' => 'input-large',
+								'style' => 'display:none;width:438px;',
+								'div' => false
+						));
 					} else {
 						echo $this->Form->input('search' . $t, array(
 								'label' => false,
@@ -119,6 +127,8 @@ var differentFilters = ["autoalert", "contactalert", "termsaccepted"];
 var simpleFilters = <?php echo json_encode($simpleFilters, true); ?>;
 
 var typedFields = ["role"];
+
+var orgs = <?php echo json_encode($orgs, true); ?>
 
 var allFields = simpleFilters.concat(differentFilters);
 

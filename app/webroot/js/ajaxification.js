@@ -78,7 +78,6 @@ function initiatePasswordReset(id) {
 function submitPasswordReset(id) {
 	var formData = $('#PromptForm').serialize();
 	var url = "/users/initiatePasswordReset/" + id;
-	if ($('#firstTime').is(":checked")) url += "/true";
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -125,7 +124,7 @@ function updateIndex(id, context, newPage) {
 	if (typeof newPage !== 'undefined') page = newPage;
 	var url, div;
 	if (context == 'event') {
-		url = "/events/view/" + id + "/attributesPage:" + page;
+		url = "/events/viewEventAttributes/" + id;
 		div = "#attributes_div";
 	}
 	if (context == 'template') {
@@ -190,6 +189,10 @@ function activateField(type, id, field, event) {
 		}, 
 		url:"/" + objectType + "/fetchEditForm/" + id + "/" + field,
 	});
+}
+
+function submitQuickTag(form) {
+	$('#' + form).submit();
 }
 
 //if someone clicks an inactive field, replace it with the hidden form field. Also, focus it and bind a focusout event, so that it gets saved if the user clicks away.
@@ -303,6 +306,32 @@ function submitTagForm(id) {
 	return false;
 }
 
+function quickSubmitTagForm(event_id, tag_id) {
+	$('#EventTag').val(tag_id);
+	$.ajax({
+		data: $('#EventSelectTagForm').closest("form").serialize(),
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		success:function (data, textStatus) {
+			loadEventTags(event_id);
+			handleGenericAjaxResponse(data);
+		}, 
+		error:function() {
+			showMessage('fail', 'Could not add tag.');
+			loadEventTags(event_id);
+		},
+		complete:function() {
+			$("#popover_form").fadeOut();
+			$("#gray_out").fadeOut();
+			$(".loading").hide();
+		},
+		type:"post", 
+		url:"/events/addTag/" + event_id
+	});
+	return false;
+}
+
 function handleAjaxEditResponse(data, name, type, id, field, event) {
 	responseArray = JSON.parse(data);
 	if (type == 'Attribute') {
@@ -346,6 +375,14 @@ function toggleAllAttributeCheckboxes() {
 	}
 }
 
+function toggleAllTaxonomyCheckboxes() {
+	if ($(".select_all").is(":checked")) {
+		$(".select_taxonomy").prop("checked", true);
+	} else {
+		$(".select_taxonomy").prop("checked", false);
+	}
+}
+
 function attributeListAnyAttributeCheckBoxesChecked() {
 	if ($('.select_attribute:checked').length > 0) $('.mass-select').show();
 	else $('.mass-select').hide();
@@ -354,6 +391,11 @@ function attributeListAnyAttributeCheckBoxesChecked() {
 function attributeListAnyProposalCheckBoxesChecked() {
 	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').show();
 	else $('.mass-proposal-select').hide();
+}
+
+function taxonomyListAnyCheckBoxesChecked() {
+	if ($('.select_taxonomy:checked').length > 0) $('.mass-select').show();
+	else $('.mass-select').hide();
 }
 
 function multiSelectAction(event, context) {
@@ -414,6 +456,19 @@ function editSelectedAttributes(event) {
 	});
 }
 
+function addSelectedTaxonomies(taxonomy) {
+	$.get("/taxonomies/taxonomyMassConfirmation/"+taxonomy, function(data) {
+		$("#confirmation_box").fadeIn();
+		$("#gray_out").fadeIn();
+		$("#confirmation_box").html(data);
+	});
+}
+
+function submitMassTaxonomyTag() {
+	$('#PromptForm').submit();
+	
+}
+
 function getSelected() {
 	var selected = [];
 	$(".select_attribute").each(function() {
@@ -423,6 +478,19 @@ function getSelected() {
 		}
 	});
 	return JSON.stringify(selected);
+}
+
+function getSelectedTaxonomyNames() {
+	var selected = [];
+	$(".select_taxonomy").each(function() {
+		if ($(this).is(":checked")) {
+			var row = $(this).data("id");
+			var temp = $('#tag_' + row).html();
+			temp = $("<div/>").html(temp).text();
+			selected.push(temp);
+		}
+	});
+	$('#TaxonomyNameList').val(JSON.stringify(selected));
 }
 
 function loadEventTags(id) {
@@ -538,7 +606,6 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			type:"post", 
 			url:url
 		});
-		$("#popover_form").empty();
 	}
 };
 
@@ -660,35 +727,31 @@ function activateTagField() {
 
 function tagFieldChange() {
 	if ($("#addTagField :selected").val() > 0) {
-		var selected = $("#addTagField :selected").text();
-		if ($.inArray(selected, selectedTags)==-1) {
-			selectedTags.push(selected);
-			appendTemplateTag(selected);
+		var selected_id = $("#addTagField :selected").val();
+		var selected_text = $("#addTagField :selected").text();
+		if ($.inArray(selected_id, selectedTags)==-1) {
+			selectedTags.push(selected_id);
+			appendTemplateTag(selected_id);
 		}
 	}
 	$("#addTagButton").show();
 	$("#addTagField").hide();
 }
 
-function appendTemplateTag(selected) {
-	var selectedTag;
-	allTags.forEach(function(tag) {
-		if (tag.name == selected) {
-			$.ajax({
-				beforeSend: function (XMLHttpRequest) {
-					$(".loading").show();
-				}, 
-				dataType:"html", 
-				cache: false,
-				success:function (data, textStatus) {
-					$(".loading").hide();
-					$("#tags").append(data);
-				}, 
-				url:"/tags/viewTag/" + tag.id,
-			});
-			updateSelectedTags();
-		}
+function appendTemplateTag(selected_id) {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		dataType:"html", 
+		cache: false,
+		success:function (data, textStatus) {
+			$(".loading").hide();
+			$("#tags").append(data);
+		}, 
+		url:"/tags/viewTag/" + selected_id,
 	});
+	updateSelectedTags();
 }
 
 function addAllTags(tagArray) {
@@ -700,8 +763,8 @@ function addAllTags(tagArray) {
 
 function removeTemplateTag(id, name) {
 	selectedTags.forEach(function(tag) {
-		if (tag == name) {
-			var index = selectedTags.indexOf(name);
+		if (tag == id) {
+			var index = selectedTags.indexOf(id);
 			if (index > -1) {
 				selectedTags.splice(index, 1);
 				updateSelectedTags();
@@ -842,9 +905,10 @@ function templateElementFileCategoryChange(category) {
 	}
 }
 
-function getPopup(id, context, target) {
+function getPopup(id, context, target, admin) {
 	$("#gray_out").fadeIn();
 	var url = "";
+	if (typeof admin !== 'undefined') url+= "/admin";
 	if (context != '') url += "/" + context;
 	if (target != '') url += "/" + target;
 	if (id != '') url += "/" + id;
@@ -1016,9 +1080,22 @@ function indexEvaluateFiltering() {
 	$('#generatedURLContent').html(indexCreateFilters());
 }
 
-function quickFilterEvents(passedArgs) {
+function quickFilter(passedArgs, url) {
 	passedArgs["searchall"] = $('#quickFilterField').val();
-	var url = "/events/index";
+	for (var key in passedArgs) {
+		url += "/" + key + ":" + passedArgs[key];
+	}
+	window.location.href=url;
+}
+
+function quickFilterTaxonomy(taxonomy_id, passedArgs) {
+	var url = "/taxonomies/view/" + taxonomy_id + "/filter:" + $('#quickFilterField').val();
+	window.location.href=url;
+}
+
+function quickFilterRemoteEvents(passedArgs, id) {
+	passedArgs["searchall"] = $('#quickFilterField').val();
+	var url = "/servers/previewIndex/" + id;
 	for (var key in passedArgs) {
 		url += "/" + key + ":" + passedArgs[key];
 	}
@@ -1034,6 +1111,11 @@ $('#quickFilterField').keyup(function(e){
     	$('#quickFilterButton').trigger("click");
 	}
 });
+
+function remoteIndexApplyFilters() {
+	var url = actionUrl + '/' + $("#EventFilter").val();
+	window.location.href = url;
+}
 	
 function indexApplyFilters() {
 	var url = indexCreateFilters();
@@ -1108,7 +1190,7 @@ function indexEvaluateSimpleFiltering(field) {
 		for (var i = 0; i < filtering[field].OR.length; i++) {
 			if (i > 0) text += '<span class="green bold"> OR </span>';
 			if (typedFields.indexOf(field) == -1) {
-				text += filtering[field].OR[i];		
+				text += filtering[field].OR[i];
 			} else {
 				for (var j = 0; j < typeArray[field].length; j++) {
 					if (typeArray[field][j].id == filtering[field].OR[i]) {
@@ -1125,7 +1207,7 @@ function indexEvaluateSimpleFiltering(field) {
 				else text += '<span class="red bold">NOT </span>';
 			} else text += '<span class="red bold"> AND NOT </span>';
 			if (typedFields.indexOf(field) == -1) {
-				text += filtering[field].NOT[i];	
+				text += filtering[field].NOT[i];
 			} else {
 				for (var j = 0; j < typeArray[field].length; j++) {
 					if (typeArray[field][j].id == filtering[field].NOT[i]) {
@@ -1364,6 +1446,60 @@ function serverSettingSubmitForm(name, setting, id) {
 	return false;
 }
 
+function updateOrgCreateImageField(string) {
+	string = escape(string);
+	$.ajax({
+	    url:'/img/orgs/' + string + '.png',
+	    type:'HEAD',
+	    error:
+	        function(){
+	    		$('#logoDiv').html('No image uploaded for this identifier');
+	        },
+	    success:
+	        function(){
+	    		$('#logoDiv').html('<img src="/img/orgs/' + string + '.png" style="width:24px;height:24px;"></img>');
+	        }
+	});
+}
+
+function generateOrgUUID() {
+	$.ajax({
+	    url:'/admin/organisations/generateuuid.json',
+	    success:
+	        function( data ){
+	    		$('#OrganisationUuid').val(data.uuid);
+	        }
+	});
+}
+
+
+function sharingGroupIndexMembersCollapse(id) {
+	$('#' + id + '_down').show();
+	$('#' + id + '_up').hide();
+}
+
+function sharingGroupIndexMembersExpand(id) {
+	$('#' + id + '_down').hide();
+	$('#' + id + '_up').show();
+}
+
+function popoverStartup() {
+    $('[data-toggle="popover"]').popover({
+        placement: 'left',
+        animation: true,
+        html: true,
+        trigger: 'manual',
+    }).click(function(e) {
+    	$(e.target).popover('show');
+    	$('[data-toggle="popover"]').not(e.target).popover('hide');
+    });
+    $(document).click(function (e) {
+        if (!$('[data-toggle="popover"]').is(e.target)) {
+            $('[data-toggle="popover"]').popover('hide');
+        }
+    });
+}
+
 function changeFreetextImportFrom() {
 	$('#changeTo').find('option').remove();
 	options[$('#changeFrom').val()].forEach(function(element) {
@@ -1439,6 +1575,385 @@ function freetextImportResultsSubmit(id, count) {
 	});
 }
 
+function organisationViewContent(context, id) {
+	organisationViewButtonHighlight(context);
+	var action = "/organisations/landingpage/";
+	if (context == 'members') {
+		action = "/users/index/";
+	}
+	if (context == 'events') {
+		action = "/events/index/searchorg:";
+	}
+	$.ajax({
+	    url: action + id,
+	    type:'GET',
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+	    error: function(){
+	    	$('#ajaxContent').html('An error has occured, please reload the page.');
+	    },
+	    success: function(response){
+	    	$('#ajaxContent').html(response);
+	    },
+		complete: function() {
+			$(".loading").hide();
+		},
+	});
+}
+
+function organisationViewButtonHighlight(context) {
+	$(".orgViewButtonActive").hide();
+	$(".orgViewButton").show();
+	$("#button_" + context).hide();	
+	$("#button_" + context + "_active").show();
+}
+
+function simpleTabPage(page) {
+	$(".tabMenuSides").removeClass("tabMenuActive");
+	$("#page" + page + "_tab").addClass("tabMenuActive");
+	$(".tabContent").hide();
+	$("#page" + page + "_content").show();
+	if (page == lastPage) simpleTabPageLast();
+}
+
+function simpleTabPageLast() {
+	var summaryorgs = summaryextendorgs = remotesummaryorgs = remotesummaryextendorgs = summaryservers = "";
+	var orgcounter = extendcounter = remoteorgcounter = remoteextendcounter = servercounter = 0;
+	var sgname = "[Sharing group name not set!]";
+	if ($('#SharingGroupName').val()) sgname = $('#SharingGroupName').val();
+	var sgreleasability = "[Sharing group releasability not set!]";
+	if ($('#SharingGroupReleasability').val()) sgreleasability = $('#SharingGroupReleasability').val();
+	$('#summarytitle').text(sgname);
+	$('#summaryreleasable').text(sgreleasability);
+	organisations.forEach(function(organisation){
+		if (organisation.type == 'local') {
+			if (orgcounter > 0) summaryorgs += ", ";
+			summaryorgs += organisation.name;
+			if (organisation.extend == true) {
+				if (extendcounter > 0) summaryextendorgs += ", "
+				summaryextendorgs += organisation.name;
+				extendcounter++;
+			}
+			orgcounter++;
+		} else {
+			if (remoteorgcounter > 0) remotesummaryorgs += ", ";
+			remotesummaryorgs += organisation.name;
+			if (organisation.extend == true) {
+				if (remoteextendcounter > 0) remotesummaryextendorgs += ", "
+				remotesummaryextendorgs += organisation.name;
+				remoteextendcounter++;
+			}
+			remoteorgcounter++;
+		}
+	});
+	if (orgcounter == 0) $('#localText').hide();
+	if (remoteorgcounter == 0) $('#externalText').hide();
+	if (extendcounter == 0) summaryextendorgs = "nobody";
+	if (remoteextendcounter == 0) remotesummaryextendorgs = "nobody";
+	servers.forEach(function(server){
+		if (servercounter > 0) summaryservers += ", ";
+		if (server.id != 0) {
+			summaryservers += server.name;
+			if (extendcounter == 0) summaryextendorgs = "none";
+			servercounter++;
+		}
+		if (server.id == 0 && server.all_orgs == true) summaryorgs = "all organisations on this instance";
+	});
+	if (servercounter == 0) {
+		if ($('#SharingGroupLimitservers').is(":checked")) $('#synchronisationText').hide();
+		else {
+			summaryservers = "any interconnected instances that have users from eligible organisations.";
+		}
+	} else {
+		$('#synchronisationText').show();
+	}
+	$('#summarylocal').text(summaryorgs);
+	$('#summarylocalextend').text(summaryextendorgs);
+	$('#summaryexternal').text(remotesummaryorgs);
+	$('#summaryexternalextend').text(remotesummaryextendorgs);
+	$('#summaryservers').text(summaryservers);
+}
+
+function sharingGroupPopulateOrganisations() {
+	$('input[id=SharingGroupOrganisations]').val(JSON.stringify(organisations));
+	$('.orgRow').remove();
+	var id = 0;
+	var html = '';
+	organisations.forEach(function(org) {
+		html = '<tr id="orgRow' + id + '" class="orgRow">';
+		html += '<td class="short">' + org.type + '&nbsp;</td>';
+		html += '<td>' + org.name + '&nbsp;</td>';
+		html += '<td>' + org.uuid + '&nbsp;</td>';
+		html += '<td class="short" style="text-align:center;">';
+		if (org.removable == 1) {
+			html += '<input id="orgExtend' + id + '" type="checkbox" onClick="sharingGroupExtendOrg(' + id + ')" ';
+			if (org.extend) html+= 'checked';
+			html += '></input>';
+		} else {
+			html += '<span class="icon-ok"></span>'
+		}
+		html +='</td>';
+		html += '<td class="actions short">';
+		if (org.removable == 1) html += '<span class="icon-trash" onClick="sharingGroupRemoveOrganisation(' + id + ')"></span>';
+		html += '&nbsp;</td></tr>';
+		$('#organisations_table tr:last').after(html);
+		id++;
+	});
+}
+
+function sharingGroupPopulateServers() {
+	$('input[id=SharingGroupServers]').val(JSON.stringify(servers));
+	$('.serverRow').remove();
+	var id = 0;
+	var html = '';
+	servers.forEach(function(server) {
+		html = '<tr id="serverRow' + id + '" class="serverRow">';
+		html += '<td>' + server.name + '&nbsp;</td>';
+		html += '<td>' + server.url + '&nbsp;</td>';
+		html += '<td>';
+		html += '<input id="serverAddOrgs' + id + '" type="checkbox" onClick="sharingGroupServerAddOrgs(' + id + ')" ';
+		if (server.all_orgs) html += 'checked';
+		html += '></input>';
+		html +='</td>';
+		html += '<td class="actions short">';
+		if (server.removable == 1) html += '<span class="icon-trash" onClick="sharingGroupRemoveServer(' + id + ')"></span>';
+		html += '&nbsp;</td></tr>';
+		$('#servers_table tr:last').after(html);
+		id++;
+	});
+}
+
+function sharingGroupExtendOrg(id) {
+	organisations[id].extend = $('#orgExtend' + id).is(":checked");
+}
+
+function sharingGroupServerAddOrgs(id) {
+	servers[id].all_orgs = $('#serverAddOrgs' + id).is(":checked");
+}
+
+function sharingGroupPopulateUsers() {
+	$('input[id=SharingGroupServers]').val(JSON.stringify(organisations));
+}
+
+function sharingGroupAdd(context, type) {
+	if (context == 'organisation') {
+		var jsonids = JSON.stringify(orgids);
+		url = '/organisations/fetchOrgsForSG/' + jsonids + '/' + type
+	} else if (context == 'server') {
+		var jsonids = JSON.stringify(serverids);
+		url = '/servers/fetchServersForSG/' + jsonids
+	}
+	$("#gray_out").fadeIn();
+
+	$.ajax({
+	    url: url,
+	    type:'GET',
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+	    error: function(){
+	    	$("#popover_form").html('An error has occured, please reload the page.');
+	    },
+	    success: function(response){
+	    	$("#popover_form").html(response);
+	    	$("#popover_form").fadeIn();
+	    },
+		complete: function() {
+			$(".loading").hide();
+		},
+	});
+}
+
+function sharingGroupRemoveOrganisation(id) {
+	organisations.splice(id, 1);
+	orgids.splice(id, 1);
+	sharingGroupPopulateOrganisations();
+}
+
+function sharingGroupRemoveServer(id) {
+	servers.splice(id, 1);
+	serverids.splice(id, 1);
+	sharingGroupPopulateServers();
+}
+
+function submitPicklistValues(context, local) {
+	if (context == 'org') {
+		var localType = 'local';
+		if (local == 0) localType = 'remote';
+		$("#rightValues  option").each(function() {
+			if (orgids.indexOf($(this).val()) == -1) {
+				organisations.push({
+						id: $(this).val(),
+						type: localType,
+						name: $(this).text(),
+						extend: false,
+						uuid: '',
+						removable: 1
+				});
+			}
+			orgids.push($(this).val());
+			sharingGroupPopulateOrganisations();
+		});
+	} else if (context == 'server') {
+		$("#rightValues  option").each(function() {
+			if (serverids.indexOf($(this).val()) == -1) {
+				servers.push({
+						id: $(this).val(),
+						name: $(this).text(),
+						url: $(this).attr("data-url"),
+						all_orgs: false,
+						removable: 1
+				});
+			}
+			serverids.push($(this).val());
+			sharingGroupPopulateServers();
+		});
+	}
+	$("#gray_out").fadeOut();
+	$("#popover_form").fadeOut();
+}
+
+function cancelPicklistValues() {
+	$("#popover_form").fadeOut();
+	$("#gray_out").fadeOut();
+}
+
+function sgSubmitForm(action) {
+	var ajax = {
+			'organisations': organisations,
+			'servers': servers,
+			'sharingGroup': {
+				'name': $('#SharingGroupName').val(),
+				'releasability': $('#SharingGroupReleasability').val(),
+				'description': $('#SharingGroupDescription').val(),
+				'active': $('#SharingGroupActive').is(":checked"),
+				'limitServers': $('#SharingGroupLimitservers').is(":checked"),
+			}
+	};
+	$('#SharingGroupJson').val(JSON.stringify(ajax));
+	var formName = "#SharingGroup" + action + "Form";
+	$(formName).submit();
+}
+
+function serverSubmitForm(action) {
+	var ajax = {};
+	switch ($('#ServerOrganisationType').val()) {
+	case '0':
+		ajax = {
+			'id': $('#ServerLocal').val()
+		};
+		break;
+	case '1':
+		ajax = {
+			'id': $('#ServerExternal').val()
+		};
+		break;
+	case '2':
+		ajax = {
+			'name': $('#ServerExternalName').val(),
+			'uuid': $('#ServerExternalUuid').val()
+		};
+		break;
+	}
+	
+	$('#ServerJson').val(JSON.stringify(ajax));
+	var formName = "#Server" + action + "Form";
+	$(formName).submit();
+}
+
+function serverOrgTypeChange() {
+	$(".hiddenField").hide();
+	switch ($('#ServerOrganisationType').val()) {
+		case '0':
+			$("#ServerLocalContainer").show();
+			break;
+		case '1':
+			$("#ServerExternalContainer").show();
+			break;
+		case '2':
+			$("#ServerExternalUuidContainer").show();
+			$("#ServerExternalNameContainer").show();
+			break;
+	}
+}
+
+function sharingGroupPopulateFromJson() {
+	var jsonparsed = JSON.parse($('#SharingGroupJson').val());
+	organisations = jsonparsed.organisations;
+	servers = jsonparsed.servers;
+	if (jsonparsed.sharingGroup.active == 1) $("#SharingGroupActive").prop("checked", true);
+	if (jsonparsed.sharingGroup.limitServers == 1) {
+		$("#SharingGroupLimitservers").prop("checked", true);
+		$('#serverList').show();
+	}
+	$('#SharingGroupName').attr('value', jsonparsed.sharingGroup.name);
+	$('#SharingGroupReleasability').attr('value', jsonparsed.sharingGroup.releasability);
+	$('#SharingGroupDescription').text(jsonparsed.sharingGroup.description);
+}
+
+function testConnection(id) {
+	$.ajax({
+	    url: '/servers/testConnection/' + id,
+	    type:'GET',
+		beforeSend: function (XMLHttpRequest) {
+			$("#connection_test_" + id).html('Running test...');
+		},
+	    error: function(){
+	    	$("#connection_test_" + id).html('Internal error.');
+	    },
+	    success: function(response){
+	    	var result = JSON.parse(response);
+	    	switch (result.status) {
+			case 1:
+				status_message = "OK";
+				compatibility = "Compatible";
+				compatibility_colour = "green";
+				colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
+				issue_colour = "red";
+				if (result.mismatch == "hotfix") issue_colour = "orange";
+				if (result.newer == "local") {
+					colours.remote = 'class="' + issue_colour + '"';
+					if (result.mismatch == "minor") {
+						compatibility = "Pull only";
+						compatibility_colour = "orange";
+					} else if (result.mismatch == "major") {
+						compatibility = "Incompatible";
+						compatibility_colour = "red";
+					}
+				} else if (result.newer == "remote") {
+					colours.local = 'class="' + issue_colour + '"';
+					if (result.mismatch != "hotfix") {
+						compatibility = "Incompatible";
+						compatibility_colour = "red";
+					}
+				}
+				if (result.mismatch != false) {
+					if (result.newer == "remote") status_message = "Local instance outdated, update!";
+					else status_message = "Remote outdated, notify admin!"
+					colours.status = 'class="' + issue_colour + '"';
+				}
+				resultDiv = '<div>Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
+				resultDiv += '<div>Remote version: <span ' + colours.remote + '>' + result.version + '</span><br />';
+				resultDiv += '<div>Status: <span ' + colours.status + '>' + status_message + '</span><br />';
+				resultDiv += '<div>Compatiblity: <span class="' + compatibility_colour + '">' + compatibility + '</span><br />';
+				$("#connection_test_" + id).html(resultDiv);
+				//$("#connection_test_" + id).html('<span class="green bold" title="Connection established, correct response received.">OK</span>');
+				break;
+			case 2:
+				$("#connection_test_" + id).html('<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable</span>');
+				break;
+			case 3:
+				$("#connection_test_" + id).html('<span class="red bold" title="The server returned an unexpected result. Make sure that the provided URL (or certificate if it applies) are correct.">Unexpected error</span>');
+				break;
+			case 4:
+				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>');
+				break;
+	    	}
+	    }
+	})
+}
+
 function pgpChoiceSelect(uri) {
 	$("#popover_form").fadeOut();
 	$("#gray_out").fadeOut();
@@ -1493,3 +2008,195 @@ function zeroMQServerAction(action) {
 		}
 	});
 }
+
+function convertServerFilterRules(rules) {
+	validOptions.forEach(function (type) {
+		container = "#Server" + type.ucfirst() + "Rules";
+		if($(container).val() != '') rules[type] = JSON.parse($(container).val());
+	});
+	serverRuleUpdate();
+	return rules;
+}
+
+function serverRuleUpdate() {
+	var statusOptions = ["OR", "NOT"];
+	validOptions.forEach(function(type) {
+		validFields.forEach(function(field) {
+			if (type === 'push') {
+				var indexedList = {};
+				window[field].forEach(function(item) {
+					indexedList[item.id] = item.name;
+				});
+			}
+			statusOptions.forEach(function(status) {
+				if (rules[type][field][status].length > 0) {
+					$('#' + type + '_' + field + '_' + status).show();
+					var t = '';
+					rules[type][field][status].forEach(function(item) {
+						if (t.length > 0) t += ', ';
+						if (type === 'pull') t += item;
+						else t += indexedList[item];
+					});
+					$('#' + type + '_' + field + '_' + status + '_text').text(t);
+				} else {
+					$('#' + type + '_' + field + '_' + status).hide();
+				}
+			});
+		});
+	});
+	serverRuleGenerateJSON();
+}
+
+function serverRuleFormActivate(type) {
+	if (type != 'pull' && type != 'push') return false;
+	$('.server_rule_popover').hide();
+	$('#gray_out').fadeIn();
+	$('#server_' + type + '_rule_popover').show();
+}
+
+function serverRuleCancel() {
+	$("#gray_out").fadeOut();
+	$(".server_rule_popover").fadeOut();
+}
+
+function serverRuleGenerateJSON() {
+	validOptions.forEach(function(type) {
+		$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+	});
+}
+
+function serverRulePopulateTagPicklist() {
+	var fields = ["tags", "orgs"];
+	var target = "";
+	fields.forEach(function(field) {
+		target = "";
+		window[field].forEach(function(element) {
+			if ($.inArray(element.id, rules["push"][field]["OR"]) != -1) target = "#" + field + "pushLeftValues";
+			else if ($.inArray(element.id, rules["push"][field]["NOT"]) != -1) target = "#" + field + "pushRightValues";
+			else target = "#" + field + "pushMiddleValues";
+			$(target).append($('<option/>', { 
+				value: element.id,
+				text : element.name 
+			}));
+		});
+		target = "#" + field + "pullLeftValues";
+		rules["pull"][field]["OR"].forEach(function(t) {
+			$(target).append($('<option/>', { 
+				value: t,
+				text : t 
+			}));
+		});
+		target = "#" + field + "pullRightValues";
+		rules["pull"][field]["NOT"].forEach(function(t) {
+			$(target).append($('<option/>', { 
+				value: t,
+				text : t 
+			}));
+		});
+	});
+}
+
+function submitServerRulePopulateTagPicklistValues(context) {
+	validFields.forEach(function(field) {
+		rules[context][field]["OR"] = [];
+		$("#" + field + context + "LeftValues option").each(function() {
+			rules[context][field]["OR"].push($(this).val());
+		});
+		rules[context][field]["NOT"] = [];
+		$("#" + field + context + "RightValues option").each(function() {
+			rules[context][field]["NOT"].push($(this).val());
+		});
+	});
+
+	$('#server_' + context + '_rule_popover').fadeOut();
+	$('#gray_out').fadeOut();
+	serverRuleUpdate();
+}
+
+// type = pull/push, field = tags/orgs, from = Left/Middle/Right, to = Left/Middle/Right
+function serverRuleMoveFilter(type, field, from, to) {
+	var opposites = {"Left": "Right", "Right": "Left"};
+	// first fetch the value
+	var value = "";
+	if (type == "pull" && from == "Middle") {
+		var doInsert = true;
+		value = $("#" + field + type + "NewValue").val();
+		if (value.length !== 0 && value.trim()) {
+			$("#" + field + type + to + "Values" + " option").each(function() {
+				if (value == $(this).val()) doInsert = false;
+			});
+			$("#" + field + type + opposites[to] + "Values" + " option").each(function() {
+				if (value == $(this).val()) $(this).remove();
+			});
+			if (doInsert) {
+				$("#" + field + type + to + "Values").append($('<option/>', { 
+					value: value,
+					text : value
+				}));
+			}
+		}
+		$("#" + field + type + "NewValue").val('');
+	} else {
+		$("#" + field + type + from + "Values option:selected").each(function () {
+			if (type != "pull" || to != "Middle") {
+				value = $(this).val();
+				text = $(this).text();
+				$("#" + field + type + to + "Values").append($('<option/>', { 
+					value: value,
+					text : text
+				}));
+			}
+			$(this).remove();
+		});
+	}
+}
+
+function syncUserSelected() {
+	if ($('#UserRoleId :selected').val() in syncRoles) {
+		$('#syncServers').show();
+	} else {
+		$('#syncServers').hide();
+	}
+}
+
+function filterAttributes(filter, id) {
+	$.ajax({
+		type:"get",
+		url:"/events/viewEventAttributes/" + id + "/attributeFilter:" + filter,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data) {
+			$("#attributes_div").html(data);
+			$(".attribute_filter_text_active").removeClass("attribute_filter_text_active").addClass("attribute_filter_text");
+			$("#filter_" + filter).removeClass("attribute_filter_text").addClass("attribute_filter_text_active");
+			$(".loading").hide();
+		},
+		error:function() {
+			showMessage('fail', 'Something went wrong - could not fetch attributes.');
+		}
+	});
+}
+
+function mergeOrganisationUpdate() {
+	var orgTypeOptions = ['local', 'external'];
+	var orgTypeSelects = ['OrganisationOrgsLocal', 'OrganisationOrgsExternal'];
+	orgType = orgTypeSelects[$('#OrganisationTargetType').val()];
+	orgID = $('#' + orgType).val();
+	org = orgArray[orgTypeOptions[$('#OrganisationTargetType').val()]][orgID]['Organisation'];
+	$('#org_id').text(org['id']);
+	$('#org_name').text(org['name']);
+	$('#org_uuid').text(org['uuid']);
+	$('#org_local').text(orgTypeOptions[$('#OrganisationTargetType').val()]);
+}
+
+function mergeOrganisationTypeToggle() {
+	if ($('#OrganisationTargetType').val() == 0) {
+		$('#orgsLocal').show();
+		$('#orgsExternal').hide();
+	} else {
+		$('#orgsLocal').hide();
+		$('#orgsExternal').show();
+	}
+}
+

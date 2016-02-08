@@ -5,6 +5,13 @@
 	<?php
 		echo $this->Form->hidden('event_id');
 		echo $this->Form->input('category');
+		echo $this->Form->input('comment', array(
+				'type' => 'text',
+				'label' => 'Contextual Comment',
+				'error' => array('escape' => false),
+				'div' => 'input clear',
+				'class' => 'input-xxlarge'
+		));
 		?>
 			<div class="input clear">
 		<?php
@@ -95,7 +102,6 @@ function showFormInfo(id) {
 $('#ShadowAttributeTypeDiv').hide();
 $('#ShadowAttributeCategoryDiv').hide();
 $('#ShadowAttributeType').prop('disabled', true);
-
 
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts

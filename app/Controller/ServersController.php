@@ -15,10 +15,22 @@ class ServersController extends AppController {
 
 	public $paginate = array(
 			'limit' => 60,
+			'recursive' => -1,
+			'contain' => array(
+					'User' => array(
+							'fields' => array('User.id', 'User.org_id', 'User.email'),
+					),
+					'Organisation' => array(
+							'fields' => array('Organisation.name', 'Organisation.id'),
+					),
+					'RemoteOrg' => array(
+							'fields' => array('RemoteOrg.name', 'RemoteOrg.id'),
+					),
+			),
 			'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
 			'order' => array(
 					'Server.url' => 'ASC'
-			)
+			),
 	);
 
 	public $uses = array('Server', 'Event');
@@ -30,6 +42,8 @@ class ServersController extends AppController {
 		switch ($this->request->params['action']) {
 			case 'push':
 			case 'pull':
+			case 'getVersion': 
+			case 'testConnection':
 				$this->Security->csrfUseOnce = false;
 		}
 	}
@@ -40,19 +54,110 @@ class ServersController extends AppController {
  * @return void
  */
 	public function index() {
-		$this->Server->recursive = 0;
-		if ($this->_isSiteAdmin()) {
-			$this->paginate = array(
-							'conditions' => array(),
-			);
-		} else {
+		if (!$this->_isSiteAdmin()) {
 			if (!$this->userRole['perm_sync'] && !$this->userRole['perm_admin']) $this->redirect(array('controller' => 'events', 'action' => 'index'));
-			$conditions['Server.org LIKE'] = $this->Auth->user('org');
-			$this->paginate = array(
-					'conditions' => array($conditions),
-			);
+			$this->paginate['conditions'] = array('Server.org_id LIKE' => $this->Auth->user('org_id'));
 		}
 		$this->set('servers', $this->paginate());
+		$collection = array();
+		$collection['orgs'] = $this->Server->Organisation->find('list', array(
+				'fields' => array('id', 'name'),
+		));
+		$this->loadModel('Tag');
+		$collection['tags'] = $this->Tag->find('list', array(
+				'fields' => array('id', 'name'),
+		));
+		$this->set('collection', $collection);
+
+	}
+	
+	public function previewIndex($id) {
+		if (isset($this->passedArgs['pages'])) $currentPage = $this->passedArgs['pages'];
+		else $currentPage = 1; 
+		$urlparams = '';
+		$passedArgs = array();
+		if (!$this->_isSiteAdmin()) {
+			throw new MethodNotAllowedException('You are not authorised to do that.');
+		}
+		$server = $this->Server->find('first', array('conditions' => array('Server.id' => $id), 'recursive' => -1, 'fields' => array('Server.id', 'Server.url', 'Server.name')));
+		if (empty($server)) throw new NotFoundException('Invalid server ID.');
+		$validFilters = $this->Server->validEventIndexFilters;
+		foreach($validFilters as $k => $filter) {
+			if (isset($this->passedArgs[$filter])) {
+				$passedArgs[$filter] = $this->passedArgs[$filter];
+				if ($k != 0) $urlparams .= '/'; 
+				$urlparams .= $filter . ':' . $this->passedArgs[$filter]; 
+			}
+		}
+		$events = $this->Server->previewIndex($id, $this->Auth->user(), array_merge($this->passedArgs, $passedArgs));
+		$this->loadModel('Event');
+		$threat_levels = $this->Event->ThreatLevel->find('all');
+		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+		$pageCount = count($events);
+		App::uses('CustomPaginationTool', 'Tools');
+		$customPagination = new CustomPaginationTool();
+		$params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
+		$this->params->params['paging'] = array($this->modelClass => $params);
+		if (is_array($events)) $customPagination->truncateByPagination($events, $params);
+		else ($events = array());
+		$this->set('events', $events);
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		$this->set('analysisLevels', $this->Event->analysisLevels);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
+		
+		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
+		$this->set('shortDist', $shortDist);
+		$this->set('ajax', $this->request->is('ajax'));
+		$this->set('id', $id);
+		$this->set('urlparams', $urlparams);		
+		$this->set('passedArgs', json_encode($passedArgs));
+		$this->set('passedArgsArray', $passedArgs);
+		$this->set('server', $server);
+	}
+	
+	public function previewEvent($serverId, $eventId, $all = false) {
+		if (!$this->_isSiteAdmin()) {
+			throw new MethodNotAllowedException('You are not authorised to do that.');
+		}
+		$server = $this->Server->find('first', array('conditions' => array('Server.id' => $serverId), 'recursive' => -1, 'fields' => array('Server.id', 'Server.url', 'Server.name')));
+		if (empty($server)) throw new NotFoundException('Invalid server ID.');
+		$event = $this->Server->previewEvent($serverId, $eventId);
+		// work on this in the future to improve the feedback
+		// 2 = wrong error code
+		if (is_numeric($event))throw new NotFoundException('Invalid event.');
+		$this->loadModel('Event');
+		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
+		$this->params->params['paging'] = array('Server' => $params);
+		$this->set('event', $event);
+		$this->set('server', $server);
+		$this->loadModel('Event');
+		$dataForView = array(
+				'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
+				'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels')
+		);
+		foreach ($dataForView as $m => $variables) {
+			if ($m === 'Event') $currentModel = $this->Event;
+			else if ($m === 'Attribute') $currentModel = $this->Event->Attribute;
+			foreach ($variables as $alias => $variable) {
+				$this->set($alias, $currentModel->{$variable});
+			}
+		}
+		$threat_levels = $this->Event->ThreatLevel->find('all');
+		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+	}
+	
+	public function filterEventIndex($id) {
+		$validFilters = $this->Server->validEventIndexFilters;
+		$validatedFilterString = '';
+		foreach ($this->passedArgs as $k => $v) {
+			if (in_array('' . $k, $validFilters)) {
+				if ($validatedFilterString != '') $validatedFilterString .= '/';
+				$validatedFilterString .= $k . ':' . $v;
+			}
+		}
+		$this->set('id', $id);
+		$this->set('validFilters', $validFilters);
+		$this->set('filter', $validatedFilterString);
 	}
 
 /**
@@ -61,20 +166,96 @@ class ServersController extends AppController {
  * @return void
  */
 	public function add() {
-		if (!$this->_isAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post')) {
-			// force check userid and orgname to be from yourself
-			$this->request->data['Server']['org'] = $this->Auth->user('org');
-			if ($this->Server->save($this->request->data)) {
-				if (isset($this->request->data['Server']['submitted_cert'])) {
-					$this->__saveCert($this->request->data, $this->Server->id);
+			$json = json_decode($this->request->data['Server']['json'], true);
+			
+			$fail = false;
+				
+			// test the filter fields
+			if (!empty($this->request->data['Server']['pull_rules']) && !$this->Server->isJson($this->request->data['Server']['pull_rules'])) {
+				$fail = true;
+				$this->Session->setFlash(__('The pull filter rules must be in valid JSON format.'));
+			}
+				
+			if (!$fail && !empty($this->request->data['Server']['push_rules']) && !$this->Server->isJson($this->request->data['Server']['push_rules'])) {
+				$fail = true;
+				$this->Session->setFlash(__('The push filter rules must be in valid JSON format.'));
+			}
+				
+			if (!$fail) {
+				// force check userid and orgname to be from yourself
+				$this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
+				if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
+				else {
+					$existingOrgs = $this->Server->Organisation->find('first', array(
+							'conditions' => array('uuid' => $json['uuid']),
+							'recursive' => -1,
+							'fields' => array('id', 'uuid')
+					));
+					if (!empty($existingOrgs)) {
+						$fail = true;
+						$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+					}
+					
+					if (!$fail) {
+						$this->Server->Organisation->create();
+						if (!$this->Server->Organisation->save(array(
+								'name' => $json['name'],
+								'uuid' => $json['uuid'],
+								'local' => 0,
+								'created_by' => $this->Auth->user('id')
+							)
+						)) $this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+						$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+					}
 				}
-				$this->Session->setFlash(__('The server has been saved'));
-				$this->redirect(array('action' => 'index'));
-			} else {
-				$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+				if (!$fail) {
+					$this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
+					if ($this->Server->save($this->request->data)) {
+						if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
+							$this->__saveCert($this->request->data, $this->Server->id);
+						}
+						$this->Session->setFlash(__('The server has been saved'));
+						$this->redirect(array('action' => 'index'));
+					} else {
+						$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+					}
+				}
 			}
 		}
+		$organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
+		$temp = $this->Server->Organisation->find('all', array(
+				'conditions' => array('local' => true),
+				'fields' => array('id', 'name'),
+		));
+		$localOrganisations = array();
+		$allOrgs = array();
+		foreach ($temp as $o) {
+			$localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+			$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+		}
+		$temp = $this->Server->Organisation->find('all', array(
+				'conditions' => array('local' => false),
+				'fields' => array('id', 'name'),
+		));
+		$externalOrganisations = array();
+		foreach ($temp as $o) {
+			$externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+			$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+		}
+		
+		$this->set('organisationOptions', $organisationOptions);
+		$this->set('localOrganisations', $localOrganisations);
+		$this->set('externalOrganisations', $externalOrganisations);
+		$this->set('allOrganisations', $allOrgs);
+		
+		// list all tags for the rule picker
+		$this->loadModel('Tag');
+		$temp = $this->Tag->find('all', array('recursive' => -1));
+		$allTags = array();
+		foreach ($temp as $t) $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
+		$this->set('allTags', $allTags);
 	}
 
 /**
@@ -90,28 +271,110 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 		$s = $this->Server->read(null, $id);
-		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post') || $this->request->is('put')) {
-			// say what fields are to be updated
-			$fieldList = array('id', 'url', 'push', 'pull', 'organization', 'self_signed', 'cert_file');
-			$this->request->data['Server']['id'] = $id;
-			if ("" != $this->request->data['Server']['authkey'])
-				$fieldList[] = 'authkey';
-			// Save the data
-			if ($this->Server->save($this->request->data, true, $fieldList)) {
-				if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
-					$this->__saveCert($this->request->data, $this->Server->id);
+			$json = json_decode($this->request->data['Server']['json'], true);
+			$fail = false;
+			
+			// test the filter fields
+			if (!empty($this->request->data['Server']['pull_rules']) && !$this->Server->isJson($this->request->data['Server']['pull_rules'])) {
+				$fail = true;
+				$this->Session->setFlash(__('The pull filter rules must be in valid JSON format.'));
+			}
+			
+			if (!$fail && !empty($this->request->data['Server']['push_rules']) && !$this->Server->isJson($this->request->data['Server']['push_rules'])) {
+				$fail = true;
+				$this->Session->setFlash(__('The push filter rules must be in valid JSON format.'));
+			}
+			if (!$fail) {
+				// say what fields are to be updated
+				$fieldList = array('id', 'url', 'push', 'pull', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'push_rules', 'pull_rules');
+				$this->request->data['Server']['id'] = $id;
+				if ("" != $this->request->data['Server']['authkey']) $fieldList[] = 'authkey';
+				if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
+				else {
+					$existingOrgs = $this->Server->Organisation->find('first', array(
+							'conditions' => array('uuid' => $json['uuid']),
+							'recursive' => -1,
+							'fields' => array('id', 'uuid')
+					));
+					if (!empty($existingOrgs)) {
+						$fail = true;
+						$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+					}
+				
+					if (!$fail) {
+						$this->Server->Organisation->create();
+						if (!$this->Server->Organisation->save(array(
+								'name' => $json['name'],
+								'uuid' => $json['uuid'],
+								'local' => 0,
+								'created_by' => $this->Auth->user('id')
+						)
+						)) $this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?'));
+						$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+					}
 				}
-				$this->Session->setFlash(__('The server has been saved'));
-				$this->redirect(array('action' => 'index'));
-			} else {
-				$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+			}
+			
+			if (!$fail) {
+				// Save the data
+				if ($this->Server->save($this->request->data, true, $fieldList)) {
+					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0 && !$this->request->data['Server']['delete_cert']) {
+						$this->__saveCert($this->request->data, $this->Server->id);
+					} else {
+						$this->__saveCert($this->request->data, $this->Server->id, true);
+					}
+					$this->Session->setFlash(__('The server has been saved'));
+					$this->redirect(array('action' => 'index'));
+				} else {
+					$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+				}
 			}
 		} else {
 			$this->Server->read(null, $id);
 			$this->Server->set('authkey', '');
 			$this->request->data = $this->Server->data;
 		}
+		$organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
+		$temp = $this->Server->Organisation->find('all', array(
+				'conditions' => array('local' => true),
+				'fields' => array('id', 'name'),
+		));
+		$localOrganisations = array();
+		$allOrgs = array();
+		foreach ($temp as $o) {
+			$localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+			$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+		}
+		$temp = $this->Server->Organisation->find('all', array(
+				'conditions' => array('local' => false),
+				'fields' => array('id', 'name'),
+		));
+		$externalOrganisations = array();
+		foreach ($temp as $o) {
+			$externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+			$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+		}
+
+		$oldRemoteSetting = 0;
+		if (!$this->Server->data['RemoteOrg']['local']) $oldRemoteSetting = 1;
+		
+		$this->set('oldRemoteSetting', $oldRemoteSetting);
+		$this->set('oldRemoteOrg', $this->Server->data['RemoteOrg']['id']);
+
+		$this->set('organisationOptions', $organisationOptions);
+		$this->set('localOrganisations', $localOrganisations);
+		$this->set('externalOrganisations', $externalOrganisations);
+		$this->set('allOrganisations', $allOrgs);
+		
+		// list all tags for the rule picker
+		$this->loadModel('Tag');
+		$temp = $this->Tag->find('all', array('recursive' => -1));
+		$allTags = array();
+		foreach ($temp as $t) $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
+		$this->set('allTags', $allTags);
+		$this->set('server', $s);
 	}
 
 /**
@@ -131,7 +394,7 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 		$s = $this->Server->read(null, $id);
-		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->Server->delete()) {
 			$this->Session->setFlash(__('Server deleted'));
 			$this->redirect(array('action' => 'index'));
@@ -158,7 +421,7 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 		$s = $this->Server->read(null, $id);
-		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
 			throw new NotFoundException(__('Invalid server'));
@@ -175,20 +438,18 @@ class ServersController extends AppController {
 				switch ($result[0]) {
 					case '1' :
 						$this->Session->setFlash(__('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'));
-						$this->redirect(array('action' => 'index'));
 						break;
 					case '2' :
 						$this->Session->setFlash($result[1]);
-						$this->redirect(array('action' => 'index'));
 						break;
 					case '3' :
 						throw new NotFoundException('Sorry, this is not yet implemented');
 						break;
 					case '4' :
 						$this->redirect(array('action' => 'index'));
-						break;
-						
+						break;		
 				}
+				$this->redirect($this->referer());
 			} else {
 				$this->set('successes', $result[0]);
 				$this->set('fails', $result[1]);
@@ -204,7 +465,7 @@ class ServersController extends AppController {
 					'job_input' => 'Server: ' . $id,
 					'status' => 0,
 					'retries' => 0,
-					'org' => $this->Auth->user('org'),
+					'org' => $this->Auth->user('Organisation')['name'],
 					'message' => 'Pulling.',
 			);
 			$this->Job->save($data);
@@ -216,7 +477,7 @@ class ServersController extends AppController {
 			);
 			$this->Job->saveField('process_id', $process_id);
 			$this->Session->setFlash('Pull queued for background execution.');
-			$this->redirect(array('action' => 'index'));
+			$this->redirect($this->referer());
 		}
 	}
 
@@ -226,13 +487,17 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 		$s = $this->Server->read(null, $id);
-		if (!$this->_isSiteAdmin() && !($s['Server']['org'] == $this->Auth->user('org') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+		if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if (!Configure::read('MISP.background_jobs')) {
 			$server = $this->Server->read(null, $id);
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
-			$result = $this->Server->push($id, $technique, false, $HttpSocket, $this->Auth->user('email'));
+			$result = $this->Server->push($id, $technique, false, $HttpSocket, $this->Auth->user());
+			if ($result === false) {
+				$this->Session->setFlash('The remote server is too outdated to initiate a push towards it. Please notify the hosting organisation of the remote instance.');
+				$this->redirect(array('action' => 'index'));
+			}
 			$this->set('successes', $result[0]);
 			$this->set('fails', $result[1]);
 		} else {
@@ -244,7 +509,7 @@ class ServersController extends AppController {
 					'job_input' => 'Server: ' . $id,
 					'status' => 0,
 					'retries' => 0,
-					'org' => $this->Auth->user('org'),
+					'org' => $this->Auth->user('Organisation')['name'],
 					'message' => 'Pushing.',
 			);
 			$this->Job->save($data);
@@ -260,26 +525,32 @@ class ServersController extends AppController {
 		}
 	}
 	
-	public function __saveCert($server, $id) {
-		$ext = '';
-		App::uses('File', 'Utility');
-		App::uses('Folder', 'Utility');
-		$file = new File($server['Server']['submitted_cert']['name']);
-		$ext = $file->ext();
-		if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
-			$this->Session->setFlash('Incorrect extension of empty file.');
-			$this->redirect(array('action' => 'index'));
+	private function __saveCert($server, $id, $delete = false) {
+		if (!$delete) {
+			$ext = '';
+			App::uses('File', 'Utility');
+			App::uses('Folder', 'Utility');
+			$file = new File($server['Server']['submitted_cert']['name']);
+			$ext = $file->ext();
+			if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
+				$this->Session->setFlash('Incorrect extension or empty file.');
+				$this->redirect(array('action' => 'index'));
+			}
+			$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),
+					$server['Server']['submitted_cert']['size']);
+			$destpath = APP . "files" . DS . "certs" . DS;
+			$dir = new Folder(APP . "files" . DS . "certs", true);
+			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
+			$pemfile = new File ($destpath . $id . '.' . $ext);
+			$result = $pemfile->write($pemData); 
+			$s = $this->Server->read(null, $id);
+			$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
+			if ($result) $this->Server->save($s);
+		} else {
+			$s = $this->Server->read(null, $id);
+			$s['Server']['cert_file'] = '';
+			$this->Server->save($s);
 		}
-		$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),
-				$server['Server']['submitted_cert']['size']);
-		$destpath = APP . "files" . DS . "certs" . DS;
-		$dir = new Folder(APP . "files" . DS . "certs", true);
-		if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
-		$pemfile = new File ($destpath . $id . '.' . $ext);
-		$result = $pemfile->write($pemData); 
-		$s = $this->Server->read(null, $id);
-		$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
-		if ($result) $this->Server->save($s);
 	}
 	
 	public function serverSettingsReloadSetting($setting, $id) {
@@ -312,13 +583,14 @@ class ServersController extends AppController {
 					'misc' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
 			);
-			$writeableErrors = array(0 => 'OK', 1 => 'Directory doesn\'t exist', 2 => 'Directory is not writeable');
+			$writeableErrors = array(0 => 'OK', 1 => 'doesn\'t exist', 2 => 'is not writeable');
 			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: bad GnuPG.*', 3 => 'FAIL: encrypt failed');
 			$proxyErrors = array(0 => 'OK', 1 => 'not configured (so not tested)', 2 => 'Getting URL via proxy failed');
 			$zmqErrors = array(0 => 'OK', 1 => 'not enabled (so not tested)', 2 => 'Python ZeroMQ library not installed correctly.', 3 => 'ZeroMQ script not running.');
 			$stixOperational = array(0 => 'STIX or CyBox library not installed correctly', 1 => 'OK');
 			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
 			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
+			$sessionErrors = array(0 => 'OK', 1 => 'High', 2 => 'Alternative setting used', 3 => 'Test failed');
 			
 			$finalSettings = $this->Server->serverSettingsRead();
 			$issues = array(	
@@ -366,6 +638,37 @@ class ServersController extends AppController {
 				// check if the current version of MISP is outdated or not
 				$version = $this->__checkVersion();
 				$this->set('version', $version);
+				$phpSettings = array(
+						'max_execution_time' => array(
+							'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
+							'recommended' => 300,
+							'unit' => false
+						), 
+						'memory_limit' => array(
+							'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
+							'recommended' => 512,
+							'unit' => 'M'
+						), 
+						'upload_max_filesize' => array(
+							'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
+							'recommended' => 50,
+							'unit' => 'M'
+						), 
+						'post_max_size' => array(
+							'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
+							'recommended' => 50,
+							'unit' => 'M'
+						)
+						
+				);
+				
+				foreach ($phpSettings as $setting => &$settingArray) {
+					$settingArray['value'] = ini_get($setting);
+					if ($settingArray['unit']) $settingArray['value'] = intval(rtrim($settingArray['value'], $settingArray['unit']));
+					else $settingArray['value'] = intval($settingArray['value']);
+				}
+				$this->set('phpSettings', $phpSettings);
+				
 				if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) $diagnostic_errors++;
 					
 				// check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
@@ -380,13 +683,19 @@ class ServersController extends AppController {
 				// if Proxy is set up in the settings, try to connect to a test URL
 				$proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
 				
-				$additionalViewVars = array('gpgStatus', 'proxyStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion','gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix');
+				// check the size of the session table
+				$sessionCount = 0;
+				$sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
+				$this->set('sessionCount', $sessionCount);
+				
+				$additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion','gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix');
 			}
 			// check whether the files are writeable
 			$writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
+			$writeableFiles = $this->Server->writeableFilesDiagnostics($diagnostic_errors);
 			
 			$viewVars = array(
-					'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'writeableDirs'
+					'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'writeableDirs', 'writeableFiles'
 			);
 			$viewVars = array_merge($viewVars, $additionalViewVars);
 			foreach ($viewVars as $viewVar) $this->set($viewVar, ${$viewVar});
@@ -402,7 +711,7 @@ class ServersController extends AppController {
 				foreach ($dumpResults as &$dr) {
 					unset($dr['description']);
 				}
-				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'zmqStatus' => $zmqStatus, 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
+				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'zmqStatus' => $zmqStatus, 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'writeableFiles' => $writeableFiles,'finalSettings' => $dumpResults);
 				$this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
 				$this->response->type('json');
 				$this->response->download('MISP.report.json');
@@ -418,7 +727,7 @@ class ServersController extends AppController {
 	}
 
 	public function startWorker($type) {
-		if (!$this->_isSiteAdmin() || !$this->request->is('Post')) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$validTypes = array('default', 'email', 'scheduler', 'cache');
 		if (!in_array($type, $validTypes)) throw new MethodNotAllowedException('Invalid worker type.');
 		if ($type != 'scheduler') shell_exec(APP . 'Console' . DS . 'cake ' . DS . 'CakeResque.CakeResque start --interval 5 --queue ' . $type .' > /dev/null 2>&1 &');
@@ -427,7 +736,7 @@ class ServersController extends AppController {
 	}
 	
 	public function stopWorker($pid) {
-		if (!$this->_isSiteAdmin() || !$this->request->is('Post')) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->Server->killWorker($pid, $this->Auth->user());
 		$this->redirect('/servers/serverSettings/workers');
 	}
@@ -454,9 +763,8 @@ class ServersController extends AppController {
 		} else {
 			return false;
 		}
-
 	}
-	
+
 	public function serverSettingsEdit($setting, $id, $forceSave = false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
@@ -492,12 +800,27 @@ class ServersController extends AppController {
 		if ($this->request->is('post')) {
 			$this->autoRender = false;
 			$this->loadModel('Log');
+			if (!is_writeable(APP . 'Config/config.php')) {
+				$this->Log->create();
+				$result = $this->Log->save(array(
+						'org' => $this->Auth->user('Organisation')['name'],
+						'model' => 'Server',
+						'model_id' => 0,
+						'email' => $this->Auth->user('email'),
+						'action' => 'serverSettingsEdit',
+						'user_id' => $this->Auth->user('id'),
+						'title' => 'Server setting issue',
+						'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
+				));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.')),'status'=>200));
+			}
+			
 			if (isset($found['beforeHook'])) {
 				$beforeResult = call_user_func_array(array($this->Server, $found['beforeHook']), array($setting, $this->request->data['Server']['value']));
 				if ($beforeResult !== true) {
 					$this->Log->create();
 					$result = $this->Log->save(array(
-							'org' => $this->Auth->user('org'),
+							'org' => $this->Auth->user('Organisation')['name'],
 							'model' => 'Server',
 							'model_id' => 0,
 							'email' => $this->Auth->user('email'),
@@ -506,7 +829,7 @@ class ServersController extends AppController {
 							'title' => 'Server setting issue',
 							'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
 					));
-					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)),'status'=>200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $beforeResult)),'status'=>200));
 				}
 			}
 			if ($found['type'] == 'boolean') {
@@ -525,7 +848,7 @@ class ServersController extends AppController {
 				$this->Server->serverSettingsSaveValue($setting, $this->request->data['Server']['value']);
 				$this->Log->create();
 				$result = $this->Log->save(array(
-						'org' => $this->Auth->user('org'),
+						'org' => $this->Auth->user('Organisation')['name'],
 						'model' => 'Server',
 						'model_id' => 0,
 						'email' => $this->Auth->user('email'),
@@ -540,7 +863,7 @@ class ServersController extends AppController {
 					if ($afterResult !== true) {
 						$this->Log->create();
 						$result = $this->Log->save(array(
-								'org' => $this->Auth->user('org'),
+								'org' => $this->Auth->user('Organisation')['name'],
 								'model' => 'Server',
 								'model_id' => 0,
 								'email' => $this->Auth->user('email'),
@@ -592,7 +915,7 @@ class ServersController extends AppController {
 	}
 	
 	public function uploadFile($type) {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$validItems = $this->Server->getFileRules();
 		
 		// Check if there were problems with the file upload
@@ -624,6 +947,62 @@ class ServersController extends AppController {
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
 	}
 	
+	public function fetchServersForSG($idList = '{}') {
+		$id_exclusion_list = json_decode($idList, true);
+		$temp = $this->Server->find('all', array(
+				'conditions' => array(
+						'id !=' => $id_exclusion_list,
+				),
+				'recursive' => -1,
+				'fields' => array('id', 'name', 'url')
+		));
+		$servers = array();
+		foreach ($temp as $server) {
+			$servers[] = array('id' => $server['Server']['id'], 'name' => $server['Server']['name'], 'url' => $server['Server']['url']);
+		}
+		$this->layout = false;
+		$this->autoRender = false;
+		$this->set('servers', $servers);
+		$this->render('ajax/fetch_servers_for_sg');
+	}
+	
+	public function testConnection($id = false) {
+			if (!$this->Auth->user('Role')['perm_sync'] && !$this->Auth->user('Role')['perm_site_admin']) throw new MethodNotAllowedException('You don\'t have permission to do that.');
+			$this->Server->id = $id;
+			if (!$this->Server->exists()) {
+				throw new NotFoundException(__('Invalid server'));
+			}
+			$result = $this->Server->runConnectionTest($id);
+			if ($result['status'] == 1) {
+				$version = json_decode($result['message'], true);
+				if (isset($version['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $version['version'])) {
+					App::uses('Folder', 'Utility');
+					$file = new File (ROOT . DS . 'VERSION.json', true);
+					$local_version = json_decode($file->read(), true);
+					$file->close();
+					$version = explode('.', $version['version']);
+					$mismatch = false;
+					$newer = false;
+					$parts = array('major', 'minor', 'hotfix');
+					foreach ($parts as $k => $v) {
+						if (!$mismatch) {
+							if ($version[$k] > $local_version[$v]) {
+								$mismatch = $v;
+								$newer = 'remote';
+							} elseif ($version[$k] < $local_version[$v]) {
+								$mismatch = $v;
+								$newer = 'local';
+							}
+						}
+					}
+					return new CakeResponse(array('body'=> json_encode(array('status' => 1, 'local_version' => implode('.', $local_version), 'version' => implode('.', $version), 'mismatch' => $mismatch, 'newer' => $newer))));
+				} else {
+					$result['status'] = 3;
+				}
+			}
+			return new CakeResponse(array('body'=> json_encode(array('status' => $result['status']))));
+	}
+	
 	public function startZeroMQServer() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		App::uses('PubSubTool', 'Tools');
@@ -642,7 +1021,7 @@ class ServersController extends AppController {
 		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not kill the previous instance of the ZeroMQ script.')),'status'=>200));
 	}
 	
-	private function statusZeroMQServer() {
+	public function statusZeroMQServer() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		App::uses('PubSubTool', 'Tools');
 		$pubSubTool = new PubSubTool();
@@ -653,5 +1032,20 @@ class ServersController extends AppController {
 			$this->set('time2', date('Y/m/d H:i:s', $result['timestampSettings']));
 		}		
 		$this->render('ajax/zeromqstatus');
+	}
+	
+	public function purgeSessions() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if ($this->Server->updateDatabase('cleanSessionTable') == false) {
+			$this->Session->setFlash('Could not purge the session table.');
+		}
+		$this->redirect('/servers/serverSettings/diagnostics');
+	}
+	
+	public function getVersion() {
+		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This action requires API access.');
+		$versionArray = $this->Server->checkMISPVersion();
+		$this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix']));
+		$this->set('_serialize', 'response');
 	}
 }

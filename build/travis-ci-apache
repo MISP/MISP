@@ -1,0 +1,15 @@
+<VirtualHost misp.local>
+        ServerAdmin me@me.local
+        ServerName misp.local
+        DocumentRoot %TRAVIS_BUILD_DIR%/app/webroot
+        <Directory %TRAVIS_BUILD_DIR%/app/webroot>
+                Options -Indexes
+                AllowOverride all
+                Require all granted
+        </Directory>
+
+        LogLevel warn
+        ErrorLog /var/log/apache2/misp.local_error.log
+        CustomLog /var/log/apache2/misp.local_access.log combined
+        ServerSignature Off
+</VirtualHost>

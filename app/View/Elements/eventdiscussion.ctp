@@ -13,7 +13,7 @@
 	        ));
 	
 	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-	            echo $this->Paginator->numbers(array('modulus' => 10, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+	            echo $this->Paginator->numbers(array('modulus' => 10, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
 	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
 	        ?>
 	        </ul>
@@ -22,6 +22,7 @@
 			<?php 
 				foreach ($posts as $post) {
 			?>
+					<a name="message_<?php echo h($post['Post']['id']);?>"></a>
 					<table class="discussionBox" id=<?php echo '"' . h($post['Post']['id']) . '"';?> >
 						<tr>
 							<td class="discussionBoxTD discussionBoxTDtop" colspan="2">
@@ -34,8 +35,8 @@
 			?>					
 										</td>
 										<td style="text-align:right">
-											<a href = #top class = "whitelink">Top</a> |
-											<a href = #<?php echo $post['Post']['id']; ?> class = "whitelink">#<?php echo h($post['Post']['id'])?></a>
+											<a href="#top" class="whitelink">Top</a> |
+											<a href="<?php echo "#".$post['Post']['id']; ?>" class="whitelink">#<?php echo h($post['Post']['id'])?></a>
 										</td>
 									</tr>
 								</table>
@@ -45,9 +46,9 @@
 						<tr>
 							<td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidLeft">
 								<?php 
-									$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($post['User']['org']) . '.png';
-									if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($post['User']['org']) . '.png', array('alt' => h($post['User']['org']), 'title' => h($post['User']['org']), 'style' => 'width:48px; height:48px'));
-									else echo $this->Html->tag('span', h($post['User']['org']), array('class' => 'welcome', 'style' => 'float:center;'));								
+									$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($post['User']['Organisation']['name']) . '.png';
+									if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($post['User']['Organisation']['name']) . '.png', array('alt' => h($post['User']['Organisation']['name']), 'title' => h($post['User']['Organisation']['name']), 'style' => 'width:48px; height:48px'));
+									else echo $this->Html->tag('span', h($post['User']['Organisation']['name']), array('class' => 'welcome', 'style' => 'float:center;'));								
 								?>
 							</td>
 							<td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidRight">
@@ -62,7 +63,7 @@
 			?>
 										<span style="font-style:italic">
 											In reply to post
-											<a href = #<?php echo h($post['Post']['post_id']); ?>>#<?php echo h($post['Post']['post_id'])?></a>
+											<a href="<?php echo "#".h($post['Post']['post_id']); ?>">#<?php echo h($post['Post']['post_id'])?></a>
 										</span>
 			<?php 
 									}
@@ -83,18 +84,18 @@
 			<?php 
 										if (!$isSiteAdmin) {
 											if ($post['Post']['user_id'] == $myuserid) {
-												echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['Post']['id'])), array('class' => 'icon-edit', 'title' => 'Edit'));
-												echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['Post']['id'])), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
+												echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['Post']['id']), h($context)), array('class' => 'icon-edit', 'title' => 'Edit'));
+												echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['Post']['id']), h($context)), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
 											} else {
 			?>
-												<a href = "<?php echo Configure::read('MISP.baseurl') . '/posts/add/post/' . h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
+												<a href="<?php echo $baseurl.'/posts/add/post/'.h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
 			<?php 							
 											}
 										} else {
-											echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['Post']['id'])), array('class' => 'icon-edit', 'title' => 'Edit'));
-											echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['Post']['id'])), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
+											echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['Post']['id']), h($context)), array('class' => 'icon-edit', 'title' => 'Edit'));
+											echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['Post']['id']), h($context)), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
 			?>
-												<a href = "<?php echo Configure::read('MISP.baseurl') . '/posts/add/post/' . h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
+												<a href = "<?php echo $baseurl.'/posts/add/post/'.h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
 			<?php 	
 								
 										}
@@ -121,14 +122,18 @@
 	        <ul>
 	        <?php
 	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-	            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+	            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
 	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
 	        ?>
 	        </ul>
 	    </div>
     <?php endif; ?>
 	<div class="comment">
-	<?php echo $this->Form->create('Post', array('url' => '/posts/add/thread/' . $thread_id));?>
+	<?php
+		if (isset($currentEvent)) $url = '/posts/add/event/' . $currentEvent; 
+		else $url = '/posts/add/thread/' . $thread_id;
+		echo $this->Form->create('Post', array('url' => $url));
+	?>
 		<fieldset>
 		<div class="input clear">
 			<button type="button" title="Insert a quote - just paste your quote between the [quote][/quote] tags." class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()">Quote</button>
@@ -150,7 +155,7 @@
 			'success'=>$this->Js->get('#loading')->effect('fadeOut'),
 			'update'=>'#top',
 			'class'=>'btn btn-primary',
-			'url' => '/posts/add/thread/' . $thread_id
+			'url' => $url
 	));
 	echo $this->Form->end();
 	?>
@@ -166,5 +171,10 @@
 	function insertThread() {
 		document.getElementById("PostMessage").value+="[Thread][/Thread]"; 
 	}
+	<?php if (isset($post_id) && $post_id): ?>
+		$(document).ready(function() {
+			location.hash = "#message_<?php echo h($post_id); ?>";
+		});
+	<?php endif; ?>
 </script>
 <?php echo $this->Js->writeBuffer();?>

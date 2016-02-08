@@ -99,7 +99,7 @@ class TasksController extends AppController {
 				$timestamp,
 				'default',
 				'ServerShell',
-				array('enqueuePush', $timestamp, $id, $this->Auth->user('org'), $this->Auth->user('id')),
+				array('enqueuePush', $timestamp, $id, $this->Auth->user('id')),
 				true
 		);
 		$this->Task->id = $id;

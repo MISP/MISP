@@ -1,13 +1,10 @@
 <?php
 
 App::import('Lib', 'SysLog.SysLog');	// Audit, syslogd, extra
-App::import('Controller', 'EventsController');
-App::import('Controller', 'ServersController');
 
 class SysLogLogableBehavior extends LogableBehavior {
 
 	function afterSave(Model $Model, $created, $options = array()) {
-
 		if (!$this->settings[$Model->alias]['enabled']) {
 			return true;
 		}
@@ -96,7 +93,6 @@ class SysLogLogableBehavior extends LogableBehavior {
 	}
 
 	function _saveLog(&$Model, $logData, $title = null) {
-
 		if ($title !== NULL) {
 			$logData['Log']['title'] = $title;
 		} elseif ($Model->displayField == $Model->primaryKey) {
@@ -123,7 +119,6 @@ class SysLogLogableBehavior extends LogableBehavior {
 				$logData['Log'][$this->settings[$Model->alias]['foreignKey']] = $Model->insertId;
 			}
 		}
-
 		if (!isset($this->schema['action'])) {
 			unset($logData['Log']['action']);
 		} elseif (isset($Model->logableAction) && !empty($Model->logableAction)) {
@@ -135,11 +130,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 			$logData['Log']['version_id'] = $Model->version_id;
 			unset($Model->version_id);
 		}
-
-		if (isset($this->schema['ip']) && $this->userIP) {
-			$logData['Log']['ip'] = $this->userIP;
-		}
-
+		
 		if (isset($this->schema[$this->settings[$Model->alias]['userKey']]) && $this->user) {
 			$logData['Log'][$this->settings[$Model->alias]['userKey']] = $this->user[$this->UserModel->alias][$this->UserModel->primaryKey];
 		}
@@ -150,7 +141,6 @@ class SysLogLogableBehavior extends LogableBehavior {
 				if ($this->settings[$Model->alias]['description_ids']) {
 					$logData['Log']['description'] .= ' (' . $this->user[$this->UserModel->alias][$this->UserModel->primaryKey] . ')';
 				}
-
 			} else {
 				// UserModel is active, but the data hasnt been set. Assume system action.
 				$logData['Log']['description'] .= ' by System';
@@ -167,7 +157,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 		}
 		if (isset($this->schema['org'])) {	// TODO Audit, LogableBehevior org CHECK!!!
 		if ($this->user && $this->UserModel) {
-			$logData['Log']['org'] = $this->user[$this->UserModel->alias][$this->UserModel->orgField];
+			$logData['Log']['org'] = $this->user[$this->UserModel->alias]['Organisation']['name'];
 		} else {
 			// UserModel is active, but the data hasnt been set. Assume system action.
 			$logData['Log']['org'] = 'SYS';
@@ -176,16 +166,6 @@ class SysLogLogableBehavior extends LogableBehavior {
 		if (isset($this->schema['title'])) {	// TODO LogableBehevior title
 		if ($this->user && $this->UserModel) {	//  $Model->data[$Model->alias][$Model->displayField]
 			switch ($Model->alias) {
-				case "User":		// TODO Audit, not used here but done in UsersController
-					if (($logData['Log']['action'] == 'edit') || ($logData['Log']['action'] == 'delete')) {
-						return; // handle in model itself
-					}
-					$title = 'User ('. $Model->data[$Model->alias]['id'].') '.  $Model->data[$Model->alias]['email'];
-					break;
-				case "Event":
-        			$title = 'Event ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['info'];
-					$logData['Log']['title'] = $title;
-					break;
 				case "Attribute":
 					if (isset($Model->combinedKeys)) {
 						if (is_array($Model->combinedKeys)) {
@@ -194,30 +174,55 @@ class SysLogLogableBehavior extends LogableBehavior {
 						}
 					}
 					break;
-				case "ShadowAttribute":
-					if (isset($Model->combinedKeys)) {
-						if (is_array($Model->combinedKeys)) {
-							$title = 'Proposal ('. $Model->data[$Model->alias]['id'].') '.'to Event ('. $Model->data[$Model->alias]['event_id'].'): '.  $Model->data[$Model->alias][$Model->combinedKeys[1]].'/'.  $Model->data[$Model->alias][$Model->combinedKeys[2]].' '.  $Model->data[$Model->alias]['value1'];
-							$logData['Log']['title'] = $title;
-						}
-					}
+				case "Event":
+        			$title = 'Event ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['info'];
+					$logData['Log']['title'] = $title;
 					break;
-				case "Server":
-					$title = 'Server ('. $Model->data[$Model->alias]['id'].'): '. $Model->data[$Model->alias]['url'];
+				case "Organisation":
+					$title = 'Organisation (' . $Model->data[$Model->alias]['id'] . '): ' . $Model->data[$Model->alias]['name'];
+					break;
+				case "Post":
+					$title = 'Post (' . $Model->data[$Model->alias]['id'] . ')';
+					break;
+				case "Regexp":
+					$title = 'Regexp ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['regexp'];
 					$logData['Log']['title'] = $title;
 					break;
 				case "Role":
 					$title = 'Role ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
 					$logData['Log']['title'] = $title;
 					break;
+				case "Server":
+					$title = 'Server ('. $Model->data[$Model->alias]['id'].'): '. $Model->data[$Model->alias]['url'];
+					$logData['Log']['title'] = $title;
+					break;
+				case "ShadowAttribute":
+					if (isset($Model->combinedKeys)) {
+						if (is_array($Model->combinedKeys)) {
+							$title = 'Proposal ('. $Model->data[$Model->alias]['id'].'): '.'to Event ('. $Model->data[$Model->alias]['event_id'].'): '.  $Model->data[$Model->alias][$Model->combinedKeys[1]].'/'.  $Model->data[$Model->alias][$Model->combinedKeys[2]].' '.  $Model->data[$Model->alias]['value1'];
+							$logData['Log']['title'] = $title;
+						}
+					}
+					break;
+				case "SharingGroup":
+					$title = 'SharingGroup ('. $Model->data[$Model->alias]['id'].'): '.  $Model->data[$Model->alias]['name'];
+					break;
+				case "Tag":
+					$title = 'Tag ('. $Model->data[$Model->alias]['id'].'): '.  $Model->data[$Model->alias]['name'];
+					break;
+				case "Thread":
+					$title = 'Thread ('. $Model->data[$Model->alias]['id'].'): '.  $Model->data[$Model->alias]['title'];
+					break;
+				case "User":		// TODO Audit, not used here but done in UsersController
+					if (($logData['Log']['action'] == 'edit') || ($logData['Log']['action'] == 'delete')) {
+						return; // handle in model itself
+					}
+					$title = 'User ('. $Model->data[$Model->alias]['id'].'): '.  $Model->data[$Model->alias]['email'];
+					break;
 				case "Whitelist":
 					$title = 'Whitelist ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['name'];
 					$logData['Log']['title'] = $title;
 					break;
-				case "Regexp":
-						$title = 'Regexp ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['regexp'];
-						$logData['Log']['title'] = $title;
-						break;
 				default:
 					if (isset($Model->combinedKeys)) {
 						if (is_array($Model->combinedKeys)) {
@@ -234,9 +239,8 @@ class SysLogLogableBehavior extends LogableBehavior {
 		}
 		$this->Log->create($logData);
 		$this->Log->save(null, array(
-				'validate' => false,
-				'callbacks' => false));
-
+				'validate' => false));
+		
 		// write to syslogd as well
 		$syslog = new SysLog();
 		if (isset($logData['Log']['change'])) {
@@ -244,5 +248,26 @@ class SysLogLogableBehavior extends LogableBehavior {
 		} else {
 			$syslog->write('notice', $logData['Log']['description']);
 		}
+	}
+	
+	function setup(Model $Model, $config = array()) {
+	
+		if (!is_array($config)) {
+			$config = array();
+		}
+		$this->settings[$Model->alias] = array_merge($this->defaults, $config);
+		$this->settings[$Model->alias]['ignore'][] = $Model->primaryKey;
+	
+		$this->Log = ClassRegistry::init('Log');
+		if ($this->settings[$Model->alias]['userModel'] != $Model->alias) {
+			$this->UserModel = ClassRegistry::init($this->settings[$Model->alias]['userModel']);
+		} else {
+			$this->UserModel = $Model;
+		}
+		$this->schema = $this->Log->schema();
+		App::import('Component', 'Auth');
+		$user = AuthComponent::user();
+		if (!empty($user)) $this->user[$this->settings[$Model->alias]['userModel']] = AuthComponent::user();
+		else $this->user['User'] = array('email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'), 'id' => 0);
 	}
 }

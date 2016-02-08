@@ -10,27 +10,22 @@
 	</ol>
 </div>
 <div class="index">
-<?php
-// Load the Attribute model to extract the documentation from the defintions
-App::import('Model', 'Attribute');
-$attr = new Attribute();
-?>
 <h2>Attribute Categories and Types</h2>
 <h3>Attribute Categories vs Types</h3>
 <table class="table table-striped table-hover table-condensed table-bordered">
 	<tr>
 		<th>Category</th>
-		<?php foreach ($attr->categoryDefinitions as $cat => $catDef):	?>
+		<?php foreach ($categoryDefinitions as $cat => $catDef):	?>
 		<th style="width:5%; text-align:center; white-space:normal">
 			<a href="#<?php echo $cat; ?>"><?php echo $cat; ?></a>
 		</th>
 		<?php endforeach; ?>
 		<th>Category</th>
 	</tr>
-	<?php foreach ($attr->typeDefinitions as $type => $def): ?>
+	<?php foreach ($typeDefinitions as $type => $def): ?>
 	<tr>
 		<th><a href="#<?php echo $type; ?>"><?php echo $type; ?></a></th>
-		<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
+		<?php foreach ($categoryDefinitions as $cat => $catDef): ?>
 		<td style="text-align:center">
 			<?php echo in_array($type, $catDef['types'])? 'X' : ''; ?>
 		</td>
@@ -40,7 +35,7 @@ $attr = new Attribute();
 	</tr>
 <tr>
 	<th>Category</th>
-	<?php foreach ($attr->categoryDefinitions as $cat => $catDef): ?>
+	<?php foreach ($categoryDefinitions as $cat => $catDef): ?>
 	<th style="width:5%; text-align:center; white-space:normal">
 		<a href="#<?php echo $cat; ?>"><?php echo $cat; ?></a>
 	</th>
@@ -54,7 +49,7 @@ $attr = new Attribute();
 		<th>Category</th>
 		<th>Description</th>
 	</tr>
-	<?php foreach ($attr->categoryDefinitions as $cat => $def): ?>
+	<?php foreach ($categoryDefinitions as $cat => $def): ?>
 	<tr>
 		<th><a id="<?php echo $cat; ?>"></a>
 			<?php echo $cat; ?>
@@ -71,7 +66,7 @@ $attr = new Attribute();
 		<th>Type</th>
 		<th>Description</th>
 	</tr>
-	<?php foreach ($attr->typeDefinitions as $type => $def): ?>
+	<?php foreach ($typeDefinitions as $type => $def): ?>
 	<tr>
 		<th><a id="<?php echo $type; ?>"></a>
 			<?php echo $type; ?>
@@ -82,6 +77,5 @@ $attr = new Attribute();
 	</tr>
 	<?php endforeach;?>
 </table>
-
-
+<p><a href="<?php echo $baseurl;?>/pages/display/doc/md/categories_and_types">Click here to get the .md version for gitbook generation.</a></p>
 </div>

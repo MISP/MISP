@@ -281,4 +281,6 @@ Cache::config('_cake_model_', array(
 	'duration' => $duration
 ));
 
-//require_once dirname(__DIR__) . '/Vendor/autoload.php';
+
+//Comment the following out if you do not with to use the background workers (not recommended)
+require_once dirname(__DIR__) . '/Vendor/autoload.php';

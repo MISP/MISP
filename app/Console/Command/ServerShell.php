@@ -15,10 +15,9 @@ class ServerShell extends AppShell
 		$jobId = $this->args[3];
 		$this->Job->read(null, $jobId);
 		$this->Server->id = $serverId;
-		$this->User->recursive = -1;
-		$user = $this->User->read(null, $userId);
+		$user = $this->User->getAuthUser($userId);
 		$server = $this->Server->read(null, $serverId);
-		$result = $this->Server->pull($user['User'], $serverId, $technique, $server, $jobId);
+		$result = $this->Server->pull($user, $serverId, $technique, $server, $jobId);
 		$this->Job->id = $jobId;
 		$this->Job->save(array(
 				'id' => $jobId,
@@ -59,9 +58,10 @@ class ServerShell extends AppShell
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocket($server);
-		$this->User->recursive = -1;
-		$user = $this->User->read(array('id', 'org', 'email'), $userId);
-		$result = $this->Server->push($serverId, 'full', $jobId, $HttpSocket, $user['User']['email']);
+		$user = $this->User->getAuthUser($userId);
+		$result = $this->Server->push($serverId, 'full', $jobId, $HttpSocket, $user);
+		$message = 'Job done.';
+		if ($result === false) $message = 'Job failed. The remote instance is too far outdated to initiate a push.';
 		$this->Job->save(array(
 				'id' => $jobId,
 				'message' => 'Job done.',
@@ -82,8 +82,7 @@ class ServerShell extends AppShell
 		if ($timestamp != $task['Task']['next_execution_time']) {
 			return;
 		}
-		$this->User->recursive = -1;
-		$user = $this->User->read(array('id', 'org', 'email'), $userId);
+		$user = $this->User->getAuthUser($userId);
 		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('pull' => 1)));
 		$count = count($servers);
 		$failCount = 0;
@@ -94,7 +93,8 @@ class ServerShell extends AppShell
 					'job_type' => 'pull',
 					'job_input' => 'Server: ' . $server['Server']['id'],
 					'retries' => 0,
-					'org' => $user['User']['org'],
+					'org' => $user['Organisation']['name'],
+					'org_id' => $user['org_id'],
 					'process_id' => 'Part of scheduled pull',
 					'message' => 'Pulling.',
 			);
@@ -105,7 +105,7 @@ class ServerShell extends AppShell
 			
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
-			$result = $this->Server->pull($user['User'], $server['Server']['id'], 'full', $server, $jobId);
+			$result = $this->Server->pull($user, $server['Server']['id'], 'full', $server, $jobId);
 			$this->Job->save(array(
 					'id' => $jobId,
 					'message' => 'Job done.',
@@ -138,8 +138,7 @@ class ServerShell extends AppShell
 	public function enqueuePush() {
 		$timestamp = $this->args[0];
 		$taskId = $this->args[1];
-		$org = $this->args[2];
-		$userId = $this->args[3];
+		$userId = $this->args[2];
 		$this->Task->id = $taskId;
 		$task = $this->Task->read(null, $taskId);
 		if ($timestamp != $task['Task']['next_execution_time']) {
@@ -148,7 +147,7 @@ class ServerShell extends AppShell
 		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueuePush', $userId, $taskId);
 		
 		$this->User->recursive = -1;
-		$user = $this->User->read(array('id', 'org', 'email'), $userId);
+		$user = $this->User->getAuthUser($userId);
 		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('push' => 1)));
 		$count = count($servers);
 		foreach ($servers as $k => $server) {
@@ -158,7 +157,8 @@ class ServerShell extends AppShell
 					'job_type' => 'push',
 					'job_input' => 'Server: ' . $server['Server']['id'],
 					'retries' => 0,
-					'org' => $org,
+					'org' => $user['Organisation']['name'],
+					'org_id' => $user['org_id'],
 					'process_id' => 'Part of scheduled push',
 					'message' => 'Pushing.',
 			);
@@ -167,7 +167,7 @@ class ServerShell extends AppShell
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
-			$result = $this->Server->push($server['Server']['id'], 'full', $jobId, $HttpSocket, $user['User']['email']);
+			$result = $this->Server->push($server['Server']['id'], 'full', $jobId, $HttpSocket, $user['email']);
 		}
 		$this->Task->id = $task['Task']['id'];
 		$this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.');

@@ -40,7 +40,6 @@ class Template extends AppModel {
 	}
 	
 	public function checkAuthorisation($id, $user, $write) {
-		
 		// fetch the bare template
 		$template = $this->find('first', array(
 			'conditions' => array('id' => $id),
@@ -54,14 +53,13 @@ class Template extends AppModel {
 		if ($user['Role']['perm_site_admin']) return $template;
 		
 		if ($write) {
-			
 			// if write access is requested, check if template belongs to user's org and whether the user is authorised to edit templates
-			if ($user['org'] == $template['Template']['org'] && $user['Role']['perm_template']) return $template;
+			if ($user['Organisation']['name'] == $template['Template']['org'] && $user['Role']['perm_template']) return $template;
 			return false;
 		} else {
 			
 			// if read access is requested, check if the template belongs to the user's org or alternatively whether the template is shareable
-			if ($user['org'] == $template['Template']['org'] || $template['Template']['share']) return $template;
+			if ($user['Organisation']['name'] == $template['Template']['org'] || $template['Template']['share']) return $template;
 			return false;
 		}
 	}

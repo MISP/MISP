@@ -1,6 +1,6 @@
 <?php
-$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc'] == $me['org']) || ($isAclModifyOrg && $event['Event']['orgc'] == $me['org']));
-$mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
+$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
+$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 ?>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
@@ -8,8 +8,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 <div class="events view">
 	<?php
 		if (Configure::read('MISP.showorg') || $isAdmin) {
-			echo $this->element('img', array('id' => $event['Event']['orgc']));
-			$left = true;
+			echo $this->element('img', array('id' => $event['Orgc']['name']));
 		}
 		$title = $event['Event']['info'];
 		if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
@@ -32,12 +31,12 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					if (Configure::read('MISP.showorgalternate') && (Configure::read('MISP.showorg') || $isAdmin)): ?>
 						<dt>Source Organisation</dt>
 						<dd>
-							<?php echo h($event['Event']['orgc']); ?>
+							<a href="/organisations/view/<?php echo h($event['Orgc']['id']); ?>"><?php echo h($event['Orgc']['name']); ?></a>
 							&nbsp;
 						</dd>
 						<dt>Member Organisation</dt>
 						<dd>
-							<?php echo h($event['Event']['org']); ?>
+							<a href="/organisations/view/<?php echo h($event['Org']['id']); ?>"><?php echo h($event['Org']['name']); ?></a>
 							&nbsp;
 						</dd>
 				<?php 	
@@ -45,14 +44,14 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 						if (Configure::read('MISP.showorg') || $isAdmin): ?>
 							<dt>Org</dt>
 							<dd>
-								<?php echo h($event['Event']['orgc']); ?>
+								<a href="/organisations/view/<?php echo h($event['Orgc']['id']); ?>"><?php echo h($event['Orgc']['name']); ?></a>
 								&nbsp;
 							</dd>
 							<?php endif; ?>
 							<?php if ($isSiteAdmin): ?>
 							<dt>Owner org</dt>
 							<dd>
-								<?php echo h($event['Event']['org']); ?>
+								<a href="/organisations/view/<?php echo h($event['Org']['id']); ?>"><?php echo h($event['Org']['name']); ?></a>
 								&nbsp;
 							</dd>
 				<?php 
@@ -63,12 +62,12 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 				<dt>Contributors</dt>
 				<dd>
 					<?php 
-						foreach($logEntries as $k => $entry) {
+						foreach($contributors as $k => $entry) {
 							if (Configure::read('MISP.showorg') || $isAdmin) {
 								?>
-									<a href="/logs/event_index/<?php echo $event['Event']['id'] . '/' . h($entry['Log']['org']);?>" style="margin-right:2px;text-decoration: none;">
+									<a href="<?php echo $baseurl."/logs/event_index/".$event['Event']['id'].'/'.h($entry);?>" style="margin-right:2px;text-decoration: none;">
 								<?php 
-									echo $this->element('img', array('id' => $entry['Log']['org'], 'imgSize' => 24, 'imgStyle' => true));
+									echo $this->element('img', array('id' => $entry, 'imgSize' => 24, 'imgStyle' => true));
 								?>
 									</a>
 								<?php 
@@ -88,7 +87,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					if (Configure::read('MISP.tagging')): ?>
 						<dt>Tags</dt>
 						<dd class="eventTagContainer">
-							<?php echo $this->element('ajaxTags', array('event' => $event, 'tags' => $tags)); ?>
+							<?php echo $this->element('ajaxTags', array('event' => $event, 'tags' => $event['EventTag'])); ?>
 						</dd>
 				<?php endif; ?>
 				<dt>Date</dt>
@@ -112,11 +111,17 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 				<dt>Distribution</dt>
 				<dd <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?> title = "<?php echo h($distributionDescriptions[$event['Event']['distribution']]['formdesc'])?>">
 					<?php 
-						echo h($distributionLevels[$event['Event']['distribution']]); 
+						if ($event['Event']['distribution'] == 4):
+					?>
+							<a href="/sharing_groups/view/<?php echo h($event['SharingGroup']['id']); ?>"><?php echo h($event['SharingGroup']['name']); ?></a>
+					<?php 
+						else:
+							echo h($distributionLevels[$event['Event']['distribution']]);
+						endif;
 					?>
 				</dd>
 				<dt>Description</dt>
-				<dd>
+				<dd style="word-wrap: break-word;">
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
 				</dd>
@@ -143,17 +148,16 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 				<?php endif; ?>
 			</dl>
 		</div>
-
-	<?php if (!empty($relatedEvents)):?>
+	<?php if (!empty($event['RelatedEvent'])):?>
 	<div class="related span4">
 		<h3>Related Events</h3>
 		<ul class="inline">
-			<?php foreach ($relatedEvents as $relatedEvent): ?>
+			<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
 			<li>
 			<div title="<?php echo h($relatedEvent['Event']['info']); ?>">
 			<?php
 			$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-			if ($relatedEvent['Event']['org'] == $me['org']) {
+			if ($relatedEvent['Event']['org_id'] == $me['org_id']) {
 				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
 			} else {
 				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));
@@ -191,20 +195,12 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	<div id="pivots_div">
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
-	<div id="attribute_creation_div" style="display:none;">
-		<?php 
-			echo $this->element('eventattributecreation');
-		?>
-	</div>
 	<div id="attributes_div">
-		<?php 
-			echo $this->element('eventattribute');
-		?>
+		<?php echo $this->element('eventattribute'); ?>
 	</div>
 	<div id="discussions_div">
-		<?php
-			echo $this->element('eventdiscussion');
-		?>
+	</div>
+	<div id="attribute_creation_div" style="display:none;">
 	</div>
 </div>
 <script type="text/javascript">
@@ -247,9 +243,11 @@ $(document).ready(function () {
 		  $('#pivots_inactive').hide();
 		});
 
-	$('#addTagButton').click(function() {
-		$('#addTagTD').show();
-		$('#addTagButton').hide();
+//	$.get("/events/viewEventAttributes/<?php echo $event['Event']['id']; ?>", function(data) {
+//		$("#attributes_div").html(data);
+//	});
+	$.get("/threads/view/<?php echo $event['Event']['id']; ?>/true", function(data) {
+		$("#discussions_div").html(data);
 	});
 });
 </script>

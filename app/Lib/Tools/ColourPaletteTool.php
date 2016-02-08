@@ -56,4 +56,31 @@ class ColourPaletteTool {
 		}
 		return $colour;
 	}
+	
+	// pass the element's id from the list along to get a colour for a single item
+	function generatePaletteFromString($string, $items, $onlySpecific = false) {
+		$hue = $this->__stringToNumber($string);
+		$saturation = 1;
+		$steps = 80 / $items;
+		$results = array();
+		if ($onlySpecific !== false && is_numeric($onlySpecific)) {
+			$value = (20 + ($steps * ($onlySpecific + 1))) / 100;
+			return $this->HSVtoRGB(array($hue, $saturation, $value));
+		}
+		for ($i = 0; $i < $items; $i++) {
+				$value = (20 + ($steps * ($i + 1))) / 100;
+				$rgb = $this->HSVtoRGB(array($hue, $saturation, $value));
+				$results[] = $rgb;
+		}
+		return $results;
+	}
+	
+	private function __stringToNumber($string) {
+		$string = mb_convert_encoding($string, 'ASCII');
+		$number = 0;
+		for ($i = 0; $i < strlen($string); $i++) {
+			$number += ord($string[$i]);
+		}
+		return $number % 100 / 100;
+	}
 }

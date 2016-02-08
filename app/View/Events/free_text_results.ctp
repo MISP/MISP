@@ -3,6 +3,12 @@
 	<p>Below you can see the attributes that are to be created based on the results of the free-text import. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution. </p>
 	<?php 
 		echo $this->Form->create('Attribute', array('url' => '/events/saveFreeText/' . $event_id));
+		if ($isSiteAdmin) {
+			echo $this->Form->input('force', array(
+					'checked' => false,
+					'label' => 'Proposals instead of attributes',
+			));
+		}
 		echo $this->Form->input('JsonObject', array(
 				'label' => false,
 				'type' => 'text',
@@ -151,5 +157,5 @@
 	</script>
 <?php 
 	endif;
-	echo $this->element('side_menu', array('menuList' => 'regexp', 'menuItem' => 'index'));
+	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
 ?>

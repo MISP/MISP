@@ -45,7 +45,7 @@ class AppController extends Controller {
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats 
 	public $automationArray = array(
-		'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix'),
+		'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph'),
 		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz'),
 	);
 
@@ -69,20 +69,32 @@ class AppController extends Controller {
 				),
 				'authError' => 'Unauthorised access.',
 				'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
-				'logoutRedirect' => array('controller' => 'users', 'action' => 'login'),
+				'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
 				//'authorize' => array('Controller', // Added this line
 				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
 				),
 			'Security'
 	);
 	
-	public $mispVersion = '2.3.0';
+	public $mispVersion = '2.4.0';
 	
 	public function beforeFilter() {
 		$this->Security->blackHoleCallback = 'blackHole';
+
+		// Let us access $baseurl from all views
+		$baseurl = Configure::read('MISP.baseurl');
+		if (substr($baseurl, -1) == '/') {
+			// if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
+			$baseurl = rtrim($baseurl, '/');
+			Configure::write('MISP.baseurl', $baseurl); 
+		}
+		$this->set('baseurl', h($baseurl)); 
+
 		// send users away that are using ancient versions of IE
 		// Make sure to update this if IE 20 comes out :)
-		if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
+		if (isset($_SERVER['HTTP_USER_AGENT'])) {
+			if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
+		}
 		
 		// REST authentication
 		if ($this->_isRest() || $this->_isAutomation()) {
@@ -97,7 +109,8 @@ class AppController extends Controller {
 				foreach ($authentication as $auth_key) {
 					if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
 						$found_misp_auth_key = true;
-						$user = $this->checkAuthUser(trim($auth_key));
+						$temp = $this->checkAuthUser(trim($auth_key));
+						if ($temp) $user['User'] = $this->checkAuthUser(trim($auth_key));
 						continue;
 					}
 				}
@@ -105,13 +118,39 @@ class AppController extends Controller {
 					if ($user) {
 						unset($user['User']['gpgkey']);
 					    // User found in the db, add the user info to the session
+					    if (Configure::read('MISP.log_auth')) {
+							$this->Log = ClassRegistry::init('Log');
+							$this->Log->create();
+							$log = array(
+									'org' => $user['User']['Organisation']['name'],
+									'model' => 'User',
+									'model_id' => $user['User']['id'],
+									'email' => $user['User']['email'],
+									'action' => 'auth',
+									'title' => 'Successful authentication using API key',
+									'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+							);
+							$this->Log->save($log);
+					    }
 					    $this->Session->renew();
-					    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+					    $this->Session->write(AuthComponent::$sessionKey, $user['User']);   
 					} else {
 						// User not authenticated correctly
 						// reset the session information
 						$this->Session->destroy();
-						throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
+						$this->Log = ClassRegistry::init('Log');
+						$this->Log->create();
+						$log = array(
+								'org' => 'SYSTEM',
+								'model' => 'User',
+								'model_id' => 0,
+								'email' => 'SYSTEM',
+								'action' => 'auth_fail',
+								'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
+								'change' => null,
+						);
+						$this->Log->save($log);
+						throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
 					}
 					unset($user);
 				}
@@ -138,19 +177,77 @@ class AppController extends Controller {
 
 		// user must accept terms
 		//
-		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
-		    $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
+		//grab the base path from our base url for use in the following checks
+		$base_dir = parse_url($baseurl, PHP_URL_PATH);
+
+		// if MISP is running out of the web root already, just set this variable to blank so we don't wind up with '//' in the following if statements
+		if ($base_dir == '/') {
+			$base_dir = '';
 		}
-		if ($this->Session->check(AuthComponent::$sessionKey) && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
-		    $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
+		
+		if ($this->Auth->user()) {
+			if ($this->Auth->user('disabled')) {
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$log = array(
+						'org' => $this->Auth->user('Organisation')['name'],
+						'model' => 'User',
+						'model_id' => $this->Auth->user('id'),
+						'email' => $this->Auth->user('email'),
+						'action' => 'auth_fail',
+						'title' => 'Login attempt by disabled user.',
+						'change' => null,
+				);
+				$this->Log->save($log);
+				$this->Auth->logout();
+				if ($this->_isRest()) {
+					throw new ForbiddenException('Authentication failed. Your user account has been disabled.');
+				} else {
+					$this->Session->setFlash('Your user account has been disabled.');
+					$this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+				}
+			}
+		} else {
+			if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
 		}
+		
+		// check if MISP is live
+		if ($this->Auth->user() && !Configure::read('MISP.live')) {
+			$role = $this->getActions();
+			if (!$role['perm_site_admin']) {
+				$message = Configure::read('MISP.maintenance_message');
+				if (empty($messaage)) {
+					$this->loadModel('Server');
+					$message = $this->Server->serverSettings['MISP']['maintenance_message']['value'];
+				}
+				if (strpos($message, '$email') && Configure::read('MISP.email')) {
+					$email = Configure::read('MISP.email');
+					$message = str_replace('$email', $email, $message);
+				}
+				$this->Auth->logout();
+				throw new MethodNotAllowedException($message);
+			} else {
+				$this->Session->setFlash('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)');				
+			}
+		}
+
+		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
+		}
+		if ($this->Session->check(AuthComponent::$sessionKey) && $this->Auth->user('change_pw') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			$this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
+		}
+		unset($base_dir);
 
 		// We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
 		// instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
 		// getActions returns all the flags in a single SQL query
 		if ($this->Auth->user()) {
 			//$this->_refreshAuth();
+			$versionArray = $this->{$this->modelClass}->checkMISPVersion();
+			$this->mispVersionFull = implode('.', array_values($versionArray));
 			$this->set('mispVersion', $this->mispVersion);
+			$this->set('mispVersionFull', $this->mispVersionFull);
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
 			$this->set('isAdmin', $role['perm_admin']);
@@ -166,33 +263,22 @@ class AppController extends Controller {
 			$this->set('isAclRegexp', $role['perm_regexp_access']);
 			$this->set('isAclTagger', $role['perm_tagger']);
 			$this->set('isAclTemplate', $role['perm_template']);
+			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
 			$this->userRole = $role;
+			$proposalCount = $this->_getProposalCount();
+			$this->set('proposalCount', $proposalCount[0]);
+			$this->set('proposalEventCount', $proposalCount[1]);
+			$this->set('mispVersion', $this->mispVersion);
 		} else {
 			$this->set('me', false);
-			$this->set('isAdmin', false);
-			$this->set('isSiteAdmin', false);
-			$this->set('isAclAdd', false);
-			$this->set('isAclModify', false);
-			$this->set('isAclModifyOrg', false);
-			$this->set('isAclPublish', false);
-			$this->set('isAclSync', false);
-			$this->set('isAclAdmin', false);
-			$this->set('isAclAudit', false);
-			$this->set('isAclAuth', false);
-			$this->set('isAclRegexp', false);
-			$this->set('isAclTagger', false);
-			$this->set('isAclTemplate', false);
 		}
-		if (Configure::read('debug') > 0) {
-			$this->debugMode = 'debugOn';
-		} else {
-			$this->debugMode = 'debugOff';
+		if (Configure::read('site_admin_debug') && $this->_isSiteAdmin() && (Configure::read('debug') < 2)) {
+				Configure::write('debug', 1);
 		}
+		$this->debugMode = 'debugOff';
+		if (Configure::read('debug') > 1) $this->debugMode = 'debugOn';
+		
 		$this->set('debugMode', $this->debugMode);
-		$proposalCount = $this->_getProposalCount();
-		$this->set('proposalCount', $proposalCount[0]);
-		$this->set('proposalEventCount', $proposalCount[1]);
-		$this->set('mispVersion', $this->mispVersion);
 	}
 
 	public function blackhole($type) {
@@ -202,9 +288,9 @@ class AppController extends Controller {
 	
 	public $userRole = null;
 
-	protected function _isJson($data=false){
+	protected function _isJson($data=false) {
 		if ($data) return (json_decode($data) != NULL) ? true : false;
-		return $this->request->header('Accept') === 'application/json';
+		return $this->request->header('Accept') === 'application/json' || $this->RequestHandler->prefers() === 'json';
 	}
 
 	//public function blackhole($type) {
@@ -229,9 +315,9 @@ class AppController extends Controller {
 		$this->ShadowAttribute->recursive = -1;
 		$shadowAttributes = $this->ShadowAttribute->find('all', array(
 				'recursive' => -1,
-				'fields' => array('event_id', 'event_org'),
+				'fields' => array('event_id', 'event_org_id'),
 				'conditions' => array( 
-					'ShadowAttribute.event_org' => $this->Auth->user('org'),
+					'ShadowAttribute.event_org_id' => $this->Auth->user('org_id'),
 					'ShadowAttribute.deleted' => 0,
 		)));
 		$results = array();
@@ -258,7 +344,6 @@ class AppController extends Controller {
  * checks if the currently logged user is an administrator (an admin that can manage the users and events of his own organisation)
  */
 	protected function _isAdmin() {
-		$org = $this->Auth->user('org');
 		if ($this->userRole['perm_site_admin'] || $this->userRole['perm_admin']) {
 			return true;
 		}
@@ -273,18 +358,7 @@ class AppController extends Controller {
 	}
 
 	protected function _checkOrg() {
-		return $this->Auth->user('org');
-	}
-
-/**
- * Refreshes the Auth session with new/updated data
- * @return void
- */
-	protected function _refreshAuth() {
-		$this->loadModel('User');
-		$this->User->recursive = -1;
-		$user = $this->User->findById($this->Auth->user('id'));
-		$this->Auth->login($user['User']);
+		return $this->Auth->user('org_id');
 	}
 
 /**
@@ -318,22 +392,14 @@ class AppController extends Controller {
 	public function checkAuthUser($authkey) {
 		$this->loadModel('User');
 		$this->User->recursive = -1;
-		$user = $this->User->findByAuthkey($authkey);
-		if (isset($user['User'])) {
-			$this->loadModel('Role');
-			$this->Role->recursive = -1;
-			$role = $this->Role->findById($user['User']['role_id']);
-			$user['User']['siteAdmin'] = false;
-			if ($role['Role']['perm_site_admin']) $user['User']['siteAdmin'] = true;
-			if ($role['Role']['perm_auth']) {
-				return $user;
-			}
-		}
-		return false;
+		$user = $this->User->getAuthUser($authkey);
+		if (empty($user)) return false;
+		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
+		return $user;
 	}
 
 	public function generateCount() {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin() || !$this->request->is('post')) throw new NotFoundException();
 		// do one SQL query with the counts
 		// loop over events, update in db
 		$this->loadModel('Attribute');
@@ -353,7 +419,7 @@ class AppController extends Controller {
 	}
 	
 	public function pruneDuplicateUUIDs() {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->LoadModel('Attribute');
 		$duplicates = $this->Attribute->find('all', array(
 			'fields' => array('Attribute.uuid', 'count(*) as occurance'),
@@ -368,7 +434,7 @@ class AppController extends Controller {
 			));
 			foreach ($attributes as $k => $attribute) {
 				if ($k > 0) {
-					$attribute['Attribute']['uuid'] = String::uuid();
+					$attribute['Attribute']['uuid'] = $this->Attribute->generateUuid();
 					$this->Attribute->save($attribute);
 					$counter++;
 				}
@@ -379,11 +445,79 @@ class AppController extends Controller {
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 	
+	public function removeDuplicateEvents() {
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
+		$this->LoadModel('Event');
+		$duplicates = $this->Event->find('all', array(
+				'fields' => array('Event.uuid', 'count(*) as occurance'),
+				'recursive' => -1,
+				'group' => array('Event.uuid HAVING COUNT(*) > 1'),
+		));
+		$counter = 0;
+		
+		// load this so we can remove the blacklist item that will be created, this is the one case when we do not want it.
+		if (Configure::read('MISP.enableEventBlacklisting')) $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+		
+		foreach ($duplicates as $duplicate) {
+			$events = $this->Event->find('all', array(
+					'recursive' => -1,
+					'conditions' => array('uuid' => $duplicate['Event']['uuid'])
+			));
+			foreach ($events as $k => $event) {
+				if ($k > 0) {
+					$uuid = $event['Event']['uuid'];
+					$this->Event->delete($event['Event']['id']);
+					$counter++;
+					// remove the blacklist entry that we just created with the event deletion, if the feature is enabled
+					// We do not want to block the UUID, since we just deleted a copy
+					if (Configure::read('MISP.enableEventBlacklisting')) {
+						$this->EventBlacklist->deleteAll(array('EventBlacklist.event_uuid' => $uuid));
+					}
+				}
+			}
+		}
+		$this->Server->updateDatabase('makeEventUUIDsUnique');
+		$this->Session->setFlash('Done. Removed ' . $counter . ' duplicate events.');
+		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+	}
+	
 	public function updateDatabase($command) {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Server');
 		$this->Server->updateDatabase($command);
 		$this->Session->setFlash('Done.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+	}
+	
+	public function upgrade2324() {
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
+		$this->loadModel('Server');
+		if (!Configure::read('MISP.background_jobs')) {
+			$this->Server->upgrade2324($this->Auth->user('id'));
+			$this->Session->setFlash('Done. For more details check the audit logs.');
+			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+		} else {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'upgrade_24',
+					'job_input' => 'Old database',
+					'status' => 0,
+					'retries' => 0,
+					'org_id' => 0,
+					'message' => 'Job created.',
+			);
+			$job->save($data);
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'default',
+					'AdminShell',
+					array('jobUpgrade24', $jobId, $this->Auth->user('id'))
+			);
+			$job->saveField('process_id', $process_id);
+			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
+			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+		}
 	}
 }

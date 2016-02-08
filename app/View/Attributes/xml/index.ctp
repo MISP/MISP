@@ -6,13 +6,8 @@ foreach ($attributes as $key => $attribute) {
 
 	// cleanup the array from things we do not want to expose
 	unset($attributes[$key]['Event']);
-
 	unset($attributes[$key]['value1']);
 	unset($attributes[$key]['value2']);
-
-	unset($attributes[$key]['category_order']);
-
-
 }
 
 // display the XML to the user

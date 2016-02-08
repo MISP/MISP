@@ -13,8 +13,18 @@
 			echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
 				'label' => 'Distribution',
-				'selected' => 4,
+				'selected' => 6,
 			));
+			?>
+				<div id="SGContainer" style="display:none;">
+			<?php
+				echo $this->Form->input('sharing_group_id', array(
+						'options' => array($sgs),
+						'label' => 'Sharing Group',
+				));
+			?>
+				</div>
+			<?php 
 			echo $this->Form->input('to_ids', array(
 					'options' => array('No', 'Yes', 'Do not alter current settings'),
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
@@ -70,10 +80,14 @@ foreach ($distributionDescriptions as $type => $def) {
 ?>
 
 $(document).ready(function() {
+
+	$('#AttributeDistribution').change(function() {
+		if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
+		else $('#SGContainer').hide();
+	});
 	
 	$('#AttributeAttributeIds').attr('value', getSelected());
 	
-
 	$("#Attribute, #AttributeDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {

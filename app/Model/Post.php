@@ -8,14 +8,18 @@ App::uses('CakeEmail', 'Network/Email');
  *
 */
 class Post extends AppModel {
-	public $actsAs = array('Containable');
+	public $actsAs = array(
+			'Containable',
+			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+					'roleModel' => 'Post',
+					'roleKey' => 'post_id',
+					'change' => 'full'
+			),
+	);
 	
 	public $belongsTo = array(
 			'Thread',
-			'User' => array(
-				'fields' => array('email', 'org', 'id'),
-					
-			)
+			'User'
 	);
 
 	public function sendPostsEmailRouter($user_id, $post_id, $event_id, $title, $message, $JobId = false) {
@@ -29,7 +33,7 @@ class Post extends AppModel {
 					'job_input' => 'Post: ' . $post_id,
 					'status' => 0,
 					'retries' => 0,
-					'org' => $user['User']['org'],
+					'org_id' => $user['User']['org_id'],
 					'message' => 'Sending..',
 			);
 			$job->save($data);
@@ -60,7 +64,7 @@ class Post extends AppModel {
 			//limit this array to users with contactalerts turned on!
 			$orgMembers = array();
 			$this->User->recursive = -1;
-			$temp = $this->User->findAllByOrg($event['Event']['org'], array('email', 'gpgkey', 'contactalert', 'id'));
+			$temp = $this->User->findAllByOrgId($event['Event']['org_id'], array('email', 'gpgkey', 'contactalert', 'id'));
 			foreach ($temp as $tempElement) {
 				if ($tempElement['User']['id'] != $user_id && ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id'])) {
 					array_push($orgMembers, $tempElement);
@@ -92,7 +96,7 @@ class Post extends AppModel {
 		$body .= "Someone just posted to a MISP discussion you participated in.\n";
 		$body .= "\n";
 		$body .= "The full discussion can be found at: \n";
-		$body .= Configure::read('MISP.baseurl') . '/posts/view/' . $post['Post']['id'] . "\n";
+		$body .= Configure::read('MISP.baseurl') . '/threads/view/' . $post['Post']['thread_id'] . '/post_id:' . $post['Post']['id'] . "\n";
 
 		// body containing all details ($title and $message)
 		$bodyDetail = "";
@@ -102,7 +106,7 @@ class Post extends AppModel {
 		$bodyDetail .= $title . "\n";
 		$bodyDetail .= "\n";
 		$bodyDetail .= "The full discussion can be found at: \n";
-		$bodyDetail .= Configure::read('MISP.baseurl') . '/posts/view/' . $post['Post']['id'] . "\n";
+		$bodyDetail .= Configure::read('MISP.baseurl') . '/threads/view/' . $post['Post']['thread_id'] . '/post_id:' . $post['Post']['id'] . "\n";
 		$bodyDetail .= "\n";
 		$bodyDetail .= "The following message was added: \n";
 		$bodyDetail .= "\n";
@@ -111,5 +115,26 @@ class Post extends AppModel {
 		foreach ($orgMembers as &$recipient) {
 			$this->User->sendEmail($recipient, $bodyDetail, $body, $subject);
 		}
+	}
+	
+	public function findPageNr($id, $context = 'thread', &$post_id = false) {
+		// find the current post and its position in the thread
+		if ($context == 'event') $conditions = array('Thread.event_id' => $id);
+		else $conditions = array('Thread.id' => $id);
+		$posts = $this->find('all', array('conditions' => $conditions, 'fields' => array('Post.id', 'thread_id'), 'contain' => array('Thread' => array('fields' => array('Thread.id', 'Thread.event_id')))));
+		if (empty($posts)) return false;
+		if (!$post_id) {
+			$pageNr = intval(ceil(count($posts)/10));
+			$lastItem = end($posts);
+			$post_id = $lastItem['Post']['id'];
+		} else {
+			foreach ($posts as $k => $post) {
+				if ($post['Post']['id'] == $post_id) {
+					$pageNr = intval(ceil($k/10));
+					continue;
+				}
+			}
+		}
+		return $pageNr;
 	}
 }
