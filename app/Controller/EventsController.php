@@ -3021,6 +3021,12 @@ class EventsController extends AppController {
 			foreach ($exports as $k => $export) {
 				if ($export['requiresPublished']) unset($exports[$k]);	
 			}
+			$exports['csv'] = array(
+				'url' => '/events/csv/download/' . $id . '/1',
+				'text' => 'CSV (event not published, IDS flag ignored)',
+				'requiresPublished' => false,
+				'checkbox' => false
+			);
 		}
 		$this->set('exports', $exports);
 		$this->set('id', $id);
