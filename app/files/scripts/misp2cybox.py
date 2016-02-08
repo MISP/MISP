@@ -264,6 +264,7 @@ def generateEmailAttachmentObject(indicator, attribute):
 
 # split registry string into hive and key
 def resolveRegHive(regStr):
+    regStr = regStr.lstrip('\\')
     regStrU = regStr.upper()
     for hive in misp_reghive.iterkeys():
         if regStrU.startswith(hive):
