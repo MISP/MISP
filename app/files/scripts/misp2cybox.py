@@ -183,10 +183,13 @@ def resolveEmailObservable(indicator, attribute):
     email_header = EmailHeader()
     if (attribute["type"] == "email-src"):
         email_header.from_ = attribute["value"]
+        email_header.from_.condition = "Equals"
     elif(attribute["type"] == "email-dst"):
         email_header.to = attribute["value"]
+        email_header.to.condition = "Equals"
     else:
         email_header.subject = attribute["value"]
+        email_header.subject.condition = "Equals"
     new_object.header = email_header
     return new_object
 
