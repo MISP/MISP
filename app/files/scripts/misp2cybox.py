@@ -95,9 +95,12 @@ def generateFileObservable(filenameValue, hashValue):
     if (filenameValue != ""):
         if (("/" in filenameValue) or ("\\" in filenameValue)):
             file_object.file_path = ntpath.dirname(filenameValue)
+            file_object.file_path.condition = "Equals"
             file_object.file_name = ntpath.basename(filenameValue)
+            file_object.file_name.condition = "Equals"
         else:
             file_object.file_name = filenameValue
+            file_object.file_name.condition = "Equals"
     if (hashValue != ""):
         file_object.add_hash(Hash(hash_value=hashValue, exact=True))
     return file_object
