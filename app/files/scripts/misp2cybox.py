@@ -160,6 +160,7 @@ def generateSimpleObservable(indicator, attribute):
         indicator.add_indicator_type(indicatorType)
     new_object = constructor()
     setattr(new_object, cybox_name_attribute[cyboxName], attribute["value"])
+    setattr(getattr(new_object, cybox_name_attribute[cyboxName]), "condition", "Equals")
     return new_object
 
 def generateTM(indicator, attribute):
