@@ -255,7 +255,7 @@ def generateTTP(incident, attribute, ttps):
         et = ExploitTarget(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
         if attribute["comment"] != "" and attribute["comment"] != "Imported via the freetext import.":
             et.title = attribute["comment"]
-        else
+        else:
             et.title = "Vulnerability " + attribute["value"]
         et.add_vulnerability(vulnerability)
         ttp.exploit_targets.append(et)
