@@ -253,6 +253,7 @@ def generateTTP(incident, attribute, ttps):
         vulnerability = Vulnerability()
         vulnerability.cve_id = attribute["value"]
         et = ExploitTarget(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
+        et.id_= namespace[1] + ":et-" + attribute["uuid"]
         if attribute["comment"] != "" and attribute["comment"] != "Imported via the freetext import.":
             et.title = attribute["comment"]
         else:
