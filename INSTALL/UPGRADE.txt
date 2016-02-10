@@ -1,5 +1,5 @@
 # 1. Upgrade procedure from v2.3 to v2.4
-# it is assumed that a the upgrade happens from an up-to-date 2.3 instance
+# it is assumed that the upgrade happens from an up-to-date 2.3 instance
 # It is a good idea to back up your MISP installation and data before upgrading to a new release.
 
 # - git pull the latest version of MISP from https://github.com/MISP/MISP.git
@@ -24,7 +24,7 @@ mysql -u [misp_mysql_user] -p [misp_database] < upgrade_2.4.sql
 # After this run the upgrade script from within the application
 # simply navigate to Administration -> Administrative Tools -> "Upgrade to 2.4"
 # Once that has completed successfully run the 2.3->2.4 cleanup script
-# simply navigate to ADministration -> Administrative Tools -> "2.3->2.4 cleanup script" 
+# simply navigate to Administration -> Administrative Tools -> "2.3->2.4 cleanup script"
 
 # If everything went fine, switch the system to live:
 # Administration -> Server Settings -> MISP Settings -> MISP.live -> True
