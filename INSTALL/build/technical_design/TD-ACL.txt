@@ -1,6 +1,6 @@
 ACL Technical Design (TD)
 
-To use Access Control in CakePHP we use itś own AclComponent.
+To use Access Control in CakePHP we use its own AclComponent.
 
 http://book.cakephp.org/2.0/en/tutorials-and-examples/simple-acl-controlled-application/simple-acl-controlled-application.html
 http://book.cakephp.org/2.0/en/tutorials-and-examples/simple-acl-controlled-application/part-two.html
