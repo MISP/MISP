@@ -259,6 +259,7 @@ def returnAttachmentComposition(attribute):
 def generateEmailAttachmentObject(indicator, attribute):
     file_object = File()
     file_object.file_name = attribute["value"]
+    file_object.file_name.condition = "Equals"
     email = EmailMessage()
     email.attachments = Attachments()
     email.add_related(file_object, "Contains", inline=True)
