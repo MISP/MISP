@@ -1891,8 +1891,8 @@ class Event extends AppModel {
 				if ($existingEvent['Event']['orgc_id'] === $user['org_id'] 
 				|| ($user['Role']['perm_sync'] && $existingEvent['Event']['locked']) || $user['Role']['perm_site_admin']) {
 					if ($user['Role']['perm_sync']) {
-						if ($data['Event']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorisedExtend($user, $data['Event']['sharing_group_id'])) {
-							return (array('error' => 'Event could not be saved: The sync user has to either be an extender of the sharing group or be the sync user that has first synchronised the sharing group to this instance.'));
+						if ($data['Event']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) {
+							return (array('error' => 'Event could not be saved: The sync user has to have access to the sharing group in order to be able to edit it.'));
 						}
 					}
 					// Only allow an edit if this is true!
