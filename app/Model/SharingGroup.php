@@ -68,7 +68,7 @@ class SharingGroup extends AppModel {
 			'recursive' => -1,
 			'fields' => array('SharingGroup.name')	
 		));
-		if (!empty($sameNameSG)) {
+		if (!empty($sameNameSG) && !isset($this->data['SharingGroup']['id'])) {
 			$this->data['SharingGroup']['name'] = $this->data['SharingGroup']['name'] . '_' . rand(0, 9999);
 		}
 		return true;
@@ -395,9 +395,14 @@ class SharingGroup extends AppModel {
 						'org_id' => $sg['SharingGroupOrg'][$k]['org_id']
 					),
 				));
-				if ($temp['SharingGroupOrg']['extend'] != $sg['SharingGroupOrg'][$k]['extend']) {
-					$temp['SharingGroupOrg']['extend'] = $sg['SharingGroupOrg'][$k]['extend'];
-					$this->SharingGroupOrg->save($temp['SharingGroupOrg']);
+				if (empty($temp)) {
+					$this->SharingGroupOrg->create();
+					$this->SharingGroupOrg->save(array('sharing_group_id' => $sgids, 'org_id' => $sg['SharingGroupOrg'][$k]['org_id'], 'extend' => $org['extend']));
+				} else {
+					if ($temp['SharingGroupOrg']['extend'] != $sg['SharingGroupOrg'][$k]['extend']) {
+						$temp['SharingGroupOrg']['extend'] = $sg['SharingGroupOrg'][$k]['extend'];
+						$this->SharingGroupOrg->save($temp['SharingGroupOrg']);
+					}
 				}
 			} else {
 				$this->SharingGroupOrg->create();
