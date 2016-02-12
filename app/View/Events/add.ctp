@@ -30,7 +30,8 @@
 			</div>
 		<?php 
 		echo $this->Form->input('threat_level_id', array(
-				'div' => 'input clear'
+				'div' => 'input clear',
+				'selected' => Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : '1', 
 				));
 		echo $this->Form->input('analysis', array(
 				'options' => array($analysisLevels),

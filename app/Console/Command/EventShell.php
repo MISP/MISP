@@ -275,7 +275,7 @@ class EventShell extends AppShell
 		$this->Job->id = $processId;
 		$user = $this->User->getAuthUser($userId);
 		$eventId = $this->args[2];
-		$result = $this->Event->sendContactEmail($id, $message, $all, $user, $isSiteAdmin);
+		$result = $this->Event->sendContactEmail($id, $message, $all, array('User' => $user), $isSiteAdmin);
 		$this->Job->saveField('progress', '100');
 		if ($result != true) $this->Job->saveField('message', 'Job done.');
 	}

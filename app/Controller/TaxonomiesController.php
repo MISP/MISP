@@ -11,6 +11,12 @@ class TaxonomiesController extends AppController {
 	public $paginate = array(
 			'limit' => 60,
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+			'contain' => array(
+				'TaxonomyPredicate' => array(
+					'fields' => array('TaxonomyPredicate.id'),
+					'TaxonomyEntry' => array('fields' => array('TaxonomyEntry.id'))
+				)
+			),
 			'order' => array(
 					'Taxonomy.id' => 'DESC'
 			),
@@ -18,7 +24,18 @@ class TaxonomiesController extends AppController {
 
 	public function index() {
 		$this->paginate['recursive'] = -1;
-		$this->set('taxonomies', $this->paginate());
+		$taxonomies = $this->paginate();
+		$this->loadModel('Tag');
+		foreach ($taxonomies as &$taxonomy) {
+			$total = 0;
+			foreach ($taxonomy['TaxonomyPredicate'] as &$predicate) {
+				$total += empty($predicate['TaxonomyEntry']) ? 1 : count($predicate['TaxonomyEntry']); 
+			}
+			$taxonomy['total_count'] = $total;
+			$taxonomy['current_count'] = $this->Tag->find('count', array('conditions' => array('lower(Tag.name) LIKE ' => strtolower($taxonomy['Taxonomy']['namespace']) . ':%')));
+			unset($taxonomy['TaxonomyPredicate']);
+		}
+		$this->set('taxonomies', $taxonomies);
 	}
 	
 	public function view($id) {
@@ -160,19 +177,24 @@ class TaxonomiesController extends AppController {
 		$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
 	}
 	
-	public function addTag() {
+	public function addTag($taxonomy_id = false) {
 		if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) throw new NotFoundException('You don\'t have permission to do that.');
-		if (isset($this->request->data['Taxonomy'])) {
-			$this->request->data['Tag'] = $this->request->data['Taxonomy'];
-			unset($this->request->data['Taxonomy']);
-		} 
-		if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
-		if (!isset($this->request->data['Tag']['nameList'])) $this->request->data['Tag']['nameList'] = array($this->request->data['Tag']['name']);
-		else $this->request->data['Tag']['nameList'] = json_decode($this->request->data['Tag']['nameList'], true);
-		if ($this->Taxonomy->addTags($this->request->data['Tag']['taxonomy_id'], $this->request->data['Tag']['nameList'])) {
-			$this->Session->setFlash('The tag has been saved.');
+		if ($taxonomy_id) {
+			$result = $this->Taxonomy->addTags($taxonomy_id);
 		} else {
-			$this->Session->setFlash('The tag could not be saved. Please, try again.');
+			if (isset($this->request->data['Taxonomy'])) {
+				$this->request->data['Tag'] = $this->request->data['Taxonomy'];
+				unset($this->request->data['Taxonomy']);
+			} 
+			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
+			if (!isset($this->request->data['Tag']['nameList'])) $this->request->data['Tag']['nameList'] = array($this->request->data['Tag']['name']);
+			else $this->request->data['Tag']['nameList'] = json_decode($this->request->data['Tag']['nameList'], true);
+			$result = $this->Taxonomy->addTags($this->request->data['Tag']['taxonomy_id'], $this->request->data['Tag']['nameList']);
+		}
+		if ($result) {
+			$this->Session->setFlash('The tag(s) has been saved.');
+		} else {
+			$this->Session->setFlash('The tag(s) could not be saved. Please, try again.');
 		}
 		$this->redirect($this->referer());
 	}

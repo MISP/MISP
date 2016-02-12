@@ -176,17 +176,33 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
-					'footerpart1' => array(
+					'footermidleft' => array(
 							'level' => 2,
-							'description' => 'Footer text prepending the version number.',
+							'description' => 'Footer text prepending the "Powered by MISP" text.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'footermidright' => array(
+							'level' => 2,
+							'description' => 'Footer text following the "Powered by MISP" text.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'footerpart1' => array(
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
 					'footerpart2' => array(
-							'level' => 2,
-							'description' => 'Footer text following the version number.',
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
@@ -355,6 +371,15 @@ class Server extends AppModel {
 							'type' => 'string',
 							'options' => array('0' => 'Your organisation only', '1' => 'This community only', '2' => 'Connected communities', '3' => 'All communities', 'event' => 'Inherit from event'),
 					),
+					'default_event_threat_level' => array(
+							'level' => 1,
+							'description' => 'The default threat level setting when creating events.',
+							'value' => '1',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'options' => array('1' => 'High', '2' => 'Medium', '3' => 'Low', '4' => 'undefined'),
+					),
 					'tagging' => array(
 							'level' => 1,
 							'description' => 'Enable the tagging feature of MISP. This is highly recommended.',
@@ -498,6 +523,15 @@ class Server extends AppModel {
 					'delegation' => array(
 							'level' => 1,
 							'description' => 'This feature allows users to created org only events and ask another organisation to take owenership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'showCorrelationsOnIndex' => array(
+							'level' => 1,
+							'description' => 'When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.',
 							'value' => false,
 							'errorMessage' => '',
 							'test' => 'testBool',
@@ -973,51 +1007,97 @@ class Server extends AppModel {
 		if ($jobId) {
 			$job->saveField('message', 'Pulling proposals.');
 		}
-		$events = $eventModel->find('all', array(
-				'fields' => array('id', 'uuid'),
+		$events = $eventModel->find('list', array(
+				'fields' => array('uuid'),
 				'recursive' => -1,
 				'conditions' => $conditions
 		));
 		$shadowAttribute = ClassRegistry::init('ShadowAttribute');
 		$shadowAttribute->recursive = -1;
-		foreach ($events as $k => &$event) {
-			$proposals = $eventModel->downloadEventFromServer($event['Event']['uuid'], $server, null, true);
-			if (null != $proposals) {
-				if (isset($proposals['ShadowAttribute']['id'])) {
-					$temp = $proposals['ShadowAttribute'];
-					$proposals['ShadowAttribute'] = array(0 => $temp);
-				}
-				foreach($proposals['ShadowAttribute'] as &$proposal) {
-					unset($proposal['id']);
+		if (!empty($events)) {
+			$proposals = $eventModel->downloadProposalsFromServer($events, $server, false);
+			if ($proposals !== null) {
+				$uuidEvents = array_flip($events);
+				foreach ($proposals as $k => &$proposal) {
+					$proposal = $proposal['ShadowAttribute'];
 					$oldsa = $shadowAttribute->findOldProposal($proposal);
-					$proposal['event_id'] = $event['Event']['id'];
+					$proposal['event_id'] = $uuidEvents[$proposal['event_uuid']];
 					if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
 						if ($oldsa) $shadowAttribute->delete($oldsa['id']);
-						if (!isset($pulledProposals[$event['Event']['id']])) $pulledProposals[$event['Event']['id']] = 0;
-						$pulledProposals[$event['Event']['id']]++;
+						if (!isset($pulledProposals[$proposal['event_id']])) $pulledProposals[$proposal['event_id']] = 0;
+						$pulledProposals[$proposal['event_id']]++;
 						if (isset($proposal['old_id'])) {
 							$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
 							if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
 							else $proposal['old_id'] = 0;
 						}
 						// check if this is a proposal from an old MISP instance
-						if (!isset($proposal['org_id']) && isset($proposal['org'])) {
+						if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
 							$proposal['Org'] = $proposal['org'];
 							$proposal['EventOrg'] = $proposal['event_org'];
+						} else if (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
+							continue;
 						}
 						$proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
 						$proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
 						unset($proposal['Org']);
 						unset($proposal['EventOrg']);
 						$shadowAttribute->create();
-						$shadowAttribute->save($proposal);
+						if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
+					}
+					if ($jobId) {
+						if ($k % 50 == 0) {
+							$job->id = $jobId;
+							$job->saveField('progress', 50 * (($k + 1) / count($proposals)));
+						}
 					}
 				}
-			}
-			if ($jobId) {
-				if ($k % 10 == 0) {
-					$job->id = $jobId;
-					$job->saveField('progress', 50 * (($k + 1) / count($events)));
+			} else {
+				// Fallback for < 2.4.7 instances
+				$k = 0;
+				foreach ($events as $eid => &$event) {
+					$proposals = $eventModel->downloadEventFromServer($event, $server, null, true);
+					if (null != $proposals) {
+						if (isset($proposals['ShadowAttribute']['id'])) {
+							$temp = $proposals['ShadowAttribute'];
+							$proposals['ShadowAttribute'] = array(0 => $temp);
+						}
+						foreach($proposals['ShadowAttribute'] as &$proposal) {
+							$oldsa = $shadowAttribute->findOldProposal($proposal);
+							$proposal['event_id'] = $eid;
+							if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
+								if ($oldsa) $shadowAttribute->delete($oldsa['id']);
+								if (!isset($pulledProposals[$eid])) $pulledProposals[$eid] = 0;
+								$pulledProposals[$eid]++;
+								if (isset($proposal['old_id'])) {
+									$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
+									if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
+									else $proposal['old_id'] = 0;
+								}
+								// check if this is a proposal from an old MISP instance
+								if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
+									$proposal['Org'] = $proposal['org'];
+									$proposal['EventOrg'] = $proposal['event_org'];
+								} else if (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
+									continue;
+								}
+								$proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
+								$proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
+								unset($proposal['Org']);
+								unset($proposal['EventOrg']);
+								$shadowAttribute->create();
+								if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($eid);
+								
+							}
+						}
+					}
+					if ($jobId) {
+						if ($k % 10 == 0) {
+							$job->id = $jobId;
+							$job->saveField('progress', 50 * (($k + 1) / count($events)));
+						}
+					}
+					$k++;
 				}
 			}
 		}
@@ -1861,15 +1941,24 @@ class Server extends AppModel {
 		App::uses('Folder', 'Utility');
 		// check writeable directories
 		$writeableDirs = array(
-				'tmp' => 0, 'files' => 0, 'files' . DS . 'scripts' . DS . 'tmp' => 0,
-				'tmp' . DS . 'csv_all' => 0, 'tmp' . DS . 'csv_sig' => 0, 'tmp' . DS . 'md5' => 0, 'tmp' . DS . 'sha1' => 0,
-				'tmp' . DS . 'snort' => 0, 'tmp' . DS . 'suricata' => 0, 'tmp' . DS . 'text' => 0, 'tmp' . DS . 'xml' => 0,
-				'tmp' . DS . 'files' => 0, 'tmp' . DS . 'logs' => 0,
+				'tmp' => 0, 
+				'files' => 0, 
+				'files' . DS . 'scripts' . DS . 'tmp' => 0,
+				'tmp' . DS . 'csv_all' => 0, 
+				'tmp' . DS . 'csv_sig' => 0, 
+				'tmp' . DS . 'md5' => 0, 
+				'tmp' . DS . 'sha1' => 0,
+				'tmp' . DS . 'snort' => 0, 
+				'tmp' . DS . 'suricata' => 0, 
+				'tmp' . DS . 'text' => 0, 
+				'tmp' . DS . 'xml' => 0,
+				'tmp' . DS . 'files' => 0, 
+				'tmp' . DS . 'logs' => 0,
 		);
 		foreach ($writeableDirs as $path => &$error) {
-			$dir = new Folder(APP . DS . $path);
+			$dir = new Folder(APP . $path);
 			if (is_null($dir->path)) $error = 1;
-			$file = new File (APP . DS . $path . DS . 'test.txt', true);
+			$file = new File (APP . $path . DS . 'test.txt', true);
 			if ($error == 0 && !$file->write('test')) $error = 2;
 			if ($error != 0) $diagnostic_errors++;
 			$file->delete();
@@ -1878,9 +1967,26 @@ class Server extends AppModel {
 		return $writeableDirs;
 	}
 	
+	public function writeableFilesDiagnostics(&$diagnostic_errors) {
+		$writeableFiles = array(
+				'Config' . DS . 'config.php' => 0,
+		);
+		foreach ($writeableFiles as $path => &$error) {
+			if (!file_exists(APP . $path)) {
+				$error = 1;
+				continue;
+			}
+			if (!is_writeable(APP . $path)) {
+				$error = 2;
+				$diagnostic_errors++;
+			}
+		}
+		return $writeableFiles;
+	}
+	
 	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion) {
 		$result = array();
-		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.10');
+		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.12');
 		// check if the STIX and Cybox libraries are working using the test script stixtest.py
 		$scriptResult = shell_exec('python ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
 		$scriptResult = json_decode($scriptResult, true);

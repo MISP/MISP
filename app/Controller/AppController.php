@@ -80,10 +80,16 @@ class AppController extends Controller {
 	public function beforeFilter() {
 		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
 		$this->mispVersion = implode('.', array_values($versionArray));
+
 		$this->Security->blackHoleCallback = 'blackHole';
 
 		// Let us access $baseurl from all views
 		$baseurl = Configure::read('MISP.baseurl');
+		if (substr($baseurl, -1) == '/') {
+			// if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
+			$baseurl = rtrim($baseurl, '/');
+			Configure::write('MISP.baseurl', $baseurl); 
+		}
 		$this->set('baseurl', h($baseurl)); 
 
 		// send users away that are using ancient versions of IE
@@ -203,6 +209,8 @@ class AppController extends Controller {
 					$this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
 				}
 			}
+		} else {
+			if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
 		}
 		
 		// check if MISP is live
@@ -238,6 +246,8 @@ class AppController extends Controller {
 		// getActions returns all the flags in a single SQL query
 		if ($this->Auth->user()) {
 			//$this->_refreshAuth();
+			$versionArray = $this->{$this->modelClass}->checkMISPVersion();
+			$this->mispVersionFull = implode('.', array_values($versionArray));
 			$this->set('mispVersion', $this->mispVersion);
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
@@ -256,22 +266,12 @@ class AppController extends Controller {
 			$this->set('isAclTemplate', $role['perm_template']);
 			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
 			$this->userRole = $role;
+			$proposalCount = $this->_getProposalCount();
+			$this->set('proposalCount', $proposalCount[0]);
+			$this->set('proposalEventCount', $proposalCount[1]);
+			$this->set('mispVersion', $this->mispVersion);
 		} else {
 			$this->set('me', false);
-			$this->set('isAdmin', false);
-			$this->set('isSiteAdmin', false);
-			$this->set('isAclAdd', false);
-			$this->set('isAclModify', false);
-			$this->set('isAclModifyOrg', false);
-			$this->set('isAclPublish', false);
-			$this->set('isAclSync', false);
-			$this->set('isAclAdmin', false);
-			$this->set('isAclAudit', false);
-			$this->set('isAclAuth', false);
-			$this->set('isAclRegexp', false);
-			$this->set('isAclTagger', false);
-			$this->set('isAclTemplate', false);
-			$this->set('isAclSharingGroup', false);
 		}
 		if (Configure::read('site_admin_debug') && $this->_isSiteAdmin() && (Configure::read('debug') < 2)) {
 				Configure::write('debug', 1);

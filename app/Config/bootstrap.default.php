@@ -158,8 +158,7 @@ CakeLog::config('error', array(
 	'file' => 'error',
 ));
 
-/*
+// comment the following out if you do not with to use the background processing (not recommended)
 CakePlugin::loadAll(array(
 	'CakeResque' => array('bootstrap' => true)
 ));
-*/

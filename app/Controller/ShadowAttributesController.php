@@ -149,7 +149,7 @@ class ShadowAttributesController extends AppController {
 			$attribute = $shadow;
 		
 			// set the distribution equal to that of the event
-			$attribute['distribution'] = $event['Event']['distribution'];
+			$attribute['distribution'] = 5;
 			$this->Attribute->create();
 			$this->Attribute->save($attribute);
 			$this->ShadowAttribute->setDeleted($toDeleteId);
@@ -246,7 +246,7 @@ class ShadowAttributesController extends AppController {
 			}
 			if ($this->ShadowAttribute->setDeleted($id)) {
 				if ($this->Auth->user('org_id') == $this->Event->data['Event']['orgc_id']) {
-					$this->_setProposalLock($eventId, false);
+					$this->ShadowAttribute->setProposalLock($eventId, false);
 				}
 				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
@@ -389,7 +389,7 @@ class ShadowAttributesController extends AppController {
 					if ($successes) {
 						// list the ones that succeeded
 						$emailResult = "";
-						if (!$this->__sendProposalAlertEmail($eventId) == false) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+						if (!$this->ShadowAttribute->sendProposalAlertEmail($eventId) == false) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
 						$this->Session->setFlash(__('The lines' . $successes . ' have been saved' . $emailResult, true));
 					}
 				}
@@ -410,7 +410,7 @@ class ShadowAttributesController extends AppController {
 				if ($this->ShadowAttribute->save($this->request->data)) {
 					// list the ones that succeeded
 					$emailResult = "";
-					if (!$this->__sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id'])) {
+					if (!$this->ShadowAttribute->sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id'])) {
 						$emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
 					}
 					// inform the user and redirect
@@ -476,7 +476,7 @@ class ShadowAttributesController extends AppController {
 		}
 		$sa = $this->ShadowAttribute->find('first', array(
 			'recursive' => -1,
-			'contain' => array('Event' => array('fields' => array('Event.org', 'Event.distribution', 'Event.id'))),
+			'contain' => array('Event' => array('fields' => array('Event.org_id', 'Event.distribution', 'Event.id'))),
 			'conditions' => array('ShadowAttribute.id' => $id)
 		));
 		if (!$this->ShadowAttribute->Event->checkIfAuthorised($this->Auth->user(), $sa['Event']['id'])) throw new UnauthorizedException('You do not have the permission to view this event.');
@@ -586,7 +586,7 @@ class ShadowAttributesController extends AppController {
 				}
 			}
 			if (!$completeFail) {
-				if (!$this->__sendProposalAlertEmail($eventId)) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+				if (!$this->ShadowAttribute->sendProposalAlertEmail($eventId)) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
 				if (empty($fails)) $this->Session->setFlash(__('The attachment has been uploaded'));
 				else $this->Session->setFlash(__('The attachment has been uploaded, but some of the proposals could not be created. The failed proposals are: ' . implode(', ', $fails)));
 			} else {
@@ -691,7 +691,7 @@ class ShadowAttributesController extends AppController {
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 			if ($this->ShadowAttribute->save($this->request->data)) {
 				$emailResult = "";
-				if (!$this->__sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id'])) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+				if (!$this->ShadowAttribute->sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id'])) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
 				if ($this->_isRest()) {
 					$sa = $this->ShadowAttribute->find(
 							'first',
@@ -777,7 +777,7 @@ class ShadowAttributesController extends AppController {
 			);
 			if ($this->ShadowAttribute->save($sa)) {
 				$emailResult = "";
-				if (!$this->__sendProposalAlertEmail($existingAttribute['Event']['id'])) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+				if (!$this->ShadowAttribute->sendProposalAlertEmail($existingAttribute['Event']['id'])) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'The proposal to delete the attribute has been saved' . $emailResult)),'status'=>200));
 			} else {
 				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not create proposal.')),'status'=>200));
@@ -825,135 +825,10 @@ class ShadowAttributesController extends AppController {
 		$this->set('_serialize', array('ShadowAttribute'));
 	}
 	
-	private function _setProposalLock($id, $lock = true) {
-		$this->loadModel('Event');
-		$this->Event->recursive = -1;
-		$event = $this->Event->read(null, $id);
-		if ($lock) {
-			$event['Event']['proposal_email_lock'] = 1;
-		} else {
-			$event['Event']['proposal_email_lock'] = 0;
-		}
-		$fieldList = array('proposal_email_lock', 'id', 'info');
-		$this->Event->save($event, array('fieldList' => $fieldList));
-	}
-	
-	
-	private function __sendProposalAlertEmail($id) {
-		if (Configure::read('MISP.disable_emailing')) {
-			$this->Log = ClassRegistry::init('Log');
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'User',
-					'model_id' => $this->Auth->user('id'),
-					'email' => $this->Auth->user('email'),
-					'action' => 'email',
-					'title' => 'The sending of new proposal alert e-mails for event ' . $id . ' failed. Reason: Emailing is currently disabled on this instance.',
-					'change' => null,
-			));
-			return true;
-		}
-		$this->loadModel('Event');
-		$this->Event->recursive = -1;
-		$event = $this->Event->read(null, $id);
-		
-		// If the event has an e-mail lock, return
-		if ($event['Event']['proposal_email_lock'] == 1) {
-			return;
-		} else {
-			$this->_setProposalLock($id);
-		}
-		try {
-			$this->loadModel('User');
-			$this->User->recursive = -1;
-			$orgMembers = array();
-			$temp = $this->User->findAllByOrg($event['Event']['orgc_id'], array('email', 'gpgkey', 'contactalert', 'id'));
-			foreach ($temp as $tempElement) {
-				if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
-					array_push($orgMembers, $tempElement);
-				}
-			}
-			$body = "";
-			$body .= "Hello, \n";
-			$body .= "\n";
-			$body .= "A user of another organisation has proposed a change to an event created by you or your organisation. \n";
-			$body .= "\n";
-			$body .= "To view the event in question, follow this link:";
-			$body .= ' ' . Configure::read('MISP.baseurl') . '/events/view/' . $id . "\n";
-			$body .= "\n";
-			$body .= "You can reach the user at " . $this->Auth->user('email');
-			$body .= "\n";
-	
-			// sign the body
-			require_once 'Crypt/GPG.php';
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
-			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-			$bodySigned = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-			// Add the GPG key of the user as attachment
-			// LATER sign the attached GPG key
-			if (null != (!$this->User->getPGP($this->Auth->user('id')))) {
-				// save the gpg key to a temporary file
-				$tmpfname = tempnam(TMP, "GPGkey");
-				$handle = fopen($tmpfname, "w");
-				fwrite($handle, $this->User->getPGP($this->Auth->user('id')));
-				fclose($handle);
-				// attach it
-				$this->Email->attachments = array(
-						'gpgkey.asc' => $tmpfname
-				);
-			}
-	
-			foreach ($orgMembers as &$reporter) {
-				if (!empty($reporter['User']['gpgkey'])) {
-					// import the key of the user into the keyring
-					// this isn't really necessary, but it gives it the fingerprint necessary for the next step
-					$keyImportOutput = $gpg->importKey($reporter['User']['gpgkey']);
-					// say what key should be used to encrypt
-					try {
-						$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
-						$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-						$bodyEncSig = $gpg->encrypt($bodySigned, true);
-					} catch (Exception $e){
-						// catch errors like expired PGP keys
-						$this->log($e->getMessage());
-						// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
-					}
-				} else {
-					$bodyEncSig = $bodySigned;
-					// FIXME should I allow sending unencrypted "contact" mails to people if they didn't import they GPG key?
-				}
-				// prepare the email
-				$this->Email->from = Configure::read('MISP.email');
-				$this->Email->to = $reporter['User']['email'];
-				$this->Email->subject = "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id;
-				$this->Email->template = 'body';
-				$this->Email->sendAs = 'text';		// both text or html
-				$this->set('body', $bodyEncSig);
-				// Add the GPG key of the user as attachment
-				// LATER sign the attached GPG key
-				if (null != ($this->User->getPGP($this->Auth->user('id')))) {
-					// attach the gpg key
-					$this->Email->attachments = array(
-						'gpgkey.asc' => $tmpfname
-					);
-				}
-				// send it
-				$result = $this->Email->send();
-				// If you wish to send multiple emails using a loop, you'll need
-				// to reset the email fields using the reset method of the Email component.
-				$this->Email->reset();
-			}
-		} catch (Exception $e) {
-			return false;
-		}
-		return true;
-	}
-	
 	public function index($eventId = false) {
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
-			$conditions = array('Event.org =' => $this->Auth->user('org_id'));
+			$conditions = array('Event.org_id' => $this->Auth->user('org_id'));
 		}
 		if ($eventId && is_numeric($eventId)) $conditions['ShadowAttribute.event_id'] = $eventId;
 		$conditions[] = array('deleted' => 0);
@@ -1006,20 +881,71 @@ class ShadowAttributesController extends AppController {
 		if (strlen($uuid) != 36) {
 			throw new NotFoundException(__('Invalid UUID'));
 		}
-		$this->ShadowAttribute->recursive = -1;
-		$temp = $this->ShadowAttribute->findAllByEventUuid($uuid);
+		$temp = $this->ShadowAttribute->find('all', array(
+				'conditions' => array('event_uuid' => $uuid),
+				'recursive' => -1,
+				'contain' => array(
+					'Org' => array('fields' => array('uuid', 'name')),
+					'EventOrg' => array('fields' => array('uuid', 'name')), 
+				)				
+		));
+		foreach ($temp as &$t) {
+			if ($this->ShadowAttribute->typeIsAttachment($t['ShadowAttribute']['type'])) {
+				$encodedFile = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
+				$t['ShadowAttribute']['data'] = $encodedFile;
+			}
+		}
 		if ($temp == null) {
 			$this->response->statusCode(404);
-			$this->set('name', 'Invalid Event.');
-			$this->set('message', 'Invalid Event');
-			$this->set('errors', 'Invalid Event');
-			$this->set('url', '/shadow_attributes/getProposalsByUuid/edit/' . $uuid);
+			$this->set('name', 'No proposals found.');
+			$this->set('message', 'No proposals found');
+			$this->set('errors', 'No proposals found');
+			$this->set('url', '/shadow_attributes/getProposalsByUuid/' . $uuid);
 			$this->set('_serialize', array('name', 'message', 'url', 'errors'));
 			$this->response->send();
 			return false;
 		} else {
 			$this->set('proposal', $temp);
 			$this->render('get_proposals_by_uuid');
+		}
+	}
+	
+	public function getProposalsByUuidList() {
+		if (!$this->_isRest() || !$this->userRole['perm_sync']) {
+			throw new MethodNotAllowedException(__('This feature is only available using the API to Sync users'));
+		}
+		if (!$this->request->is('Post')) throw new MethodNotAllowedException('This feature is only available using POST requests');
+		$result = array();
+		foreach ($this->request->data as $eventUuid) {
+			$temp = $this->ShadowAttribute->find('all', array(
+					'conditions' => array('event_uuid' => $eventUuid),
+					'recursive' => -1,
+					'contain' => array(
+							'Org' => array('fields' => array('uuid', 'name')),
+							'EventOrg' => array('fields' => array('uuid', 'name')),
+					),
+			));
+			if (empty($temp)) continue;
+			foreach ($temp as &$t) {
+				if ($this->ShadowAttribute->typeIsAttachment($t['ShadowAttribute']['type'])) {
+					$encodedFile = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
+					$t['ShadowAttribute']['data'] = $encodedFile;
+				}
+			}
+			$result = array_merge($result, $temp);
+		}
+		if (empty($result)) {
+			$this->response->statusCode(404);
+			$this->set('name', 'No proposals found.');
+			$this->set('message', 'No proposals found');
+			$this->set('errors', 'No proposals found');
+			$this->set('url', '/shadow_attributes/getProposalsByUuidList');
+			$this->set('_serialize', array('name', 'message', 'url', 'errors'));
+			$this->response->send();
+			return false;
+		} else {
+			$this->set('result', $result);
+			$this->render('get_proposals_by_uuid_list');
 		}
 	}
 	

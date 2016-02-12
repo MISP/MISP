@@ -139,13 +139,13 @@ class AppModel extends Model {
 				break;
 			case 'indexTables':
 				$fieldsToIndex = array(
-					'attributes' => array(array('value1', 'FULLTEXT'), array('value2', 'FULLTEXT'), array('event_id', 'INDEX'), array('sharing_group_id', 'INDEX'), array('uuid', 'INDEX')),
-					'correlations' =>  array(array('org_id', 'INDEX'), array('event_id', 'INDEX'), array('attribute_id', 'INDEX'), array('sharing_group_id', 'INDEX'), array('1_event_id', 'INDEX'), array('1_attribute_id', 'INDEX'), array('a_sharing_group_id', 'INDEX'), array('org_id', 'INDEX'), array('value', 'FULLTEXT')),
+					'attributes' => array(array('value1', 'INDEX', '255'), array('value2', 'INDEX', '255'), array('event_id', 'INDEX'), array('sharing_group_id', 'INDEX'), array('uuid', 'INDEX')),
+					'correlations' =>  array(array('org_id', 'INDEX'), array('event_id', 'INDEX'), array('attribute_id', 'INDEX'), array('sharing_group_id', 'INDEX'), array('1_event_id', 'INDEX'), array('1_attribute_id', 'INDEX'), array('a_sharing_group_id', 'INDEX'), array('value', 'FULLTEXT')),
 					'events' => array(array('info', 'FULLTEXT'), array('sharing_group_id', 'INDEX'), array('org_id', 'INDEX'), array('orgc_id', 'INDEX'), array('uuid', 'INDEX')),
 					'event_tags' => array(array('event_id', 'INDEX'), array('tag_id', 'INDEX')),
 					'organisations' => array(array('uuid', 'INDEX'), array('name', 'FULLTEXT')),
 					'posts' => array(array('post_id', 'INDEX'), array('thread_id', 'INDEX')),
-					'shadow_attributes' => array(array('value1', 'FULLTEXT'), array('value2', 'FULLTEXT'), array('old_id', 'INDEX'), array('event_id', 'INDEX'), array('uuid', 'INDEX'), array('event_org_id', 'INDEX'), array('event_uuid', 'INDEX')),
+					'shadow_attributes' => array(array('value1', 'INDEX', '255'), array('value2', 'INDEX', '255'), array('old_id', 'INDEX'), array('event_id', 'INDEX'), array('uuid', 'INDEX'), array('event_org_id', 'INDEX'), array('event_uuid', 'INDEX')),
 					'sharing_groups' => array(array('org_id', 'INDEX'), array('sync_user_id', 'INDEX'), array('uuid', 'INDEX'), array('organisation_uuid', 'INDEX')),
 					'sharing_group_orgs' => array(array('sharing_group_id', 'INDEX'), array('org_id', 'INDEX')),
 					'sharing_group_servers' => array(array('sharing_group_id', 'INDEX'), array('server_id', 'INDEX')),
@@ -170,7 +170,10 @@ class AppModel extends Model {
 					$table_data = $this->query("SHOW TABLE STATUS WHERE Name = '" . $table . "'");
 					if ($downgrade && $table_data[0]['TABLES']['Engine'] !== 'MyISAM') $downgradeThis = true;
 					foreach ($fields as $field) {
-						$sqlArray[] = 'ALTER TABLE `' . $table . '` ADD ' . ($downgradeThis ? 'INDEX' : $field[1]) . ' `' . $field[0] . '` (`' . $field[0] . '`)';
+						$extra = '';
+						$this->__dropIndex($table, $field[0]);
+						if (isset($field[2])) $extra = ' (' . $field[2] . ')';
+						$sqlArray[] = 'ALTER TABLE `' . $table . '` ADD ' . ($downgradeThis ? 'INDEX' : $field[1]) . ' `' . $field[0] . '` (`' . $field[0] . '`' . $extra . ')';
 					}
 				}
 				break;
@@ -198,6 +201,21 @@ class AppModel extends Model {
 					KEY `org_id` (`org_id`),
 					KEY `event_id` (`event_id`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+			case 'fixNonEmptySharingGroupID':
+				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
+				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
+				break;
+			case 'cleanupAfterUpgrade':
+				$sqlArray[] = 'ALTER TABLE `events` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `events` DROP `orgc`;';
+				$sqlArray[] = 'ALTER TABLE `correlations` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `jobs` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `servers` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `servers` DROP `organization`;';
+				$sqlArray[] = 'ALTER TABLE `shadow_attributes` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `shadow_attributes` DROP `event_org`;';
+				$sqlArray[] = 'ALTER TABLE `threads` DROP `org`;';
+				$sqlArray[] = 'ALTER TABLE `users` DROP `org`;';
 				break;
 			default:
 				return false;

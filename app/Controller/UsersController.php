@@ -234,14 +234,13 @@ class UsersController extends AppController {
 		$overrideAbleParams = array('all');
 		$org = $this->User->Organisation->read(null, $id);
 		if (!$this->User->Organisation->exists() || !($this->_isSiteAdmin() || $this->Auth->user('org_id') == $id)) {
-			throw MethodNotAllowedException('Organisation not found or no authorisation to view it.');
+			throw new MethodNotAllowedException('Organisation not found or no authorisation to view it.');
 		}
 		$user_fields = array('id', 'email', 'gpgkey', 'nids_sid');
 		$conditions = array('org_id' => $id);
 		if ($this->_isSiteAdmin() || ($this->_isAdmin() && $this->Auth->user('org_id') == $id)) {
 			$user_fields = array_merge($user_fields, array('newsread', 'termsaccepted', 'change_pw', 'authkey'));
 		}
-		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['searchall'])) $this->request->data['all'] = $this->request->data['searchall'];
 			if (isset($this->request->data['all']) && !empty($this->request->data['all'])) {
@@ -320,6 +319,7 @@ class UsersController extends AppController {
 			'conditions' => array('local' => 1),
 			'recursive' => -1, 
 			'fields' => array('id', 'name'),
+			'order' => array('LOWER(name) ASC')
 		));
 		$orgs = array();
 		foreach ($temp as $org) {
@@ -414,7 +414,7 @@ class UsersController extends AppController {
 		$this->loadModel('Server');
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
-		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name')));
+		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name', 'url')));
 		$servers = array(0 => 'Not bound to a server');
 		if (!empty($temp)) foreach ($temp as $t) {
 			if (!empty($t['Server']['name'])) $servers[$t['Server']['id']] = $t['Server']['name'];
@@ -630,7 +630,6 @@ class UsersController extends AppController {
 				));
 				$this->Role->save($siteAdmin);
 			}
-				
 			if ($this->User->Organisation->find('count', array('conditions' => array('Organisation.local' => true))) == 0) {
 				$org = array('Organisation' => array(
 						'id' => 1,
@@ -946,7 +945,7 @@ class UsersController extends AppController {
 			else $this->Session->setFlash(__('E-mails sent.'));
 		}
 		$conditions = array();
-		if (!$this->_isSiteAdmin()) $conditions = array('org' => $this->Auth->user('org_id'));
+		if (!$this->_isSiteAdmin()) $conditions = array('org_id' => $this->Auth->user('org_id'));
 		$temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email'), 'order' => array('email ASC'), 'conditions' => $conditions));
 		$emails = array();
 		$gpgKeys = array();

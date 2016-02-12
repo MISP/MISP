@@ -464,6 +464,7 @@ class User extends AppModel {
 			else $validOrgs = array_merge($validOrgs, $sgOrgs);
 		}
 		$validOrgs = array_unique($validOrgs);
+		$conditions['AND'][] = array('disabled' => 0);
 		if (!$all) {
 			$conditions['AND']['OR'][] = array('org_id' => $validOrgs);
 
@@ -578,6 +579,7 @@ class User extends AppModel {
 				$replyToLog = 'from ' . $replyToUser['User']['email'];
 			}
 			$Email->from(Configure::read('MISP.email'));
+			$Email->returnPath(Configure::read('MISP.email'));
 			$Email->to($user['User']['email']);
 			$Email->subject($subject);
 			$Email->emailFormat('text');

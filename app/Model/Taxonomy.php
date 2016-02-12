@@ -45,7 +45,7 @@ class Taxonomy extends AppModel{
 			$current = $this->find('first', array(
 				'conditions' => array('namespace' => $vocab['namespace']),
 				'recursive' => -1,
-				'fields' => array('version', 'enabled')
+				'fields' => array('version', 'enabled', 'namespace')
 			));
 			if (empty($current) || $vocab['version'] > $current['Taxonomy']['version']) {
 				$result = $this->__updateVocab($vocab, $current, array('colour'));
@@ -65,7 +65,7 @@ class Taxonomy extends AppModel{
 		$taxonomy = array();
 		if (!empty($current)) {
 			if ($current['Taxonomy']['enabled']) $enabled = true;
-			$this->delete($current['Taxonomy']['id']);
+			$this->deleteAll(array('Taxonomy.namespace' => $current['Taxonomy']['namespace']));
 		}
 		$taxonomy['Taxonomy'] = array('namespace' => $vocab['namespace'], 'description' => $vocab['description'], 'version' => $vocab['version'], 'enabled' => $enabled);
 		$predicateLookup = array();
@@ -199,8 +199,8 @@ class Taxonomy extends AppModel{
 		}
 	}
 	
-	public function addTags($id, $tagList) {
-		if (!is_array($tagList)) $tagList = array($tagList);
+	public function addTags($id, $tagList = false) {
+		if ($tagList && !is_array($tagList)) $tagList = array($tagList);
 		$this->Tag = ClassRegistry::init('Tag');
 		App::uses('ColourPaletteTool', 'Tools');
 		$paletteTool = new ColourPaletteTool();
@@ -209,13 +209,21 @@ class Taxonomy extends AppModel{
 		$tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
 		$colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
 		foreach ($taxonomy['entries'] as $k => &$entry) {
-			foreach ($tagList as $tagName) {
-				if ($tagName === $entry['tag']) {
-					if (isset($tags[strtoupper($entry['tag'])])) {
-						$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colours[$k]);
-					} else {
-						$this->Tag->quickAdd($tagName, $colours[$k]);
+			if ($tagList) {
+				foreach ($tagList as $tagName) {
+					if ($tagName === $entry['tag']) {
+						if (isset($tags[strtoupper($entry['tag'])])) {
+							$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colours[$k]);
+						} else {
+							$this->Tag->quickAdd($tagName, $colours[$k]);
+						}
 					}
+				}
+			} else {
+				if (isset($tags[strtoupper($entry['tag'])])) {
+					$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colours[$k]);
+				} else {
+					$this->Tag->quickAdd($entry['tag'], $colours[$k]);
 				}
 			}
 		}

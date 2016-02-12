@@ -3,13 +3,7 @@ $xmlArray = array();
 //
 // cleanup the array from things we do not want to expose
 //
-if (isset($proposal['ShadowAttribute']['id'])) {
-	$temp = $proposal['ShadowAttribute'];
-	unset ($proposal['ShadowAttribute']);
-	$proposal['ShadowAttribute'][0] = $temp;
-	unset ($temp);
-}
-$xmlArray['response']['ShadowAttribute'] = array();
+$jsonArray['ShadowAttribute'] = array();
 foreach ($proposal as &$temp) {
 	unset($temp['ShadowAttribute']['email']);
 	unset($temp['ShadowAttribute']['value1']);
@@ -24,9 +18,7 @@ foreach ($proposal as &$temp) {
 		unset($temp['ShadowAttribute']['Org']);
 		unset($temp['ShadowAttribute']['EventOrg']);
 	}
-	$xmlArray['response']['ShadowAttribute'][] = $temp['ShadowAttribute'];
+	$jsonArray['ShadowAttribute'][] = $temp['ShadowAttribute'];
 }
 
-// display the XML to the user
-$xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));
-echo $xmlObject->asXML();
+echo json_encode($jsonArray);

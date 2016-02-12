@@ -320,8 +320,10 @@ class ServersController extends AppController {
 			if (!$fail) {
 				// Save the data
 				if ($this->Server->save($this->request->data, true, $fieldList)) {
-					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
+					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0 && !$this->request->data['Server']['delete_cert']) {
 						$this->__saveCert($this->request->data, $this->Server->id);
+					} else {
+						$this->__saveCert($this->request->data, $this->Server->id, true);
 					}
 					$this->Session->setFlash(__('The server has been saved'));
 					$this->redirect(array('action' => 'index'));
@@ -372,6 +374,7 @@ class ServersController extends AppController {
 		$allTags = array();
 		foreach ($temp as $t) $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
 		$this->set('allTags', $allTags);
+		$this->set('server', $s);
 	}
 
 /**
@@ -522,26 +525,32 @@ class ServersController extends AppController {
 		}
 	}
 	
-	private function __saveCert($server, $id) {
-		$ext = '';
-		App::uses('File', 'Utility');
-		App::uses('Folder', 'Utility');
-		$file = new File($server['Server']['submitted_cert']['name']);
-		$ext = $file->ext();
-		if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
-			$this->Session->setFlash('Incorrect extension or empty file.');
-			$this->redirect(array('action' => 'index'));
+	private function __saveCert($server, $id, $delete = false) {
+		if (!$delete) {
+			$ext = '';
+			App::uses('File', 'Utility');
+			App::uses('Folder', 'Utility');
+			$file = new File($server['Server']['submitted_cert']['name']);
+			$ext = $file->ext();
+			if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
+				$this->Session->setFlash('Incorrect extension or empty file.');
+				$this->redirect(array('action' => 'index'));
+			}
+			$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),
+					$server['Server']['submitted_cert']['size']);
+			$destpath = APP . "files" . DS . "certs" . DS;
+			$dir = new Folder(APP . "files" . DS . "certs", true);
+			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
+			$pemfile = new File ($destpath . $id . '.' . $ext);
+			$result = $pemfile->write($pemData); 
+			$s = $this->Server->read(null, $id);
+			$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
+			if ($result) $this->Server->save($s);
+		} else {
+			$s = $this->Server->read(null, $id);
+			$s['Server']['cert_file'] = '';
+			$this->Server->save($s);
 		}
-		$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),
-				$server['Server']['submitted_cert']['size']);
-		$destpath = APP . "files" . DS . "certs" . DS;
-		$dir = new Folder(APP . "files" . DS . "certs", true);
-		if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
-		$pemfile = new File ($destpath . $id . '.' . $ext);
-		$result = $pemfile->write($pemData); 
-		$s = $this->Server->read(null, $id);
-		$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
-		if ($result) $this->Server->save($s);
 	}
 	
 	public function serverSettingsReloadSetting($setting, $id) {
@@ -574,7 +583,7 @@ class ServersController extends AppController {
 					'misc' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
 			);
-			$writeableErrors = array(0 => 'OK', 1 => 'Directory doesn\'t exist', 2 => 'Directory is not writeable');
+			$writeableErrors = array(0 => 'OK', 1 => 'doesn\'t exist', 2 => 'is not writeable');
 			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: bad GnuPG.*', 3 => 'FAIL: encrypt failed');
 			$proxyErrors = array(0 => 'OK', 1 => 'not configured (so not tested)', 2 => 'Getting URL via proxy failed');
 			$zmqErrors = array(0 => 'OK', 1 => 'not enabled (so not tested)', 2 => 'Python ZeroMQ library not installed correctly.', 3 => 'ZeroMQ script not running.');
@@ -629,6 +638,37 @@ class ServersController extends AppController {
 				// check if the current version of MISP is outdated or not
 				$version = $this->__checkVersion();
 				$this->set('version', $version);
+				$phpSettings = array(
+						'max_execution_time' => array(
+							'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
+							'recommended' => 300,
+							'unit' => false
+						), 
+						'memory_limit' => array(
+							'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
+							'recommended' => 512,
+							'unit' => 'M'
+						), 
+						'upload_max_filesize' => array(
+							'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
+							'recommended' => 50,
+							'unit' => 'M'
+						), 
+						'post_max_size' => array(
+							'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
+							'recommended' => 50,
+							'unit' => 'M'
+						)
+						
+				);
+				
+				foreach ($phpSettings as $setting => &$settingArray) {
+					$settingArray['value'] = ini_get($setting);
+					if ($settingArray['unit']) $settingArray['value'] = intval(rtrim($settingArray['value'], $settingArray['unit']));
+					else $settingArray['value'] = intval($settingArray['value']);
+				}
+				$this->set('phpSettings', $phpSettings);
+				
 				if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) $diagnostic_errors++;
 					
 				// check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
@@ -652,9 +692,10 @@ class ServersController extends AppController {
 			}
 			// check whether the files are writeable
 			$writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
+			$writeableFiles = $this->Server->writeableFilesDiagnostics($diagnostic_errors);
 			
 			$viewVars = array(
-					'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'writeableDirs'
+					'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'writeableDirs', 'writeableFiles'
 			);
 			$viewVars = array_merge($viewVars, $additionalViewVars);
 			foreach ($viewVars as $viewVar) $this->set($viewVar, ${$viewVar});
@@ -670,7 +711,7 @@ class ServersController extends AppController {
 				foreach ($dumpResults as &$dr) {
 					unset($dr['description']);
 				}
-				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'zmqStatus' => $zmqStatus, 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'finalSettings' => $dumpResults);
+				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'zmqStatus' => $zmqStatus, 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'writeableFiles' => $writeableFiles,'finalSettings' => $dumpResults);
 				$this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
 				$this->response->type('json');
 				$this->response->download('MISP.report.json');
@@ -759,6 +800,21 @@ class ServersController extends AppController {
 		if ($this->request->is('post')) {
 			$this->autoRender = false;
 			$this->loadModel('Log');
+			if (!is_writeable(APP . 'Config/config.php')) {
+				$this->Log->create();
+				$result = $this->Log->save(array(
+						'org' => $this->Auth->user('Organisation')['name'],
+						'model' => 'Server',
+						'model_id' => 0,
+						'email' => $this->Auth->user('email'),
+						'action' => 'serverSettingsEdit',
+						'user_id' => $this->Auth->user('id'),
+						'title' => 'Server setting issue',
+						'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
+				));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.')),'status'=>200));
+			}
+			
 			if (isset($found['beforeHook'])) {
 				$beforeResult = call_user_func_array(array($this->Server, $found['beforeHook']), array($setting, $this->request->data['Server']['value']));
 				if ($beforeResult !== true) {
@@ -773,7 +829,7 @@ class ServersController extends AppController {
 							'title' => 'Server setting issue',
 							'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
 					));
-					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)),'status'=>200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $beforeResult)),'status'=>200));
 				}
 			}
 			if ($found['type'] == 'boolean') {

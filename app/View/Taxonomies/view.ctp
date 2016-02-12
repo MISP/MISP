@@ -40,8 +40,10 @@
 	<div class="pagination">
         <ul>
         <?php
+        if (!empty($filter)) $url = array($id, 'filter:' . $filter);
+        else $url = array($id);
         $this->Paginator->options(array(
-			'url' => array($id),
+			'url' => $url,
             'update' => '.span12',
             'evalScripts' => true,
             'before' => '$(".progress").show()',

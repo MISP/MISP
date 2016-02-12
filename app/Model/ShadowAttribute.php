@@ -432,6 +432,7 @@ class ShadowAttribute extends AppModel {
 				'type' => $sa['type'],
 				'category' => $sa['category'],
 				'to_ids' => $sa['to_ids'],
+				'comment' => $sa['comment']
 			),
 		));
 		if (empty($oldsa)) return false;
@@ -445,6 +446,52 @@ class ShadowAttribute extends AppModel {
 			$org_ids[] = $org['ShadowAttribute']['org_id'];
 		}
 		return $org_ids;
+	}
+	
+
+	public function sendProposalAlertEmail($id) {
+		$this->Event->recursive = -1;
+		$event = $this->Event->read(null, $id);
+	
+		// If the event has an e-mail lock, return
+		if ($event['Event']['proposal_email_lock'] == 1) {
+			return;
+		} else {
+			$this->setProposalLock($id);
+		}
+		$this->User = ClassRegistry::init('User');
+		$this->User->recursive = -1;
+		$orgMembers = $this->User->find('all',array(
+				'conditions' => array(
+						'org_id' => $event['Event']['orgc_id'],
+						'contactalert' => 1,
+						'disabled' => 0
+				),
+				'fields' => array('email', 'gpgkey', 'contactalert', 'id')
+		));
+	
+		$body = "Hello, \n\n";
+		$body .= "A user of another organisation has proposed a change to an event created by you or your organisation. \n\n";
+		$body .= 'To view the event in question, follow this link: ' . Configure::read('MISP.baseurl') . '/events/view/' . $id . "\n";
+		$subject =  "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id;
+		$result = true;
+		foreach ($orgMembers as &$user) {
+			$result = $this->User->sendEmail($user, $body, $body, $subject) && $result;
+		}
+		return $result;
+	}
+	
+
+	public function setProposalLock($id, $lock = true) {
+		$this->Event->recursive = -1;
+		$event = $this->Event->read(null, $id);
+		if ($lock) {
+			$event['Event']['proposal_email_lock'] = 1;
+		} else {
+			$event['Event']['proposal_email_lock'] = 0;
+		}
+		$fieldList = array('proposal_email_lock', 'id', 'info');
+		$this->Event->save($event, array('fieldList' => $fieldList));
 	}
 }
 

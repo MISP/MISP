@@ -72,6 +72,9 @@
 				<th class="filter">Tags</th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
+			<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
+				<th><?php echo $this->Paginator->sort('correlation_count', '#Corr.');?></th>
+			<?php endif; ?>
 			<?php if ($isSiteAdmin): ?>
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 			<?php endif; ?>
@@ -139,6 +142,11 @@
 			<td style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo $event['Event']['attribute_count']; ?>&nbsp;
 			</td>
+			<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
+				<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
+					<?php echo !empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : ''; ?>&nbsp;
+				</td>
+			<?php endif; ?>
 			<?php if ('true' == $isSiteAdmin): ?>
 			<td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['User']['email']); ?>&nbsp;
@@ -169,11 +177,11 @@
 			</td>
 			<td class="short action-links">
 				<?php
-				if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['org_id'] == $me['org_id'])))
+				if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id'])))
 					echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => 'Publish Event'), 'Are you sure this event is complete and everyone should be informed?');
 				elseif (0 == $event['Event']['published']) echo 'Not published';
 
-				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org_id'] == $me['org_id'])) {
+				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])) {
 				?>
 					<a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' class = "icon-edit" title = "Edit"></a>
 				<?php

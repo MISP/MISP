@@ -98,6 +98,7 @@ class Attribute extends AppModel {
 			'sha1' => array('desc' => 'A checksum in sha1 format', 'formdesc' => "You are encouraged to use filename|sha1 instead. A checksum in sha1 format, only use this if you don't know the correct filename"),
 			'sha256' => array('desc' => 'A checksum in sha256 format', 'formdesc' => "You are encouraged to use filename|sha256 instead. A checksum in sha256 format, only use this if you don't know the correct filename"),
 			'filename' => array('desc' => 'Filename'),
+			'pdb' => array('desc' => 'Microsoft Program database (PDB) path information'),
 			'filename|md5' => array('desc' => 'A filename and an md5 hash separated by a |', 'formdesc' => "A filename and an md5 hash separated by a | (no spaces)"),
 			'filename|sha1' => array('desc' => 'A filename and an sha1 hash separated by a |', 'formdesc' => "A filename and an sha1 hash separated by a | (no spaces)"),
 			'filename|sha256' => array('desc' => 'A filename and an sha256 hash separated by a |', 'formdesc' => "A filename and an sha256 hash separated by a | (no spaces)"),
@@ -133,9 +134,9 @@ class Attribute extends AppModel {
  			'target-user' => array('desc' => 'Attack Targets Username(s)'),
  			'target-email' => array('desc' => 'Attack Targets Email(s)'),
  			'target-machine' => array('desc' => 'Attack Targets Machine Name(s)'),
- 			'target-org' => array('desc' => 'Attack Targets Department or Orginization(s)'),
- 			'target-location' => array('desc' => 'Attack Targets Physical Location(s)'),
- 			'target-external' => array('desc' => 'External Target Orginizations Affected by this Attack'),
+			'target-org' => array('desc' => 'Attack Targets Department or Organization(s)'),
+			'target-location' => array('desc' => 'Attack Targets Physical Location(s)'),
+			'target-external' => array('desc' => 'External Target Organizations Affected by this Attack'),
 			'btc' => array('desc' => 'Bitcoin Address'),//
 			'iban' => array('desc' => 'International Bank Account Number'),//
 			'bic' => array('desc' => 'Bank Identifier Code Number'),
@@ -174,7 +175,8 @@ class Attribute extends AppModel {
 			'windows-service-displayname' => array('desc' => 'A windows service\'s displayname, not to be confused with the windows-service-name. This is the name that applications will generally display as the service\'s name in applications.'),//x
 			'whois-registrant-email' => array('desc' => 'The e-mail of a domain\'s registrant, obtained from the WHOIS information.'),//x
 			'whois-registrant-phone' => array('desc' => 'The phone number of a domain\'s registrant, obtained from the WHOIS information.'),//x
-			'whois-registar' => array('desc' => 'The registar of the domain, obtained from the WHOIS information.'),//x
+            'whois-registrant-name' => array('desc' => 'The name of a domain\'s registrant, obtained from the WHOIS information.'),//x
+            'whois-registar' => array('desc' => 'The registar of the domain, obtained from the WHOIS information.'),//x
 			'whois-creation-date' => array('desc' => 'The date of domain\'s creation, obtained from the WHOIS information.'),//x
 			'targeted-threat-index' => array('desc' => ''),
 			'mailslot' => array('desc' => 'MailSlot interprocess communication'),
@@ -205,7 +207,7 @@ class Attribute extends AppModel {
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'yara', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'yara', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'other')
 					),
 			'Payload installation' => array(
 					'desc' => 'Info on where the malware gets installed in the system',
@@ -228,7 +230,7 @@ class Attribute extends AppModel {
 					),
 			'Attribution' => array(
 					'desc' => 'Identification of the group, organisation, or country behind the attack',
-					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registar', 'whois-creation-date','comment', 'text', 'other')
+					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registar', 'whois-creation-date','comment', 'text', 'other')
 					),
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
@@ -518,6 +520,8 @@ class Attribute extends AppModel {
 			$this->data['Attribute']['value'] = $result;
 		}
 		// always return true, otherwise the object cannot be saved
+		
+		if (!isset($this->data['Attribute']['distribution']) || $this->data['Attribute']['distribution'] != 4) $this->data['Attribute']['sharing_group_id'] = 0;
 		return true;
 	}
 
@@ -772,12 +776,16 @@ class Attribute extends AppModel {
  			case 'target-external':
  			case 'email-subject':
  			case 'email-attachment':
+			case 'malware-type':
  			case 'url':
+ 			case 'uri':
  			case 'user-agent':
  			case 'regkey':
  			case 'regkey|value':
 			case 'filename':
-			case 'windows-scheduled-task':
+			case 'pdb':
+            case 'windows-scheduled-task':
+            case 'whois-registrant-name':
 			case 'whois-registar':
 			case 'whois-creation-date':
  				// no newline	
@@ -904,7 +912,7 @@ class Attribute extends AppModel {
 				break;
 			case 'prtn':
 			case 'whois-registrant-phone':
-				if (substr($value, 0, 1) == '+') $value = '00' . $value(substr($value, 1));
+				if (substr($value, 0, 1) == '+') $value = '00' . substr($value, 1);
 				$value = preg_replace('/[^0-9]+/', '', $value);
 				break;
 			case 'url':
@@ -1125,20 +1133,18 @@ class Attribute extends AppModel {
 			$fields = array('value1', 'value2');
 			$correlatingValues = array($a['value1']);
 			if (!empty($a['value2'])) $correlatingValues[] = $a['value2'];
-			if ($full) $temp = array('Attribute.id >' => $a['id']);
-			else $temp = array();
 			foreach ($correlatingValues as $k => $cV) {
 				$correlatingAttributes[$k] = $this->find('all', array(
 						'conditions' => array(
-							'OR' => array(
-								'Attribute.value1' => $cV,
-								'Attribute.value2' => $cV
-							),
 							'AND' => array(
+								'OR' => array(
+										'Attribute.value1' => $cV,
+										'Attribute.value2' => $cV
+								),
 								'Attribute.type !=' => $this->nonCorrelatingTypes,
-								'Attribute.id !=' => $a['id'],
-								$temp,
-								'Attribute.event_id !=' => $a['event_id']
+								//'Attribute.id !=' => $a['id'],
+								//$temp,
+								//'Attribute.event_id !=' => $a['event_id']
 							),
 						),
 						'recursive => -1',
@@ -1146,6 +1152,11 @@ class Attribute extends AppModel {
 						'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
 						'order' => array(),
 				));
+				foreach ($correlatingAttributes[$k] as $key => &$correlatingAttribute) {
+					if ($correlatingAttribute['Attribute']['id'] == $a['id']) unset($correlatingAttributes[$k][$key]);
+					else if ($correlatingAttribute['Attribute']['event_id'] == $a['event_id']) unset($correlatingAttributes[$k][$key]);
+					else if ($full && $correlatingAttribute['Attribute']['id'] <= $a['id']) unset($correlatingAttributes[$k][$key]);
+				}
 			}
 			$correlations = array();
 			foreach ($correlatingAttributes as $k => $cA) {
@@ -1830,7 +1841,8 @@ class Attribute extends AppModel {
  				), 
  			),	
  		);
-	 	if (isset($options['contain'])) $params['contain'] = $options['contain'];
+	 	if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
+	 	else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id');
 	 	if (isset($options['fields'])) $params['fields'] = $options['fields'];
 	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 	 	if (isset($options['order'])) $params['order'] = $options['order'];

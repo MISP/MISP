@@ -101,7 +101,11 @@ class SharingGroupsController extends AppController {
 			$json = json_decode($this->request->data['SharingGroup']['json'], true);
 			$sg = $json['sharingGroup'];
 			$sg['id'] = $id;
-			if ($this->SharingGroup->save(array('SharingGroup' => $sg))) {
+			$fields = array('name', 'releasability', 'description', 'active', 'limitServers');
+			$existingSG = $this->SharingGroup->find('first', array('recursive' => -1, 'conditions' => array('SharingGroup.id' => $id)));
+			foreach ($fields as $field) $existingSG['SharingGroup'][$field] = $sg[$field];
+			unset($existingSG['SharingGroup']['modified']);
+			if ($this->SharingGroup->save($existingSG)) {
 				$this->SharingGroup->SharingGroupOrg->updateOrgsForSG($id, $json['organisations'], $sharingGroup['SharingGroupOrg'], $this->Auth->user());
 				$this->SharingGroup->SharingGroupServer->updateServersForSG($id, $json['servers'], $sharingGroup['SharingGroupServer'], $json['sharingGroup']['limitServers'], $this->Auth->user());
 				$this->redirect('/SharingGroups/view/' . $id);
