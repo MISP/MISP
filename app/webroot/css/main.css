@@ -1467,6 +1467,10 @@ a.discrete {
 	border-radius:5px;
 }
 
+.tooltip-inner {
+    white-space:pre-wrap !important;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}

@@ -603,7 +603,8 @@ class Event extends AppModel {
 			$current = array(
 		            'id' => $correlation['Correlation']['event_id'],
 		            'org_id' => $correlation['Correlation']['org_id'],
-		    		'info' => $correlation['Correlation']['info']
+		    		'info' => $correlation['Correlation']['info'],
+					'value' => $correlation['Correlation']['value'],
 		    );
 			if (empty($relatedAttributes[$correlation['Correlation']['1_attribute_id']]) || !in_array($current, $relatedAttributes[$correlation['Correlation']['1_attribute_id']])) {
 		    	$relatedAttributes[$correlation['Correlation']['1_attribute_id']][] = $current;

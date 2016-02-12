@@ -243,7 +243,7 @@
 									<?php 
 										if ($object['objectType'] == 0 && isset($event['RelatedAttribute'][$object['id']]) && (null != $event['RelatedAttribute'][$object['id']])) {
 											foreach ($event['RelatedAttribute'][$object['id']] as $relatedAttribute) {
-												echo '<li style="padding-right: 0px; padding-left:0px;" title ="' . h($relatedAttribute['info']) . '"><span>';
+												echo '<li style="padding-right: 0px; padding-left:0px;" title ="' . h($relatedAttribute['info']) . "\n Correlating value: " . h($relatedAttribute['value']) . '"><span>';
 												if ($relatedAttribute['org_id'] == $me['org_id']) {
 													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('style' => 'color:red;'));
 												} else {
