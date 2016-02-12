@@ -46,10 +46,19 @@
 					?>
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
-					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
-						<li id='lidelegateEvent'><a href="#" onClick="delegatePopup('<?php echo h($event['Event']['id']); ?>');">Delegate Publishing</a></li>
+					<?php if (Configure::read('MISP.delegation')):?>
+						<?php if (isset($event['Event']['distribution']) && (!isset($delegationRequest) || !$delegationRequest) && $event['Event']['distribution'] == 0 && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))): ?>
+								<li id='lidelegateEvent'><a href="#" onClick="delegatePopup('<?php echo h($event['Event']['id']); ?>');">Delegate Publishing</a></li>
+						<?php endif;?>
+						<?php if (isset($delegationRequest) && $delegationRequest && ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id'] || $me['org_id'] == $delegationRequest['EventDelegation']['requester_org_id'])))): ?>
+							<li class="divider"></li>
+							<?php if ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id']))): ?>
+								<li id='liacceptDelegation'><a href="#" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/acceptDelegation/<?php echo h($delegationRequest['EventDelegation']['id']); ?>', '#confirmation_box');">Accept Delegation Request</a></li>
+							<?php endif;?>
+							<li id='lideleteDelegation'><a href="#" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/deleteDelegation/<?php echo h($delegationRequest['EventDelegation']['id']); ?>', '#confirmation_box');">Discard Delegation Request</a></li>
+							<li class="divider"></li>
+						<?php endif;?>
 					<?php endif;?>
-
 					<li id='licontact'><a href="<?php echo $baseurl;?>/events/contact/<?php echo h($event['Event']['id']);?>">Contact Reporter</a></li>
 					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
 					<li class="divider"></li>
@@ -116,6 +125,7 @@
 					<li class="divider"></li>
 					<?php endif; ?>
 					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
+					<li id='lidashboard'><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
 					<li id='limembers'><a href="<?php echo $baseurl;?>/users/memberslist">Members List</a></li>
 					<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
 					<?php if ($menuItem === 'viewOrg'): ?>

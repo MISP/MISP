@@ -24,6 +24,22 @@ function publishPopup(id, type) {
 	});
 }
 
+function delegatePopup(id) {	
+	$.get( "/event_delegations/delegateEvent/" + id, function(data) {
+		$("#popover_form").html(data);
+		$("#popover_form").fadeIn();
+		$("#gray_out").fadeIn();
+	});
+}
+
+function genericPopup(url, popupTarget) {
+	$.get(url, function(data) {
+		$(popupTarget).html(data);
+		$(popupTarget).fadeIn();
+		$("#gray_out").fadeIn();
+	});
+}
+
 function submitPublish(id, type) {
 	$("#PromptForm").submit();
 }

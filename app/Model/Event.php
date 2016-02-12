@@ -982,7 +982,7 @@ class Event extends AppModel {
 		}
 	}
 
-	public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false) {
+	public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false, $timestamp = false, $publish_timestamp = false) {
 		$conditions = array();
 			$isSiteAdmin = $user['Role']['perm_site_admin'];
 		
@@ -1013,6 +1013,8 @@ class Event extends AppModel {
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
+		if ($timestamp) $conditions['AND'][] = array('Event.timestamp >=' => $timestamp);
+		if ($publish_timestamp) $conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
 		
 		if ($list) {
 			$params = array(
@@ -1055,6 +1057,7 @@ class Event extends AppModel {
 		$isSiteAdmin = $user['Role']['perm_site_admin'];
 		if (isset($options['disableSiteAdmin']) && $options['disableSiteAdmin']) $isSiteAdmin = false;
 		$conditionsAttributes = array();
+		
 		//restricting to non-private or same org if the user is not a site-admin.
 		if (!$isSiteAdmin) {
 			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
@@ -1078,6 +1081,16 @@ class Event extends AppModel {
 					)
 				)
 			);
+			// if delegations are enabled, check if there is an event that the current user might see because of the request itself
+			if (Configure::read('MISP.delegation')) {
+				$this->EventDelegation = ClassRegistry::init('EventDelegation');
+				$delegatedEventIDs = $this->EventDelegation->find('list', array(
+					'conditions' => array('EventDelegation.org_id' => $user['org_id']),
+					'fields' => array('event_id')
+				));
+				$conditions['AND']['OR']['Event.id'] = $delegatedEventIDs;
+			}
+				
 			$conditionsAttributes['AND'][0]['OR'] = array(
 				array('AND' => array(
 					'Attribute.distribution >' => 0,
@@ -1276,7 +1289,8 @@ class Event extends AppModel {
 	 	}
 	 	$params = array(
 	 			'conditions' => $conditions, //array of conditions
-	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp'),
+	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp', 'Attribute.id'),
+	 			'sort' => 'Attribute.id ASC'
 	 	);
 	 	
 	 	if ($includeContext) {
@@ -1960,6 +1974,48 @@ class Event extends AppModel {
 			}
 			return true;
 		} return $this->validationErrors;
+	}
+	
+	// format has to be:
+	// array('Event' => array(), 'Attribute' => array('ShadowAttribute' => array()), 'EventTag' => array(), 'ShadowAttribute' => array());
+	public function savePreparedEvent($event) {
+		unset($event['Event']['id']);
+		$this->create();
+		$this->save($event['Event']);
+		$event['Event']['id'] = $this->id;
+		$objects = array('Attribute', 'ShadowAttribute', 'EventTag');
+		foreach ($objects as $object_type) {
+			if (!empty($event[$object_type])) {
+				$saveMethod = '__savePrepared' . $object_type;
+				foreach ($event[$object_type] as $object) $this->$saveMethod($object, $event);
+			}
+		}
+		return $event['Event']['id'];
+	}
+	
+	private function __savePreparedAttribute(&$attribute, &$event) {
+		unset($attribute['id']);
+		$attribute['event_id'] = $event['Event']['id'];
+		$this->Attribute->create();
+		$this->Attribute->save($attribute);
+		foreach ($attribute['ShadowAttribute'] as $k => $sa) {
+			$this->__savePreparedShadowAttribute($sa, $event, $this->Attribute->id);
+		}
+	}
+	
+	private function __savePreparedShadowAttribute($shadow_attribute, &$event, $old_id = 0) {
+		unset($shadow_attribute['id']);
+		$shadow_attribute['event_id'] = $event['Event']['id'];
+		$shadow_attribute['old_id'] = $old_id;
+		$this->ShadowAttribute->create();
+		$this->ShadowAttribute->save($shadow_attribute);
+	}
+	
+	private function __savePreparedEventTag($event_tag, &$event) {
+		unset($event_tag['id']);
+		$event_tag['event_id'] = $event['Event']['id'];
+		$this->EventTag->create();
+		$this->EventTag->save($event_tag);
 	}
 	
 	private function __searchUuidInAttributeArray($uuid, &$attr_array) {

@@ -1,8 +1,6 @@
 <?php
-$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
-$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-?>
-<?php
+	$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
+	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
 ?>
 <div class="events view">
@@ -125,27 +123,21 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
 				</dd>
+				<dt class="<?php echo ($event['Event']['published'] == 0) ? (($isAclPublish && $me['org_id'] == $event['Event']['orgc_id']) ? 'background-red bold' : 'bold') : 'bold'; ?>">Published</dt>
+				<dd class="<?php echo ($event['Event']['published'] == 0) ? (($isAclPublish && $me['org_id'] == $event['Event']['orgc_id']) ? 'background-red bold' : 'red bold') : 'green bold'; ?>"><?php echo ($event['Event']['published'] == 0) ? 'No' : 'Yes'; ?></dd>
 				<?php 
-					$published = '';
-					$notPublished = 'style="display:none;"';
-					if ($event['Event']['published'] == 0) {
-						$published = 'style="display:none;"';
-						$notPublished = '';
-					}
+					if (!empty($delegationRequest)): 
+						if ($isSiteAdmin || $me['org_id'] == $delegationRequest['EventDelegation']['org_id']) {
+							$target = $isSiteAdmin ? $delegationRequest['Org']['name'] : 'you';
+							$subject = $delegationRequest['RequesterOrg']['name'] . ' has';
+						} else {
+							$target = $delegationRequest['Org']['name'];
+							$subject = 'You have';
+						}
 				?>
-						<dt class="published" <?php echo $published;?>>Published</dt>
-						<dd class="published green" <?php echo $published;?>>Yes</dd>
-				<?php 
-					if ($isAclPublish) :
-				?>
-						<dt class="visibleDL notPublished" <?php echo $notPublished;?>>Published</dt>
-						<dd class="visibleDL notPublished" <?php echo $notPublished;?>>No</dd>
-				<?php 
-					else: 
-				?>
-						<dt class="notPublished" <?php echo $notPublished;?>>Published</dt>
-						<dd class="notPublished red" <?php echo $notPublished;?>>No</dd>
-				<?php endif; ?>
+					<dt class="background-red bold">Delegation request</dt>
+					<dd class="background-red bold"><?php echo h($subject);?> requested that <?php echo h($target)?> take over this event. (<a href="#" style="color:white;" onClick="genericPopup('<?php echo $baseurl;?>/eventDelegations/view/<?php echo h($delegationRequest['EventDelegation']['id']);?>', '#confirmation_box');">View request details</a>)</dd>
+				<?php endif;?>
 			</dl>
 		</div>
 	<?php if (!empty($event['RelatedEvent'])):?>

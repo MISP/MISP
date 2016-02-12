@@ -495,6 +495,15 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'delegation' => array(
+							'level' => 1,
+							'description' => 'This feature allows users to created org only events and ask another organisation to take owenership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,

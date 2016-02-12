@@ -46,11 +46,10 @@ class AppModel extends Model {
 		$this->name = get_class($this);
 	}
 	
+	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(
-				6 => 'enableEventDelegation'
-			)
+			4 => array(18 => true, 19=>false)
 		)
 	);
 	
@@ -82,6 +81,10 @@ class AppModel extends Model {
 				break;
 			case 'cleanSessionTable':
 				$sql = 'DELETE FROM `cake_sessions` WHERE `expires` < ' . time() . ';';
+				$clean = false;
+				break;
+			case 'destroyAllSessions':
+				$sql = 'DELETE FROM `cake_sessions`;';
 				$clean = false;
 				break;
 			case 'addIPLogging':
@@ -171,13 +174,26 @@ class AppModel extends Model {
 					}
 				}
 				break;
-			case 'enableEventDelegation':
+			case 'adminTable':
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `admin_settings` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`setting` varchar(255) COLLATE utf8_bin NOT NULL,
+					`value` text COLLATE utf8_bin NOT NULL,
+					PRIMARY KEY (`id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				$sqlArray[] = "INSERT INTO `admin_settings` (`setting`, `value`) VALUES ('db_version', '2.4.0')";
+				break;
+			case '2.4.18': 
+				$sqlArray[] = "ALTER TABLE `users` ADD `current_login` INT(11) DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `users` ADD `last_login` INT(11) DEFAULT 0;";
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_delegations` (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`org_id` int(11) NOT NULL,
+					`requester_org_id` int(11) NOT NULL,
 					`event_id` int(11) NOT NULL,
 					`message` text,
-					`distribution` tinyint(4),
+					`distribution` tinyint(4) NOT NULL DEFAULT  '-1',
+					`sharing_group_id` int(11),
 					PRIMARY KEY (`id`),
 					KEY `org_id` (`org_id`),
 					KEY `event_id` (`event_id`)
@@ -286,9 +302,96 @@ class AppModel extends Model {
 	}
 	
 	public function runUpdates() {
-		$adminTable = $this->query("SHOW TABLES LIKE 'administration';");
-		if (empty($adminTable)) $dbVersion = '2.4.0';
-		$currentVersion = explode('.', $this->mispVersion);
-		$dbVersion;
+		$this->AdminSetting = ClassRegistry::init('AdminSetting');
+		$db = ConnectionManager::getDataSource('default');
+		$tables = $db->listSources();
+		$requiresLogout = false;
+		// if we don't even have an admin table, time to create it.
+		if (!in_array('admin_settings', $tables)) {
+			$this->updateDatabase('adminTable');
+			$requiresLogout = true;
+		} else {
+			$db_version = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'db_version')));
+			$updates = $this->__findUpgrades($db_version['AdminSetting']['value']);
+			if (!empty($updates)) {
+				foreach ($updates as $update => $temp) {
+					$this->updateDatabase($update);
+					if ($temp) $requiresLogout = true;
+					$db_version['AdminSetting']['value'] = $update;
+					$this->AdminSetting->save($db_version);
+				}
+			}
+		}
+		if ($requiresLogout) {
+			$this->updateDatabase('destroyAllSessions');
+		}
+	}
+	private function __findUpgrades($db_version) {
+		$version = explode('.', $db_version);
+		$updates = array();
+		foreach ($this->db_changes as $major => $rest) {
+			if ($major < $version[0]) continue;
+			else if ($major == $version[0]) {
+				foreach ($rest as $minor => $hotfixes) {
+					if ($minor < $version[1]) continue;
+					else if ($minor == $version[1]) {
+						foreach ($hotfixes as $hotfix => $requiresLogout) if ($hotfix > $version[2]) $updates[$major . '.' . $minor . '.' . $hotfix] = $requiresLogout;
+					} else {
+						foreach ($hotfixes as $hotfix => $requiresLogout) $updates[$major . '.' . $minor . '.' . $hotfix] = $requiresLogout;
+					}
+				}
+			} else {
+				// we'll fill this out when 3.0 comes around
+			}
+		}
+		return $updates;
+	}
+	
+
+	public function populateNotifications($user) {
+		$notifications = array();
+		$proposalCount = $this->_getProposalCount($user);
+		$notifications['total'] = 0;
+		$notifications['proposalCount'] = $proposalCount[0];
+		$notifications['total'] += $proposalCount[0];
+		$notifications['proposalEventCount'] = $proposalCount[1];
+		if (Configure::read('MISP.delegation')) {
+			$delegationCount = $this->_getDelegationCount($user);
+			$notifications['total'] += $delegationCount;
+			$notifications['delegationCount'] = $delegationCount;
+		}
+		return $notifications;
+	}
+	
+
+	private function _getProposalCount($user) {
+		$this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
+		$this->ShadowAttribute->recursive = -1;
+		$shadowAttributes = $this->ShadowAttribute->find('all', array(
+				'recursive' => -1,
+				'fields' => array('event_id', 'event_org_id'),
+				'conditions' => array(
+						'ShadowAttribute.event_org_id' => $user['org_id'],
+						'ShadowAttribute.deleted' => 0,
+				)));
+		$results = array();
+		$eventIds = array();
+		$results[0] = count($shadowAttributes);
+		foreach ($shadowAttributes as $sa) {
+			if (!in_array($sa['ShadowAttribute']['event_id'], $eventIds)) $eventIds[] = $sa['ShadowAttribute']['event_id'];
+		}
+		$results[1] = count($eventIds);
+		return $results;
+	}
+	
+	private function _getDelegationCount($user) {
+		$this->EventDelegation = ClassRegistry::init('EventDelegation');
+		$delegations = $this->EventDelegation->find('count', array(
+				'recursive' => -1,
+				'conditions' => array(
+						'EventDelegation.org_id' => $user['org_id']
+				)
+		));
+		return $delegations;
 	}
 }

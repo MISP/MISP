@@ -41,7 +41,9 @@ class Log extends AppModel {
 							'reset_auth_key',
 							'update',
 							'enable',
-							'disable'
+							'disable',
+							'accept_delegation',
+							'request_delegation'
 						)),
 			'message' => 'Options : ...'
 		)

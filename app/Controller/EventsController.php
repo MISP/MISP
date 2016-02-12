@@ -683,6 +683,12 @@ class EventsController extends AppController {
 				$this->set($variable, $currentModel->{$variable});
 			}
 		}
+		if (Configure::read('MISP.delegation')) {
+			$this->loadModel('EventDelegation');
+			$delegationConditions = array('EventDelegation.event_id' => $event['Event']['id']);
+			if (!$this->_isSiteAdmin() && $this->userRole['perm_publish']) $delegationConditions['OR'] = array('EventDelegation.org_id' => $this->Auth->user('org_id'), 'EventDelegation.requester_org_id' => $this->Auth->user('org_id'));
+			$this->set('delegationRequest', $this->EventDelegation->find('first', array('conditions' => $delegationConditions, 'recursive' => -1, 'contain' => array('Org', 'RequesterOrg'))));
+		}
 		$this->set('contributors', $contributors);
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 	}
@@ -3294,5 +3300,55 @@ class EventsController extends AppController {
 			}
 		}
 		return false;
+	}
+	
+	public function delegation_index() {
+		$this->loadmodel('EventDelegation');
+		$delegatedEvents = $this->EventDelegation->find('list', array(
+				'conditions' => array('EventDelegation.org_id' => $this->Auth->user('org_id')),
+				'fields' => array('event_id')
+		));
+		$this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
+		$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
+		$tagNames = array('None');
+		foreach ($tags as $k => $v) {
+			$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
+		}
+		$this->set('tags', $tagNames);
+		$this->paginate = array(
+			'limit' => 60,
+			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+			'order' => array(
+					'Event.timestamp' => 'DESC'
+			),
+			'contain' => array(
+					'Org' => array('fields' => array('id', 'name')),
+					'Orgc' => array('fields' => array('id', 'name')),
+					'SharingGroup' => array('fields' => array('id', 'name')),
+					'ThreatLevel' => array('fields' => array('ThreatLevel.name'))
+					
+			),
+			'conditions' => array('Event.id' => $delegatedEvents),
+		);
+
+		$this->set('events', $this->paginate());
+		$threat_levels = $this->Event->ThreatLevel->find('all');
+		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		$this->set('analysisLevels', $this->Event->analysisLevels);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
+		
+		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
+		$this->set('shortDist', $shortDist);
+		$this->set('ajax', false);
+		$this->set('simple', true);
+		$this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
+		$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
+		$tagNames = array('None');
+		foreach ($tags as $k => $v) {
+			$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
+		}
+		$this->set('tags', $tagNames);
+		$this->render('index');
 	}
 }

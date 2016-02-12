@@ -337,6 +337,7 @@ td.action-links {
 dl {
 	line-height: 2em;
 	margin: 0em 0em;
+	overflow: hidden
 	/*width: 60%;*/
 }
 dl dd:nth-child(4n+2),
@@ -345,15 +346,19 @@ dl dt:nth-child(4n+1) {
 }
 
 dt {
+	float:left;
 	font-weight: bold;
-	padding-left: 4px;
+	padding: 0;
+	margin: 0;
 	vertical-align: top;
-	width: 12em;
+	width: 15%;
 }
 dd {
-	margin-left: 12em;
-	margin-top: -1.7em;
+	float:left;'
 	vertical-align: top;
+	width: 85%;
+	padding: 0;
+	margin: 0;
 }
 
 
@@ -749,13 +754,23 @@ a.proposal_link_red:hover {
 	z-index:5;
 }
 
-.confirmation_box legend {
+.confirmation_box legend, .confirmation .legend {
 	border-radius: 5px 5px 0px 0px;
 	margin-bottom:5px;
 	padding-left:5px;
 	width:295px;
 	background-color:black;
 	color:white;
+}
+
+.legend {
+	display: block;
+	width: 100%;
+	padding: 0;
+	font-size: 21px;
+	line-height: 40px;
+	color: #333333;
+	border: 0;
 }
 
 .ajax_popover_form {
@@ -777,6 +792,16 @@ a.proposal_link_red:hover {
 	width:690px;
 	background-color:black;
 	color:white;
+}
+
+.ajax_popover_form .legend {
+	border-radius: 10px 10px 0px 0px;
+	padding-left:10px;
+	width:690px;
+	background-color:black;
+	color:white;
+	font-size: 21px;
+	line-height: 40px;
 }
 
 .ajax_popover_form form {
@@ -1415,12 +1440,22 @@ a.proposal_link_red:hover {
 	color: orange !important;
 }
 
-.orange {
-	color: orange;
+.white {
+	color: white !important;
 }
 
 .bold {
 	font-weight: bold;
+}
+
+.background-red {
+	background: red !important;
+	color: white !important;
+}
+
+.background-blue {
+	background: #0088cc !important;
+	color: white !important;
 }
 
 .hidden {
@@ -1440,6 +1475,35 @@ a.discrete {
 
 .verticalSeparator {
 	border-left: 1px solid grey;
+}
+
+.notification-active {
+	float:left;
+	background-color:red; 
+	color:white;
+	border-radius: 50%;
+	width:20px;
+	height:20px;
+}
+
+.notification-passive {
+	float:left;
+	width:20px;
+	height:20px;
+}
+
+.dashboard_element{
+	border: 1px solid #0088cc;
+	border-radius: 5px;
+	box-shadow: 0px 0px 6px #B2B2B2;
+	padding-left:10px;
+	padding-right:10px;
+	width: 100%;
+	height: 100%;
+}
+
+.dashboard_container {
+	margin-right:15px;
 }
 
 @-webkit-keyframes rotation {

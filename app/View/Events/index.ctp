@@ -17,12 +17,13 @@
     </div>
 	<?php
 		$tab = "Center";
+		if (!isset($simple)) $simple = false;
 		$filtered = false;
-		if (count($passedArgsArray) > 0) {
+		if (!$simple && count($passedArgsArray) > 0) {
 			$tab = "Left";
 			$filtered = true;
 		}
-		if (!$ajax):
+		if (!$ajax && !$simple):
 	?>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">

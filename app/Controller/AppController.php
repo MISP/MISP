@@ -278,12 +278,21 @@ class AppController extends Controller {
 		}
 		$this->debugMode = 'debugOff';
 		if (Configure::read('debug') > 1) $this->debugMode = 'debugOn';
-		
+		// update script
+		$this->{$this->modelClass}->runUpdates();
+		$this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
 		$this->set('debugMode', $this->debugMode);
-		$proposalCount = $this->_getProposalCount();
-		$this->set('proposalCount', $proposalCount[0]);
-		$this->set('proposalEventCount', $proposalCount[1]);
+		$notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+		$this->set('notifications', $notifications);
 		$this->set('mispVersion', $this->mispVersion);
+	}
+	
+	private function __convertEmailToName($email) {
+		$name = explode('@', $email);
+		$name = explode('.', $name[0]);
+		foreach ($name as &$temp) $temp = ucfirst($temp);
+		$name = implode(' ', $name);
+		return $name;
 	}
 
 	public function blackhole($type) {
@@ -313,26 +322,6 @@ class AppController extends Controller {
 			if ($this->params['controller'] == $controllerName && in_array($this->params['action'], $controllerActions)) return true;
 		}
 		return false;
-	}
-
-	private function _getProposalCount() {
-		$this->loadModel('ShadowAttribute');
-		$this->ShadowAttribute->recursive = -1;
-		$shadowAttributes = $this->ShadowAttribute->find('all', array(
-				'recursive' => -1,
-				'fields' => array('event_id', 'event_org_id'),
-				'conditions' => array( 
-					'ShadowAttribute.event_org_id' => $this->Auth->user('org_id'),
-					'ShadowAttribute.deleted' => 0,
-		)));
-		$results = array();
-		$eventIds = array();
-		$results[0] = count($shadowAttributes);
-		foreach ($shadowAttributes as $sa) {
-			if (!in_array($sa['ShadowAttribute']['event_id'], $eventIds)) $eventIds[] = $sa['ShadowAttribute']['event_id'];
-		}
-		$results[1] = count($eventIds);
-		return $results;
 	}
 	
 /**
@@ -524,9 +513,5 @@ class AppController extends Controller {
 			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		}
-	}
-	
-	public function test() {
-		$this->{$this->modelClass}->runUpdates();
 	}
 }
