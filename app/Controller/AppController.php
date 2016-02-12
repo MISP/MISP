@@ -246,9 +246,7 @@ class AppController extends Controller {
 		// getActions returns all the flags in a single SQL query
 		if ($this->Auth->user()) {
 			//$this->_refreshAuth();
-			$versionArray = $this->{$this->modelClass}->checkMISPVersion();
-			$this->mispVersionFull = implode('.', array_values($versionArray));
-			$this->set('mispVersion', $this->mispVersion);
+			$this->set('mispVersionFull', $this->mispVersionFull);
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
 			$this->set('isAdmin', $role['perm_admin']);
@@ -266,9 +264,6 @@ class AppController extends Controller {
 			$this->set('isAclTemplate', $role['perm_template']);
 			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
 			$this->userRole = $role;
-			$proposalCount = $this->_getProposalCount();
-			$this->set('proposalCount', $proposalCount[0]);
-			$this->set('proposalEventCount', $proposalCount[1]);
 			$this->set('mispVersion', $this->mispVersion);
 		} else {
 			$this->set('me', false);
