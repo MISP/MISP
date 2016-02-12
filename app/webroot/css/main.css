@@ -1458,7 +1458,6 @@ a.proposal_link_red:hover {
 	font-weight: bold;
 }
 
-<<<<<<< HEAD
 .background-red {
 	background: red !important;
 	color: white !important;
@@ -1467,10 +1466,10 @@ a.proposal_link_red:hover {
 .background-blue {
 	background: #0088cc !important;
 	color: white !important;
-=======
+}
+
 .align-right {
 	text-align: right;
->>>>>>> 2.4
 }
 
 .hidden {
@@ -1492,7 +1491,6 @@ a.discrete {
 	border-left: 1px solid grey;
 }
 
-<<<<<<< HEAD
 .notification-active {
 	float:left;
 	background-color:red; 
@@ -1520,7 +1518,8 @@ a.discrete {
 
 .dashboard_container {
 	margin-right:15px;
-=======
+}
+
 .bottomGap {
 	margin-bottom:5px;
 }
@@ -1530,7 +1529,6 @@ a.discrete {
 	background-color:white;
 	padding:5px;
 	border-radius:5px;
->>>>>>> 2.4
 }
 
 @-webkit-keyframes rotation {
