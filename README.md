@@ -21,6 +21,7 @@ MISP, Malware Information Sharing Platform and Threat Sharing, core functionalit
 - Flexible **free text import** tool to ease the integration of unstructured reports into MISP.
 - A gentle system to **collaborate** on events and attributes allowing MISP users to propose changes or updates to attributes/indicators.
 - **data-sharing**: automatically exchange and synchronization with other parties and trust-groups using MISP.
+- **delegating of sharing**: allows a simple pseudo-anonymous mechanism to delegate publication of event/indicators to another organization.
 - Flexible **API** to integrate MISP with your own solutions. MISP is bundled with [PyMISP](https://github.com/MISP/PyMISP) which is a flexible Python Library to fetch, add or update events attributes, handle malware samples or search for attributes.
 - **Adjustable taxonomy** to classify and tag events following your own classification schemes or [existing classification](https://github.com/MISP/misp-taxonomies). The taxonomy can be local to your MISP but also shareable among MISP instances.
 - **STIX support**: export data in the STIX format (XML and JSON).
