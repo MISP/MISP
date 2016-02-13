@@ -246,7 +246,7 @@ class AppController extends Controller {
 		// getActions returns all the flags in a single SQL query
 		if ($this->Auth->user()) {
 			//$this->_refreshAuth();
-			$this->set('mispVersionFull', $this->mispVersionFull);
+			$this->set('mispVersionFull', $this->mispVersion);
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
 			$this->set('isAdmin', $role['perm_admin']);
