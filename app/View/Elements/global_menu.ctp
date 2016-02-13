@@ -71,6 +71,7 @@
 						</a>
 						<ul class="dropdown-menu">
 							<li><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
+							<li><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/memberslist">Members List</a></li>
 							<li><a href="<?php echo $baseurl;?>/organisations/index">Organisations</a></li>
 							<li><a href="<?php echo $baseurl;?>/roles/index">Role Permissions</a></li>
@@ -167,17 +168,6 @@
 			<div class="nav-collapse collapse pull-right">
 				<ul class="nav">
 					<li>
-						<a href="<?php echo $baseurl;?>/events/proposalEventIndex" <?php if ($proposalCount > 0) echo 'style="font-weight:bold;"'; ?>>
-							<?php 
-								$proposalPluralOrZero = 's';
-								if ($proposalCount == 1) $proposalPluralOrZero = '';
-								$proposalEventPluralOrZero = 's';
-								if ($proposalEventCount == 1) $proposalEventPluralOrZero = '';
-								echo $proposalCount . ' proposal' . $proposalPluralOrZero . ' in ' . $proposalEventCount . ' event' . $proposalEventPluralOrZero; 
-							?>
-						</a>
-					</li>
-					<li>
 						<a href="<?php echo $baseurl;?>/" id="fullLogo" style="font-weight:bold;">
 							<span class="logoBlueStatic">M</span><span class="logoGray">alware</span>
 							<span class="logoBlueStatic">I</span><span class="logoGray">nformation </span>
@@ -186,6 +176,14 @@
 						</a>
 						<a href="<?php echo $baseurl;?>/" id="smallLogo" style="display:none;font-weight:bold;">
 							<span class="logoBlueStatic">MISP</span>
+						</a>
+					</li>
+					<li>
+						<a href="<?php echo $baseurl;?>/users/view/me" class="white" style="padding-left:0px;padding-right:5px;" title="<?php echo h($me['email']);?>"><?php echo $loggedInUserName;?></a>
+					</li>
+					<li>
+						<a href="<?php echo $baseurl;?>/users/dashboard" style="padding-left:0px;padding-right:0px;">
+							<span class="notification-<?php echo ($notifications['total'] > 0) ? 'active' : 'passive';?>"><span style="float:left;margin-top:3px;margin-right:3px;margin-left:3px;" class="icon-envelope icon-white"></span></span>
 						</a>
 					</li>
 					<li><a href="<?php echo $baseurl;?>/users/logout">Log out</a></li>

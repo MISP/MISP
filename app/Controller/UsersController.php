@@ -589,6 +589,11 @@ class UsersController extends AppController {
 	public function login() {
 		if ($this->Auth->login()) {
 			$this->__extralog("login");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
+			$this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
+			$this->User->id = $this->Auth->user('id');
+			$this->User->saveField('last_login', $this->Auth->user('current_login'));
+			$this->User->saveField('current_login', time());
+			$this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
 			// TODO removed the auto redirect for now, due to security concerns - will look more into this
 			// $this->redirect($this->Auth->redirectUrl());
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -632,7 +637,10 @@ class UsersController extends AppController {
 						'description' => 'Automatically generated admin organisation',
 						'type' => 'ADMIN',
 						'uuid' => $this->User->Organisation->generateUuid(),
-						'local' => 1
+						'local' => 1,
+						'type' => '',
+						'sector' => '',
+						'nationality' => ''
 				));
 				$this->User->Organisation->save($org);
 				$org_id = $this->User->Organisation->id;
@@ -1073,5 +1081,17 @@ class UsersController extends AppController {
 		$this->autorender = false;
 		$this->layout = false;
 		$this->render('ajax/fetchpgpkey');
+	}
+	
+	public function dashBoard() {
+		$events = array();
+		// the last login in the session is not updated after the login - only in the db, so let's fetch it.
+		$lastLogin = $this->Auth->user('last_login');
+		$this->loadModel('Event');
+		$events['changed'] = count($this->Event->fetchEventIds($this->Auth->user(), false, false, false, true, $lastLogin));
+		$events['published'] = count($this->Event->fetchEventIds($this->Auth->user(), false, false, false, true, false, $lastLogin));
+		$notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+		$this->set('notifications', $notifications);
+		$this->set('events', $events);
 	}
 }

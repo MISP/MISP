@@ -1345,7 +1345,6 @@ class Attribute extends AppModel {
 
 	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
-
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
 			throw new UnauthorizedException('Invalid hash type.');
