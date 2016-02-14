@@ -668,10 +668,25 @@ class Event extends AppModel {
 					return 'You do not have permission to edit this event or the event is up to date.';
 				}
 			}
+			$uploadFailed = false;
 			try { // TODO Xml::build() does not throw the XmlException
 				$json = json_decode($newTextBody);
 			} catch (Exception $e) {
-				//throw new InternalErrorException();
+				$uploadFailed = true;
+			}
+			if (!array($json) || $uploadFailed) {
+				$log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => 'SYSTEM',
+						'model' => 'Server',
+						'model_id' => $server['Server']['id'],
+						'email' => 'SYSTEM',
+						'action' => 'warning',
+						'user_id' => 0,
+						'title' => 'Event upload failed.',
+						'change' => 'Returned message: ', $newTextBody,
+				));
 				return false;
 			}
 			// get the remote event_id
