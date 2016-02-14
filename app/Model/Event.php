@@ -684,7 +684,7 @@ class Event extends AppModel {
 						'email' => 'SYSTEM',
 						'action' => 'warning',
 						'user_id' => 0,
-						'title' => 'Event upload failed.',
+						'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
 						'change' => 'Returned message: ', $newTextBody,
 				));
 				return false;
