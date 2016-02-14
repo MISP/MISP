@@ -351,12 +351,12 @@ dt {
 	padding: 0;
 	margin: 0;
 	vertical-align: top;
-	width: 15%;
+	width: 150px;
 }
 dd {
 	float:left;'
 	vertical-align: top;
-	width: 85%;
+	width: calc(100% - 150px);
 	padding: 0;
 	margin: 0;
 }

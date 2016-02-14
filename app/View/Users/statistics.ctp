@@ -6,36 +6,38 @@
 <div class = "index">
 <h2>Statistics</h2>
 <p>Some statistics about this instance. The changes since the beginning of this month are noted in brackets wherever applicable</p>
-<dl style="width:250px;">
-	<dt><?php echo 'Events'; ?></dt>
-	<dd><?php echo h($stats[0]);
-		if ($stats[1]) echo ' <span style="color:green">(+' . h($stats[1]) . ')</span>&nbsp;';
-		else echo ' <span style="color:red">(0)</span>&nbsp;';?>
-	</dd>
-	<dt><?php echo 'Attributes'; ?></dt>
-	<dd><?php echo h($stats[2]);
-		if ($stats[1]) echo ' <span style="color:green">(+' . h($stats[3]) . ')</span>&nbsp;';
-		else echo ' <span style="color:red">(0)</span>&nbsp;';?>
-	</dd>
-	<dt><?php echo 'Correlations found'; ?></dt>
-	<dd><?php echo h($stats[4]); ?>&nbsp;</dd>
-	<dt><?php echo 'Proposals active'; ?></dt>
-	<dd><?php echo h($stats[5]); ?>&nbsp;</dd>
-	<dt><?php echo 'Users'; ?></dt>
-	<dd><?php echo h($stats[6]); ?>&nbsp;</dd>
-	<dt><?php echo 'Organisations'; ?></dt>
-	<dd><?php echo h($stats[7]); ?>&nbsp;</dd>
-	<dt><?php echo 'Discussion threads'; ?></dt>
-	<dd><?php echo h($stats[8]);
-		if ($stats[9]) echo ' <span style="color:green">(+' . h($stats[9]) . ')</span>&nbsp;';
-		else echo ' <span style="color:red">(0)</span>&nbsp;';?>
-	</dd>
-	<dt><?php echo 'Discussion posts'; ?></dt>
-	<dd><?php echo h($stats[10]);
-		if ($stats[11]) echo ' <span style="color:green">(+' . h($stats[11]) . ')</span>&nbsp;';
-		else echo ' <span style="color:red">(0)</span>&nbsp;';?>
-	</dd>
-</dl>
+<div style="width:250px;">
+	<dl>
+		<dt>Events</dt>
+		<dd><?php echo h($stats[0]);
+			if ($stats[1]) echo ' <span style="color:green">(+' . h($stats[1]) . ')</span>&nbsp;';
+			else echo ' <span style="color:red">(0)</span>&nbsp;';?>
+		</dd>
+		<dt><?php echo 'Attributes'; ?></dt>
+		<dd><?php echo h($stats[2]);
+			if ($stats[1]) echo ' <span style="color:green">(+' . h($stats[3]) . ')</span>&nbsp;';
+			else echo ' <span style="color:red">(0)</span>&nbsp;';?>
+		</dd>
+		<dt><?php echo 'Correlations found'; ?></dt>
+		<dd><?php echo h($stats[4]); ?>&nbsp;</dd>
+		<dt><?php echo 'Proposals active'; ?></dt>
+		<dd><?php echo h($stats[5]); ?>&nbsp;</dd>
+		<dt><?php echo 'Users'; ?></dt>
+		<dd><?php echo h($stats[6]); ?>&nbsp;</dd>
+		<dt><?php echo 'Organisations'; ?></dt>
+		<dd><?php echo h($stats[7]); ?>&nbsp;</dd>
+		<dt><?php echo 'Discussion threads'; ?></dt>
+		<dd><?php echo h($stats[8]);
+			if ($stats[9]) echo ' <span style="color:green">(+' . h($stats[9]) . ')</span>&nbsp;';
+			else echo ' <span style="color:red">(0)</span>&nbsp;';?>
+		</dd>
+		<dt><?php echo 'Discussion posts'; ?></dt>
+		<dd><?php echo h($stats[10]);
+			if ($stats[11]) echo ' <span style="color:green">(+' . h($stats[11]) . ')</span>&nbsp;';
+			else echo ' <span style="color:red">(0)</span>&nbsp;';?>
+		</dd>
+	</dl>
+</div>
 <br />
 <h3>Activity Heatmap</h3>
 <p>A heatmap showing user activity for each day during this month and the 4 months that preceded it. Use the buttons below to only show the heatmap of a specific organisation.</p>
