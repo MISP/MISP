@@ -892,7 +892,10 @@ class EventsController extends AppController {
 					}
 					if ($this->_isRest()) {
 						// $this->request->data = $this->Event->updateXMLArray($this->request->data, false);
-						if (isset($this->request->data['Event']['orgc_id']) && !$this->userRole['perm_sync']) $this->request->data['Event']['orgc_id'] = $this->Auth->user('org_id');
+						if (isset($this->request->data['Event']['orgc_id']) && !$this->userRole['perm_sync']) {
+							$this->request->data['Event']['orgc_id'] = $this->Auth->user('org_id');
+							if (isset($this->request->data['Event']['Orgc'])) unset($this->request->data['Event']['Orgc']);
+						}
 					}
 					$validationErrors = array();
 					$created_id = 0;
@@ -1968,7 +1971,10 @@ class EventsController extends AppController {
 		if (isset($dataArray['response']['Event'][0])) {
 			foreach ($dataArray['response']['Event'] as $k => $event) {
 				$result = array('info' => $event['info']);
-				if ($take_ownership) $event['orgc_id'] = $this->Auth->user('org_id');
+				if ($take_ownership) {
+					$event['orgc_id'] = $this->Auth->user('org_id');
+					unset($event['Orgc']);
+				}
 				$event = array('Event' => $event);
 				$created_id = 0;
 				$result['result'] = $this->Event->_add($event, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
@@ -1978,7 +1984,10 @@ class EventsController extends AppController {
 			}
 		} else {
 			$temp['Event'] = $dataArray['response']['Event'];
-			if ($take_ownership) $temp['Event']['orgc'] = $this->Auth->user('org');
+			if ($take_ownership)  {
+				$temp['Event']['orgc_id'] = $this->Auth->user('org_id');
+				unset($temp['Event']['Orgc']);
+			}
 			$created_id = 0;
 			$result = $this->Event->_add($temp, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
 			$results = array(0 => array('info' => $temp['Event']['info'], 'result' => $result, 'id' => $created_id, 'validationIssues' => $validationIssues));

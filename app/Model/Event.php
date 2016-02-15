@@ -1813,6 +1813,8 @@ class Event extends AppModel {
 		// Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
 		if (!isset($data['Event']['orgc_id']) && !isset($data['Event']['orgc'])) {
 			$data['Event']['orgc_id'] = $data['Event']['org_id'];
+		} else {
+			if ($data['Event']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
 		}
 		if ($fromXml) {
 			// Workaround for different structure in XML/array than what CakePHP expects
@@ -1823,6 +1825,7 @@ class Event extends AppModel {
 			unset($this->Attribute->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
 		}
 		unset ($data['Event']['id']);
+		if (isset($data['Event']['published']) && $data['Event']['published'] && !$user['Role']['perm_publish']) $data['Event']['published'] = false;
 		if (isset($data['Event']['uuid'])) {
 			// check if the uuid already exists
 			$existingEventCount = $this->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
@@ -1931,6 +1934,7 @@ class Event extends AppModel {
 			$recoverFields = array('analysis', 'threat_level_id', 'info', 'distribution', 'date');
 			foreach ($recoverFields as $rF) if (!isset($data['Event'][$rF])) $data['Event'][$rF] = $existingEvent['Event'][$rF];
 		} else return (array('error' => 'Event could not be saved: Could not find the local event.'));
+		if (isset($data['Event']['published']) && $data['Event']['published'] && !$user['Role']['publish']) $data['Event']['published'] = false;
 		$fieldList = array(
 				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'distribution', 'timestamp', 'sharing_group_id'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment', 'sharing_group_id')
