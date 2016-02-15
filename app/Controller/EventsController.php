@@ -2958,7 +2958,8 @@ class EventsController extends AppController {
 					'requiresPublished' => false,
 					'checkbox' => true,
 					'checkbox_text' => 'Encode Attachments',
-					'checkbox_set' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.xml'
+					'checkbox_set' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.xml',
+					'checkbox_default' => true
 			),
 			'json' => array(
 					'url' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/false.json',
@@ -2966,7 +2967,8 @@ class EventsController extends AppController {
 					'requiresPublished' => false,
 					'checkbox' => true,
 					'checkbox_text' => 'Encode Attachments',
-					'checkbox_set' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.json'
+					'checkbox_set' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.json',
+					'checkbox_default' => true
 			),
 			'openIOC' => array(
 					'url' => '/events/downloadOpenIOCEvent/' . $id,
