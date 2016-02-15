@@ -49,11 +49,23 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => true)
+			4 => array(18 => true, 19 => false)
 		)
 	);
 	
-
+	// Generic update script
+	public function updateMISP($command) {
+		switch($command) {
+			case '2.4.18':
+				$this->updateDatabase($command);
+				break;
+			case '2.4.19':
+				$this->updateDatabase($command);
+				break;
+		}
+	}
+	
+	// SQL scripts for updates
 	public function updateDatabase($command) {
 		$sql = '';
 		$this->Log = ClassRegistry::init('Log');
@@ -201,6 +213,10 @@ class AppModel extends Model {
 					KEY `org_id` (`org_id`),
 					KEY `event_id` (`event_id`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
+			case '2.4.19':
+				$sqlArray[] = "DELETE FROM `shadow_attributes` WHERE `event_uuid` = '';";
+				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
@@ -333,7 +349,7 @@ class AppModel extends Model {
 			$updates = $this->__findUpgrades($db_version['AdminSetting']['value']);
 			if (!empty($updates)) {
 				foreach ($updates as $update => $temp) {
-					$this->updateDatabase($update);
+					$this->updateMISP($update);
 					if ($temp) $requiresLogout = true;
 					$db_version['AdminSetting']['value'] = $update;
 					$this->AdminSetting->save($db_version);
