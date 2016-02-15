@@ -246,7 +246,10 @@ class AppController extends Controller {
 		// getActions returns all the flags in a single SQL query
 		if ($this->Auth->user()) {
 			//$this->_refreshAuth();
-			$this->set('mispVersionFull', $this->mispVersion);
+			$versionArray = $this->{$this->modelClass}->checkMISPVersion();
+			$this->mispVersionFull = implode('.', array_values($versionArray));
+			$this->set('mispVersion', implode('.', array($versionArray['major'], $versionArray['minor'], 0)));
+			$this->set('mispVersionFull', $this->mispVersionFull);
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
 			$this->set('isAdmin', $role['perm_admin']);
@@ -264,7 +267,6 @@ class AppController extends Controller {
 			$this->set('isAclTemplate', $role['perm_template']);
 			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
 			$this->userRole = $role;
-			$this->set('mispVersion', $this->mispVersion);
 		} else {
 			$this->set('me', false);
 		}
@@ -279,7 +281,6 @@ class AppController extends Controller {
 		$this->set('debugMode', $this->debugMode);
 		$notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
 		$this->set('notifications', $notifications);
-		$this->set('mispVersion', $this->mispVersion);
 	}
 	
 	private function __convertEmailToName($email) {
