@@ -239,7 +239,7 @@ class UsersController extends AppController {
 		$user_fields = array('id', 'email', 'gpgkey', 'nids_sid');
 		$conditions = array('org_id' => $id);
 		if ($this->_isSiteAdmin() || ($this->_isAdmin() && $this->Auth->user('org_id') == $id)) {
-			$user_fields = array_merge($user_fields, array('newsread', 'termsaccepted', 'change_pw', 'authkey'));
+			$user_fields = array_merge($user_fields, array('current_login', 'termsaccepted', 'change_pw', 'authkey'));
 		}
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['searchall'])) $this->request->data['all'] = $this->request->data['searchall'];
