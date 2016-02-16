@@ -588,6 +588,12 @@ class UsersController extends AppController {
 	
 	public function updateLoginTime() {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This feature is only accessible via POST requests');
+		$user = $this->User->find('first', array(
+			'recursive' => -1,
+			'conditions' => array('User.id' => $this->Auth->user('id'))	
+		));
+		$user['User']['last_login'] = time();
+		$user['User']['current_login'] = time();
 		$this->_refreshAuth();
 		$this->redirect(array('Controller' => 'User', 'action' => 'dashboard'));
 	}
