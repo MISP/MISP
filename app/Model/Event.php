@@ -1825,7 +1825,7 @@ class Event extends AppModel {
 			unset($this->Attribute->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
 		}
 		unset ($data['Event']['id']);
-		if (isset($data['Event']['published']) && $data['Event']['published'] && !$user['Role']['perm_publish']) $data['Event']['published'] = false;
+		if (isset($data['Event']['published']) && $data['Event']['published'] && $user['Role']['perm_publish'] == false) $data['Event']['published'] = false;
 		if (isset($data['Event']['uuid'])) {
 			// check if the uuid already exists
 			$existingEventCount = $this->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));

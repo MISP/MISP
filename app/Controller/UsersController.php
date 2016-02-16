@@ -585,6 +585,12 @@ class UsersController extends AppController {
 		$this->Session->setFlash(__('User was not deleted'));
 		$this->redirect(array('action' => 'index'));
 	}
+	
+	public function updateLoginTime() {
+		if (!$this->request->is('post')) throw new MethodNotAllowedException('This feature is only accessible via POST requests');
+		$this->_refreshAuth();
+		$this->redirect(array('Controller' => 'User', 'action' => 'dashboard'));
+	}
 
 	public function login() {
 		if ($this->Auth->login()) {
