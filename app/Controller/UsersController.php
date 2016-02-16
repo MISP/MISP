@@ -594,6 +594,7 @@ class UsersController extends AppController {
 		));
 		$user['User']['last_login'] = time();
 		$user['User']['current_login'] = time();
+		$this->User->save($user);
 		$this->_refreshAuth();
 		$this->redirect(array('Controller' => 'User', 'action' => 'dashboard'));
 	}
