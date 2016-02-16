@@ -592,10 +592,11 @@ class UsersController extends AppController {
 			'recursive' => -1,
 			'conditions' => array('User.id' => $this->Auth->user('id'))	
 		));
-		$user['User']['last_login'] = time();
-		$user['User']['current_login'] = time();
-		$this->User->save($user);
-		$this->_refreshAuth();
+		$this->User->id = $this->Auth->user('id');
+		$this->User->saveField('last_login', time());
+		$this->User->saveField('current_login', time());
+		$user = $this->User->getAuthUser($user['User']['id']);
+		$this->Auth->login($user);
 		$this->redirect(array('Controller' => 'User', 'action' => 'dashboard'));
 	}
 
