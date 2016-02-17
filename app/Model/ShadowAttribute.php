@@ -566,7 +566,7 @@ class ShadowAttribute extends AppModel {
 			foreach ($proposals as $k => $proposal) {
 				$this->__afterSaveCorrelation($proposal['ShadowAttribute']);
 				if ($jobId && Configure::read('MISP.background_jobs') && $k > 0 && $proposalCount % $k == 10) {
-					$this->Job->saveField('progress', ($j / $eventCount * (100 - $startPercentage)));
+					$this->Job->saveField('progress', ($k / $proposalCount * 100));
 				} 
 			}
 		}
