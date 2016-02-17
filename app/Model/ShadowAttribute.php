@@ -562,6 +562,10 @@ class ShadowAttribute extends AppModel {
 		// get all proposals..
 		$proposals = $this->find('all', array('recursive' => -1, 'conditions' => array('ShadowAttribute.deleted' => 0, 'ShadowAttribute.proposal_to_delete' => 0)));
 		$proposalCount = count($proposals);
+		if ($jobId && Configure::read('MISP.background_jobs')) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+		}
 		if ($proposalCount > 0) {
 			foreach ($proposals as $k => $proposal) {
 				$this->__afterSaveCorrelation($proposal['ShadowAttribute']);
@@ -571,8 +575,6 @@ class ShadowAttribute extends AppModel {
 			}
 		}
 		if ($jobId && Configure::read('MISP.background_jobs')) {
-			$this->Job = ClassRegistry::init('Job');
-			$this->Job->id = $jobId;
 			$this->Job->saveField('progress', 100);
 			$this->Job->saveField('status', 4);
 			$this->Job->saveField('message', 'Job done.');
