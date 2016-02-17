@@ -49,17 +49,21 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => true, 19 => false)
+			4 => array(18 => true, 19 => false, 20 => false)
 		)
 	);
 	
 	// Generic update script
+	// add special cases where the upgrade does more than just update the DB
+	// this could become useful in the future
 	public function updateMISP($command) {
 		switch($command) {
-			case '2.4.18':
+			case '2.4.20':
 				$this->updateDatabase($command);
+				$this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
+				$this->ShadowAttribute->upgradeToProposalCorrelation();
 				break;
-			case '2.4.19':
+			default:
 				$this->updateDatabase($command);
 				break;
 		}
@@ -216,6 +220,30 @@ class AppModel extends Model {
 				break;
 			case '2.4.19':
 				$sqlArray[] = "DELETE FROM `shadow_attributes` WHERE `event_uuid` = '';";
+				break;
+			case '2.4.20':
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `shadow_attribute_correlations` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`org_id` int(11) NOT NULL,
+					`value` text NOT NULL,
+					`distribution` tinyint(4) NOT NULL,
+					`a_distribution` tinyint(4) NOT NULL,
+					`sharing_group_id` int(11),
+					`a_sharing_group_id` int(11),
+					`attribute_id` int(11) NOT NULL,
+					`1_shadow_attribute_id` int(11) NOT NULL,
+					`event_id` int(11) NOT NULL,
+					`1_event_id` int(11) NOT NULL,
+					 `info` text COLLATE utf8_bin NOT NULL,
+					PRIMARY KEY (`id`),
+					KEY `org_id` (`org_id`),
+					KEY `attribute_id` (`attribute_id`),
+					KEY `a_sharing_group_id` (`a_sharing_group_id`),
+					KEY `event_id` (`event_id`),
+					KEY `1_event_id` (`event_id`),
+					KEY `sharing_group_id` (`sharing_group_id`),
+					KEY `1_shadow_attribute_id` (`1_shadow_attribute_id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4';

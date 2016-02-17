@@ -1434,6 +1434,10 @@ a.proposal_link_red:hover {
 	color: red !important;
 }
 
+.blue {
+	color: #0088cc !important;
+}
+
 .green {
 	color: green !important;
 }

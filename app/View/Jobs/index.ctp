@@ -60,7 +60,7 @@ foreach ($list as $k => $item): ?>
 		<td class="short"><?php echo h($item['Job']['job_type']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Job']['job_input']); ?>&nbsp;</td>
 		<td><?php echo h($item['Job']['message']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($item['Org']['name']); ?>&nbsp;</td>
+		<td class="short"><?php echo isset($item['Org']['name']) ? h($item['Org']['name']) : 'SYSTEM'; ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Job']['status']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Job']['retries']); ?>&nbsp;</td>
 		<td style="width:200px;">

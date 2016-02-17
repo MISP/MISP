@@ -12,7 +12,15 @@ class AdminShell extends AppShell
 		$this->Attribute->generateCorrelation($jobId, 0);
 		$this->Job->saveField('progress', 100);
 		$this->Job->saveField('message', 'Job done.');
-		$this->Job->saveField('status', 1);
+		$this->Job->saveField('status', 4);
+	}
+	
+	public function jobGenerateShadowAttributeCorrelation() {
+		$jobId = $this->args[0];
+		$this->loadModel('Job');
+		$this->Job->id = $jobId;
+		$this->loadModel('ShadowAttribute');
+		$this->ShadowAttribute->generateCorrelation($jobId);
 	}
 	
 	public function jobUpgrade24() {
@@ -24,7 +32,7 @@ class AdminShell extends AppShell
 		$this->Server->upgrade2324($user_id, $jobId);
 		$this->Job->saveField('progress', 100);
 		$this->Job->saveField('message', 'Job done.');
-		$this->Job->saveField('status', 1);
+		$this->Job->saveField('status', 4);
 	}
 }
 

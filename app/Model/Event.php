@@ -538,76 +538,81 @@ class Event extends AppModel {
 		);
 		return $relatedEvents;
 	}
-
-	public function getRelatedAttributes($user, $id = null, $sgids) {
+	
+	public function getRelatedAttributes($user, $id = null, $sgids, $shadowAttribute = false) {
+		$context = $shadowAttribute ? 'ShadowAttribute' : 'Attribute';
+		$settings = array(
+			'Attribute' => array('model' => 'Attribute', 'correlationModel' => 'Correlation', 'parentIdField' => '1_attribute_id'),
+			'ShadowAttribute' => array('model' => 'ShadowAttribute', 'correlationModel' => 'ShadowAttributeCorrelation', 'parentIdField' => '1_shadow_attribute_id')	
+		);
 		if ($id == null) $id = $this->data['Event']['id'];
 		if (!isset($sgids) || empty($sgids)) $sgids = array(-1);
-		$this->Correlation = ClassRegistry::init('Correlation');
-		// search the correlation table for the event ids of the related attributes
+		$this->$settings[$context]['correlationModel'] = ClassRegistry::init($settings[$context]['correlationModel']);
 		if (!$user['Role']['perm_site_admin']) {
-		    $conditionsCorrelation = array(
-		    	'AND' => array(
-		    		'Correlation.1_event_id' => $id,
-					array(
-						'OR' => array(
-							'Correlation.org_id' => $user['org_id'],
-							'AND' => array(
-								array(
+			$conditionsCorrelation = array(
+					'AND' => array(
+							$settings[$context]['correlationModel'] . '.1_event_id' => $id,
+							array(
 									'OR' => array(
-										array(
-											'AND' => array(	
-												'Correlation.distribution >' => 0,
-												'Correlation.distribution <' => 4,
-											),
-										),
-										array(
+											$settings[$context]['correlationModel'] . '.org_id' => $user['org_id'],
 											'AND' => array(
-												'Correlation.distribution' => 4,
-												'Correlation.sharing_group_id' => $sgids
+													array(
+															'OR' => array(
+																	array(
+																			'AND' => array(
+																					$settings[$context]['correlationModel'] . '.distribution >' => 0,
+																					$settings[$context]['correlationModel'] . '.distribution <' => 4,
+																			),
+																	),
+																	array(
+																			'AND' => array(
+																					$settings[$context]['correlationModel'] . '.distribution' => 4,
+																					$settings[$context]['correlationModel'] . '.sharing_group_id' => $sgids
+																			),
+																	),
+															),
+													),
+													array(
+															'OR' => array(
+																	$settings[$context]['correlationModel'] . '.a_distribution' => 5,
+																	array(
+																			'AND' => array(
+																					$settings[$context]['correlationModel'] . '.a_distribution >' => 0,
+																					$settings[$context]['correlationModel'] . '.a_distribution <' => 4,
+																			),
+																	),
+																	array(
+																			'AND' => array(
+																					$settings[$context]['correlationModel'] . '.a_distribution' => 4,
+																					$settings[$context]['correlationModel'] . '.a_sharing_group_id' => $sgids
+																			),
+																	),
+															),
+													),
 											),
-										),
-									),
-								),
-								array(
-									'OR' => array(
-										'Correlation.a_distribution' => 5,
-										array(
-											'AND' => array(	
-												'Correlation.a_distribution >' => 0,
-												'Correlation.a_distribution <' => 4,
-											),
-										),
-										array(
-											'AND' => array(
-												'Correlation.a_distribution' => 4,
-												'Correlation.a_sharing_group_id' => $sgids
-											),
-										),
-									),
-								),
-							),
-						),
-					),
-		    	),
-		    );
+									)
+							)
+								
+					)
+			);
 		} else {
-		    $conditionsCorrelation = array('Correlation.1_event_id' => $id);
+			$conditionsCorrelation = array($settings[$context]['correlationModel'] . '.1_event_id' => $id);
 		}
-		$correlations = $this->Correlation->find('all',array(
-		        'fields' => 'Correlation.*',
-		        'conditions' => $conditionsCorrelation,
-		        'recursive' => 0,
-		        'order' => array('Correlation.event_id DESC')));
+		$correlations = $this->$settings[$context]['correlationModel']->find('all',array(
+				'fields' => $settings[$context]['correlationModel'] . '.*',
+				'conditions' => $conditionsCorrelation,
+				'recursive' => 0,
+				'order' => array($settings[$context]['correlationModel'] . '.event_id DESC')));
 		$relatedAttributes = array();
 		foreach ($correlations as $correlation) {
 			$current = array(
-		            'id' => $correlation['Correlation']['event_id'],
-		            'org_id' => $correlation['Correlation']['org_id'],
-		    		'info' => $correlation['Correlation']['info'],
-					'value' => $correlation['Correlation']['value'],
-		    );
-			if (empty($relatedAttributes[$correlation['Correlation']['1_attribute_id']]) || !in_array($current, $relatedAttributes[$correlation['Correlation']['1_attribute_id']])) {
-		    	$relatedAttributes[$correlation['Correlation']['1_attribute_id']][] = $current;
+					'id' => $correlation[$settings[$context]['correlationModel']]['event_id'],
+					'org_id' => $correlation[$settings[$context]['correlationModel']]['org_id'],
+					'info' => $correlation[$settings[$context]['correlationModel']]['info'],
+					'value' => $correlation[$settings[$context]['correlationModel']]['value'],
+			);
+			if (empty($relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]]) || !in_array($current, $relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]])) {
+				$relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]][] = $current;
 			}
 		}
 		return $relatedAttributes;
@@ -1283,6 +1288,7 @@ class Event extends AppModel {
 			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgsids);
 			// Let's also find all the relations for the attributes - this won't be in the xml export though
 			$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgsids);
+			$results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgsids, true);
 			if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute']) && isset($options['includeAttachments']) && $options['includeAttachments']) {
 				foreach ($event['ShadowAttribute'] as &$sa) {
 					if ($this->ShadowAttribute->typeIsAttachment($sa['type'])) {

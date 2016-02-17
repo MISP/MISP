@@ -175,7 +175,6 @@ class ShadowAttribute extends AppModel {
  * @return bool always true
  */
 	public function beforeSave($options = array()) {
-
 		// explode value of composite type in value1 and value2
 		// or copy value to value1 if not composite type
 		if (!empty($this->data['ShadowAttribute']['type'])) {
@@ -195,10 +194,65 @@ class ShadowAttribute extends AppModel {
 				$this->data['ShadowAttribute']['value2'] = '';
 			}
 		}
-		// always return true after a beforeSave()
+		if (isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) {
+			$this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
+		}
 		return true;
 	}
 
+	private function __beforeDeleteCorrelation(&$sa) {
+		$this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
+		$this->ShadowAttributeCorrelation->deleteAll(array('ShadowAttributeCorrelation.1_shadow_attribute_id' => $sa['id']));
+	}
+	
+	private function __afterSaveCorrelation(&$sa) {
+		if (in_array($sa['type'], $this->Event->Attribute->nonCorrelatingTypes)) return;
+		$this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
+		$shadow_attribute_correlations = array();
+		$fields = array('value1', 'value2');
+		$correlatingValues = array($sa['value1']);
+		if (!empty($sa['value2'])) $correlatingValues[] = $sa['value2'];
+		foreach ($correlatingValues as $k => $cV) {
+			$correlatingAttributes[$k] = $this->Event->Attribute->find('all', array(
+					'conditions' => array(
+							'AND' => array(
+									'OR' => array(
+											'Attribute.value1' => $cV,
+											'Attribute.value2' => $cV
+									),
+									'Attribute.type !=' => $this->Event->Attribute->nonCorrelatingTypes,
+							),
+					),
+					'recursive => -1',
+					'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id'),
+					'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
+					'order' => array(),
+			));
+			foreach ($correlatingAttributes[$k] as $key => &$correlatingAttribute) {
+				if ($correlatingAttribute['Attribute']['event_id'] == $sa['event_id']) unset($correlatingAttributes[$k][$key]);
+			}
+			foreach ($correlatingAttributes as $k => $cA) {
+				foreach ($cA as $corr) {
+					$shadow_attribute_correlations[] = array(
+							'value' => $correlatingValues[$k],
+							'1_event_id' => $sa['event_id'],
+							'1_shadow_attribute_id' => $sa['id'],
+							'event_id' => $corr['Attribute']['event_id'],
+							'attribute_id' => $corr['Attribute']['id'],
+							'org_id' => $corr['Event']['org_id'],
+							'distribution' => $corr['Event']['distribution'],
+							'a_distribution' => $corr['Attribute']['distribution'],
+							'sharing_group_id' => $corr['Event']['sharing_group_id'],
+							'a_sharing_group_id' => $corr['Attribute']['sharing_group_id'],
+							'date' => $corr['Event']['date'],
+							'info' => $corr['Event']['info'],
+					);
+				}
+			}
+		}
+		if (!empty($shadow_attribute_correlations)) $this->ShadowAttributeCorrelation->saveMany($shadow_attribute_correlations);
+	}
+	
 	public function afterSave($created, $options = array()) {
 		$result = true;
 		// if the 'data' field is set on the $this->data then save the data to the correct file
@@ -219,6 +273,12 @@ class ShadowAttribute extends AppModel {
 			if (isset($this->data['ShadowAttribute']['type']) && $this->typeIsAttachment($this->data['ShadowAttribute']['type']) && !empty($this->data['ShadowAttribute']['data'])) {
 				$result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
 			}
+		}
+		if ((isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) || (isset($this->data['ShadowAttribute']['proposal_to_delete']) && $this->data['ShadowAttribute']['proposal_to_delete'])) {
+			// this is a deletion
+			// Could be a proposal to delete or flagging a proposal that it was discarded / accepted - either way, we don't want to correlate here for now
+		} else {
+			$this->__afterSaveCorrelation($this->data['ShadowAttribute']);
 		}
 		return $result;
 	}
@@ -417,10 +477,12 @@ class ShadowAttribute extends AppModel {
 	
 	public function setDeleted($id) {
 		$this->Behaviors->detach('SysLogLogable.SysLogLogable');
-		$this->id = $id;
-		$this->saveField('deleted', 1);
+		$sa = $this->find('first', array('conditions' => array('ShadowAttribute.id' => $id), 'recusive' => -1));
+		if (empty($sa)) return false;
 		$date = new DateTime();
-		$this->saveField('timestamp', $date->getTimestamp());
+		$sa['ShadowAttribute']['deleted'] = 1;
+		$sa['ShadowAttribute']['timestamp'] = $date->getTimestamp();
+		$this->save($sa);
 		return true;
 	}
 	
@@ -492,6 +554,103 @@ class ShadowAttribute extends AppModel {
 		}
 		$fieldList = array('proposal_email_lock', 'id', 'info');
 		$this->Event->save($event, array('fieldList' => $fieldList));
+	}
+	
+	public function generateCorrelation($jobId = false) {
+		$this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
+		$this->ShadowAttributeCorrelation->deleteAll(array('id !=' => 0), false);
+		// get all proposals..
+		$proposals = $this->find('all', array('recursive' => -1, 'conditions' => array('ShadowAttribute.deleted' => 0, 'ShadowAttribute.proposal_to_delete' => 0)));
+		$proposalCount = count($proposals);
+		if ($proposalCount > 0) {
+			foreach ($proposals as $k => $proposal) {
+				$this->__afterSaveCorrelation($proposal['ShadowAttribute']);
+				if ($jobId && Configure::read('MISP.background_jobs') && $k > 0 && $proposalCount % $k == 10) {
+					$this->Job->saveField('progress', ($j / $eventCount * (100 - $startPercentage)));
+				} 
+			}
+		}
+		if ($jobId && Configure::read('MISP.background_jobs')) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+			$this->Job->saveField('progress', 100);
+			$this->Job->saveField('status', 4);
+			$this->Job->saveField('message', 'Job done.');
+		}
+		return $proposalCount;
+	}
+	
+	public function upgradeToProposalCorrelation() {
+		$this->Log = ClassRegistry::init('Log');
+		if (!Configure::read('MISP.background_jobs')) {
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => 0,
+					'email' => 'SYSTEM',
+					'action' => 'update_database',
+					'user_id' => 0,
+					'title' => 'Starting proposal correlation generation',
+					'change' => 'The generation of Proposal correlations as part of the 2.4.20 datamodel upgrade has started'
+			));
+			$count = $this->generateCorrelation();
+			$this->Log->create();
+			if (is_numeric($count)) {
+				$this->Log->save(array(
+						'org' => 'SYSTEM',
+						'model' => 'Server',
+						'model_id' => 0,
+						'email' => 'SYSTEM',
+						'action' => 'update_database',
+						'user_id' => 0,
+						'title' => 'Proposal correlation generation complete',
+						'change' => 'The generation of Proposal correlations as part of the 2.4.20 datamodel upgrade is completed. ' . $count . ' proposals used.'
+				));
+			} else {
+				$this->Log->save(array(
+						'org' => 'SYSTEM',
+						'model' => 'Server',
+						'model_id' => 0,
+						'email' => 'SYSTEM',
+						'action' => 'update_database',
+						'user_id' => 0,
+						'title' => 'Proposal correlation generation failed',
+						'change' => 'The generation of Proposal correlations as part of the 2.4.20 has failed. You can rerun it from the administrative tools.'
+				));
+			}
+		} else {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'generate proposal correlation',
+					'job_input' => 'All attributes',
+					'retries' => 0,
+					'status' => 1,
+					'org' => 'SYSTEM',
+					'message' => 'Correlating Proposals.',
+			);
+			$job->save($data);
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'default',
+					'AdminShell',
+					array('jobGenerateShadowAttributeCorrelation', $jobId)
+			);
+			$job->saveField('process_id', $process_id);
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => 0,
+					'email' => 'SYSTEM',
+					'action' => 'update_database',
+					'user_id' => 0,
+					'title' => 'Proposal correlation generation job queued',
+					'change' => 'The job for the generation of Proposal correlations as part of the 2.4.20 datamodel upgrade has been queued'
+			));
+		}
 	}
 }
 

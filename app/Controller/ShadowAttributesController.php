@@ -1122,4 +1122,35 @@ class ShadowAttributesController extends AppController {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted, but ' . count($fails) . ' proposal' . (count($fails) != 1 ? 's' : '') . ' could not be accepted.')),'status'=>200));
 		}
 	}
+	
+	public function generateCorrelation() {
+		if (!self::_isSiteAdmin() || !$this->request->is('post')) throw new NotFoundException();
+		if (!Configure::read('MISP.background_jobs')) {
+			$k = $this->ShadowAttribute->generateCorrelation();
+			$this->Session->setFlash(__('All done. ' . $k . ' proposals processed.'));
+			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+		} else {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'generate proposal correlation',
+					'job_input' => 'All attributes',
+					'status' => 0,
+					'retries' => 0,
+					'org' => 'ADMIN',
+					'message' => 'Job created.',
+			);
+			$job->save($data);
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'default',
+					'AdminShell',
+					array('jobGenerateShadowAttributeCorrelation', $jobId)
+			);
+			$job->saveField('process_id', $process_id);
+			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
+			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+		}
+	}
 }

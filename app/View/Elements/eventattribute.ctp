@@ -241,13 +241,21 @@
 							<td class="shortish <?php echo $extra; ?>">
 								<ul class="inline" style="margin:0px;">
 									<?php 
-										if ($object['objectType'] == 0 && isset($event['RelatedAttribute'][$object['id']]) && (null != $event['RelatedAttribute'][$object['id']])) {
-											foreach ($event['RelatedAttribute'][$object['id']] as $relatedAttribute) {
+										if ($object['objectType'] == 0) {
+											$relatedObject = 'Attribute';
+											$otherColour = $object['hasChildren'] == 0 ? 'blue' : 'white';
+										} else {
+											$relatedObject = 'ShadowAttribute';
+											$otherColour = 'white';
+										}
+										$relatedObject = $object['objectType'] == 0 ? 'Attribute' : 'ShadowAttribute';
+										if (isset($event['Related' . $relatedObject][$object['id']]) && (null != $event['Related' . $relatedObject][$object['id']])) {
+											foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute) {
 												echo '<li style="padding-right: 0px; padding-left:0px;" title ="' . h($relatedAttribute['info']) . "\n Correlating value: " . h($relatedAttribute['value']) . '"><span>';
 												if ($relatedAttribute['org_id'] == $me['org_id']) {
-													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('style' => 'color:red;'));
+													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('class' => 'red'));
 												} else {
-													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']));
+													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('class' => $otherColour));
 												}
 												echo "</span></li>";
 												echo ' ';
