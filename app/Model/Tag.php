@@ -106,7 +106,7 @@ class Tag extends AppModel {
 	public function captureTag($tag, $user) {
 		$existingTag = $this->find('first', array(
 				'recursive' => -1,
-				'conditions' => array('name' => $tag['name'])
+				'conditions' => array('LOWER(name)' => strtolower($tag['name']))
 		));
 		if (empty($existingTag)) {
 			$this->create();
