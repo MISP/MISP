@@ -162,15 +162,15 @@ Use semicolons instead (the search will automatically search for colons instead)
 <code>{"request": {"tags": ["OSINT", "!OUTDATED"], "policy": "walled-garden", "walled_garden": "teamliquid.net", "refresh": "5h"}</code>
 <h4>Various ways to narrow down the search results of the STIX export</h4>
 <p>For example, to retrieve all events tagged "APT1" but excluding events tagged "OSINT" and excluding events #51 and #62 without any attachments:
-<pre><?php echo $baseurl;?>/events/stix/download/!51&amp;&amp;!62/false/APT1&amp;&amp;!OSINT/</pre>
+<pre><?php echo $baseurl;?>/events/stix/download/!51&amp;&amp;!62/false/APT1&amp;&amp;!OSINT/2015-02-15</pre>
 <p>To export the same events using a POST request use:</p>
 <pre><?php echo $baseurl;?>/events/stix/download.json</pre>
 <p>Together with this JSON object in the POST message:</p>
-<code>{"request": {"id":["!51","!62"],"tags":["APT1","!OSINT"],"from":""}}</code><br /><br />
+<code>{"request": {"id":["!51","!62"],"tags":["APT1","!OSINT"],"from":"2015-02-15"}}</code><br /><br />
 <p>XML is automatically assumed when using the stix export:</p>
 <pre><?php echo $baseurl;?>/events/stix/download</pre>
 <p>The same search could be accomplished using the following POSTed XML object (note that ampersands need to be escaped, or alternatively separate id and tag elements can be used): </p>
-<code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;&lt;/from&gt;&lt;/request&gt;</code>
+<code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;2015-02-15&lt;/from&gt;&lt;/request&gt;</code>
 <h3>Text export</h3>
 <p>An export of all attributes of a specific type to a plain text file. By default only published and IDS flagged attributes are exported.</p>
 <p>You can configure your tools to automatically download the following files:</p>
