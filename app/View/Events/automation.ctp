@@ -34,9 +34,9 @@ Use semicolons instead (the search will automatically search for colons instead)
 </p>
 <pre><?php echo $baseurl;?>/events/xml/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
 <p>
-<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
-<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
 </p>
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>Also check out the <a href="<?php echo $baseurl;?>/pages/display/doc/using_the_system#rest">User Guide</a> to read about the REST API.</p>
@@ -60,9 +60,9 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>category</b>: The attribute category, any valid MISP attribute category is accepted.<br />
 <b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
 <b>includeContext</b>: Include the event data with each attribute.<br />
-<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
-<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m).This filter will use the published timestamp of the event.<br />
 </p>
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>To export the attributes of all events that are of the type "domain", use the following syntax:</p>
@@ -83,9 +83,9 @@ Use semicolons instead (the search will automatically search for colons instead)
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 <pre><?php echo $baseurl;?>/events/nids/snort/download/false/false/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
-<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
-<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 6d or 12h or 30m)<br />
+<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 6d or 12h or 30m). This filter will use the published timestamp of the event.<br />
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>An example for a suricata export for all events excluding those tagged tag1, without all of the commented information at the start of the file would look like this:</p>
 <pre><?php echo $baseurl;?>/events/nids/suricata/download/null/true/!tag1</pre>
@@ -106,9 +106,9 @@ You can also chain several tag commands together with the '&amp;&amp;' operator.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 <pre><?php echo $baseurl;?>/events/hids/md5/download/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
 <p>
-<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
-<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event. <br />
+<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
 </p>
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>For example, to only show sha1 values from events tagged tag1, use:</p>
@@ -128,9 +128,9 @@ Use semicolons instead (the search will automatically search for colons instead)
 </p>
 <pre><?php echo $baseurl;?>/events/stix/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
 <p>
-<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
-<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
 </p>
 <p>You can post an XML or JSON object containing additional parameters in the following formats:</p>
 <p>JSON:</p>
@@ -206,9 +206,9 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>
 <b>event_id</b>: Restrict the results to the given event IDs. <br />
 <b>allowNonIDS</b>: Allow attributes to be exported that are not marked as "to_ids".<br />
-<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
-<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
 </p>
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>For example, to retrieve all attributes for event #5, including non IDS marked attributes too, use the following line:</p>
@@ -239,9 +239,9 @@ Use semicolons instead (the search will automatically search for colons instead)
 ?>
 </pre>
 <b>quickfilter</b>: Enabling this (by passing "1" as the argument) will make the search ignore all of the other arguments, except for the auth key and value. MISP will return an xml / json (depending on the header sent) of all events that have a sub-string match on value in the event info, event orgc, or any of the attribute value1 / value2 fields, or in the attribute comment. <br />
-<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
-<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
 <b>eventid</b>: The events that should be included / excluded from the search<br />
 <b>withAttachments</b>: If set, encodes the attachments / zipped malware samples as base64 in the data field within each attribute<br />
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
@@ -266,7 +266,7 @@ You can also chain several tag commands together with the '&amp;&amp;' operator.
 Use semicolons instead (the search will automatically search for colons instead).<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
 <b>eventid</b>: The events that should be included / excluded from the search<br />
 <b>withAttachments</b>: If set, encodes the attachments / zipped malware samples as base64 in the data field within each attribute<br /><br />
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
