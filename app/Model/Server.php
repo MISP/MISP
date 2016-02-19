@@ -826,7 +826,30 @@ class Server extends AppModel {
 						'type' => 'string',
 						'afterHook' => 'zmqAfterHook',
 					),
-					
+					'Enrichment_services_enable' => array(
+						'level' => 0,
+						'description' => 'Enable/disable the enrichment services',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'Enrichment_services_url' => array(
+						'level' => 1,
+						'description' => 'The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666',
+						'value' => 'http://127.0.0.1',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string'
+					),
+					'Enrichment_services_port' => array(
+						'level' => 1,
+						'description' => 'The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666',
+						'value' => '6666',
+						'errorMessage' => '',
+						'test' => 'testForPortNumber',
+						'type' => 'numeric'
+					)
 			),
 			'debug' => array(
 					'level' => 0,
@@ -2493,5 +2516,28 @@ class Server extends AppModel {
 			$validServers[] = $server;
 		}
 		return $validServers;
+	}
+	
+	public function getEnrichmentModules() {
+		if (!Configure::read('Plugin.Enrichment_services_enable')) return 'Enrichment service not enabled.';
+		$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->serverSettings['Plugin']['Enrichment_services_url']['value'];
+		$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->serverSettings['Plugin']['Enrichment_services_port']['value'];
+		App::uses('HttpSocket', 'Network/Http');
+		$httpSocket = new HttpSocket();
+		try {
+			$response = $httpSocket->get($url . ':' . $port . '/modules');
+		} catch (Exception $e) {
+			return 'Enrichment service not reachable.';
+		}
+		$modules = json_decode($response->body, true);
+		if (!empty($modules)) {
+			$result = array('modules' => $modules);
+			foreach ($modules as &$module) {
+				foreach ($module['mispattributes'] as $attribute) {
+					$result['types'][$attribute][] = $module['name'];
+				}
+			}
+			return $result;
+		} else return 'The enrichment service reports that it found no enrichment modules.';
 	}
 }

@@ -705,6 +705,12 @@ class EventsController extends AppController {
 			if (!$this->_isSiteAdmin() && $this->userRole['perm_publish']) $delegationConditions['OR'] = array('EventDelegation.org_id' => $this->Auth->user('org_id'), 'EventDelegation.requester_org_id' => $this->Auth->user('org_id'));
 			$this->set('delegationRequest', $this->EventDelegation->find('first', array('conditions' => $delegationConditions, 'recursive' => -1, 'contain' => array('Org', 'RequesterOrg'))));
 		}
+		
+		if (Configure::read('Plugin.Enrichment_services_enable')) {
+			$this->loadModel('Server');
+			$modules = $this->Server->getEnrichmentModules();
+			if (is_array($modules)) $this->set('modules', $modules);
+		}
 		$this->set('contributors', $contributors);
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 	}
@@ -3399,5 +3405,49 @@ class EventsController extends AppController {
 		}
 		$this->set('tags', $tagNames);
 		$this->render('index');
+	}
+	
+	// expects an attribute ID and a context
+	public function queryEnrichment($attribute_id, $context, $module = false) {
+		if (!Configure::read('Plugin.Enrichment_services_enable')) throw new MethodNotAllowedException('Enrichment services are not enabled.');
+		$attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id)));
+		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
+		if ($this->request->is('ajax')) {
+			$this->loadModel('Server');
+			$modules = $this->Server->getEnrichmentModules();
+			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			$modules = $modules['types'][$attribute[0]['Attribute']['type']];
+			foreach (array('attribute_id', 'context', 'modules') as $viewVar) $this->set($viewVar, $$viewVar);
+			$this->render('ajax/enrichmentChoice');
+
+		} else {
+			$this->loadModel('Server');
+			$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
+			$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
+			App::uses('HttpSocket', 'Network/Http');
+			$httpSocket = new HttpSocket();
+			$data = '{"module":"' . $module . '", "' . $attribute[0]['Attribute']['type'] . '":"' . $attribute[0]['Attribute']['value'] . '"}';
+			try {
+				$response = $httpSocket->post($url . ':' . $port . '/query', $data);
+				$result = json_decode($response->body, true);
+			} catch (Exception $e) {
+				return 'Enrichment service not reachable.';
+			}
+			$attributes = array();
+			if (isset($result['results']) && !empty($result['results'])) {
+				foreach ($result['results'] as $result) {
+					foreach ($result['values'] as $value) {
+						$attributes[] = array(
+							'event_id' => $attribute[0]['Attribute']['event_id'],
+							'types' => $result['types'],
+							'value' => $value 
+						);
+					}	
+				}
+			}
+			debug($attributes);
+			
+		}
+
 	}
 }

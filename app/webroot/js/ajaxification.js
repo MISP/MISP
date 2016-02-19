@@ -944,6 +944,23 @@ function getPopup(id, context, target, admin) {
 	});
 }
 
+function simplePopup(url) {
+	$("#gray_out").fadeIn();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		dataType:"html", 
+		cache: false,
+		success:function (data, textStatus) {
+			$(".loading").hide();
+			$("#popover_form").html(data);
+			$("#popover_form").fadeIn();
+		}, 
+		url: url,
+	});
+}
+
 function resizePopoverBody() {
 	var bodyheight = $(window).height();
 	bodyheight = 3 * bodyheight / 4 - 150;
