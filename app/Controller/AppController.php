@@ -382,7 +382,7 @@ class AppController extends Controller {
 	public function checkAuthUser($authkey) {
 		$this->loadModel('User');
 		$this->User->recursive = -1;
-		$user = $this->User->getAuthUser($authkey);
+		$user = $this->User->getAuthUserByUuid($authkey);
 		if (empty($user)) return false;
 		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
 		return $user;
