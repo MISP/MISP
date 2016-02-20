@@ -1,6 +1,19 @@
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `admin_settings`
+--
+
+CREATE TABLE IF NOT EXISTS `admin_settings` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `setting` varchar(255) COLLATE utf8_bin NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `attributes`
 --
 
@@ -111,6 +124,25 @@ CREATE TABLE IF NOT EXISTS `events` (
   INDEX `org_id` (`org_id`),
   INDEX `orgc_id` (`orgc_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `event_delegations`
+--
+
+CREATE TABLE IF NOT EXISTS `event_delegations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `org_id` int(11) NOT NULL,
+  `requester_org_id` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `message` text,
+  `distribution` tinyint(4) NOT NULL DEFAULT  '-1',
+  `sharing_group_id` int(11),
+  PRIMARY KEY (`id`),
+  KEY `org_id` (`org_id`),
+  KEY `event_id` (`event_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- -------------------------------------------------------
 
@@ -321,6 +353,35 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `shadow_attribute_correlations`
+--
+
+CREATE TABLE IF NOT EXISTS `shadow_attribute_correlations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `org_id` int(11) NOT NULL,
+  `value` text NOT NULL,
+  `distribution` tinyint(4) NOT NULL,
+  `a_distribution` tinyint(4) NOT NULL,
+  `sharing_group_id` int(11),
+  `a_sharing_group_id` int(11),
+  `attribute_id` int(11) NOT NULL,
+  `1_shadow_attribute_id` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `1_event_id` int(11) NOT NULL,
+  `info` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `org_id` (`org_id`),
+  KEY `attribute_id` (`attribute_id`),
+  KEY `a_sharing_group_id` (`a_sharing_group_id`),
+  KEY `event_id` (`event_id`),
+  KEY `1_event_id` (`event_id`),
+  KEY `sharing_group_id` (`sharing_group_id`),
+  KEY `1_shadow_attribute_id` (`1_shadow_attribute_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `sharing_group_orgs`
 --
 
@@ -387,18 +448,6 @@ CREATE TABLE IF NOT EXISTS `tags` (
   `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `exportable` tinyint(1) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
-
-CREATE TABLE IF NOT EXISTS `tasks` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
-  `timer` int(11) NOT NULL,
-  `scheduled_time` varchar(8) NOT NULL DEFAULT '6:00',
-  `job_id` int(11) NOT NULL,
-  `description` varchar(255) NOT NULL,
-  `next_execution_time` int(11) NOT NULL,
-  `message` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
@@ -577,6 +626,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `contactalert` tinyint(1) NOT NULL,
   `disabled` BOOLEAN NOT NULL,
   `expiration` datetime DEFAULT NULL,
+  `current_login` INT(11) DEFAULT 0,
+  `last_login` INT(11) DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `email` (`email`),
   INDEX `org_id` (`org_id`),
@@ -633,6 +684,9 @@ CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
 --
 -- Default values for initial installation
 --
+
+INSERT INTO `admin_settings` (`id`, `setting`, `value`) VALUES
+(1, 'db_version', '2.4.21');
 
  INSERT INTO `regexp` (`id`, `regexp`, `replacement`, `type`) VALUES
  (1, '/.:.ProgramData./i', '%ALLUSERSPROFILE%\\\\', 'ALL'),
