@@ -2702,40 +2702,13 @@ class EventsController extends AppController {
 					$typeCategoryMapping[$type][$k] = $k;
 				}
 			}
-			$defaultCategories = array(
-					'md5' => 'Payload delivery',
-					'sha1' => 'Payload delivery',
-					'sha224' =>'Payload delivery',
-					'sha256' => 'Payload delivery',
-					'sha384' => 'Payload delivery',
-					'sha512' => 'Payload delivery',
-					'sha512/224' => 'Payload delivery',
-					'sha512/256' => 'Payload delivery',
-					'authentihash' => 'Payload delivery',
-					'imphash' => 'Payload delivery',
-					'pehash' => 'Payload delivery',
-					'filename|md5' => 'Payload delivery',
-					'filename|sha1' => 'Payload delivery',
-					'filename|sha256' => 'Payload delivery',
-					'regkey' => 'Persistence mechanism',
-					'filename' => 'Payload delivery',
-					'ip-src' => 'Network activity',
-					'ip-dst' => 'Network activity',
-					'hostname' => 'Network activity',
-					'domain' => 'Network activity',
-					'url' => 'Network activity',
-					'link' => 'External analysis',
-					'email-src' => 'Payload delivery',
-					'email-dst' => 'Payload delivery',
-					'text' => 'Other',
-			);
 			$this->set('event', $event);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
-			debug($resultArray);
 			$this->set('resultArray', $resultArray);
-			$this->render('free_text_results');
+			$this->set('title', 'Freetext Import Results');
+			$this->render('resolved_attributes');
 		}
 	}
 	
@@ -3461,6 +3434,7 @@ class EventsController extends AppController {
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
 			$this->set('title', 'Enrichment Results');
 			$this->render('resolved_attributes');
+			
 		}
 	}
 }

@@ -1590,7 +1590,7 @@ function freetextImportResultsSubmit(id, count) {
 		}
 	}
 	$("#AttributeJsonObject").val(JSON.stringify(attributeArray));
-	var formData = $("#AttributeFreeTextImportForm").serialize();
+	var formData = $(".mainForm").serialize();
 	$.ajax({
 		type: "post",
 		cache: false,
