@@ -2731,8 +2731,9 @@ class EventsController extends AppController {
 			);
 			$this->set('event', $event);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
-			$this->set('defaultCategories', $defaultCategories);
+			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
+			debug($resultArray);
 			$this->set('resultArray', $resultArray);
 			$this->render('free_text_results');
 		}
@@ -3407,8 +3408,8 @@ class EventsController extends AppController {
 		$this->render('index');
 	}
 	
-	// expects an attribute ID and a context
-	public function queryEnrichment($attribute_id, $context, $module = false) {
+	// expects an attribute ID and the module to be used
+	public function queryEnrichment($attribute_id, $module = false) {
 		if (!Configure::read('Plugin.Enrichment_services_enable')) throw new MethodNotAllowedException('Enrichment services are not enabled.');
 		$attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id)));
 		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
@@ -3417,9 +3418,8 @@ class EventsController extends AppController {
 			$modules = $this->Server->getEnrichmentModules();
 			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
 			$modules = $modules['types'][$attribute[0]['Attribute']['type']];
-			foreach (array('attribute_id', 'context', 'modules') as $viewVar) $this->set($viewVar, $$viewVar);
+			foreach (array('attribute_id', 'modules') as $viewVar) $this->set($viewVar, $$viewVar);
 			$this->render('ajax/enrichmentChoice');
-
 		} else {
 			$this->loadModel('Server');
 			$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
@@ -3433,21 +3433,34 @@ class EventsController extends AppController {
 			} catch (Exception $e) {
 				return 'Enrichment service not reachable.';
 			}
-			$attributes = array();
+			$resultArray = array();
 			if (isset($result['results']) && !empty($result['results'])) {
 				foreach ($result['results'] as $result) {
 					foreach ($result['values'] as $value) {
-						$attributes[] = array(
+						$resultArray[] = array(
 							'event_id' => $attribute[0]['Attribute']['event_id'],
 							'types' => $result['types'],
+							'default_type' => $result['types'][0],
+							'comment' => isset($result['comment']) ? $result['comment'] : false,
+							'to_ids' => isset($result['to_ids']) ? $result['to_ids'] : false,
 							'value' => $value 
 						);
 					}	
 				}
 			}
-			debug($attributes);
-			
+			$typeCategoryMapping = array();
+			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
+				foreach ($cat['types'] as $type) {
+					$typeCategoryMapping[$type][$k] = $k;
+				}
+			}
+			$this->set('event', array('Event' => $attribute[0]['Event']));
+			$this->set('resultArray', $resultArray);
+			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
+			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+			$this->set('typeCategoryMapping', $typeCategoryMapping);
+			$this->set('title', 'Enrichment Results');
+			$this->render('resolved_attributes');
 		}
-
 	}
 }
