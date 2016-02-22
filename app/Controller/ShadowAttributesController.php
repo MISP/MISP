@@ -1060,7 +1060,7 @@ class ShadowAttributesController extends AppController {
 			$event = $this->ShadowAttribute->Event->find('first', array(
 					'conditions' => array('id' => $id),
 					'recursive' => -1,
-					'fields' => array('id', 'orgc', 'user_id')
+					'fields' => array('id', 'orgc_id', 'user_id')
 			));
 			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
 				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
@@ -1096,7 +1096,7 @@ class ShadowAttributesController extends AppController {
 			$event = $this->ShadowAttribute->Event->find('first', array(
 					'conditions' => array('id' => $id),
 					'recursive' => -1,
-					'fields' => array('id', 'orgc', 'user_id')
+					'fields' => array('id', 'orgc_id', 'user_id')
 			));
 			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
 				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));

@@ -90,6 +90,7 @@
 			<div id="filter_<?php echo $group; ?>" title="Only show <?php echo $group; ?> related attributes" class="attribute_filter_text" onClick="filterAttributes('<?php echo $group; ?>', '<?php echo h($event['Event']['id']); ?>');"><?php echo ucfirst($group); ?></div>
 		<?php endforeach; ?>
 		<div id="filter_proposal" title="Only show proposals" class="attribute_filter_text" onClick="filterAttributes('proposal', '<?php echo h($event['Event']['id']); ?>');">Proposal</div>
+		<div id="filter_correlation" title="Only show correlating attributes" class="attribute_filter_text" onClick="filterAttributes('correlation', '<?php echo h($event['Event']['id']); ?>');">Correlation</div>
 	</div>
 	<table class="table table-striped table-condensed">
 		<tr>
