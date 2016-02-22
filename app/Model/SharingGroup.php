@@ -268,10 +268,9 @@ class SharingGroup extends AppModel {
 		// if the current server is marked as "all orgs" in the sharing group, just return true
 		foreach ($sg['SharingGroupServer'] as $sgs) {
 			if ($sgs['server_id'] == 0) {
-				if ('all_orgs') return true;
+				if ($sgs['all_orgs']) return true;
 			}
 		}
-		
 		// return a list of arrays with all organisations tied to the SG.
 		$orgs = array();
 		foreach ($sg['SharingGroupOrg'] as $sgo) {
