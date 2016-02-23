@@ -1312,7 +1312,7 @@ class EventsController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// send out the email
 			$emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user());
-			if (is_bool($emailResult) && $emailResult = true) {
+			if (is_bool($emailResult) && $emailResult == true) {
 				// Performs all the actions required to publish an event
 				$result = $this->Event->publishRouter($id, null, $this->Auth->user());
 				if (!is_array($result)) {
@@ -1330,7 +1330,7 @@ class EventsController extends AppController {
 				}
 			} elseif (!is_bool($emailResult)) {
 				// Performs all the actions required to publish an event
-				$result = $this->Event->publish($id);
+				$result = $this->Event->publishRouter($id, null, $this->Auth->user());
 				if (!is_array($result)) {
 
 					// redirect to the view event page
