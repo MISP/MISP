@@ -201,17 +201,21 @@ class ShadowAttribute extends AppModel {
 	}
 
 	private function __beforeDeleteCorrelation(&$sa) {
+		$temp = $sa;
+		if (isset($temp['ShadowAttribute'])) $temp = $temp['ShadowAttribute'];
 		$this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
-		$this->ShadowAttributeCorrelation->deleteAll(array('ShadowAttributeCorrelation.1_shadow_attribute_id' => $sa['id']));
+		$this->ShadowAttributeCorrelation->deleteAll(array('ShadowAttributeCorrelation.1_shadow_attribute_id' => $temp['id']));
 	}
 	
 	private function __afterSaveCorrelation(&$sa) {
-		if (in_array($sa['type'], $this->Event->Attribute->nonCorrelatingTypes)) return;
+		$temp = $sa;
+		if (isset($temp['ShadowAttribute'])) $temp = $temp['ShadowAttribute'];
+		if (in_array($temp['type'], $this->Event->Attribute->nonCorrelatingTypes)) return;
 		$this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
 		$shadow_attribute_correlations = array();
 		$fields = array('value1', 'value2');
-		$correlatingValues = array($sa['value1']);
-		if (!empty($sa['value2'])) $correlatingValues[] = $sa['value2'];
+		$correlatingValues = array($temp['value1']);
+		if (!empty($temp['value2'])) $correlatingValues[] = $temp['value2'];
 		foreach ($correlatingValues as $k => $cV) {
 			$correlatingAttributes[$k] = $this->Event->Attribute->find('all', array(
 					'conditions' => array(
