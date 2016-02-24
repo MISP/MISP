@@ -21,10 +21,12 @@ class JobsController extends AppController {
 		parent::beforeFilter();
 	}
 	
-	public function index() {
+	public function index($queue = false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!Configure::read('MISP.background_jobs')) throw new NotFoundException('Background jobs are not enabled on this instance.');
 		$this->recursive = 0;
+		$queues = array('email', 'default', 'cache');
+		if ($queue && in_array($queue, $queues)) $this->paginate['conditions'] = array('Job.worker' => $queue);
 		$jobs = $this->paginate();
 		foreach($jobs as &$job) {
 			if ($job['Job']['process_id']) {
@@ -34,6 +36,7 @@ class JobsController extends AppController {
 			}
 		}
 		$this->set('list', $jobs);
+		$this->set('queue', $queue);
 	}
 	
 	private function __jobStatusConverter($status) {
