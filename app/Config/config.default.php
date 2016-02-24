@@ -80,4 +80,22 @@ $config = array (
     ),
   ),
   */
+  // Uncomment the following to enable Kerberos authentification
+  // need php5-ldap mod for apache
+  /*
+   'ApacheSecureAuth' => // Configuration for kerberos authentification
+    array(
+        'apacheEnv' => 'REMOTE_USER',           // If proxy variable = HTTP_REMOTE_USER
+        'ldapServer' => 'ldap://sample.com',    // fqdn or ip
+        'ldapProtocol' => 3,
+        'ldapReaderUser' => 'cn=userWithReadAccess,ou=users,', // DN ou RDN LDAP with reader user right
+        'ldapReaderPassword' => 'UserPassword', //the ldap reader user password
+        'ldapDN' => 'dc=sample,dc=com', 
+        'ldapFilter' => array(
+            'mail',                             // filter for ldap search
+        ),
+        'ldapDefaultRoleId' => 3,   // 3:User-1:admin. Maybe good to make 1 for the first user
+        'ldapDefaultOrg' => '',     // if not define default org = 1 misp org
+    ),
+   */
 );
