@@ -228,6 +228,7 @@ class ServersController extends AppController {
 		$temp = $this->Server->Organisation->find('all', array(
 				'conditions' => array('local' => true),
 				'fields' => array('id', 'name'),
+				'order' => array('lower(Organisation.name) ASC')
 		));
 		$localOrganisations = array();
 		$allOrgs = array();
@@ -238,6 +239,7 @@ class ServersController extends AppController {
 		$temp = $this->Server->Organisation->find('all', array(
 				'conditions' => array('local' => false),
 				'fields' => array('id', 'name'),
+				'order' => array('lower(Organisation.name) ASC')
 		));
 		$externalOrganisations = array();
 		foreach ($temp as $o) {
@@ -340,6 +342,7 @@ class ServersController extends AppController {
 		$temp = $this->Server->Organisation->find('all', array(
 				'conditions' => array('local' => true),
 				'fields' => array('id', 'name'),
+				'order' => array('lower(Organisation.name) ASC')
 		));
 		$localOrganisations = array();
 		$allOrgs = array();
@@ -350,6 +353,7 @@ class ServersController extends AppController {
 		$temp = $this->Server->Organisation->find('all', array(
 				'conditions' => array('local' => false),
 				'fields' => array('id', 'name'),
+				'order' => array('lower(Organisation.name) ASC')
 		));
 		$externalOrganisations = array();
 		foreach ($temp as $o) {
