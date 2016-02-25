@@ -238,6 +238,7 @@ class LogsController extends AppController {
 				// re-get pagination
 				$this->{$this->defaultModel}->recursive = 0;
 				$this->paginate = $this->Session->read('paginate_conditions_log');
+				if (!isset($this->paginate['order'])) $this->paginate['order'] = array('Log.id' => 'DESC');
 				$this->set('list', $this->paginate());
 				
 				// set the same view as the index page
