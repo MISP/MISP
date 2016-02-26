@@ -176,7 +176,7 @@ class Attribute extends AppModel {
 			'whois-registrant-email' => array('desc' => 'The e-mail of a domain\'s registrant, obtained from the WHOIS information.'),//x
 			'whois-registrant-phone' => array('desc' => 'The phone number of a domain\'s registrant, obtained from the WHOIS information.'),//x
             'whois-registrant-name' => array('desc' => 'The name of a domain\'s registrant, obtained from the WHOIS information.'),//x
-            'whois-registar' => array('desc' => 'The registar of the domain, obtained from the WHOIS information.'),//x
+            'whois-registrar' => array('desc' => 'The registrar of the domain, obtained from the WHOIS information.'),//x
 			'whois-creation-date' => array('desc' => 'The date of domain\'s creation, obtained from the WHOIS information.'),//x
 			'targeted-threat-index' => array('desc' => ''),
 			'mailslot' => array('desc' => 'MailSlot interprocess communication'),
@@ -231,7 +231,7 @@ class Attribute extends AppModel {
 					),
 			'Attribution' => array(
 					'desc' => 'Identification of the group, organisation, or country behind the attack',
-					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-sha1', 'other')
+					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-sha1', 'other')
 					),
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
@@ -789,7 +789,7 @@ class Attribute extends AppModel {
 			case 'pdb':
             case 'windows-scheduled-task':
             case 'whois-registrant-name':
-			case 'whois-registar':
+			case 'whois-registrar':
 			case 'whois-creation-date':
  				// no newline	
  				if (!preg_match("#\n#", $value)) {
