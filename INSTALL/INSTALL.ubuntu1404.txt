@@ -153,6 +153,8 @@ cp -a config.default.php config.php
 'baseurl' => 'http://yourhostname.net',
 #or if using https:
 'baseurl' => 'https://yourhostname.net',
+# alternatively, you can leave this field empty if you would like to use relative pathing in MISP
+'baseurl' => '',
 
 # and make sure the file permissions are still OK
 chown -R www-data:www-data /var/www/MISP/app/Config
@@ -164,8 +166,7 @@ chown www-data:www-data /var/www/MISP/.gnupg
 chmod 700 /var/www/MISP/.gnupg
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 
-# The email address should match the one set in the config.php configuration file
-# Make sure that you use the same settings in the MISP Server Settings tool (Described on line 184)
+# The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
 # And export the public key to the webroot
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
