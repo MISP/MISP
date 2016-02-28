@@ -49,7 +49,7 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => false, 19 => false, 20 => false)
+			4 => array(18 => false, 19 => false, 20 => false, 24 => false)
 		)
 	);
 	
@@ -243,6 +243,17 @@ class AppModel extends Model {
 					KEY `1_event_id` (`event_id`),
 					KEY `sharing_group_id` (`sharing_group_id`),
 					KEY `1_shadow_attribute_id` (`1_shadow_attribute_id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
+			case '2.4.24':
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `feeds` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`name` varchar(255) COLLATE utf8_bin NOT NULL,
+					`provider` varchar(255) COLLATE utf8_bin NOT NULL,
+					`url` varchar(255) COLLATE utf8_bin NOT NULL,
+					`rules` text COLLATE utf8_bin NOT NULL,
+					`enabled` BOOLEAN NOT NULL,
+					PRIMARY KEY (`id`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case 'fixNonEmptySharingGroupID':

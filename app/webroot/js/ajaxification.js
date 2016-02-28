@@ -2077,7 +2077,11 @@ function serverRuleCancel() {
 
 function serverRuleGenerateJSON() {
 	validOptions.forEach(function(type) {
-		$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+		if ($('#Server' + type.ucfirst() + "Rules").length) {
+			$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+		} else {
+			$('#Feed' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+		}
 	});
 }
 
