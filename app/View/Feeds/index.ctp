@@ -82,5 +82,5 @@ endforeach; ?>
 
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'feed', 'menuItem' => 'index'));
+	echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'index'));
 ?>

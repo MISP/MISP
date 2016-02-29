@@ -293,6 +293,14 @@
 					endif; 
 					endif;
 				break;	
+				
+				case 'feeds': ?>
+					<li id='liindex'><a href="<?php echo $baseurl;?>/feeds/index">List Feeds</a></li>
+					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/add">Add Feed</a></li>
+					<?php if ($menuItem === 'edit'): ?>
+						<li class="active"><a href="#">Edit Feed</a></li>
+					<?php endif;
+				break;	
 			}
 		?>
 	</ul>

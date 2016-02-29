@@ -1917,6 +1917,7 @@ class Event extends AppModel {
 		$date = $dateObj->getTimestamp();
 		if (count($existingEvent)) {
 			$data['Event']['id'] = $existingEvent['Event']['id'];
+			$id = $existingEvent['Event']['id'];
 			// Conditions affecting all:
 			// user.org == event.org
 			// edit timestamp newer than existing event timestamp

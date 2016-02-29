@@ -16,8 +16,6 @@
 				'div' => 'input clear',
 				'placeholder' => 'URL of the feed'
 		));
-	?>
-	<?php 
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
 	</fieldset>
@@ -36,7 +34,7 @@
 	</div>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'feed', 'menuItem' => 'add'));
+	echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'add'));
 ?>
 <script type="text/javascript">
 //

@@ -25,5 +25,5 @@ echo $this->Form->end();
 ?>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlacklistsAdd'));
+	echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'edit'));
 ?>

@@ -63,17 +63,40 @@ class FeedsController extends AppController {
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
 		$this->Feed->read();
 		if ($this->request->is('post') || $this->request->is('put')) {
-			
+			if (isset($this->request->data['Feed']['pull_rules'])) $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
+			$this->request->data['Feed']['id'] = $feedId;
+			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url');
+			$feed = array();
+			foreach ($fields as $field) $feed[$field] = $this->request->data['Feed'][$field];
+			$result = $this->Feed->save($feed);
+			if ($result) {
+				$this->Session->setFlash('Feed updated.');
+				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+			}
+			else $this->Session->setFlash('Feed could not be updated.');
 		} else {
 			$this->request->data = $this->Feed->data;
 		}
 	}
 	
 	public function delete($feedId) {
-		
+		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action requires a post request.');
+		$this->Feed->id = $feedId;
+		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		if ($this->Feed->delete($feedId)) $this->Session->setFlash('Feed deleted.');
+		else $this->Session->setFlash('Feed could not be deleted.');
+		$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 	}
 	
 	public function fetchFromFeed($feedId) {
-		
+		$this->Feed->id = $feedId;
+		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		$this->Feed->read();
+		$HttpSocket = $syncTool->setupHttpSocketFeed($this->Feed->data);
+		$actions = $this->Feed->getNewEventUuids($this->Feed->data, $HttpSocket);
+		$result = $this->Feed->downloadFromFeed($actions, $this->Feed->data, $HttpSocket, $this->Auth->user());
+
 	}
 }
