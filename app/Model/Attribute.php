@@ -1853,7 +1853,7 @@ class Attribute extends AppModel {
 	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 	 	if (isset($options['order'])) $params['order'] = $options['order'];
 	 	if (isset($options['group'])) $params['group'] = $options['group'];
-	 	if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('Event.published' => 1);
+		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 	 	$results = $this->find('all', $params);
 	 	if (isset($options['withAttachments']) && $options['withAttachments']) {
 	 		foreach ($results as &$attribute) { 
