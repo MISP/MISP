@@ -1104,6 +1104,14 @@ function quickFilter(passedArgs, url) {
 	window.location.href=url;
 }
 
+function filterMyOrgOnly(passedArgs, org, url) {
+	passedArgs['searchorg'] = org;
+	for (var key in passedArgs) {
+		url += "/" + key + ":" + passedArgs[key];
+	}
+	window.location.href=url;
+}
+
 function quickFilterTaxonomy(taxonomy_id, passedArgs) {
 	var url = "/taxonomies/view/" + taxonomy_id + "/filter:" + $('#quickFilterField').val();
 	window.location.href=url;
