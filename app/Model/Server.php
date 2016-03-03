@@ -2018,9 +2018,14 @@ class Server extends AppModel {
 			try {
 				require_once 'Crypt/GPG.php';
 				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
-				$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 			} catch (Exception $e) {
 				$gpgStatus = 2;
+				$continue = false;
+			}
+			try {
+				$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+			} catch (Exception $e) {
+				$gpgStatus = 3;
 				$continue = false;
 			}
 			if ($continue) {
@@ -2028,7 +2033,7 @@ class Server extends AppModel {
 					$gpgStatus = 0;
 					$signed = $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
 				} catch (Exception $e){
-					$gpgStatus = 3;
+					$gpgStatus = 4;
 				}
 			}
 		} else {
