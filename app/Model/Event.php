@@ -1281,8 +1281,11 @@ class Event extends AppModel {
 			}
 			if ($event['SharingGroup']['id'] == null) unset($event['SharingGroup']);
 			// unset empty event tags that got added because the tag wasn't exportable
-			foreach ($event['EventTag'] as $k => &$eventTag) {
-				if (empty($eventTag['Tag'])) unset ($event['EventTag'][$k]);
+			if (!empty($event['EventTag'])) {
+				foreach ($event['EventTag'] as $k => &$eventTag) {
+					if (empty($eventTag['Tag'])) unset ($event['EventTag'][$k]);
+				}
+				$event['EventTag'] = array_values($event['EventTag']);
 			}
 			// Let's find all the related events and attach it to the event itself
 			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgsids);
