@@ -747,6 +747,7 @@ class Attribute extends AppModel {
 			case 'windows-service-name':
 			case 'windows-service-displayname':
 				if (strlen($value) > 256 || preg_match('#[\\\/]#', $value)) $returnValue = 'Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.';
+				else $returnValue = true;
 				break;
 			case 'mutex':
 			case 'AS':
