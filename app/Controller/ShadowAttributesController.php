@@ -410,8 +410,10 @@ class ShadowAttributesController extends AppController {
 				if ($this->ShadowAttribute->save($this->request->data)) {
 					// list the ones that succeeded
 					$emailResult = "";
-					if (!$this->ShadowAttribute->sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id'])) {
-						$emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+					if (!isset($this->request->data['ShadowAttribute']['deleted']) || !$this->request->data['ShadowAttribute']['deleted']) {
+						if (!$this->ShadowAttribute->sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id'])) {
+							$emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+						}
 					}
 					// inform the user and redirect
 					if ($this->request->is('ajax')) {
@@ -691,7 +693,9 @@ class ShadowAttributesController extends AppController {
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 			if ($this->ShadowAttribute->save($this->request->data)) {
 				$emailResult = "";
-				if (!$this->ShadowAttribute->sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id'])) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+				if (!isset($this->request->data['ShadowAttribute']['deleted']) || !$this->request->data['ShadowAttribute']['deleted']) {
+					if (!$this->ShadowAttribute->sendProposalAlertEmail($this->request->data['ShadowAttribute']['event_id'])) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+				}
 				if ($this->_isRest()) {
 					$sa = $this->ShadowAttribute->find(
 							'first',

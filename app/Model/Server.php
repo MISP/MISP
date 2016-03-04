@@ -2022,11 +2022,13 @@ class Server extends AppModel {
 				$gpgStatus = 2;
 				$continue = false;
 			}
-			try {
-				$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-			} catch (Exception $e) {
-				$gpgStatus = 3;
-				$continue = false;
+			if ($continue) {
+				try {
+					$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+				} catch (Exception $e) {
+					$gpgStatus = 3;
+					$continue = false;
+				}
 			}
 			if ($continue) {
 				try {
