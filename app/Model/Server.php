@@ -1812,6 +1812,17 @@ class Server extends AppModel {
 		try {
 			$response = $HttpSocket->get($uri, false, $request);
 		} catch (Exception $e) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => 'SYSTEM',
+					'action' => 'error',
+					'user_id' => 0,
+					'title' => 'Error: Connection test failed. Reason: ' . json_encode($e->getMessage()),
+			));
 			return array('status' => 2);
 		}
 		if ($response->isOk()) {
