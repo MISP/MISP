@@ -51,25 +51,52 @@ class Feed extends AppModel {
 			'fields' => array('Event.id', 'Event.uuid', 'Event.timestamp')
 		));
 		foreach ($events as &$event) {
-			if ($event['Event']['timestamp'] < $manifest[$event['Event']['uuid']]) $result['edit'][] = array('uuid' => $event['Event']['uuid'], 'id' => $event['Event']['id']);
+			if ($event['Event']['timestamp'] < $manifest[$event['Event']['uuid']]['timestamp']) $result['edit'][] = array('uuid' => $event['Event']['uuid'], 'id' => $event['Event']['id']);
 			unset($manifest[$event['Event']['uuid']]);
 		}
 		$result['add'] = array_keys($manifest);
 		return $result;
 	}
 	
+	
+	public function getManifest($feed, $HttpSocket) {
+		$result = array();
+		$request = $this->__createFeedRequest();
+		$uri = $feed['Feed']['url'] . '/manifest.json';
+		$response = $HttpSocket->get($uri, '', $request);
+		return json_decode($response->body, true);
+	}
+	
 	public function downloadFromFeed($actions, $feed, $HttpSocket, $user) {
 		$this->Event = ClassRegistry::init('Event');
+		$results = array();
+		$filterRules = false;
+		if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) {
+			$filterRules = json_decode($feed['Feed']['rules'], true);
+		}
 		if (isset($actions['add']) && !empty($actions['add'])) {
 			foreach ($actions['add'] as $uuid) {
-				$this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user);
+				$result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
+				if ($result === 'blocked') debug('blocked: ' . $uuid);
+				if ($result === true) {
+					$results['add']['success'] = $uuid;
+				} else {
+					$results['add']['fail'] = array('uuid' => $uuid, 'reason' => $result);
+				}
 			}
 		}
 		if (isset($actions['edit']) && !empty($actions['edit'])) {
 			foreach ($actions['edit'] as $editTarget) {
-				$this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user);
+				$result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
+				if ($result === true) {
+					$results['edit']['success'] = $uuid;
+				} else {
+					$results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $result);
+				}
 			}
 		}
+		throw new Exception();
+		return $results;
 	}
 	
 	private function __createFeedRequest() {
@@ -79,12 +106,36 @@ class Feed extends AppModel {
 			'header' => array(
 					'Accept' => 'application/json',
 					'Content-Type' => 'application/json',
-					'MISP-version' => $version
+					'MISP-version' => $version,
 			)
 		);
 	}
 	
-	private function __addEventFromFeed($HttpSocket, $feed, $uuid, $user) {
+	private function __checkIfEventBlockedByFilter($event, $filterRules) {
+		$fields = array('tags' => 'Tag', 'orgs' => 'Orgc');
+		$prefixes = array('OR', 'NOT');
+		foreach ($fields as $field => $fieldModel) {
+			foreach ($prefixes as $prefix) {
+				if (!empty($filterRules[$field][$prefix])) {
+					$found = false;
+					if (isset($event['Event'][$fieldModel]) && !empty($event['Event'][$fieldModel])) {
+						if (!isset($event['Event'][$fieldModel][0])) $event['Event'][$fieldModel] = array(0 => $event['Event'][$fieldModel]);
+						foreach ($event['Event'][$fieldModel] as $object) {
+							foreach ($filterRules[$field][$prefix] as $temp) {
+								if (stripos($object['name'], $temp) !== false) $found = true;
+							}
+						}
+					}
+					if ($prefix === 'OR' && !$found) return false;
+					if ($prefix !== 'OR' && $found) return false;
+				}
+			}
+		}
+		if (!$filterRules) return true;
+		return true;
+	}
+	
+	private function __addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules) {
 		$request = $this->__createFeedRequest();
 		$uri = $feed['Feed']['url'] . '/' . $uuid . '.json';
 		$response = $HttpSocket->get($uri, '', $request);
@@ -92,6 +143,7 @@ class Feed extends AppModel {
 			return false;
 		} else {
 			$event = json_decode($response->body, true);
+			if (!$this->__checkIfEventBlockedByFilter($event, $filterRules)) return 'blocked';
 			if (isset($event['response'])) $event = $event['response'];
 			if (isset($event[0])) $event = $event[0];
 			if (!isset($event['Event']['uuid'])) return false;
@@ -100,7 +152,7 @@ class Feed extends AppModel {
 		}
 	}
 	
-	private function __updateEventFromFeed($HttpSocket, $feed, $uuid, $eventId, $user) {
+	private function __updateEventFromFeed($HttpSocket, $feed, $uuid, $eventId, $user, $filterRules) {
 		debug($uuid);
 		$request = $this->__createFeedRequest();
 		$uri = $feed['Feed']['url'] . '/' . $uuid . '.json';
@@ -113,8 +165,7 @@ class Feed extends AppModel {
 			if (isset($event[0])) $event = $event[0];
 			if (!isset($event['Event']['uuid'])) return false;
 			$this->Event = ClassRegistry::init('Event');
-			debug($this->Event->_edit($event, $user, $uuid, $jobId = null));
-			//return $this->Event->_edit($event, $user, $uuid, $jobId = null);
+			return $this->Event->_edit($event, $user, $uuid, $jobId = null);
 		}
 	}
 	

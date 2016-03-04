@@ -2027,7 +2027,7 @@ function zeroMQServerAction(action) {
 
 function convertServerFilterRules(rules) {
 	validOptions.forEach(function (type) {
-		container = "#Server" + type.ucfirst() + "Rules";
+		container = "#"+ modelContext + type.ucfirst() + "Rules";
 		if($(container).val() != '') rules[type] = JSON.parse($(container).val());
 	});
 	serverRuleUpdate();

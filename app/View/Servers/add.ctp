@@ -119,6 +119,7 @@ var validOptions = ['pull', 'push'];
 var validFields = ['tags', 'orgs'];
 var tags = <?php echo json_encode($allTags); ?>;
 var orgs = <?php echo json_encode($allOrganisations); ?>;
+var modelContext = 'Server';
 
 $(document).ready(function() {
 	serverOrgTypeChange();

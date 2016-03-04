@@ -22,7 +22,6 @@
 			<th><?php echo $this->Paginator->sort('provider');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
-			<th><?php echo $this->Paginator->sort('rules');?></th>
 			<th><?php echo $this->Paginator->sort('enabled');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
@@ -54,9 +53,11 @@ foreach ($feeds as $item):
 		<td><?php echo h($item['Feed']['provider']); ?>&nbsp;</td>
 		<td><?php echo h($item['Feed']['url']); ?>&nbsp;</td>
 		<td class="short"><span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>" data-toggle="popover" title="Filter rules" data-content="<?php echo $ruleDescription; ?>"> (Rules)</span>
-		<td class="short"><span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove');?>">&nbsp;</span></td>
 		<td class="short action-links">
-			<?php echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'icon-download', 'title' => 'Fetch')); ?>
+			<?php 
+				echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'icon-search', 'title' => 'Explore'));
+				echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'icon-download', 'title' => 'Fetch')); 
+			?>
 			<a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="icon-edit" title="edit">&nbsp;</span></a>
 			<?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>
 		</td>
@@ -79,8 +80,12 @@ endforeach; ?>
         ?>
         </ul>
     </div>
-
 </div>
+<script type="text/javascript"> 
+	$(document).ready(function(){
+		popoverStartup();
+	});
+</script>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'index'));
 ?>

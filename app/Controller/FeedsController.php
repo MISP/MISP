@@ -76,6 +76,7 @@ class FeedsController extends AppController {
 			else $this->Session->setFlash('Feed could not be updated.');
 		} else {
 			$this->request->data = $this->Feed->data;
+			$this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
 		}
 	}
 	
@@ -97,6 +98,18 @@ class FeedsController extends AppController {
 		$HttpSocket = $syncTool->setupHttpSocketFeed($this->Feed->data);
 		$actions = $this->Feed->getNewEventUuids($this->Feed->data, $HttpSocket);
 		$result = $this->Feed->downloadFromFeed($actions, $this->Feed->data, $HttpSocket, $this->Auth->user());
-
+		
+		return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute added.')),'status'=>200));
 	}
+	
+	public function previewIndex($feedId) {
+		$this->Feed->id = $feedId;
+		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		$this->Feed->read();
+		$HttpSocket = $syncTool->setupHttpSocketFeed($this->Feed->data);
+		debug($this->Feed->getManifest($this->Feed->data, $HttpSocket));
+	}
+	
 }

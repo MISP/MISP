@@ -4,17 +4,21 @@
 		<legend>Add MISP Feed</legend>
 		<p>Add a new MISP feed source.</p>
 	<?php
+		echo $this->Form->input('enabled', array());
 		echo $this->Form->input('name', array(
 				'div' => 'input clear',
-				'placeholder' => 'Feed name'
+				'placeholder' => 'Feed name',
+				'class' => 'form-control span6',
 		));
 		echo $this->Form->input('provider', array(
 				'div' => 'input clear',
-				'placeholder' => 'Name of the content provider'
+				'placeholder' => 'Name of the content provider',
+				'class' => 'form-control span6'
 		));
 		echo $this->Form->input('url', array(
 				'div' => 'input clear',
-				'placeholder' => 'URL of the feed'
+				'placeholder' => 'URL of the feed',
+				'class' => 'form-control span6'
 		));
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
@@ -53,6 +57,7 @@ var formInfoValues = {
 var rules = {"pull": {"tags": {"OR":[], "NOT":[]}, "orgs": {"OR":[], "NOT":[]}}};
 var validOptions = ['pull'];
 var validFields = ['tags', 'orgs'];
+var modelContext = 'Feed';
 
 $(document).ready(function() {
 	$("#pull_modify").click(function() {
