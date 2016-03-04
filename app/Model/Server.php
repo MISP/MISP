@@ -1043,7 +1043,9 @@ class Server extends AppModel {
 						unset($proposal['Org']);
 						unset($proposal['EventOrg']);
 						$shadowAttribute->create();
-						if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
+						if (!isset($proposal['deleted']) || !$proposal['deleted']) {
+							if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
+						}
 					}
 					if ($jobId) {
 						if ($k % 50 == 0) {
@@ -1086,7 +1088,9 @@ class Server extends AppModel {
 								unset($proposal['Org']);
 								unset($proposal['EventOrg']);
 								$shadowAttribute->create();
-								if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($eid);
+								if (!isset($proposal['deleted']) || !$proposal['deleted']) {
+									if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($eid);
+								}
 								
 							}
 						}
