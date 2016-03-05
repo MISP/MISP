@@ -508,6 +508,7 @@ class EventsController extends AppController {
 				foreach ($event['EventTag'] as $k2 => &$et) {
 					if (empty($et['Tag'])) unset ($events[$k]['EventTag'][$k2]);
 				}
+				$event['EventTag'] = array_values($event['EventTag']);
 			}
 			$this->set('events', $events);
 		} else {
