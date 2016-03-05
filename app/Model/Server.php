@@ -1043,7 +1043,9 @@ class Server extends AppModel {
 						unset($proposal['Org']);
 						unset($proposal['EventOrg']);
 						$shadowAttribute->create();
-						if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
+						if (!isset($proposal['deleted']) || !$proposal['deleted']) {
+							if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
+						}
 					}
 					if ($jobId) {
 						if ($k % 50 == 0) {
@@ -1086,7 +1088,9 @@ class Server extends AppModel {
 								unset($proposal['Org']);
 								unset($proposal['EventOrg']);
 								$shadowAttribute->create();
-								if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($eid);
+								if (!isset($proposal['deleted']) || !$proposal['deleted']) {
+									if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($eid);
+								}
 								
 							}
 						}
@@ -1808,6 +1812,17 @@ class Server extends AppModel {
 		try {
 			$response = $HttpSocket->get($uri, false, $request);
 		} catch (Exception $e) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => 'SYSTEM',
+					'action' => 'error',
+					'user_id' => 0,
+					'title' => 'Error: Connection test failed. Reason: ' . json_encode($e->getMessage()),
+			));
 			return array('status' => 2);
 		}
 		if ($response->isOk()) {
@@ -2018,17 +2033,24 @@ class Server extends AppModel {
 			try {
 				require_once 'Crypt/GPG.php';
 				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
-				$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 			} catch (Exception $e) {
 				$gpgStatus = 2;
 				$continue = false;
 			}
 			if ($continue) {
 				try {
+					$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+				} catch (Exception $e) {
+					$gpgStatus = 3;
+					$continue = false;
+				}
+			}
+			if ($continue) {
+				try {
 					$gpgStatus = 0;
 					$signed = $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
 				} catch (Exception $e){
-					$gpgStatus = 3;
+					$gpgStatus = 4;
 				}
 			}
 		} else {

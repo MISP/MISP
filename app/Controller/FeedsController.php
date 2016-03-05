@@ -105,11 +105,38 @@ class FeedsController extends AppController {
 	public function previewIndex($feedId) {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		if (isset($this->passedArgs['pages'])) $currentPage = $this->passedArgs['pages'];
+		else $currentPage = 1;
+		$urlparams = '';
+		$passedArgs = array();
+		
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		$this->Feed->read();
 		$HttpSocket = $syncTool->setupHttpSocketFeed($this->Feed->data);
-		debug($this->Feed->getManifest($this->Feed->data, $HttpSocket));
+		$events = $this->Feed->getManifest($this->Feed->data, $HttpSocket);
+		
+		$pageCount = count($events);
+		App::uses('CustomPaginationTool', 'Tools');
+		$customPagination = new CustomPaginationTool();
+		$params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
+		$this->params->params['paging'] = array($this->modelClass => $params);
+		if (is_array($events)) $customPagination->truncateByPagination($events, $params);
+		else ($events = array());
+		
+		$this->set('events', $events);
+		$this->loadModel('Event');
+		$threat_levels = $this->Event->ThreatLevel->find('all');
+		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
+		$this->set('analysisLevels', $this->Event->analysisLevels);
+		$this->set('distributionLevels', $this->Event->distributionLevels);
+		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
+		$this->set('shortDist', $shortDist);
+		$this->set('id', $feedId);
+		$this->set('urlparams', $urlparams);		
+		$this->set('passedArgs', json_encode($passedArgs));
+		$this->set('passedArgsArray', $passedArgs);
 	}
 	
 }

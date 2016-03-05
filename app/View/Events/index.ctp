@@ -41,6 +41,9 @@
 		<?php endif;?>
 		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilter(<?php echo h($passedArgs);?>, "/events/index");'>Filter</span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+		<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" style="margin-left:50px;">
+			<span id="myOrgButton" title="Modify filters" onClick="filterMyOrgOnly(<?php echo h($passedArgs);?>, '<?php echo $me['Organisation']['name'];?>', '<?php echo $baseurl;?>/events/index');">My Org</span>
+		</span>
 	</div>
 	<?php endif; ?>
 	<table class="table table-striped table-hover table-condensed">
