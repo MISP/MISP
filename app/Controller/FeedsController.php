@@ -98,7 +98,6 @@ class FeedsController extends AppController {
 		$HttpSocket = $syncTool->setupHttpSocketFeed($this->Feed->data);
 		$actions = $this->Feed->getNewEventUuids($this->Feed->data, $HttpSocket);
 		$result = $this->Feed->downloadFromFeed($actions, $this->Feed->data, $HttpSocket, $this->Auth->user());
-		
 		return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute added.')),'status'=>200));
 	}
 	
@@ -134,9 +133,37 @@ class FeedsController extends AppController {
 		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 		$this->set('shortDist', $shortDist);
 		$this->set('id', $feedId);
+		$this->set('feed', $this->Feed->data);
 		$this->set('urlparams', $urlparams);		
 		$this->set('passedArgs', json_encode($passedArgs));
 		$this->set('passedArgsArray', $passedArgs);
 	}
 	
+
+	public function previewEvent($feedId, $eventUuid, $all = false) {
+		$this->Feed->id = $feedId;
+		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		$this->Feed->read();
+		$event = $this->Feed->downloadEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+		$this->loadModel('Event');
+		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
+		$this->params->params['paging'] = array('Feed' => $params);
+		$this->set('event', $event);
+		$this->set('feed', $this->Feed->data);
+		$this->loadModel('Event');
+		$dataForView = array(
+				'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
+				'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels')
+		);
+		foreach ($dataForView as $m => $variables) {
+			if ($m === 'Event') $currentModel = $this->Event;
+			else if ($m === 'Attribute') $currentModel = $this->Event->Attribute;
+			foreach ($variables as $alias => $variable) {
+				$this->set($alias, $currentModel->{$variable});
+			}
+		}
+		$threat_levels = $this->Event->ThreatLevel->find('all');
+		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+		$this->render('/Servers/preview_event');
+	}
 }

@@ -135,6 +135,43 @@ class Feed extends AppModel {
 		return true;
 	}
 	
+	public function downloadEventFromFeed($feed, $uuid, $user) {
+		$HttpSocket = $this->__setupHttpSocket($feed);
+		$request = $this->__createFeedRequest();
+		$uri = $feed['Feed']['url'] . '/' . $uuid . '.json';
+		$response = $HttpSocket->get($uri, '', $request);
+		if ($response->code != 200) {
+			return false;
+		} else {
+			$filterRules = $this->__prepareFilterRules($feed);
+			$event = $this->__prepareEvent($response->body, $filterRules);
+			if ($event !== true) return $event;
+			$this->Event = ClassRegistry::init('Event');
+			return $this->Event->_add($event, true, $user);
+		}
+	}
+	
+	private function __prepareEvent($body, $filterRules) {
+		$event = json_decode($body, true);
+		if (isset($event['response'])) $event = $event['response'];
+		if (isset($event[0])) $event = $event[0];
+		if (!isset($event['Event']['uuid'])) return false;
+		if (!$this->__checkIfEventBlockedByFilter($event, $filterRules)) return 'blocked';
+		return $event;
+	}
+	
+	private function __prepareFilterRules($feed) {
+		$filterRules = false;
+		if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) $filterRules = json_decode($feed['Feed']['rules'], true);
+		return $filterRules;
+	}
+	
+	private function __setupHttpSocket($feed) {
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		return ($syncTool->setupHttpSocketFeed($feed));
+	}
+	
 	private function __addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules) {
 		$request = $this->__createFeedRequest();
 		$uri = $feed['Feed']['url'] . '/' . $uuid . '.json';
@@ -142,11 +179,8 @@ class Feed extends AppModel {
 		if ($response->code != 200) {
 			return false;
 		} else {
-			$event = json_decode($response->body, true);
-			if (!$this->__checkIfEventBlockedByFilter($event, $filterRules)) return 'blocked';
-			if (isset($event['response'])) $event = $event['response'];
-			if (isset($event[0])) $event = $event[0];
-			if (!isset($event['Event']['uuid'])) return false;
+			$filterRules = $this->__prepareFilterRules($feed);
+			$event = $this->__prepareEvent($response->body, $filterRules);
 			$this->Event = ClassRegistry::init('Event');
 			return $this->Event->_add($event, true, $user);
 		}
@@ -160,10 +194,8 @@ class Feed extends AppModel {
 		if ($response->code != 200) {
 			return false;
 		} else {
-			$event = json_decode($response->body, true);
-			if (isset($event['response'])) $event = $event['response'];
-			if (isset($event[0])) $event = $event[0];
-			if (!isset($event['Event']['uuid'])) return false;
+			$filterRules = $this->__prepareFilterRules($feed);
+			$event = $this->__prepareEvent($response->body, $filterRules);
 			$this->Event = ClassRegistry::init('Event');
 			return $this->Event->_edit($event, $user, $uuid, $jobId = null);
 		}
