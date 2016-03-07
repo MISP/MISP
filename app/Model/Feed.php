@@ -159,7 +159,9 @@ class Feed extends AppModel {
 				if (!isset($event['Tag']) || empty($event['Tag'])) unset($events[$k]);
 				$found = false;
 				foreach ($event['Tag'] as &$tag) {
-					foreach ($filterRules['tags']['OR'] as $filterTag) if (strpos(strtolower($filterTag), $tag)) $found = true;
+					foreach ($filterRules['tags']['OR'] as $filterTag) {
+						if (strpos(strtolower($tag['name']), strtolower($filterTag))) $found = true;
+					}
 				}
 				if (!$found) {
 					unset($k);
@@ -170,7 +172,7 @@ class Feed extends AppModel {
 				if (isset($event['Tag']) && !empty($event['Tag'])) {
 					$found = false;
 					foreach ($event['Tag'] as &$tag) {
-						foreach ($filterRules['tags']['NOT'] as $filterTag) if (strpos(strtolower($filterTag), $tag)) $found = true;
+						foreach ($filterRules['tags']['NOT'] as $filterTag) if (strpos(strtolower($tag['name']), strtolower($filterTag))) $found = true;
 					}
 					if ($found) {
 						unset($k);
