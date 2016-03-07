@@ -299,7 +299,11 @@
 					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/add">Add Feed</a></li>
 					<?php if ($menuItem === 'edit'): ?>
 						<li class="active"><a href="#">Edit Feed</a></li>
-					<?php endif;
+					<?php elseif ($menuItem === 'previewIndex'): ?>
+						<li id='lipreviewIndex'><a href="<?php echo $baseurl;?>/feeds/previewIndex/<?php echo h($feed['Feed']['id']); ?>">PreviewIndex</a></li>
+					<?php elseif ($menuItem === 'previewEvent'): ?>
+						<li id='lipreviewEvent'><a href="<?php echo $baseurl;?>/feeds/previewEvent/<?php echo h($feed['Feed']['id']); ?>/<?php echo h($id);?>">PreviewEvent</a></li>
+					<?php endif; 
 				break;	
 			}
 		?>

@@ -64,7 +64,13 @@ class Feed extends AppModel {
 		$request = $this->__createFeedRequest();
 		$uri = $feed['Feed']['url'] . '/manifest.json';
 		$response = $HttpSocket->get($uri, '', $request);
-		return json_decode($response->body, true);
+		try {
+			$events = json_decode($response->body, true);
+		} catch (Exception $e) {
+			return false;
+		}
+		$events = $this->__filterEventsIndex($events, $feed);
+		return $events;
 	}
 	
 	public function downloadFromFeed($actions, $feed, $HttpSocket, $user) {
@@ -133,6 +139,46 @@ class Feed extends AppModel {
 		}
 		if (!$filterRules) return true;
 		return true;
+	}
+	
+	private function __filterEventsIndex($events, $feed) {
+		$filterRules = array();
+		if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) {
+			$filterRules = json_decode($feed['Feed']['rules'], true);
+		}
+		foreach ($events as $k => &$event) {
+			if (isset($filterRules['orgs']['OR']) && !empty($filterRules['orgs']['OR']) && !in_array($event['Orgc']['name'], $filterRules['orgs']['OR'])) {
+				unset($events[$k]);
+				continue;
+			}
+			if (isset($filterRules['orgs']['NO']) && !empty($filterRules['orgs']['NOT']) && in_array($event['Orgc']['name'], $filterRules['orgs']['OR'])) {
+				unset($events[$k]);
+				continue;
+			}
+			if (isset($filterRules['tags']['OR']) && !empty($filterRules['tags']['OR'])) {
+				if (!isset($event['Tag']) || empty($event['Tag'])) unset($events[$k]);
+				$found = false;
+				foreach ($event['Tag'] as &$tag) {
+					foreach ($filterRules['tags']['OR'] as $filterTag) if (strpos(strtolower($filterTag), $tag)) $found = true;
+				}
+				if (!$found) {
+					unset($k);
+					continue;
+				}
+			}
+			if (isset($filterRules['tags']['NOT']) && !empty($filterRules['tags']['NOT'])) {
+				if (isset($event['Tag']) && !empty($event['Tag'])) {
+					$found = false;
+					foreach ($event['Tag'] as &$tag) {
+						foreach ($filterRules['tags']['NOT'] as $filterTag) if (strpos(strtolower($filterTag), $tag)) $found = true;
+					}
+					if ($found) {
+						unset($k);
+					}
+				}
+			}
+		}
+		return $events;
 	}
 	
 	public function downloadEventFromFeed($feed, $uuid, $user) {

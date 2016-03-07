@@ -2633,7 +2633,7 @@ class Event extends AppModel {
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
 		foreach ($event['Attribute'] as $attribute) {
 			if ($filterType && $filterType !== 'proposal' && $filterType !== 'correlation') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
-			if ($attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
+			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
 			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
 			else $attribute['hasChildren'] = 0;
@@ -2643,11 +2643,13 @@ class Event extends AppModel {
 			$current = count($eventArray)-1;
 		}
 		unset($event['Attribute']);
-		foreach ($event['ShadowAttribute'] as $shadowAttribute) {
-			if ($filterType === 'correlation' && !in_array($shadowAttribute['id'], $correlatedShadowAttributes)) continue;
-			if ($filterType && $filterType !== 'proposal' && $filterType !== 'correlation') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
-			$shadowAttribute['objectType'] = 2;
-			$eventArray[] = $shadowAttribute;
+		if (isset($event['ShadowAttribute'])) {
+			foreach ($event['ShadowAttribute'] as $shadowAttribute) {
+				if ($filterType === 'correlation' && !in_array($shadowAttribute['id'], $correlatedShadowAttributes)) continue;
+				if ($filterType && $filterType !== 'proposal' && $filterType !== 'correlation') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
+				$shadowAttribute['objectType'] = 2;
+				$eventArray[] = $shadowAttribute;
+			}
 		}
 		unset($event['ShadowAttribute']);
 		App::uses('CustomPaginationTool', 'Tools');

@@ -145,25 +145,29 @@ class FeedsController extends AppController {
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
 		$this->Feed->read();
 		$event = $this->Feed->downloadEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
-		$this->loadModel('Event');
-		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
-		$this->params->params['paging'] = array('Feed' => $params);
-		$this->set('event', $event);
-		$this->set('feed', $this->Feed->data);
-		$this->loadModel('Event');
-		$dataForView = array(
-				'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
-				'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels')
-		);
-		foreach ($dataForView as $m => $variables) {
-			if ($m === 'Event') $currentModel = $this->Event;
-			else if ($m === 'Attribute') $currentModel = $this->Event->Attribute;
-			foreach ($variables as $alias => $variable) {
-				$this->set($alias, $currentModel->{$variable});
+		if (is_array($event)) {
+			$this->loadModel('Event');
+			$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
+			$this->params->params['paging'] = array('Feed' => $params);
+			$this->set('event', $event);
+			$this->set('feed', $this->Feed->data);
+			$this->loadModel('Event');
+			$dataForView = array(
+					'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
+					'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels')
+			);
+			foreach ($dataForView as $m => $variables) {
+				if ($m === 'Event') $currentModel = $this->Event;
+				else if ($m === 'Attribute') $currentModel = $this->Event->Attribute;
+				foreach ($variables as $alias => $variable) {
+					$this->set($alias, $currentModel->{$variable});
+				}
 			}
+			$threat_levels = $this->Event->ThreatLevel->find('all');
+			$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+		} else {
+			if ($event === 'blocked') throw new MethodNotAllowedException('This event is blocked by the Feed filters.');
+			else throw new NotFoundException('Could not download the selected Event');
 		}
-		$threat_levels = $this->Event->ThreatLevel->find('all');
-		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-		$this->render('/Servers/preview_event');
 	}
 }
