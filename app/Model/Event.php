@@ -1914,7 +1914,8 @@ class Event extends AppModel {
 		unset($this->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 		
 		// reposition to get the event.id with given uuid
-		$existingEvent = $this->findByUuid($data['Event']['uuid']);
+		if (isset($data['Event']['uuid'])) $existingEvent = $this->findByUuid($data['Event']['uuid']);
+		else $existingEvent = $this->findById($id);
 		// If the event exists...
 		$dateObj = new DateTime();
 		$date = $dateObj->getTimestamp();
@@ -1926,9 +1927,14 @@ class Event extends AppModel {
 			if (!isset($data['Event']['timestamp'])) $data['Event']['timestamp'] = $date;
 			if ($data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
 				if ($data['Event']['distribution'] == 4) {
-					$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
-					if ($data['Event']['sharing_group_id'] === false) return (array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.'));
-					unset ($data['Event']['SharingGroup']);
+					if (!isset($data['Event']['SharingGroup'])) {
+						if (!isset($data['Event']['sharing_group_id'])) return(array('error' => 'Event could not be saved: Sharing group chosen as the distribution level, but no sharing group specified. Make sure that the event includes a valid sharing_group_id or change to a different distribution level.'));
+						if (!$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) return(array('error' => 'Event could not be saved: Invalid sharing group or you don\'t have access to that sharing group.'));
+					} else {
+						$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
+						unset ($data['Event']['SharingGroup']);
+						if ($data['Event']['sharing_group_id'] === false) return (array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.'));
+					}
 				}
 				// If the above is true, we have two more options:
 				// For users that are of the creating org of the event, always allow the edit
