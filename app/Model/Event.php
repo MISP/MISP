@@ -1978,7 +1978,7 @@ class Event extends AppModel {
 							} else {
 								// If a field is not set in the request, just reuse the old value
 								$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'sharing_group_id');
-								foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $data['Event']['Attribute'][$c][$rF] = $existingAttribute['Attribute'][$rF];
+								foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $data['Event']['Attribute'][$k][$rF] = $existingAttribute['Attribute'][$rF];
 								$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
 								// Check if the attribute's timestamp is bigger than the one that already exists.
 								// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.

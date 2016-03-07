@@ -98,7 +98,31 @@ class FeedsController extends AppController {
 		$HttpSocket = $syncTool->setupHttpSocketFeed($this->Feed->data);
 		$actions = $this->Feed->getNewEventUuids($this->Feed->data, $HttpSocket);
 		$result = $this->Feed->downloadFromFeed($actions, $this->Feed->data, $HttpSocket, $this->Auth->user());
-		return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute added.')),'status'=>200));
+		$message = 'Fetching the feed has successfuly completed.';
+		if (isset($result['add'])) $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+		if (isset($result['edit'])) $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+		$this->Session->setFlash($message);
+		$this->redirect(array('action' => 'index'));
+	}
+	
+	public function getEvent($feedId, $eventUuid, $all = false) {
+		$this->Feed->id = $feedId;
+		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		$this->Feed->read();
+		$result = $this->Feed->downloadAndSaveEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+		if (isset($result['action'])) {
+			if ($result['result']) {
+				if ($result['action'] == 'add') $message = 'Event added.';
+				else {
+					if ($result['result'] === 'No change') $message = 'Event already up to date.';
+					else $message = 'Event updated.';
+				}
+			} else {
+				$message = 'Could not ' . $result['action'] . ' event.';
+			}
+		} else $message = 'Download failed.';
+		$this->Session->setFlash($message);
+		$this->redirect(array('action' => 'previewIndex', $feedId));
 	}
 	
 	public function previewIndex($feedId) {
@@ -114,7 +138,7 @@ class FeedsController extends AppController {
 		$this->Feed->read();
 		$HttpSocket = $syncTool->setupHttpSocketFeed($this->Feed->data);
 		$events = $this->Feed->getManifest($this->Feed->data, $HttpSocket);
-		
+		if (isset($events['code'])) throw new NotFoundException('Feed could not be fetched. The HTTP error code returned was: ' .$events['code']);		
 		$pageCount = count($events);
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();

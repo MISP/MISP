@@ -83,7 +83,7 @@ class Feed extends AppModel {
 		if (isset($actions['add']) && !empty($actions['add'])) {
 			foreach ($actions['add'] as $uuid) {
 				$result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
-				if ($result === 'blocked') debug('blocked: ' . $uuid);
+				if ($result === 'blocked') continue;
 				if ($result === true) {
 					$results['add']['success'] = $uuid;
 				} else {
@@ -94,6 +94,7 @@ class Feed extends AppModel {
 		if (isset($actions['edit']) && !empty($actions['edit'])) {
 			foreach ($actions['edit'] as $editTarget) {
 				$result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
+				if ($result === 'blocked') continue;
 				if ($result === true) {
 					$results['edit']['success'] = $uuid;
 				} else {
@@ -101,7 +102,6 @@ class Feed extends AppModel {
 				}
 			}
 		}
-		throw new Exception();
 		return $results;
 	}
 	
@@ -181,6 +181,12 @@ class Feed extends AppModel {
 		return $events;
 	}
 	
+	public function downloadAndSaveEventFromFeed($feed, $uuid, $user) {
+		$event = $this->downloadEventFromFeed($feed, $uuid, $user);
+		if (!is_array($event) || isset($event['code'])) return false;
+		return $this->__saveEvent($event, $user);
+	}
+	
 	public function downloadEventFromFeed($feed, $uuid, $user) {
 		$HttpSocket = $this->__setupHttpSocket($feed);
 		$request = $this->__createFeedRequest();
@@ -190,11 +196,28 @@ class Feed extends AppModel {
 			return false;
 		} else {
 			$filterRules = $this->__prepareFilterRules($feed);
-			$event = $this->__prepareEvent($response->body, $filterRules);
-			if ($event !== true) return $event;
-			$this->Event = ClassRegistry::init('Event');
-			return $this->Event->_add($event, true, $user);
+			return $this->__prepareEvent($response->body, $filterRules);
 		}
+	}
+	
+	private function __saveEvent($event, $user) {
+		$this->Event = ClassRegistry::init('Event');
+		$existingEvent = $this->Event->find('first', array(
+				'conditions' => array('Event.uuid' => $event['Event']['uuid']),
+				'recursive' => -1,
+				'fields' => array('Event.uuid', 'Event.id', 'Event.timestamp')
+		));
+		$result = array();
+		if (!empty($existingEvent)) {
+			$result['action'] = 'edit';
+			if ($existingEvent['Event']['timestamp'] < $event['Event']['timestamp']) {
+				$result['result'] = $this->Event->_edit($event, true, $user);
+			} else $result['result'] = 'No change';
+		} else {
+			$result['action'] = 'add';
+			$result['result'] = $this->Event->_add($event, true, $user);
+		}
+		return $result;
 	}
 	
 	private function __prepareEvent($body, $filterRules) {
@@ -202,6 +225,8 @@ class Feed extends AppModel {
 		if (isset($event['response'])) $event = $event['response'];
 		if (isset($event[0])) $event = $event[0];
 		if (!isset($event['Event']['uuid'])) return false;
+		$event['Event']['distribution'] = 3;
+		foreach ($event['Event']['Attribute'] as &$attribute) $attribute['distribution'] = 5;
 		if (!$this->__checkIfEventBlockedByFilter($event, $filterRules)) return 'blocked';
 		return $event;
 	}
@@ -227,13 +252,14 @@ class Feed extends AppModel {
 		} else {
 			$filterRules = $this->__prepareFilterRules($feed);
 			$event = $this->__prepareEvent($response->body, $filterRules);
-			$this->Event = ClassRegistry::init('Event');
-			return $this->Event->_add($event, true, $user);
+			if (is_array($event)) {
+				$this->Event = ClassRegistry::init('Event');
+				return $this->Event->_add($event, true, $user);
+			} else return $event;
 		}
 	}
 	
 	private function __updateEventFromFeed($HttpSocket, $feed, $uuid, $eventId, $user, $filterRules) {
-		debug($uuid);
 		$request = $this->__createFeedRequest();
 		$uri = $feed['Feed']['url'] . '/' . $uuid . '.json';
 		$response = $HttpSocket->get($uri, '', $request);
