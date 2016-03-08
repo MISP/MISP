@@ -10,6 +10,17 @@ class Feed extends AppModel {
 		'Containable'
 	);
 	
+	public $belongsTo = array(
+			'SharingGroup' => array(
+					'className' => 'SharingGroup',
+					'foreignKey' => 'sharing_group_id',
+			),
+			'Tag' => array(
+					'className' => 'Tag',
+					'foreignKey' => 'tag_id',
+			)
+	);
+	
 /**
  * Validation rules
  *
@@ -230,6 +241,32 @@ class Feed extends AppModel {
 		$event['Event']['distribution'] = $feed['Feed']['distribution'];
 		$event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
 		foreach ($event['Event']['Attribute'] as &$attribute) $attribute['distribution'] = 5;
+		if ($feed['Feed']['tag_id']) {
+			if (!isset($event['Event']['Tag'])) $event['Event']['Tag'] = array();
+			$found = false;
+			if (!empty($event['Event']['Tag'])) {
+				foreach ($event['Event']['Tag'] as $tag) {
+					if (strtolower($tag['name']) === strtolower($feed['Tag']['name'])) $found = true;
+				}
+			}
+			if (!$found) {
+				$feedTag = $this->Tag->find('first', array('conditions' => array('Tag.id' => $feed['Feed']['tag_id']), 'recursive' => -1, 'fields' => array('Tag.name', 'Tag.colour', 'Tag.exportable')));
+				if (!empty($feedTag)) $event['Event']['Tag'][] = $feedTag['Tag'];
+			}
+		}
+		if ($feed['Feed']['sharing_group_id']) {
+			$sg = $this->SharingGroup->find('first', array(
+					'recursive' => -1,
+					'conditions' => array('SharingGroup.id' => $feed['Feed']['sharing_group_id'])
+			));
+			if (!empty($sg)) {
+				$event['Event']['SharingGroup'] = $sg['SharingGroup'];
+			} else {
+				// We have an SG ID for the feed, but the SG is gone. Make the event private as a fall-back.
+				$event['Event']['distribution'] = 0;
+				$event['Event']['sharing_group_id'] = 0;
+			}
+		}
 		if (!$this->__checkIfEventBlockedByFilter($event, $filterRules)) return 'blocked';
 		return $event;
 	}

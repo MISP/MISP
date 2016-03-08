@@ -12,8 +12,7 @@ class FeedsController extends AppController {
 	public $paginate = array(
 			'limit' => 60,
 			'recursive' => -1,
-			'contain' => array(
-			),
+			'contain' => array('Tag', 'SharingGroup'),
 			'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
 			'order' => array(
 					'Feed.url' => 'ASC'
@@ -34,6 +33,8 @@ class FeedsController extends AppController {
  */
 	public function index() {
 		$this->set('feeds', $this->paginate());
+		$this->loadModel('Event');
+		$this->set('distributionLevels', $this->Event->distributionLevels);
 	}
 	
 	public function view($feedId) {

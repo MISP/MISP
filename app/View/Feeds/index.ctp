@@ -22,6 +22,8 @@
 			<th><?php echo $this->Paginator->sort('provider');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
+			<th><?php echo $this->Paginator->sort('distribution');?></th>
+			<th><?php echo $this->Paginator->sort('tag');?></th>
 			<th><?php echo $this->Paginator->sort('enabled');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
@@ -52,6 +54,18 @@ foreach ($feeds as $item):
 		<td><?php echo h($item['Feed']['name']); ?>&nbsp;</td>
 		<td><?php echo h($item['Feed']['provider']); ?>&nbsp;</td>
 		<td><?php echo h($item['Feed']['url']); ?>&nbsp;</td>
+		<td <?php if ($item['Feed']['distribution'] == 0) echo 'class="red"'; ?>>
+		<?php 
+			echo $item['Feed']['distribution'] == 4 ? '<a href="' . $baseurl . '/sharing_groups/view/' . h($item['SharingGroup']['id']) . '">' . h($item['SharingGroup']['name']) . '</a>' : $distributionLevels[$item['Feed']['distribution']] ; 
+		?>
+		</td>
+		<td>
+		<?php if ($item['Feed']['tag_id']): ?>
+			<a href="<?php echo $baseurl;?>/events/index/searchtag:<?php echo h($item['Tag']['id']); ?>" class=tag style="background-color:<?php echo h($item['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']);?>"><?php echo h($item['Tag']['name']); ?></a>
+		<?php else: ?>
+			&nbsp;
+		<?php endif;?>
+		</td>
 		<td class="short"><span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>" data-toggle="popover" title="Filter rules" data-content="<?php echo $ruleDescription; ?>"> (Rules)</span>
 		<td class="short action-links">
 			<?php 
