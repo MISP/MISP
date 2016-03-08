@@ -253,6 +253,9 @@ class AppModel extends Model {
 					`url` varchar(255) COLLATE utf8_bin NOT NULL,
 					`rules` text COLLATE utf8_bin NOT NULL,
 					`enabled` BOOLEAN NOT NULL,
+					`distribution` tinyint(4) NOT NULL,
+					`sharing_group_id` int(11) NOT NULL,
+					`tag_id` int(11) NOT NULL,
 					PRIMARY KEY (`id`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;

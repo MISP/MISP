@@ -20,6 +20,28 @@
 				'placeholder' => 'URL of the feed',
 				'class' => 'form-control span6'
 		));
+		echo $this->Form->input('distribution', array(
+				'options' => array($distributionLevels),
+				'div' => 'input clear',
+				'label' => 'Distribution',
+		));
+		?>
+			<div id="SGContainer" style="display:none;">
+		<?php 
+			if (!empty($sharingGroups)) {
+				echo $this->Form->input('sharing_group_id', array(
+						'options' => array($sharingGroups),
+						'label' => 'Sharing Group',
+				));
+			}
+		?>
+			</div>
+			<div class="input clear"></div>
+		<?php
+			echo $this->Form->input('tag_id', array(
+					'options' => $tags,
+					'label' => 'Default Tag',
+			));
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
 	</fieldset>
@@ -60,10 +82,13 @@ var validFields = ['tags', 'orgs'];
 var modelContext = 'Feed';
 
 $(document).ready(function() {
-	ules = convertServerFilterRules(rules);
+	rules = convertServerFilterRules(rules);
+	feedDistributionChange();
 	$("#pull_modify").click(function() {
 		serverRuleFormActivate('pull');
 	});
-
+	$("#FeedDistribution").change(function() {
+		feedDistributionChange();
+	});
 });
 </script>

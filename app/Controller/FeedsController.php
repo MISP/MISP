@@ -40,13 +40,10 @@ class FeedsController extends AppController {
 		$feed = $this->Feed->find('first', array('conditions' => array('Feed.id' => $feedId)));
 	}
 	
-	public function toggleEnabled($feedId) {
-		
-	}
-	
 	public function add() {
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['Feed']['pull_rules'])) $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
+			if ($this->request->data['Feed']['distribution'] != 4) $this->request->data['Feed']['sharing_group_id'] = 0; 
 			$result = $this->Feed->save($this->request->data);
 			if ($result) {
 				$this->Session->setFlash('Feed added.');
@@ -54,7 +51,15 @@ class FeedsController extends AppController {
 			}
 			else $this->Session->setFlash('Feed could not be added.');
 		} else {
-			
+			$this->loadModel('Event');
+			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+			$distributionLevels = $this->Event->distributionLevels;
+			if (empty($sgs)) unset ($distributionLevels[4]);
+			$this->set('distributionLevels', $distributionLevels);
+			$this->set('sharingGroups', $sgs);
+			$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
+			array_unshift($tags, array(0 => 'None'));
+			$this->set('tags', $tags);
 		}
 	}
 	
@@ -64,8 +69,9 @@ class FeedsController extends AppController {
 		$this->Feed->read();
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if (isset($this->request->data['Feed']['pull_rules'])) $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
+			if ($this->request->data['Feed']['distribution'] != 4) $this->request->data['Feed']['sharing_group_id'] = 0;
 			$this->request->data['Feed']['id'] = $feedId;
-			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url');
+			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id');
 			$feed = array();
 			foreach ($fields as $field) $feed[$field] = $this->request->data['Feed'][$field];
 			$result = $this->Feed->save($feed);
@@ -77,6 +83,15 @@ class FeedsController extends AppController {
 		} else {
 			$this->request->data = $this->Feed->data;
 			$this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
+			$this->loadModel('Event');
+			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+			$distributionLevels = $this->Event->distributionLevels;
+			if (empty($sgs)) unset ($distributionLevels[4]);
+			$this->set('distributionLevels', $distributionLevels);
+			$this->set('sharingGroups', $sgs);
+			$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
+			array_unshift($tags, array(0 => 'None'));
+			$this->set('tags', $tags);
 		}
 	}
 	

@@ -197,8 +197,7 @@ class Feed extends AppModel {
 		if ($response->code != 200) {
 			return false;
 		} else {
-			$filterRules = $this->__prepareFilterRules($feed);
-			return $this->__prepareEvent($response->body, $filterRules);
+			return $this->__prepareEvent($response->body, $feed);
 		}
 	}
 	
@@ -222,12 +221,14 @@ class Feed extends AppModel {
 		return $result;
 	}
 	
-	private function __prepareEvent($body, $filterRules) {
+	private function __prepareEvent($body, $feed) {
+		$filterRules = $this->__prepareFilterRules($feed);
 		$event = json_decode($body, true);
 		if (isset($event['response'])) $event = $event['response'];
 		if (isset($event[0])) $event = $event[0];
 		if (!isset($event['Event']['uuid'])) return false;
-		$event['Event']['distribution'] = 3;
+		$event['Event']['distribution'] = $feed['Feed']['distribution'];
+		$event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
 		foreach ($event['Event']['Attribute'] as &$attribute) $attribute['distribution'] = 5;
 		if (!$this->__checkIfEventBlockedByFilter($event, $filterRules)) return 'blocked';
 		return $event;
@@ -252,8 +253,7 @@ class Feed extends AppModel {
 		if ($response->code != 200) {
 			return false;
 		} else {
-			$filterRules = $this->__prepareFilterRules($feed);
-			$event = $this->__prepareEvent($response->body, $filterRules);
+			$event = $this->__prepareEvent($response->body, $feed);
 			if (is_array($event)) {
 				$this->Event = ClassRegistry::init('Event');
 				return $this->Event->_add($event, true, $user);
@@ -268,8 +268,7 @@ class Feed extends AppModel {
 		if ($response->code != 200) {
 			return false;
 		} else {
-			$filterRules = $this->__prepareFilterRules($feed);
-			$event = $this->__prepareEvent($response->body, $filterRules);
+			$event = $this->__prepareEvent($response->body, $feed);
 			$this->Event = ClassRegistry::init('Event');
 			return $this->Event->_edit($event, $user, $uuid, $jobId = null);
 		}

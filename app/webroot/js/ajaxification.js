@@ -1973,6 +1973,12 @@ function testConnection(id) {
 			case 4:
 				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>');
 				break;
+			case 5:
+				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>');
+				break;
+			case 6:
+				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>');
+				break;
 	    	}
 	    }
 	})
@@ -2228,3 +2234,7 @@ function mergeOrganisationTypeToggle() {
 	}
 }
 
+function feedDistributionChange() {
+	if ($('#FeedDistribution').val() == 4) $('#SGContainer').show();
+	else $('#SGContainer').hide();
+}

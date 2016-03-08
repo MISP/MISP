@@ -1004,7 +1004,7 @@ class ServersController extends AppController {
 					$result['status'] = 3;
 				}
 			}
-			return new CakeResponse(array('body'=> json_encode(array('status' => $result['status']))));
+			return new CakeResponse(array('body'=> json_encode($result)));
 	}
 	
 	public function startZeroMQServer() {

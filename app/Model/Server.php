@@ -1829,12 +1829,21 @@ class Server extends AppModel {
 			return array('status' => 1, 'message' => $response->body());
 		} else {
 			if ($response->code == '403') return array('status' => 4);
+			if ($response->code == '405') {
+				try {
+					$responseText = json_decode($response->body, true)['message'];
+				} catch (Exception $e) {
+					return array('status' => 3);
+				}
+				if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') return array('status' => 5);
+				else if ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') return array('status' => 6);
+			}
 			return array('status' => 3);
 		}
 	}
 	
 	public function checkVersionCompatibility($id, $user = array(), $HttpSocket = false) {
-		// for event publishing when we don't have a user.
+		// for event publishing when we don't have a user.					
 		if (empty($user)) $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
 		App::uses('Folder', 'Utility');
 		$file = new File (ROOT . DS . 'VERSION.json', true);
