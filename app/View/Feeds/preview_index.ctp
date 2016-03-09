@@ -60,7 +60,7 @@
 				<?php echo nl2br(h($event['info'])); ?>&nbsp;
 			</td>
 			<td class="short action-links">
-				<?php echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'icon-download'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
+				<?php if ($feed['Feed']['enabled']) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'icon-download'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
 				<a href='<?php echo $eventViewURL . h($uuid);?>' class = "icon-list-alt" title = "View"></a>
 			</td>
 		</tr>

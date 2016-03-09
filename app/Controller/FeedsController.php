@@ -110,6 +110,11 @@ class FeedsController extends AppController {
 	public function fetchFromFeed($feedId) {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		$this->Feed->read();
+		if (!$this->Feed->data['Feed']['enabled']) {
+			$this->Session->setFlash('Feed is currently not enabled. Make sure you enable it.');
+			$this->redirect(array('action' => 'index'));
+		}
 		if (Configure::read('MISP.background_jobs')) {
 			$this->loadModel('Job');
 			$this->Job->create();
@@ -145,6 +150,10 @@ class FeedsController extends AppController {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
 		$this->Feed->read();
+		if (!$this->Feed->data['Feed']['enabled']) {
+			$this->Session->setFlash('Feed is currently not enabled. Make sure you enable it.');
+			$this->redirect(array('action' => 'previewIndex', $feedId));
+		}
 		$result = $this->Feed->downloadAndSaveEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
 		if (isset($result['action'])) {
 			if ($result['result']) {
