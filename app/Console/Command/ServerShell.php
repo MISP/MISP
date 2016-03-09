@@ -167,7 +167,7 @@ class ServerShell extends AppShell
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
-			$result = $this->Server->push($server['Server']['id'], 'full', $jobId, $HttpSocket, $user['email']);
+			$result = $this->Server->push($server['Server']['id'], 'full', $jobId, $HttpSocket, $user);
 		}
 		$this->Task->id = $task['Task']['id'];
 		$this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.');
