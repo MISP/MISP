@@ -61,7 +61,7 @@ class FeedsController extends AppController {
 			$this->set('distributionLevels', $distributionLevels);
 			$this->set('sharingGroups', $sgs);
 			$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
-			array_unshift($tags, array(0 => 'None'));
+			$tags[0] = 'None';
 			$this->set('tags', $tags);
 		}
 	}
@@ -93,7 +93,7 @@ class FeedsController extends AppController {
 			$this->set('distributionLevels', $distributionLevels);
 			$this->set('sharingGroups', $sgs);
 			$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
-			array_unshift($tags, array(0 => 'None'));
+			$tags[0] = 'None';
 			$this->set('tags', $tags);
 		}
 	}
@@ -110,15 +110,33 @@ class FeedsController extends AppController {
 	public function fetchFromFeed($feedId) {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
-		App::uses('SyncTool', 'Tools');
-		$syncTool = new SyncTool();
-		$this->Feed->read();
-		$HttpSocket = $syncTool->setupHttpSocketFeed($this->Feed->data);
-		$actions = $this->Feed->getNewEventUuids($this->Feed->data, $HttpSocket);
-		$result = $this->Feed->downloadFromFeed($actions, $this->Feed->data, $HttpSocket, $this->Auth->user());
-		$message = 'Fetching the feed has successfuly completed.';
-		if (isset($result['add'])) $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
-		if (isset($result['edit'])) $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+		if (Configure::read('MISP.background_jobs')) {
+			$this->loadModel('Job');
+			$this->Job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'fetch_feed',
+					'job_input' => 'Feed: ' . $feedId,
+					'status' => 0,
+					'retries' => 0,
+					'org' => $this->Auth->user('Organisation')['name'],
+					'message' => 'Starting fetch from Feed.',
+			);
+			$this->Job->save($data);
+			$jobId = $this->Job->id;
+			$process_id = CakeResque::enqueue(
+					'default',
+					'ServerShell',
+					array('fetchFeed', $this->Auth->user('id'), $feedId, $jobId)
+			);
+			$this->Job->saveField('process_id', $process_id);
+			$message = 'Pull queued for background execution.';
+		} else {
+			$result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
+			$message = 'Fetching the feed has successfuly completed.';
+			if (isset($result['add'])) $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+			if (isset($result['edit'])) $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+		}
 		$this->Session->setFlash($message);
 		$this->redirect(array('action' => 'index'));
 	}

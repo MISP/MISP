@@ -19,8 +19,8 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
-			<th><?php echo $this->Paginator->sort('provider');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
+			<th><?php echo $this->Paginator->sort('provider');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
 			<th><?php echo $this->Paginator->sort('distribution');?></th>
 			<th><?php echo $this->Paginator->sort('tag');?></th>
@@ -51,7 +51,16 @@ foreach ($feeds as $item):
 ?>
 	<tr>
 		<td class="short"><?php echo h($item['Feed']['id']); ?>&nbsp;</td>
-		<td><?php echo h($item['Feed']['name']); ?>&nbsp;</td>
+		<td>
+			<?php
+				echo h($item['Feed']['name']); 
+				if ($item['Feed']['default']):
+				?>
+					<img src="<?php echo $baseurl;?>/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" />
+				<?php 
+					endif;
+			?>
+		</td>
 		<td><?php echo h($item['Feed']['provider']); ?>&nbsp;</td>
 		<td><?php echo h($item['Feed']['url']); ?>&nbsp;</td>
 		<td <?php if ($item['Feed']['distribution'] == 0) echo 'class="red"'; ?>>

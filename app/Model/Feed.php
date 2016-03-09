@@ -84,7 +84,16 @@ class Feed extends AppModel {
 		return $events;
 	}
 	
-	public function downloadFromFeed($actions, $feed, $HttpSocket, $user) {
+	public function downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId = false) {
+		if ($jobId) {
+			$job = ClassRegistry::init('Job');
+			$job->read(null, $jobId);
+			$email = "Scheduled job";
+		}
+		$total = 0;
+		if (isset($actions['add']) && !empty($actions['add'])) $total += count($actions['add']);
+		if (isset($actions['edit']) && !empty($actions['edit'])) $total += count($actions['edit']);
+		$currentItem = 0;
 		$this->Event = ClassRegistry::init('Event');
 		$results = array();
 		$filterRules = false;
@@ -100,6 +109,11 @@ class Feed extends AppModel {
 				} else {
 					$results['add']['fail'] = array('uuid' => $uuid, 'reason' => $result);
 				}
+				if ($jobId) {
+					$job->id = $jobId;
+					$job->saveField('progress', 100 * (($currentItem + 1) / $total));
+				}
+				$currentItem++;
 			}
 		}
 		if (isset($actions['edit']) && !empty($actions['edit'])) {
@@ -111,6 +125,11 @@ class Feed extends AppModel {
 				} else {
 					$results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $result);
 				}
+				if ($jobId && $currentItem % 10 == 0) {
+					$job->id = $jobId;
+					$job->saveField('progress', 100 * (($currentItem + 1) / $total));
+				}
+				$currentItem++;
 			}
 		}
 		return $results;
@@ -333,4 +352,27 @@ class Feed extends AppModel {
 		return $success;
 	}
 	
+	public function downloadFromFeedInitiator($feedId, $user, $jobId = false) {
+		$this->id = $feedId;
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		$job = ClassRegistry::init('Job');
+		$this->read();
+		if ($jobId) {
+			$job->id = $jobId;
+			$job->saveField('message', 'Fetching event manifest.');
+		}
+		$HttpSocket = $syncTool->setupHttpSocketFeed($this->data);
+		$actions = $this->getNewEventUuids($this->data, $HttpSocket);
+		if ($jobId) {
+			$job->id = $jobId;
+			$job->saveField('message', 'Fetching events.');
+		}
+		$result = $this->downloadFromFeed($actions, $this->data, $HttpSocket, $user, $jobId);
+		if ($jobId) {
+			$job->id = $jobId;
+			$job->saveField('message', 'Job complete.');
+		}
+		return $result;
+	}
 }
