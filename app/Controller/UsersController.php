@@ -408,6 +408,7 @@ class UsersController extends AppController {
 		}
 		$orgs = $this->User->Organisation->find('list', array(
 				'conditions' => array('local' => 1),
+				'order' => array('lower(name) asc')
 		));
 		$this->set('orgs', $orgs);
 		// generate auth key for a new user
@@ -540,6 +541,7 @@ class UsersController extends AppController {
 		if ($this->_isSiteAdmin()) {
 			$orgs = $this->User->Organisation->find('list', array(
 					'conditions' => array('local' => 1),
+					'order' => array('lower(name) asc')
 			));
 		}
 		$this->loadModel('Server');
