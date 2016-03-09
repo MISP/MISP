@@ -15,7 +15,8 @@ class FeedsController extends AppController {
 			'contain' => array('Tag', 'SharingGroup'),
 			'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
 			'order' => array(
-					'Feed.url' => 'ASC'
+					'Feed.default' => 'DESC',
+					'Feed.id' => 'ASC'
 			),
 	);
 
@@ -45,6 +46,7 @@ class FeedsController extends AppController {
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['Feed']['pull_rules'])) $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
 			if ($this->request->data['Feed']['distribution'] != 4) $this->request->data['Feed']['sharing_group_id'] = 0; 
+			$this->request->data['Feed']['default'] = 0;
 			$result = $this->Feed->save($this->request->data);
 			if ($result) {
 				$this->Session->setFlash('Feed added.');

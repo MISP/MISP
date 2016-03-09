@@ -311,4 +311,26 @@ class Feed extends AppModel {
 		}
 	}
 	
+	public function addDefaultFeeds($newFeeds) {
+		foreach ($newFeeds as $newFeed) {
+			$existingFeed = $this->find('list', array('conditions' => array('Feed.url' => $newFeed['url'])));
+			$success = true;
+			if (empty($existingFeed)) {
+				$this->create();
+				$feed = array(
+						'name' => $newFeed['name'],
+						'provider' => $newFeed['provider'],
+						'url' => $newFeed['url'],
+						'enabled' => false,
+						'distribution' => 3,
+						'sharing_group_id' => 0,
+						'tag_id' => 0,
+						'default' => true,
+				);
+				$result = $this->save($feed) && $success;
+			}
+		}
+		return $success;
+	}
+	
 }
