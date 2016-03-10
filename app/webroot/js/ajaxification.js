@@ -140,7 +140,7 @@ function updateIndex(id, context, newPage) {
 	if (typeof newPage !== 'undefined') page = newPage;
 	var url, div;
 	if (context == 'event') {
-		url = "/events/viewEventAttributes/" + id;
+		url = currentUri;
 		div = "#attributes_div";
 	}
 	if (context == 'template') {

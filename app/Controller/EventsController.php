@@ -638,6 +638,7 @@ class EventsController extends AppController {
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 		$this->disableCache();
 		$this->layout = 'ajax';
+		$this->set('currentUri', $this->params->here);
 		$this->render('/Elements/eventattribute');
 	}
 	
