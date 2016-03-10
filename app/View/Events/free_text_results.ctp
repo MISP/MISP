@@ -61,10 +61,10 @@
 						);
 						$popoverHTML = '';
 						foreach ($popover as $k => $popoverElement) {
-							$popoverHTML .= '<span class=\'bold\'>' . $k . '</span>: <span class=\'blue bold\'>' . h($popoverElement) . '</span><br />';
+							$popoverHTML .= '<span class=\'bold\'>' . $k . '</span>: <span class=\'blue bold\'>' . $popoverElement . '</span><br />';
 						}
 				?>
-						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo $popoverHTML; ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
+						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
 				<?php 
 					endforeach;
 					// Category/type: 
