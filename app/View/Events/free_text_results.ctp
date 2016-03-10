@@ -166,21 +166,23 @@
 		</span>
 	</span>
 </div>
-<?php if (!empty($optionsRearranged)):?>
 	<script>
+	<?php if (!empty($optionsRearranged)):?>
 		var options = <?php echo json_encode($optionsRearranged);?>;
+	<?php endif; ?>
 		$(document).ready(function(){
 			popoverStartup();
+		<?php if (!empty($optionsRearranged)):?>
 			$('#changeFrom').change(function(){
 				changeFreetextImportFrom();
 			});
 			$('#changeFrom').trigger('change');
+		<?php endif; ?>
 			$('#checkAll').change(function() {
 				$('.idsCheckbox').prop('checked', $('#checkAll').is(':checked'));
 			});
 		});
 	</script>
 <?php 
-	endif;
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
 ?>
