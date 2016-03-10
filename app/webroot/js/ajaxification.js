@@ -1512,7 +1512,6 @@ function popoverStartup() {
         placement: 'left',
         animation: true,
         html: true,
-        trigger: 'manual',
     }).click(function(e) {
     	$(e.target).popover('show');
     	$('[data-toggle="popover"]').not(e.target).popover('hide');

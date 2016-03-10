@@ -20,6 +20,7 @@
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 				<th>Value</th>
+				<th>Similar Attributes</th>
 				<th>Category</th>
 				<th>Type</th>
 				<th>IDS<input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
@@ -46,6 +47,29 @@
 			<td>
 				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >
 				<div id="<?php echo 'Attribute' . $k . 'Value'; ?>"><?php echo h($item['value']); ?></div>
+			</td>
+			<td>
+				<?php 
+					foreach ($item['related'] as $relation):
+						$popover = array(
+							'Event ID' => $relation['Event']['id'],
+							'Event Info' => $relation['Event']['info'],
+							'Category' => $relation['Attribute']['category'],
+							'Type' => $relation['Attribute']['type'],
+							'Value' => $relation['Attribute']['value'],
+							'Comment' => $relation['Attribute']['comment'],
+						);
+						$popoverHTML = '';
+						foreach ($popover as $k => $popoverElement) {
+							$popoverHTML .= '<span class=\'bold\'>' . $k . '</span>: <span class=\'blue bold\'>' . h($popoverElement) . '</span><br />';
+						}
+				?>
+						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo $popoverHTML; ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
+				<?php 
+					endforeach;
+					// Category/type: 
+					$correlationPopover = array('<span>', );
+				?>
 			</td>
 			<td class="short">
 				<?php 
@@ -146,6 +170,7 @@
 	<script>
 		var options = <?php echo json_encode($optionsRearranged);?>;
 		$(document).ready(function(){
+			popoverStartup();
 			$('#changeFrom').change(function(){
 				changeFreetextImportFrom();
 			});

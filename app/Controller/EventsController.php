@@ -2691,6 +2691,14 @@ class EventsController extends AppController {
 					if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset ($resultArray[$k]);
 				}
 			}
+			foreach ($resultArray as &$result) {
+				$options = array(
+					'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
+					'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+					'order' => false
+				);
+				$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+			}
 			$resultArray = array_values($resultArray);
 			$typeCategoryMapping = array();
 			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
