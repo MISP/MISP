@@ -143,6 +143,7 @@ var validFields = ['tags', 'orgs'];
 var tags = <?php echo json_encode($allTags); ?>;
 var orgs = <?php echo json_encode($allOrganisations); ?>;
 var delete_cert = false;
+var modelContext = 'Server';
 
 $(document).ready(function() {
 	serverOrgTypeChange();
