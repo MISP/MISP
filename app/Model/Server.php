@@ -1843,7 +1843,7 @@ class Server extends AppModel {
 	}
 	
 	public function checkVersionCompatibility($id, $user = array(), $HttpSocket = false) {
-		// for event publishing when we don't have a user.
+		// for event publishing when we don't have a user.					
 		if (empty($user)) $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
 		App::uses('Folder', 'Utility');
 		$file = new File (ROOT . DS . 'VERSION.json', true);

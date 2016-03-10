@@ -523,6 +523,7 @@ class Attribute extends AppModel {
 		// always return true, otherwise the object cannot be saved
 		
 		if (!isset($this->data['Attribute']['distribution']) || $this->data['Attribute']['distribution'] != 4) $this->data['Attribute']['sharing_group_id'] = 0;
+		if (!isset($this->data['Attribute']['distribution'])) $this->data['Attribute']['distribution'] = 5;
 		return true;
 	}
 

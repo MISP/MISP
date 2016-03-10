@@ -49,7 +49,7 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => false, 19 => false, 20 => false)
+			4 => array(18 => false, 19 => false, 20 => false, 25 => false)
 		)
 	);
 	
@@ -57,16 +57,48 @@ class AppModel extends Model {
 	// add special cases where the upgrade does more than just update the DB
 	// this could become useful in the future
 	public function updateMISP($command) {
+		$this->Log = ClassRegistry::init('Log');
 		switch($command) {
 			case '2.4.20':
 				$this->updateDatabase($command);
 				$this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
 				$this->ShadowAttribute->upgradeToProposalCorrelation();
 				break;
+			case '2.4.25':
+				$this->updateDatabase($command);
+				$newFeeds = array(
+					array('provider' => 'CIRCL', 'name' => 'CIRCL OSINT Feed', 'url' => 'https://www.circl.lu/doc/misp/feed-osint'),
+				);
+				$this->__addNewFeeds($newFeeds);
+				break;
 			default:
 				$this->updateDatabase($command);
 				break;
 		}
+	}
+	
+	private function __addNewFeeds($feeds) {
+		$this->Feed = ClassRegistry::init('Feed');
+		$feedNames = array();
+		foreach ($feeds as &$feed) $feedNames[] = $feed['name'];
+		$feedNames = implode(', ', $feedNames);
+		$result = $this->Feed->addDefaultFeeds($feeds);
+		$this->Log->create();
+		$entry = array(
+				'org' => 'SYSTEM',
+				'model' => 'Server',
+				'model_id' => 0,
+				'email' => 'SYSTEM',
+				'action' => 'update_database',
+				'user_id' => 0,
+				'title' => 'Added new default feeds.'
+		);
+		if ($result) {
+			$entry['change'] = 'Feeds added: ' . $feedNames;
+		} else {
+			$entry['change'] = 'Tried adding new feeds but something went wrong.';
+		}
+		$this->Log->save($entry);
 	}
 	
 	// SQL scripts for updates
@@ -243,6 +275,21 @@ class AppModel extends Model {
 					KEY `1_event_id` (`event_id`),
 					KEY `sharing_group_id` (`sharing_group_id`),
 					KEY `1_shadow_attribute_id` (`1_shadow_attribute_id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
+			case '2.4.25':
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `feeds` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`name` varchar(255) COLLATE utf8_bin NOT NULL,
+					`provider` varchar(255) COLLATE utf8_bin NOT NULL,
+					`url` varchar(255) COLLATE utf8_bin NOT NULL,
+					`rules` text COLLATE utf8_bin NOT NULL,
+					`enabled` BOOLEAN NOT NULL,
+					`distribution` tinyint(4) NOT NULL,
+					`sharing_group_id` int(11) NOT NULL,
+					`tag_id` int(11) NOT NULL,
+					`default` tinyint(1) NOT NULL,
+					PRIMARY KEY (`id`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case 'fixNonEmptySharingGroupID':

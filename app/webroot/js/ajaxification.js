@@ -2040,7 +2040,7 @@ function zeroMQServerAction(action) {
 
 function convertServerFilterRules(rules) {
 	validOptions.forEach(function (type) {
-		container = "#Server" + type.ucfirst() + "Rules";
+		container = "#"+ modelContext + type.ucfirst() + "Rules";
 		if($(container).val() != '') rules[type] = JSON.parse($(container).val());
 	});
 	serverRuleUpdate();
@@ -2090,7 +2090,11 @@ function serverRuleCancel() {
 
 function serverRuleGenerateJSON() {
 	validOptions.forEach(function(type) {
-		$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+		if ($('#Server' + type.ucfirst() + "Rules").length) {
+			$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+		} else {
+			$('#Feed' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+		}
 	});
 }
 
@@ -2229,3 +2233,7 @@ function mergeOrganisationTypeToggle() {
 	}
 }
 
+function feedDistributionChange() {
+	if ($('#FeedDistribution').val() == 4) $('#SGContainer').show();
+	else $('#SGContainer').hide();
+}
