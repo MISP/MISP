@@ -49,7 +49,7 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => false, 19 => false, 20 => false, 25 => false)
+			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false)
 		)
 	);
 	
@@ -68,6 +68,12 @@ class AppModel extends Model {
 				$this->updateDatabase($command);
 				$newFeeds = array(
 					array('provider' => 'CIRCL', 'name' => 'CIRCL OSINT Feed', 'url' => 'https://www.circl.lu/doc/misp/feed-osint'),
+				);
+				$this->__addNewFeeds($newFeeds);
+				break;
+			case '2.4.27':
+				$newFeeds = array(
+					array('provider' => 'Botvrij.eu', 'name' => 'The Botvrij.eu Data','url' => 'http://www.botvrij.eu/data/feed-osint')
 				);
 				$this->__addNewFeeds($newFeeds);
 				break;
