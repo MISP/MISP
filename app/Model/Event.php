@@ -1750,8 +1750,8 @@ class Event extends AppModel {
 				unset($data['Event']['Attribute']['id']);
 				if($a['distribution'] == 4) {
 					$data['Event']['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['Attribute'][$k]['SharingGroup'], $user);
+					unset($data['Event']['Attribute'][$k]['SharingGroup']);
 				}
-				unset($data['Event']['Attribute'][$k]['SharingGroup']);
 			}
 		}
 		// first we want to see how the creator organisation is encoded
