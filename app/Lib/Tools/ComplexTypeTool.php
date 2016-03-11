@@ -105,6 +105,9 @@ class ComplexTypeTool {
 		$inputRefanged = preg_replace('/^hxxp/i', 'http', $input);
 		$inputRefanged = preg_replace('/\[\.\]/', '.' , $inputRefanged);
 		$inputRefanged = rtrim($inputRefanged, ".");
+		if (strpos($input, '@') !== false) {
+			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst'), 'to_ids' => true, 'default_type' => 'email-src');
+		}
 		// note down and remove the port if it's a url / domain name / hostname / ip
 		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
 		$comment = false;
@@ -120,7 +123,6 @@ class ComplexTypeTool {
 				if (filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1])) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 			}
 		}
-		
 		
 		// check for domain name, hostname, filename
 		if (strpos($inputRefanged, '.') !== false) {
@@ -150,10 +152,6 @@ class ComplexTypeTool {
 			} else {
 				return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey');
 			}
-		}
-		
-		if (strpos($input, '@') !== false) {
-			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst'), 'to_ids' => true, 'default_type' => 'email-src');
 		}
 		
 		// check for CVE
