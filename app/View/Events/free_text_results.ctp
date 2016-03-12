@@ -38,15 +38,16 @@
 						'style' => 'display:none;',
 						'value' => 1,
 				));
-				echo $this->Form->input('Attribute' . $k . 'Value', array(
-						'label' => false,
-						'type' => 'hidden',
-						'value' => h($item['value']),
-				));
 			?>
 			<td>
+				<?php 
+					echo $this->Form->input('Attribute' . $k . 'Value', array(
+							'label' => false,
+							'value' => h($item['value']),
+							'style' => 'padding:0px;height:20px;margin-bottom:0px'
+					));
+				?>
 				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >
-				<div id="<?php echo 'Attribute' . $k . 'Value'; ?>"><?php echo h($item['value']); ?></div>
 			</td>
 			<td>
 				<?php 
