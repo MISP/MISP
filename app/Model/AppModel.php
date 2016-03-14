@@ -67,7 +67,7 @@ class AppModel extends Model {
 			case '2.4.25':
 				$this->updateDatabase($command);
 				$newFeeds = array(
-					array('provider' => 'CIRCL', 'name' => 'CIRCL OSINT Feed', 'url' => 'https://www.circl.lu/doc/misp/feed-osint', 'enabled' => true),
+					array('provider' => 'CIRCL', 'name' => 'CIRCL OSINT Feed', 'url' => 'https://www.circl.lu/doc/misp/feed-osint', 'enabled' => false),
 				);
 				$this->__addNewFeeds($newFeeds);
 				break;
