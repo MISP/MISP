@@ -159,6 +159,26 @@ CREATE TABLE IF NOT EXISTS `event_tags` (
   INDEX `tag_id` (`tag_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
+-- -------------------------------------------------------
+
+--
+-- Table structure for `feeds`
+--
+
+CREATE TABLE IF NOT EXISTS `feeds` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) COLLATE utf8_bin NOT NULL,
+  `provider` varchar(255) COLLATE utf8_bin NOT NULL,
+  `url` varchar(255) COLLATE utf8_bin NOT NULL,
+  `rules` text COLLATE utf8_bin NOT NULL,
+  `enabled` BOOLEAN NOT NULL,
+  `distribution` tinyint(4) NOT NULL,
+  `sharing_group_id` int(11) NOT NULL,
+  `tag_id` int(11) NOT NULL,
+  `default` tinyint(1) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 -- --------------------------------------------------------
 
 --
@@ -686,7 +706,11 @@ CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
 --
 
 INSERT INTO `admin_settings` (`id`, `setting`, `value`) VALUES
-(1, 'db_version', '2.4.21');
+(1, 'db_version', '2.4.27');
+
+INSERT INTO `feeds` (`id`, `provider`, `name`, `url`) VALUES
+(1, 'CIRCL', 'CIRCL OSINT Feed', 'https://www.circl.lu/doc/misp/feed-osint'),
+(2, 'Botvrij.eu', 'The Botvrij.eu Data', 'http://www.botvrij.eu/data/feed-osint');
 
  INSERT INTO `regexp` (`id`, `regexp`, `replacement`, `type`) VALUES
  (1, '/.:.ProgramData./i', '%ALLUSERSPROFILE%\\\\', 'ALL'),
