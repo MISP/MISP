@@ -340,7 +340,7 @@ class Feed extends AppModel {
 						'name' => $newFeed['name'],
 						'provider' => $newFeed['provider'],
 						'url' => $newFeed['url'],
-						'enabled' => $newFeeds['enabled'],
+						'enabled' => $newFeed['enabled'],
 						'distribution' => 3,
 						'sharing_group_id' => 0,
 						'tag_id' => 0,
