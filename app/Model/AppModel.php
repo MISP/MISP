@@ -67,13 +67,13 @@ class AppModel extends Model {
 			case '2.4.25':
 				$this->updateDatabase($command);
 				$newFeeds = array(
-					array('provider' => 'CIRCL', 'name' => 'CIRCL OSINT Feed', 'url' => 'https://www.circl.lu/doc/misp/feed-osint'),
+					array('provider' => 'CIRCL', 'name' => 'CIRCL OSINT Feed', 'url' => 'https://www.circl.lu/doc/misp/feed-osint', 'enabled' => true),
 				);
 				$this->__addNewFeeds($newFeeds);
 				break;
 			case '2.4.27':
 				$newFeeds = array(
-					array('provider' => 'Botvrij.eu', 'name' => 'The Botvrij.eu Data','url' => 'http://www.botvrij.eu/data/feed-osint')
+					array('provider' => 'Botvrij.eu', 'name' => 'The Botvrij.eu Data','url' => 'http://www.botvrij.eu/data/feed-osint', 'enabled' => false)
 				);
 				$this->__addNewFeeds($newFeeds);
 				break;

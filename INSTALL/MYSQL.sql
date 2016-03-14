@@ -708,9 +708,9 @@ CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
 INSERT INTO `admin_settings` (`id`, `setting`, `value`) VALUES
 (1, 'db_version', '2.4.27');
 
-INSERT INTO `feeds` (`id`, `provider`, `name`, `url`) VALUES
-(1, 'CIRCL', 'CIRCL OSINT Feed', 'https://www.circl.lu/doc/misp/feed-osint'),
-(2, 'Botvrij.eu', 'The Botvrij.eu Data', 'http://www.botvrij.eu/data/feed-osint');
+INSERT INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`, `enabled`) VALUES
+(1, 'CIRCL', 'CIRCL OSINT Feed', 'https://www.circl.lu/doc/misp/feed-osint', 3, 1, 1),
+(2, 'Botvrij.eu', 'The Botvrij.eu Data', 'http://www.botvrij.eu/data/feed-osint', 3, 1, 0);
 
  INSERT INTO `regexp` (`id`, `regexp`, `replacement`, `type`) VALUES
  (1, '/.:.ProgramData./i', '%ALLUSERSPROFILE%\\\\', 'ALL'),
