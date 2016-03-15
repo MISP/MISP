@@ -237,6 +237,36 @@ class User extends AppModel {
 		'Trim',
 		'Containable'
 	);
+	
+	private function __generatePassword() {
+		$groups = array(
+				'0123456789',
+				'abcdefghijklmnopqrstuvwxyz',
+				'ABCDEFGHIJKLOMNOPQRSTUVWXYZ',
+				'!@#$%^&*()_-'
+		);
+		$passwordLength = Configure::read('Security.password_policy_length') ? Configure::read('Security.password_policy_length') : 12;
+		$pw = '';
+		for ($i = 0; $i < $passwordLength; $i++) {
+			$chars = implode('', $groups);
+			$pw .= $chars[mt_rand(0, strlen($chars)-1)];
+		}
+		foreach ($groups as &$group) {
+			$pw .= $group[mt_rand(0, strlen($group)-1)];
+		}
+		return $pw;
+	}
+	
+	public function beforeValidate($options = array()) {
+		if (!isset($this->data['User']['id'])) {
+			if (!$this->data['User']['enable_password'] || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password']))) {
+				$this->data['User']['password'] = $this->__generatePassword();
+				$this->data['User']['confirm_password'] = $this->data['User']['password'];
+			}
+		}
+		if (!isset($this->data['User']['nids_sid']) || empty($this->data['User']['nids_sid'])) $this->data['User']['nids_sid'] = mt_rand(1000000, 9999999);
+		return true;
+	}
 
 	public function beforeSave($options = array()) {
 		if (isset($this->data[$this->alias]['password'])) {
@@ -447,6 +477,18 @@ class User extends AppModel {
 	// get the current user and rearrange it to be in the same format as in the auth component
 	public function getAuthUserByUuid($id) {
 		$conditions = array('User.authkey' => $id);
+		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
+		if (empty($user)) return $user;
+		// Rearrange it a bit to match the Auth object created during the login
+		$user['User']['Role'] = $user['Role'];
+		$user['User']['Organisation'] = $user['Organisation'];
+		$user['User']['Server'] = $user['Server'];
+		unset($user['Organisation'], $user['Role'], $user['Server']);
+		return $user['User'];
+	}
+	
+	public function getAuthUserByExternalAuth($id) {
+		$conditions = array('User.external_auth_key' => $id, 'User.external_auth_required' => true);
 		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
 		if (empty($user)) return $user;
 		// Rearrange it a bit to match the Auth object created during the login

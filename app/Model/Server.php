@@ -538,6 +538,16 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'disableUserSelfManagement' => array(
+							'level' => 1,
+							'description' => 'When enabled only Org and Site admins can edit a user\'s profile.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => false,
+							
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
@@ -760,7 +770,7 @@ class Server extends AppModel {
 						'description' => 'The e-mail address specified in the SOA portion of the zone file.',
 						'value' => 'root.localhost',
 						'errorMessage' => '',
-						'test' => 'testBool',
+						'test' => 'testForEmpty',
 						'type' => 'string',
 					),
 					'ZeroMQ_enable' => array(						
@@ -826,7 +836,52 @@ class Server extends AppModel {
 						'type' => 'string',
 						'afterHook' => 'zmqAfterHook',
 					),
-					
+					'CustomAuth_enable' => array(
+							'level' => 2,
+							'description' => 'Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true,
+							'beforeHook' => 'customAuthBeforeHook'
+					),
+					'CustomAuth_header' => array(
+							'level' => 2,
+							'description' => 'Set the header that MISP should look for here. If left empty it will default to the Authorization header.',
+							'value' => 'Authorization',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
+					),
+					'CustomAuth_required' => array(
+							'level' => 2,
+							'description' => 'If this setting is enabled then the only way to authenticate will be using the custom header. Altnertatively you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'CustomAuth_only_allow_source' => array(
+							'level' => 2,
+							'description' => 'If you are using an external tool to authenticate with MISP and would like to only allow the tool\'s url as a valid point of entry then set this field. ',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
+					),
+					'CustomAuth_name' => array(
+							'level' => 2,
+							'description' => 'The name of the authentication method, this is cosmetic only and will be shown on the user creation page and logs.',
+							'value' => 'External authentication',
+							'errorMessage' => '',
+							'test' => '',
+							'type' => 'string',
+							'null' => true
+					)
 			),
 			'debug' => array(
 					'level' => 0,
@@ -1694,6 +1749,12 @@ class Server extends AppModel {
 				$this->updateDatabase('addEventBlacklists');
 			}
 		}
+		return true;
+	}
+	
+	public function customAuthBeforeHook($setting, $value) {
+		if ($value) $this->updateDatabase('addCustomAuth');
+		$this->cleanCacheFiles();
 		return true;
 	}
 	

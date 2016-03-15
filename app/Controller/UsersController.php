@@ -62,6 +62,7 @@ class UsersController extends AppController {
  * @throws NotFoundException
  */
 	public function edit($id = null) {
+		if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
 		$me = false;
 		if ("me" == $id) {
 			$id = $this->Auth->user('id');
@@ -477,6 +478,7 @@ class UsersController extends AppController {
 			// TODO Audit, __extralog, fields get orig
 			$fieldsOldValues = array();
 			foreach ($fields as $field) {
+				if ($field == 'enable_password') continue;
 				if($field != 'confirm_password') array_push($fieldsOldValues, $this->User->field($field));
 				else array_push($fieldsOldValues, $this->User->field('password'));
 			}
@@ -707,6 +709,7 @@ class UsersController extends AppController {
 	}
 	
 	public function resetauthkey($id = null) {
+		if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
 		if (!$id) {
 			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
 			$this->redirect(array('action' => 'view', $this->Auth->user('id')));

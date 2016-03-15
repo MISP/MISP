@@ -52,6 +52,13 @@
 			<th><?php echo $this->Paginator->sort('nids_sid');?></th>
 			<th><?php echo $this->Paginator->sort('termsaccepted');?></th>
 			<th><?php echo $this->Paginator->sort('current_login', 'Last login');?></th>
+			<?php 
+				if (Configure::read('Plugin.CustomAuth_enable') && !Configure::read('Plugin.CustomAuth_required')): 
+			?>
+				<th><?php echo $this->Paginator->sort('external_auth_required', Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication');?></th>
+			<?php 
+				endif;
+			?>
 			<th><?php echo $this->Paginator->sort('disabled');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 		</tr>
@@ -84,6 +91,14 @@
 			?>&nbsp;</td>
 			<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" title="<?php echo !$user['User']['current_login'] ? 'N/A' : h(date("Y-m-d H:i:s",$user['User']['current_login']));?>">
 			<?php echo !$user['User']['current_login'] ? 'N/A' : h(date("Y-m-d",$user['User']['current_login'])); ?>&nbsp;</td>
+			<?php 
+				if (Configure::read('Plugin.CustomAuth_enable') && !Configure::read('Plugin.CustomAuth_required')):
+			?>
+				<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" title="">
+				<?php echo ($user['User']['external_auth_required'] ? 'Yes' : 'No'); ?></td>
+			<?php 
+				endif;
+			?>
 			<td class="short <?php if ($user['User']['disabled']) echo 'red bold';?>" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 			<?php echo ($user['User']['disabled'] ? 'Yes' : 'No'); ?></td>
 			<td class="short action-links">

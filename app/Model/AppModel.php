@@ -144,11 +144,15 @@ class AppModel extends Model {
 			case 'addIPLogging':
 				$sql = 'ALTER TABLE `logs` ADD  `ip` varchar(45) COLLATE utf8_bin DEFAULT NULL;';
 				break;
+			case 'addCustomAuth':
+				$sqlArray[] = "ALTER TABLE `users` ADD `external_auth_required` tinyint(1) NOT NULL DEFAULT '0';";
+				$sqlArray[] = 'ALTER TABLE `users` ADD `external_auth_key` text COLLATE utf8_bin;';
+				break;
 			case '24betaupdates':
 				$sqlArray = array();
-				$sqlArray[] = 'ALTER TABLE `shadow_attributes` ADD  `proposal_to_delete` BOOLEAN NOT NULL';
+				$sqlArray[] = "ALTER TABLE `shadow_attributes` ADD  `proposal_to_delete` tinyint(1) NOT NULL DEFAULT '0';";
 				
-				$sqlArray[] = 'ALTER TABLE `logs` MODIFY  `change` text COLLATE utf8_bin NOT NULL';
+				$sqlArray[] = 'ALTER TABLE `logs` MODIFY  `change` text COLLATE utf8_bin NOT NULL;';
 				
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomies` (
 					`id` int(11) NOT NULL AUTO_INCREMENT,

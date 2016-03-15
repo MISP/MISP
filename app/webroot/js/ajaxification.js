@@ -2237,3 +2237,21 @@ function feedDistributionChange() {
 	if ($('#FeedDistribution').val() == 4) $('#SGContainer').show();
 	else $('#SGContainer').hide();
 }
+
+function checkUserPasswordEnabled() {
+	if ($('#UserEnablePassword').is(':checked')) {
+		$('#PasswordDiv').show();
+	} else {
+		$('#PasswordDiv').hide();
+	}
+}
+
+function checkUserExternalAuth() {
+	if ($('#UserExternalAuthRequired').is(':checked')) {
+		$('#externalAuthDiv').show();
+		$('#passwordDivDiv').hide();
+	} else {
+		$('#externalAuthDiv').hide();
+		$('#passwordDivDiv').show();
+	}
+}

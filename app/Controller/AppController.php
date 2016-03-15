@@ -98,85 +98,90 @@ class AppController extends Controller {
 			if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
 		}
 		
-		// REST authentication
-		if ($this->_isRest() || $this->_isAutomation()) {
-			// disable CSRF for REST access
-			if (array_key_exists('Security', $this->components))
-				$this->Security->csrfCheck = false;
-			// Authenticate user with authkey in Authorization HTTP header
-			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
-				$found_misp_auth_key = false;
-				$authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
-				$user = false;
-				foreach ($authentication as $auth_key) {
-					if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
-						$found_misp_auth_key = true;
-						$temp = $this->checkAuthUser(trim($auth_key));
-						if ($temp) $user['User'] = $this->checkAuthUser(trim($auth_key));
-						continue;
+		$userLoggedIn = false;
+		if (Configure::read('Plugin.CustomAuth_enable')) $userLoggedIn = $this->__customAuthentication($_SERVER);
+		
+		if (!$userLoggedIn) {
+			// REST authentication
+			if ($this->_isRest() || $this->_isAutomation()) {
+				// disable CSRF for REST access
+				if (array_key_exists('Security', $this->components))
+					$this->Security->csrfCheck = false;
+				// Authenticate user with authkey in Authorization HTTP header
+				if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+					$found_misp_auth_key = false;
+					$authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
+					$user = false;
+					foreach ($authentication as $auth_key) {
+						if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
+							$found_misp_auth_key = true;
+							$temp = $this->checkAuthUser(trim($auth_key));
+							if ($temp) $user['User'] = $this->checkAuthUser(trim($auth_key));
+							continue;
+						}
 					}
-				}
-				if ($found_misp_auth_key) {
-					if ($user) {
-						unset($user['User']['gpgkey']);
-					    // User found in the db, add the user info to the session
-					    if (Configure::read('MISP.log_auth')) {
+					if ($found_misp_auth_key) {
+						if ($user) {
+							unset($user['User']['gpgkey']);
+						    // User found in the db, add the user info to the session
+						    if (Configure::read('MISP.log_auth')) {
+								$this->Log = ClassRegistry::init('Log');
+								$this->Log->create();
+								$log = array(
+										'org' => $user['User']['Organisation']['name'],
+										'model' => 'User',
+										'model_id' => $user['User']['id'],
+										'email' => $user['User']['email'],
+										'action' => 'auth',
+										'title' => 'Successful authentication using API key',
+										'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+								);
+								$this->Log->save($log);
+						    }
+						    $this->Session->renew();
+						    $this->Session->write(AuthComponent::$sessionKey, $user['User']);   
+						} else {
+							// User not authenticated correctly
+							// reset the session information
+							$this->Session->destroy();
 							$this->Log = ClassRegistry::init('Log');
 							$this->Log->create();
 							$log = array(
-									'org' => $user['User']['Organisation']['name'],
+									'org' => 'SYSTEM',
 									'model' => 'User',
-									'model_id' => $user['User']['id'],
-									'email' => $user['User']['email'],
-									'action' => 'auth',
-									'title' => 'Successful authentication using API key',
-									'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+									'model_id' => 0,
+									'email' => 'SYSTEM',
+									'action' => 'auth_fail',
+									'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
+									'change' => null,
 							);
 							$this->Log->save($log);
-					    }
-					    $this->Session->renew();
-					    $this->Session->write(AuthComponent::$sessionKey, $user['User']);   
-					} else {
-						// User not authenticated correctly
-						// reset the session information
-						$this->Session->destroy();
-						$this->Log = ClassRegistry::init('Log');
-						$this->Log->create();
-						$log = array(
-								'org' => 'SYSTEM',
-								'model' => 'User',
-								'model_id' => 0,
-								'email' => 'SYSTEM',
-								'action' => 'auth_fail',
-								'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
-								'change' => null,
-						);
-						$this->Log->save($log);
-						throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
+							throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
+						}
+						unset($user);
 					}
-					unset($user);
 				}
-			}
-			if ($this->Auth->user() == null) throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
-		} else if(!$this->Session->read(AuthComponent::$sessionKey)) {
-			// load authentication plugins from Configure::read('Security.auth')
-			$auth = Configure::read('Security.auth');
-			if($auth) {
-				$this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
-				if($this->Auth->startup($this)) {
-					$user = $this->Auth->user();
-					if ($user) {
-						unset($user['gpgkey']);
-						// User found in the db, add the user info to the session
-						$this->Session->renew();
-						$this->Session->write(AuthComponent::$sessionKey, $user);
+				if ($this->Auth->user() == null) throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
+			} else if(!$this->Session->read(AuthComponent::$sessionKey)) {
+				//throw new Exception();
+				// load authentication plugins from Configure::read('Security.auth')
+				$auth = Configure::read('Security.auth');
+				if($auth) {
+					$this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
+					if($this->Auth->startup($this)) {
+						$user = $this->Auth->user();
+						if ($user) {
+							unset($user['gpgkey']);
+							// User found in the db, add the user info to the session
+							$this->Session->renew();
+							$this->Session->write(AuthComponent::$sessionKey, $user);
+						}
+						unset($user);
 					}
-					unset($user);
 				}
+				unset($auth);
 			}
-			unset($auth);
 		}
-
 		// user must accept terms
 		//
 		//grab the base path from our base url for use in the following checks
@@ -383,8 +388,15 @@ class AppController extends Controller {
  */
 	public function checkAuthUser($authkey) {
 		$this->loadModel('User');
-		$this->User->recursive = -1;
 		$user = $this->User->getAuthUserByUuid($authkey);
+		if (empty($user)) return false;
+		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
+		return $user;
+	}
+	
+	public function checkExternalAuthUser($authkey) {
+		$this->loadModel('User');
+		$user = $this->User->getAuthUserByExternalAuth($authkey);
 		if (empty($user)) return false;
 		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
 		return $user;
@@ -511,5 +523,58 @@ class AppController extends Controller {
 			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		}
+	}
+	
+	private function __customAuthentication(&$server) {
+		$result = true;
+		if (Configure::read('Plugin.CustomAuth_enable')) {
+			$result = false;
+			if (!Configure::read('Plugin.CustomAuth_only_allow_source') || Configure::read('Plugin.CustomAuth_only_allow_source') === $server['REMOTE_ADDR']) {
+				$header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
+				$header = strtoupper($header);
+				$authName = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
+				if (isset($server['HTTP_' . $header]) && !empty($server['HTTP_' . $header])) {
+					$temp = $this->checkExternalAuthUser($server['HTTP_' . $header]);
+					$user['User'] = $temp;
+					if ($user['User']) {
+						unset($user['User']['gpgkey']);
+						$this->Session->renew();
+						$this->Session->write(AuthComponent::$sessionKey, $user['User']);
+						if (Configure::read('MISP.log_auth')) {
+							$this->Log = ClassRegistry::init('Log');
+							$this->Log->create();
+							$log = array(
+								'org' => $user['User']['Organisation']['name'],
+								'model' => 'User',
+								'model_id' => $user['User']['id'],
+								'email' => $user['User']['email'],
+								'action' => 'auth',
+								'title' => 'Successful authentication using ' . $authName . ' key',
+								'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+							);
+							$this->Log->save($log);
+						}
+					} else {
+						// User not authenticated correctly
+						// reset the session information
+						$this->Session->destroy();
+						$this->Log = ClassRegistry::init('Log');
+						$this->Log->create();
+						$log = array(
+							'org' => 'SYSTEM',
+							'model' => 'User',
+							'model_id' => 0,
+							'email' => 'SYSTEM',
+							'action' => 'auth_fail',
+							'title' => 'Failed authentication using external key (' . trim($server['HTTP_' . $header]) . ')',
+							'change' => null,
+						);
+						$this->Log->save($log);
+						throw new ForbiddenException('Authentication failed. Please make sure you pass the ' . $authName . ' key of a(n) ' . $authName . ' enabled user along in the ' . $header . ' header.');
+					}
+				}
+			}
+		}
+		return $result;
 	}
 }
