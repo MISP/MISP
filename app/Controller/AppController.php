@@ -526,52 +526,65 @@ class AppController extends Controller {
 	}
 	
 	private function __customAuthentication(&$server) {
-		$result = true;
+		$result = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) {
-			$result = false;
-			if (!Configure::read('Plugin.CustomAuth_only_allow_source') || Configure::read('Plugin.CustomAuth_only_allow_source') === $server['REMOTE_ADDR']) {
-				$header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
-				$header = strtoupper($header);
-				$authName = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-				if (isset($server['HTTP_' . $header]) && !empty($server['HTTP_' . $header])) {
-					$temp = $this->checkExternalAuthUser($server['HTTP_' . $header]);
-					$user['User'] = $temp;
-					if ($user['User']) {
-						unset($user['User']['gpgkey']);
-						$this->Session->renew();
-						$this->Session->write(AuthComponent::$sessionKey, $user['User']);
-						if (Configure::read('MISP.log_auth')) {
-							$this->Log = ClassRegistry::init('Log');
-							$this->Log->create();
-							$log = array(
-								'org' => $user['User']['Organisation']['name'],
-								'model' => 'User',
-								'model_id' => $user['User']['id'],
-								'email' => $user['User']['email'],
-								'action' => 'auth',
-								'title' => 'Successful authentication using ' . $authName . ' key',
-								'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
-							);
-							$this->Log->save($log);
-						}
-					} else {
-						// User not authenticated correctly
-						// reset the session information
-						$this->Session->destroy();
-						$this->Log = ClassRegistry::init('Log');
-						$this->Log->create();
-						$log = array(
+			$header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
+			$header = strtoupper($header);
+			$authName = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
+			if (isset($server['HTTP_' . $header]) && !empty($server['HTTP_' . $header])) {
+				if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $server['REMOTE_ADDR']) {
+					$this->Log = ClassRegistry::init('Log');
+					$this->Log->create();
+					$log = array(
 							'org' => 'SYSTEM',
 							'model' => 'User',
 							'model_id' => 0,
 							'email' => 'SYSTEM',
 							'action' => 'auth_fail',
-							'title' => 'Failed authentication using external key (' . trim($server['HTTP_' . $header]) . ')',
+							'title' => 'Failed authentication using external key (' . trim($server['HTTP_' . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $server['REMOTE_ADDR'],
 							'change' => null,
+					);
+					$this->Log->save($log);
+					throw new ForbiddenException('Authentication failed.');
+				}
+				$temp = $this->checkExternalAuthUser($server['HTTP_' . $header]);
+				$user['User'] = $temp;
+				if ($user['User']) {
+					unset($user['User']['gpgkey']);
+					$this->Session->renew();
+					$this->Session->write(AuthComponent::$sessionKey, $user['User']);
+					if (Configure::read('MISP.log_auth')) {
+						$this->Log = ClassRegistry::init('Log');
+						$this->Log->create();
+						$log = array(
+							'org' => $user['User']['Organisation']['name'],
+							'model' => 'User',
+							'model_id' => $user['User']['id'],
+							'email' => $user['User']['email'],
+							'action' => 'auth',
+							'title' => 'Successful authentication using ' . $authName . ' key',
+							'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
 						);
 						$this->Log->save($log);
-						throw new ForbiddenException('Authentication failed. Please make sure you pass the ' . $authName . ' key of a(n) ' . $authName . ' enabled user along in the ' . $header . ' header.');
 					}
+					$result = true;
+				} else {
+					// User not authenticated correctly
+					// reset the session information
+					$this->Session->destroy();
+					$this->Log = ClassRegistry::init('Log');
+					$this->Log->create();
+					$log = array(
+						'org' => 'SYSTEM',
+						'model' => 'User',
+						'model_id' => 0,
+						'email' => 'SYSTEM',
+						'action' => 'auth_fail',
+						'title' => 'Failed authentication using external key (' . trim($server['HTTP_' . $header]) . ')',
+						'change' => null,
+					);
+					$this->Log->save($log);
+					throw new ForbiddenException('Authentication failed. Please make sure you pass the ' . $authName . ' key of a(n) ' . $authName . ' enabled user along in the ' . $header . ' header.');
 				}
 			}
 		}
