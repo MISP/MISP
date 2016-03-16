@@ -182,6 +182,7 @@ class AppController extends Controller {
 				unset($auth);
 			}
 		}
+		$this->set('externalAuthUser', $userLoggedIn);
 		// user must accept terms
 		//
 		//grab the base path from our base url for use in the following checks

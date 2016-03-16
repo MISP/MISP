@@ -187,7 +187,9 @@
 							<span class="notification-<?php echo ($notifications['total'] > 0) ? 'active' : 'passive';?>"><span style="float:left;margin-top:3px;margin-right:3px;margin-left:3px;" class="icon-envelope icon-white"></span></span>
 						</a>
 					</li>
-					<li><a href="<?php echo $baseurl;?>/users/logout">Log out</a></li>
+					<?php if (!$externalAuthUser || !Configure::read('Plugin.CustomAuth_disable_logout')): ?>
+						<li><a href="<?php echo $baseurl;?>/users/logout">Log out</a></li>
+					<?php endif; ?>
 				</ul>
 			</div>
 		<?php endif;?>

@@ -881,6 +881,14 @@ class Server extends AppModel {
 							'test' => '',
 							'type' => 'string',
 							'null' => true
+					),
+					'CustomAuth_disable_logout' => array(
+							'level' => 2,
+							'description' => 'Disable the logou button for users authenticate with the external auth mehanism.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
 					)
 			),
 			'debug' => array(
