@@ -32,7 +32,7 @@ class ApacheAuthenticate extends BaseAuthenticate {
 
         // make LDAP request to get user email require for misp auth
         $ldapdn = Configure::read('ApacheSecureAuth.ldapDN');
-        $ldaprdn = Configure::read('ApacheSecureAuth.ldapReaderUser') . $ldapdn;     // DN ou RDN LDAP
+        $ldaprdn = Configure::read('ApacheSecureAuth.ldapReaderUser');     // DN ou RDN LDAP
         $ldappass = Configure::read('ApacheSecureAuth.ldapReaderPassword');
 
         // The  LDAP connexion
@@ -43,17 +43,17 @@ class ApacheAuthenticate extends BaseAuthenticate {
         ldap_set_option($ldapconn, LDAP_OPT_PROTOCOL_VERSION, Configure::read('ApacheSecureAuth.ldapProtocol'));
 
         if ($ldapconn) {
-            // LDAP Connecion
+            // Connexion au serveur LDAP
             $ldapbind = ldap_bind($ldapconn, $ldaprdn, $ldappass);
-            // Connecion verification
+            // Vérification de l'authentification
             if (!$ldapbind) {
                 die("LDAP Connexion error.");
             }
-            // search information
-            $filter = '(uid=' . $_SERVER[$envvar] . ')';
-            // get filter from config.php
+            // sample : '(uuid=ApacheUser)'
+            $filter = '('.Configure::read('ApacheSecureAuth.ldapSearchAttribut').'=' . $_SERVER[$envvar] . ')';
+            // sample : mail
             $getLdapUserInfo = Configure::read('ApacheSecureAuth.ldapFilter');
-
+            
             $result = ldap_search($ldapconn, $ldapdn, $filter, $getLdapUserInfo)
                     or die("Error in search query: " . ldap_error($ldapconn));
 
@@ -63,6 +63,8 @@ class ApacheAuthenticate extends BaseAuthenticate {
             if (isset($ldapUserData[0]['mail'][0])) {
                 // assigne the real user for misp
                 $mispUsername = $ldapUserData[0]['mail'][0];
+            }else{
+                die("User not find in ldap. Maybe some with your config.php");
             }
             // close the 
             ldap_close($ldapconn);
