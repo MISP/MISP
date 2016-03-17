@@ -878,7 +878,7 @@ class Server extends AppModel {
 							'description' => 'The name of the authentication method, this is cosmetic only and will be shown on the user creation page and logs.',
 							'value' => 'External authentication',
 							'errorMessage' => '',
-							'test' => '',
+							'test' => 'testForEmpty',
 							'type' => 'string',
 							'null' => true
 					),
