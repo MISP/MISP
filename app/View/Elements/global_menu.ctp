@@ -11,7 +11,11 @@
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
 				<ul class="nav">
-					<li><a href="<?php echo !empty($baseurl) ? $baseurl : '/';?>" style="color:white">Home</a></li>
+					<?php 
+						$logo = 'Home';
+						if (Configure::read('MISP.home_logo')) $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">';
+					?>
+					<li><a href="<?php echo !empty($baseurl) ? $baseurl : '/';?>" style="color:white"><?php echo $logo; ?></a></li>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Event Actions

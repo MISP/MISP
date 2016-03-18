@@ -232,6 +232,14 @@ class Server extends AppModel {
 							'test' => 'testForCustomImage',
 							'type' => 'string',
 					),
+					'home_logo' => array(
+							'level' => 2 ,
+							'description' => 'If set, this setting allows you to display a logo as the home icon. Upload it as a custom image in the file management tool.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForCustomImage',
+							'type' => 'string',
+					),
 					'org' => array(
 							'level' => 1,
 							'description' => 'The organisation tag of the hosting organisation. This is used in the e-mail subjects.',
@@ -1853,6 +1861,7 @@ class Server extends AppModel {
 						'description' => 'Image files uploaded into this directory can be used for various purposes, such as for the login page logos',
 						'expected' => array(
 								'MISP.footer_logo' => Configure::read('MISP.footer_logo'), 
+								'MISP.home_logo' => Configure::read('MISP.home_logo'),
 								'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
 								'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
 						),
