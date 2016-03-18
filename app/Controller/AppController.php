@@ -526,6 +526,12 @@ class AppController extends Controller {
 		}
 	}
 	
+	private function __preAuthException($message) {
+		$this->set('debugMode', (Configure::read('debug') > 1) ? 'debugOn' : 'debugOff');
+		$this->set('me', array());
+		throw new ForbiddenException($message);
+	}
+	
 	private function __customAuthentication(&$server) {
 		$result = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) {
@@ -546,7 +552,7 @@ class AppController extends Controller {
 							'change' => null,
 					);
 					$this->Log->save($log);
-					throw new ForbiddenException('Authentication failed.');
+					$this->__preAuthException('Authentication failed.');
 				}
 				$temp = $this->checkExternalAuthUser($server['HTTP_' . $header]);
 				$user['User'] = $temp;
@@ -585,7 +591,7 @@ class AppController extends Controller {
 						'change' => null,
 					);
 					$this->Log->save($log);
-					throw new ForbiddenException('Authentication failed. Please make sure you pass the ' . $authName . ' key of a(n) ' . $authName . ' enabled user along in the ' . $header . ' header.');
+					$this->__preAuthException('Authentication failed. Please make sure you pass the ' . $authName . ' key of a(n) ' . $authName . ' enabled user along in the ' . $header . ' header.');
 				}
 			}
 		}
