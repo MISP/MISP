@@ -884,11 +884,29 @@ class Server extends AppModel {
 					),
 					'CustomAuth_disable_logout' => array(
 							'level' => 2,
-							'description' => 'Disable the logou button for users authenticate with the external auth mehanism.',
+							'description' => 'Disable the logout button for users authenticate with the external auth mechanism.',
 							'value' => false,
 							'errorMessage' => '',
 							'test' => 'testBool',
 							'type' => 'boolean'
+					),
+					'CustomAuth_custom_password_reset' => array(
+							'level' => 2,
+							'description' => 'Provide your custom authentication users with an external URL to the authentication system to reset their passwords.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
+					),
+					'CustomAuth_custom_logout' => array(
+							'level' => 2,
+							'description' => 'Provide a custom logout URL for your users that will log them out using the authentication system you use.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
 					)
 			),
 			'debug' => array(

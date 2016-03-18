@@ -84,8 +84,6 @@
 							<li><a href="<?php echo $baseurl;?>/pages/display/doc/quickstart">User Guide</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/terms">Terms &amp; Conditions</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
-							<li class="divider"></li>
-							<li><a href="<?php echo $baseurl;?>/users/logout">Log out</a></li>
 						</ul>
 					</li>
 
@@ -189,6 +187,8 @@
 					</li>
 					<?php if (!$externalAuthUser || !Configure::read('Plugin.CustomAuth_disable_logout')): ?>
 						<li><a href="<?php echo $baseurl;?>/users/logout">Log out</a></li>
+					<?php elseif (Configure::read('Plugin.CustomAuth_custom_logout')): ?>
+						<li><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_logout'));?>">Log out</a></li>
 					<?php endif; ?>
 				</ul>
 			</div>

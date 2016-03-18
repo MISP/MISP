@@ -128,6 +128,8 @@
 					if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view')): ?>
 					<li id='liedit'><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
 					<li class="divider"></li>
+					<?php elseif (Configure::read('CustomAuth_custom_password_reset')): ?>
+					<li id='lipwreset'><a href="<?php echo h(Configure::read('CustomAuth_custom_password_reset'));?>">Reset Password</a></li>
 					<?php endif; ?>
 					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 					<li id='lidashboard'><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
