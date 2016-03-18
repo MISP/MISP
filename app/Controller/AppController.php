@@ -169,7 +169,7 @@ class AppController extends Controller {
 						'model_id' => 0,
 						'email' => 'SYSTEM',
 						'action' => 'auth_fail',
-						'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
+						'title' => 'Failed authentication using API key (' . trim(json_encode($_SERVER['HTTP_AUTHORIZATION'])) . ')',
 						'change' => null,
 				);
 				$this->Log->save($log);
