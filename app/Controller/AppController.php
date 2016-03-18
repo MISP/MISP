@@ -552,7 +552,7 @@ class AppController extends Controller {
 							'change' => null,
 					);
 					$this->Log->save($log);
-					$this->__preAuthException('Authentication failed.');
+					$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
 				}
 				$temp = $this->checkExternalAuthUser($server['HTTP_' . $header]);
 				$user['User'] = $temp;
@@ -591,7 +591,7 @@ class AppController extends Controller {
 						'change' => null,
 					);
 					$this->Log->save($log);
-					$this->__preAuthException('Authentication failed. Please make sure you pass the ' . $authName . ' key of a(n) ' . $authName . ' enabled user along in the ' . $header . ' header.');
+					$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
 				}
 			}
 		}
