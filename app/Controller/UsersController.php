@@ -408,6 +408,7 @@ class UsersController extends AppController {
 		}
 		$orgs = $this->User->Organisation->find('list', array(
 				'conditions' => array('local' => 1),
+				'order' => array('lower(name) asc')
 		));
 		$this->set('orgs', $orgs);
 		// generate auth key for a new user
@@ -540,6 +541,7 @@ class UsersController extends AppController {
 		if ($this->_isSiteAdmin()) {
 			$orgs = $this->User->Organisation->find('list', array(
 					'conditions' => array('local' => 1),
+					'order' => array('lower(name) asc')
 			));
 		}
 		$this->loadModel('Server');
@@ -936,6 +938,7 @@ class UsersController extends AppController {
 			$conditions = array();
 			if (!$this->_isSiteAdmin()) $conditions = array('org_id' => $this->Auth->user('org_id'));
 			if ($this->request->data['User']['recipient'] != 1) $conditions['id'] = $this->request->data['User']['recipientEmailList'];
+			else $conditions['AND'][] = array('User.disabled' => 0);
 			$users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
 			$this->request->data['User']['message'] = $this->User->adminMessageResolve($this->request->data['User']['message']);
 			$failures = '';

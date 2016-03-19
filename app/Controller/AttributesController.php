@@ -378,7 +378,6 @@ class AttributesController extends AppController {
 							} else {
 								$partialFails[] = '[' . $typeName . ']' . $filename;
 							}
-							$fails[] = array($typeName);
 						} else {
 							if ($hash == 'md5') $success++;
 						}

@@ -157,17 +157,17 @@ class SharingGroupsController extends AppController {
 		// check if the current user can modify or delete the SG
 		foreach ($result as $k => $sg) {
 			//$result[$k]['access'] = $this->SharingGroup->checkAccess($this->Auth->user(), $sg['SharingGroup']['id']);
-			if ($sg['SharingGroup']['organisation_uuid'] == $this->Auth->user('Organisation')['uuid']) {
+			//debug($this->)
+			if ($sg['SharingGroup']['organisation_uuid'] == $this->Auth->user('Organisation')['uuid'] && $this->userRole['perm_sharing_group']) {
 				$result[$k]['editable'] = true;
 			} else {
 				$result[$k]['editable'] = false;
 				if (!empty($sg['SharingGroupOrg'])) {
 					foreach ($sg['SharingGroupOrg'] as $sgo) {
-						if ($sgo['org_id'] == $this->Auth->user('org_id')) $result[$k]['editable'] = true;
+						if ($sgo['org_id'] == $this->Auth->user('org_id') && $sgo['extend']) $result[$k]['editable'] = true;
 					}
 				}
 			}
-			
 		}
 		$this->set('passive', $passive);
 		$this->set('sharingGroups', $result);

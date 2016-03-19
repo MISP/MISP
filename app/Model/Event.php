@@ -1281,8 +1281,11 @@ class Event extends AppModel {
 			}
 			if ($event['SharingGroup']['id'] == null) unset($event['SharingGroup']);
 			// unset empty event tags that got added because the tag wasn't exportable
-			foreach ($event['EventTag'] as $k => &$eventTag) {
-				if (empty($eventTag['Tag'])) unset ($event['EventTag'][$k]);
+			if (!empty($event['EventTag'])) {
+				foreach ($event['EventTag'] as $k => &$eventTag) {
+					if (empty($eventTag['Tag'])) unset ($event['EventTag'][$k]);
+				}
+				$event['EventTag'] = array_values($event['EventTag']);
 			}
 			// Let's find all the related events and attach it to the event itself
 			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgsids);
@@ -1747,8 +1750,8 @@ class Event extends AppModel {
 				unset($data['Event']['Attribute']['id']);
 				if($a['distribution'] == 4) {
 					$data['Event']['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['Attribute'][$k]['SharingGroup'], $user);
+					unset($data['Event']['Attribute'][$k]['SharingGroup']);
 				}
-				unset($data['Event']['Attribute'][$k]['SharingGroup']);
 			}
 		}
 		// first we want to see how the creator organisation is encoded
@@ -1825,6 +1828,7 @@ class Event extends AppModel {
 			} else {
 				if ($data['Event']['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
 			}
+			if ($data['Event']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
 		}
 		if ($fromXml) {
 			// Workaround for different structure in XML/array than what CakePHP expects
@@ -1910,21 +1914,28 @@ class Event extends AppModel {
 		unset($this->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
 		
 		// reposition to get the event.id with given uuid
-		$existingEvent = $this->findByUuid($data['Event']['uuid']);
+		if (isset($data['Event']['uuid'])) $existingEvent = $this->findByUuid($data['Event']['uuid']);
+		else $existingEvent = $this->findById($id);
 		// If the event exists...
 		$dateObj = new DateTime();
 		$date = $dateObj->getTimestamp();
 		if (count($existingEvent)) {
 			$data['Event']['id'] = $existingEvent['Event']['id'];
+			$id = $existingEvent['Event']['id'];
 			// Conditions affecting all:
 			// user.org == event.org
 			// edit timestamp newer than existing event timestamp
 			if (!isset($data['Event']['timestamp'])) $data['Event']['timestamp'] = $date;
 			if ($data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
 				if ($data['Event']['distribution'] == 4) {
-					$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
-					if ($data['Event']['sharing_group_id'] === false) return (array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.'));
-					unset ($data['Event']['SharingGroup']);
+					if (!isset($data['Event']['SharingGroup'])) {
+						if (!isset($data['Event']['sharing_group_id'])) return(array('error' => 'Event could not be saved: Sharing group chosen as the distribution level, but no sharing group specified. Make sure that the event includes a valid sharing_group_id or change to a different distribution level.'));
+						if (!$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) return(array('error' => 'Event could not be saved: Invalid sharing group or you don\'t have access to that sharing group.'));
+					} else {
+						$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
+						unset ($data['Event']['SharingGroup']);
+						if ($data['Event']['sharing_group_id'] === false) return (array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.'));
+					}
 				}
 				// If the above is true, we have two more options:
 				// For users that are of the creating org of the event, always allow the edit
@@ -1973,7 +1984,7 @@ class Event extends AppModel {
 							} else {
 								// If a field is not set in the request, just reuse the old value
 								$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'sharing_group_id');
-								foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $data['Event']['Attribute'][$c][$rF] = $existingAttribute['Attribute'][$rF];
+								foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $data['Event']['Attribute'][$k][$rF] = $existingAttribute['Attribute'][$rF];
 								$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
 								// Check if the attribute's timestamp is bigger than the one that already exists.
 								// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
@@ -2628,7 +2639,7 @@ class Event extends AppModel {
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
 		foreach ($event['Attribute'] as $attribute) {
 			if ($filterType && $filterType !== 'proposal' && $filterType !== 'correlation') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
-			if ($attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
+			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
 			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
 			else $attribute['hasChildren'] = 0;
@@ -2638,11 +2649,13 @@ class Event extends AppModel {
 			$current = count($eventArray)-1;
 		}
 		unset($event['Attribute']);
-		foreach ($event['ShadowAttribute'] as $shadowAttribute) {
-			if ($filterType === 'correlation' && !in_array($shadowAttribute['id'], $correlatedShadowAttributes)) continue;
-			if ($filterType && $filterType !== 'proposal' && $filterType !== 'correlation') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
-			$shadowAttribute['objectType'] = 2;
-			$eventArray[] = $shadowAttribute;
+		if (isset($event['ShadowAttribute'])) {
+			foreach ($event['ShadowAttribute'] as $shadowAttribute) {
+				if ($filterType === 'correlation' && !in_array($shadowAttribute['id'], $correlatedShadowAttributes)) continue;
+				if ($filterType && $filterType !== 'proposal' && $filterType !== 'correlation') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
+				$shadowAttribute['objectType'] = 2;
+				$eventArray[] = $shadowAttribute;
+			}
 		}
 		unset($event['ShadowAttribute']);
 		App::uses('CustomPaginationTool', 'Tools');

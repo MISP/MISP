@@ -140,7 +140,7 @@ function updateIndex(id, context, newPage) {
 	if (typeof newPage !== 'undefined') page = newPage;
 	var url, div;
 	if (context == 'event') {
-		url = "/events/viewEventAttributes/" + id;
+		url = currentUri;
 		div = "#attributes_div";
 	}
 	if (context == 'template') {
@@ -1121,6 +1121,14 @@ function quickFilter(passedArgs, url) {
 	window.location.href=url;
 }
 
+function filterMyOrgOnly(passedArgs, org, url) {
+	passedArgs['searchorg'] = org;
+	for (var key in passedArgs) {
+		url += "/" + key + ":" + passedArgs[key];
+	}
+	window.location.href=url;
+}
+
 function quickFilterTaxonomy(taxonomy_id, passedArgs) {
 	var url = "/taxonomies/view/" + taxonomy_id + "/filter:" + $('#quickFilterField').val();
 	window.location.href=url;
@@ -1521,7 +1529,6 @@ function popoverStartup() {
         placement: 'left',
         animation: true,
         html: true,
-        trigger: 'manual',
     }).click(function(e) {
     	$(e.target).popover('show');
     	$('[data-toggle="popover"]').not(e.target).popover('hide');
@@ -1982,6 +1989,12 @@ function testConnection(id) {
 			case 4:
 				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>');
 				break;
+			case 5:
+				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>');
+				break;
+			case 6:
+				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>');
+				break;
 	    	}
 	    }
 	})
@@ -2044,7 +2057,7 @@ function zeroMQServerAction(action) {
 
 function convertServerFilterRules(rules) {
 	validOptions.forEach(function (type) {
-		container = "#Server" + type.ucfirst() + "Rules";
+		container = "#"+ modelContext + type.ucfirst() + "Rules";
 		if($(container).val() != '') rules[type] = JSON.parse($(container).val());
 	});
 	serverRuleUpdate();
@@ -2094,7 +2107,11 @@ function serverRuleCancel() {
 
 function serverRuleGenerateJSON() {
 	validOptions.forEach(function(type) {
-		$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+		if ($('#Server' + type.ucfirst() + "Rules").length) {
+			$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+		} else {
+			$('#Feed' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+		}
 	});
 }
 
@@ -2233,3 +2250,7 @@ function mergeOrganisationTypeToggle() {
 	}
 }
 
+function feedDistributionChange() {
+	if ($('#FeedDistribution').val() == 4) $('#SGContainer').show();
+	else $('#SGContainer').hide();
+}

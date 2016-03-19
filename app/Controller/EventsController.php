@@ -508,6 +508,7 @@ class EventsController extends AppController {
 				foreach ($event['EventTag'] as $k2 => &$et) {
 					if (empty($et['Tag'])) unset ($events[$k]['EventTag'][$k2]);
 				}
+				$event['EventTag'] = array_values($event['EventTag']);
 			}
 			$this->set('events', $events);
 		} else {
@@ -637,6 +638,7 @@ class EventsController extends AppController {
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 		$this->disableCache();
 		$this->layout = 'ajax';
+		$this->set('currentUri', $this->params->here);
 		$this->render('/Elements/eventattribute');
 	}
 	
@@ -1318,7 +1320,7 @@ class EventsController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// send out the email
 			$emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user());
-			if (is_bool($emailResult) && $emailResult = true) {
+			if (is_bool($emailResult) && $emailResult == true) {
 				// Performs all the actions required to publish an event
 				$result = $this->Event->publishRouter($id, null, $this->Auth->user());
 				if (!is_array($result)) {
@@ -1336,7 +1338,7 @@ class EventsController extends AppController {
 				}
 			} elseif (!is_bool($emailResult)) {
 				// Performs all the actions required to publish an event
-				$result = $this->Event->publish($id);
+				$result = $this->Event->publishRouter($id, null, $this->Auth->user());
 				if (!is_array($result)) {
 
 					// redirect to the view event page
@@ -2694,6 +2696,14 @@ class EventsController extends AppController {
 				for ($i = 0; $i < $k; $i++) {
 					if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset ($resultArray[$k]);
 				}
+			}
+			foreach ($resultArray as &$result) {
+				$options = array(
+					'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
+					'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+					'order' => false
+				);
+				$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
 			}
 			$resultArray = array_values($resultArray);
 			$typeCategoryMapping = array();

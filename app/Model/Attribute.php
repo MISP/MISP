@@ -176,7 +176,7 @@ class Attribute extends AppModel {
 			'whois-registrant-email' => array('desc' => 'The e-mail of a domain\'s registrant, obtained from the WHOIS information.'),//x
 			'whois-registrant-phone' => array('desc' => 'The phone number of a domain\'s registrant, obtained from the WHOIS information.'),//x
             'whois-registrant-name' => array('desc' => 'The name of a domain\'s registrant, obtained from the WHOIS information.'),//x
-            'whois-registar' => array('desc' => 'The registar of the domain, obtained from the WHOIS information.'),//x
+            'whois-registrar' => array('desc' => 'The registrar of the domain, obtained from the WHOIS information.'),//x
 			'whois-creation-date' => array('desc' => 'The date of domain\'s creation, obtained from the WHOIS information.'),//x
 			'targeted-threat-index' => array('desc' => ''),
 			'mailslot' => array('desc' => 'MailSlot interprocess communication'),
@@ -231,7 +231,7 @@ class Attribute extends AppModel {
 					),
 			'Attribution' => array(
 					'desc' => 'Identification of the group, organisation, or country behind the attack',
-					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-sha1', 'other')
+					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-sha1', 'other')
 					),
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
@@ -551,6 +551,7 @@ class Attribute extends AppModel {
 		// always return true, otherwise the object cannot be saved
 		
 		if (!isset($this->data['Attribute']['distribution']) || $this->data['Attribute']['distribution'] != 4) $this->data['Attribute']['sharing_group_id'] = 0;
+		if (!isset($this->data['Attribute']['distribution'])) $this->data['Attribute']['distribution'] = 5;
 		return true;
 	}
 
@@ -754,7 +755,7 @@ class Attribute extends AppModel {
 			case 'target-email':
 			case 'whois-registrant-email':
 				// we don't use the native function to prevent issues with partial email addresses
-				if (preg_match("#^[A-Z0-9._%+-]*@[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
+				if (preg_match("#^[A-Z0-9._&%+-]*@[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Email address has invalid format. Please double check the value or select "other" for a type.';
@@ -774,7 +775,8 @@ class Attribute extends AppModel {
 				break;
 			case 'windows-service-name':
 			case 'windows-service-displayname':
-				if (strlen($value) > 256 || preg_match('#[\\\/]#')) $returnValue = 'Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.';
+				if (strlen($value) > 256 || preg_match('#[\\\/]#', $value)) $returnValue = 'Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.';
+				else $returnValue = true;
 				break;
 			case 'mutex':
 			case 'AS':
@@ -817,7 +819,7 @@ class Attribute extends AppModel {
 			case 'pdb':
             case 'windows-scheduled-task':
             case 'whois-registrant-name':
-			case 'whois-registar':
+			case 'whois-registrar':
 			case 'whois-creation-date':
  				// no newline	
  				if (!preg_match("#\n#", $value)) {
@@ -1881,7 +1883,7 @@ class Attribute extends AppModel {
 	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 	 	if (isset($options['order'])) $params['order'] = $options['order'];
 	 	if (isset($options['group'])) $params['group'] = $options['group'];
-	 	if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('Event.published' => 1);
+		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 	 	$results = $this->find('all', $params);
 	 	if (isset($options['withAttachments']) && $options['withAttachments']) {
 	 		foreach ($results as &$attribute) { 
