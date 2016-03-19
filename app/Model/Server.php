@@ -2564,7 +2564,8 @@ class Server extends AppModel {
 		if (!empty($modules)) {
 			$result = array('modules' => $modules);
 			foreach ($modules as &$module) {
-				foreach ($module['mispattributes'] as $attribute) {
+				if ($module['type'] !== 'expansion') continue;
+				foreach ($module['mispattributes']['input'] as $attribute) {
 					$result['types'][$attribute][] = $module['name'];
 				}
 			}

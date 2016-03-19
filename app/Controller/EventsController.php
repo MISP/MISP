@@ -3400,7 +3400,13 @@ class EventsController extends AppController {
 			$this->loadModel('Server');
 			$modules = $this->Server->getEnrichmentModules();
 			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
-			$modules = $modules['types'][$attribute[0]['Attribute']['type']];
+			$temp = array();
+			foreach ($modules['modules'] as &$module) {
+				if (in_array($attribute[0]['Attribute']['type'], $module['mispattributes']['input'])) {
+					$temp[] = array('name' => $module['name'], 'description' => $module['meta']['description']);
+				}
+			}
+			$modules = &$temp;
 			foreach (array('attribute_id', 'modules') as $viewVar) $this->set($viewVar, $$viewVar);
 			$this->render('ajax/enrichmentChoice');
 		} else {
@@ -3419,6 +3425,7 @@ class EventsController extends AppController {
 			$resultArray = array();
 			if (isset($result['results']) && !empty($result['results'])) {
 				foreach ($result['results'] as $result) {
+					if (!is_array($result['values'])) $result['values'] = array($result['values']);
 					foreach ($result['values'] as $value) {
 						$resultArray[] = array(
 							'event_id' => $attribute[0]['Attribute']['event_id'],
