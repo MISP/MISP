@@ -2254,3 +2254,7 @@ function feedDistributionChange() {
 	if ($('#FeedDistribution').val() == 4) $('#SGContainer').show();
 	else $('#SGContainer').hide();
 }
+
+function toggleSettingSubGroup(group) {
+	$('.subGroup_' + group).toggle();
+}

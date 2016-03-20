@@ -1492,10 +1492,67 @@ class Server extends AppModel {
 		}
 	}
 	
-	public function serverSettingsRead($unsorted = false) {
+	private function __getEnrichmentSettings() {
+		$modules = $this->getEnrichmentModules();
+		$result = array();
+		foreach ($modules['modules'] as $module) {
+			$result[$module['name']][0] = array('name' => 'enabled', 'type' => 'boolean');
+			if (isset($module['meta']['config'])) foreach ($module['meta']['config'] as $conf) $result[$module['name']][] = array('name' => $conf, 'type' => 'string');
+		}
+		return $result;
+	}
+	
+	public function getCurrentServerSettings() {
 		$serverSettings = $this->serverSettings;
 		$results = array();
 		$currentSettings = Configure::read();
+		if (Configure::read('Plugin.Enrichment_services_enable')) {
+			$results = $this->__getEnrichmentSettings();
+			foreach ($results as $module => $data) {
+				foreach ($data as $result) {
+					$setting = array('level' => 1, 'errorMessage' => '');
+					if ($result['type'] == 'boolean') {
+						$setting['test'] = 'testBool';
+						$setting['type'] = 'boolean';
+						$setting['description'] = 'Enable or disable the ' . $module . ' module.';
+						$setting['value'] = false;
+					} else {
+						$setting['test'] = 'testForEmpty';
+						$setting['type'] = 'string';
+						$setting['description'] = 'Set this required module specific setting.';
+						$setting['value'] = '';
+					}
+					$serverSettings['Plugin']['Enrichment_' . $module . '_' .  $result['name']] = $setting;
+				}
+			}
+		}
+		return $serverSettings;
+	}
+	
+	public function serverSettingsRead($unsorted = false) {
+		$serverSettings = $this->getCurrentServerSettings();
+		$results = array();
+		$currentSettings = Configure::read();
+		if (Configure::read('Plugin.Enrichment_services_enable')) {
+			$results = $this->__getEnrichmentSettings();
+			foreach ($results as $module => $data) {
+				foreach ($data as $result) {
+					$setting = array('level' => 1, 'errorMessage' => '');
+					if ($result['type'] == 'boolean') {
+						$setting['test'] = 'testBool';
+						$setting['type'] = 'boolean';
+						$setting['description'] = 'Enable or disable the ' . $module . ' module.';
+						$setting['value'] = false;
+					} else {
+						$setting['test'] = 'testForEmpty';
+						$setting['type'] = 'string';
+						$setting['description'] = 'Set this required module specific setting.';
+						$setting['value'] = '';
+					}
+					$serverSettings['Plugin']['Enrichment_' . $module . '_' .  $result['name']] = $setting;
+				}
+			}
+		}
 		$finalSettingsUnsorted = array();
 		foreach ($serverSettings as $branchKey => &$branchValue) {
 			if (isset($branchValue['branch'])) {
@@ -1505,6 +1562,10 @@ class Server extends AppModel {
 					if (isset($currentSettings[$branchKey][$leafKey])) $setting = $currentSettings[$branchKey][$leafKey];
 					$leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
 					if ($leafKey != 'branch') {
+						if ($branchKey == 'Plugin') {
+							$pluginData = explode('_', $leafKey);
+							$leafValue['subGroup'] = $pluginData[0];
+						}
 						if (strpos($branchKey, 'Secur') === 0) $leafValue['tab'] = 'Security';
 						else $leafValue['tab'] = $branchKey; 
 						$finalSettingsUnsorted[$branchKey . '.' . $leafKey] = $leafValue;
