@@ -2646,6 +2646,7 @@ class Server extends AppModel {
 		if (!isset($modules) || empty($modules)) $modules = array();
 		if (isset($modules['modules']) && !empty($modules['modules'])) $modules['modules'] = array_values($modules['modules']);
 		$types = array();
+		if (!is_array($modules)) return array();
 		foreach ($modules['modules'] as $temp) {
 			foreach ($temp['mispattributes']['input'] as $input) {
 				$types[$input] = $temp['name'];
