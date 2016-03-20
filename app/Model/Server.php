@@ -2633,4 +2633,25 @@ class Server extends AppModel {
 			return $result;
 		} else return 'The enrichment service reports that it found no enrichment modules.';
 	}
+	
+	public function getEnabledModules() {
+		$modules = $this->getEnrichmentModules();
+		if (is_array($modules)) {
+			foreach ($modules['modules'] as $k => &$module) {
+				if (!Configure::read('Plugin.Enrichment_' . $module['name'] . '_enabled')) {
+					unset($modules['modules'][$k]);
+				}
+			}
+		}
+		if (!isset($modules) || empty($modules)) $modules = array();
+		if (isset($modules['modules']) && !empty($modules['modules'])) $modules['modules'] = array_values($modules['modules']);
+		$types = array();
+		foreach ($modules['modules'] as $temp) {
+			foreach ($temp['mispattributes']['input'] as $input) {
+				$types[$input] = $temp['name'];
+			}
+		}
+		$modules['types'] = $types;
+		return $modules;
+	}
 }

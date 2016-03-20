@@ -710,8 +710,8 @@ class EventsController extends AppController {
 		
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Server');
-			$modules = $this->Server->getEnrichmentModules();
-			if (is_array($modules)) $this->set('modules', $modules);
+			$modules = $this->Server->getEnabledModules();
+			$this->set('modules', $modules);
 		}
 		$this->set('contributors', $contributors);
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
@@ -3398,7 +3398,7 @@ class EventsController extends AppController {
 		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
 		if ($this->request->is('ajax')) {
 			$this->loadModel('Server');
-			$modules = $this->Server->getEnrichmentModules();
+			$modules = $this->Server->getEnabledModules();
 			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
 			$temp = array();
 			foreach ($modules['modules'] as &$module) {
