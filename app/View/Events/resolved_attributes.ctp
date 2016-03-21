@@ -42,6 +42,11 @@
 						'type' => 'hidden',
 						'value' => h($item['value']),
 				));
+				echo $this->Form->input('Attribute' . $k . 'Data', array(
+						'label' => false,
+						'type' => 'hidden',
+						'value' => isset($item['data']) ? h($item['data']) : false,
+				));
 			?>
 			<td>
 				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >

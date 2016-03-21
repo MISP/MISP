@@ -191,7 +191,7 @@
 									<?php echo h($object['type']); ?>
 								</div>
 							</td>
-							<td class="showspaces <?php echo $extra; ?> limitedWidth">
+							<td class="showspaces <?php echo $extra; ?> limitedWidth" <?php if (isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'onMouseOver="hoverModuleExpand(\'' . $currentType . '\', \'' . $object['id'] . '\');";'?>>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<?php if ('attachment' === $object['type'] || 'malware-sample' === $object['type'] ): ?>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">

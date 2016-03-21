@@ -275,6 +275,8 @@ class Attribute extends AppModel {
 			'email-src' => 'Payload delivery',
 			'email-dst' => 'Payload delivery',
 			'text' => 'Other',
+			'attachment' => 'External analysis',
+			'malware-sample' => 'Payload delivery'
 	);
 	
 	// typeGroupings are a mapping to high level groups for attributes

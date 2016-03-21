@@ -2738,28 +2738,46 @@ class EventsController extends AppController {
 			$saved = 0;
 			$failed = 0;
 			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
-			foreach ($attributes as $k => $attribute) {
-				if ($attribute['type'] == 'ip-src/ip-dst') {
-					$types = array('ip-src', 'ip-dst');
-				} else {
-					$types = array($attribute['type']);
-				}
-				foreach ($types as $type) {
-					$this->Event->$objectType->create();
-					$attribute['type'] = $type;
-					$attribute['distribution'] = 5;
-					if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
-					$attribute['event_id'] = $id;
-					if ($objectType == 'ShadowAttribute') {
-						$attribute['org_id'] = $this->Auth->user('org_id');
-						$attribute['event_org_id'] = $event['Event']['orgc_id'];
-						$attribute['email'] = $this->Auth->user('email');
-						$attribute['event_uuid'] = $event['Event']['uuid'];
-					}
-					if ($this->Event->$objectType->save($attribute)) {
-						$saved++;
+			$attributeSources = array('attributes', 'ontheflyattributes');
+			$ontheflyattributes = array();
+			foreach ($attributeSources as $source) {
+				foreach (${$source} as $k => $attribute) {
+					if ($attribute['type'] == 'ip-src/ip-dst') {
+						$types = array('ip-src', 'ip-dst');
+					} else if ($attribute['type'] == 'malware-sample') {
+						$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
+						$shortValue = $attribute['value'];
+						$attribute['value'] = $shortValue . '|' . $result['md5'];
+						$attribute['data'] = $result['data'];
+						$additionalHashes = array('sha1', 'sha256');
+						foreach ($additionalHashes as $hash) {
+							$temp = $attribute;
+							$temp['type'] = 'filename|' . $hash;
+							$temp['value'] = $shortValue . '|' . $result[$hash];
+							unset($temp['data']);
+							$ontheflyattributes[] = $temp;
+						}
+						$types = array($attribute['type']);
 					} else {
-						$failed++;
+						$types = array($attribute['type']);
+					}
+					foreach ($types as $type) {
+						$this->Event->$objectType->create();
+						$attribute['type'] = $type;
+						$attribute['distribution'] = 5;
+						if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
+						$attribute['event_id'] = $id;
+						if ($objectType == 'ShadowAttribute') {
+							$attribute['org_id'] = $this->Auth->user('org_id');
+							$attribute['event_org_id'] = $event['Event']['orgc_id'];
+							$attribute['email'] = $this->Auth->user('email');
+							$attribute['event_uuid'] = $event['Event']['uuid'];
+						}
+						if ($this->Event->$objectType->save($attribute)) {
+							$saved++;
+						} else {
+							$failed++;
+						}
 					}
 				}
 			}
@@ -3427,7 +3445,7 @@ class EventsController extends AppController {
 				foreach ($result['results'] as $result) {
 					if (!is_array($result['values'])) $result['values'] = array($result['values']);
 					foreach ($result['values'] as $value) {
-						$resultArray[] = array(
+						 $temp = array(
 							'event_id' => $attribute[0]['Attribute']['event_id'],
 							'types' => $result['types'],
 							'default_type' => $result['types'][0],
@@ -3435,6 +3453,8 @@ class EventsController extends AppController {
 							'to_ids' => isset($result['to_ids']) ? $result['to_ids'] : false,
 							'value' => $value 
 						);
+						if (isset($result['data'])) $temp['data'] = $result['data'];
+						$resultArray[] = $temp;
 					}	
 				}
 			}

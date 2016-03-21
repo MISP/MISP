@@ -1586,16 +1586,18 @@ function freetextImportResultsSubmit(id, count) {
 	var temp;
 	for (i = 0; i < count; i++) {
 		if ($('#Attribute' + i + 'Save').val() == 1) {
-				temp = {
-					value:$('#Attribute' + i + 'Value').val(),
-					category:$('#Attribute' + i + 'Category').val(),
-					type:$('#Attribute' + i + 'Type').val(),
-					to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
-					comment:$('#Attribute' + i + 'Comment').val(),
-				}
-				attributeArray[attributeArray.length] = temp;		
+			temp = {
+				value:$('#Attribute' + i + 'Value').val(),
+				category:$('#Attribute' + i + 'Category').val(),
+				type:$('#Attribute' + i + 'Type').val(),
+				to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
+				comment:$('#Attribute' + i + 'Comment').val(),
+				data:$('#Attribute' + i + 'Data').val()
+			}
+			attributeArray[attributeArray.length] = temp;	
+			console.log(temp)
 		}
-	}
+	};
 	$("#AttributeJsonObject").val(JSON.stringify(attributeArray));
 	var formData = $(".mainForm").serialize();
 	$.ajax({
@@ -2257,4 +2259,9 @@ function feedDistributionChange() {
 
 function toggleSettingSubGroup(group) {
 	$('.subGroup_' + group).toggle();
+}
+
+function hoverModuleExpand(type, id) {
+	console.log(type);
+	console.log(id);
 }

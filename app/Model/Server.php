@@ -2646,13 +2646,16 @@ class Server extends AppModel {
 		if (!isset($modules) || empty($modules)) $modules = array();
 		if (isset($modules['modules']) && !empty($modules['modules'])) $modules['modules'] = array_values($modules['modules']);
 		$types = array();
+		$hover_types = array();
 		if (!is_array($modules)) return array();
 		foreach ($modules['modules'] as $temp) {
 			foreach ($temp['mispattributes']['input'] as $input) {
-				$types[$input] = $temp['name'];
+				if (!isset($temp['meta']['module-type']) || in_array('expansion', $temp['meta']['module-type'])) $types[$input] = $temp['name'];
+				if (isset($temp['meta']['module-type']) && in_array('hover', $temp['meta']['module-type'])) $hover_types[$input] = $temp['name'];
 			}
 		}
 		$modules['types'] = $types;
+		$modules['hover_type'] = $hover_types;
 		return $modules;
 	}
 }
