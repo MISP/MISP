@@ -834,6 +834,14 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean'
 					),
+					'Enrichment_hover_enable' => array(
+							'level' => 0,
+							'description' => 'Enable/disable the hover over information retrieved from the enrichment modules',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
+					),
 					'Enrichment_services_url' => array(
 						'level' => 1,
 						'description' => 'The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666',
@@ -2650,8 +2658,8 @@ class Server extends AppModel {
 		if (!is_array($modules)) return array();
 		foreach ($modules['modules'] as $temp) {
 			foreach ($temp['mispattributes']['input'] as $input) {
-				if (!isset($temp['meta']['module-type']) || in_array('expansion', $temp['meta']['module-type'])) $types[$input] = $temp['name'];
-				if (isset($temp['meta']['module-type']) && in_array('hover', $temp['meta']['module-type'])) $hover_types[$input] = $temp['name'];
+				if (!isset($temp['meta']['module-type']) || in_array('expansion', $temp['meta']['module-type'])) $types[$input][] = $temp['name'];
+				if (isset($temp['meta']['module-type']) && in_array('hover', $temp['meta']['module-type'])) $hover_types[$input][] = $temp['name'];
 			}
 		}
 		$modules['types'] = $types;

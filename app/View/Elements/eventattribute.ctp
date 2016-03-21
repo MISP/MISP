@@ -191,7 +191,8 @@
 									<?php echo h($object['type']); ?>
 								</div>
 							</td>
-							<td class="showspaces <?php echo $extra; ?> limitedWidth" <?php if (isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'onMouseOver="hoverModuleExpand(\'' . $currentType . '\', \'' . $object['id'] . '\');";'?>>
+							<td id="<?php echo h($currentType) . '_' . h($object['id']) . '_container'; ?>" class="showspaces <?php echo $extra; ?> limitedWidth">
+								<div <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'onMouseOver="hoverModuleExpand(\'' . $currentType . '\', \'' . $object['id'] . '\');";'?>>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<?php if ('attachment' === $object['type'] || 'malware-sample' === $object['type'] ): ?>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">
@@ -231,6 +232,7 @@
 										}
 										if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
 									?>
+								</div>
 								</div>
 							</td>
 							<td class="showspaces bitwider <?php echo $extra; ?>">
@@ -387,6 +389,7 @@
 		$('.select_proposal, .select_all').click(function(){
 			attributeListAnyProposalCheckBoxesChecked();
 		});
+		
 	});
 </script>
 <?php 

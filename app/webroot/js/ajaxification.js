@@ -2262,6 +2262,19 @@ function toggleSettingSubGroup(group) {
 }
 
 function hoverModuleExpand(type, id) {
-	console.log(type);
-	console.log(id);
+	$('.popover').remove();
+	$.ajax({
+		success:function (html) {
+			$('#' + type + '_' + id + '_container').popover({
+				title: 'Lookup results:',
+				content: html,
+				placement: 'left',
+				html: true,
+				trigger: 'hover',
+				container: 'body'
+			}).popover('show');
+		}, 
+		cache: false,
+		url:"/" + type + "s/hoverEnrichment/" + id,
+	});
 }

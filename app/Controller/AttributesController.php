@@ -2256,4 +2256,55 @@ class AttributesController extends AppController {
 		$this->Session->setFlash('Updated ' . $counter . ' attribute(s).');
 		$this->redirect('/pages/display/administration');
 	}
+	
+	public function hoverEnrichment($id) {
+		$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+		if (empty($attribute)) throw new NotFoundException('Invalid Attribute');
+		$this->loadModel('Server');
+		$modules = $this->Server->getEnabledModules();
+		$validTypes = array();
+		if (isset($modules['hover_type'][$attribute[0]['Attribute']['type']])) {
+			$validTypes = $modules['hover_type'][$attribute[0]['Attribute']['type']];
+		}
+		$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
+		$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
+		App::uses('HttpSocket', 'Network/Http');
+		$httpSocket = new HttpSocket();
+		$resultArray = array();
+		foreach ($validTypes as &$type) {
+			$options = array();
+			$found = false;
+			foreach ($modules['modules'] as &$temp) {
+				if ($temp['name'] == $type) {
+					$found = true;
+					if (isset($temp['meta']['config'])) {
+						foreach ($temp['meta']['config'] as $conf) $options[$conf] = Configure::read('Plugin.Enrichment_' . $type . '_' . $conf);
+					}
+				}
+			}
+			if (!$found) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			$data = array('module' => $type, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
+			if (!empty($options)) $data['config'] = $options;
+			$data = json_encode($data);
+			try {
+				$response = $httpSocket->post($url . ':' . $port . '/query', $data);
+				$result = json_decode($response->body, true);
+			} catch (Exception $e) {
+				$resultArray[] = array($type => 'Enrichment service not reachable.');
+				continue;
+			}
+			if (!is_array($result)) {
+				$resultArray[] =  array($type => $result);
+				continue;
+			}
+			if (!empty($result['results'])) {
+				foreach ($result['results'] as &$r) {
+					foreach ($r['values'] as $v) $resultArray[] = array($type => $v);
+				}
+			}
+		}
+		$this->set('results', $resultArray);
+		$this->layout = 'ajax';
+		$this->render('ajax/hover_enrichment');
+	}
 }

@@ -635,6 +635,11 @@ class EventsController extends AppController {
 				$this->set($variable, $currentModel->{$variable});
 			}
 		}
+		if (Configure::read('Plugin.Enrichment_services_enable')) {
+			$this->loadModel('Server');
+			$modules = $this->Server->getEnabledModules();
+			$this->set('modules', $modules);
+		}
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 		$this->disableCache();
 		$this->layout = 'ajax';
@@ -3446,7 +3451,8 @@ class EventsController extends AppController {
 			$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
 			App::uses('HttpSocket', 'Network/Http');
 			$httpSocket = new HttpSocket();
-			$data = array('config' => $options, 'module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
+			$data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
+			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
 			try {
 				$response = $httpSocket->post($url . ':' . $port . '/query', $data);
