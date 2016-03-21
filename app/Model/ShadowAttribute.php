@@ -232,14 +232,14 @@ class ShadowAttribute extends AppModel {
 					'order' => array(),
 			));
 			foreach ($correlatingAttributes[$k] as $key => &$correlatingAttribute) {
-				if ($correlatingAttribute['Attribute']['event_id'] == $sa['event_id']) unset($correlatingAttributes[$k][$key]);
+				if ($correlatingAttribute['Attribute']['event_id'] == $temp['event_id']) unset($correlatingAttributes[$k][$key]);
 			}
 			foreach ($correlatingAttributes as $k => $cA) {
 				foreach ($cA as $corr) {
 					$shadow_attribute_correlations[] = array(
 							'value' => $correlatingValues[$k],
-							'1_event_id' => $sa['event_id'],
-							'1_shadow_attribute_id' => $sa['id'],
+							'1_event_id' => $temp['event_id'],
+							'1_shadow_attribute_id' => $temp['id'],
 							'event_id' => $corr['Attribute']['event_id'],
 							'attribute_id' => $corr['Attribute']['id'],
 							'org_id' => $corr['Event']['org_id'],

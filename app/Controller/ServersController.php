@@ -560,7 +560,8 @@ class ServersController extends AppController {
 	public function serverSettingsReloadSetting($setting, $id) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		$pathToSetting = explode('.', $setting);
-		$settingObject = $this->Server->serverSettings;
+		if (strpos($setting, 'Plugin.Enrichment') !== false) $settingObject = $this->Server->getCurrentServerSettings();
+		else $settingObject = $this->Server->serverSettings;
 		foreach ($pathToSetting as $key) {
 			if (!isset($settingObject[$key])) throw new MethodNotAllowedException();
 			$settingObject = $settingObject[$key];
@@ -616,6 +617,7 @@ class ServersController extends AppController {
 				'overallHealth' => 3, 
 			);
 			$dumpResults = array();
+			$tempArray = array();
 			foreach ($finalSettings as $k => $result) {
 				if ($result['level'] == 3) $issues['deprecated']++;
 				$tabs[$result['tab']]['count']++;
@@ -626,8 +628,12 @@ class ServersController extends AppController {
 					if ($result['level'] < $tabs[$result['tab']]['severity']) $tabs[$result['tab']]['severity'] = $result['level'];
 				}
 				$dumpResults[] = $result;
-				if ($result['tab'] != $tab) unset($finalSettings[$k]);
+				if ($result['tab'] == $tab) {
+					if (isset($result['subGroup'])) $tempArray[$result['subGroup']][] = $result;
+					else $tempArray['general'][] = $result;
+				}
 			}
+			$finalSettings = &$tempArray;
 			// Diagnostics portion
 			$diagnostic_errors = 0;
 			App::uses('File', 'Utility');
@@ -773,9 +779,11 @@ class ServersController extends AppController {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
 		$this->set('id', $id);
-		$relevantSettings = (array_intersect_key(Configure::read(), $this->Server->serverSettings));
+		if (strpos($setting, 'Plugin.Enrichment') !== false) $serverSettings = $this->Server->getCurrentServerSettings();
+		else $serverSettings = $this->Server->serverSettings;
+		$relevantSettings = (array_intersect_key(Configure::read(), $serverSettings));
 		$found = null;
-		foreach ($this->Server->serverSettings as $k => $s) {
+		foreach ($serverSettings as $k => $s) {
 			if (isset($s['branch'])) {
 				foreach ($s as $ek => $es) {
 					if ($ek != 'branch') {

@@ -249,6 +249,36 @@ class Attribute extends AppModel {
 					)
 	);
 	
+	public $defaultCategories = array(
+			'md5' => 'Payload delivery',
+			'sha1' => 'Payload delivery',
+			'sha224' =>'Payload delivery',
+			'sha256' => 'Payload delivery',
+			'sha384' => 'Payload delivery',
+			'sha512' => 'Payload delivery',
+			'sha512/224' => 'Payload delivery',
+			'sha512/256' => 'Payload delivery',
+			'authentihash' => 'Payload delivery',
+			'imphash' => 'Payload delivery',
+			'pehash' => 'Payload delivery',
+			'filename|md5' => 'Payload delivery',
+			'filename|sha1' => 'Payload delivery',
+			'filename|sha256' => 'Payload delivery',
+			'regkey' => 'Persistence mechanism',
+			'filename' => 'Payload delivery',
+			'ip-src' => 'Network activity',
+			'ip-dst' => 'Network activity',
+			'hostname' => 'Network activity',
+			'domain' => 'Network activity',
+			'url' => 'Network activity',
+			'link' => 'External analysis',
+			'email-src' => 'Payload delivery',
+			'email-dst' => 'Payload delivery',
+			'text' => 'Other',
+			'attachment' => 'External analysis',
+			'malware-sample' => 'Payload delivery'
+	);
+	
 	// typeGroupings are a mapping to high level groups for attributes
 	// for example, IP addresses, domain names, hostnames e-mail addresses are all network related attribute types
 	// whilst filenames and hashes are all file related attribute types

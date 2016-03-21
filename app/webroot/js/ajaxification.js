@@ -944,6 +944,23 @@ function getPopup(id, context, target, admin) {
 	});
 }
 
+function simplePopup(url) {
+	$("#gray_out").fadeIn();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		dataType:"html", 
+		cache: false,
+		success:function (data, textStatus) {
+			$(".loading").hide();
+			$("#popover_form").html(data);
+			$("#popover_form").fadeIn();
+		}, 
+		url: url,
+	});
+}
+
 function resizePopoverBody() {
 	var bodyheight = $(window).height();
 	bodyheight = 3 * bodyheight / 4 - 150;
@@ -1569,18 +1586,20 @@ function freetextImportResultsSubmit(id, count) {
 	var temp;
 	for (i = 0; i < count; i++) {
 		if ($('#Attribute' + i + 'Save').val() == 1) {
-				temp = {
-					value:$('#Attribute' + i + 'Value').val(),
-					category:$('#Attribute' + i + 'Category').val(),
-					type:$('#Attribute' + i + 'Type').val(),
-					to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
-					comment:$('#Attribute' + i + 'Comment').val(),
-				}
-				attributeArray[attributeArray.length] = temp;		
+			temp = {
+				value:$('#Attribute' + i + 'Value').val(),
+				category:$('#Attribute' + i + 'Category').val(),
+				type:$('#Attribute' + i + 'Type').val(),
+				to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
+				comment:$('#Attribute' + i + 'Comment').val(),
+				data:$('#Attribute' + i + 'Data').val()
+			}
+			attributeArray[attributeArray.length] = temp;	
+			console.log(temp)
 		}
-	}
+	};
 	$("#AttributeJsonObject").val(JSON.stringify(attributeArray));
-	var formData = $("#AttributeFreeTextImportForm").serialize();
+	var formData = $(".mainForm").serialize();
 	$.ajax({
 		type: "post",
 		cache: false,
@@ -2236,4 +2255,26 @@ function mergeOrganisationTypeToggle() {
 function feedDistributionChange() {
 	if ($('#FeedDistribution').val() == 4) $('#SGContainer').show();
 	else $('#SGContainer').hide();
+}
+
+function toggleSettingSubGroup(group) {
+	$('.subGroup_' + group).toggle();
+}
+
+function hoverModuleExpand(type, id) {
+	$('.popover').remove();
+	$.ajax({
+		success:function (html) {
+			$('#' + type + '_' + id + '_container').popover({
+				title: 'Lookup results:',
+				content: html,
+				placement: 'left',
+				html: true,
+				trigger: 'hover',
+				container: 'body'
+			}).popover('show');
+		}, 
+		cache: false,
+		url:"/" + type + "s/hoverEnrichment/" + id,
+	});
 }

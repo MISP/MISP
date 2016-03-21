@@ -635,6 +635,11 @@ class EventsController extends AppController {
 				$this->set($variable, $currentModel->{$variable});
 			}
 		}
+		if (Configure::read('Plugin.Enrichment_services_enable')) {
+			$this->loadModel('Server');
+			$modules = $this->Server->getEnabledModules();
+			$this->set('modules', $modules);
+		}
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 		$this->disableCache();
 		$this->layout = 'ajax';
@@ -706,6 +711,12 @@ class EventsController extends AppController {
 			$delegationConditions = array('EventDelegation.event_id' => $event['Event']['id']);
 			if (!$this->_isSiteAdmin() && $this->userRole['perm_publish']) $delegationConditions['OR'] = array('EventDelegation.org_id' => $this->Auth->user('org_id'), 'EventDelegation.requester_org_id' => $this->Auth->user('org_id'));
 			$this->set('delegationRequest', $this->EventDelegation->find('first', array('conditions' => $delegationConditions, 'recursive' => -1, 'contain' => array('Org', 'RequesterOrg'))));
+		}
+		
+		if (Configure::read('Plugin.Enrichment_services_enable')) {
+			$this->loadModel('Server');
+			$modules = $this->Server->getEnabledModules();
+			$this->set('modules', $modules);
 		}
 		$this->set('contributors', $contributors);
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
@@ -2706,39 +2717,13 @@ class EventsController extends AppController {
 					$typeCategoryMapping[$type][$k] = $k;
 				}
 			}
-			$defaultCategories = array(
-					'md5' => 'Payload delivery',
-					'sha1' => 'Payload delivery',
-					'sha224' =>'Payload delivery',
-					'sha256' => 'Payload delivery',
-					'sha384' => 'Payload delivery',
-					'sha512' => 'Payload delivery',
-					'sha512/224' => 'Payload delivery',
-					'sha512/256' => 'Payload delivery',
-					'authentihash' => 'Payload delivery',
-					'imphash' => 'Payload delivery',
-					'pehash' => 'Payload delivery',
-					'filename|md5' => 'Payload delivery',
-					'filename|sha1' => 'Payload delivery',
-					'filename|sha256' => 'Payload delivery',
-					'regkey' => 'Persistence mechanism',
-					'filename' => 'Payload delivery',
-					'ip-src' => 'Network activity',
-					'ip-dst' => 'Network activity',
-					'hostname' => 'Network activity',
-					'domain' => 'Network activity',
-					'url' => 'Network activity',
-					'link' => 'External analysis',
-					'email-src' => 'Payload delivery',
-					'email-dst' => 'Payload delivery',
-					'text' => 'Other',
-			);
 			$this->set('event', $event);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
-			$this->set('defaultCategories', $defaultCategories);
+			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
 			$this->set('resultArray', $resultArray);
-			$this->render('free_text_results');
+			$this->set('title', 'Freetext Import Results');
+			$this->render('resolved_attributes');
 		}
 	}
 	
@@ -2758,28 +2743,46 @@ class EventsController extends AppController {
 			$saved = 0;
 			$failed = 0;
 			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
-			foreach ($attributes as $k => $attribute) {
-				if ($attribute['type'] == 'ip-src/ip-dst') {
-					$types = array('ip-src', 'ip-dst');
-				} else {
-					$types = array($attribute['type']);
-				}
-				foreach ($types as $type) {
-					$this->Event->$objectType->create();
-					$attribute['type'] = $type;
-					$attribute['distribution'] = 5;
-					if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
-					$attribute['event_id'] = $id;
-					if ($objectType == 'ShadowAttribute') {
-						$attribute['org_id'] = $this->Auth->user('org_id');
-						$attribute['event_org_id'] = $event['Event']['orgc_id'];
-						$attribute['email'] = $this->Auth->user('email');
-						$attribute['event_uuid'] = $event['Event']['uuid'];
-					}
-					if ($this->Event->$objectType->save($attribute)) {
-						$saved++;
+			$attributeSources = array('attributes', 'ontheflyattributes');
+			$ontheflyattributes = array();
+			foreach ($attributeSources as $source) {
+				foreach (${$source} as $k => $attribute) {
+					if ($attribute['type'] == 'ip-src/ip-dst') {
+						$types = array('ip-src', 'ip-dst');
+					} else if ($attribute['type'] == 'malware-sample') {
+						$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
+						$shortValue = $attribute['value'];
+						$attribute['value'] = $shortValue . '|' . $result['md5'];
+						$attribute['data'] = $result['data'];
+						$additionalHashes = array('sha1', 'sha256');
+						foreach ($additionalHashes as $hash) {
+							$temp = $attribute;
+							$temp['type'] = 'filename|' . $hash;
+							$temp['value'] = $shortValue . '|' . $result[$hash];
+							unset($temp['data']);
+							$ontheflyattributes[] = $temp;
+						}
+						$types = array($attribute['type']);
 					} else {
-						$failed++;
+						$types = array($attribute['type']);
+					}
+					foreach ($types as $type) {
+						$this->Event->$objectType->create();
+						$attribute['type'] = $type;
+						$attribute['distribution'] = 5;
+						if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
+						$attribute['event_id'] = $id;
+						if ($objectType == 'ShadowAttribute') {
+							$attribute['org_id'] = $this->Auth->user('org_id');
+							$attribute['event_org_id'] = $event['Event']['orgc_id'];
+							$attribute['email'] = $this->Auth->user('email');
+							$attribute['event_uuid'] = $event['Event']['uuid'];
+						}
+						if ($this->Event->$objectType->save($attribute)) {
+							$saved++;
+						} else {
+							$failed++;
+						}
 					}
 				}
 			}
@@ -3409,5 +3412,86 @@ class EventsController extends AppController {
 		}
 		$this->set('tags', $tagNames);
 		$this->render('index');
+	}
+	
+	// expects an attribute ID and the module to be used
+	public function queryEnrichment($attribute_id, $module = false) {
+		if (!Configure::read('Plugin.Enrichment_services_enable')) throw new MethodNotAllowedException('Enrichment services are not enabled.');
+		$attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id)));
+		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
+		if ($this->request->is('ajax')) {
+			$this->loadModel('Server');
+			$modules = $this->Server->getEnabledModules();
+			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			$temp = array();
+			foreach ($modules['modules'] as &$module) {
+				if (in_array($attribute[0]['Attribute']['type'], $module['mispattributes']['input'])) {
+					$temp[] = array('name' => $module['name'], 'description' => $module['meta']['description']);
+				}
+			}
+			$modules = &$temp;
+			foreach (array('attribute_id', 'modules') as $viewVar) $this->set($viewVar, $$viewVar);
+			$this->render('ajax/enrichmentChoice');
+		} else {
+			$this->loadModel('Server');
+			$modules = $this->Server->getEnabledModules();
+			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			$options = array();
+			$found = false;
+			foreach ($modules['modules'] as &$temp) {
+				if ($temp['name'] == $module) {
+					$found = true;
+					if (isset($temp['meta']['config'])) {
+						foreach ($temp['meta']['config'] as $conf) $options[$conf] = Configure::read('Plugin.Enrichment_' . $module . '_' . $conf);
+					}
+				}
+			}
+			if (!$found) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
+			$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
+			App::uses('HttpSocket', 'Network/Http');
+			$httpSocket = new HttpSocket();
+			$data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
+			if (!empty($options)) $data['config'] = $options;
+			$data = json_encode($data);
+			try {
+				$response = $httpSocket->post($url . ':' . $port . '/query', $data);
+				$result = json_decode($response->body, true);
+			} catch (Exception $e) {
+				return 'Enrichment service not reachable.';
+			}
+			if (!is_array($result)) throw new Exception($result);
+			$resultArray = array();
+			if (isset($result['results']) && !empty($result['results'])) {
+				foreach ($result['results'] as $result) {
+					if (!is_array($result['values'])) $result['values'] = array($result['values']);
+					foreach ($result['values'] as $value) {
+						 $temp = array(
+							'event_id' => $attribute[0]['Attribute']['event_id'],
+							'types' => $result['types'],
+							'default_type' => $result['types'][0],
+							'comment' => isset($result['comment']) ? $result['comment'] : false,
+							'to_ids' => isset($result['to_ids']) ? $result['to_ids'] : false,
+							'value' => $value 
+						);
+						if (isset($result['data'])) $temp['data'] = $result['data'];
+						$resultArray[] = $temp;
+					}	
+				}
+			}
+			$typeCategoryMapping = array();
+			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
+				foreach ($cat['types'] as $type) {
+					$typeCategoryMapping[$type][$k] = $k;
+				}
+			}
+			$this->set('event', array('Event' => $attribute[0]['Event']));
+			$this->set('resultArray', $resultArray);
+			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
+			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+			$this->set('typeCategoryMapping', $typeCategoryMapping);
+			$this->set('title', 'Enrichment Results');
+			$this->render('resolved_attributes');
+		}
 	}
 }

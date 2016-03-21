@@ -191,7 +191,8 @@
 									<?php echo h($object['type']); ?>
 								</div>
 							</td>
-							<td class="showspaces <?php echo $extra; ?> limitedWidth">
+							<td id="<?php echo h($currentType) . '_' . h($object['id']) . '_container'; ?>" class="showspaces <?php echo $extra; ?> limitedWidth">
+								<div <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'onMouseOver="hoverModuleExpand(\'' . $currentType . '\', \'' . $object['id'] . '\');";'?>>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<?php if ('attachment' === $object['type'] || 'malware-sample' === $object['type'] ): ?>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">
@@ -231,6 +232,7 @@
 										}
 										if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
 									?>
+								</div>
 								</div>
 							</td>
 							<td class="showspaces bitwider <?php echo $extra; ?>">
@@ -301,9 +303,14 @@
 						<?php
 							if ($object['objectType'] == 0) {
 								if ($isSiteAdmin || !$mayModify):
+									if (isset($modules) && isset($modules['types'][$object['type']])):
+						?>
+							<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/ShadowAttribute');" title="Propose enrichment">&nbsp;</span>
+						<?php 
+									endif;
 						?>
 									<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-share useCursorPointer"></a>
-									<span class="icon-trash useCursorPointer" title="Propose Deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+									<span class="icon-trash useCursorPointer" title="Propose Deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
 						<?php 
 									if ($isSiteAdmin): 
 						?>
@@ -311,9 +318,14 @@
 						<?php 		endif;
 								endif;
 								if ($isSiteAdmin || $mayModify) {
+									if (isset($modules) && isset($modules['types'][$object['type']])):
+						?>
+							<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/Attribute');" title="Add enrichment">&nbsp;</span>
+						<?php 
+									endif;
 						?>
 							<a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
-							<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+							<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
 						<?php 			
 								}
 							} else {
@@ -377,6 +389,7 @@
 		$('.select_proposal, .select_all').click(function(){
 			attributeListAnyProposalCheckBoxesChecked();
 		});
+		
 	});
 </script>
 <?php 
