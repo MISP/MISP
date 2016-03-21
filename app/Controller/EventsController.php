@@ -3429,17 +3429,32 @@ class EventsController extends AppController {
 			$this->render('ajax/enrichmentChoice');
 		} else {
 			$this->loadModel('Server');
+			$modules = $this->Server->getEnabledModules();
+			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			$options = array();
+			$found = false;
+			foreach ($modules['modules'] as &$temp) {
+				if ($temp['name'] == $module) {
+					$found = true;
+					if (isset($temp['meta']['config'])) {
+						foreach ($temp['meta']['config'] as $conf) $options[$conf] = Configure::read('Plugin.Enrichment_' . $module . '_' . $conf);
+					}
+				}
+			}
+			if (!$found) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
 			$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
 			$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
 			App::uses('HttpSocket', 'Network/Http');
 			$httpSocket = new HttpSocket();
-			$data = '{"module":"' . $module . '", "' . $attribute[0]['Attribute']['type'] . '":"' . $attribute[0]['Attribute']['value'] . '"}';
+			$data = array('config' => $options, 'module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
+			$data = json_encode($data);
 			try {
 				$response = $httpSocket->post($url . ':' . $port . '/query', $data);
 				$result = json_decode($response->body, true);
 			} catch (Exception $e) {
 				return 'Enrichment service not reachable.';
 			}
+			if (!is_array($result)) throw new Exception($result);
 			$resultArray = array();
 			if (isset($result['results']) && !empty($result['results'])) {
 				foreach ($result['results'] as $result) {
@@ -3471,7 +3486,6 @@ class EventsController extends AppController {
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
 			$this->set('title', 'Enrichment Results');
 			$this->render('resolved_attributes');
-			
 		}
 	}
 }
