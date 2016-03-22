@@ -1,7 +1,7 @@
 <div class="shadow_attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php echo $this->Form->create('ShadowAttribute');?>
 	<fieldset>
-		<legend><?php echo __('Add ShadowAttribute'); ?></legend>
+		<legend><?php echo __('Add Proposal'); ?></legend>
 	<?php
 		echo $this->Form->input('id');
 		echo $this->Form->input('category', array(
