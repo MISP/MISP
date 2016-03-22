@@ -2307,4 +2307,15 @@ class AttributesController extends AppController {
 		$this->layout = 'ajax';
 		$this->render('ajax/hover_enrichment');
 	}
+	
+	public function describeTypes() {
+		$result = array();
+		$result['types'] = array_keys($this->Attribute->typeDefinitions);
+		$result['categories'] = array_keys($this->Attribute->categoryDefinitions);
+		foreach ($this->Attribute->categoryDefinitions as $cat => $data) {
+			$result['category_type_mappings'][$cat] = $data['types'];
+		}
+		$this->set('result', $result);
+		$this->set('_serialize', array('result'));
+	}
 }
