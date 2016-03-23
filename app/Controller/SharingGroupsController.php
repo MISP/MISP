@@ -17,7 +17,21 @@ class SharingGroupsController extends AppController {
 			'order' => array(
 					'SharingGroup.name' => 'ASC'
 			),
-			'contain' => array('SharingGroupOrg' => array('Organisation'), 'Organisation', 'SharingGroupServer' => array('Server')),
+			'fields' => array('SharingGroup.id', 'SharingGroup.name', 'SharingGroup.description', 'SharingGroup.releasability', 'SharingGroup.local', 'SharingGroup.active'),
+			'contain' => array(
+					'SharingGroupOrg' => array(
+						'Organisation' => array('fields' => array('Organisation.name', 'Organisation.id', 'Organisation.uuid'))
+					),
+					'Organisation' => array(
+						'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'),
+					),
+					'SharingGroupServer' => array(
+						'fields' => array('SharingGroupServer.all_orgs'),
+						'Server' => array(
+							'fields' => array('Server.name', 'Server.id')
+						)
+					)
+			),
 	);
 	
 	public function add() {
@@ -158,7 +172,7 @@ class SharingGroupsController extends AppController {
 		foreach ($result as $k => $sg) {
 			//$result[$k]['access'] = $this->SharingGroup->checkAccess($this->Auth->user(), $sg['SharingGroup']['id']);
 			//debug($this->)
-			if ($sg['SharingGroup']['organisation_uuid'] == $this->Auth->user('Organisation')['uuid'] && $this->userRole['perm_sharing_group']) {
+			if ($sg['Organisation']['uuid'] == $this->Auth->user('Organisation')['uuid'] && $this->userRole['perm_sharing_group']) {
 				$result[$k]['editable'] = true;
 			} else {
 				$result[$k]['editable'] = false;
@@ -170,7 +184,12 @@ class SharingGroupsController extends AppController {
 			}
 		}
 		$this->set('passive', $passive);
-		$this->set('sharingGroups', $result);
+		if ($this->_isRest()) {
+			$this->set('response', $result);
+			$this->set('_serialize', array('response'));
+		} else {
+			$this->set('sharingGroups', $result);
+		}
 	}
 	
 	public function view($id) {
