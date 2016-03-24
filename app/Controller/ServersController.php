@@ -325,7 +325,7 @@ class ServersController extends AppController {
 					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0 && !$this->request->data['Server']['delete_cert']) {
 						$this->__saveCert($this->request->data, $this->Server->id);
 					} else {
-						$this->__saveCert($this->request->data, $this->Server->id, true);
+						if ($this->request->data['Server']['delete_cert']) $this->__saveCert($this->request->data, $this->Server->id, true);
 					}
 					$this->Session->setFlash(__('The server has been saved'));
 					$this->redirect(array('action' => 'index'));
