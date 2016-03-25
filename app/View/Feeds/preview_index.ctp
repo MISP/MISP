@@ -32,8 +32,9 @@
 			<th class="filter">Tags</th>
 			<th class="filter"><?php echo $this->Paginator->sort('date');?></th>
 			<th class="filter" title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo $this->Paginator->sort('threat_level_id');?></th>
-			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>"><?php echo $this->Paginator->sort('analysis');?></th>
+			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>"><?php echo $this->Paginator->sort('analysis');?></th>	
 			<th class="filter"><?php echo $this->Paginator->sort('info');?></th>
+			<th class="filter"><?php echo $this->Paginator->sort('timestamp');?></th>
 			<th class="actions">Actions</th>
 
 		</tr>
@@ -59,6 +60,7 @@
 			<td ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
 				<?php echo nl2br(h($event['info'])); ?>&nbsp;
 			</td>
+			<td ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'" class="short"><?php echo h($event['timestamp']); ?></td>
 			<td class="short action-links">
 				<?php if ($feed['Feed']['enabled']) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'icon-download'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
 				<a href='<?php echo $eventViewURL . h($uuid);?>' class = "icon-list-alt" title = "View"></a>
