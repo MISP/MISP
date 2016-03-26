@@ -955,8 +955,8 @@ class EventsController extends AppController {
 							$this->set('_serialize', array('name', 'message', 'url', 'errors'));
 							return false;
 						} else {
-							$this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
-							// TODO return error if REST
+							if ($add === 'blocked') $this->Session->setFlash('A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance' . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
+							else $this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
 						}
 					}
 				}
@@ -2197,13 +2197,16 @@ class EventsController extends AppController {
 				$idList[] = $attribute['Attribute']['event_id'];
 			}
 		}
-		// display the full xml
-		$this->response->type('xml');	// set the content type
-		$this->layout = 'xml/default';
-		$this->header('Content-Disposition: download; filename="misp.search.results.xml"');
-
+		
+		if ($this->response->type() === 'application/json') {
+			
+		} else {
+			// display the full xml
+			$this->response->type('xml');	// set the content type
+			$this->layout = 'xml/default';
+			$this->header('Content-Disposition: download; filename="misp.search.results.xml"');
+		}
 		$results = $this->__fetchEvent(null, $idList);
-
 		$this->set('results', $results);
 		$this->render('xml');
 	}

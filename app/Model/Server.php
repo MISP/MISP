@@ -488,11 +488,19 @@ class Server extends AppModel {
 					),
 					'enableEventBlacklisting' => array(
 							'level' => 1,
-							'description' => 'Since version 1.3.107 you can start blacklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.',
+							'description' => 'Since version 2.3.107 you can start blacklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.',
 							'value' => false,
 							'type' => 'boolean',
 							'test' => 'testBool',
 							'beforeHook' => 'eventBlacklistingBeforeHook'
+					),
+					'enableOrgBlacklisting' => array(
+							'level' => 1,
+							'description' => 'Blacklisting organisation UUIDs to prevent the creation of any event created by the blacklisted organisation.',
+							'value' => false,
+							'type' => 'boolean',
+							'test' => 'testBool',
+							'beforeHook' => 'orgBlacklistingBeforeHook'
 					),
 					'log_client_ip' => array(
 							'level' => 1,
@@ -1786,6 +1794,19 @@ class Server extends AppModel {
 				if (!isset($schema['event_info'])) $this->updateDatabase('addEventBlacklistsContext');
 			} catch (Exception $e) {
 				$this->updateDatabase('addEventBlacklists');
+			}
+		}
+		return true;
+	}
+	
+	public function orgBlacklistingBeforeHook($setting, $value) {
+		$this->cleanCacheFiles();
+		if ($value) {
+			try {
+				$this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
+				$schema = $this->OrgBlacklist->schema();
+			} catch (Exception $e) {
+				$this->updateDatabase('addOrgBlacklists');
 			}
 		}
 		return true;

@@ -8,20 +8,20 @@
 				'div' => 'input clear',
 				'class' => 'input-xxlarge',
 				'label' => 'Creating organisation',
-				'default' => $eb['EventBlacklist']['event_orgc'],
+				'default' => $blockEntry['EventBlacklist']['event_orgc'],
 		));
 		echo $this->Form->input('event_info', array(
 				'type' => 'textarea',
 				'div' => 'input clear',
 				'class' => 'input-xxlarge',
 				'label' => 'Event info',
-				'default' => $eb['EventBlacklist']['event_info'],
+				'default' => $blockEntry['EventBlacklist']['event_info'],
 		));
 		echo $this->Form->input('comment', array(
 				'type' => 'textarea',
 				'div' => 'input clear',
 				'class' => 'input-xxlarge',
-				'default' => $eb['EventBlacklist']['comment'],
+				'default' => $blockEntry['EventBlacklist']['comment'],
 		));
 	?>
 	</fieldset>
