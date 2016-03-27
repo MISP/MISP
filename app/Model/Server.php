@@ -496,11 +496,19 @@ class Server extends AppModel {
 					),
 					'enableEventBlacklisting' => array(
 							'level' => 1,
-							'description' => 'Since version 1.3.107 you can start blacklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.',
+							'description' => 'Since version 2.3.107 you can start blacklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.',
 							'value' => false,
 							'type' => 'boolean',
 							'test' => 'testBool',
 							'beforeHook' => 'eventBlacklistingBeforeHook'
+					),
+					'enableOrgBlacklisting' => array(
+							'level' => 1,
+							'description' => 'Blacklisting organisation UUIDs to prevent the creation of any event created by the blacklisted organisation.',
+							'value' => false,
+							'type' => 'boolean',
+							'test' => 'testBool',
+							'beforeHook' => 'orgBlacklistingBeforeHook'
 					),
 					'log_client_ip' => array(
 							'level' => 1,
@@ -898,6 +906,22 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean'
 					),
+					'Enrichment_services_enable' => array(
+						'level' => 0,
+						'description' => 'Enable/disable the enrichment services',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'Enrichment_hover_enable' => array(
+							'level' => 0,
+							'description' => 'Enable/disable the hover over information retrieved from the enrichment modules',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
+					),
 					'CustomAuth_custom_password_reset' => array(
 							'level' => 2,
 							'description' => 'Provide your custom authentication users with an external URL to the authentication system to reset their passwords.',
@@ -915,6 +939,22 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 							'null' => true
+					),
+					'Enrichment_services_url' => array(
+						'level' => 1,
+						'description' => 'The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666',
+						'value' => 'http://127.0.0.1',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string'
+					),
+					'Enrichment_services_port' => array(
+						'level' => 1,
+						'description' => 'The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666',
+						'value' => '6666',
+						'errorMessage' => '',
+						'test' => 'testForPortNumber',
+						'type' => 'numeric'
 					)
 			),
 			'debug' => array(
@@ -1558,10 +1598,69 @@ class Server extends AppModel {
 		}
 	}
 	
-	public function serverSettingsRead($unsorted = false) {
+	private function __getEnrichmentSettings() {
+		$modules = $this->getEnrichmentModules();
+		$result = array();
+		if (!empty($modules['modules'])) {
+			foreach ($modules['modules'] as $module) {
+				$result[$module['name']][0] = array('name' => 'enabled', 'type' => 'boolean');
+				if (isset($module['meta']['config'])) foreach ($module['meta']['config'] as $conf) $result[$module['name']][] = array('name' => $conf, 'type' => 'string');
+			}
+		}
+		return $result;
+	}
+	
+	public function getCurrentServerSettings() {
 		$serverSettings = $this->serverSettings;
 		$results = array();
 		$currentSettings = Configure::read();
+		if (Configure::read('Plugin.Enrichment_services_enable')) {
+			$results = $this->__getEnrichmentSettings();
+			foreach ($results as $module => $data) {
+				foreach ($data as $result) {
+					$setting = array('level' => 1, 'errorMessage' => '');
+					if ($result['type'] == 'boolean') {
+						$setting['test'] = 'testBool';
+						$setting['type'] = 'boolean';
+						$setting['description'] = 'Enable or disable the ' . $module . ' module.';
+						$setting['value'] = false;
+					} else {
+						$setting['test'] = 'testForEmpty';
+						$setting['type'] = 'string';
+						$setting['description'] = 'Set this required module specific setting.';
+						$setting['value'] = '';
+					}
+					$serverSettings['Plugin']['Enrichment_' . $module . '_' .  $result['name']] = $setting;
+				}
+			}
+		}
+		return $serverSettings;
+	}
+	
+	public function serverSettingsRead($unsorted = false) {
+		$serverSettings = $this->getCurrentServerSettings();
+		$results = array();
+		$currentSettings = Configure::read();
+		if (Configure::read('Plugin.Enrichment_services_enable')) {
+			$results = $this->__getEnrichmentSettings();
+			foreach ($results as $module => $data) {
+				foreach ($data as $result) {
+					$setting = array('level' => 1, 'errorMessage' => '');
+					if ($result['type'] == 'boolean') {
+						$setting['test'] = 'testBool';
+						$setting['type'] = 'boolean';
+						$setting['description'] = 'Enable or disable the ' . $module . ' module.';
+						$setting['value'] = false;
+					} else {
+						$setting['test'] = 'testForEmpty';
+						$setting['type'] = 'string';
+						$setting['description'] = 'Set this required module specific setting.';
+						$setting['value'] = '';
+					}
+					$serverSettings['Plugin']['Enrichment_' . $module . '_' .  $result['name']] = $setting;
+				}
+			}
+		}
 		$finalSettingsUnsorted = array();
 		foreach ($serverSettings as $branchKey => &$branchValue) {
 			if (isset($branchValue['branch'])) {
@@ -1571,6 +1670,10 @@ class Server extends AppModel {
 					if (isset($currentSettings[$branchKey][$leafKey])) $setting = $currentSettings[$branchKey][$leafKey];
 					$leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
 					if ($leafKey != 'branch') {
+						if ($branchKey == 'Plugin') {
+							$pluginData = explode('_', $leafKey);
+							$leafValue['subGroup'] = $pluginData[0];
+						}
 						if (strpos($branchKey, 'Secur') === 0) $leafValue['tab'] = 'Security';
 						else $leafValue['tab'] = $branchKey; 
 						$finalSettingsUnsorted[$branchKey . '.' . $leafKey] = $leafValue;
@@ -1785,10 +1888,23 @@ class Server extends AppModel {
 		}
 		return true;
 	}
-	
+
 	public function customAuthBeforeHook($setting, $value) {
 		if ($value) $this->updateDatabase('addCustomAuth');
 		$this->cleanCacheFiles();
+		return true;
+	}
+	
+	public function orgBlacklistingBeforeHook($setting, $value) {
+		$this->cleanCacheFiles();
+		if ($value) {
+			try {
+				$this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
+				$schema = $this->OrgBlacklist->schema();
+			} catch (Exception $e) {
+				$this->updateDatabase('addOrgBlacklists');
+			}
+		}
 		return true;
 	}
 	
@@ -2620,5 +2736,54 @@ class Server extends AppModel {
 			$validServers[] = $server;
 		}
 		return $validServers;
+	}
+	
+	public function getEnrichmentModules() {
+		if (!Configure::read('Plugin.Enrichment_services_enable')) return 'Enrichment service not enabled.';
+		$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->serverSettings['Plugin']['Enrichment_services_url']['value'];
+		$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->serverSettings['Plugin']['Enrichment_services_port']['value'];
+		App::uses('HttpSocket', 'Network/Http');
+		$httpSocket = new HttpSocket();
+		try {
+			$response = $httpSocket->get($url . ':' . $port . '/modules');
+		} catch (Exception $e) {
+			return 'Enrichment service not reachable.';
+		}
+		$modules = json_decode($response->body, true);
+		if (!empty($modules)) {
+			$result = array('modules' => $modules);
+			foreach ($modules as &$module) {
+				if ($module['type'] !== 'expansion') continue;
+				foreach ($module['mispattributes']['input'] as $attribute) {
+					$result['types'][$attribute][] = $module['name'];
+				}
+			}
+			return $result;
+		} else return 'The enrichment service reports that it found no enrichment modules.';
+	}
+	
+	public function getEnabledModules() {
+		$modules = $this->getEnrichmentModules();
+		if (is_array($modules)) {
+			foreach ($modules['modules'] as $k => &$module) {
+				if (!Configure::read('Plugin.Enrichment_' . $module['name'] . '_enabled')) {
+					unset($modules['modules'][$k]);
+				}
+			}
+		}
+		if (!isset($modules) || empty($modules)) $modules = array();
+		if (isset($modules['modules']) && !empty($modules['modules'])) $modules['modules'] = array_values($modules['modules']);
+		$types = array();
+		$hover_types = array();
+		if (!is_array($modules)) return array();
+		foreach ($modules['modules'] as $temp) {
+			foreach ($temp['mispattributes']['input'] as $input) {
+				if (!isset($temp['meta']['module-type']) || in_array('expansion', $temp['meta']['module-type'])) $types[$input][] = $temp['name'];
+				if (isset($temp['meta']['module-type']) && in_array('hover', $temp['meta']['module-type'])) $hover_types[$input][] = $temp['name'];
+			}
+		}
+		$modules['types'] = $types;
+		$modules['hover_type'] = $hover_types;
+		return $modules;
 	}
 }

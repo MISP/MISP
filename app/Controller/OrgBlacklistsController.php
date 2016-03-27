@@ -1,14 +1,14 @@
 <?php
 App::uses('AppController', 'Controller');
 
-class EventBlacklistsController extends AppController {
+class OrgBlacklistsController extends AppController {
 	public $components = array('Session', 'RequestHandler', 'BlackList');
 
 	public function beforeFilter() {
 		parent::beforeFilter();
 		if(!$this->_isSiteAdmin()) $this->redirect('/');
-		if (!Configure::read('MISP.enableEventBlacklisting')) {
-			$this->Session->setFlash(__('Event Blacklisting is not currently enabled on this instance.'));
+		if (!Configure::read('MISP.enableOrgBlacklisting')) {
+			$this->Session->setFlash(__('Organisation Blacklisting is not currently enabled on this instance.'));
 			$this->redirect('/');
 		}
 	}
@@ -17,7 +17,7 @@ class EventBlacklistsController extends AppController {
 			'limit' => 60,
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
 			'order' => array(
-					'EventBlacklist.created' => 'DESC'
+					'OrgBlacklist.created' => 'DESC'
 			),
 	);
 

@@ -1,4 +1,4 @@
-<div style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">
+<div style="border:1px solid #dddddd; margin-top:1px; width:95%; padding:10px">
 	<h3>MISP version</h3>
 	<p>Since version 2.3.14, every version of MISP includes a json file with the current version. This is checked against the latest tag on github, if there is a version mismatch the tool will warn you about it. Make sure that you update MISP regularly.</p>
 	<div style="background-color:#f7f7f9;width:300px;">

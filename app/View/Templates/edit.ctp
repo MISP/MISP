@@ -34,7 +34,7 @@
 			</div><br />		
 	<?php 
 		echo $this->Form->input('description', array(
-			'label' => 'Event Description',
+			'label' => 'Template Description',
 			'div' => 'clear',
 			'type' => 'textarea',
 			'class' => 'form-control span6',
