@@ -85,15 +85,17 @@
 Cache::config('default', array('engine' => 'File'));
 Configure::load('config');
 
+$appendPort = true;
+
 if (!Configure::read('MISP.baseurl')) {
 	if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) {
-		if ($_SERVER['SERVER_PORT'] == 443) {
+		if ($_SERVER['SERVER_PORT'] == 443 || !$appendPort) {
 			Configure::write('MISP.baseurl', sprintf('https://%s', $_SERVER['SERVER_ADDR']));
 		} else {
 			Configure::write('MISP.baseurl', sprintf('https://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
 		}
 	} else {
-		if ($_SERVER['SERVER_PORT'] == 80) {
+		if ($_SERVER['SERVER_PORT'] == 80 || !$appendPort) {
 			Configure::write('MISP.baseurl', sprintf('http://%s', $_SERVER['SERVER_ADDR']));
 		} else {
 			Configure::write('MISP.baseurl', sprintf('http://%s:%d', $_SERVER['SERVER_ADDR'], $_SERVER['SERVER_PORT']));
