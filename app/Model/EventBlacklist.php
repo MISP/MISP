@@ -4,6 +4,10 @@ class EventBlacklist extends AppModel{
 	public $useTable = 'event_blacklists';
 	public $recursive = -1;
 	public $actsAs = array(
+			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+					'userModel' => 'User',
+					'userKey' => 'user_id',
+					'change' => 'full'),
 			'Containable',
 	);
 	public $blacklistFields = array('event_uuid', 'comment', 'event_info', 'event_orgc');
