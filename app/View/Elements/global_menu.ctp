@@ -138,7 +138,12 @@
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklist Event</a></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
-								<?php endif; ?>			
+								<?php endif; ?>
+								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>	
+									<li class="divider"></li>
+									<li><a href="<?php echo $baseurl;?>/orgBlacklists/add">Blacklist Organisation</a></li>
+									<li><a href="<?php echo $baseurl;?>/orgBlacklists">Manage Org Blacklists</a></li>
+								<?php endif; ?>
 							<?php endif; ?>
 						</ul>
 					</li>
