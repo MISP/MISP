@@ -23,7 +23,7 @@ class UsersController extends AppController {
 			),
 			'contain' => array(
 				'Organisation' => array('id', 'name'),
-				'Role' => array('id', 'name')
+				'Role' => array('id', 'name', 'perm_auth')
 			)
 	);
 
@@ -166,7 +166,7 @@ class UsersController extends AppController {
 		$urlparams = "";
 		$passedArgsArray = array();
 		$booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
-		$textFields = array('role', 'email', 'all');
+		$textFields = array('role', 'email', 'all', 'authkey');
 		// org admins can't see users of other orgs
 		if ($this->_isSiteAdmin()) $textFields[] = 'org';
 		$this->set('passedArgs', json_encode($this->passedArgs));
@@ -200,6 +200,7 @@ class UsersController extends AppController {
 													'UPPER(User.email) LIKE' => '%' . strtoupper($piece) . '%',
 													'UPPER(Organisation.name) LIKE' => '%' . strtoupper($piece) . '%',
 													'UPPER(Role.name) LIKE' => '%' . strtoupper($piece) . '%',
+													'UPPER(User.authkey) LIKE' => '%' . strtoupper($piece) . '%'
 											),
 									);
 								}
@@ -273,7 +274,7 @@ class UsersController extends AppController {
 		if (!$this->_isAdmin() && !$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		$passedArgsArray = array();
 		$booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
-		$textFields = array('role', 'email');
+		$textFields = array('role', 'email', 'authkey');
 		$showorg = 0;
 		// org admins can't see users of other orgs
 		if ($this->_isSiteAdmin()) {
