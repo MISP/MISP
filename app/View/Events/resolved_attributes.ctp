@@ -20,6 +20,7 @@
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 				<th>Value</th>
+				<th>Similar Attributes</th>
 				<th>Category</th>
 				<th>Type</th>
 				<th>IDS<input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
@@ -37,11 +38,6 @@
 						'style' => 'display:none;',
 						'value' => 1,
 				));
-				echo $this->Form->input('Attribute' . $k . 'Value', array(
-						'label' => false,
-						'type' => 'hidden',
-						'value' => h($item['value']),
-				));
 				echo $this->Form->input('Attribute' . $k . 'Data', array(
 						'label' => false,
 						'type' => 'hidden',
@@ -49,8 +45,37 @@
 				));
 			?>
 			<td>
+				<?php 
+					echo $this->Form->input('Attribute' . $k . 'Value', array(
+							'label' => false,
+							'value' => h($item['value']),
+							'style' => 'padding:0px;height:20px;margin-bottom:0px'
+					));
+				?>
 				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >
-				<div id="<?php echo 'Attribute' . $k . 'Value'; ?>"><?php echo h($item['value']); ?></div>
+			</td>
+			<td>
+				<?php 
+					foreach ($item['related'] as $relation):
+						$popover = array(
+							'Event ID' => $relation['Event']['id'],
+							'Event Info' => $relation['Event']['info'],
+							'Category' => $relation['Attribute']['category'],
+							'Type' => $relation['Attribute']['type'],
+							'Value' => $relation['Attribute']['value'],
+							'Comment' => $relation['Attribute']['comment'],
+						);
+						$popoverHTML = '';
+						foreach ($popover as $key => $popoverElement) {
+							$popoverHTML .= '<span class=\'bold\'>' . $key . '</span>: <span class=\'blue bold\'>' . $popoverElement . '</span><br />';
+						}
+				?>
+						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
+				<?php 
+					endforeach;
+					// Category/type: 
+					$correlationPopover = array('<span>', );
+				?>
 			</td>
 			<td class="short">
 				<?php 
