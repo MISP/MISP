@@ -161,18 +161,6 @@ class AppController extends Controller {
 						unset($user);
 					}
 				}
-				$this->Log = ClassRegistry::init('Log');
-				$this->Log->create();
-				$log = array(
-						'org' => 'SYSTEM',
-						'model' => 'User',
-						'model_id' => 0,
-						'email' => 'SYSTEM',
-						'action' => 'auth_fail',
-						'title' => 'Failed authentication using API key (' . trim(json_encode($_SERVER['HTTP_AUTHORIZATION'])) . ')',
-						'change' => null,
-				);
-				$this->Log->save($log);
 				if ($this->Auth->user() == null) throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
 			} else if(!$this->Session->read(AuthComponent::$sessionKey)) {
 				//throw new Exception();
