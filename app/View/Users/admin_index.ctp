@@ -46,6 +46,7 @@
 			<th><?php echo $this->Paginator->sort('org_ci', 'Org');?></th>
 			<th><?php echo $this->Paginator->sort('role_id', 'Role');?></th>
 			<th><?php echo $this->Paginator->sort('email');?></th>
+			<th><?php echo $this->Paginator->sort('authkey');?></th>
 			<th><?php echo $this->Paginator->sort('autoalert');?></th>
 			<th><?php echo $this->Paginator->sort('contactalert');?></th>
 			<th><?php echo $this->Paginator->sort('gpgkey');?></th>
@@ -73,6 +74,8 @@
 			<?php echo $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])); ?></td>
 			<td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 			<?php echo h($user['User']['email']); ?>&nbsp;</td>
+			<td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" class="<?php echo $user['Role']['perm_auth'] ? 'bold' : 'grey'; ?>">
+			<?php echo h($user['User']['authkey']); ?>&nbsp;</td>
 			<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 			<?php echo $user['User']['autoalert']? 'Yes' : 'No'; ?>&nbsp;</td>
 			<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">

@@ -3,7 +3,13 @@ App::uses('AppModel', 'Model');
 class OrgBlacklist extends AppModel{
 	public $useTable = 'org_blacklists';
 	public $recursive = -1;
-	public $actsAs = array('Containable');
+	public $actsAs = array(
+			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+					'userModel' => 'User',
+					'userKey' => 'user_id',
+					'change' => 'full'),
+			'Containable',
+	);
 	public $blacklistFields = array('org_uuid', 'comment', 'org_name');
 
 	public $validate = array(

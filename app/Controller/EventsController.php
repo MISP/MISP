@@ -3488,6 +3488,14 @@ class EventsController extends AppController {
 					$typeCategoryMapping[$type][$k] = $k;
 				}
 			}
+			foreach ($resultArray as &$result) {
+				$options = array(
+						'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
+						'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+						'order' => false
+				);
+				$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+			}
 			$this->set('event', array('Event' => $attribute[0]['Event']));
 			$this->set('resultArray', $resultArray);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
