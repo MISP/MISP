@@ -84,6 +84,15 @@ class ComplexTypeTool {
 		}
 		return $resultArray;
 	}
+
+	private $__hexHashTypes = array(
+		32 => array('single' => array('md5', 'imphash'), 'composite' => array('filename|md5', 'filename|imphash')),
+		40 => array('single' => array('sha1', 'pehash', 'x509-fingerprint-sha1'), 'composite' => array('filename|sha1', 'filename|pehash')),
+		56 => array('single' => array('sha224', 'sha512/224'), array('sha224', 'sha512/224')),
+		64 => array('single' => array('sha256, authentihash', 'sha512/256'), 'composite' => array('sha256, authentihash', 'sha512/256')),
+		96 => array('single' => array('sha384'), 'composite' => array('sha384')),
+		128 => array('single' => array('sha512'), 'composite' => array('sha512'))
+	);
 	
 	private function __resolveType($input) {
 		$result = array();
@@ -92,24 +101,18 @@ class ComplexTypeTool {
 			$compositeParts = explode('|', $input);
 			if (count($compositeParts) == 2) {
 				if ($this->__resolveFilename($compositeParts[0])) {
-					if (strlen($compositeParts[1]) == 32 && preg_match("#[0-9a-f]{32}$#i", $compositeParts[1])) return array('types' => array('filename|md5', 'filename|imphash'), 'to_ids' => true, 'default_type' => 'filename|md5');
-					if (strlen($compositeParts[1]) == 40 && preg_match("#[0-9a-f]{40}$#i", $compositeParts[1])) return array('types' => array('filename|sha1', 'filename|pehash'), 'to_ids' => true, 'default_type' => 'filename|sha1');
-					if (strlen($compositeParts[1]) == 56 && preg_match("#[0-9a-f]{56}$#i", $compositeParts[1])) return array('types' => array('filename|sha512/224', 'filename|sha224'), 'to_ids' => true, 'default_type' => 'filename|sha224');
-					if (strlen($compositeParts[1]) == 64 && preg_match("#[0-9a-f]{64}$#i", $compositeParts[1])) return array('types' => array('filename|sha256', 'filename|sha512/256', 'filename|authentihash'), 'to_ids' => true, 'default_type' => 'filename|sha256');
-					if (strlen($compositeParts[1]) == 96 && preg_match("#[0-9a-f]{96}$#i", $compositeParts[1])) return array('types' => array('filename|sha384'), 'to_ids' => true, 'default_type' => 'filename|sha384');
-					if (strlen($compositeParts[1]) == 128 && preg_match("#[0-9a-f]{128}$#i", $compositeParts[1])) return array('types' => array('filename|sha512', 'filename|sha'), 'to_ids' => true, 'default_type' => 'filename|sha512');
+					foreach ($this->__hexHashTypes as $k => &$v) {
+						if (strlen($compositeParts[1]) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $compositeParts[1])) return array('types' => $v['composite'], 'to_ids' => true, 'default_type' => $v['composite'][0]);
+					}
 					if (preg_match('#^[0-9]+:.+:.+$#', $compositeParts[1])) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep');
 				}
 			}
 		}
 		
 		// check for hashes
-		if (strlen($input) == 32 && preg_match("#[0-9a-f]{32}$#i", $input)) return array('types' => array('md5', 'imhash'), 'to_ids' => true, 'default_type' => 'md5');
-		if (strlen($input) == 40 && preg_match("#[0-9a-f]{40}$#i", $input)) return array('types' => array('sha1', 'pehash'), 'to_ids' => true, 'default_type' => 'sha1');
-		if (strlen($input) == 56 && preg_match("#[0-9a-f]{56}$#i", $input)) return array('types' => array('sha224', 'sha512/224'), 'to_ids' => true, 'default_type' => 'sha224');
-		if (strlen($input) == 64 && preg_match("#[0-9a-f]{64}$#i", $input)) return array('types' => array('sha256', 'sha512/256', 'authentihash'), 'to_ids' => true, 'default_type' => 'sha256');
-		if (strlen($input) == 96 && preg_match("#[0-9a-f]{96}$#i", $input)) return array('types' => array('sha384'), 'to_ids' => true, 'default_type' => 'sha384');
-		if (strlen($input) == 128 && preg_match("#[0-9a-f]{128}$#i", $input)) return array('types' => array('sha512'), 'to_ids' => true, 'default_type' => 'sha512');
+		foreach ($this->__hexHashTypes as $k => &$v) {
+			if (strlen($input) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input)) return array('types' => $v['single'], 'to_ids' => true, 'default_type' => $v['single'][0]);
+		}
 		if (preg_match('#^[0-9]+:.+:.+$#', $input)) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep');
 		
 		$inputRefanged = preg_replace('/^hxxp/i', 'http', $input);

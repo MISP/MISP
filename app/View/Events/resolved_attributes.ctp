@@ -49,12 +49,13 @@
 					echo $this->Form->input('Attribute' . $k . 'Value', array(
 							'label' => false,
 							'value' => h($item['value']),
-							'style' => 'padding:0px;height:20px;margin-bottom:0px'
+							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;',
+							'div' => false
 					));
 				?>
 				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >
 			</td>
-			<td>
+			<td style="shortish">
 				<?php 
 					foreach ($item['related'] as $relation):
 						$popover = array(
