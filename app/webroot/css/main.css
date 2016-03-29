@@ -354,7 +354,7 @@ dt {
 	width: 150px;
 }
 dd {
-	float:left;'
+	float:left;
 	vertical-align: top;
 	width: calc(100% - 150px);
 	padding: 0;
