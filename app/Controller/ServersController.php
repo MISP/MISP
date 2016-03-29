@@ -806,6 +806,14 @@ class ServersController extends AppController {
 				if ($value) $found['value'] = $value;
 				$found['setting'] = $setting;
 			}
+			$subGroup = 'general';
+			$subGroup = explode('.', $setting);
+			if ($subGroup[0] === 'Plugin') {
+				$subGroup = explode('_', $subGroup[1])[0];
+			} else {
+				$subGroup = 'general';
+			}
+			$this->set('subGroup', $subGroup);
 			$this->set('setting', $found);
 			$this->render('ajax/server_settings_edit');
 		}

@@ -1397,10 +1397,22 @@ function expandPagination(bottom, right) {
 	}
 }
 
+function getSubGroupFromSetting(setting) {
+	var temp = setting.split('.');
+	if (temp[0] == "Plugin") { 
+		temp = temp[1];
+		if (temp.indexOf('_') > -1) {
+			temp = temp.split('_');
+			return temp[0];
+		}
+	}
+	return 'general';
+}
+
 function serverSettingsActivateField(setting, id) {
 	resetForms();
 	$('.inline-field-placeholder').hide();
-	var fieldName = "#setting_" + id; 
+	var fieldName = "#setting_" + getSubGroupFromSetting(setting) + "_" + id; 
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -1453,7 +1465,7 @@ function serverSettingsPostActivationScripts(name, setting, id) {
 }
 
 function serverSettingSubmitForm(name, setting, id) {
-	var name = '#setting_' + id;
+	subGroup = getSubGroupFromSetting(setting);
 	var formData = $(name + '_field').closest("form").serialize();
 	$.ajax({
 		data: formData,
@@ -1466,7 +1478,7 @@ function serverSettingSubmitForm(name, setting, id) {
 				type:"get",
 				url:"/servers/serverSettingsReloadSetting/" + setting + "/" + id,
 				success:function (data2, textStatus2) {
-					$('#' + id + '_row').replaceWith(data2);
+					$('#' + subGroup + "_" + id + '_row').replaceWith(data2);
 					$(".loading").hide();
 				},
 				error:function() {
