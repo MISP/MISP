@@ -2299,7 +2299,12 @@ class AttributesController extends AppController {
 			}
 			if (!empty($result['results'])) {
 				foreach ($result['results'] as &$r) {
-					foreach ($r['values'] as $v) $resultArray[] = array($type => $v);
+					if (is_array($r['values']) && !empty($r['values'])) {
+						foreach ($r['values'] as $v) {
+							if (is_array($v)) $v = 'Array returned';
+							$resultArray[] = array($type => $v);
+						}
+					} else if ($r['values'] == null) $resultArray[] = array($type => 'No result');
 				}
 			}
 		}
