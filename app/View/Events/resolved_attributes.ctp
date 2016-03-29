@@ -177,6 +177,7 @@
 	<script>
 		var options = <?php echo json_encode($optionsRearranged);?>;
 		$(document).ready(function(){
+			popoverStartup();
 			$('#changeFrom').change(function(){
 				changeFreetextImportFrom();
 			});
