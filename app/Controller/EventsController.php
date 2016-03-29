@@ -3463,24 +3463,49 @@ class EventsController extends AppController {
 			} catch (Exception $e) {
 				return 'Enrichment service not reachable.';
 			}
+			if (isset($result['error'])) $this->Session->setFlash($result['error']);
 			if (!is_array($result)) throw new Exception($result);
 			$resultArray = array();
+			$freetextResults = array();
+			App::uses('ComplexTypeTool', 'Tools');
+			$complexTypeTool = new ComplexTypeTool();
 			if (isset($result['results']) && !empty($result['results'])) {
-				foreach ($result['results'] as $result) {
-					if (!is_array($result['values'])) $result['values'] = array($result['values']);
-					foreach ($result['values'] as $value) {
-						 $temp = array(
-							'event_id' => $attribute[0]['Attribute']['event_id'],
-							'types' => $result['types'],
-							'default_type' => $result['types'][0],
-							'comment' => isset($result['comment']) ? $result['comment'] : false,
-							'to_ids' => isset($result['to_ids']) ? $result['to_ids'] : false,
-							'value' => $value 
+				foreach ($result['results'] as $k => &$r) {
+					foreach ($r['values'] as &$value) if (!is_array($r['values']) || !isset($r['values'][0])) $r['values'] = array($r['values']);
+					foreach ($r['values'] as &$value) {
+							if (in_array('freetext', $r['types'])) {
+								if (is_array($value)) $value = json_encode($value);
+								$freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
+								if (!empty($freetextResults)) {
+									foreach ($freetextResults as &$ft) {
+										$temp = array();
+										foreach ($ft['types'] as $type) {
+											$temp[$type] = $type;
+										}
+										$ft['types'] = $temp;
+									}
+								}
+								$r['types'] = array_diff($r['types'], array('freetext'));
+								// if we just removed the only type in the result then more on to the next result
+								if (empty($r['types'])) continue 2;
+								$r['types'] = array_values($r['types']);
+						}
+					}
+					foreach ($r['values'] as &$value) {
+						$temp = array(
+								'event_id' => $attribute[0]['Attribute']['event_id'],
+								'types' => $r['types'],
+								'default_type' => $r['types'][0],
+								'comment' => isset($r['comment']) ? $r['comment'] : false,
+								'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
+								'value' => $value
 						);
-						if (isset($result['data'])) $temp['data'] = $result['data'];
+						if (isset($r['data'])) $temp['data'] = $r['data'];
 						$resultArray[] = $temp;
-					}	
+					}
+					
 				}
+				$resultArray = array_merge($resultArray, $freetextResults);
 			}
 			$typeCategoryMapping = array();
 			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {

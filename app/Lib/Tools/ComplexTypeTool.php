@@ -58,19 +58,29 @@ class ComplexTypeTool {
 		return array('type' => 'other', 'value' => $input);
 	}
 	
+	private function __returnOddElements(&$array) {
+		foreach ($array as $k => &$v) if ($k % 2 != 1) unset($array[$k]);
+		return array_values($array);
+	}
+	
 	public function checkFreeText($input) {
 		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
+		$quotedText = explode('"', $input);
+		$iocArray = array_merge($iocArray, $this->__returnOddElements($quotedText));
+		
 		$resultArray = array();
-		foreach ($iocArray as $ioc) {
-			$ioc = trim($ioc);
-			$ioc = trim($ioc, ',');
-			$ioc = preg_replace('/\p{C}+/u', '', $ioc);
-			if (empty($ioc)) continue;
-			$typeArray = $this->__resolveType($ioc);
-			if ($typeArray === false) continue;
-			$temp = $typeArray;
-			if (!isset($temp['value'])) $temp['value'] = $ioc;
-			$resultArray[] = $temp;
+		if (!empty($iocArray)) {
+			foreach ($iocArray as $ioc) {
+				$ioc = trim($ioc);
+				$ioc = trim($ioc, ',');
+				$ioc = preg_replace('/\p{C}+/u', '', $ioc);
+				if (empty($ioc)) continue;
+				$typeArray = $this->__resolveType($ioc);
+				if ($typeArray === false) continue;
+				$temp = $typeArray;
+				if (!isset($temp['value'])) $temp['value'] = $ioc;
+				$resultArray[] = $temp;
+			}
 		}
 		return $resultArray;
 	}
