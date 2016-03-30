@@ -49,7 +49,7 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => false)
+			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true)
 		)
 	);
 	
@@ -57,7 +57,6 @@ class AppModel extends Model {
 	// add special cases where the upgrade does more than just update the DB
 	// this could become useful in the future
 	public function updateMISP($command) {
-		$this->Log = ClassRegistry::init('Log');
 		switch($command) {
 			case '2.4.20':
 				$this->updateDatabase($command);
@@ -361,7 +360,6 @@ class AppModel extends Model {
 				));
 			}
 		}
-		if ($clean) $this->cleanCacheFiles();
 		return true;
 	}
 	
@@ -447,6 +445,7 @@ class AppModel extends Model {
 					$db_version['AdminSetting']['value'] = $update;
 					$this->AdminSetting->save($db_version);
 				}
+				$this->cleanCacheFiles();
 			}
 		}
 		if ($requiresLogout) {

@@ -202,7 +202,7 @@ class AppController extends Controller {
 				$this->loadModel('User');
 				$this->User->id = $this->Auth->user('id');
 				$this->User->saveField('force_logout', false);
-				$this->Session->destroy();
+				//$this->Session->destroy();
 			}
 			if ($this->Auth->user('disabled')) {
 				$this->Log = ClassRegistry::init('Log');
