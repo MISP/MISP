@@ -259,7 +259,7 @@ class User extends AppModel {
 	
 	public function beforeValidate($options = array()) {
 		if (!isset($this->data['User']['id'])) {
-			if (!$this->data['User']['enable_password'] || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password']))) {
+			if (isset($this->data['User']['enable_password']) && (!$this->data['User']['enable_password'] || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password'])))) {
 				$this->data['User']['password'] = $this->__generatePassword();
 				$this->data['User']['confirm_password'] = $this->data['User']['password'];
 			}
@@ -578,7 +578,6 @@ class User extends AppModel {
 			$body = $bodyNoEnc;
 		}
 		$body = str_replace('\n', PHP_EOL, $body);
-
 		// Sign the body
 		require_once 'Crypt/GPG.php';
 		try {
