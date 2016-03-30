@@ -88,9 +88,8 @@ class OrganisationsController extends AppController {
 			} else {
 				$this->Session->setFlash('The organisation could not be updated.');
 			}
-		} else {
-			$this->set('countries', $this->_arrayToValuesIndexArray($this->Organisation->countries));
 		}
+		$this->set('countries', $this->_arrayToValuesIndexArray($this->Organisation->countries));
 		$this->Organisation->read(null, $id);
 		$this->set('orgId', $id);
 		$this->request->data = $this->Organisation->data;

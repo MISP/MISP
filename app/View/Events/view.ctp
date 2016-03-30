@@ -74,7 +74,7 @@
 					?>
 					&nbsp;
 				</dd>
-				<?php if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org'] == $event['Event']['org']))): ?>
+				<?php if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))): ?>
 				<dt>Email</dt>
 				<dd>
 					<?php echo h($event['User']['email']); ?>
@@ -85,7 +85,7 @@
 					if (Configure::read('MISP.tagging')): ?>
 						<dt>Tags</dt>
 						<dd class="eventTagContainer">
-							<?php echo $this->element('ajaxTags', array('event' => $event, 'tags' => $event['EventTag'])); ?>
+							<?php echo $this->element('ajaxTags', array('event' => $event, 'tags' => $event['EventTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
 						</dd>
 				<?php endif; ?>
 				<dt>Date</dt>

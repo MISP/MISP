@@ -82,7 +82,7 @@ class TagsController extends AppController {
 	}
 	
 	public function add() {
-		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
+		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) throw new NotFoundException('You don\'t have permission to do that.');
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request']; 
 			if (!isset($this->request->data['Tag']['colour'])) $this->request->data['Tag']['colour'] = $this->Tag->random_color();
@@ -104,7 +104,7 @@ class TagsController extends AppController {
 	}
 	
 	public function quickAdd() {
-		if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) throw new NotFoundException('You don\'t have permission to do that.');
+		if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) || !$this->request->is('post')) throw new NotFoundException('You don\'t have permission to do that.');
 		if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
 		if ($this->Tag->quickAdd($this->request->data['Tag']['name'])) {
 			$this->Session->setFlash('The tag has been saved.');
@@ -115,7 +115,7 @@ class TagsController extends AppController {
 	}
 	
 	public function edit($id) {
-		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
+		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) {
 			throw new NotFoundException('You don\'t have permission to do that.');
 		}
 		$this->Tag->id = $id;
@@ -143,7 +143,7 @@ class TagsController extends AppController {
 	}
 	
 	public function delete($id) {
-		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
+		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) {
 			throw new NotFoundException('You don\'t have permission to do that.');
 		}
 		if (!$this->request->is('post')) {
@@ -212,7 +212,7 @@ class TagsController extends AppController {
 				'conditions' => array(
 						'event_id' => $id
 				),
-				'contain' => 'Tag',
+				'contain' => array('Tag'),
 				'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
 		));
 		$this->set('tags', $tags);
@@ -222,7 +222,11 @@ class TagsController extends AppController {
 			$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
 		}
 		$this->set('allTags', $tagNames);
-		$event['Event']['id'] = $id;
+		$event = $this->Tag->EventTag->Event->find('first', array(
+				'recursive' => -1,
+				'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'),
+				'conditions' => array('Event.id' => $id)
+		));
 		$this->set('event', $event);
 		$this->layout = 'ajax';
 		$this->render('/Events/ajax/ajaxTags');

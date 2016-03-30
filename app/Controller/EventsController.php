@@ -2601,14 +2601,22 @@ class EventsController extends AppController {
 		if (!$this->request->is('post')) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200));
 		}
-		if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
-		if ($tag_id === false) $tag_id = $this->request->data['Event']['tag'];
+		$rearrangeRules = array(
+				'request' => false,
+				'Event' => false,
+				'tag_id' => 'tag',
+				'event_id' => 'event',
+				'id' => 'event'
+		);
+		$RearrangeTool = new RequestRearrangeTool();
+		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
+		if ($id === false) $id = $this->request->data['event'];
+		if ($tag_id === false) $tag_id = $this->request->data['tag'];
 		if (!is_numeric($tag_id)) {
-			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.name' => trim($tag_id))));
+			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => '%' . strtolower(trim($tag_id)) . '%')));
 			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
 			$tag_id = $tag['Tag']['id'];
 		}
-		if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
 		$this->Event->recurisve = -1;
 		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $id);
 		
@@ -2642,11 +2650,22 @@ class EventsController extends AppController {
 	
 	public function removeTag($id = false, $tag_id = false) {
 		if (!$this->request->is('post')) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that. Only POST requests are accepted.')), 'status'=>200));
 		}
-		if ($tag_id === false) $tag_id = $this->request->data['Event']['tag'];
+		$rearrangeRules = array(
+				'request' => false,
+				'Event' => false,
+				'tag_id' => 'tag',
+				'event_id' => 'event',
+				'id' => 'event'
+		);
+		$RearrangeTool = new RequestRearrangeTool();
+		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
+		if ($id === false) $id = $this->request->data['event'];
+		if ($tag_id === false) $tag_id = $this->request->data['tag'];
 		if (!is_numeric($tag_id)) {
-			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.name' => trim($tag_id))));
+			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => '%' . strtolower(trim($tag_id)) . '%')));
+			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
 			$tag_id = $tag['Tag']['id'];
 		}
 		if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
@@ -3463,24 +3482,49 @@ class EventsController extends AppController {
 			} catch (Exception $e) {
 				return 'Enrichment service not reachable.';
 			}
+			if (isset($result['error'])) $this->Session->setFlash($result['error']);
 			if (!is_array($result)) throw new Exception($result);
 			$resultArray = array();
+			$freetextResults = array();
+			App::uses('ComplexTypeTool', 'Tools');
+			$complexTypeTool = new ComplexTypeTool();
 			if (isset($result['results']) && !empty($result['results'])) {
-				foreach ($result['results'] as $result) {
-					if (!is_array($result['values'])) $result['values'] = array($result['values']);
-					foreach ($result['values'] as $value) {
-						 $temp = array(
-							'event_id' => $attribute[0]['Attribute']['event_id'],
-							'types' => $result['types'],
-							'default_type' => $result['types'][0],
-							'comment' => isset($result['comment']) ? $result['comment'] : false,
-							'to_ids' => isset($result['to_ids']) ? $result['to_ids'] : false,
-							'value' => $value 
+				foreach ($result['results'] as $k => &$r) {
+					foreach ($r['values'] as &$value) if (!is_array($r['values']) || !isset($r['values'][0])) $r['values'] = array($r['values']);
+					foreach ($r['values'] as &$value) {
+							if (in_array('freetext', $r['types'])) {
+								if (is_array($value)) $value = json_encode($value);
+								$freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
+								if (!empty($freetextResults)) {
+									foreach ($freetextResults as &$ft) {
+										$temp = array();
+										foreach ($ft['types'] as $type) {
+											$temp[$type] = $type;
+										}
+										$ft['types'] = $temp;
+									}
+								}
+								$r['types'] = array_diff($r['types'], array('freetext'));
+								// if we just removed the only type in the result then more on to the next result
+								if (empty($r['types'])) continue 2;
+								$r['types'] = array_values($r['types']);
+						}
+					}
+					foreach ($r['values'] as &$value) {
+						$temp = array(
+								'event_id' => $attribute[0]['Attribute']['event_id'],
+								'types' => $r['types'],
+								'default_type' => $r['types'][0],
+								'comment' => isset($r['comment']) ? $r['comment'] : false,
+								'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
+								'value' => $value
 						);
-						if (isset($result['data'])) $temp['data'] = $result['data'];
+						if (isset($r['data'])) $temp['data'] = $r['data'];
 						$resultArray[] = $temp;
-					}	
+					}
+					
 				}
+				$resultArray = array_merge($resultArray, $freetextResults);
 			}
 			$typeCategoryMapping = array();
 			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {

@@ -1781,7 +1781,10 @@ class Event extends AppModel {
 		if (!isset($data['Event']['EventTag'])) $data['Event']['EventTag'] = array();
 		if (isset($data['Event']['Tag'])) {
 			if (isset($data['Event']['Tag']['name'])) $data['Event']['Tag'] = array($data['Event']['Tag']);
-			foreach ($data['Event']['Tag'] as $tag) $data['Event']['EventTag'][] = array('tag_id' => $this->EventTag->Tag->captureTag($tag, $user));
+			foreach ($data['Event']['Tag'] as $tag) {
+				$tag_id = $this->EventTag->Tag->captureTag($tag, $user);
+				if ($tag_id) $data['Event']['EventTag'][] = array('tag_id' => $tag_id);
+			}
 			unset($data['Event']['Tag']);
 		}
 		return $data;
@@ -1961,6 +1964,7 @@ class Event extends AppModel {
 			foreach ($recoverFields as $rF) if (!isset($data['Event'][$rF])) $data['Event'][$rF] = $existingEvent['Event'][$rF];
 		} else return (array('error' => 'Event could not be saved: Could not find the local event.'));
 		if (isset($data['Event']['published']) && $data['Event']['published'] && !$user['Role']['perm_publish']) $data['Event']['published'] = false;
+		if (!isset($data['Event']['published'])) $data['Event']['published'] = false;
 		$fieldList = array(
 				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'distribution', 'timestamp', 'sharing_group_id'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment', 'sharing_group_id')
@@ -2035,17 +2039,22 @@ class Event extends AppModel {
 					if ($tag_id) {
 						$this->EventTag->attachTagToEvent($this->id, $tag_id);
 					} else {
-						$this->Log->create();
-						$this->Log->save(array(
-							'org' => $user['Organisation']['name'],
-							'model' => 'Event',
-							'model_id' => $this->id,
-							'email' => $user['email'],
-							'action' => 'edit',
-							'user_id' => $user['id'],
-							'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the event.',
-							'change' => ''
-						));
+						// If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
+						// However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
+						// In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
+						if ($user['Role']['perm_tag_editor']) {
+							$this->Log->create();
+							$this->Log->save(array(
+								'org' => $user['Organisation']['name'],
+								'model' => 'Event',
+								'model_id' => $this->id,
+								'email' => $user['email'],
+								'action' => 'edit',
+								'user_id' => $user['id'],
+								'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the event.',
+								'change' => ''
+							));
+						}
 					}
 				}
 			}

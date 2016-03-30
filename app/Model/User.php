@@ -259,7 +259,7 @@ class User extends AppModel {
 	
 	public function beforeValidate($options = array()) {
 		if (!isset($this->data['User']['id'])) {
-			if (!$this->data['User']['enable_password'] || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password']))) {
+			if (isset($this->data['User']['enable_password']) && (!$this->data['User']['enable_password'] || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password'])))) {
 				$this->data['User']['password'] = $this->__generatePassword();
 				$this->data['User']['confirm_password'] = $this->data['User']['password'];
 			}
@@ -332,7 +332,7 @@ class User extends AppModel {
 		If Security.password_policy_complexity is set and valid, use the regex provided.
 		*/
 		$regex = Configure::read('Security.password_policy_complexity');
-		if (empty($regex) || @preg_match($regex, 'test') === false) $regex = '/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/';
+		if (empty($regex) || @preg_match($regex, 'test') === false) $regex = '/((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$/';
 		$value = array_values($check);
 		$value = $value[0];
 		return preg_match($regex, $value);
@@ -578,7 +578,6 @@ class User extends AppModel {
 			$body = $bodyNoEnc;
 		}
 		$body = str_replace('\n', PHP_EOL, $body);
-
 		// Sign the body
 		require_once 'Crypt/GPG.php';
 		try {

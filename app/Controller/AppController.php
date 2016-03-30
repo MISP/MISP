@@ -24,6 +24,7 @@
 
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
+App::uses('RequestRearrangeTool', 'Tools');
 
 /**
  * Application Controller
@@ -272,6 +273,7 @@ class AppController extends Controller {
 			$this->set('isAclAuth', $role['perm_auth']);
 			$this->set('isAclRegexp', $role['perm_regexp_access']);
 			$this->set('isAclTagger', $role['perm_tagger']);
+			$this->set('isAclTagEditor', $role['perm_tag_editor']);
 			$this->set('isAclTemplate', $role['perm_template']);
 			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
 			$this->userRole = $role;
