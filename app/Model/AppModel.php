@@ -392,10 +392,9 @@ class AppModel extends Model {
 	}
 	
 	public function cleanCacheFiles() {
-		$directories = array(APP . 'tmp/cache/models', APP . 'tmp/cache/persistent');
 		$files = array();
-		$files = array_merge($files, glob(CACHE . 'models' . DS . 'myapp.*'));
-		$files = array_merge($files, glob(CACHE . 'persistent' . DS . 'myapp.*'));
+		$files = array_merge($files, glob(CACHE . 'models' . DS . 'myapp*'));
+		$files = array_merge($files, glob(CACHE . 'persistent' . DS . 'myapp*'));
 		foreach ($files as $f) {
 			if (is_file($f)) {
 				unlink($f);
