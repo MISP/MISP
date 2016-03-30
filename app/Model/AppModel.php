@@ -393,13 +393,12 @@ class AppModel extends Model {
 	
 	public function cleanCacheFiles() {
 		$directories = array(APP . 'tmp/cache/models', APP . 'tmp/cache/persistent');
-		foreach ($directories as $directory) {
-			$dir = new Folder($directory);
-			$files = $dir->find('myapp.*');
-			foreach ($files as $file) {
-				$file = new File($dir->path . DS . $file);
-				$file->delete();
-				$file->close();
+		$files = array();
+		$files = array_merge($files, glob(CACHE . 'models' . DS . 'myapp.*'));
+		$files = array_merge($files, glob(CACHE . 'persistent' . DS . 'myapp.*'));
+		foreach ($files as $f) {
+			if (is_file($f)) {
+				unlink($f);
 			}
 		}
 	}
