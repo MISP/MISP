@@ -109,14 +109,16 @@ class Tag extends AppModel {
 				'conditions' => array('LOWER(name)' => strtolower($tag['name']))
 		));
 		if (empty($existingTag)) {
-			$this->create();
-			$tag = array(
-					'name' => $tag['name'],
-					'colour' => $tag['colour'],
-					'exportable' => $tag['exportable'],
-			);
-			$this->save($tag);
-			return $this->id;
+			if ($user['Role']['perm_tag_editor']) {
+				$this->create();
+				$tag = array(
+						'name' => $tag['name'],
+						'colour' => $tag['colour'],
+						'exportable' => $tag['exportable'],
+				);
+				$this->save($tag);
+				return $this->id;
+			} else return false;
 		}
 		return $existingTag['Tag']['id'];
 	}
