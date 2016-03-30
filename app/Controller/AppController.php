@@ -195,6 +195,15 @@ class AppController extends Controller {
 		}
 		
 		if ($this->Auth->user()) {
+			// update script
+			$this->{$this->modelClass}->runUpdates();
+			$user = $this->Auth->user();
+			if (!isset($user['force_logout']) || $user['force_logout']) {
+				$this->loadModel('User');
+				$this->User->id = $this->Auth->user('id');
+				$this->User->saveField('force_logout', false);
+				$this->Session->destroy();
+			}
 			if ($this->Auth->user('disabled')) {
 				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
@@ -285,8 +294,6 @@ class AppController extends Controller {
 		}
 		$this->debugMode = 'debugOff';
 		if (Configure::read('debug') > 1) $this->debugMode = 'debugOn';
-		// update script
-		$this->{$this->modelClass}->runUpdates();
 		$this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
 		$this->set('debugMode', $this->debugMode);
 		$notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
