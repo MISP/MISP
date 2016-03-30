@@ -2601,6 +2601,22 @@ class EventsController extends AppController {
 		if (!$this->request->is('post')) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200));
 		}
+		$rearrangeRules = array(
+				'request' => false,
+				'Event' => false,
+				'tag_id' => 'tag',
+				'event_id' => 'event',
+				'id' => 'event'
+		);
+		$RearrangeTool = new RequestRearrangeTool();
+		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
+		if ($id === false) $id = $this->request->data['event'];
+		if ($tag_id === false) $tag_id = $this->request->data['tag'];
+		if (!is_numeric($tag_id)) {
+			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => '%' . trim($tag_id) . '%')));
+			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
+			$tag_id = $tag['Tag']['id'];
+		}
 		if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
 		if ($tag_id === false) $tag_id = $this->request->data['Event']['tag'];
 		if (!is_numeric($tag_id)) {
@@ -2642,11 +2658,22 @@ class EventsController extends AppController {
 	
 	public function removeTag($id = false, $tag_id = false) {
 		if (!$this->request->is('post')) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that. Only POST requests are accepted.')), 'status'=>200));
 		}
-		if ($tag_id === false) $tag_id = $this->request->data['Event']['tag'];
+		$rearrangeRules = array(
+				'request' => false,
+				'Event' => false,
+				'tag_id' => 'tag',
+				'event_id' => 'event',
+				'id' => 'event'
+		);
+		$RearrangeTool = new RequestRearrangeTool();
+		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
+		if ($id === false) $id = $this->request->data['event'];
+		if ($tag_id === false) $tag_id = $this->request->data['tag'];
 		if (!is_numeric($tag_id)) {
-			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.name' => trim($tag_id))));
+			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => '%' . trim($tag_id) . '%')));
+			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
 			$tag_id = $tag['Tag']['id'];
 		}
 		if (!is_numeric($id)) $id = $this->request->data['Event']['id'];

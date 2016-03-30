@@ -363,9 +363,9 @@ The event ID is optional. MISP will accept either a JSON or an XML object posted
 <?php  echo $baseurl.'/events/removeTag'; ?>
 </pre>
 <p>Just POST a json object in the following format (to the appropriate API depending on whether you want to add or delete a tag from an event):</p>
-<code>{"request": {"Event": {"id": "228", "tag": "8"}}}</code><br /><br />
-<p>Where "tag" is the ID of the tag. You can also use the name of the tag the following way (has to be an exact match):</p>
-<code>{"request": {"Event": {"id": "228", "tag": "OSINT"}}}</code>
+<code>{"event":228, "tag":8}</code><br /><br />
+<p>Where "tag" is the ID of the tag. You can also use the name of the tag the following way:</p>
+<code>{"event":228, "tag":"OSINT"}</code>
 <h3>Proposals and the API</h3>
 <p>You can interact with the proposals via the API directly since version 2.3.148</p>
 

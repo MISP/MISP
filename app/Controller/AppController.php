@@ -24,6 +24,7 @@
 
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
+App::uses('RequestRearrangeTool', 'Tools');
 
 /**
  * Application Controller
