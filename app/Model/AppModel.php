@@ -439,6 +439,7 @@ class AppModel extends Model {
 			$this->updateDatabase('adminTable');
 			$requiresLogout = true;
 		} else {
+			$this->__runCleanDB();
 			$db_version = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'db_version')));
 			$updates = $this->__findUpgrades($db_version['AdminSetting']['value']);
 			if (!empty($updates)) {
@@ -448,13 +449,41 @@ class AppModel extends Model {
 					$db_version['AdminSetting']['value'] = $update;
 					$this->AdminSetting->save($db_version);
 				}
-				$this->cleanCacheFiles();
+				$this->__queueCleanDB();
 			}
 		}
 		if ($requiresLogout) {
 			$this->updateDatabase('destroyAllSessions');
 		}
 	}
+	
+	private function __queueCleanDB() {
+		$this->AdminSetting = ClassRegistry::init('AdminSetting');
+		$cleanDB = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'clean_db')));
+		if (empty($cleanDB)) {
+			$this->AdminSetting->create();
+			$cleanDB = array('AdminSetting' => array('setting' => 'clean_db', 'value' => true));
+		} else {
+			$cleanDB['AdminSetting']['value'] = true;
+		}
+		$this->AdminSetting->save($cleanDB);
+	}
+	
+	private function __runCleanDB() {
+		$this->AdminSetting = ClassRegistry::init('AdminSetting');
+		$cleanDB = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'clean_db')));
+		if (empty($cleanDB) || $cleanDB['AdminSetting']['value']) {
+			$this->cleanCacheFiles();
+			if (empty($cleanDB)) {
+				$this->AdminSetting->create();
+				$cleanDB = array('AdminSetting' => array('setting' => 'clean_db', 'value' => false));
+			} else {
+				$cleanDB['AdminSetting']['value'] = false;
+			}
+			$this->AdminSetting->save($cleanDB);
+		}
+	}
+	
 	private function __findUpgrades($db_version) {
 		$version = explode('.', $db_version);
 		$updates = array();
