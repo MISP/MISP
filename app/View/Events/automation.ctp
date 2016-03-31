@@ -46,7 +46,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>You can configure your tools to automatically download the following file:</p>
 <pre><?php echo $baseurl;?>/events/csv/download/</pre>
 <p>You can specify additional flags for CSV exports as follows::</p>
-<pre><?php echo $baseurl;?>/events/csv/download/[eventid]/[ignore]/[tags]/[category]/[type]/[includeContext]/[from]/[to]/[last]</pre>
+<pre><?php echo $baseurl;?>/events/csv/download/[eventid]/[ignore]/[tags]/[category]/[type]/[includeContext]/[from]/[to]/[last]/[headerless]</pre>
 <p>
 <b>eventid</b>: Restrict the download to a single event<br />
 <b>ignore</b>: Setting this flag to true will include attributes that are not marked "to_ids".<br />
@@ -63,6 +63,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m).This filter will use the published timestamp of the event.<br />
+<b>headerless</b>: The CSV created when this setting is set to true will not contain the header row.
 </p>
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>To export the attributes of all events that are of the type "domain", use the following syntax:</p>

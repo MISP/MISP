@@ -462,9 +462,9 @@ class AppModel extends Model {
 		$cleanDB = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'clean_db')));
 		if (empty($cleanDB)) {
 			$this->AdminSetting->create();
-			$cleanDB = array('AdminSetting' => array('setting' => 'clean_db', 'value' => true));
+			$cleanDB = array('AdminSetting' => array('setting' => 'clean_db', 'value' => 1));
 		} else {
-			$cleanDB['AdminSetting']['value'] = true;
+			$cleanDB['AdminSetting']['value'] = 1;
 		}
 		$this->AdminSetting->save($cleanDB);
 	}
@@ -472,13 +472,13 @@ class AppModel extends Model {
 	private function __runCleanDB() {
 		$this->AdminSetting = ClassRegistry::init('AdminSetting');
 		$cleanDB = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'clean_db')));
-		if (empty($cleanDB) || $cleanDB['AdminSetting']['value']) {
+		if (empty($cleanDB) || $cleanDB['AdminSetting']['value'] == 1) {
 			$this->cleanCacheFiles();
 			if (empty($cleanDB)) {
 				$this->AdminSetting->create();
-				$cleanDB = array('AdminSetting' => array('setting' => 'clean_db', 'value' => false));
+				$cleanDB = array('AdminSetting' => array('setting' => 'clean_db', 'value' => 0));
 			} else {
-				$cleanDB['AdminSetting']['value'] = false;
+				$cleanDB['AdminSetting']['value'] = 0;
 			}
 			$this->AdminSetting->save($cleanDB);
 		}
