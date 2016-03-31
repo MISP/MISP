@@ -606,4 +606,12 @@ class AppController extends Controller {
 		}
 		return $result;
 	}
+	
+	public function cleanModelCaches() {
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
+		$this->LoadModel('Server');
+		$this->Server->cleanCacheFiles();
+		$this->Session->setFlash('Caches cleared.');
+		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));
+	}
 }

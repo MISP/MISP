@@ -360,6 +360,7 @@ class AppModel extends Model {
 				));
 			}
 		}
+		if ($clean) $this->cleanCacheFiles();
 		return true;
 	}
 	
@@ -390,6 +391,8 @@ class AppModel extends Model {
 	}
 	
 	public function cleanCacheFiles() {
+		Cache::clear();
+		clearCache();
 		$files = array();
 		$files = array_merge($files, glob(CACHE . 'models' . DS . 'myapp*'));
 		$files = array_merge($files, glob(CACHE . 'persistent' . DS . 'myapp*'));

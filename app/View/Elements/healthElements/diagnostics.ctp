@@ -174,4 +174,9 @@
 	<?php 
 		endif;
 	?>
+	<h3>
+	Clean model cache
+	</h3>
+	<p>If you ever run into issues with missing database fields / tables, please run the following script to clean the model cache.</p>
+	<?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">Clean cache</span>', $baseurl . '/events/cleanModelCaches', array('escape' => false));?>
 </div>
