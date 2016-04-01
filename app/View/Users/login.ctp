@@ -1,13 +1,15 @@
-<div style="width:100%;">
+<div>
+
 	<?php
 		echo $this->Session->flash('auth');
 	?>
-<table style="width:1200px;margin-left:auto;margin-right:auto;">
+
+<table style="margin-left:auto;margin-right:auto;">
 	<tr>
-	<td style="text-align:right;width:250px;padding-right:50px">
+	<td style="text-align:right;padding-right:50px">
 		<?php if (Configure::read('MISP.welcome_logo')) echo $this->Html->image('custom/' . h(Configure::read('MISP.welcome_logo')), array('alt' => 'Logo', 'onerror' => "this.style.display='none';")); ?>
 	</td>
-	<td style="width:600px">
+	<td>
 		<span style="font-size:18px;">
 			<?php
 				if (Configure::read('MISP.welcome_text_top')) {
@@ -35,15 +37,23 @@
 			echo $this->Form->create('User', array('action' => 'login'));
 			echo $this->Form->inputs(array(
 				'legend' => __('Login', true),
-				'email' => array('autocomplete' => 'off'),
-				'password' => array('autocomplete' => 'off')
+				'email' => array(
+					'autocomplete' => 'off',
+					'div' => 'form-group',
+					'class' => 'form-control',
+					),
+				'password' => array(
+					'autocomplete' => 'off',
+					'div' => 'form-group',
+					'class' => 'form-control',
+					)
 			));
 			echo $this->Form->button('Login', array('class' => 'btn btn-primary'));
 			echo $this->Form->end();
 		?>
 		</div>
 	</td>
-	<td style="width:250px;padding-left:50px">
+	<td style="padding-left:50px">
 		<?php if (Configure::read('MISP.welcome_logo2')) echo $this->Html->image('custom/' . h(Configure::read('MISP.welcome_logo2')), array('alt' => 'Logo2', 'onerror' => "this.style.display='none';")); ?>
 	</td>
 	</tr>

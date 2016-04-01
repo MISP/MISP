@@ -1,27 +1,34 @@
-<div id = "topBar" class="navbar-wrapper header <?php echo $debugMode;?>" style="height:42px;width:100%">
-	<div class="glass"></div>
-	<div class="navbar navbar-inverse">
-		<div class="navbar-inner" style="border-radius: 10px;">
-		  <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
-	    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-	      <span class="icon-bar"></span>
-	      <span class="icon-bar"></span>
-	      <span class="icon-bar"></span>
-	    </a>
-		<?php if ($me != false ):?>
-			<div class="nav-collapse collapse">
-				<ul class="nav">
-					<?php 
-						$logo = 'Home';
-						if (Configure::read('MISP.home_logo')) $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">';
-					?>
-					<li><a href="<?php echo !empty($baseurl) ? $baseurl : '/';?>" style="color:white"><?php echo $logo; ?></a></li>
-					<li class="dropdown">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-							Event Actions
-							<b class="caret"></b>
-						</a>
-						<ul class="dropdown-menu">
+<!-- Fixed navbar -->
+<nav class="navbar navbar-inverse navbar-fixed-top <?php echo $debugMode;?>">
+	<div class="container-fluid">
+	<!-- Brand and toggle get grouped for better mobile display -->
+	 <div class="navbar-header">
+		 <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+			 <span class="sr-only">Toggle navigation</span>
+			 <span class="icon-bar"></span>
+			 <span class="icon-bar"></span>
+			 <span class="icon-bar"></span>
+		 </button>
+		 <a class="navbar-brand" href="#">
+			 <?php
+				 $logo = 'Home';
+				 if (Configure::read('MISP.home_logo')) {
+						 $logo = '<img alt="Brand" "src="'.$baseurl.'/img/custom/'.Configure::read('MISP.home_logo').'" style="height:24px;">';
+				 }
+				 ?>
+		 </a>
+	 </div>
+
+	<?php if ($me != false):?>
+	<!-- Collect the nav links, forms, and other content for toggling -->
+	<div id="navbar" class="navbar-collapse collapse">
+			<ul class="nav navbar-nav navbar-left">
+				<!-- If the user defined a logo this should apear on the left side of the navbar -->
+				<li><a href="<?php echo !empty($baseurl) ? $baseurl : '/';?>" style="color:white"><?php echo $logo; ?></a></li>
+				<!-- The "Event Actions" dropdown menu  -->
+				<li class="dropdown">
+					<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Event Actions <span class="caret"></span></a>
+					<ul class="dropdown-menu">
 							<li><a href="<?php echo $baseurl;?>/events/index">List Events</a></li>
 							<?php if ($isAclAdd): ?>
 							<li><a href="<?php echo $baseurl;?>/events/add">Add Event</a></li>
@@ -47,10 +54,10 @@
 							<?php if ($isAclAuth): ?>
 							<li><a href="<?php echo $baseurl;?>/events/automation">Automation</a></li>
 							<?php endif;?>
-
 						</ul>
 					</li>
 
+					<!-- The "Input Filters" dropdown menu  -->
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Input Filters
@@ -68,6 +75,7 @@
 						</ul>
 					</li>
 
+					<!-- The "Global Actions" dropdown menu  -->
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Global Actions
@@ -91,6 +99,7 @@
 						</ul>
 					</li>
 
+					<!-- The "Sync Actions" dropdown menu for admins only -->
 					<?php if ($isAclSync || $isAdmin): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
@@ -104,7 +113,8 @@
 					</li>
 					<?php endif;?>
 
-					<?php if($isAdmin || $isSiteAdmin): ?>
+					<!-- The "Administration" dropdown menu for admins only -->
+					<?php if ($isAdmin || $isSiteAdmin): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Administration
@@ -121,10 +131,10 @@
 							<?php endif;?>
 							<li class="divider"></li>
 							<li><a href="<?php echo $baseurl;?>/admin/roles/index">List Roles</a></li>
-							<?php if($isSiteAdmin): ?>
+							<?php if ($isSiteAdmin): ?>
 							<li><a href="<?php echo $baseurl;?>/admin/roles/add">Add Role</a></li>
 							<?php endif; ?>
-							<?php if($isSiteAdmin): ?>
+							<?php if ($isSiteAdmin): ?>
 								<li class="divider"></li>
 								<li><a href="<?php echo $baseurl;?>/pages/display/administration">Administrative tools</a></li>
 								<li><a href="<?php echo $baseurl;?>/servers/serverSettings">Server settings</a></li>
@@ -134,12 +144,12 @@
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/tasks">Scheduled Tasks</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>	
+								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklist Event</a></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>	
+								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists/add">Blacklist Organisation</a></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists">Manage Org Blacklists</a></li>
@@ -149,7 +159,8 @@
 					</li>
 					<?php endif; ?>
 
-					<?php if($isAclAudit): ?>
+					<!-- The "Audit" dropdown menu -->
+					<?php if ($isAclAudit): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Audit
@@ -161,6 +172,8 @@
 						</ul>
 					</li>
 					<?php endif;?>
+
+					<!-- The "Discussions" dropdown menu -->
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Discussions
@@ -172,63 +185,34 @@
 						</ul>
 					</li>
 				</ul>
-			</div>
-			<div class="nav-collapse collapse pull-right">
-				<ul class="nav">
+
+
+			<!-- END OF OPTIONS MENU -->
+
+			<!-- START OF PULL RIGHT MENU -->
+			<ul class="nav navbar-nav navbar-right">
 					<li>
-						<a href="<?php echo $baseurl;?>/" id="fullLogo" style="font-weight:bold;">
-							<span class="logoBlueStatic">M</span><span class="logoGray">alware</span>
-							<span class="logoBlueStatic">I</span><span class="logoGray">nformation </span>
-							<span class="logoBlueStatic">S</span><span class="logoGray">haring</span>
-							<span class="logoBlueStatic">P</span><span class="logoGray">latform</span>
-						</a>
-						<a href="<?php echo $baseurl;?>/" id="smallLogo" style="display:none;font-weight:bold;">
-							<span class="logoBlueStatic">MISP</span>
+						<a href="<?php echo $baseurl;?>/users/view/me" title="<?php echo h($me['email']);?>">
+							<span class="label label-primary"><?php echo $loggedInUserName;?></span>
 						</a>
 					</li>
 					<li>
-						<a href="<?php echo $baseurl;?>/users/view/me" class="white" style="padding-left:0px;padding-right:5px;" title="<?php echo h($me['email']);?>"><?php echo $loggedInUserName;?></a>
-					</li>
-					<li>
-						<a href="<?php echo $baseurl;?>/users/dashboard" style="padding-left:0px;padding-right:0px;">
-							<span class="notification-<?php echo ($notifications['total'] > 0) ? 'active' : 'passive';?>"><span style="float:left;margin-top:3px;margin-right:3px;margin-left:3px;" class="icon-envelope icon-white"></span></span>
+						<a href="<?php echo $baseurl;?>/users/dashboard">
+							Inbox <span class="badge"><?php echo $notifications['total']?></span>
 						</a>
 					</li>
 					<?php if (!$externalAuthUser || !Configure::read('Plugin.CustomAuth_disable_logout')): ?>
+
 						<li><a href="<?php echo $baseurl;?>/users/logout">Log out</a></li>
+
 					<?php elseif (Configure::read('Plugin.CustomAuth_custom_logout')): ?>
+
 						<li><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_logout'));?>">Log out</a></li>
+
 					<?php endif; ?>
-				</ul>
-			</div>
-		<?php endif;?>
+			</ul>
+			<!-- END OF OF PULL RIGHT MENU -->
 		</div>
+		<?php endif;?>
 	</div>
-</div>
-<script type="text/javascript">
-window.onload = resizeLogo;
-window.onresize = resizeLogo;
-
-function resizeLogo() {
-	var testElem = document.getElementById('fullLogo');
-	var topBar = document.getElementById('topBar');
-	
-	if (testElem != null) {
-		if ($(window).width() < 1400) {
-			document.getElementById('fullLogo').style.display='none';
-			document.getElementById('smallLogo').style.display='block';
-		}
-		if ($(window).width() > 1399) {
-			document.getElementById('fullLogo').style.display='block';
-			document.getElementById('smallLogo').style.display='none';	
-		}
-	}
-
-	if ($(window).width() < 1185) {
-		topBar.style.width = '1185px';
-	}
-	if ($(window).width() > 1184) {
-		topBar.style.width = '100%';
-	}
-}
-</script>
+</nav>

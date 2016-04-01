@@ -1,7 +1,8 @@
 <div class="events <?php if (!$ajax) echo 'index'; ?>">
-	<h2>Events</h2>
-	<div class="pagination">
-        <ul>
+    <h2>Events</h2>
+    <!-- Pagination items -->
+    <nav>
+	    <ul class="pagination pagination-sm">
         <?php
 	        $this->Paginator->options(array(
 	            'update' => '.span12',
@@ -13,8 +14,10 @@
             echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
             echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
         ?>
-        </ul>
-    </div>
+      </ul>
+    </nav>
+  <div class="row">
+  <div class="col-lg-3">
 	<?php
 		$tab = "Center";
 		if (!isset($simple)) $simple = false;
@@ -25,26 +28,38 @@
 		}
 		if (!$ajax && !$simple):
 	?>
-	<div class="tabMenuFixedContainer" style="display:inline-block;">
+
 		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
-			<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'events', 'filterEventIndex');"></span>
+			<span id="create-button" title="Modify filters" class="glyphicon glyphicon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'events', 'filterEventIndex');">Create</span>
 		</span>
+
 		<?php if ($filtered):
 			foreach ($passedArgsArray as $k => $v):?>
 				<span class="tabMenuFixed tabMenuFixedElement">
-					<?php echo h(ucfirst($k)) . " : " . h($v); ?>
+					<?php echo h(ucfirst($k)) . " : " . h($v);?>
 				</span>
 			<?php endforeach; ?>
+
 		<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
-			<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
+			<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'glyphicon glyphicon-remove', 'title' => 'Remove filters'));?>
 		</span>
 		<?php endif;?>
-		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilter(<?php echo h($passedArgs);?>, "/events/index");'>Filter</span>
-		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
-		<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" style="margin-left:50px;">
+    <span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" style="margin-left:50px;">
 			<span id="myOrgButton" title="Modify filters" onClick="filterMyOrgOnly(<?php echo h($passedArgs);?>, '<?php echo $me['Organisation']['name'];?>', '<?php echo $baseurl;?>/events/index');">My Org</span>
 		</span>
-	</div>
+  </div>
+  
+    <!-- Filter search box and button -->
+    <div class="col-lg-3 pull-right">
+      <div class="input-group">
+          <input type="text" class="form-control" placeholder="Filter" name="q" id="quickFilterField">
+          <div class="input-group-btn">
+              <button class="btn btn-default" type="submit" onClick='quickFilter(<?php echo h($passedArgs);?>, "/events/index");'><i class="glyphicon glyphicon-search"></i></button>
+          </div>
+      </div>
+    </div>
+
+  </div>
 	<?php endif; ?>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
@@ -56,9 +71,9 @@
 			?>
 				<th class="filter"><?php echo $this->Paginator->sort('Org', 'Source org'); ?></th>
 				<th class="filter"><?php echo $this->Paginator->sort('Org', 'Member org'); ?></th>
-			<?php 
+			<?php
 				else:
-					if (Configure::read('MISP.showorg') || $isAdmin): 
+					if (Configure::read('MISP.showorg') || $isAdmin):
 			?>
 						<th class="filter"><?php echo $this->Paginator->sort('Org'); ?></th>
 			<?php
@@ -66,7 +81,7 @@
 					if ($isSiteAdmin):
 			?>
 				<th class="filter"><?php echo $this->Paginator->sort('owner org');?></th>
-			<?php 
+			<?php
 					endif;
 				endif;
 			?>
@@ -99,7 +114,10 @@
 				<?php
 				if ($event['Event']['published'] == 1) {
 				?>
-					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "View"></a>
+        <button type="button" class="btn btn-default btn-xs" aria-label="Left Align" href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" title="View">
+          <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+          <span class="sr-only">Published</span>
+        </button>
 				<?php
 				} else {
 				?>
@@ -159,7 +177,7 @@
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
 			<td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-				<?php 
+				<?php
 				if ($event['ThreatLevel']['name']) echo h($event['ThreatLevel']['name']);
 				else echo h($event['Event']['threat_level_id']);
 				?>&nbsp;
@@ -173,7 +191,7 @@
 			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" ondblclick="location.href ='<?php echo $baseurl; ?>/events/view/<?php echo $event['Event']['id'];?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>">
 				<?php if ($event['Event']['distribution'] == 4):?>
 					<a href="<?php echo $baseurl;?>/sharingGroups/view/<?php echo h($event['SharingGroup']['id']); ?>"><?php echo h($event['SharingGroup']['name']);?></a>
-				<?php else: 
+				<?php else:
 					echo h($shortDist[$event['Event']['distribution']]);
 				endif;
 				?>
@@ -203,15 +221,15 @@
     ));
     ?>
     </p>
-    <div class="pagination">
-        <ul>
+    <nav>
+        <ul class="pagination pagination-sm">
         <?php
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
             echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
             echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
         ?>
         </ul>
-    </div>
+    </nav>
 </div>
 <?php
 	if (!$ajax) echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));
