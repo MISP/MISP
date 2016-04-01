@@ -146,7 +146,14 @@
 		<ul class="inline">
 			<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
 			<li>
-			<div title="<?php echo h($relatedEvent['Event']['info']); ?>">
+			<?php 
+			$relatedData = array('Orgc' => $relatedEvent['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
+			$popover = '';
+			foreach ($relatedData as $k => $v) {
+				$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />'; 
+			}
+			?>
+			<div data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover">
 			<?php
 			$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
 			if ($relatedEvent['Event']['org_id'] == $me['org_id']) {
@@ -198,6 +205,7 @@
 <script type="text/javascript">
 // tooltips
 $(document).ready(function () {
+	popoverStartup();
 	//loadEventTags("<?php echo $event['Event']['id']; ?>");	
 	$("th, td, dt, div, span, li").tooltip({
 		'placement': 'top',

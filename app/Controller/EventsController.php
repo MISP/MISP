@@ -2570,12 +2570,13 @@ class EventsController extends AppController {
 					),
 		));
 		$events = $this->paginate();
-		foreach ($events as $k => $event) {
+		foreach ($events as $k => &$event) {
 			$orgs = array();
 			foreach ($event['ShadowAttribute'] as $sa) {
 				if (!in_array($sa['org_id'], $orgs)) $orgs[] = $sa['org_id'];
 			}
 			$events[$k]['orgArray'] = $orgs;
+			$event['Event']['proposal_count'] = count($event['ShadowAttribute']);
 		}
 		$this->set('events', $events);
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);

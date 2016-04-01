@@ -2295,12 +2295,13 @@ function hoverModuleExpand(type, id) {
 	$('.popover').remove();
 	$.ajax({
 		success:function (html) {
+			$('.popover').remove();
 			$('#' + type + '_' + id + '_container').popover({
 				title: 'Lookup results:',
 				content: html,
 				placement: 'left',
 				html: true,
-				trigger: 'hover',
+				trigger: 'focus',
 				container: 'body'
 			}).popover('show');
 		}, 
