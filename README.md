@@ -44,6 +44,7 @@ Website / Support
 
 Checkout the [website](http://www.misp-project.org) for more information about MISP like [features](http://www.misp-project.org/#features), [roadmap](http://www.misp-project.org/#roadmap), <small>(commercial)</small> [support](http://www.misp-project.org/#support), ... : http://misp-project.org
 
+Information, news and updates are also regularly posted on the [MISP project twitter account](https://twitter.com/MISPProject).
 
 Documentation
 -------------
