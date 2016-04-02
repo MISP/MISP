@@ -19,9 +19,12 @@ from stix.indicator import Indicator
 
 this_module = sys.modules[__name__]
 
+hash_type_attributes = {"single":["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256", "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"], "composite": ["filename|md5", "filename|sha1", "filename|sha224", "filename|sha256", "filename|sha384", "filename|sha512", "filename|sha512/224", "filename|sha512/256", "filename|authentihash", "filename|ssdeep", "filename|tlsh", "filename|imphash", "filename|pehash", "malware-sample"]}
+
 simple_type_to_method = {}
-simple_type_to_method.update(dict.fromkeys(["md5", "sha1", "sha256", "filename", "filename|md5", "filename|sha1", "filename|sha256", "malware-sample", "attachment"], "resolveFileObservable"))
+simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["attachment"], "resolveFileObservable"))
 simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], "generateIPObservable"))
+simple_type_to_method.update(dict.fromkeys(["domain|ip"], "generateDomainIPObservable"))
 simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], "generateRegkeyObservable"))
 simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link"], "generateSimpleObservable"))
 simple_type_to_method.update(dict.fromkeys(["email-src", "email-dst", "email-subject"], "resolveEmailObservable"))
@@ -60,6 +63,9 @@ misp_reghive = {
 def generateObservable(indicator, attribute):
     if (attribute["type"] in ("snort", "yara")):
         generateTM(indicator, attribute)
+    elif (attribute["type"] == "domain|ip"):
+        observable = generateDomainIPObservable(indicator, attribute)
+        indicator.add_observable(observable)
     else:
         observable = None;
         if (attribute["type"] in simple_type_to_method.keys()):
@@ -76,7 +82,7 @@ def generateObservable(indicator, attribute):
 def resolveFileObservable(indicator, attribute):
     hashValue = ""
     filenameValue = ""
-    if (attribute["type"] in ("filename|md5", "filename|sha1", "filename|sha256", "malware-sample")):
+    if (attribute["type"] in hash_type_attributes["composite"]):
         values = attribute["value"].split('|')
         filenameValue = values[0]
         hashValue = values[1]
@@ -105,15 +111,14 @@ def generateFileObservable(filenameValue, hashValue):
         file_object.add_hash(Hash(hash_value=hashValue, exact=True))
     return file_object
 
-def generateIPObservable(indicator, attribute):
-    indicator.add_indicator_type("IP Watchlist")
+def resolveIPType(attribute_value, attribute_type):
     address_object = Address()
     cidr = False
-    if ("/" in attribute["value"]):
-        ip = attribute["value"].split('/')[0]
+    if ("/" in attribute_value):
+        ip = attribute_value.split('/')[0]
         cidr = True
     else:
-        ip = attribute["value"]
+        ip = attribute_value
     try:
         socket.inet_aton(ip)
         ipv4 = True
@@ -125,11 +130,29 @@ def generateIPObservable(indicator, attribute):
         address_object.category = "ipv4-addr"
     else:
         address_object.category = "ipv6-addr"
-    if (attribute["type"] == "ip-src"):
+    if (attribute_type == "ip-src") or (attribute_type == "domain|ip"):
         address_object.is_source = True
     else:
         address_object.is_source = False
-    address_object.address_value = attribute["value"]
+    address_object.address_value = attribute_value
+    return address_object
+
+def generateDomainIPObservable(indicator, attribute):
+    indicator.add_indicator_type("Domain Watchlist")
+    compositeObject = ObservableComposition()
+    compositeObject.operator = "AND"
+    domain = attribute["value"].split('|')[0]
+    ip = attribute["value"].split('|')[1]
+    address_object = resolveIPType(ip, attribute["type"])
+    domain_object = DomainName()
+    domain_object.value = domain
+    compositeObject.add(address_object)
+    compositeObject.add(domain_object)
+    return compositeObject
+
+def generateIPObservable(indicator, attribute):
+    indicator.add_indicator_type("IP Watchlist")
+    address_object = resolveIPType(attribute["value"], attribute["type"])
     return address_object
 
 def generateRegkeyObservable(indicator, attribute):
@@ -278,3 +301,4 @@ def resolveRegHive(regStr):
         if regStrU.startswith(hive):
             return misp_reghive[hive], regStr[len(hive):]
     return None, regStr
+
