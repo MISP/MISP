@@ -17,7 +17,21 @@ class SharingGroupsController extends AppController {
 			'order' => array(
 					'SharingGroup.name' => 'ASC'
 			),
-			'contain' => array('SharingGroupOrg' => array('Organisation'), 'Organisation', 'SharingGroupServer' => array('Server')),
+			'fields' => array('SharingGroup.id', 'SharingGroup.name', 'SharingGroup.description', 'SharingGroup.releasability', 'SharingGroup.local', 'SharingGroup.active'),
+			'contain' => array(
+					'SharingGroupOrg' => array(
+						'Organisation' => array('fields' => array('Organisation.name', 'Organisation.id', 'Organisation.uuid'))
+					),
+					'Organisation' => array(
+						'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'),
+					),
+					'SharingGroupServer' => array(
+						'fields' => array('SharingGroupServer.all_orgs'),
+						'Server' => array(
+							'fields' => array('Server.name', 'Server.id')
+						)
+					)
+			),
 	);
 	
 	public function add() {
@@ -101,7 +115,11 @@ class SharingGroupsController extends AppController {
 			$json = json_decode($this->request->data['SharingGroup']['json'], true);
 			$sg = $json['sharingGroup'];
 			$sg['id'] = $id;
-			if ($this->SharingGroup->save(array('SharingGroup' => $sg))) {
+			$fields = array('name', 'releasability', 'description', 'active', 'limitServers');
+			$existingSG = $this->SharingGroup->find('first', array('recursive' => -1, 'conditions' => array('SharingGroup.id' => $id)));
+			foreach ($fields as $field) $existingSG['SharingGroup'][$field] = $sg[$field];
+			unset($existingSG['SharingGroup']['modified']);
+			if ($this->SharingGroup->save($existingSG)) {
 				$this->SharingGroup->SharingGroupOrg->updateOrgsForSG($id, $json['organisations'], $sharingGroup['SharingGroupOrg'], $this->Auth->user());
 				$this->SharingGroup->SharingGroupServer->updateServersForSG($id, $json['servers'], $sharingGroup['SharingGroupServer'], $json['sharingGroup']['limitServers'], $this->Auth->user());
 				$this->redirect('/SharingGroups/view/' . $id);
@@ -153,20 +171,25 @@ class SharingGroupsController extends AppController {
 		// check if the current user can modify or delete the SG
 		foreach ($result as $k => $sg) {
 			//$result[$k]['access'] = $this->SharingGroup->checkAccess($this->Auth->user(), $sg['SharingGroup']['id']);
-			if ($sg['SharingGroup']['organisation_uuid'] == $this->Auth->user('Organisation')['uuid']) {
+			//debug($this->)
+			if ($sg['Organisation']['uuid'] == $this->Auth->user('Organisation')['uuid'] && $this->userRole['perm_sharing_group']) {
 				$result[$k]['editable'] = true;
 			} else {
 				$result[$k]['editable'] = false;
 				if (!empty($sg['SharingGroupOrg'])) {
 					foreach ($sg['SharingGroupOrg'] as $sgo) {
-						if ($sgo['org_id'] == $this->Auth->user('org_id')) $result[$k]['editable'] = true;
+						if ($sgo['org_id'] == $this->Auth->user('org_id') && $sgo['extend']) $result[$k]['editable'] = true;
 					}
 				}
 			}
-			
 		}
 		$this->set('passive', $passive);
-		$this->set('sharingGroups', $result);
+		if ($this->_isRest()) {
+			$this->set('response', $result);
+			$this->set('_serialize', array('response'));
+		} else {
+			$this->set('sharingGroups', $result);
+		}
 	}
 	
 	public function view($id) {

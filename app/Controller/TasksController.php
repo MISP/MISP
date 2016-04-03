@@ -35,9 +35,11 @@ class TasksController extends AppController {
 	// default tasks are: 
 	// 'cache_exports'
 	private function __checkTasks() {
-		foreach ($this->Task->tasks as $default_task) {
-			if (!$this->Task->findByType($default_task['type'], array('id', 'type'))) {
-				$this->Task->save($default_task);
+		$existingTasks = $this->Task->find('list', array('fields' => array('type')));
+		foreach ($this->Task->tasks as $taskName => $taskData) {
+			if (!in_array($taskName, $existingTasks)) {
+				$this->Task->create();
+				$this->Task->save($taskData);
 			}
 		}
 	}

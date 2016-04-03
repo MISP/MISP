@@ -33,8 +33,12 @@
 		</dd>
 		<dt><?php echo __('Authkey'); ?></dt>
 		<dd>
-			<?php echo h($user['User']['authkey']); ?>
-			(<?php echo $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']));?>)
+			<?php 
+				echo h($user['User']['authkey']); 
+				if (!Configure::read('MISP.disableUserSelfManagement') || $isAdmin) {
+					echo '(' . $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id'])) . ')';
+				}
+			?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('NIDS Start SID'); ?></dt>

@@ -1,5 +1,5 @@
 <div class="logs form">
-<?php echo $this->Form->create('Log', array('novalidate'=>true));?>
+<?php echo $this->Form->create('Log', array('novalidate'=>true, 'url' => $baseurl . '/logs/admin_search/search'));?>
 	<fieldset>
 		<legend>Search Logs</legend>
 	<?php
@@ -8,9 +8,13 @@
 			echo $this->Form->input('org', array( 'label' => 'Organisation'));
 		}
 		if (Configure::read('MISP.log_client_ip')) echo $this->Form->input('ip', array( 'label' => 'IP'));
+		echo $this->Form->input('model', array(
+				'between' => $this->Html->div('forminfo', '', array('id' => 'LogModelDiv')),
+				'div' => 'input clear'));
+		echo $this->Form->input('model_id', array('between' => $this->Html->div('forminfo', '', array('id' => 'LogModelIdDiv')),'type' => 'text', 'label' => 'Model ID'));
 		echo $this->Form->input('action', array(
 				'between' => $this->Html->div('forminfo', '', array('id' => 'LogActionDiv')),
-				'div' => 'input clear'));
+		));
 		echo $this->Form->input('title', array(
 				'label' => 'Title',
 				'div' => 'input clear'));

@@ -13,7 +13,12 @@
 						$mayModify = true;
 						if ($isAclPublish) $mayPublish = true;
 					}
-		?>
+					if (($menuItem === 'template_populate_results')):
+					?>
+						<li id='litemplate_populate_results'><a href="<?php echo $baseurl;?>/templates/index">Populate From Template</a></li>
+					<?php 
+						endif;
+					?> 
 					<?php if ($menuItem === 'freetextResults'): ?>
 					<li id='lifreetextResults'><a href="#">Freetext Import Results</a></li>
 					<li class="divider"></li>
@@ -46,7 +51,19 @@
 					?>
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
-
+					<?php if (Configure::read('MISP.delegation')):?>
+						<?php if (isset($event['Event']['distribution']) && (!isset($delegationRequest) || !$delegationRequest) && $event['Event']['distribution'] == 0 && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))): ?>
+								<li id='lidelegateEvent'><a href="#" onClick="delegatePopup('<?php echo h($event['Event']['id']); ?>');">Delegate Publishing</a></li>
+						<?php endif;?>
+						<?php if (isset($delegationRequest) && $delegationRequest && ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id'] || $me['org_id'] == $delegationRequest['EventDelegation']['requester_org_id'])))): ?>
+							<li class="divider"></li>
+							<?php if ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id']))): ?>
+								<li id='liacceptDelegation'><a href="#" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/acceptDelegation/<?php echo h($delegationRequest['EventDelegation']['id']); ?>', '#confirmation_box');">Accept Delegation Request</a></li>
+							<?php endif;?>
+							<li id='lideleteDelegation'><a href="#" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/deleteDelegation/<?php echo h($delegationRequest['EventDelegation']['id']); ?>', '#confirmation_box');">Discard Delegation Request</a></li>
+							<li class="divider"></li>
+						<?php endif;?>
+					<?php endif;?>
 					<li id='licontact'><a href="<?php echo $baseurl;?>/events/contact/<?php echo h($event['Event']['id']);?>">Contact Reporter</a></li>
 					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
 					<li class="divider"></li>
@@ -108,11 +125,14 @@
 				break;
 					
 				case 'globalActions':
-					if ($menuItem === 'edit' || $menuItem === 'view'): ?>
+					if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view')): ?>
 					<li id='liedit'><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
 					<li class="divider"></li>
+					<?php elseif (Configure::read('Plugin.CustomAuth_custom_password_reset')): ?>
+					<li id='lipwreset'><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_password_reset'));?>">Reset Password</a></li>
 					<?php endif; ?>
 					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
+					<li id='lidashboard'><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
 					<li id='limembers'><a href="<?php echo $baseurl;?>/users/memberslist">Members List</a></li>
 					<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
 					<?php if ($menuItem === 'viewOrg'): ?>
@@ -179,6 +199,7 @@
 					<li id='liaddOrg'><a href="<?php echo $baseurl;?>/admin/organisations/add">Add Organisation</a></li>
 					<?php if ($menuItem === 'editOrg' || $menuItem === 'viewOrg'): ?>
 						<li id='lieditOrg'><a href="<?php echo $baseurl;?>/admin/organisations/edit/<?php echo h($id);?>">Edit Organisation</a></li>
+						<li id='limergeOrg'><a class="useCursorPointer" onClick="getPopup('<?php echo h($id); ?>', 'organisations', 'merge', 'admin');">Merge Organisation</a></li>
 					<?php endif;?>
 					<?php if ($menuItem === 'editOrg' || $menuItem === 'viewOrg'): ?>
 						<li id='liviewOrg'><a href="<?php echo $baseurl;?>/organisations/view/<?php echo h($id);?>">View Organisation</a></li>
@@ -201,6 +222,10 @@
 						if (Configure::read('MISP.enableEventBlacklisting')): ?>
 							<li <?php if ($menuItem === 'eventBlacklistsAdd') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklists Event</a></li>		
 							<li <?php if ($menuItem === 'eventBlacklists') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
+						<?php endif;
+						if (Configure::read('MISP.enableOrgBlacklisting')): ?>
+							<li <?php if ($menuItem === 'orgBlacklistsAdd') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/orgBlacklists/add">Blacklists Organisation</a></li>		
+							<li <?php if ($menuItem === 'orgBlacklists') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/orgBlacklists">Manage Org Blacklists</a></li>
 						<?php endif;
 					endif;
 				break;	
@@ -235,7 +260,7 @@
 				
 				case 'tags': ?>
 					<li id='liindex'><?php echo $this->Html->link('List Tags', array('action' => 'index'));?></li>
-					<?php if ($isAclTagger): ?>
+					<?php if ($isAclTagEditor): ?>
 					<li id='liadd'><?php echo $this->Html->link('Add Tag', array('action' => 'add'));?></li>
 					<?php 
 					endif;
@@ -273,6 +298,18 @@
 					<?php
 					endif; 
 					endif;
+				break;	
+				
+				case 'feeds': ?>
+					<li id='liindex'><a href="<?php echo $baseurl;?>/feeds/index">List Feeds</a></li>
+					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/add">Add Feed</a></li>
+					<?php if ($menuItem === 'edit'): ?>
+						<li class="active"><a href="#">Edit Feed</a></li>
+					<?php elseif ($menuItem === 'previewIndex'): ?>
+						<li id='lipreviewIndex'><a href="<?php echo $baseurl;?>/feeds/previewIndex/<?php echo h($feed['Feed']['id']); ?>">PreviewIndex</a></li>
+					<?php elseif ($menuItem === 'previewEvent'): ?>
+						<li id='lipreviewEvent'><a href="<?php echo $baseurl;?>/feeds/previewEvent/<?php echo h($feed['Feed']['id']); ?>/<?php echo h($id);?>">PreviewEvent</a></li>
+					<?php endif; 
 				break;	
 			}
 		?>

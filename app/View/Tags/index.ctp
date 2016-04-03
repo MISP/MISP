@@ -23,7 +23,7 @@
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th>Taxonomy</th>
 			<th>Tagged events</th>
-			<?php if ($isAclTagger): ?>
+			<?php if ($isAclTagEditor): ?>
 			<th class="actions"><?php echo __('Actions');?></th>
 			<?php endif; ?>
 	</tr><?php
@@ -41,7 +41,7 @@ foreach ($list as $item): ?>
 		&nbsp;
 		</td>
 		<td class="short"><?php echo h($item['Tag']['count']); ?>&nbsp;</td>
-		<?php if ($isAclTagger): ?>
+		<?php if ($isAclTagEditor): ?>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
 			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>	

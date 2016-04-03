@@ -1,6 +1,19 @@
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `admin_settings`
+--
+
+CREATE TABLE IF NOT EXISTS `admin_settings` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `setting` varchar(255) COLLATE utf8_bin NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `attributes`
 --
 
@@ -115,6 +128,25 @@ CREATE TABLE IF NOT EXISTS `events` (
 -- -------------------------------------------------------
 
 --
+-- Table structure for `event_delegations`
+--
+
+CREATE TABLE IF NOT EXISTS `event_delegations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `org_id` int(11) NOT NULL,
+  `requester_org_id` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `message` text,
+  `distribution` tinyint(4) NOT NULL DEFAULT  '-1',
+  `sharing_group_id` int(11),
+  PRIMARY KEY (`id`),
+  KEY `org_id` (`org_id`),
+  KEY `event_id` (`event_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- -------------------------------------------------------
+
+--
 -- Table structure for `event_tags`
 --
 
@@ -126,6 +158,26 @@ CREATE TABLE IF NOT EXISTS `event_tags` (
   INDEX `event_id` (`event_id`),
   INDEX `tag_id` (`tag_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `feeds`
+--
+
+CREATE TABLE IF NOT EXISTS `feeds` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) COLLATE utf8_bin NOT NULL,
+  `provider` varchar(255) COLLATE utf8_bin NOT NULL,
+  `url` varchar(255) COLLATE utf8_bin NOT NULL,
+  `rules` text COLLATE utf8_bin NOT NULL,
+  `enabled` BOOLEAN NOT NULL,
+  `distribution` tinyint(4) NOT NULL,
+  `sharing_group_id` int(11) NOT NULL,
+  `tag_id` int(11) NOT NULL,
+  `default` tinyint(1) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -253,6 +305,7 @@ CREATE TABLE IF NOT EXISTS `roles` (
   `perm_tagger` tinyint(1) NOT NULL DEFAULT '0',
   `perm_template` tinyint(1) NOT NULL,
   `perm_sharing_group` tinyint(1) NOT NULL DEFAULT '0',
+  `perm_tag_editor` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
@@ -317,6 +370,35 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   INDEX `value1` (`value1`(255)),
   INDEX `value2` (`value2`(255))
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `shadow_attribute_correlations`
+--
+
+CREATE TABLE IF NOT EXISTS `shadow_attribute_correlations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `org_id` int(11) NOT NULL,
+  `value` text NOT NULL,
+  `distribution` tinyint(4) NOT NULL,
+  `a_distribution` tinyint(4) NOT NULL,
+  `sharing_group_id` int(11),
+  `a_sharing_group_id` int(11),
+  `attribute_id` int(11) NOT NULL,
+  `1_shadow_attribute_id` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `1_event_id` int(11) NOT NULL,
+  `info` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `org_id` (`org_id`),
+  KEY `attribute_id` (`attribute_id`),
+  KEY `a_sharing_group_id` (`a_sharing_group_id`),
+  KEY `event_id` (`event_id`),
+  KEY `1_event_id` (`event_id`),
+  KEY `sharing_group_id` (`sharing_group_id`),
+  KEY `1_shadow_attribute_id` (`1_shadow_attribute_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -387,18 +469,6 @@ CREATE TABLE IF NOT EXISTS `tags` (
   `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `exportable` tinyint(1) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
-
-CREATE TABLE IF NOT EXISTS `tasks` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
-  `timer` int(11) NOT NULL,
-  `scheduled_time` varchar(8) NOT NULL DEFAULT '6:00',
-  `job_id` int(11) NOT NULL,
-  `description` varchar(255) NOT NULL,
-  `next_execution_time` int(11) NOT NULL,
-  `message` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
 
@@ -577,6 +647,9 @@ CREATE TABLE IF NOT EXISTS `users` (
   `contactalert` tinyint(1) NOT NULL,
   `disabled` BOOLEAN NOT NULL,
   `expiration` datetime DEFAULT NULL,
+  `current_login` INT(11) DEFAULT 0,
+  `last_login` INT(11) DEFAULT 0,
+  `force_logout` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `email` (`email`),
   INDEX `org_id` (`org_id`),
@@ -634,6 +707,13 @@ CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
 -- Default values for initial installation
 --
 
+INSERT INTO `admin_settings` (`id`, `setting`, `value`) VALUES
+(1, 'db_version', '2.4.33');
+
+INSERT INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`, `enabled`) VALUES
+(1, 'CIRCL', 'CIRCL OSINT Feed', 'https://www.circl.lu/doc/misp/feed-osint', 3, 1, 0),
+(2, 'Botvrij.eu', 'The Botvrij.eu Data', 'http://www.botvrij.eu/data/feed-osint', 3, 1, 0);
+
  INSERT INTO `regexp` (`id`, `regexp`, `replacement`, `type`) VALUES
  (1, '/.:.ProgramData./i', '%ALLUSERSPROFILE%\\\\', 'ALL'),
  (2, '/.:.Documents and Settings.All Users./i', '%ALLUSERSPROFILE%\\\\', 'ALL'),
@@ -678,26 +758,26 @@ CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
 -- 6. Read Only - read
 --
 
-INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
-VALUES ('1', 'admin', NOW() , NOW() , '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1');
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`)
+VALUES ('1', 'admin', NOW() , NOW() , '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1');
 
-INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
-VALUES ('2', 'Org Admin', NOW() , NOW() , '1', '1', '1' , '1', '1', '1', '1', '0' , '1', '0', '1', '0', '1', '1');
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`)
+VALUES ('2', 'Org Admin', NOW() , NOW() , '1', '1', '1' , '1', '1', '1', '1', '0' , '1', '0', '1', '0', '1', '1', '1');
 
-INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
-VALUES ('3', 'User', NOW() , NOW() , '1', '1', '1' , '0' , '0' , '0' , '0' , '0' , '0', '0', '0', '0', '0', '0');
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`)
+VALUES ('3', 'User', NOW() , NOW() , '1', '1', '1' , '0' , '0' , '0' , '0' , '0' , '0', '0', '0', '0', '0', '0', '0');
 
-INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
-VALUES ('4', 'Publisher', NOW() , NOW() , '1', '1', '1' , '1' , '0' , '0' , '0' , '0' , '0', '0', '0', '0', '0', '0');
+INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`)
+VALUES ('4', 'Publisher', NOW() , NOW() , '1', '1', '1' , '1' , '0' , '0' , '0' , '0' , '0', '0', '0', '0', '0', '0', '0');
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
-VALUES ('5', 'Sync user', NOW(), NOW(), '1', '1', '1', '1', '1', '0', '0', '0', '1', '0', '0', '0', '0', '1');
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`)
+VALUES ('5', 'Sync user', NOW(), NOW(), '1', '1', '1', '1', '1', '0', '0', '0', '1', '0', '0', '0', '0', '1', '0');
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
-VALUES ('6', 'Automation user', NOW(), NOW(), '1', '1', '1', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0');
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`)
+VALUES ('6', 'Automation user', NOW(), NOW(), '1', '1', '1', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0');
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`)
-VALUES ('7', 'Read Only', NOW(), NOW(), '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`)
+VALUES ('7', 'Read Only', NOW(), NOW(), '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
 
 -- --------------------------------------------------------
 

@@ -25,7 +25,7 @@
 			<?php 
 				if ($isSiteAdmin):
 			?>
-				<th>News read</th>
+				<th>Last login</th>
 				<th>Terms accepted</th>
 				<th>Change password</th>
 				<th>API key</th>
@@ -56,6 +56,9 @@
 							if ($user['User'][$field]) echo 'Yes';
 							else echo 'No';
 							break;
+						case 'current_login':
+							echo $user['User'][$field] ? h(date('Y-m-d', $user['User'][$field])) : 'N/A';
+							break;  
 						case 'role':
 				?>
 					<a href="/roles/view/<?php echo $user['Role']['id']; ?>"><?php echo h($user['Role']['name']); ?></a>

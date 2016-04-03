@@ -176,17 +176,33 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
-					'footerpart1' => array(
+					'footermidleft' => array(
 							'level' => 2,
-							'description' => 'Footer text prepending the version number.',
+							'description' => 'Footer text prepending the "Powered by MISP" text.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'footermidright' => array(
+							'level' => 2,
+							'description' => 'Footer text following the "Powered by MISP" text.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'footerpart1' => array(
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
 					'footerpart2' => array(
-							'level' => 2,
-							'description' => 'Footer text following the version number.',
+							'level' => 3,
+							'description' => 'This setting is deprecated and can be safely removed.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
@@ -211,6 +227,14 @@ class Server extends AppModel {
 					'footer_logo' => array(
 							'level' => 2 ,
 							'description' => 'If set, this setting allows you to display a logo on the right side of the footer. Upload it as a custom image in the file management tool.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForCustomImage',
+							'type' => 'string',
+					),
+					'home_logo' => array(
+							'level' => 2 ,
+							'description' => 'If set, this setting allows you to display a logo as the home icon. Upload it as a custom image in the file management tool.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForCustomImage',
@@ -355,6 +379,15 @@ class Server extends AppModel {
 							'type' => 'string',
 							'options' => array('0' => 'Your organisation only', '1' => 'This community only', '2' => 'Connected communities', '3' => 'All communities', 'event' => 'Inherit from event'),
 					),
+					'default_event_threat_level' => array(
+							'level' => 1,
+							'description' => 'The default threat level setting when creating events.',
+							'value' => '1',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'options' => array('1' => 'High', '2' => 'Medium', '3' => 'Low', '4' => 'undefined'),
+					),
 					'tagging' => array(
 							'level' => 1,
 							'description' => 'Enable the tagging feature of MISP. This is highly recommended.',
@@ -463,11 +496,19 @@ class Server extends AppModel {
 					),
 					'enableEventBlacklisting' => array(
 							'level' => 1,
-							'description' => 'Since version 1.3.107 you can start blacklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.',
+							'description' => 'Since version 2.3.107 you can start blacklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.',
 							'value' => false,
 							'type' => 'boolean',
 							'test' => 'testBool',
 							'beforeHook' => 'eventBlacklistingBeforeHook'
+					),
+					'enableOrgBlacklisting' => array(
+							'level' => 1,
+							'description' => 'Blacklisting organisation UUIDs to prevent the creation of any event created by the blacklisted organisation.',
+							'value' => false,
+							'type' => 'boolean',
+							'test' => 'testBool',
+							'beforeHook' => 'orgBlacklistingBeforeHook'
 					),
 					'log_client_ip' => array(
 							'level' => 1,
@@ -494,6 +535,34 @@ class Server extends AppModel {
 							'test' => 'testMangle',
 							'type' => 'boolean',
 							'null' => true
+					),
+					'delegation' => array(
+							'level' => 1,
+							'description' => 'This feature allows users to created org only events and ask another organisation to take owenership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'showCorrelationsOnIndex' => array(
+							'level' => 1,
+							'description' => 'When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'disableUserSelfManagement' => array(
+							'level' => 1,
+							'description' => 'When enabled only Org and Site admins can edit a user\'s profile.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => false,
+							
 					),
 			),
 			'GnuPG' => array(
@@ -611,7 +680,7 @@ class Server extends AppModel {
 					),
 					'password_policy_complexity' => array(
 							'level' => 2,
-							'description' => 'Password complexity requirement. Leave it empty for the default setting (3 out of 4, with either a digit or a special char) or enter your own regex. Keep in mind that the length is checked in another key. Example (simple 4 out of 4): /(?=.*[0-9])(?=.*[!@#$%^&*_-])(?=.*[A-Z])(?=.*[a-z]).*$/',
+							'description' => 'Password complexity requirement. Leave it empty for the default setting (3 out of 4, with either a digit or a special char) or enter your own regex. Keep in mind that the length is checked in another key. Example (simple 4 out of 4): /((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$/',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testPasswordRegex',
@@ -717,7 +786,7 @@ class Server extends AppModel {
 						'description' => 'The e-mail address specified in the SOA portion of the zone file.',
 						'value' => 'root.localhost',
 						'errorMessage' => '',
-						'test' => 'testBool',
+						'test' => 'testForEmpty',
 						'type' => 'string',
 					),
 					'ZeroMQ_enable' => array(						
@@ -809,6 +878,110 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean',
 					),
+					'CustomAuth_enable' => array(
+							'level' => 2,
+							'description' => 'Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true,
+							'beforeHook' => 'customAuthBeforeHook'
+					),
+					'CustomAuth_header' => array(
+							'level' => 2,
+							'description' => 'Set the header that MISP should look for here. If left empty it will default to the Authorization header.',
+							'value' => 'Authorization',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
+					),
+					'CustomAuth_required' => array(
+							'level' => 2,
+							'description' => 'If this setting is enabled then the only way to authenticate will be using the custom header. Altnertatively you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'CustomAuth_only_allow_source' => array(
+							'level' => 2,
+							'description' => 'If you are using an external tool to authenticate with MISP and would like to only allow the tool\'s url as a valid point of entry then set this field. ',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
+					),
+					'CustomAuth_name' => array(
+							'level' => 2,
+							'description' => 'The name of the authentication method, this is cosmetic only and will be shown on the user creation page and logs.',
+							'value' => 'External authentication',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
+					),
+					'CustomAuth_disable_logout' => array(
+							'level' => 2,
+							'description' => 'Disable the logout button for users authenticate with the external auth mechanism.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
+					),
+					'Enrichment_services_enable' => array(
+						'level' => 0,
+						'description' => 'Enable/disable the enrichment services',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'Enrichment_hover_enable' => array(
+							'level' => 0,
+							'description' => 'Enable/disable the hover over information retrieved from the enrichment modules',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
+					),
+					'CustomAuth_custom_password_reset' => array(
+							'level' => 2,
+							'description' => 'Provide your custom authentication users with an external URL to the authentication system to reset their passwords.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
+					),
+					'CustomAuth_custom_logout' => array(
+							'level' => 2,
+							'description' => 'Provide a custom logout URL for your users that will log them out using the authentication system you use.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
+					),
+					'Enrichment_services_url' => array(
+						'level' => 1,
+						'description' => 'The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666',
+						'value' => 'http://127.0.0.1',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string'
+					),
+					'Enrichment_services_port' => array(
+						'level' => 1,
+						'description' => 'The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666',
+						'value' => '6666',
+						'errorMessage' => '',
+						'test' => 'testForPortNumber',
+						'type' => 'numeric'
+					)
 			),
 			'debug' => array(
 					'level' => 0,
@@ -989,51 +1162,101 @@ class Server extends AppModel {
 		if ($jobId) {
 			$job->saveField('message', 'Pulling proposals.');
 		}
-		$events = $eventModel->find('all', array(
-				'fields' => array('id', 'uuid'),
+		$events = $eventModel->find('list', array(
+				'fields' => array('uuid'),
 				'recursive' => -1,
 				'conditions' => $conditions
 		));
 		$shadowAttribute = ClassRegistry::init('ShadowAttribute');
 		$shadowAttribute->recursive = -1;
-		foreach ($events as $k => &$event) {
-			$proposals = $eventModel->downloadEventFromServer($event['Event']['uuid'], $server, null, true);
-			if (null != $proposals) {
-				if (isset($proposals['ShadowAttribute']['id'])) {
-					$temp = $proposals['ShadowAttribute'];
-					$proposals['ShadowAttribute'] = array(0 => $temp);
-				}
-				foreach($proposals['ShadowAttribute'] as &$proposal) {
-					unset($proposal['id']);
+		if (!empty($events)) {
+			$proposals = $eventModel->downloadProposalsFromServer($events, $server, false);
+			if ($proposals !== null) {
+				$uuidEvents = array_flip($events);
+				foreach ($proposals as $k => &$proposal) {
+					$proposal = $proposal['ShadowAttribute'];
 					$oldsa = $shadowAttribute->findOldProposal($proposal);
-					$proposal['event_id'] = $event['Event']['id'];
+					$proposal['event_id'] = $uuidEvents[$proposal['event_uuid']];
 					if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
 						if ($oldsa) $shadowAttribute->delete($oldsa['id']);
-						if (!isset($pulledProposals[$event['Event']['id']])) $pulledProposals[$event['Event']['id']] = 0;
-						$pulledProposals[$event['Event']['id']]++;
+						if (!isset($pulledProposals[$proposal['event_id']])) $pulledProposals[$proposal['event_id']] = 0;
+						$pulledProposals[$proposal['event_id']]++;
 						if (isset($proposal['old_id'])) {
 							$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
 							if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
 							else $proposal['old_id'] = 0;
 						}
 						// check if this is a proposal from an old MISP instance
-						if (!isset($proposal['org_id']) && isset($proposal['org'])) {
+						if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
 							$proposal['Org'] = $proposal['org'];
 							$proposal['EventOrg'] = $proposal['event_org'];
+						} else if (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
+							continue;
 						}
 						$proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
 						$proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
 						unset($proposal['Org']);
 						unset($proposal['EventOrg']);
 						$shadowAttribute->create();
-						$shadowAttribute->save($proposal);
+						if (!isset($proposal['deleted']) || !$proposal['deleted']) {
+							if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
+						}
+					}
+					if ($jobId) {
+						if ($k % 50 == 0) {
+							$job->id = $jobId;
+							$job->saveField('progress', 50 * (($k + 1) / count($proposals)));
+						}
 					}
 				}
-			}
-			if ($jobId) {
-				if ($k % 10 == 0) {
-					$job->id = $jobId;
-					$job->saveField('progress', 50 * (($k + 1) / count($events)));
+			} else {
+				// Fallback for < 2.4.7 instances
+				$k = 0;
+				foreach ($events as $eid => &$event) {
+					$proposals = $eventModel->downloadEventFromServer($event, $server, null, true);
+					if (null != $proposals) {
+						if (isset($proposals['ShadowAttribute']['id'])) {
+							$temp = $proposals['ShadowAttribute'];
+							$proposals['ShadowAttribute'] = array(0 => $temp);
+						}
+						foreach($proposals['ShadowAttribute'] as &$proposal) {
+							$oldsa = $shadowAttribute->findOldProposal($proposal);
+							$proposal['event_id'] = $eid;
+							if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
+								if ($oldsa) $shadowAttribute->delete($oldsa['id']);
+								if (!isset($pulledProposals[$eid])) $pulledProposals[$eid] = 0;
+								$pulledProposals[$eid]++;
+								if (isset($proposal['old_id'])) {
+									$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
+									if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
+									else $proposal['old_id'] = 0;
+								}
+								// check if this is a proposal from an old MISP instance
+								if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
+									$proposal['Org'] = $proposal['org'];
+									$proposal['EventOrg'] = $proposal['event_org'];
+								} else if (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
+									continue;
+								}
+								$proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
+								$proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
+								unset($proposal['Org']);
+								unset($proposal['EventOrg']);
+								$shadowAttribute->create();
+								if (!isset($proposal['deleted']) || !$proposal['deleted']) {
+									if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($eid);
+								}
+								
+							}
+						}
+					}
+					if ($jobId) {
+						if ($k % 10 == 0) {
+							$job->id = $jobId;
+							$job->saveField('progress', 50 * (($k + 1) / count($events)));
+						}
+					}
+					$k++;
 				}
 			}
 		}
@@ -1401,10 +1624,69 @@ class Server extends AppModel {
 		}
 	}
 	
-	public function serverSettingsRead($unsorted = false) {
+	private function __getEnrichmentSettings() {
+		$modules = $this->getEnrichmentModules();
+		$result = array();
+		if (!empty($modules['modules'])) {
+			foreach ($modules['modules'] as $module) {
+				$result[$module['name']][0] = array('name' => 'enabled', 'type' => 'boolean');
+				if (isset($module['meta']['config'])) foreach ($module['meta']['config'] as $conf) $result[$module['name']][] = array('name' => $conf, 'type' => 'string');
+			}
+		}
+		return $result;
+	}
+	
+	public function getCurrentServerSettings() {
 		$serverSettings = $this->serverSettings;
 		$results = array();
 		$currentSettings = Configure::read();
+		if (Configure::read('Plugin.Enrichment_services_enable')) {
+			$results = $this->__getEnrichmentSettings();
+			foreach ($results as $module => $data) {
+				foreach ($data as $result) {
+					$setting = array('level' => 1, 'errorMessage' => '');
+					if ($result['type'] == 'boolean') {
+						$setting['test'] = 'testBool';
+						$setting['type'] = 'boolean';
+						$setting['description'] = 'Enable or disable the ' . $module . ' module.';
+						$setting['value'] = false;
+					} else {
+						$setting['test'] = 'testForEmpty';
+						$setting['type'] = 'string';
+						$setting['description'] = 'Set this required module specific setting.';
+						$setting['value'] = '';
+					}
+					$serverSettings['Plugin']['Enrichment_' . $module . '_' .  $result['name']] = $setting;
+				}
+			}
+		}
+		return $serverSettings;
+	}
+	
+	public function serverSettingsRead($unsorted = false) {
+		$serverSettings = $this->getCurrentServerSettings();
+		$results = array();
+		$currentSettings = Configure::read();
+		if (Configure::read('Plugin.Enrichment_services_enable')) {
+			$results = $this->__getEnrichmentSettings();
+			foreach ($results as $module => $data) {
+				foreach ($data as $result) {
+					$setting = array('level' => 1, 'errorMessage' => '');
+					if ($result['type'] == 'boolean') {
+						$setting['test'] = 'testBool';
+						$setting['type'] = 'boolean';
+						$setting['description'] = 'Enable or disable the ' . $module . ' module.';
+						$setting['value'] = false;
+					} else {
+						$setting['test'] = 'testForEmpty';
+						$setting['type'] = 'string';
+						$setting['description'] = 'Set this required module specific setting.';
+						$setting['value'] = '';
+					}
+					$serverSettings['Plugin']['Enrichment_' . $module . '_' .  $result['name']] = $setting;
+				}
+			}
+		}
 		$finalSettingsUnsorted = array();
 		foreach ($serverSettings as $branchKey => &$branchValue) {
 			if (isset($branchValue['branch'])) {
@@ -1414,6 +1696,10 @@ class Server extends AppModel {
 					if (isset($currentSettings[$branchKey][$leafKey])) $setting = $currentSettings[$branchKey][$leafKey];
 					$leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
 					if ($leafKey != 'branch') {
+						if ($branchKey == 'Plugin') {
+							$pluginData = explode('_', $leafKey);
+							$leafValue['subGroup'] = $pluginData[0];
+						}
 						if (strpos($branchKey, 'Secur') === 0) $leafValue['tab'] = 'Security';
 						else $leafValue['tab'] = $branchKey; 
 						$finalSettingsUnsorted[$branchKey . '.' . $leafKey] = $leafValue;
@@ -1642,6 +1928,25 @@ class Server extends AppModel {
 		}
 		return true;
 	}
+
+	public function customAuthBeforeHook($setting, $value) {
+		if ($value) $this->updateDatabase('addCustomAuth');
+		$this->cleanCacheFiles();
+		return true;
+	}
+	
+	public function orgBlacklistingBeforeHook($setting, $value) {
+		$this->cleanCacheFiles();
+		if ($value) {
+			try {
+				$this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
+				$schema = $this->OrgBlacklist->schema();
+			} catch (Exception $e) {
+				$this->updateDatabase('addOrgBlacklists');
+			}
+		}
+		return true;
+	}
 	
 	
 	// never come here directly, always go through a secondary check like testForTermsFile in order to also pass along the expected file path
@@ -1712,6 +2017,7 @@ class Server extends AppModel {
 						'description' => 'Image files uploaded into this directory can be used for various purposes, such as for the login page logos',
 						'expected' => array(
 								'MISP.footer_logo' => Configure::read('MISP.footer_logo'), 
+								'MISP.home_logo' => Configure::read('MISP.home_logo'),
 								'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
 								'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
 						),
@@ -1758,18 +2064,38 @@ class Server extends AppModel {
 		try {
 			$response = $HttpSocket->get($uri, false, $request);
 		} catch (Exception $e) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => 'SYSTEM',
+					'action' => 'error',
+					'user_id' => 0,
+					'title' => 'Error: Connection test failed. Reason: ' . json_encode($e->getMessage()),
+			));
 			return array('status' => 2);
 		}
 		if ($response->isOk()) {
 			return array('status' => 1, 'message' => $response->body());
 		} else {
 			if ($response->code == '403') return array('status' => 4);
+			if ($response->code == '405') {
+				try {
+					$responseText = json_decode($response->body, true)['message'];
+				} catch (Exception $e) {
+					return array('status' => 3);
+				}
+				if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') return array('status' => 5);
+				else if ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') return array('status' => 6);
+			}
 			return array('status' => 3);
 		}
 	}
 	
 	public function checkVersionCompatibility($id, $user = array(), $HttpSocket = false) {
-		// for event publishing when we don't have a user.
+		// for event publishing when we don't have a user.					
 		if (empty($user)) $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
 		App::uses('Folder', 'Utility');
 		$file = new File (ROOT . DS . 'VERSION.json', true);
@@ -1891,15 +2217,24 @@ class Server extends AppModel {
 		App::uses('Folder', 'Utility');
 		// check writeable directories
 		$writeableDirs = array(
-				'tmp' => 0, 'files' => 0, 'files' . DS . 'scripts' . DS . 'tmp' => 0,
-				'tmp' . DS . 'csv_all' => 0, 'tmp' . DS . 'csv_sig' => 0, 'tmp' . DS . 'md5' => 0, 'tmp' . DS . 'sha1' => 0,
-				'tmp' . DS . 'snort' => 0, 'tmp' . DS . 'suricata' => 0, 'tmp' . DS . 'text' => 0, 'tmp' . DS . 'xml' => 0,
-				'tmp' . DS . 'files' => 0, 'tmp' . DS . 'logs' => 0,
+				'tmp' => 0, 
+				'files' => 0, 
+				'files' . DS . 'scripts' . DS . 'tmp' => 0,
+				'tmp' . DS . 'csv_all' => 0, 
+				'tmp' . DS . 'csv_sig' => 0, 
+				'tmp' . DS . 'md5' => 0, 
+				'tmp' . DS . 'sha1' => 0,
+				'tmp' . DS . 'snort' => 0, 
+				'tmp' . DS . 'suricata' => 0, 
+				'tmp' . DS . 'text' => 0, 
+				'tmp' . DS . 'xml' => 0,
+				'tmp' . DS . 'files' => 0, 
+				'tmp' . DS . 'logs' => 0,
 		);
 		foreach ($writeableDirs as $path => &$error) {
-			$dir = new Folder(APP . DS . $path);
+			$dir = new Folder(APP . $path);
 			if (is_null($dir->path)) $error = 1;
-			$file = new File (APP . DS . $path . DS . 'test.txt', true);
+			$file = new File (APP . $path . DS . 'test.txt', true);
 			if ($error == 0 && !$file->write('test')) $error = 2;
 			if ($error != 0) $diagnostic_errors++;
 			$file->delete();
@@ -1908,9 +2243,26 @@ class Server extends AppModel {
 		return $writeableDirs;
 	}
 	
+	public function writeableFilesDiagnostics(&$diagnostic_errors) {
+		$writeableFiles = array(
+				'Config' . DS . 'config.php' => 0,
+		);
+		foreach ($writeableFiles as $path => &$error) {
+			if (!file_exists(APP . $path)) {
+				$error = 1;
+				continue;
+			}
+			if (!is_writeable(APP . $path)) {
+				$error = 2;
+				$diagnostic_errors++;
+			}
+		}
+		return $writeableFiles;
+	}
+	
 	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion) {
 		$result = array();
-		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.10');
+		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.12');
 		// check if the STIX and Cybox libraries are working using the test script stixtest.py
 		$scriptResult = shell_exec('python ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
 		$scriptResult = json_decode($scriptResult, true);
@@ -1942,17 +2294,24 @@ class Server extends AppModel {
 			try {
 				require_once 'Crypt/GPG.php';
 				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
-				$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 			} catch (Exception $e) {
 				$gpgStatus = 2;
 				$continue = false;
 			}
 			if ($continue) {
 				try {
+					$key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+				} catch (Exception $e) {
+					$gpgStatus = 3;
+					$continue = false;
+				}
+			}
+			if ($continue) {
+				try {
 					$gpgStatus = 0;
 					$signed = $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
 				} catch (Exception $e){
-					$gpgStatus = 3;
+					$gpgStatus = 4;
 				}
 			}
 		} else {
@@ -2417,5 +2776,54 @@ class Server extends AppModel {
 			$validServers[] = $server;
 		}
 		return $validServers;
+	}
+	
+	public function getEnrichmentModules() {
+		if (!Configure::read('Plugin.Enrichment_services_enable')) return 'Enrichment service not enabled.';
+		$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->serverSettings['Plugin']['Enrichment_services_url']['value'];
+		$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->serverSettings['Plugin']['Enrichment_services_port']['value'];
+		App::uses('HttpSocket', 'Network/Http');
+		$httpSocket = new HttpSocket();
+		try {
+			$response = $httpSocket->get($url . ':' . $port . '/modules');
+		} catch (Exception $e) {
+			return 'Enrichment service not reachable.';
+		}
+		$modules = json_decode($response->body, true);
+		if (!empty($modules)) {
+			$result = array('modules' => $modules);
+			foreach ($modules as &$module) {
+				if ($module['type'] !== 'expansion') continue;
+				foreach ($module['mispattributes']['input'] as $attribute) {
+					$result['types'][$attribute][] = $module['name'];
+				}
+			}
+			return $result;
+		} else return 'The enrichment service reports that it found no enrichment modules.';
+	}
+	
+	public function getEnabledModules() {
+		$modules = $this->getEnrichmentModules();
+		if (is_array($modules)) {
+			foreach ($modules['modules'] as $k => &$module) {
+				if (!Configure::read('Plugin.Enrichment_' . $module['name'] . '_enabled')) {
+					unset($modules['modules'][$k]);
+				}
+			}
+		}
+		if (!isset($modules) || empty($modules)) $modules = array();
+		if (isset($modules['modules']) && !empty($modules['modules'])) $modules['modules'] = array_values($modules['modules']);
+		$types = array();
+		$hover_types = array();
+		if (!is_array($modules)) return array();
+		foreach ($modules['modules'] as $temp) {
+			foreach ($temp['mispattributes']['input'] as $input) {
+				if (!isset($temp['meta']['module-type']) || in_array('expansion', $temp['meta']['module-type'])) $types[$input][] = $temp['name'];
+				if (isset($temp['meta']['module-type']) && in_array('hover', $temp['meta']['module-type'])) $hover_types[$input][] = $temp['name'];
+			}
+		}
+		$modules['types'] = $types;
+		$modules['hover_type'] = $hover_types;
+		return $modules;
 	}
 }

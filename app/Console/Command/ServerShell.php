@@ -5,7 +5,7 @@ App::uses('File', 'Utility');
 require_once 'AppShell.php';
 class ServerShell extends AppShell
 {
-	public $uses = array('Server', 'Task', 'Job', 'User');
+	public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
 	
 	public function pull() {
 		//$user, $id = null, $technique=false, $server
@@ -64,7 +64,7 @@ class ServerShell extends AppShell
 		if ($result === false) $message = 'Job failed. The remote instance is too far outdated to initiate a push.';
 		$this->Job->save(array(
 				'id' => $jobId,
-				'message' => 'Job done.',
+				'message' => $message,
 				'progress' => 100,
 				'status' => 4
 		));
@@ -72,6 +72,24 @@ class ServerShell extends AppShell
 			$this->Task->id = $this->args[5];
 			$this->Task->saveField('message', 'Job(s) started at ' . date('d/m/Y - H:i:s') . '.');
 		}
+	}
+	
+
+	public function fetchFeed() {
+		$userId = $this->args[0];
+		$feedId = $this->args[1];
+		$jobId = $this->args[2];
+		$this->Job->read(null, $jobId);
+		$user = $this->User->getAuthUser($userId);
+		$result = $this->Feed->downloadFromFeedInitiator($feedId, $user, $jobId);
+		$this->Job->id = $jobId;
+		$message = 'Job done.';
+		$this->Job->save(array(
+				'id' => $jobId,
+				'message' => $message,
+				'progress' => 100,
+				'status' => 4
+		));
 	}
 	
 	public function enqueuePull() {
@@ -167,7 +185,7 @@ class ServerShell extends AppShell
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
-			$result = $this->Server->push($server['Server']['id'], 'full', $jobId, $HttpSocket, $user['email']);
+			$result = $this->Server->push($server['Server']['id'], 'full', $jobId, $HttpSocket, $user);
 		}
 		$this->Task->id = $task['Task']['id'];
 		$this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.');

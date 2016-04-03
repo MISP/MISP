@@ -96,7 +96,7 @@ class Post extends AppModel {
 		$body .= "Someone just posted to a MISP discussion you participated in.\n";
 		$body .= "\n";
 		$body .= "The full discussion can be found at: \n";
-		$body .= Configure::read('MISP.baseurl') . '/posts/view/' . $post['Post']['id'] . "\n";
+		$body .= Configure::read('MISP.baseurl') . '/threads/view/' . $post['Post']['thread_id'] . '/post_id:' . $post['Post']['id'] . "\n";
 
 		// body containing all details ($title and $message)
 		$bodyDetail = "";
@@ -106,7 +106,7 @@ class Post extends AppModel {
 		$bodyDetail .= $title . "\n";
 		$bodyDetail .= "\n";
 		$bodyDetail .= "The full discussion can be found at: \n";
-		$bodyDetail .= Configure::read('MISP.baseurl') . '/posts/view/' . $post['Post']['id'] . "\n";
+		$bodyDetail .= Configure::read('MISP.baseurl') . '/threads/view/' . $post['Post']['thread_id'] . '/post_id:' . $post['Post']['id'] . "\n";
 		$bodyDetail .= "\n";
 		$bodyDetail .= "The following message was added: \n";
 		$bodyDetail .= "\n";

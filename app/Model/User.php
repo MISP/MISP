@@ -237,6 +237,36 @@ class User extends AppModel {
 		'Trim',
 		'Containable'
 	);
+	
+	private function __generatePassword() {
+		$groups = array(
+				'0123456789',
+				'abcdefghijklmnopqrstuvwxyz',
+				'ABCDEFGHIJKLOMNOPQRSTUVWXYZ',
+				'!@#$%^&*()_-'
+		);
+		$passwordLength = Configure::read('Security.password_policy_length') ? Configure::read('Security.password_policy_length') : 12;
+		$pw = '';
+		for ($i = 0; $i < $passwordLength; $i++) {
+			$chars = implode('', $groups);
+			$pw .= $chars[mt_rand(0, strlen($chars)-1)];
+		}
+		foreach ($groups as &$group) {
+			$pw .= $group[mt_rand(0, strlen($group)-1)];
+		}
+		return $pw;
+	}
+	
+	public function beforeValidate($options = array()) {
+		if (!isset($this->data['User']['id'])) {
+			if (isset($this->data['User']['enable_password']) && (!$this->data['User']['enable_password'] || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password'])))) {
+				$this->data['User']['password'] = $this->__generatePassword();
+				$this->data['User']['confirm_password'] = $this->data['User']['password'];
+			}
+		}
+		if (!isset($this->data['User']['nids_sid']) || empty($this->data['User']['nids_sid'])) $this->data['User']['nids_sid'] = mt_rand(1000000, 9999999);
+		return true;
+	}
 
 	public function beforeSave($options = array()) {
 		if (isset($this->data[$this->alias]['password'])) {
@@ -302,7 +332,7 @@ class User extends AppModel {
 		If Security.password_policy_complexity is set and valid, use the regex provided.
 		*/
 		$regex = Configure::read('Security.password_policy_complexity');
-		if (empty($regex) || @preg_match($regex, 'test') === false) $regex = '/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/';
+		if (empty($regex) || @preg_match($regex, 'test') === false) $regex = '/((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$/';
 		$value = array_values($check);
 		$value = $value[0];
 		return preg_match($regex, $value);
@@ -361,15 +391,11 @@ class User extends AppModel {
 	}
 	
 	public function getOrgs() {
-		$orgs = $this->Organisation->find('all', array(
+		$orgs = $this->Organisation->find('list', array(
 			'recursive' => -1,
 			'fields' => array('name'),
 		));
-		$orgNames = array();
-		foreach ($orgs as $org) {
-			$orgNames[] = $org['Organisation']['name'];
-		}
-		return $orgNames;
+		return $orgs;
 	}
 	
 	public function getOrgMemberCount($org) {
@@ -437,7 +463,33 @@ class User extends AppModel {
 	
 	// get the current user and rearrange it to be in the same format as in the auth component
 	public function getAuthUser($id) {
-		$user = $this->find('first', array('conditions' => array('OR' => array('User.id' => $id, 'User.authkey' => $id)), 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
+		$conditions = array('User.id' => $id);
+		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
+		if (empty($user)) return $user;
+		// Rearrange it a bit to match the Auth object created during the login
+		$user['User']['Role'] = $user['Role'];
+		$user['User']['Organisation'] = $user['Organisation'];
+		$user['User']['Server'] = $user['Server'];
+		unset($user['Organisation'], $user['Role'], $user['Server']);
+		return $user['User'];
+	}
+	
+	// get the current user and rearrange it to be in the same format as in the auth component
+	public function getAuthUserByUuid($id) {
+		$conditions = array('User.authkey' => $id);
+		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
+		if (empty($user)) return $user;
+		// Rearrange it a bit to match the Auth object created during the login
+		$user['User']['Role'] = $user['Role'];
+		$user['User']['Organisation'] = $user['Organisation'];
+		$user['User']['Server'] = $user['Server'];
+		unset($user['Organisation'], $user['Role'], $user['Server']);
+		return $user['User'];
+	}
+	
+	public function getAuthUserByExternalAuth($id) {
+		$conditions = array('User.external_auth_key' => $id, 'User.external_auth_required' => true);
+		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
 		if (empty($user)) return $user;
 		// Rearrange it a bit to match the Auth object created during the login
 		$user['User']['Role'] = $user['Role'];
@@ -468,6 +520,7 @@ class User extends AppModel {
 			else $validOrgs = array_merge($validOrgs, $sgOrgs);
 		}
 		$validOrgs = array_unique($validOrgs);
+		$conditions['AND'][] = array('disabled' => 0);
 		if (!$all) {
 			$conditions['AND']['OR'][] = array('org_id' => $validOrgs);
 
@@ -525,7 +578,6 @@ class User extends AppModel {
 			$body = $bodyNoEnc;
 		}
 		$body = str_replace('\n', PHP_EOL, $body);
-
 		// Sign the body
 		require_once 'Crypt/GPG.php';
 		try {
@@ -582,6 +634,7 @@ class User extends AppModel {
 				$replyToLog = 'from ' . $replyToUser['User']['email'];
 			}
 			$Email->from(Configure::read('MISP.email'));
+			$Email->returnPath(Configure::read('MISP.email'));
 			$Email->to($user['User']['email']);
 			$Email->subject($subject);
 			$Email->emailFormat('text');

@@ -34,7 +34,7 @@
 			</div><br />		
 	<?php 
 		echo $this->Form->input('description', array(
-			'label' => 'Event Description',
+			'label' => 'Template Description',
 			'div' => 'clear',
 			'type' => 'textarea',
 			'class' => 'form-control span6',
@@ -56,7 +56,7 @@ var selectedTags = [
 	<?php 
 		foreach ($currentTags as $k => $t) {
 			if ($k != 0) echo ', ';
-			echo '"' . $t['Tag']['name'] . '"';
+			echo '"' . $t['Tag']['id'] . '"';
 		}
 	?>
 ];

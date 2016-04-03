@@ -46,12 +46,20 @@
 			<th><?php echo $this->Paginator->sort('org_ci', 'Org');?></th>
 			<th><?php echo $this->Paginator->sort('role_id', 'Role');?></th>
 			<th><?php echo $this->Paginator->sort('email');?></th>
+			<th><?php echo $this->Paginator->sort('authkey');?></th>
 			<th><?php echo $this->Paginator->sort('autoalert');?></th>
 			<th><?php echo $this->Paginator->sort('contactalert');?></th>
 			<th><?php echo $this->Paginator->sort('gpgkey');?></th>
 			<th><?php echo $this->Paginator->sort('nids_sid');?></th>
 			<th><?php echo $this->Paginator->sort('termsaccepted');?></th>
-			<th><?php echo $this->Paginator->sort('newsread');?></th>
+			<th><?php echo $this->Paginator->sort('current_login', 'Last login');?></th>
+			<?php 
+				if (Configure::read('Plugin.CustomAuth_enable') && !Configure::read('Plugin.CustomAuth_required')): 
+			?>
+				<th><?php echo $this->Paginator->sort('external_auth_required', Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication');?></th>
+			<?php 
+				endif;
+			?>
 			<th><?php echo $this->Paginator->sort('disabled');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 		</tr>
@@ -66,6 +74,8 @@
 			<?php echo $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])); ?></td>
 			<td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 			<?php echo h($user['User']['email']); ?>&nbsp;</td>
+			<td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" class="<?php echo $user['Role']['perm_auth'] ? 'bold' : 'grey'; ?>">
+			<?php echo h($user['User']['authkey']); ?>&nbsp;</td>
 			<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 			<?php echo $user['User']['autoalert']? 'Yes' : 'No'; ?>&nbsp;</td>
 			<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
@@ -82,8 +92,16 @@
 					echo "No";
 		}
 			?>&nbsp;</td>
-			<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
-			<?php echo h($user['User']['newsread']); ?>&nbsp;</td>
+			<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" title="<?php echo !$user['User']['current_login'] ? 'N/A' : h(date("Y-m-d H:i:s",$user['User']['current_login']));?>">
+			<?php echo !$user['User']['current_login'] ? 'N/A' : h(date("Y-m-d",$user['User']['current_login'])); ?>&nbsp;</td>
+			<?php 
+				if (Configure::read('Plugin.CustomAuth_enable') && !Configure::read('Plugin.CustomAuth_required')):
+			?>
+				<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" title="">
+				<?php echo ($user['User']['external_auth_required'] ? 'Yes' : 'No'); ?></td>
+			<?php 
+				endif;
+			?>
 			<td class="short <?php if ($user['User']['disabled']) echo 'red bold';?>" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 			<?php echo ($user['User']['disabled'] ? 'Yes' : 'No'); ?></td>
 			<td class="short action-links">

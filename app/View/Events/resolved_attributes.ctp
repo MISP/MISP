@@ -1,8 +1,14 @@
 <div class="index">
-	<h2>Freetext Import Results</h2>
-	<p>Below you can see the attributes that are to be created based on the results of the free-text import. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution. </p>
+	<h2><?php echo h($title);?></h2>
+	<p>Below you can see the attributes that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution. </p>
 	<?php 
-		echo $this->Form->create('Attribute', array('url' => '/events/saveFreeText/' . $event_id));
+		echo $this->Form->create('Attribute', array('url' => '/events/saveFreeText/' . $event['Event']['id'], 'class' => 'mainForm'));
+		if ($isSiteAdmin) {
+			echo $this->Form->input('force', array(
+					'checked' => false,
+					'label' => 'Proposals instead of attributes',
+			));
+		}
 		echo $this->Form->input('JsonObject', array(
 				'label' => false,
 				'type' => 'text',
@@ -14,6 +20,7 @@
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 				<th>Value</th>
+				<th>Similar Attributes</th>
 				<th>Category</th>
 				<th>Type</th>
 				<th>IDS<input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
@@ -31,15 +38,45 @@
 						'style' => 'display:none;',
 						'value' => 1,
 				));
-				echo $this->Form->input('Attribute' . $k . 'Value', array(
+				echo $this->Form->input('Attribute' . $k . 'Data', array(
 						'label' => false,
 						'type' => 'hidden',
-						'value' => h($item['value']),
+						'value' => isset($item['data']) ? h($item['data']) : false,
 				));
 			?>
 			<td>
+				<?php 
+					echo $this->Form->input('Attribute' . $k . 'Value', array(
+							'label' => false,
+							'value' => h($item['value']),
+							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;',
+							'div' => false
+					));
+				?>
 				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >
-				<div id="<?php echo 'Attribute' . $k . 'Value'; ?>"><?php echo h($item['value']); ?></div>
+			</td>
+			<td style="shortish">
+				<?php 
+					foreach ($item['related'] as $relation):
+						$popover = array(
+							'Event ID' => $relation['Event']['id'],
+							'Event Info' => $relation['Event']['info'],
+							'Category' => $relation['Attribute']['category'],
+							'Type' => $relation['Attribute']['type'],
+							'Value' => $relation['Attribute']['value'],
+							'Comment' => $relation['Attribute']['comment'],
+						);
+						$popoverHTML = '';
+						foreach ($popover as $key => $popoverElement) {
+							$popoverHTML .= '<span class=\'bold\'>' . $key . '</span>: <span class=\'blue bold\'>' . $popoverElement . '</span><br />';
+						}
+				?>
+						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
+				<?php 
+					endforeach;
+					// Category/type: 
+					$correlationPopover = array('<span>', );
+				?>
 			</td>
 			<td class="short">
 				<?php 
@@ -67,7 +104,7 @@
 						$selectVisibility = 'display:none;';
 					} else {
 						$divVisibility = 'style="display:none;"';
-						if (!in_array(array_keys($item['types']), $options)) $options[] = array_keys($item['types']);
+						if (!in_array(array_keys($item['types']), $options)) $options[] = array_values($item['types']);
 					}
 				?>
 				<div id = "<?php echo 'Attribute' . $k . 'TypeStatic'; ?>" <?php echo $divVisibility; ?> ><?php echo h($item['default_type']); ?></div>
@@ -87,7 +124,7 @@
 				<input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="Imported via the freetext import." <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . $item['comment'] . '"'?>/>
 			</td>
 			<td class="action short">
-				<span class="icon-remove pointer" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event_id; ?>');"></span>
+				<span class="icon-remove pointer" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 			</td>
 		</tr>
 	<?php
@@ -104,7 +141,7 @@
 	?>
 	</table>
 	<span>
-		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event_id); ?>', '<?php echo count($resultArray); ?>');">Submit</button>
+		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>');">Submit</button>
 		<span style="float:right">
 			<?php
 				if (!empty($optionsRearranged)):
@@ -140,6 +177,7 @@
 	<script>
 		var options = <?php echo json_encode($optionsRearranged);?>;
 		$(document).ready(function(){
+			popoverStartup();
 			$('#changeFrom').change(function(){
 				changeFreetextImportFrom();
 			});

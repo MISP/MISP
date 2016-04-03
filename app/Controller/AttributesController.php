@@ -378,7 +378,6 @@ class AttributesController extends AppController {
 							} else {
 								$partialFails[] = '[' . $typeName . ']' . $filename;
 							}
-							$fails[] = array($typeName);
 						} else {
 							if ($hash == 'md5') $success++;
 						}
@@ -941,11 +940,10 @@ class AttributesController extends AppController {
 					'recursive' => -1,
 					'fields' => array('id', 'orgc_id', 'user_id')
 			));
-			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org_id'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
+			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
 				throw new MethodNotAllowedException('Invalid Event.');
 			}
 		}
-		
 		// find all attributes from the ID list that also match the provided event ID.
 		$attributes = $this->Attribute->find('all', array(
 			'recursive' => -1,
@@ -1449,9 +1447,9 @@ class AttributesController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags=false, $from=false, $to=false, $last=false, $eventid=false) {
+	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags=false, $from=false, $to=false, $last=false, $eventid=false, $withAttachments=false) {
 		if ($tags) $tags = str_replace(';', ':', $tags);
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
@@ -1464,8 +1462,7 @@ class AttributesController extends AppController {
 		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
-		$value = str_replace('|', '/', $value);
-
+		if ($value) $value = str_replace('|', '/', $value);
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
 		// For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
@@ -1485,7 +1482,7 @@ class AttributesController extends AppController {
 				else ${$p} = null;
 			}
 		}
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
@@ -1510,27 +1507,29 @@ class AttributesController extends AppController {
 		$values = explode('&&', $value);
 		$parameters = array('value', 'type', 'category', 'org', 'eventid');
 		foreach ($parameters as $k => $param) {
-			if (isset(${$parameters[$k]}) && ${$parameters[$k]}!=='null') {
+			if (isset(${$parameters[$k]}) && ${$parameters[$k]}!==false) {
 				if (is_array(${$parameters[$k]})) $elements = ${$parameters[$k]};
 				else $elements = explode('&&', ${$parameters[$k]});
 				foreach($elements as $v) {
+					if (empty($v)) continue;
 					if (substr($v, 0, 1) == '!') {
 						if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
 							$cidrresults = $this->Cidr->CIDR(substr($v, 1));
 							foreach ($cidrresults as $result) {
 								$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
 							}
-						} else {
-							if ($parameters[$k] === 'org') {
+						} else if ($parameters[$k] === 'org') {
+
 								// from here
 								$found_orgs = $this->Attribute->Event->Org->find('all', array(
 										'recursive' => -1,
 										'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
 								));
 								foreach ($found_orgs as $o) $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
-							} else {
-								$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
-							}
+						} else if ($parameters[$k] === 'eventid') {
+							$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+						} else {
+							$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
 						}
 					} else {
 						if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
@@ -1538,17 +1537,17 @@ class AttributesController extends AppController {
 							foreach ($cidrresults as $result) {
 								$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
 							}
+						} else if ($parameters[$k] === 'org') {
+							// from here
+							$found_orgs = $this->Attribute->Event->Org->find('all', array(
+									'recursive' => -1,
+									'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
+							));
+							foreach ($found_orgs as $o) $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
+						} else if ($parameters[$k] === 'eventid'){
+							if (!empty($v)) $subcondition['OR'][] = array('Attribute.event_id' => $v);
 						} else {
-							if ($parameters[$k] === 'org') {
-								// from here
-								$found_orgs = $this->Attribute->Event->Org->find('all', array(
-										'recursive' => -1,
-										'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
-								));
-								foreach ($found_orgs as $o) $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
-							} else {
-								if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
-							}
+							if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
 						}
 					}
 				}	
@@ -1582,6 +1581,7 @@ class AttributesController extends AppController {
 		$params = array(
 				'conditions' => $conditions,
 				'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
+				'withAttachments' => $withAttachments
 		);
 		$results = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
 		$this->loadModel('Whitelist');
@@ -2255,5 +2255,72 @@ class AttributesController extends AppController {
 		}
 		$this->Session->setFlash('Updated ' . $counter . ' attribute(s).');
 		$this->redirect('/pages/display/administration');
+	}
+	
+	public function hoverEnrichment($id) {
+		$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+		if (empty($attribute)) throw new NotFoundException('Invalid Attribute');
+		$this->loadModel('Server');
+		$modules = $this->Server->getEnabledModules();
+		$validTypes = array();
+		if (isset($modules['hover_type'][$attribute[0]['Attribute']['type']])) {
+			$validTypes = $modules['hover_type'][$attribute[0]['Attribute']['type']];
+		}
+		$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
+		$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
+		App::uses('HttpSocket', 'Network/Http');
+		$httpSocket = new HttpSocket();
+		$resultArray = array();
+		foreach ($validTypes as &$type) {
+			$options = array();
+			$found = false;
+			foreach ($modules['modules'] as &$temp) {
+				if ($temp['name'] == $type) {
+					$found = true;
+					if (isset($temp['meta']['config'])) {
+						foreach ($temp['meta']['config'] as $conf) $options[$conf] = Configure::read('Plugin.Enrichment_' . $type . '_' . $conf);
+					}
+				}
+			}
+			if (!$found) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			$data = array('module' => $type, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
+			if (!empty($options)) $data['config'] = $options;
+			$data = json_encode($data);
+			try {
+				$response = $httpSocket->post($url . ':' . $port . '/query', $data);
+				$result = json_decode($response->body, true);
+			} catch (Exception $e) {
+				$resultArray[] = array($type => 'Enrichment service not reachable.');
+				continue;
+			}
+			if (!is_array($result)) {
+				$resultArray[] =  array($type => $result);
+				continue;
+			}
+			if (!empty($result['results'])) {
+				foreach ($result['results'] as &$r) {
+					if (is_array($r['values']) && !empty($r['values'])) {
+						foreach ($r['values'] as $v) {
+							if (is_array($v)) $v = 'Array returned';
+							$resultArray[] = array($type => $v);
+						}
+					} else if ($r['values'] == null) $resultArray[] = array($type => 'No result');
+				}
+			}
+		}
+		$this->set('results', $resultArray);
+		$this->layout = 'ajax';
+		$this->render('ajax/hover_enrichment');
+	}
+	
+	public function describeTypes() {
+		$result = array();
+		$result['types'] = array_keys($this->Attribute->typeDefinitions);
+		$result['categories'] = array_keys($this->Attribute->categoryDefinitions);
+		foreach ($this->Attribute->categoryDefinitions as $cat => $data) {
+			$result['category_type_mappings'][$cat] = $data['types'];
+		}
+		$this->set('result', $result);
+		$this->set('_serialize', array('result'));
 	}
 }

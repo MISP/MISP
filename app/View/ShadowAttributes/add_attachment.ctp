@@ -1,7 +1,7 @@
 <div class="shadow_attributes form">
 <?php echo $this->Form->create('ShadowAttribute', array('enctype' => 'multipart/form-data','onSubmit' => 'document.getElementById("ShadowAttributeMalware").removeAttribute("disabled");'));?>
 	<fieldset>
-			<legend><?php echo __('Add Attachment'); ?></legend>
+			<legend><?php echo __('Propose Attachment'); ?></legend>
 	<?php
 		echo $this->Form->hidden('event_id');
 		echo $this->Form->input('category');

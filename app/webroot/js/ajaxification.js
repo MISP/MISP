@@ -24,6 +24,22 @@ function publishPopup(id, type) {
 	});
 }
 
+function delegatePopup(id) {	
+	$.get( "/event_delegations/delegateEvent/" + id, function(data) {
+		$("#popover_form").html(data);
+		$("#popover_form").fadeIn();
+		$("#gray_out").fadeIn();
+	});
+}
+
+function genericPopup(url, popupTarget) {
+	$.get(url, function(data) {
+		$(popupTarget).html(data);
+		$(popupTarget).fadeIn();
+		$("#gray_out").fadeIn();
+	});
+}
+
 function submitPublish(id, type) {
 	$("#PromptForm").submit();
 }
@@ -124,7 +140,7 @@ function updateIndex(id, context, newPage) {
 	if (typeof newPage !== 'undefined') page = newPage;
 	var url, div;
 	if (context == 'event') {
-		url = "/events/viewEventAttributes/" + id;
+		url = currentUri;
 		div = "#attributes_div";
 	}
 	if (context == 'template') {
@@ -743,26 +759,38 @@ function cancelPopoverForm() {
 	$('#popover_form').fadeOut();
 }
 
+function activateTagField() {
+	$("#addTagButton").hide();
+	$("#addTagField").show();
+}
 
-function appendTemplateTag(selected) {
-	var selectedTag;
-	allTags.forEach(function(tag) {
-		if (tag.name == selected) {
-			$.ajax({
-				beforeSend: function (XMLHttpRequest) {
-					$(".loading").show();
-				}, 
-				dataType:"html", 
-				cache: false,
-				success:function (data, textStatus) {
-					$(".loading").hide();
-					$("#tags").append(data);
-				}, 
-				url:"/tags/viewTag/" + tag.id,
-			});
-			updateSelectedTags();
+function tagFieldChange() {
+	if ($("#addTagField :selected").val() > 0) {
+		var selected_id = $("#addTagField :selected").val();
+		var selected_text = $("#addTagField :selected").text();
+		if ($.inArray(selected_id, selectedTags)==-1) {
+			selectedTags.push(selected_id);
+			appendTemplateTag(selected_id);
 		}
+	}
+	$("#addTagButton").show();
+	$("#addTagField").hide();
+}
+
+function appendTemplateTag(selected_id) {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		dataType:"html", 
+		cache: false,
+		success:function (data, textStatus) {
+			$(".loading").hide();
+			$("#tags").append(data);
+		}, 
+		url:"/tags/viewTag/" + selected_id,
 	});
+	updateSelectedTags();
 }
 
 function addAllTags(tagArray) {
@@ -774,8 +802,8 @@ function addAllTags(tagArray) {
 
 function removeTemplateTag(id, name) {
 	selectedTags.forEach(function(tag) {
-		if (tag == name) {
-			var index = selectedTags.indexOf(name);
+		if (tag == id) {
+			var index = selectedTags.indexOf(id);
 			if (index > -1) {
 				selectedTags.splice(index, 1);
 				updateSelectedTags();
@@ -916,9 +944,10 @@ function templateElementFileCategoryChange(category) {
 	}
 }
 
-function getPopup(id, context, target) {
+function getPopup(id, context, target, admin) {
 	$("#gray_out").fadeIn();
 	var url = "";
+	if (typeof admin !== 'undefined') url+= "/admin";
 	if (context != '') url += "/" + context;
 	if (target != '') url += "/" + target;
 	if (id != '') url += "/" + id;
@@ -935,6 +964,23 @@ function getPopup(id, context, target) {
 		}, 
 		url: url,
 		//url:"/templates/templateChoices/" + id,
+	});
+}
+
+function simplePopup(url) {
+	$("#gray_out").fadeIn();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		dataType:"html", 
+		cache: false,
+		success:function (data, textStatus) {
+			$(".loading").hide();
+			$("#popover_form").html(data);
+			$("#popover_form").fadeIn();
+		}, 
+		url: url,
 	});
 }
 
@@ -1092,6 +1138,14 @@ function indexEvaluateFiltering() {
 
 function quickFilter(passedArgs, url) {
 	passedArgs["searchall"] = $('#quickFilterField').val();
+	for (var key in passedArgs) {
+		url += "/" + key + ":" + passedArgs[key];
+	}
+	window.location.href=url;
+}
+
+function filterMyOrgOnly(passedArgs, org, url) {
+	passedArgs['searchorg'] = org;
 	for (var key in passedArgs) {
 		url += "/" + key + ":" + passedArgs[key];
 	}
@@ -1366,10 +1420,22 @@ function expandPagination(bottom, right) {
 	}
 }
 
+function getSubGroupFromSetting(setting) {
+	var temp = setting.split('.');
+	if (temp[0] == "Plugin") { 
+		temp = temp[1];
+		if (temp.indexOf('_') > -1) {
+			temp = temp.split('_');
+			return temp[0];
+		}
+	}
+	return 'general';
+}
+
 function serverSettingsActivateField(setting, id) {
 	resetForms();
 	$('.inline-field-placeholder').hide();
-	var fieldName = "#setting_" + id; 
+	var fieldName = "#setting_" + getSubGroupFromSetting(setting) + "_" + id; 
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -1422,7 +1488,7 @@ function serverSettingsPostActivationScripts(name, setting, id) {
 }
 
 function serverSettingSubmitForm(name, setting, id) {
-	var name = '#setting_' + id;
+	subGroup = getSubGroupFromSetting(setting);
 	var formData = $(name + '_field').closest("form").serialize();
 	$.ajax({
 		data: formData,
@@ -1435,7 +1501,7 @@ function serverSettingSubmitForm(name, setting, id) {
 				type:"get",
 				url:"/servers/serverSettingsReloadSetting/" + setting + "/" + id,
 				success:function (data2, textStatus2) {
-					$('#' + id + '_row').replaceWith(data2);
+					$('#' + subGroup + "_" + id + '_row').replaceWith(data2);
 					$(".loading").hide();
 				},
 				error:function() {
@@ -1498,7 +1564,6 @@ function popoverStartup() {
         placement: 'left',
         animation: true,
         html: true,
-        trigger: 'manual',
     }).click(function(e) {
     	$(e.target).popover('show');
     	$('[data-toggle="popover"]').not(e.target).popover('hide');
@@ -1545,7 +1610,7 @@ function selectContainsOption(selectid, value) {
 function exportChoiceSelect(url, elementId, checkbox) {
 	if (checkbox == 1) {
 		if ($('#' + elementId + '_toggle').prop('checked')) {
-			url = url + $('#' + elementId + '_set').html();
+			url = $('#' + elementId + '_set').html();
 		}
 	}
 	document.location.href = url;
@@ -1556,18 +1621,20 @@ function freetextImportResultsSubmit(id, count) {
 	var temp;
 	for (i = 0; i < count; i++) {
 		if ($('#Attribute' + i + 'Save').val() == 1) {
-				temp = {
-					value:$('#Attribute' + i + 'Value').val(),
-					category:$('#Attribute' + i + 'Category').val(),
-					type:$('#Attribute' + i + 'Type').val(),
-					to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
-					comment:$('#Attribute' + i + 'Comment').val(),
-				}
-				attributeArray[attributeArray.length] = temp;		
+			temp = {
+				value:$('#Attribute' + i + 'Value').val(),
+				category:$('#Attribute' + i + 'Category').val(),
+				type:$('#Attribute' + i + 'Type').val(),
+				to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
+				comment:$('#Attribute' + i + 'Comment').val(),
+				data:$('#Attribute' + i + 'Data').val()
+			}
+			attributeArray[attributeArray.length] = temp;	
+			console.log(temp)
 		}
-	}
+	};
 	$("#AttributeJsonObject").val(JSON.stringify(attributeArray));
-	var formData = $("#AttributeFreeTextImportForm").serialize();
+	var formData = $(".mainForm").serialize();
 	$.ajax({
 		type: "post",
 		cache: false,
@@ -1959,6 +2026,12 @@ function testConnection(id) {
 			case 4:
 				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>');
 				break;
+			case 5:
+				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>');
+				break;
+			case 6:
+				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>');
+				break;
 	    	}
 	    }
 	})
@@ -2021,7 +2094,7 @@ function zeroMQServerAction(action) {
 
 function convertServerFilterRules(rules) {
 	validOptions.forEach(function (type) {
-		container = "#Server" + type.ucfirst() + "Rules";
+		container = "#"+ modelContext + type.ucfirst() + "Rules";
 		if($(container).val() != '') rules[type] = JSON.parse($(container).val());
 	});
 	serverRuleUpdate();
@@ -2071,7 +2144,11 @@ function serverRuleCancel() {
 
 function serverRuleGenerateJSON() {
 	validOptions.forEach(function(type) {
-		$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+		if ($('#Server' + type.ucfirst() + "Rules").length) {
+			$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+		} else {
+			$('#Feed' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
+		}
 	});
 }
 
@@ -2185,5 +2262,73 @@ function filterAttributes(filter, id) {
 		error:function() {
 			showMessage('fail', 'Something went wrong - could not fetch attributes.');
 		}
+	});
+}
+
+function mergeOrganisationUpdate() {
+	var orgTypeOptions = ['local', 'external'];
+	var orgTypeSelects = ['OrganisationOrgsLocal', 'OrganisationOrgsExternal'];
+	orgType = orgTypeSelects[$('#OrganisationTargetType').val()];
+	orgID = $('#' + orgType).val();
+	org = orgArray[orgTypeOptions[$('#OrganisationTargetType').val()]][orgID]['Organisation'];
+	$('#org_id').text(org['id']);
+	$('#org_name').text(org['name']);
+	$('#org_uuid').text(org['uuid']);
+	$('#org_local').text(orgTypeOptions[$('#OrganisationTargetType').val()]);
+}
+
+function mergeOrganisationTypeToggle() {
+	if ($('#OrganisationTargetType').val() == 0) {
+		$('#orgsLocal').show();
+		$('#orgsExternal').hide();
+	} else {
+		$('#orgsLocal').hide();
+		$('#orgsExternal').show();
+	}
+}
+
+function feedDistributionChange() {
+	if ($('#FeedDistribution').val() == 4) $('#SGContainer').show();
+	else $('#SGContainer').hide();
+}
+
+function checkUserPasswordEnabled() {
+	if ($('#UserEnablePassword').is(':checked')) {
+		$('#PasswordDiv').show();
+	} else {
+		$('#PasswordDiv').hide();
+	}
+}
+
+function checkUserExternalAuth() {
+	if ($('#UserExternalAuthRequired').is(':checked')) {
+		$('#externalAuthDiv').show();
+		$('#passwordDivDiv').hide();
+	} else {
+		$('#externalAuthDiv').hide();
+		$('#passwordDivDiv').show();
+	}
+}
+
+function toggleSettingSubGroup(group) {
+	$('.subGroup_' + group).toggle();
+}
+
+function hoverModuleExpand(type, id) {
+	$('.popover').remove();
+	$.ajax({
+		success:function (html) {
+			$('.popover').remove();
+			$('#' + type + '_' + id + '_container').popover({
+				title: 'Lookup results:',
+				content: html,
+				placement: 'left',
+				html: true,
+				trigger: 'focus',
+				container: 'body'
+			}).popover('show');
+		}, 
+		cache: false,
+		url:"/" + type + "s/hoverEnrichment/" + id,
 	});
 }

@@ -1,4 +1,7 @@
 <div class="server index">
+	<?php if ($writeableFiles['Config/config.php'] != 0): ?>
+	<div class="bold" style="background-color:red;width:100%;color:white;"><span style="padding-left:10px;">Warning: app/Config/config.php is not writeable. This means that any setting changes made here will NOT be saved.</span></div>
+	<?php endif; ?>
 	<h2>Server settings</h2>
 	<?php
 		echo $this->element('healthElements/tabs');

@@ -115,13 +115,15 @@
 		<span id="multi-accept-button" title="Accept selected Proposals" class="icon-ok mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'acceptProposals');"></span>
 		<span id="multi-discard-button" title="Discard selected Proposals" class = "icon-remove mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'discardProposals');"></span>
 	</div>
-	<?php if ($mayModify): ?>
 	<div class="tabMenu tabMenuToolsBlock noPrint">
-		<span id="create-button" title="Populate using a template" class="icon-list-alt useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'templates', 'templateChoices');"></span>
-		<span id="freetext-button" title="Populate using the freetext import tool" class="icon-exclamation-sign useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'events', 'freeTextImport');"></span>
-		<span id="attribute-replace-button" title="Replace all attributes of a category/type combination within the event" class="icon-random useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'attributes', 'attributeReplace');"></span>	
+		<?php if ($mayModify): ?>
+			<span id="create-button" title="Populate using a template" class="icon-list-alt useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'templates', 'templateChoices');"></span>
+		<?php endif; ?>
+		<span id="freetext-button" title="Populate using the freetext import tool" class="icon-exclamation-sign icon-inverse useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'events', 'freeTextImport');"></span>
+		<?php if ($mayModify): ?>
+			<span id="attribute-replace-button" title="Replace all attributes of a category/type combination within the event" class="icon-random useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'attributes', 'attributeReplace');"></span>
+		<?php endif; ?>			
 	</div>
-	<?php endif; ?>
 	<div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
 		<span id="filter_header" class="attribute_filter_header">Filters: </span>
 		<div id="filter_all" title="Show all attributes" class="attribute_filter_text_active" onClick="filterAttributes('all', '<?php echo h($event['Event']['id']); ?>');">All</div>
@@ -129,6 +131,7 @@
 			<div id="filter_<?php echo $group; ?>" title="Only show <?php echo $group; ?> related attributes" class="attribute_filter_text" onClick="filterAttributes('<?php echo $group; ?>', '<?php echo h($event['Event']['id']); ?>');"><?php echo ucfirst($group); ?></div>
 		<?php endforeach; ?>
 		<div id="filter_proposal" title="Only show proposals" class="attribute_filter_text" onClick="filterAttributes('proposal', '<?php echo h($event['Event']['id']); ?>');">Proposal</div>
+		<div id="filter_correlation" title="Only show correlating attributes" class="attribute_filter_text" onClick="filterAttributes('correlation', '<?php echo h($event['Event']['id']); ?>');">Correlation</div>
 	</div>
 	<table class="table table-striped table-condensed">
 		<tr>
@@ -232,7 +235,8 @@
 									<?php echo h($object['type']); ?>
 								</div>
 							</td>
-							<td class="showspaces <?php echo $extra; ?> limitedWidth">
+							<td id="<?php echo h($currentType) . '_' . h($object['id']) . '_container'; ?>" class="showspaces <?php echo $extra; ?> limitedWidth">
+								<div <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'onMouseOver="hoverModuleExpand(\'' . $currentType . '\', \'' . $object['id'] . '\');";'?>>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<?php if ('attachment' === $object['type'] || 'malware-sample' === $object['type'] ): ?>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">
@@ -273,6 +277,7 @@
 										if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
 									?>
 								</div>
+								</div>
 							</td>
 							<td class="showspaces bitwider <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class = "inline-field-placeholder"></div>
@@ -283,13 +288,26 @@
 							<td class="shortish <?php echo $extra; ?>">
 								<ul class="inline" style="margin:0px;">
 									<?php 
-										if ($object['objectType'] == 0 && isset($event['RelatedAttribute'][$object['id']]) && (null != $event['RelatedAttribute'][$object['id']])) {
-											foreach ($event['RelatedAttribute'][$object['id']] as $relatedAttribute) {
-												echo '<li style="padding-right: 0px; padding-left:0px;" title ="' . h($relatedAttribute['info']) . '"><span>';
+										if ($object['objectType'] == 0) {
+											$relatedObject = 'Attribute';
+											$otherColour = $object['hasChildren'] == 0 ? 'blue' : 'white';
+										} else {
+											$relatedObject = 'ShadowAttribute';
+											$otherColour = 'white';
+										}
+										$relatedObject = $object['objectType'] == 0 ? 'Attribute' : 'ShadowAttribute';
+										if (isset($event['Related' . $relatedObject][$object['id']]) && (null != $event['Related' . $relatedObject][$object['id']])) {
+											foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute) {
+												$relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value']);
+												$popover = '';
+												foreach ($relatedData as $k => $v) {
+													$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+												}
+												echo '<li style="padding-right: 0px; padding-left:0px;"  data-toggle="popover" data-content="' . h($popover) . '" data-trigger="hover"><span>';
 												if ($relatedAttribute['org_id'] == $me['org_id']) {
-													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('style' => 'color:red;'));
+													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('class' => 'red'));
 												} else {
-													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']));
+													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('class' => $otherColour));
 												}
 												echo "</span></li>";
 												echo ' ';
@@ -340,10 +358,10 @@
 						?>
 						</span>
 						<span class="icon-thumbs-up useCursorPointer" onClick="addSighting('<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
-						<span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>"  data-toggle="popover" title="Sighting Details" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
+						<span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>"  data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
 							<?php echo (!empty($attributeSightings[$object['id']]) ? count($attributeSightings[$object['id']]) : 0); ?>
 						</span>
-						<span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold green sightingsCounter_<?php echo h($object['id']); ?>" data-toggle="popover" title="Sighting Details" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
+						<span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold green sightingsCounter_<?php echo h($object['id']); ?>" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
 							<?php echo '(' . (isset($attributeOwnSightings[$object['id']]) ? $attributeOwnSightings[$object['id']] : 0) . ')'; ?>
 						</span>
 						<?php 
@@ -357,9 +375,14 @@
 						<?php
 							if ($object['objectType'] == 0) {
 								if ($isSiteAdmin || !$mayModify):
+									if (isset($modules) && isset($modules['types'][$object['type']])):
+						?>
+							<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/ShadowAttribute');" title="Propose enrichment">&nbsp;</span>
+						<?php 
+									endif;
 						?>
 									<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-share useCursorPointer"></a>
-									<span class="icon-trash useCursorPointer" title="Propose Deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+									<span class="icon-trash useCursorPointer" title="Propose Deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
 						<?php 
 									if ($isSiteAdmin): 
 						?>
@@ -367,9 +390,14 @@
 						<?php 		endif;
 								endif;
 								if ($isSiteAdmin || $mayModify) {
+									if (isset($modules) && isset($modules['types'][$object['type']])):
+						?>
+							<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/Attribute');" title="Add enrichment">&nbsp;</span>
+						<?php 
+									endif;
 						?>
 							<a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
-							<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+							<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
 						<?php 			
 								}
 							} else {
@@ -422,6 +450,7 @@
         </ul>
     </div>
 <script type="text/javascript">
+	var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
 	$(document).ready(function(){
 		popoverStartup();
 		$('input:checkbox').removeAttr('checked');
@@ -433,6 +462,7 @@
 		$('.select_proposal, .select_all').click(function(){
 			attributeListAnyProposalCheckBoxesChecked();
 		});
+		
 	});
 </script>
 <?php 

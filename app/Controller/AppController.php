@@ -24,6 +24,7 @@
 
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
+App::uses('RequestRearrangeTool', 'Tools');
 
 /**
  * Application Controller
@@ -76,11 +77,11 @@ class AppController extends Controller {
 			'Security'
 	);
 	
-	public $mispVersion = '2.4.0';
 	
 	public function beforeFilter() {
 		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
-		$this->mispVersionFull = implode('.', array_values($versionArray));
+		$this->mispVersion = implode('.', array_values($versionArray));
+
 		$this->Security->blackHoleCallback = 'blackHole';
 
 		// Let us access $baseurl from all views
@@ -98,85 +99,91 @@ class AppController extends Controller {
 			if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
 		}
 		
-		// REST authentication
-		if ($this->_isRest() || $this->_isAutomation()) {
-			// disable CSRF for REST access
-			if (array_key_exists('Security', $this->components))
-				$this->Security->csrfCheck = false;
-			// Authenticate user with authkey in Authorization HTTP header
-			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
-				$found_misp_auth_key = false;
-				$authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
-				$user = false;
-				foreach ($authentication as $auth_key) {
-					if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
-						$found_misp_auth_key = true;
-						$temp = $this->checkAuthUser(trim($auth_key));
-						if ($temp) $user['User'] = $this->checkAuthUser(trim($auth_key));
-						continue;
+		$userLoggedIn = false;
+		if (Configure::read('Plugin.CustomAuth_enable')) $userLoggedIn = $this->__customAuthentication($_SERVER);
+		
+		if (!$userLoggedIn) {
+			// REST authentication
+			if ($this->_isRest() || $this->_isAutomation()) {
+				// disable CSRF for REST access
+				if (array_key_exists('Security', $this->components))
+					$this->Security->csrfCheck = false;
+				// Authenticate user with authkey in Authorization HTTP header
+				if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+					$found_misp_auth_key = false;
+					$authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
+					$user = false;
+					foreach ($authentication as $auth_key) {
+						if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
+							$found_misp_auth_key = true;
+							$temp = $this->checkAuthUser(trim($auth_key));
+							if ($temp) $user['User'] = $this->checkAuthUser(trim($auth_key));
+							continue;
+						}
 					}
-				}
-				if ($found_misp_auth_key) {
-					if ($user) {
-						unset($user['User']['gpgkey']);
-					    // User found in the db, add the user info to the session
-					    if (Configure::read('MISP.log_auth')) {
+					if ($found_misp_auth_key) {
+						if ($user) {
+							unset($user['User']['gpgkey']);
+						    // User found in the db, add the user info to the session
+						    if (Configure::read('MISP.log_auth')) {
+								$this->Log = ClassRegistry::init('Log');
+								$this->Log->create();
+								$log = array(
+										'org' => $user['User']['Organisation']['name'],
+										'model' => 'User',
+										'model_id' => $user['User']['id'],
+										'email' => $user['User']['email'],
+										'action' => 'auth',
+										'title' => 'Successful authentication using API key',
+										'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+								);
+								$this->Log->save($log);
+						    }
+						    $this->Session->renew();
+						    $this->Session->write(AuthComponent::$sessionKey, $user['User']);   
+						} else {
+							// User not authenticated correctly
+							// reset the session information
+							$this->Session->destroy();
 							$this->Log = ClassRegistry::init('Log');
 							$this->Log->create();
 							$log = array(
-									'org' => $user['User']['Organisation']['name'],
+									'org' => 'SYSTEM',
 									'model' => 'User',
-									'model_id' => $user['User']['id'],
-									'email' => $user['User']['email'],
-									'action' => 'auth',
-									'title' => 'Successful authentication using API key',
-									'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+									'model_id' => 0,
+									'email' => 'SYSTEM',
+									'action' => 'auth_fail',
+									'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
+									'change' => null,
 							);
 							$this->Log->save($log);
-					    }
-					    $this->Session->renew();
-					    $this->Session->write(AuthComponent::$sessionKey, $user['User']);   
-					} else {
-						// User not authenticated correctly
-						// reset the session information
-						$this->Session->destroy();
-						$this->Log = ClassRegistry::init('Log');
-						$this->Log->create();
-						$log = array(
-								'org' => 'SYSTEM',
-								'model' => 'User',
-								'model_id' => 0,
-								'email' => 'SYSTEM',
-								'action' => 'auth_fail',
-								'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
-								'change' => null,
-						);
-						$this->Log->save($log);
-						throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
+							throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
+						}
+						unset($user);
 					}
-					unset($user);
 				}
-			}
-			if ($this->Auth->user() == null) throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
-		} else if(!$this->Session->read(AuthComponent::$sessionKey)) {
-			// load authentication plugins from Configure::read('Security.auth')
-			$auth = Configure::read('Security.auth');
-			if($auth) {
-				$this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
-				if($this->Auth->startup($this)) {
-					$user = $this->Auth->user();
-					if ($user) {
-						unset($user['gpgkey']);
-						// User found in the db, add the user info to the session
-						$this->Session->renew();
-						$this->Session->write(AuthComponent::$sessionKey, $user);
+				if ($this->Auth->user() == null) throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
+			} else if(!$this->Session->read(AuthComponent::$sessionKey)) {
+				//throw new Exception();
+				// load authentication plugins from Configure::read('Security.auth')
+				$auth = Configure::read('Security.auth');
+				if($auth) {
+					$this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
+					if($this->Auth->startup($this)) {
+						$user = $this->Auth->user();
+						if ($user) {
+							unset($user['gpgkey']);
+							// User found in the db, add the user info to the session
+							$this->Session->renew();
+							$this->Session->write(AuthComponent::$sessionKey, $user);
+						}
+						unset($user);
 					}
-					unset($user);
 				}
+				unset($auth);
 			}
-			unset($auth);
 		}
-
+		$this->set('externalAuthUser', $userLoggedIn);
 		// user must accept terms
 		//
 		//grab the base path from our base url for use in the following checks
@@ -188,6 +195,15 @@ class AppController extends Controller {
 		}
 		
 		if ($this->Auth->user()) {
+			// update script
+			$this->{$this->modelClass}->runUpdates();
+			$user = $this->Auth->user();
+			if (!isset($user['force_logout']) || $user['force_logout']) {
+				$this->loadModel('User');
+				$this->User->id = $this->Auth->user('id');
+				$this->User->saveField('force_logout', false);
+				//$this->Session->destroy();
+			}
 			if ($this->Auth->user('disabled')) {
 				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
@@ -209,6 +225,8 @@ class AppController extends Controller {
 					$this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
 				}
 			}
+		} else {
+			if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
 		}
 		
 		// check if MISP is live
@@ -232,9 +250,11 @@ class AppController extends Controller {
 		}
 
 		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
 			$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 		}
 		if ($this->Session->check(AuthComponent::$sessionKey) && $this->Auth->user('change_pw') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			if ($this->_isRest()) throw new MethodNotAllowedException('Your user account is expecting a password change, please log in via the web interface and change it before proceeding.');
 			$this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
 		}
 		unset($base_dir);
@@ -244,7 +264,9 @@ class AppController extends Controller {
 		// getActions returns all the flags in a single SQL query
 		if ($this->Auth->user()) {
 			//$this->_refreshAuth();
-			$this->set('mispVersion', $this->mispVersion);
+			$versionArray = $this->{$this->modelClass}->checkMISPVersion();
+			$this->mispVersionFull = implode('.', array_values($versionArray));
+			$this->set('mispVersion', implode('.', array($versionArray['major'], $versionArray['minor'], 0)));
 			$this->set('mispVersionFull', $this->mispVersionFull);
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
@@ -260,37 +282,30 @@ class AppController extends Controller {
 			$this->set('isAclAuth', $role['perm_auth']);
 			$this->set('isAclRegexp', $role['perm_regexp_access']);
 			$this->set('isAclTagger', $role['perm_tagger']);
+			$this->set('isAclTagEditor', $role['perm_tag_editor']);
 			$this->set('isAclTemplate', $role['perm_template']);
 			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
 			$this->userRole = $role;
 		} else {
 			$this->set('me', false);
-			$this->set('isAdmin', false);
-			$this->set('isSiteAdmin', false);
-			$this->set('isAclAdd', false);
-			$this->set('isAclModify', false);
-			$this->set('isAclModifyOrg', false);
-			$this->set('isAclPublish', false);
-			$this->set('isAclSync', false);
-			$this->set('isAclAdmin', false);
-			$this->set('isAclAudit', false);
-			$this->set('isAclAuth', false);
-			$this->set('isAclRegexp', false);
-			$this->set('isAclTagger', false);
-			$this->set('isAclTemplate', false);
-			$this->set('isAclSharingGroup', false);
 		}
 		if (Configure::read('site_admin_debug') && $this->_isSiteAdmin() && (Configure::read('debug') < 2)) {
 				Configure::write('debug', 1);
 		}
 		$this->debugMode = 'debugOff';
 		if (Configure::read('debug') > 1) $this->debugMode = 'debugOn';
-		
+		$this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
 		$this->set('debugMode', $this->debugMode);
-		$proposalCount = $this->_getProposalCount();
-		$this->set('proposalCount', $proposalCount[0]);
-		$this->set('proposalEventCount', $proposalCount[1]);
-		$this->set('mispVersion', $this->mispVersion);
+		$notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+		$this->set('notifications', $notifications);
+	}
+	
+	private function __convertEmailToName($email) {
+		$name = explode('@', $email);
+		$name = explode('.', $name[0]);
+		foreach ($name as &$temp) $temp = ucfirst($temp);
+		$name = implode(' ', $name);
+		return $name;
 	}
 
 	public function blackhole($type) {
@@ -320,26 +335,6 @@ class AppController extends Controller {
 			if ($this->params['controller'] == $controllerName && in_array($this->params['action'], $controllerActions)) return true;
 		}
 		return false;
-	}
-
-	private function _getProposalCount() {
-		$this->loadModel('ShadowAttribute');
-		$this->ShadowAttribute->recursive = -1;
-		$shadowAttributes = $this->ShadowAttribute->find('all', array(
-				'recursive' => -1,
-				'fields' => array('event_id', 'event_org_id'),
-				'conditions' => array( 
-					'ShadowAttribute.event_org_id' => $this->Auth->user('org_id'),
-					'ShadowAttribute.deleted' => 0,
-		)));
-		$results = array();
-		$eventIds = array();
-		$results[0] = count($shadowAttributes);
-		foreach ($shadowAttributes as $sa) {
-			if (!in_array($sa['ShadowAttribute']['event_id'], $eventIds)) $eventIds[] = $sa['ShadowAttribute']['event_id'];
-		}
-		$results[1] = count($eventIds);
-		return $results;
 	}
 	
 /**
@@ -403,8 +398,15 @@ class AppController extends Controller {
  */
 	public function checkAuthUser($authkey) {
 		$this->loadModel('User');
-		$this->User->recursive = -1;
-		$user = $this->User->getAuthUser($authkey);
+		$user = $this->User->getAuthUserByUuid($authkey);
+		if (empty($user)) return false;
+		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
+		return $user;
+	}
+	
+	public function checkExternalAuthUser($authkey) {
+		$this->loadModel('User');
+		$user = $this->User->getAuthUserByExternalAuth($authkey);
 		if (empty($user)) return false;
 		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
 		return $user;
@@ -531,5 +533,85 @@ class AppController extends Controller {
 			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		}
+	}
+	
+	private function __preAuthException($message) {
+		$this->set('debugMode', (Configure::read('debug') > 1) ? 'debugOn' : 'debugOff');
+		$this->set('me', array());
+		throw new ForbiddenException($message);
+	}
+	
+	private function __customAuthentication(&$server) {
+		$result = false;
+		if (Configure::read('Plugin.CustomAuth_enable')) {
+			$header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
+			$header = strtoupper($header);
+			$authName = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
+			if (isset($server['HTTP_' . $header]) && !empty($server['HTTP_' . $header])) {
+				if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $server['REMOTE_ADDR']) {
+					$this->Log = ClassRegistry::init('Log');
+					$this->Log->create();
+					$log = array(
+							'org' => 'SYSTEM',
+							'model' => 'User',
+							'model_id' => 0,
+							'email' => 'SYSTEM',
+							'action' => 'auth_fail',
+							'title' => 'Failed authentication using external key (' . trim($server['HTTP_' . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $server['REMOTE_ADDR'],
+							'change' => null,
+					);
+					$this->Log->save($log);
+					$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
+				}
+				$temp = $this->checkExternalAuthUser($server['HTTP_' . $header]);
+				$user['User'] = $temp;
+				if ($user['User']) {
+					unset($user['User']['gpgkey']);
+					$this->Session->renew();
+					$this->Session->write(AuthComponent::$sessionKey, $user['User']);
+					if (Configure::read('MISP.log_auth')) {
+						$this->Log = ClassRegistry::init('Log');
+						$this->Log->create();
+						$log = array(
+							'org' => $user['User']['Organisation']['name'],
+							'model' => 'User',
+							'model_id' => $user['User']['id'],
+							'email' => $user['User']['email'],
+							'action' => 'auth',
+							'title' => 'Successful authentication using ' . $authName . ' key',
+							'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+						);
+						$this->Log->save($log);
+					}
+					$result = true;
+				} else {
+					// User not authenticated correctly
+					// reset the session information
+					$this->Session->destroy();
+					$this->Log = ClassRegistry::init('Log');
+					$this->Log->create();
+					$log = array(
+						'org' => 'SYSTEM',
+						'model' => 'User',
+						'model_id' => 0,
+						'email' => 'SYSTEM',
+						'action' => 'auth_fail',
+						'title' => 'Failed authentication using external key (' . trim($server['HTTP_' . $header]) . ')',
+						'change' => null,
+					);
+					$this->Log->save($log);
+					$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
+				}
+			}
+		}
+		return $result;
+	}
+	
+	public function cleanModelCaches() {
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
+		$this->LoadModel('Server');
+		$this->Server->cleanCacheFiles();
+		$this->Session->setFlash('Caches cleared.');
+		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));
 	}
 }

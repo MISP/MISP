@@ -11,7 +11,7 @@
 					else echo $this->Html->tag('span', h($template['Template']['org']), array('class' => 'welcome', 'style' => 'float:left;'));
 				?>
 				</div>
-				<div><span style="position:relative;left:-12px;"><?php echo h($template['Template']['name']);?></span></div>
+				<div><span style="position:relative;left:-12px;"><?php echo h($template['Template']['name']);?>&nbsp;</span></div>
 			</div>
 		<?php endforeach; ?>
 	</div>

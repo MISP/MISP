@@ -27,7 +27,7 @@
  * - "change"   	[string] : depending on setting either :
  * [name (alek) => (Alek), age (28) => (29)] or [name, age]
  *
- * - "version_id"	[int]	 : cooperates with RevisionBehavior to link the the shadow table (thus linking to old data)
+ * - "version_id"	[int]	 : cooperates with RevisionBehavior to link the shadow table (thus linking to old data)
  *
  * Remember that Logable behavior needs to be added after RevisionBehavior. In fact, just put it last to be safe.
  *

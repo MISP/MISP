@@ -58,7 +58,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
 			}
 		?>
 		<td>
-			<span data-toggle="popover" title="Distribution List" data-content="<?php echo $combined; ?>">
+			<span data-toggle="popover" data-trigger="hover" title="Distribution List" data-content="<?php echo $combined; ?>">
 				<?php echo h($sharingGroup['SharingGroup']['releasability']); ?>
 			</span>
 		</td>

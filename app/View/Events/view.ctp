@@ -1,26 +1,24 @@
 <?php
-$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
-$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-if (Configure::read('Plugin.Sightings_enable')) {
-	$sightingPopover = '';
-	if (isset($event['Sighting']) && !empty($event['Sighting'])) {
-		$ownSightings = array();
-		$orgSightings = array();
-		foreach ($event['Sighting'] as $sighting) {
-			if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
-			if (isset($sighting['org_id'])) {
-				if (isset($orgSightings[$sighting['Organisation']['name']])) $orgSightings[$sighting['Organisation']['name']]++;
-				else $orgSightings[$sighting['Organisation']['name']] = 1;
-			} else {
-				if (isset($orgSightings['Other organisations'])) $orgSightings['Other organisations']++;
-				else $orgSightings['Other organisations'] = 1;
+	$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
+	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
+	if (Configure::read('Plugin.Sightings_enable')) {
+		$sightingPopover = '';
+		if (isset($event['Sighting']) && !empty($event['Sighting'])) {
+			$ownSightings = array();
+			$orgSightings = array();
+			foreach ($event['Sighting'] as $sighting) {
+				if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
+				if (isset($sighting['org_id'])) {
+					if (isset($orgSightings[$sighting['Organisation']['name']])) $orgSightings[$sighting['Organisation']['name']]++;
+					else $orgSightings[$sighting['Organisation']['name']] = 1;
+				} else {
+					if (isset($orgSightings['Other organisations'])) $orgSightings['Other organisations']++;
+					else $orgSightings['Other organisations'] = 1;
+				}
 			}
+			foreach ($orgSightings as $org => $sightingCount) $sightingPopover .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green\'>' . h($sightingCount) . '</span><br />';
 		}
-		foreach ($orgSightings as $org => $sightingCount) $sightingPopover .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green\'>' . h($sightingCount) . '</span><br />';
 	}
-}
-?>
-<?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
 ?>
 <div class="events view">
@@ -94,7 +92,7 @@ if (Configure::read('Plugin.Sightings_enable')) {
 					?>
 					&nbsp;
 				</dd>
-				<?php if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org'] == $event['Event']['org']))): ?>
+				<?php if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))): ?>
 				<dt>Email</dt>
 				<dd>
 					<?php echo h($event['User']['email']); ?>
@@ -105,7 +103,7 @@ if (Configure::read('Plugin.Sightings_enable')) {
 					if (Configure::read('MISP.tagging')): ?>
 						<dt>Tags</dt>
 						<dd class="eventTagContainer">
-							<?php echo $this->element('ajaxTags', array('event' => $event, 'tags' => $event['EventTag'])); ?>
+							<?php echo $this->element('ajaxTags', array('event' => $event, 'tags' => $event['EventTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
 						</dd>
 				<?php endif; ?>
 				<dt>Date</dt>
@@ -143,6 +141,8 @@ if (Configure::read('Plugin.Sightings_enable')) {
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
 				</dd>
+				<dt class="<?php echo ($event['Event']['published'] == 0) ? (($isAclPublish && $me['org_id'] == $event['Event']['orgc_id']) ? 'background-red bold' : 'bold') : 'bold'; ?>">Published</dt>
+				<dd class="<?php echo ($event['Event']['published'] == 0) ? (($isAclPublish && $me['org_id'] == $event['Event']['orgc_id']) ? 'background-red bold' : 'red bold') : 'green bold'; ?>"><?php echo ($event['Event']['published'] == 0) ? 'No' : 'Yes'; ?></dd>
 				<?php 
 					$dtclass='published';
 					$ddclass='published green';
@@ -160,10 +160,22 @@ if (Configure::read('Plugin.Sightings_enable')) {
 				<?php if (Configure::read('Plugin.Sightings_enable')): ?>
 				<dt>Sightings</dt>
 				<dd style="word-wrap: break-word;">
-						<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" title="Sighting Details" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
-						(<span id="eventOwnSightingCount" class="green bold sightingsCounter" data-toggle="popover" title="Sighting Details" data-content="<?php echo $sightingPopover; ?>"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
+						<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
+						(<span id="eventOwnSightingCount" class="green bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
 						<?php if(!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'; ?>
 				</dd>
+				<?php endif;
+					if (!empty($delegationRequest)): 
+						if ($isSiteAdmin || $me['org_id'] == $delegationRequest['EventDelegation']['org_id']) {
+							$target = $isSiteAdmin ? $delegationRequest['Org']['name'] : 'you';
+							$subject = $delegationRequest['RequesterOrg']['name'] . ' has';
+						} else {
+							$target = $delegationRequest['Org']['name'];
+							$subject = 'You have';
+						}
+				?>
+					<dt class="background-red bold">Delegation request</dt>
+					<dd class="background-red bold"><?php echo h($subject);?> requested that <?php echo h($target)?> take over this event. (<a href="#" style="color:white;" onClick="genericPopup('<?php echo $baseurl;?>/eventDelegations/view/<?php echo h($delegationRequest['EventDelegation']['id']);?>', '#confirmation_box');">View request details</a>)</dd>
 				<?php endif;?>
 			</dl>
 		</div>
@@ -173,7 +185,14 @@ if (Configure::read('Plugin.Sightings_enable')) {
 		<ul class="inline">
 			<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
 			<li>
-			<div title="<?php echo h($relatedEvent['Event']['info']); ?>">
+			<?php 
+			$relatedData = array('Orgc' => $relatedEvent['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
+			$popover = '';
+			foreach ($relatedData as $k => $v) {
+				$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />'; 
+			}
+			?>
+			<div data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover">
 			<?php
 			$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
 			if ($relatedEvent['Event']['org_id'] == $me['org_id']) {

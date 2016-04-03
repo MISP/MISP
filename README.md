@@ -21,8 +21,10 @@ MISP, Malware Information Sharing Platform and Threat Sharing, core functionalit
 - Flexible **free text import** tool to ease the integration of unstructured reports into MISP.
 - A gentle system to **collaborate** on events and attributes allowing MISP users to propose changes or updates to attributes/indicators.
 - **data-sharing**: automatically exchange and synchronization with other parties and trust-groups using MISP.
+- **delegating of sharing**: allows a simple pseudo-anonymous mechanism to delegate publication of event/indicators to another organization.
 - Flexible **API** to integrate MISP with your own solutions. MISP is bundled with [PyMISP](https://github.com/MISP/PyMISP) which is a flexible Python Library to fetch, add or update events attributes, handle malware samples or search for attributes.
 - **Adjustable taxonomy** to classify and tag events following your own classification schemes or [existing classification](https://github.com/MISP/misp-taxonomies). The taxonomy can be local to your MISP but also shareable among MISP instances.
+- **Expansion modules in Python** to expand MISP with your own services or activate already available [misp-modules](https://github.com/MISP/misp-modules).
 - **STIX support**: export data in the STIX format (XML and JSON).
 
 Exchanging info results in *faster detection* of targeted attacks and improves the detection ratio while reducing the false positives. We also avoid reversing similar malware as we know very fast that others team or organizations who already analyzed a specific malware.
@@ -42,11 +44,14 @@ Website / Support
 
 Checkout the [website](http://www.misp-project.org) for more information about MISP like [features](http://www.misp-project.org/#features), [roadmap](http://www.misp-project.org/#roadmap), <small>(commercial)</small> [support](http://www.misp-project.org/#support), ... : http://misp-project.org
 
+Information, news and updates are also regularly posted on the [MISP project twitter account](https://twitter.com/MISPProject).
 
 Documentation
 -------------
 
 [MISP user-guide](https://github.com/MISP/misp-book) is available [online](https://www.circl.lu/doc/misp/) or as [PDF](https://www.circl.lu/doc/misp/book.pdf) or as [EPUB](https://www.circl.lu/doc/misp/book.epub) or as [MOBI/Kindle](https://www.circl.lu/doc/misp/book.mobi).
+
+For installation guide see [INSTALL](https://github.com/MISP/MISP/tree/2.4/INSTALL)
 
 Contributing
 ------------
@@ -59,6 +64,11 @@ There are 2 branches:
 
 - develop: (very active development) new features and improvements.
 - 2.4 (current stable version): what we consider as stable with frequent updates as hot-fixes.
+
+Feature Request
+---------------
+
+[![Feature Requests](http://feathub.com/MISP/MISP?format=svg)](http://feathub.com/MISP/MISP)
 
 License
 -------

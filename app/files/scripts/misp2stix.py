@@ -99,6 +99,7 @@ non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', '
 def loadEvent(args, pathname):
     try:
         filename = pathname + "/tmp/" + args[1]
+        #filename = "tmp/" + args[1]
         tempFile = open(filename, 'r')
         events = json.loads(tempFile.read())
         return events
@@ -109,6 +110,7 @@ def loadEvent(args, pathname):
 def saveFile(args, pathname, package):
     try:
         filename = pathname + "/tmp/" + args[1] + ".out"
+        #filename = "test.out"
         with open(filename, 'w') as f:
             if args[2] == 'json':
                 f.write(package.to_json())
@@ -182,11 +184,6 @@ def resolveAttributes(incident, ttps, attributes):
         else:
             #types that may become indicators
             handleIndicatorAttribute(incident, ttps, attribute)
-    if incident.related_indicators and not ttps:
-        ttp = TTP(timestamp=incident.timestamp)
-        ttp.id_= incident.id_.replace("incident","ttp")
-        ttp.title = "Unknown"
-        ttps.append(ttp)
     for rindicator in incident.related_indicators:
         for ttp in ttps:
             ittp=TTP(idref=ttp.id_, timestamp=ttp.timestamp)
@@ -253,6 +250,11 @@ def generateTTP(incident, attribute, ttps):
         vulnerability = Vulnerability()
         vulnerability.cve_id = attribute["value"]
         et = ExploitTarget(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
+        et.id_= namespace[1] + ":et-" + attribute["uuid"]
+        if attribute["comment"] != "" and attribute["comment"] != "Imported via the freetext import.":
+            et.title = attribute["comment"]
+        else:
+            et.title = "Vulnerability " + attribute["value"]
         et.add_vulnerability(vulnerability)
         ttp.exploit_targets.append(et)
     else:

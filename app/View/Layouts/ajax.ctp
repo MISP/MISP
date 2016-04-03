@@ -17,6 +17,6 @@
  */
 ?>
 <?php 
-echo $this->Html->css('bootstrap');
-echo $this->Html->css('main');
+//echo $this->Html->css('bootstrap');
+//echo $this->Html->css('main');
 echo $content_for_layout; ?>
