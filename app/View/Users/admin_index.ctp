@@ -50,6 +50,7 @@
 			<th><?php echo $this->Paginator->sort('autoalert');?></th>
 			<th><?php echo $this->Paginator->sort('contactalert');?></th>
 			<th><?php echo $this->Paginator->sort('gpgkey');?></th>
+      <th><?php echo $this->Paginator->sort('certif_public');?></th>
 			<th><?php echo $this->Paginator->sort('nids_sid');?></th>
 			<th><?php echo $this->Paginator->sort('termsaccepted');?></th>
 			<th><?php echo $this->Paginator->sort('current_login', 'Last login');?></th>
@@ -83,6 +84,8 @@
 			<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 			<?php echo $user['User']['gpgkey']? 'Yes' : 'No'; ?>&nbsp;</td>
 			<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
+	    <?php echo $user['User']['certif_public']? 'Yes' : 'No'; ?>&nbsp;</td>
+  	  <td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 			<?php echo h($user['User']['nids_sid']); ?>&nbsp;</td>
 			<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 			<?php
