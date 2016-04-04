@@ -259,6 +259,7 @@ class AppSchema extends CakeSchema {
 		'authkey' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 40, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'invited_by' => array('type' => 'integer', 'null' => false, 'default' => null),
 		'gpgkey' => array('type' => 'text', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'certif_public' => array('type' => 'text', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'nids_sid' => array('type' => 'integer', 'null' => false, 'default' => null, 'length' => 15),
 		'termsaccepted' => array('type' => 'boolean', 'null' => false, 'default' => null),
 		'newsread' => array('type' => 'date', 'null' => false, 'default' => null),
