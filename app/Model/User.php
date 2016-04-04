@@ -142,6 +142,16 @@ class User extends AppModel {
 				'message' => 'GPG key not valid, please enter a valid key.',
 			),
 		),
+    'certif_public' => array(
+      'notempty' => array(
+        'rule' => array('validateCertificate'),
+        'message' => 'Certificate not valid, please enter a valid certificate (x509).',
+        //'allowEmpty' => false,
+        //'required' => false,
+        //'last' => false, // Stop validation after this rule
+        //'on' => 'create', // Limit validation to 'create' or 'update' operations
+      ),
+    ),
 		'nids_sid' => array(
 			'numeric' => array(
 				'rule' => array('numeric'),
@@ -312,6 +322,75 @@ class User extends AppModel {
 		}
 	}
 
+/**
+ * Checks if the certificate is a valid x509 certificate
+ * But also import it in the keychain.
+ */
+  // TODO: this will NOT fail on keys that can only be used for signing but not encryption!
+  // the method in verifyUsers will fail in that case.
+  public function validateCertificate($check) {
+    // LATER first remove the old certif_public from the keychain
+    $this->log('validateCertificate', 'debug');
+    // empty value
+    if (empty($check['certif_public'])) {
+      return true;
+    }
+
+    // certif_public is entered
+
+    // Check if $check is a x509 certificate ?
+    if (openssl_x509_read($check['certif_public'])){
+      $this->log('openssl_x509_read is good', 'debug');
+      try{
+        $msg_test = tempnam('/dev/shm/', 'SMIME');
+        $fp = fopen($msg_test, "w");
+        $test = 'test';
+        fwrite($fp, $test);
+        fclose($fp);
+        $msg_test_encrypted = tempnam('/dev/shm/', 'SMIME');
+        $this->log($msg_test, 'debug');
+        $this->log($msg_test_encrypted, 'debug');
+        $this->log($check['certif_public'], 'debug');
+        $this->log($this->validate['certif_public']['notempty']['message'], 'debug');
+        // encrypt it
+        if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $check['certif_public'], null, 0, OPENSSL_CIPHER_AES_256_CBC)){
+          $this->log('openssl_pkcs7_encrypt good -- validateCertificate', 'debug');
+          $parse = openssl_x509_parse($check['certif_public']);
+          // Valid certificate ?
+          $now = new DateTime("now");
+          $validTo_time_t_epoch = $parse['validTo_time_t'];
+          $validTo_time_t = new DateTime("@$validTo_time_t_epoch");
+          if ($validTo_time_t > $now){
+            $this->log('openssl_pkcs7_encrypt good -- validateCertificate IS VALID -- $validTo_time_t', 'debug');
+            // purposes smimeencrypt ?
+            if (($parse['purposes'][5][0] == 1) and ($parse['purposes'][5][2] == 'smimeencrypt')){
+              $this->log('openssl_pkcs7_encrypt good -- validateCertificate purposes is GOOD', 'debug');
+              return true;
+            } else {
+              $this->log('openssl_pkcs7_encrypt good -- validateCertificate purposes is NOT GOOD', 'debug');
+              $this->log($this->validate['certif_public']['notempty']['message'], 'debug');
+              return 'This certificate cannot be used to encrypt email';
+            }
+          } else {
+            $this->log('openssl_pkcs7_encrypt good -- validateCertificate expired', 'debug');
+            return 'This certificate is expired';
+          }
+        } else{
+          $this->log('openssl_pkcs7_encrypt NOT good -- validateCertificate', 'debug');
+          return false;
+        }
+      } catch (Exception $e){
+        $this->log($e->getMessage());
+      }
+      unlink($msg_test);
+      unlink($msg_test_encrypted);
+    }
+    else{
+      $this->log('openssl_x509_read is NOT good', 'debug');
+      return false;
+    }
+  }	
+
 	public function passwordLength($check) {
 		$length = Configure::read('Security.password_policy_length');
 		if (empty($length) || $length < 0) $length = 6;
@@ -451,6 +530,67 @@ class User extends AppModel {
 		}
 		return $results;
 	}
+
+  public function verifyCertificate() {
+    $this->log('verifyCertificate -- Model/User', 'debug');
+    $this->Behaviors->detach('Trim');
+    $results = array();
+    $users = $this->find('all', array(
+      'conditions' => array('not' => array('certif_public' => '')),
+      //'fields' => array('id', 'email', 'gpgkey'),
+      'recursive' => -1,
+    ));
+    foreach ($users as $k => $user) {
+      $certif_public = $user['User']['certif_public'];
+      $this->log('foreach -- Model/User', 'debug');
+      $this->log($certif_public, 'debug');
+      try{
+        $msg_test = tempnam('/dev/shm/', 'SMIME');
+        $fp = fopen($msg_test, "w");
+        $test = 'test';
+        fwrite($fp, $test);
+        fclose($fp);
+        $msg_test_encrypted = tempnam('/dev/shm/', 'SMIME');
+        $this->log($msg_test, 'debug');
+        $this->log($msg_test_encrypted, 'debug');
+        $this->log($certif_public, 'debug');
+        // encrypt it
+        if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $certif_public, null, 0, OPENSSL_CIPHER_AES_256_CBC)){
+          $this->log('openssl_pkcs7_encrypt good -- Model/User', 'debug');
+          $parse = openssl_x509_parse($certif_public);
+          // Valid certificate ?
+          $now = new DateTime("now");
+          $validTo_time_t_epoch = $parse['validTo_time_t'];
+          $validTo_time_t = new DateTime("@$validTo_time_t_epoch");
+          if ($validTo_time_t > $now){
+            $this->log('openssl_pkcs7_encrypt good -- Model/User IS VALID -- $validTo_time_t', 'debug');
+            // purposes smimeencrypt ?
+            if (($parse['purposes'][5][0] == 1) and ($parse['purposes'][5][2] == 'smimeencrypt')){
+              $this->log('openssl_pkcs7_encrypt good -- Model/User purposes is GOOD', 'debug');
+            } else {
+              $this->log('openssl_pkcs7_encrypt good -- Model/User purposes is NOT GOOD', 'debug');
+              $results[$user['User']['id']][0] = true;
+            }
+          } else {
+            $this->log('openssl_pkcs7_encrypt good -- Model/User expired', 'debug');
+            $results[$user['User']['id']][0] = true;
+          }
+        } else{
+          $this->log('openssl_pkcs7_encrypt NOT good -- Model/User', 'debug');
+          $results[$user['User']['id']][0] = true;
+        }
+        $results[$user['User']['id']][1] = $user['User']['email'];
+      } catch (Exception $e){
+        $this->log($e->getMessage());
+      }
+      unlink($msg_test);
+      unlink($msg_test_encrypted);
+    }
+    $this->log('verifyCertificate -- end', 'debug');
+    $this->log($results, 'debug');
+    return $results;
+  }
+
 	
 	public function getPGP($id) {
 		$result = $this->find('first', array(
@@ -460,6 +600,15 @@ class User extends AppModel {
 		));
 		return $result['User']['gpgkey'];
 	}
+
+  public function getCertificate($id) {
+    $result = $this->find('first', array(
+      'recursive' => -1,
+      'fields' => array('id', 'certif_public'),
+      'conditions' => array('id' => $id),
+    ));
+    return $result['User']['certif_public'];
+  }
 	
 	// get the current user and rearrange it to be in the same format as in the auth component
 	public function getAuthUser($id) {
@@ -538,7 +687,7 @@ class User extends AppModel {
 		$users = $this->find('all', array(
 			'conditions' => $conditions,
 			'recursive' => -1,
-			'fields' => array('id', 'email', 'gpgkey', 'org_id'),
+			'fields' => array('id', 'email', 'gpgkey', 'certif_public', 'org_id'),
 			'contain' => array('Role' => array('fields' => array('perm_site_admin'))),
 		));
 		foreach ($users as &$user) {
@@ -570,45 +719,50 @@ class User extends AppModel {
 		$failed = false;
 		$failureReason = "";
 		// check if the e-mail can be encrypted
-		$canEncrypt = false;
-		if (isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey'])) $canEncrypt = true;
-		
+		$canEncryptGPG = false;
+		if (isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey'])) $canEncryptGPG = true;
+		$canEncryptSMIME = false;
+    if (isset($user['User']['certif_public']) && !empty($user['User']['certif_public'])) $canEncryptSMIME = true;
+	
 		// If bodyonlencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
-		if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncrypt && $bodyNoEnc) {
+		if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSMIME && $canEncryptGPG && $bodyNoEnc) {
 			$body = $bodyNoEnc;
 		}
 		$body = str_replace('\n', PHP_EOL, $body);
-		// Sign the body
-		require_once 'Crypt/GPG.php';
-		try {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));	// , 'debug' => true
-			$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-			$body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-		} catch (Exception $e) {
-			$failureReason = " the message could not be signed. The following error message was returned by gpg: " . $e->getMessage();
-			$this->log($e->getMessage());
-			$failed = true;
+
+		if ($canEncryptGPG){
+			// Sign the body
+			require_once 'Crypt/GPG.php';
+			try {
+				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));	// , 'debug' => true
+				$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+				$body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+			} catch (Exception $e) {
+				$failureReason = " the message could not be signed. The following error message was returned by gpg: " . $e->getMessage();
+				$this->log($e->getMessage());
+				$failed = true;
+			}
 		}
-		
+		$Email = new CakeEmail();	
 		// If we cannot encrypt the mail and the server settings restricts sending unencrypted messages, return false 
-		if (!$failed && !$canEncrypt && Configure::read('GnuPG.onlyencrypted')) {
+		if (!$failed && (!$canEncryptGPG && Configure::read('GnuPG.onlyencrypted')) && (!$canEncryptSMIME && Configure::read('SMIME.onlyencrypted'))) {
 			$failed = true;
 			$failureReason = " encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.";
 		}
 		
 		// Let's encrypt the message if we can
-		if (!$failed && $canEncrypt) {
+		if (!$failed && $canEncryptGPG) {
 			$keyImportOutput = $gpg->importKey($user['User']['gpgkey']);
 			try {
 				$key = $gpg->getKeys($keyImportOutput['fingerprint']);
 				$subKeys = $key[0]->getSubKeys();
-				$canEncrypt = false;
+				$canEncryptGPG = false;
 				$currentTimestamp = time();
 				foreach ($subKeys as $subKey) {
 					$expiration = $subKey->getExpirationDate();
-					if (($expiration == 0 || $currentTimestamp < $expiration) && $subKey->canEncrypt()) $canEncrypt = true;
+					if (($expiration == 0 || $currentTimestamp < $expiration) && $subKey->canEncrypt()) $canEncryptGPG = true;
 				}
-				if ($canEncrypt) {
+				if ($canEncryptGPG) {
 					$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
 					$body = $gpg->encrypt($body, true);
 				} else {
@@ -622,15 +776,84 @@ class User extends AppModel {
 				$failed = true;
 			}
 		}
+    // SMIME if not GPG key
+    if (!$failed && !$canEncryptGPG && $canEncryptSMIME) {
+      try {
+        // save message to file
+        // Dirty !!!!
+        $msg = tempnam('/dev/shm/', 'SMIME');
+        $fp = fopen($msg, "w");
+        fwrite($fp, $body);
+        fclose($fp);
+        $signed = tempnam('/dev/shm/', 'SMIME');
+        // sign it
+        if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(), PKCS7_TEXT)){
+          $this->log('sign YES', 'debug');
+          $fp = fopen($signed, "r");
+          $bodySigned = fread($fp, filesize($signed));
+          fclose($fp);
+          unlink($msg);
+          unlink($signed);
+        } else{
+          $this->log('sign No', 'debug');
+          $this->log('SMIME.cert_public_sign', 'debug');
+          $this->log(Configure::read('SMIME.cert_public_sign'), 'debug');
+          $this->log(Configure::read('SMIME.key_sign'), 'debug');
+        }
+        // save message to file
+        // Dirty !!!!
+        $msg_signed = tempnam('/dev/shm/', 'SMIME');
+        $fp = fopen($msg_signed, "w");
+        fwrite($fp, $bodySigned);
+        fclose($fp);
+        $msg_signed_encrypted = tempnam('/dev/shm/', 'SMIME');
+        $this->log('$msg_signed -- 1', 'debug');
+        $this->log($msg_signed, 'debug');
+        $headers_smime = array("To" => $user['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => $subject);
+        $this->log($headers_smime, 'debug');
+        // encrypt it
+        if (openssl_pkcs7_encrypt($msg_signed, $msg_signed_encrypted, $user['User']['certif_public'], $headers_smime, 0, OPENSSL_CIPHER_AES_256_CBC)){
+          $this->log('encrypt YES', 'debug');
+          $fp = fopen($msg_signed_encrypted, 'r');
+          $bodyEncSig = fread($fp, filesize($msg_signed_encrypted));
+          fclose($fp);
+          unlink($msg_signed);
+          unlink($msg_signed_encrypted);
+          //$this->log('$bodyEncSig -- 1', 'debug');
+          //$this->log($bodyEncSig,'debug');
+          $parts = explode("\n\n", $bodyEncSig);
+          $bodyEncSig = $parts[1];
+          // SMIME transport (hardcoded headers
+          $Email = $Email->transport('Smime');
+          $body = $bodyEncSig;
+          //$Email->send($bodyEncSig);
+        } else{
+          $this->log('encrypt No', 'debug');
+          $this->log('SMIME.cert_public_sign', 'debug');
+          $this->log(Configure::read('SMIME.cert_public_sign'), 'debug');
+          $this->log(Configure::read('SMIME.key_sign'), 'debug');
+          $this->log(Configure::read('SMIME.password'), 'debug');
+        }
+      } catch (Exception $e) {
+        // despite the user having a certificate. This must mean that there is an issue with the user's certificate.
+        $failureReason = " the message could not be encrypted because there was an issue with the user's public certificate. The following error message was returned by openssl: " . $e->getMessage();
+        $this->log($e->getMessage());
+        $failed = true;
+      }
+		}
 		$replyToLog = '';
 		if (!$failed) {
-			$Email = new CakeEmail();
+			//$Email = new CakeEmail(); --> declared below (needed in the SMIME part (headers)
 			
 			// If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender
 			// For this reason we should also attach the public key of the sender along with the message (if applicable)
 			if ($replyToUser != false) {
 				$Email->replyTo($replyToUser['User']['email']);
-				if (!empty($replyToUser['User']['gpgkey'])) $Email->attachments(array('gpgkey.asc' => array('data' => $replyToUser['User']['gpgkey'])));
+				if (!empty($replyToUser['User']['gpgkey'])) {
+					$Email->attachments(array('gpgkey.asc' => array('data' => $replyToUser['User']['gpgkey'])));
+				} elseif (!empty($replyToUser['User']['certif_public'])) {
+					$Email->attachments(array($replyToUser['User']['email'] . '.pem' => array('data' => $replyToUser['User']['certif_public'])));
+				}
 				$replyToLog = 'from ' . $replyToUser['User']['email'];
 			}
 			$Email->from(Configure::read('MISP.email'));
