@@ -37,7 +37,15 @@ $config = array (
     'homedir' => '',
     'password' => '',
     'bodyonlyencrypted' => false,
-  ),
+	),
+  'SMIME' => 
+  array (
+    'onlyencrypted' => false,
+    'email' => 'email@address.com',
+    'cert_public_sign' => '/var/www/MISP/.smime/email@address.com.pem',
+    'key_sign' => '/var/www/MISP/.smime/email@address.com.key',
+    'password' => 'XXXXXXXXXXXXXXXXXXXXXX',
+	),
   'Proxy' =>
   array (
     'host' => '',
