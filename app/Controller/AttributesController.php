@@ -2305,6 +2305,7 @@ class AttributesController extends AppController {
 							$resultArray[] = array($type => $v);
 						}
 					} else if ($r['values'] == null) $resultArray[] = array($type => 'No result');
+					else $resultArray[] = array($type => $r['values']);
 				}
 			}
 		}
