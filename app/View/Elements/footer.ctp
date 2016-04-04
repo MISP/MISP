@@ -9,6 +9,12 @@
 					<span>Download: <?php echo $this->Html->link('PGP/GPG key', $this->webroot.'gpg.asc');?></span>
 				<?php }else{ ?>
 					<span>Could not locate the PGP/GPG public key.</span>
+				<?php }
+				$smimepath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'public_certificate.pem';
+				if(file_exists($smimepath) && is_file($smimepath)){ ?>
+					<span>Download: <?php echo $this->Html->link('Certificate (Encipherment)', $this->webroot.'public_certificate.pem');?></span>
+				<?php }else{ ?>
+					<span>Could not locate the Certificate (Encipherment).</span>
 				<?php } ?>
 			</div>
 			<div class = "footerText footerCenterText">
