@@ -84,6 +84,7 @@ class AppModel extends Model {
 	
 	private function __addNewFeeds($feeds) {
 		$this->Feed = ClassRegistry::init('Feed');
+		$this->Log = ClassRegistry::init('Log');
 		$feedNames = array();
 		foreach ($feeds as &$feed) $feedNames[] = $feed['name'];
 		$feedNames = implode(', ', $feedNames);
