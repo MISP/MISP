@@ -1638,13 +1638,13 @@ class Event extends AppModel {
 			$orgMembers = array();
 			$this->User->recursive = 0;
 			$temp = $this->User->find('all', array(
-					'fields' => array('email', 'gpgkey', 'contactalert', 'id', 'org_id'),
+					'fields' => array('email', 'gpgkey', 'certif_public', 'contactalert', 'id', 'org_id'),
 					'conditions' => array('disabled' => 0, 'User.org_id' => $event['Event']['orgc_id']),
 					'recursive' => -1
 			));
 			if (empty($temp)) {
 				$temp = $this->User->find('all', array(
-						'fields' => array('email', 'gpgkey', 'contactalert', 'id', 'org_id'),
+						'fields' => array('email', 'gpgkey', 'certif_public', 'contactalert', 'id', 'org_id'),
 						'conditions' => array('disabled' => 0, 'User.org_id' => $event['Event']['org_id']),
 						'recursive' => -1
 				));
@@ -1657,7 +1657,7 @@ class Event extends AppModel {
 		} else {
 			$temp = $this->User->find('first', array(
 					'conditions' => array('User.id' => $event['Event']['user_id'], 'User.disabled' => 0),
-					'fields' => array('User.email', 'User.gpgkey'),
+					'fields' => array('User.email', 'User.gpgkey', 'User.certif_public'),
 			));
 			if (!empty($temp)) $orgMembers = array(0 => $temp);
 		}
@@ -1671,6 +1671,8 @@ class Event extends AppModel {
 		$body .= "You can reach him at " . $user['User']['email'] . "\n";
 		if (!$user['User']['gpgkey'])
 			$body .= "His GPG/PGP key is added as attachment to this email. \n";
+    if (!$user['User']['certif_public'])
+			$body .= "His Public certificate is added as attachment to this email. \n";
 		$body .= "\n";
 		$body .= "He wrote the following message: \n";
 		$body .= $message . "\n";
