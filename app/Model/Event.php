@@ -1934,7 +1934,7 @@ class Event extends AppModel {
 			// user.org == event.org
 			// edit timestamp newer than existing event timestamp
 			if (!isset($data['Event']['timestamp'])) $data['Event']['timestamp'] = $date;
-			if ($data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+			if ($data['Event']['timestamp'] >= $existingEvent['Event']['timestamp']) {
 				if ($data['Event']['distribution'] == 4) {
 					if (!isset($data['Event']['SharingGroup'])) {
 						if (!isset($data['Event']['sharing_group_id'])) return(array('error' => 'Event could not be saved: Sharing group chosen as the distribution level, but no sharing group specified. Make sure that the event includes a valid sharing_group_id or change to a different distribution level.'));
